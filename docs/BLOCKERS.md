@@ -8238,6 +8238,18 @@ R690 我用一个全局替换把三份记录里**所有**「反斜杠 + 反引�
 现在有了 git，但那次破坏已包含在首提交里（提交信息里写明了）。
 **处置：不改历史，列为已知缺陷**；后续如需修复，用 git 做可回退的单独提交。
 
+### 六半、再加两个专用工具的复核（共五次独立确认）
+
+| 工具 | 目标 | 结果 |
+|---|---|---|
+| `find_xref_signatures` | 国家码表 `0x1437D4BC4` | `total_xrefs: 0`, `signatures: []` |
+| `trace_data_flow` (backward) | 裸键 `0x146e4d1c4` | `depth_reached: 0`, `edges: []` |
+| `trace_data_flow` (backward) | 表地址 `0x1437D4BC4` | `depth_reached: 0`, `edges: []` |
+
+两个节点在 IDB 里都只是 `db 50h ; P` / `db 63h ; c` 这样的**原始数据字节**，`func: null`、`name: null`。
+
+**五次独立探测、五种不同机制，结论一致：这片数据在原版里没有任何可见的入边。**
+
 ### 七、仍然 Unknown
 
 - 假数据集的取用规则（四维）：**Unknown** —— 且现在知道**不能靠 xref 定位**。

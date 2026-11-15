@@ -57,3 +57,16 @@ python analysis\ida.py health
 **这是 NativeAOT 的寻址形态**：字面量与数据在冻结堆里，靠指针数组/相对偏移访问，
 IDA 不把它建模为指针。**所以「字符串 → xref → 函数」这条路在原版上根本不通**，
 不能用它找「谁发出了这条文案」。
+
+| 3 | `Load PDB file`（**仅复刻件实例**） | `The input file was linked with debug information stored here` | **Yes**（`Load types`+`Load names` 保持勾选） | 符号名是 C10 与所有覆盖率度量的基础；点 No 等于放弃符号 |
+
+**第三类框只在复刻件产物上出现**（原版 `.i64` 无 PDB）。漏掉它的表现是：进程在、`ws` 不动、**CPU 25 分钟只用 9.6 秒** —— 看起来像在分析，其实在等。
+
+### 三半、端口开 ≠ 分析完
+
+```
+python analysis/wait_ready.py 13338 1500
+```
+
+轮询 `server_health.auto_analysis_ready`。**不要用端口判断**：插件一加载就应答，而自动分析还在跑。
+55 MB AOT 实测 **320 秒**。端口一起就导出的后果见 `BLOCKERS.md` §127（得出 9/819 的中间值）。

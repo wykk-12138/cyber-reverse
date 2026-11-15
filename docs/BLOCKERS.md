@@ -8376,3 +8376,88 @@ free: 14.57 GB -> 13.93 GB
 - C10 的**新值**：**Unknown**（等 13338 分析完 + 重导符号表 + 跑 coverage）。
 - 新产物与旧产物的差异：**Unknown**（未做产物级 diff）。
 - C6 里 187,328 与 186,732 两个数哪个对应哪版产物：**Unknown**。
+
+
+---
+
+## 127. C10 有了有效新值 **12/819 = 1.5%** —— 而中间有个"提前量的错"被我抓住了
+
+> R694。工具：`analysis/ida_tool.py`、`analysis/wait_ready.py`、`analysis/func_compare.py`、
+> `replica/tools/aot_member_coverage.py`。
+
+### 一、第三个模态框：**Load PDB file**
+
+第二个 IDA 实例（复刻件，13338）卡了 25 分钟，`ws` 停在 718 MB、**CPU 25 分钟只用了 9.6 秒**。
+查窗口发现三个：`Load PDB file` / `Please wait...` / 主窗口。
+
+**「Load PDB file」是我之前没记录的第三类模态框。** 它的选项是 `Load types` + `Load names`（都已勾选），
+点 **Yes** —— **符号名正是 C10 的基础，绝不能点 No**。
+
+点完 CPU 立刻从 9.6 s 涨到 60 s，分析真正开始。
+
+### 二、然后我犯了一个更危险的错，并自己抓住了
+
+点 Yes 后**一分钟**端口 13338 就起来了，我当即导出符号表：
+
+```
+exported 136989 rows
+C10 -> members with a body : 9 (1.1%)
+```
+
+**同一份源码不该比旧记录的 187,328 少 27%。**
+
+于是查 `server_health`：
+
+```
+13338: "auto_analysis_ready":false,  "strings_cache_ready":false,  strings_cache_size:0
+13337: "auto_analysis_ready":true,   "strings_cache_ready":true,   strings_cache_size:324901
+```
+
+**端口开 ≠ 分析完。** 插件一加载就应答，而自动分析还在跑。
+**所以 136,989 是一个中间值，C10 的 9/819 = 1.1% 无效。**
+
+### 三、等就绪标志，不猜端口
+
+写 `analysis/wait_ready.py`，轮询 `auto_analysis_ready`：
+
+```
+t+  0s  auto_analysis_ready=False  strings=0
+t+320s  auto_analysis_ready=True   strings=0
+READY after 320 s
+```
+
+**分析用了 320 秒。** 重新导出：
+
+```
+replica <- 13338  exported 187732 rows      ← 与旧记录 187,328 同量级
+```
+
+**C10 的新值**：
+
+```
+symbols in image : 187732
+binding members  : 819
+members with a body in the product : 12 (1.5%)
+types with at least one member present : 10
+```
+
+**12 / 819 = 1.5%。** 旧值 21 / 819 = 2.6% 是在过期输入上算的，已降级；**这才是当前产物 + 其自身符号的有效值。**
+
+**它比旧值更低**，这本身是信息：不是变差了，是旧值虚高。
+
+### 四、两种错，代价不同
+
+| 错 | 表现 | 后果 |
+|---|---|---|
+| **提前量** | 端口一起就导出 | 得到一个像样的数（9/819），**但它是中间态**，若不复核就会被写进表 |
+| **过期** | 用昨天的符号表 | R693 已记：连"当时的有效测量"都算不上 |
+
+**第一种更危险**：它不报错、不超时、数值合理 —— 只有"比旧值少 27%"这个反常才露出来。
+
+**抓住它的不是工具，是那个反常。** 如果 136,989 恰好接近 187,328，我会直接写进表。
+
+### 五、仍然 Unknown
+
+- 12/819 里"缺席"的 807 条各自是被裁剪、被内联、还是只在元数据里：**Unknown**（需逐个看符号）。
+- C10 的 coverage 数字与"行为是否存在"的关系：**Unknown**（coverage 是结构可见性，不是行为）。
+- 新产物与 R577/R609 那两版产物的函数数差（187,732 vs 187,328）：**Unknown**（未做产物级 diff）。

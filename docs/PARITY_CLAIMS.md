@@ -65,7 +65,7 @@ Ghidra 留作后手，只有当某条 claim 必须伪代码级证据时才装，
 
 | id | claim | status | authority | command | gap_reason |
 |---|---|---|---|---|---|
-| C10 | 819 个绑定成员在产物中各自有可见实现 | **unknown** | unknown | `python tools\aot_member_coverage.py` → 21/819 = 2.6%（**R433 时的一次性测量，未随度量重算**；与 `func_compare` 同规则同数） | 缺**产物自身反编译**：AOT 内联/裁剪使属性 getter 多无独立符号，`_Cybersole_Ui_Views_` 前缀下仅 911 个符号。解它需对 `.managed` 节跑 Hex-Rays，或另做 managed 发布走 REA 的 .NET 工具 |
+| C10 | 819 个绑定成员在产物中各自有可见实现 | **unknown** | unknown | `python tools\aot_member_coverage.py` → 21/819 = 2.6% —— **R693 降级：这个数不算任何一版产物的有效测量**。它的符号表（`analysis/replica_funcs.txt`，11-14 18:03）比产物（11-15 14:39）还旧 20 小时，而产物又旧于源码（11-15 21:47）。重算中：产物已重建，第二个 IDA 实例（13338）分析中；新值出来前本行按 Unknown 读 | 缺**产物自身反编译**：AOT 内联/裁剪使属性 getter 多无独立符号，`_Cybersole_Ui_Views_` 前缀下仅 911 个符号。解它需对 `.managed` 节跑 Hex-Rays，或另做 managed 发布走 REA 的 .NET 工具 |
 | C11 | 111 个绑定类型名在产物里不可见，是命名差异还是未实现 | **unknown** | unknown | — | 缺**人工类型名映射表**（此处 111 是 R433 的口径；**当前的类型缺失计数见 `METRICS.md`**，逐条定性见 `docs/TYPE_PRESENCE_TRIAGE.md`）：AGENTS 允许命名不同（`SettingsView` → `Settings_SettingsShell`），类型名不匹配**不算缺口**，但要区分"改名"与"没有"，需要逐类型核对源码 |
 
 ## 3.5 MonitorView 五条命令（R434）

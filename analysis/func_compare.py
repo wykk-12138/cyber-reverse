@@ -49,9 +49,17 @@ EXPORT_TEMPLATE = "\n".join([
     "for ea in idautils.Functions():",
     "    f = ida_funcs.get_func(ea)",
     "    rows.append((ea, f.size() if f else 0, ida_funcs.get_func_name(ea) or ''))",
-    "lines = ['%x\\t%d\\t%s' % r for r in rows]",
+    # R699: record whether symbols were loaded, in the data itself (BLOCKERS 45 / R613: cc 129 vs 1,
+    # 186,732 vs 187,698 functions -- without this, such a gap reads as 'the artifact changed').
+    # Proxy: share of non-sub_ names. R613 baselines are 93% with symbols and 2.1% without.
+    "named = sum(1 for _e, _s, n in rows if n and not n.startswith('sub_'))",
+    "ratio = (float(named) / len(rows)) if rows else 0.0",
+    "symbols = 'yes' if ratio > 0.5 else ('no' if ratio < 0.1 else 'unknown')",
+    "hdr = '# exportspec symbols=%s named=%d total=%d ratio=%.4f' % (symbols, named, len(rows), ratio)",
+    "lines = [hdr] + ['%x\\t%d\\t%s' % r for r in rows]",
     "open(__DEST__, 'w', encoding='utf-8', newline=chr(10)).write(chr(10).join(lines))",
     "print('EXPORTED', len(rows))",
+    "print('EXPORTSPEC', hdr)",
 ])
 
 
@@ -131,6 +139,13 @@ def export(url, dest, label):
                          % (label, stdout[:400], stderr[:400]))
     if not os.path.exists(dest):
         raise SystemExit("%s: IDA reported %s rows but %s is absent" % (label, m.group(1), dest))
+
+    # R699: the file must say whether symbols were loaded -- read it back rather than trusting stdout.
+    with io.open(dest, encoding="utf-8", errors="replace") as fh:
+        first = fh.readline().rstrip("\n")
+    if not first.startswith("# exportspec symbols="):
+        raise SystemExit("%s: %s has no exportspec header (first line: %r)" % (label, dest, first[:120]))
+    print("  %s: %s" % (label, first))
     return int(m.group(1)), health
 
 

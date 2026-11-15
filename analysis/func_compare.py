@@ -83,10 +83,40 @@ class Client:
         return "\n".join(texts) if texts else json.dumps(out, ensure_ascii=False)
 
 
+def _ready(health):
+    """auto_analysis_ready from a server_health reply that may arrive as dict or JSON text."""
+    if isinstance(health, str):
+        try:
+            health = json.loads(health)
+        except json.JSONDecodeError:
+            return None
+    if isinstance(health, dict):
+        # the plugin may nest the payload one level down
+        if "auto_analysis_ready" in health:
+            return health["auto_analysis_ready"]
+        for v in health.values():
+            if isinstance(v, dict) and "auto_analysis_ready" in v:
+                return v["auto_analysis_ready"]
+    return None
+
+
 def export(url, dest, label):
     client = Client(url)
     client.initialize()
     health = client.call("server_health")
+
+    # R697: refuse to export from an instance whose auto-analysis has not finished.
+    # Port-open is not readiness -- the plugin answers while functions are still being recognised, and the partial
+    # count is *stable* (wrong/right = 0.730 at both R433 and R694, 260 rounds apart), so two identical samples prove
+    # nothing. This gate is the operational entry point for BLOCKERS 44/45, which until R697 lived only in a report.
+    ready = _ready(health)
+    if ready is not True:
+        raise SystemExit(
+            "%s: auto_analysis_ready is %r -- refusing to export.\n"
+            "  Port-open is not readiness; functions are still being recognised.\n"
+            "  Wait first:  python analysis/wait_ready.py <port> <timeout>\n"
+            "  Background:  BLOCKERS 44/45 and 129, PARITY_PRODUCT section 8, IDA_STARTUP_CHECKLIST."
+            % (label, ready))
     code = EXPORT_TEMPLATE.replace("__DEST__", repr(dest.replace("\\", "/")))
     raw = client.call("py_eval", {"code": code})
     try:

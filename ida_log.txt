@@ -1,0 +1,122 @@
+D:\projects\IDA-pro\plugins\auto_re.py: PySide6 can only be used from the GUI version of IDA
+Traceback (most recent call last):
+  File "D:\projects\IDA-pro\python\ida_idaapi.py", line 505, in IDAPython_ExecScript
+    exec(code, g)
+  File "D:/projects/IDA-pro/plugins/auto_re.py", line 21, in <module>
+    from PySide6 import QtGui, QtCore
+  File "D:\projects\IDA-pro\python\PySide6\__init__.py", line 26, in <module>
+    _verify_prerequisites()
+  File "D:\projects\IDA-pro\python\PySide6\__init__.py", line 19, in _verify_prerequisites
+    raise ImportError("PySide6 can only be used from the GUI version of IDA")
+ImportError: PySide6 can only be used from the GUI version of IDA
+
+** C/C++ exception! Function: "term" **
+WPeChatGPT is using GPTAPI-US
+IDA has found an unpacked version of database: D:\projects\cyber-reverse\target\Cybersole.exe.i64
+on the disk.
+
+Should we proceed with the unpacked files?
+ -> Pro~c~eed with unpacked base
+
+  bytes   pages size description
+--------- ----- ---- --------------------------------------------
+134217728 16384 8192 allocating memory for b-tree...
+268435456 32768 8192 allocating memory for virtual array...
+   262144    32 8192 allocating memory for name pointers...
+-----------------------------------------------------------------
+402915328            total memory allocated
+
+Loading processor module D:\projects\IDA-pro\procs\pc.dll for metapc...OK
+Loading type libraries...
+Autoanalysis subsystem has been initialized.
+D:\projects\IDA-pro\plugins\auto_re.py: PySide6 can only be used from the GUI version of IDA
+Traceback (most recent call last):
+  File "D:\projects\IDA-pro\python\ida_idaapi.py", line 505, in IDAPython_ExecScript
+    exec(code, g)
+  File "D:/projects/IDA-pro/plugins/auto_re.py", line 21, in <module>
+    from PySide6 import QtGui, QtCore
+  File "D:\projects\IDA-pro\python\PySide6\__init__.py", line 26, in <module>
+    _verify_prerequisites()
+  File "D:\projects\IDA-pro\python\PySide6\__init__.py", line 19, in _verify_prerequisites
+    raise ImportError("PySide6 can only be used from the GUI version of IDA")
+ImportError: PySide6 can only be used from the GUI version of IDA
+
+findHash (v0.1) plugin has been loaded.
+2026-11-14 10:52:05,530 - symless - ERROR    symless_plugin.py:00114 - find_extensions                - Error while loading extension symless.plugins.builder:
+2026-11-14 10:52:05,531 - symless - ERROR    symless_plugin.py:00115 - find_extensions                - ImportError("PyQt5 is deprecated in favor of PySide6. You see that error because you decided to disable PyQt5 shims. Set `IDAPYTHON_USE_PYQT5_SHIM = 1` in C:\\Users\\wykk\\AppData\\Roaming\\Hex-Rays\\IDA Pro\\cfg\\idapython.cfg to enable PyQt5 shims. Note that shims don't provide full support. More information here https://docs.hex-rays.com/user-guide/plugins/migrating-pyqt5-code-to-pyside6")
+Traceback (most recent call last):
+  File "D:/projects/IDA-pro/plugins/symless_plugin.py", line 111, in find_extensions
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\projects/IDA-pro/plugins\symless\plugins\builder.py", line 8, in <module>
+    from PyQt5 import QtCore, QtGui, QtWidgets
+  File "D:\projects\IDA-pro\python\PyQt5\__init__.py", line 9, in <module>
+    raise ImportError(
+ImportError: PyQt5 is deprecated in favor of PySide6. You see that error because you decided to disable PyQt5 shims. Set `IDAPYTHON_USE_PYQT5_SHIM = 1` in C:\Users\wykk\AppData\Roaming\Hex-Rays\IDA Pro\cfg\idapython.cfg to enable PyQt5 shims. Note that shims don't provide full support. More information here https://docs.hex-rays.com/user-guide/plugins/migrating-pyqt5-code-to-pyside6
+
+Database for file 'Cybersole.exe' has been loaded.
+Hex-Rays Decompiler plugin has been loaded (v9.3.0.260421)
+  The hotkeys are F5: decompile, Ctrl-F5: decompile all.
+
+  Please check the Edit/Plugins menu for more information.
+[AutoEnum] Plugin loaded!
+D:\projects\IDA-pro\plugins\auto_re.py: PySide6 can only be used from the GUI version of IDA
+Traceback (most recent call last):
+  File "D:\projects\IDA-pro\python\ida_idaapi.py", line 505, in IDAPython_ExecScript
+    exec(code, g)
+  File "D:/projects/IDA-pro/plugins/auto_re.py", line 21, in <module>
+    from PySide6 import QtGui, QtCore
+  File "D:\projects\IDA-pro\python\PySide6\__init__.py", line 26, in <module>
+    _verify_prerequisites()
+  File "D:\projects\IDA-pro\python\PySide6\__init__.py", line 19, in _verify_prerequisites
+    raise ImportError("PySide6 can only be used from the GUI version of IDA")
+ImportError: PySide6 can only be used from the GUI version of IDA
+
+================================================================================
+Start Data Export Plus plugin
+================================================================================
+Findcrypt v0.2 by David BERARD, 2017
+Findcrypt search shortcut key is Ctrl-Alt-F
+Global rules in D:\projects\IDA-pro\plugins\findcrypt3.rules
+User-defined rules in C:\Users\wykk\AppData\Roaming\Hex-Rays\IDA Pro\plugins\findcrypt-yara/*.rules
+================================================================================
+Hex-rays version 9.3.0.260421 has been detected, gooMBA plugin ready to use
+[hrt] hrtng (bes's tools collection) v3.8.94 for IDA930
+[hrt w] error on reading config file, use defaults
+[MCP] Plugin loaded (idalib mode, server managed externally)
+================================================================================
+Keypatch v2.2 (c) Nguyen Anh Quynh & Thanh Nguyen, 2018
+Keypatch is using Keystone v0.9.2
+Keypatch Patcher's shortcut key is Ctrl-Alt-K
+Use the same hotkey Ctrl-Alt-K to open 'Fill Range' window on a selected range of code
+To revert (undo) the last patching, choose menu Edit | Keypatch | Undo last patching
+Keypatch Search is available from menu Edit | Keypatch | Search
+Find more information about Keypatch at http://keystone-engine.org/keypatch
+================================================================================
+LazyIDA (1.1.1) plugin has been loaded.
+WPeChatGPT is using GPTAPI-US
+Auto-WPeGPT v0.2 is ready.
+WPeChat-GPTAPI-US v2.6 works fine! :)@WPeace
+
+Using type parser: legacy
+D:\projects\cyber-reverse\analysis\ida_probe.py: invalid non-printable character U+FEFF (D:/projects/cyber-reverse/analysis/ida_probe.py, line 1)
+Traceback (most recent call last):
+  File "D:\projects\IDA-pro\python\ida_idaapi.py", line 504, in IDAPython_ExecScript
+    code = compile(raw.decode(encoding), path, 'exec')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:/projects/cyber-reverse/analysis/ida_probe.py", line 1
+    ﻿import idc
+    ^
+SyntaxError: invalid non-printable character U+FEFF
+ -> OK
+Flushing buffers, please wait...ok
+FAILED TO DETACH MENU ITEM Edit/WPeChat-GPTAPI-US/Auto-WPeGPT/Auto-WPeGPT v0.2/二进制文件自动化分析 v0.2
+FAILED TO DETACH MENU ITEM Edit/WPeChat-GPTAPI-US/函数分析/函数分析
+FAILED TO DETACH MENU ITEM Edit/WPeChat-GPTAPI-US/重命名函数变量/重命名函数变量
+FAILED TO DETACH MENU ITEM Edit/WPeChat-GPTAPI-US/Python还原此函数/Python还原此函数
+FAILED TO DETACH MENU ITEM Edit/WPeChat-GPTAPI-US/二进制漏洞查找/二进制漏洞查找
+FAILED TO DETACH MENU ITEM Edit/WPeChat-GPTAPI-US/尝试生成Exploit/尝试生成Exploit
+Keypatch: configuration is saved to C:\Users\wykk\AppData\Roaming\Hex-Rays\IDA Pro\keypatch.cfg
+Unloading IDP module D:\projects\IDA-pro\procs\pc.dll...
+** C/C++ exception! Function: "term" **

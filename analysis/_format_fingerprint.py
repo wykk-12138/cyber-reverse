@@ -1,0 +1,13 @@
+﻿import io, os, json
+A = os.path.expandvars(r"%APPDATA%\Cybersole")
+raw = io.open(os.path.join(A,'settings.json'), 'rb').read()
+print('settings.json first 160 bytes:', raw[:160])
+print('CRLF:', raw.count(b'\r\n'), 'LF-only:', raw.count(b'\n') - raw.count(b'\r\n'))
+print()
+h = io.open(os.path.join(A,'checkoutHistory.json'), 'rb').read()
+print('checkoutHistory bytes:', len(h), 'CRLF:', h.count(b'\r\n'))
+print('head:', h[:200])
+d = json.loads(h.decode('utf-8-sig', 'replace'))
+print('entries:', len(d))
+print('first entry:', {k: (str(v)[:24]) for k, v in list(d[0].items())})
+print('last entry date:', d[-1].get('At'))

@@ -1,0 +1,10 @@
+{
+  "strings": 265462,
+  "async_state_machines": 1547,
+  "lambdas": 2412,
+  "accessor_props": 4812,
+  "async_suffix_methods": 706,
+  "cyber_type_refs": 658,
+  "method_union": 3220,
+  "class_paths": 382
+}

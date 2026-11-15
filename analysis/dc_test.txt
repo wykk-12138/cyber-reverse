@@ -1,0 +1,27 @@
+
+    [Fact]
+    public void TheModuleCountInVerdictMatchesTheCatalogue()
+    {
+        var path = DocPath();
+        Assert.False(string.IsNullOrEmpty(path), "docs/VERDICT.md not found from the test bin dir");
+
+        var doc = File.ReadAllText(path);
+        var actual = StoreModuleCatalog.CreateAll().Count;
+
+        _out.WriteLine($"catalogue: {actual} modules");
+
+        // every "<n> 个模块" / "<n> modules" claim in the document
+        var claims = Regex.Matches(doc, @"(\d+)\s*(?:个模块|modules)")
+            .Select(m => int.Parse(m.Groups[1].Value))
+            .Where(n => n >= 20)                    // ignore unrelated small numbers
+            .Distinct()
+            .ToList();
+
+        _out.WriteLine($"claims in VERDICT: {string.Join(", ", claims)}");
+
+        Assert.True(claims.Count > 0, "VERDICT no longer states a module count — update this test");
+        Assert.All(claims, n => Assert.Equal(actual, n));
+    }
+
+    [Fact]
+    public void TheCoverageTestAndTheCatalogueAgree()

@@ -1,0 +1,99 @@
+﻿  正在确定要还原的项目…
+C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr [C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+  所有项目均是最新的，无法还原。
+C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr
+  Cybersole.Core -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Core\bin\Debug\net8.0\Cybersole.Core.dll
+  Cybersole.Http -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Http\bin\Debug\net8.0\Cybersole.Http.dll
+  Cybersole.Services -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Services\bin\Debug\net8.0\Cybersole.Services.dll
+  Cybersole.Stores -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Stores\bin\Debug\net8.0\Cybersole.Stores.dll
+  Cybersole.Ui -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Ui\bin\Debug\net8.0\Cybersole.Ui.dll
+C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\ErrorCatalogTests.cs(19,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\AllFlowsMonitorTests.cs(145,27): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\SizePaletteTests.cs(24,9): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\StepActionTests.cs(288,89): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+  Cybersole.Tests -> C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
+C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.33)
+[xUnit.net 00:00:00.04]   Discovering: Cybersole.Tests
+[xUnit.net 00:00:00.11]   Discovered:  Cybersole.Tests
+[xUnit.net 00:00:00.11]   Starting:    Cybersole.Tests
+[xUnit.net 00:00:01.30]   Finished:    Cybersole.Tests
+  已通过 Cybersole.Tests.PageKeyProbeTests.TheProductPageShowsWhatKeysItActuallyHas [1 s]
+  标准输出消息:
+ HTTP 200  265,902 bytes
+ distinct JSON keys: 157
+ 
+      9  name
+      3  logo
+      3  en_US
+      3  zh_HK
+      3  zh_CN
+      3  ja_JP
+      3  ko_KR
+      3  in_ID
+      3  de_DE
+      3  pt_BR
+      3  it_IT
+      3  fr_FR
+      3  fil_PH
+      3  th_TH
+      3  url
+      2  wechat
+      2  cart
+      2  ios
+      2  android
+      2  galaxy
+      2  badgeBlackOnWhite
+      2  checkoutButton
+      2  lightbox
+      2  US
+      2  HK
+      2  MO
+      2  CN
+      2  KR
+      2  JP
+      2  AU
+      2  GB
+      2  CA
+      2  SE
+      2  IN
+      2  TW
+      2  NZ
+      2  PH
+      2  SA
+      2  SG
+      2  CH
+      2  TH
+      2  AE
+      2  VN
+      2  search
+      1  homepage
+      1  login
+      1  register
+      1  oauth_service
+      1  google
+      1  apple
+      1  facebook
+      1  checkout
+      1  checkoutPay
+      1  newArrivals
+      1  newArrivalsByGender
+      1  men
+      1  women
+      1  life
+      1  archives
+      1  searchGenderless
+ 
+ script tags that look like state carriers: 3
+   <script type="application/ld+json">
+   <script src="https://static.hbx.com/build/shop/1816.3429e345.js" data-turbo-track="reload" defer>
+   <script src="https://static.hbx.com/build/shop/shop-entry.231fe7de.js" data-turbo-track="reload" defer>
+
+
+
+测试运行成功。
+测试总数: 1
+     通过数: 1
+总时间: 1.5797 秒

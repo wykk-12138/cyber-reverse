@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+    <style>
+        body {
+            background-color: #161620;
+        }
+
+        .center {
+            padding: 70px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .loader-name {
+            font-size: 125%;
+            font-family: 'Montserrat', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #fefefe;
+        }
+
+        p {
+            font-size: 12px;
+            font-family: 'Montserrat', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #fefefe;
+        }
+
+        input {
+            color: #fff;
+            font-family: Montserrat,sans-serif;
+            font-weight: 500;
+            -webkit-font-smoothing: antialiased;
+            font-size: 14px;
+            outline: 0;
+            width: 200px;
+            box-sizing: border-box;
+            height: 35px;
+            padding: 10px 12px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            background-color: #1D1D2A;
+        }
+
+        input:focus {
+            border: 2px solid #34C668;
+        }
+
+        button {
+            cursor: pointer;
+            color: #fff;
+            background-color: #34C668;
+            padding-left: 30px;
+            padding-right: 30px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            border-radius: 55px;
+            border: none;
+            box-shadow: 0 12px 26px rgba(0,0,0,.1);
+        }
+
+        #qContainer {
+            padding: 10px;
+            width: 80%;
+            color: #fff;
+            background-color: #1D1D2A;
+            font-family: Montserrat,sans-serif;
+            font-weight: 500;
+            -webkit-font-smoothing: antialiased;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            text-align: justify;
+            font-size: 12px;
+            word-wrap: break-word;
+            overflow: auto;
+        }
+    </style>
+    <script>
+        document.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    var event = new Event('click');
+                    document.getElementById('submission').dispatchEvent(event);
+                }
+            });
+
+        var properties = JSON.parse(document.Solver.Captcha.GetProperties());
+        var keys = Object.keys(properties);
+        var questions = Object.values(properties);
+
+        function insert() {
+            var container = document.getElementById("qContainer");
+            var inputs = document.getElementById("inputs");
+             
+            questions.forEach(q => {
+                var index = questions.indexOf(q);
+
+                container.innerText += `Question ${index + 1}: ${decodeURIComponent(escape(atob(q)))}\n\n`;
+                inputs.innerHTML += `<p>Question #${index + 1}</p><input id='${keys[index]}' name='answer'/></br></br>`;
+            })
+
+            container.innerText = container.innerText.trim();
+        }
+
+        function deriveAnswer() {
+            var response = '';
+            var inputs = document.getElementsByName("answer");
+
+            inputs.forEach(e => {
+                if (e.value !== '' || document.Solver.Captcha.Name === 'SMS Verification') {
+                    response += `${e.id}=${e.value}&`;
+                }
+            });
+
+            if (response !== '' || document.Solver.Captcha.Name === 'SMS Verification') {
+                document.Solver.Captcha.Solve(response.slice(0, -1));
+            }
+        }
+    </script>
+</head>
+<body onload="insert()">
+    <div class='center'>
+        <a id="title" class='loader-name'>Answer Question</a>
+        <br />
+        <div id='qContainer'></div>
+        <br />
+        <div class='aContainer' id='inputs'></div>
+        <br />
+        <button id='submission' onclick='deriveAnswer()'>Submit</button>
+    </div>
+</body>
+</html>

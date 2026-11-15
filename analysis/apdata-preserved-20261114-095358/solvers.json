@@ -1,0 +1,20 @@
+[
+  {
+    "solvers": [
+      {
+        "name": "",
+        "view": false,
+        "reload": 0,
+        "settings": {
+          "autoBoundingBox": true,
+          "autoTickBox": true,
+          "autoCanvas": true,
+          "questionSharing": true,
+          "autoClick": true,
+          "reCaptchaSegmentation": true,
+          "reCaptchaMultiClassification": true
+        }
+      }
+    ]
+  }
+]

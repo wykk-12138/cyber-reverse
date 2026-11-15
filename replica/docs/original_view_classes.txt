@@ -1,0 +1,98 @@
+# The original's view classes, exactly as the binary's Avalonia index lists them
+#
+# Source: ClassToResourcePathIndex inside the Avalonia resource manifest of Cybersole.exe 5.18.32
+#         (analysis/avalonia_resources.txt). 87 entries.
+#
+# Format: <class>  <resource path>
+#
+# This file exists so OriginalViewClassParityTests can compare the replica against the original
+# without needing the binary present. It is a snapshot, not a wish list: every line was read off
+# the binary, so a line may only be removed if the binary changes.
+
+AccountGrid                              /Views/Accounts/AccountGrid.axaml
+AccountGroupView                         /Views/Accounts/Modals/AccountGroupView.axaml
+AccountView                              /Views/Accounts/AccountView.axaml
+AccountsCreatorView                      /Views/Accounts/Modals/AccountsCreatorView.axaml
+ActionsModal                             /Views/SmartActions/ActionsModal.axaml
+AnalyticsView                            /Views/Analytics/AnalyticsView.axaml
+App                                      /App.axaml
+AppearanceView                           /Views/Settings/AppearanceView.axaml
+AuthWindow                               /Views/Auth/AuthWindow.axaml
+AycdInboxCreatorView                     /Views/Settings/Modals/AycdInboxCreatorView.axaml
+CaptchaProviderCreatorView               /Views/Settings/Modals/CaptchaProviderCreatorView.axaml
+CaptchaProvidersView                     /Views/Settings/CaptchaProvidersView.axaml
+CheckoutList                             /Views/Analytics/CheckoutList.axaml
+CheckoutView                             /Views/Analytics/Modals/CheckoutView.axaml
+CloudflareSolverCreatorView              /Views/Settings/Modals/CloudflareSolverCreatorView.axaml
+CloudflareSolversView                    /Views/Settings/CloudflareSolversView.axaml
+CreateGroupModal                         /Views/Accounts/Modals/CreateGroupModal.axaml
+CustomBrowser                            /Views/Browser/CustomBrowser.axaml
+CustomSizesView                          /Views/Settings/CustomSizesView.axaml
+CustomStoresView                         /Views/Settings/CustomStoresView.axaml
+DataView                                 /Views/Settings/DataView.axaml
+DesktopNotification                      /Views/Modals/DesktopNotification.axaml
+DropdownModal                            /Views/Modals/DropdownModal.axaml
+EmptyView                                /Views/EmptyView.axaml
+ExpressionView                           /Views/Profiles/Modals/ExpressionView.axaml
+GeneralSettingsView                      /Views/Settings/GeneralSettingsView.axaml
+GoogleAccountEditView                    /Views/Settings/Modals/GoogleAccountEditView.axaml
+GoogleAccountsView                       /Views/Settings/GoogleAccountsView.axaml
+GoogleLogin                              /Views/Captcha/GoogleLogin.axaml
+GroupGrid                                /Views/Accounts/GroupGrid.axaml
+GroupSummary                             /Views/Tasks/Modals/GroupSummary.axaml
+HelpView                                 /Views/Settings/HelpView.axaml
+HistoryWindow                            /Views/SmartActions/HistoryWindow.axaml
+ImapCreatorView                          /Views/Settings/Modals/ImapCreatorView.axaml
+ImapView                                 /Views/Settings/ImapView.axaml
+InputModal                               /Views/Modals/InputModal.axaml
+KeyBindsView                             /Views/Settings/KeyBindsView.axaml
+LicenseControl                           /Views/Auth/LicenseControl.axaml
+LoginControl                             /Views/Auth/LoginControl.axaml
+MainWindow                               /Views/MainWindow.axaml
+MessageBoxDialog                         /Views/Modals/MessageBoxDialog.axaml
+MonitorView                              /Views/Monitor/MonitorView.axaml
+MonitorWindow                            /Views/Monitor/MonitorWindow.axaml
+NotificationView                         /Views/Modals/NotificationView.axaml
+NotificationsView                        /Views/Settings/NotificationsView.axaml
+PayPalAccountCreatorView                 /Views/Settings/Modals/PayPalAccountCreatorView.axaml
+PayPalAccountsView                       /Views/Settings/PayPalAccountsView.axaml
+PaymentView                              /Views/Settings/PaymentView.axaml
+ProfileAddressView                       /Views/Profiles/Modals/ProfileAddressView.axaml
+ProfileAdvancedView                      /Views/Profiles/Modals/ProfileAdvancedView.axaml
+ProfileCreatorView                       /Views/Profiles/Modals/ProfileCreatorView.axaml
+ProfileCsvEditorView                     /Views/Profiles/Modals/ProfileCsvEditorView.axaml
+ProfileGroupView                         /Views/Profiles/Modals/ProfileGroupView.axaml
+ProfilePaymentView                       /Views/Profiles/Modals/ProfilePaymentView.axaml
+ProfileView                              /Views/Profiles/ProfileView.axaml
+ProxyCreatorView                         /Views/Proxies/Modals/ProxyCreatorView.axaml
+ProxyGroupView                           /Views/Proxies/Modals/ProxyGroupView.axaml
+ProxyView                                /Views/Proxies/ProxyView.axaml
+PublishTemplateModal                     /Views/SmartActions/PublishTemplateModal.axaml
+ReleaseGuideView                         /Views/Analytics/Modals/ReleaseGuideView.axaml
+ReleaseSitelistView                      /Views/Analytics/Modals/ReleaseSitelistView.axaml
+ReleaseView                              /Views/Analytics/Modals/ReleaseView.axaml
+SettingsView                             /Views/Settings/SettingsView.axaml
+ShippingRatesCreatorView                 /Views/Settings/Modals/ShippingRatesCreatorView.axaml
+SizeCreatorView                          /Views/Settings/Modals/SizeCreatorView.axaml
+SmartActionSettings                      /Views/SmartActions/SmartActionSettings.axaml
+SmartActionsCreator                      /Views/SmartActions/SmartActionsCreator.axaml
+SmartActionsView                         /Views/SmartActions/SmartActionsView.axaml
+SolverWindow                             /Views/Captcha/SolverWindow.axaml
+SplashWindow                             /Views/Auth/SplashWindow.axaml
+StaggerStartView                         /Views/Tasks/Modals/StaggerStartView.axaml
+StoreCreatorView                         /Views/Settings/Modals/StoreCreatorView.axaml
+StoreGroupModal                          /Views/Utilities/StoreGroupModal.axaml
+TaskCreatorAdvancedView                  /Views/Tasks/TaskCreatorAdvancedView.axaml
+TaskCreatorCartView                      /Views/Tasks/TaskCreatorCartView.axaml
+TaskCreatorMainView                      /Views/Tasks/TaskCreatorMainView.axaml
+TaskCreatorView                          /Views/Tasks/TaskCreatorView.axaml
+TaskDetailsView                          /Views/Tasks/Modals/TaskDetailsView.axaml
+TaskGroupListView                        /Views/Tasks/Modals/TaskGroupListView.axaml
+TaskGroupView                            /Views/Tasks/Modals/TaskGroupView.axaml
+TaskView                                 /Views/Tasks/TaskView.axaml
+TemplateView                             /Views/SmartActions/TemplateView.axaml
+UserView                                 /Views/Modals/UserView.axaml
+UtilitiesView                            /Views/Utilities/UtilitiesView.axaml
+WebhookCreatorView                       /Views/Settings/Modals/WebhookCreatorView.axaml
+WebhookView                              /Views/Settings/WebhookView.axaml
+YoutubeWindow                            /Views/Captcha/YoutubeWindow.axaml

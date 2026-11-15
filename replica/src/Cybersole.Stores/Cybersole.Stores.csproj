@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Cybersole.Stores</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Cybersole.Core\Cybersole.Core.csproj" />
+    <ProjectReference Include="..\Cybersole.Http\Cybersole.Http.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Jint" Version="4.17.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,135 @@
+====================================================================================================
+ORIGINAL  0x141998B80  size=124
+replica   Cybersole.Services.NotificationService.SendWebhookAsync
+====================================================================================================
+__int64 __fastcall sub_141998B80(
+        unsigned __int64 a1,
+        unsigned __int64 a2,
+        __int64 a3,
+        int a4,
+        __int64 a5,
+        unsigned __int64 a6)
+{
+  __int64 result; // rax
+  unsigned __int128 v7; // [rsp+20h] [rbp-48h] BYREF
+  __int64 v8; // [rsp+30h] [rbp-38h]
+  __int64 v9; // [rsp+38h] [rbp-30h]
+  int v10; // [rsp+40h] [rbp-28h]
+  int v11; // [rsp+44h] [rbp-24h]
+  __int64 v12; // [rsp+48h] [rbp-20h] BYREF
+  __int128 v13; // [rsp+50h] [rbp-18h]
+  __int64 v14; // [rsp+60h] [rbp-8h]
+
+  v12 = 0;
+  v14 = 0;
+  v7 = __PAIR128__(a1, a2);
+  v8 = a3;
+  v11 = a4;
+  v9 = a5;
+  v13 = a6;
+  v10 = -1;
+  sub_142CCD400(&v7);
+  result = v12;
+  if ( !v12 )
+    return sub_1423AC7E0(&v12);
+  return result;
+}
+
+
+====================================================================================================
+ORIGINAL  0x14196AEA0  size=47
+replica   Cybersole.Services.TaskEngine.<>c__DisplayClass22_0.<Ensure>b__0
+====================================================================================================
+__int64 __fastcall sub_14196AEA0(__int64 a1)
+{
+  __int64 v2; // rsi
+
+  v2 = sub_143028C10(&unk_144D6B5E0);
+  sub_143028E70(v2 + 8, *(_QWORD *)(a1 + 112));
+  return v2;
+}
+
+
+====================================================================================================
+ORIGINAL  0x141374A80  size=199
+replica   Cybersole.Stores.Flows.ErrorCatalog.Entry.PrintMembers
+====================================================================================================
+__int64 __fastcall sub_141374A80(_QWORD *a1, __int64 a2)
+{
+  sub_141DC66D0();
+  sub_141D90AB0(a2, &unk_146B4AEC4, 14);
+  if ( a1[1] )
+    sub_141D8F570(a2);
+  sub_141D90AB0(a2, &unk_146A99234, 23);
+  if ( a1[2] )
+    sub_141D8F570(a2);
+  sub_141D90AB0(a2, &unk_146A9B64C, 14);
+  if ( a1[3] )
+    sub_141D8F570(a2);
+  sub_141D90AB0(a2, &unk_146A9D83C, 14);
+  if ( a1[4] )
+    sub_141D8F570(a2);
+  return 1;
+}
+
+
+====================================================================================================
+ORIGINAL  0x140D31100  size=52
+replica   Cybersole.Stores.Scripts.BrowserShim.Uuid
+====================================================================================================
+__int64 sub_140D31100()
+{
+  _QWORD v1[2]; // [rsp+28h] [rbp-10h] BYREF
+
+  v1[0] = 0;
+  v1[1] = 0;
+  sub_141D1F100(v1);
+  return sub_141D1EFD0(v1, &off_146FDDA90, 0);
+}
+
+
+====================================================================================================
+ORIGINAL  0x141375EF0  size=75
+replica   Cybersole.Stores.Scripts.WindowOrder.Quote
+====================================================================================================
+__int64 __fastcall sub_141375EF0(__int64 a1)
+{
+  __int64 v1; // rax
+  __int64 v2; // rax
+
+  v1 = sub_141CF82E0(a1, &off_146F5AEF0, &off_146F5B428);
+  v2 = sub_141CF82E0(v1, &off_146F64FD0, &off_146F5B550);
+  return sub_141CF62D0(&off_146F64FD0, v2, &off_146F64FD0);
+}
+
+
+====================================================================================================
+ORIGINAL  0x140F7BB50  size=36
+replica   Cybersole.Ui.ViewModels.MainViewModel.<>c__DisplayClass6_0.<.ctor>b__5
+====================================================================================================
+__int64 __fastcall sub_140F7BB50(__int64 a1, __int64 a2)
+{
+  __int64 v2; // rbx
+  __int64 v3; // rax
+
+  v2 = *(_QWORD *)(a2 + 16);
+  v3 = sub_141E541B0();
+  return sub_140F98580(v2, v3);
+}
+
+
+====================================================================================================
+ORIGINAL  0x14042BB10  size=37
+replica   Cybersole.Ui.Views.Utilities.UtilitiesView.<.ctor>b__10_0
+====================================================================================================
+__int64 __fastcall sub_14042BB10(__int64 a1)
+{
+  __int64 v2; // rax
+
+  v2 = *(_QWORD *)(a1 + 48);
+  if ( v2 )
+    (*(void (__fastcall **)(_QWORD))(v2 + 32))(*(_QWORD *)(v2 + 8));
+  return sub_14042BB40(a1);
+}
+
+

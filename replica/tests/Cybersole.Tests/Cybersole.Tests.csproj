@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Cybersole.Core\Cybersole.Core.csproj" />
+    <ProjectReference Include="..\..\src\Cybersole.Http\Cybersole.Http.csproj" />
+    <ProjectReference Include="..\..\src\Cybersole.Services\Cybersole.Services.csproj" />
+    <ProjectReference Include="..\..\src\Cybersole.Stores\Cybersole.Stores.csproj" />
+    <ProjectReference Include="..\..\src\Cybersole.Ui\Cybersole.Ui.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+public override async Task<StepOutcome> GetSessionAsync(FlowContext c, CancellationToken ct)
+    {
+        if (c.Session.Cookies.TryGetValue("NIKE_COMMERCE_COUNTRY", out var country))
+            c.Session.Vars["country"] = country;
+        return StepOutcome.Success();
+    }
+
+    // 鈹€鈹€ kasada 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+    public override async Task<StepOutcome> GetScriptAsync(FlowContext c, CancellationToken ct)
+    {
+        using var solver = new KasadaSolver(new BrowserShim
+        {
+            Href = c.Session.Vars.TryGetValue("kasada.url", out var u) ? u : "https://www.nike.com/",

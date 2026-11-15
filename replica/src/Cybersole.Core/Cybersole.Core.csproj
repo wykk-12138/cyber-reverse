@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Cybersole.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The four dictionaries the live build carries, under its own resource names
+         (Cybersole.Locales.en.json and friends). Round 131 recovered them from the image.
+
+         WithCulture="false" is required: a file name containing ".en." / ".ja." / ".ko." looks
+         like a culture tag to MSBuild, so without it the payloads become satellite assemblies
+         under en/ ja/ ko/ zh-Hans/ and GetManifestResourceStream on the main assembly finds
+         nothing. The live build keeps them in the main assembly, which is what we want. -->
+    <EmbeddedResource Include="Locales\Cybersole.Locales.en.json"
+                      LogicalName="Cybersole.Locales.en.json" WithCulture="false" />
+    <EmbeddedResource Include="Locales\Cybersole.Locales.ja.json"
+                      LogicalName="Cybersole.Locales.ja.json" WithCulture="false" />
+    <EmbeddedResource Include="Locales\Cybersole.Locales.ko.json"
+                      LogicalName="Cybersole.Locales.ko.json" WithCulture="false" />
+    <EmbeddedResource Include="Locales\Cybersole.Locales.zh-Hans.json"
+                      LogicalName="Cybersole.Locales.zh-Hans.json" WithCulture="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The engine's captcha pages and anti-detection scripts, recovered in round 134 under the
+         live build's own resource names. WithCulture is irrelevant here (no culture tag in the
+         names) but is harmless; keep them uniform with the dictionaries above. -->
+    <EmbeddedResource Include="Engine\Cybersole.Engine.Captcha.html" LogicalName="Cybersole.Engine.Captcha.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.CaptchaEnterprise.html" LogicalName="Cybersole.Engine.CaptchaEnterprise.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.EmptySolver.html" LogicalName="Cybersole.Engine.EmptySolver.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.Geetest.html" LogicalName="Cybersole.Engine.Geetest.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.GeetestV4.html" LogicalName="Cybersole.Engine.GeetestV4.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.HCaptcha.html" LogicalName="Cybersole.Engine.HCaptcha.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.Question.html" LogicalName="Cybersole.Engine.Question.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.Turnstile.html" LogicalName="Cybersole.Engine.Turnstile.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.Ynap.html" LogicalName="Cybersole.Engine.Ynap.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.Popmart.html" LogicalName="Cybersole.Engine.Popmart.html" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.castle.js" LogicalName="Cybersole.Engine.castle.js" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.hcaptcha-spoof.js" LogicalName="Cybersole.Engine.hcaptcha-spoof.js" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.trustdevice.js" LogicalName="Cybersole.Engine.trustdevice.js" />
+    <EmbeddedResource Include="Engine\Cybersole.Engine.trustdevice-botd.js" LogicalName="Cybersole.Engine.trustdevice-botd.js" />
+  </ItemGroup>
+</Project>

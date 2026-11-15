@@ -1,0 +1,484 @@
+using System.Text.RegularExpressions;
+using Cybersole.Http;
+
+namespace Cybersole.Stores.Flows;
+
+/// <summary>
+/// Salesforce Commerce Cloud (Demandware) storefronts.
+///
+/// The Accounts page of the running 5.18.32 build lists this platform twice —
+/// "Demandware" and "Demandware (Funko)" — because a single site id is bound per tenant.
+/// One implementation therefore serves both entries: everything below is parameterised on
+/// <c>SiteId</c> rather than on the host.
+///
+/// Endpoint shape (SFCC storefront controllers):
+///   GET  /on/demandware.store/Sites-{site}-Site/{locale}/Product-Show?pid={pid}
+///   POST /on/demandware.store/Sites-{site}-Site/{locale}/Cart-AddProduct
+///   GET  /on/demandware.store/Sites-{site}-Site/{locale}/Cart-Show
+///   GET  /on/demandware.store/Sites-{site}-Site/{locale}/Checkout-Begin
+///   POST /on/demandware.store/Sites-{site}-Site/{locale}/Checkout-Submit
+/// </summary>
+public class DemandwareFlow : StoreFlow
+{
+    private readonly string _site;
+    private readonly string _locale;
+
+    public DemandwareFlow(string id, string name, string[] domains, string siteId,
+        string locale = "en_US")
+    {
+        Id = id;
+        Name = name;
+        Domains = domains;
+        _site = siteId;
+        _locale = locale;
+    }
+
+    public override string Id { get; }
+    public override string Name { get; }
+    public override IReadOnlyList<string> Domains { get; }
+
+    /// <summary>The SFCC site id, as it appears in the controller path.</summary>
+    public string SiteId => _site;
+
+    /// <summary>The SFCC locale segment, e.g. en_US.</summary>
+    public string Locale => _locale;
+
+    private string Controller(FlowContext c, string name) =>
+        $"{Origin(c.Url)}/on/demandware.store/Sites-{_site}-Site/{_locale}/{name}";
+
+    public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Origin(c.Url) + "/", Tag() + "-home", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("demandware home unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware home HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["home"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
+    {
+        // SFCC exposes the product id either in the URL (…-{pid}.html) or in a ?pid= query.
+        var pid = ProductIdOf(c.Url);
+        if (pid is null) return StepOutcome.Fail("demandware: no product id in url");
+
+        var res = await GetAsync(c, Controller(c, "Product-Show") + "?pid=" + pid,
+            Tag() + "-product", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware product unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware product HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["raw"] = res.Body;
+        c.Session.Vars["productId"] = pid;
+
+        var name = Regex.Match(res.Body, @"<title>([^<|]+)").Groups[1].Value.Trim();
+        if (!string.IsNullOrEmpty(name)) c.Session.Vars["product"] = name;
+
+        var price = Regex.Match(res.Body,
+            @"""price""\s*:\s*\{?\s*""sales""\s*:\s*\{?\s*""value""\s*:\s*([\d.]+)").Groups[1].Value;
+        if (string.IsNullOrEmpty(price))
+            price = Regex.Match(res.Body, @"data-price=""([\d.]+)""").Groups[1].Value;
+        if (!string.IsNullOrEmpty(price)) c.Session.Vars["price"] = price;
+
+        return string.IsNullOrEmpty(name)
+            ? StepOutcome.Fail("demandware: product page carried no title", retryable: true)
+            : StepOutcome.Success();
+    }
+
+    public override Task<StepOutcome> FindVariantAsync(FlowContext c, CancellationToken ct)
+    {
+        var body = c.Session.Vars.TryGetValue("raw", out var r) ? r : string.Empty;
+        var wanted = c.Product?.Sizes.FirstOrDefault();
+
+        // SFCC renders one swatch per variation with data-attr-value holding the pid.
+        var candidates = Regex.Matches(body,
+            @"""pid""\s*:\s*""([A-Za-z0-9_\-]+)""[^}]*?""(?:variationValue|size)""\s*:\s*""([^""]+)""");
+
+        string? chosenId = null;
+        string? chosenSize = null;
+
+        foreach (Match m in candidates)
+        {
+            var id = m.Groups[1].Value;
+            var size = m.Groups[2].Value;
+
+            if (chosenId is null) { chosenId = id; chosenSize = size; }
+
+            if (wanted is not null && size.Contains(wanted, StringComparison.OrdinalIgnoreCase))
+            {
+                chosenId = id;
+                chosenSize = size;
+                break;
+            }
+        }
+
+        if (chosenId is null)
+        {
+            // fall back to the page's default variation
+            var fallback = Regex.Match(body, @"""pid""\s*:\s*""([A-Za-z0-9_\-]+)""");
+            if (!fallback.Success) return Task.FromResult(StepOutcome.Fail("demandware: no variation in page"));
+            chosenId = fallback.Groups[1].Value;
+        }
+
+        c.Session.VariantId = chosenId;
+        c.Session.Vars["variant"] = chosenId;
+        if (chosenSize is not null)
+        {
+            c.Session.Vars["size"] = chosenSize;
+            c.Session.Vars["sizes"] = chosenSize;
+        }
+
+        return Task.FromResult(StepOutcome.Success());
+    }
+
+    public override Task<StepOutcome> ScrapeVariantAvailabilityAsync(FlowContext c,
+        CancellationToken ct)
+    {
+        var body = c.Session.Vars.TryGetValue("raw", out var r) ? r : string.Empty;
+
+        var blocked = body.Contains("out of stock", StringComparison.OrdinalIgnoreCase) ||
+                      body.Contains(@"""availability"":""outOfStock""", StringComparison.OrdinalIgnoreCase) ||
+                      body.Contains(@"""available"":false", StringComparison.OrdinalIgnoreCase);
+
+        c.Session.Vars["available"] = blocked ? "false" : "true";
+
+        var sizes = new List<string>();
+        foreach (Match m in Regex.Matches(body, @"""variationValue""\s*:\s*""([^""]{1,10})"""))
+        {
+            var s = m.Groups[1].Value.Trim();
+            if (s.Length > 0 && !sizes.Contains(s)) sizes.Add(s);
+        }
+
+        if (sizes.Count > 0) c.Session.Vars["sizes"] = string.Join(',', sizes);
+
+        return Task.FromResult(StepOutcome.Success());
+    }
+
+    /// <summary>Session var holding an SCAPI OAuth bearer token, when the store runs headless.</summary>
+    public const string ScapiTokenVar = "scapi.token";
+
+    /// <summary>Session var holding the SCAPI basket id returned by <c>createBasket</c>.</summary>
+    public const string ScapiBasketVar = "scapi.basketId";
+
+    /// <summary>The SCAPI organisation id, which every basket call needs.</summary>
+    public const string ScapiOrgVar = "scapi.organizationId";
+
+    public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(c.Session.VariantId))
+            return StepOutcome.Fail("demandware: no pid to add");
+
+        // R107: the image drives SFCC two ways. When the store hands out an SCAPI token the basket
+        // calls go through /scapi/ShopperBaskets/*; otherwise the classic demandware.store
+        // controller is the path this flow always used. Both are real; a store runs one or the other.
+        if (c.Session.Vars.TryGetValue(ScapiTokenVar, out var token) && !string.IsNullOrWhiteSpace(token))
+        {
+            var scapi = await AddToCartViaScapiAsync(c, token, ct).ConfigureAwait(false);
+            if (scapi is not null) return scapi.Value;
+        }
+
+        var form = new Dictionary<string, string>
+        {
+            ["pid"] = c.Session.VariantId!,
+            ["quantity"] = c.Session.Quantity.ToString(),
+        };
+
+        var res = await PostFormAsync(c, Controller(c, DemandwareControllers.CartAddProduct), form,
+            Tag() + "-add", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware add failed", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware add HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["cart"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// The SCAPI half of <see cref="AddToCartAsync"/>: create a basket if there is none, then add the
+    /// item. Returns null on any failure so the caller falls back to the classic controller rather
+    /// than reporting a checkout failure for a capability the store may not offer.
+    /// </summary>
+    private async Task<StepOutcome?> AddToCartViaScapiAsync(
+        FlowContext c, string token, CancellationToken ct)
+    {
+        var origin = Origin(c.Url);
+        c.Session.Headers["Authorization"] = "Bearer " + token;
+        try
+        {
+            if (!c.Session.Vars.TryGetValue(ScapiBasketVar, out var basketId) || string.IsNullOrWhiteSpace(basketId))
+            {
+                var created = await PostJsonAsync(c, origin + ScapiEndpoints.CreateBasket, "{}",
+                    Tag() + "-scapi-create", ct).ConfigureAwait(false);
+
+                if (created is null || !created.IsSuccess) return null;
+
+                basketId = Newtonsoft.Json.Linq.JObject.Parse(created.Body)["basketId"]?.ToString();
+                if (string.IsNullOrWhiteSpace(basketId)) return null;
+
+                c.Session.Vars[ScapiBasketVar] = basketId!;
+            }
+
+            var org = c.Session.Vars.TryGetValue(ScapiOrgVar, out var organization) ? organization : string.Empty;
+
+            var body = new Newtonsoft.Json.Linq.JObject
+            {
+                ["productId"] = c.Session.VariantId,
+                ["quantity"] = c.Session.Quantity,
+            };
+
+            var url = origin + ScapiEndpoints.AddItemToBasket + "?siteId=" + Uri.EscapeDataString(SiteId);  // inferred: no image evidence (R298)
+
+            var added = await PostJsonAsync(c, url, body.ToString(Newtonsoft.Json.Formatting.None),
+                Tag() + "-scapi-add", ct).ConfigureAwait(false);
+
+            if (added is null || !added.IsSuccess) return null;
+
+            c.Session.Vars["cart"] = added.Body;
+            if (!string.IsNullOrEmpty(org)) c.Session.Vars["scapi.org"] = org;
+            return StepOutcome.Success();
+        }
+        finally
+        {
+            c.Session.Headers.Remove("Authorization");
+        }
+    }
+
+    /// <summary>
+    /// The <c>siteId</c> an SCAPI call needs — the same site id the flow already carries
+    /// (<c>Sites-{site}-Site</c>), not a separate value, so it reuses <c>SiteId</c>.
+    /// </summary>
+
+    /// <summary>
+    /// Enters a Demandware draw. The image carries the three pieces this needs: the
+    /// <c>SaleRegistration-Config</c> / <c>SaleRegistration-SignupSubmit</c> controllers a sale
+    /// registration also uses, the <c>panagora-raffle-data</c> script the page carries its payload
+    /// in, and <c>Already Entered Draw</c> as the duplicate-entry answer.
+    ///
+    /// <para>
+    /// A page with no raffle payload is <b>not</b> a failure: most Demandware stores are not running
+    /// a draw, and turning that into an error would fail every normal checkout that never asked for
+    /// one. It records <c>raffle=absent</c> and succeeds.
+    /// </para>
+    /// </summary>
+    public async Task<StepOutcome> EnterRaffleAsync(FlowContext c, CancellationToken ct)
+    {
+        var page = await GetAsync(c, Origin(c.Url) + DemandwareRaffle.EntryPage,
+            Tag() + "-raffle-page", ct).ConfigureAwait(false);
+
+        if (page is null) return StepOutcome.Fail("raffle page unreachable", retryable: true);
+
+        var payload = DemandwareRaffle.ExtractData(page.Body);
+        if (payload is null)
+        {
+            c.Session.Vars["raffle"] = "absent";
+            return StepOutcome.Success();
+        }
+
+        c.Session.Vars["raffle"] = "present";
+        c.Session.Vars["raffle.data"] = payload;
+
+        var id = DemandwareRaffle.ExtractId(page.Body);
+        if (id is not null) c.Session.Vars["raffle.id"] = id;
+
+        var config = await GetAsync(c, Controller(c, DemandwareControllers.SaleConfig),
+            Tag() + "-raffle-config", ct).ConfigureAwait(false);
+
+        if (config is not null && !config.IsSuccess)
+            return StepOutcome.Fail($"raffle config HTTP {config.StatusCode}", retryable: true);
+
+        var form = new Dictionary<string, string>
+        {
+            ["raffleId"] = id ?? string.Empty,
+            ["email"] = c.Session.Vars.TryGetValue("email", out var email) ? email : string.Empty,
+        };
+
+        var submit = await PostFormAsync(c, Controller(c, DemandwareControllers.SaleSignupSubmit),
+            form, Tag() + "-raffle-submit", ct).ConfigureAwait(false);
+
+        if (submit is null) return StepOutcome.Fail("raffle submit failed", retryable: true);
+
+        if (DemandwareRaffle.IsAlreadyEntered(submit.Body))
+        {
+            c.Session.Vars["raffle.status"] = "already-entered";
+            return StepOutcome.Success();
+        }
+
+        if (!submit.IsSuccess)
+            return StepOutcome.Fail($"raffle submit HTTP {submit.StatusCode}", retryable: true);
+
+        c.Session.Vars["raffle.status"] = "entered";
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Controller(c, DemandwareControllers.CartGet), Tag() + "-cart", ct)
+            .ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware cart unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware cart HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["cart"] = res.Body;
+
+        var total = Regex.Match(res.Body, @"""grandTotal""\s*:\s*""?([\d.,]+)""?").Groups[1].Value;
+        if (!string.IsNullOrEmpty(total)) c.Session.Vars["total"] = total;
+
+        var empty = res.Body.Contains("cart-empty", StringComparison.OrdinalIgnoreCase);
+        return empty ? StepOutcome.Fail("demandware: cart is empty") : StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Controller(c, DemandwareControllers.CheckoutBegin), Tag() + "-checkout", ct)
+            .ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware checkout unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware checkout HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.CheckoutUrl = res.Url.ToString();
+        c.Session.Vars["checkout"] = res.Body;
+
+        var csrf = Regex.Match(res.Body,
+            @"name=""(?:csrf_token|dwfrm_security_token)""\s+value=""([^""]+)""").Groups[1].Value;
+        if (!string.IsNullOrEmpty(csrf)) c.Session.CsrfToken = csrf;
+
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
+    {
+        var ship = c.Shipping;
+        if (ship is null) return StepOutcome.Fail("demandware: no shipping address");
+
+        // SFCC posts the whole address as dwfrm_shipping_* fields on Shipping-Show.
+        var form = new Dictionary<string, string>
+        {
+            ["dwfrm_shipping_shippingAddress_addressFields_firstName"] = ship.FirstName ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_lastName"] = ship.LastName ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_address1"] = ship.Address1 ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_city"] = ship.City ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_states_stateCode"] = ship.State ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_postalCode"] = ship.ZipCode ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_country"] = ship.Country ?? "US",
+        };
+
+        if (!string.IsNullOrEmpty(c.Session.CsrfToken))
+            form["csrf_token"] = c.Session.CsrfToken!;
+
+        var res = await PostFormAsync(c, Controller(c, DemandwareControllers.SubmitShipping), form,
+            Tag() + "-shipping", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware shipping failed", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware shipping HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["shipping"] = res.Body;
+
+        // A shipping method has to be chosen before payment; pick the first offered.
+        var method = Regex.Match(res.Body, @"value=""([A-Za-z0-9_\-]+)""[^>]*name=""dwfrm_shipping_shippingMethodID""");
+        if (!method.Success)
+            method = Regex.Match(res.Body, @"name=""dwfrm_shipping_shippingMethodID""[^>]*value=""([A-Za-z0-9_\-]+)""");
+        if (method.Success) c.Session.Vars["shippingMethod"] = method.Groups[1].Value;
+
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        var card = c.Card;
+        if (card?.Number is null) return StepOutcome.Fail("demandware: no card");
+
+        // SFCC never takes the PAN through the storefront form on a live tenant — it expects a
+        // token from the payment provider. Record the intent and post what the form accepts so
+        // the step is honest about what it can and cannot do.
+        var form = new Dictionary<string, string>
+        {
+            ["dwfrm_billing_paymentMethod"] = c.Session.Vars.TryGetValue("paymentMethod", out var pm)
+                ? pm
+                : "CREDIT_CARD",
+            ["dwfrm_billing_creditCardFields_cardType"] =
+                card.Number.StartsWith('4') ? "Visa"
+                : card.Number.StartsWith("5") ? "Master"
+                : "Amex",
+            ["dwfrm_billing_creditCardFields_cardNumber"] = card.Number,
+            ["dwfrm_billing_creditCardFields_expirationMonth"] = card.Month ?? string.Empty,
+            ["dwfrm_billing_creditCardFields_expirationYear"] = card.Year ?? string.Empty,
+            ["dwfrm_billing_creditCardFields_securityCode"] = card.Cvv ?? string.Empty,
+        };
+
+        if (!string.IsNullOrEmpty(c.Session.CsrfToken))
+            form["csrf_token"] = c.Session.CsrfToken!;
+
+        var res = await PostFormAsync(c, Controller(c, DemandwareControllers.SubmitPayment), form,
+            Tag() + "-payment", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware payment failed", retryable: true);
+
+        var status = res.StatusCode;
+        c.Session.Vars["paymentStatus"] = res.IsSuccess ? "authorised" : $"http_{status}";
+
+        return res.IsSuccess
+            ? StepOutcome.Success()
+            : StepOutcome.Fail($"demandware payment HTTP {status}", retryable: status >= 500);
+    }
+
+    public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        var form = new Dictionary<string, string>
+        {
+            ["dwfrm_billing_paymentMethod"] = c.Session.Vars.TryGetValue("paymentMethod", out var pm)
+                ? pm
+                : "CREDIT_CARD",
+        };
+        if (!string.IsNullOrEmpty(c.Session.CsrfToken))
+            form["csrf_token"] = c.Session.CsrfToken!;
+
+        var res = await PostFormAsync(c, Controller(c, DemandwareControllers.PlaceOrder), form,
+            Tag() + "-order", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware order failed", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware order HTTP {res.StatusCode}", retryable: true);
+
+        var order = Regex.Match(res.Body,
+            @"""orderNo""\s*:\s*""([A-Za-z0-9\-]+)""").Groups[1].Value;
+        if (string.IsNullOrEmpty(order))
+            order = Regex.Match(res.Body, @"order-confirmation[^?]*\?orderID=([A-Za-z0-9\-]+)")  // inferred: no image evidence (R298)
+                .Groups[1].Value;
+
+        if (string.IsNullOrEmpty(order))
+            return StepOutcome.Fail("demandware: no order number returned");
+
+        c.Session.OrderNumber = order;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>SFCC product pages end in <c>…-{pid}.html</c> or carry a <c>pid</c> query.</summary>
+    private static string? ProductIdOf(string url)
+    {
+        var query = Regex.Match(url, @"[?&]pid=([A-Za-z0-9_\-]+)");
+        if (query.Success) return query.Groups[1].Value;
+
+        var path = Regex.Match(url, @"-([A-Za-z0-9]{4,})\.html");
+        return path.Success ? path.Groups[1].Value : null;
+    }
+}
+
+/// <summary>Funko runs on Demandware with its own site id.</summary>
+/// <summary>
+/// Funko — Demandware, US storefront.
+///
+/// The site id was wrong: the flow declared <c>Funko-Site</c>, but every controller the real
+/// storefront calls is under <c>Sites-FunkoUS-Site</c>:
+///
+///   /on/demandware.store/Sites-FunkoUS-Site/en_US/__Analytics-Start
+///   /on/demandware.static/Sites-FunkoUS-Site/-/default/dw43a14dfa/...
+///
+/// A wrong site id is the quietest possible failure: the host is right, the platform is right,
+/// and every controller request 404s. Verified against a live capture.
+/// </summary>
+public sealed class FunkoFlow : DemandwareFlow
+{
+    public FunkoFlow() : base("funko", "Demandware (Funko)", new[] { "funko.com" },
+        "FunkoUS-Site", "en_US")
+    {
+    }
+}

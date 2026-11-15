@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS8618;CS8600;CS8602;CS8604;CS8625;NU1701</NoWarn>
+    <!-- R74: this said 5.18.32 minus two, and nothing compared it to the binary. The original
+         reports FileVersion 5.18.32.0 / ProductVersion 5.18.32+dfee55e…, and its own Settings page
+         prints "Version 5.18.32". AppVersionTests.VersionMatchesTheOriginalBinary now checks it. -->
+    <Version>5.18.32</Version>
+    <Authors>Cybersole Replica Project</Authors>
+    <Product>Cybersole (functional replica)</Product>
+  </PropertyGroup>
+</Project>

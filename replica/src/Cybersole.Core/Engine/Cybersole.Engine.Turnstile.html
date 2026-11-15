@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Turnstile Captcha</title>
+    <style>
+        #captcha {
+            display: block;
+            position: absolute;
+            left: 0;
+            top: 0;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100vh;
+            color: white;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+
+<body style='background-color: #161620; margin:0'>
+    <div id="captcha"></div>
+
+    <script>
+        let properties = {
+            sitekey: document.Solver.Captcha.Sitekey,
+            callback: function (token) {
+                document.Solver.Captcha.Solve(token);
+            },
+            'before-interactive-callback': function () {
+                document.Solver.Turnstile();
+            }
+        }
+
+        if (document.Solver.Captcha.Action)
+            properties.action = document.Solver.Captcha.Action;
+
+        window.onloadTurnstileCallback = function () {
+            turnstile.render("#captcha", properties);
+        };
+    </script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback" defer></script>
+</body>
+
+</html>

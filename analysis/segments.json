@@ -1,0 +1,37 @@
+[
+  {
+    "name": ".text",
+    "class": "CODE",
+    "start": 5368713216,
+    "end": 5420347392,
+    "perm": 5
+  },
+  {
+    "name": ".idata",
+    "class": "DATA",
+    "start": 5420347392,
+    "end": 5420351032,
+    "perm": 4
+  },
+  {
+    "name": ".rdata",
+    "class": "DATA",
+    "start": 5420351032,
+    "end": 5480038400,
+    "perm": 4
+  },
+  {
+    "name": ".data",
+    "class": "DATA",
+    "start": 5480038400,
+    "end": 5491544064,
+    "perm": 6
+  },
+  {
+    "name": ".pdata",
+    "class": "DATA",
+    "start": 5491544064,
+    "end": 5494870016,
+    "perm": 4
+  }
+]

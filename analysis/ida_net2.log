@@ -1,0 +1,29 @@
+[WSASocketW] thunk=0x1430f61fd direct callers=[('0x141ca1d40', 'cref'), ('0x141cc33f0', 'cref'), ('0x141ccf400', 'cref')]
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_WSASocketW_141ca1d40.c chars 876
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_WSASocketW_141ca1e90.c chars 325
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_WSASocketW_141cc33f0.c chars 876
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_WSASocketW_141cc3540.c chars 325
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_WSASocketW_141ccf400.c chars 1376
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_WSASocketW_141cc5760.c chars 582
+[WSASend] thunk=0x1430f61f7 direct callers=[('0x141cc2e00', 'cref')]
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_WSASend_141cc2e00.c chars 1375
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_WSASend_141ccb690.c chars 2218
+[WSARecv] thunk=0x1430f61f1 direct callers=[('0x141cc2c70', 'cref')]
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_WSARecv_141cc2c70.c chars 1472
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_WSARecv_141ccb370.c chars 2363
+[WSAIoctl] thunk=0x1430f61eb direct callers=[('0x141ca35a0', 'cref'), ('0x141cc28d0', 'cref'), ('0x141cc2a90', 'cref')]
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_WSAIoctl_141ca35a0.c chars 1868
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_WSAIoctl_141ca43f0.c chars 6080
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_WSAIoctl_141cc28d0.c chars 1776
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_WSAIoctl_142e6b930.c chars 1037
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_WSAIoctl_141cc2a90.c chars 1868
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_WSAIoctl_141ccf920.c chars 1207
+[WSAConnect] thunk=0x1430f61d9 direct callers=[('0x141cc25d0', 'cref')]
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_WSAConnect_141cc25d0.c chars 1288
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_WSAConnect_141ccf5d0.c chars 1685
+[GetAddrInfoExW] thunk=0x1430f61c1 direct callers=[('0x141ca22b0', 'cref')]
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_GetAddrInfoExW_141ca22b0.c chars 1812
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_GetAddrInfoExW_141ca0900.c chars 6590
+[GetAddrInfoW] thunk=0x1430f61c7 direct callers=[('0x141c9fd60', 'cref')]
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x1_GetAddrInfoW_141c9fd60.c chars 1244
+  wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\x2_GetAddrInfoW_141ca1f20.c chars 954

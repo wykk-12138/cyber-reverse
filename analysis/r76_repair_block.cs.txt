@@ -1,0 +1,519 @@
+        Content = UiKit.Scroll(UiKit.Form(
+            UiKit.PlainCard(
+                UiKit.Row("Language", language),
+                new TextBlock { Text = "Default Delays", Opacity = 0.6, Margin = new Thickness(0, 6, 0, 0) },
+                new Grid
+                {
+                    ColumnDefinitions = new ColumnDefinitions("*,*,*"),
+                    Children =
+                    {
+                        UiKit.Row("Default Monitor", monitor, 120),
+                        DockedColumn(UiKit.Row("Default Error", retry, 120), 1),
+                        DockedColumn(UiKit.Row("Default Timeout", timeout, 120), 2),
+                    },
+                }),
+            UiKit.PlainCard(
+                new TextBlock { Text = "Shopify Settings", Opacity = 0.6, Margin = new Thickness(0, 0, 0, 6) },
+                UiKit.Row("ATC Browser Proxy", atcProxy),
+                UiKit.Row("Queue Presentation", queue)),
+            UiKit.PlainCard(
+                new TextBlock { Text = "Monitor Concurrency", Opacity = 0.6, Margin = new Thickness(0, 0, 0, 6) },
+                UiKit.Row("Mode", concMode),
+                UiKit.Row("Maximum", concMax),
+                UiKit.Row("Ratio", concRatio)),
+            UiKit.PlainCard(
+                UiKit.Row("Startup Page", startup),
+                UiKit.Row("Currency", currency),
+                UiKit.Row("Enable clock", enableClock),
+                UiKit.Row("Clock format", clockFormat)),
+            UiKit.Buttons(save),
+            status));
+    }
+
+    /// <summary>Puts a control in a specific column of the row it is added to.</summary>
+    private static Control DockedColumn(Control control, int column)
+    {
+        Grid.SetColumn(control, column);
+        return control;
+    }
+}
+
+/// <summary>
+/// Appearance (Cybersole.Ui.Views.Settings.AppearanceView) — the scrollbar knobs and the preview
+/// block under them.
+///
+/// <para>
+/// R75 read the live page: <c>Scrollbar Width</c> (px), <c>Corner Radius</c> (px),
+/// <c>Scrollbar Color</c>, then a PREVIEW card holding ten caption lines and enough rows to
+/// actually scroll. The ten captions are the ones the locale ships, so they are printed verbatim
+/// rather than paraphrased — the point of the block is that it scrolls.
+/// </para>
+/// </summary>
+public sealed class AppearanceView : UserControl
+{
+    /// <summary>The ten preview captions, in the order the live page prints them.</summary>
+    public static readonly IReadOnlyList<string> PreviewCaptions = new[]
+    {
+        "Scroll to test the scrollbar appearance",
+        "The scrollbar on the right reflects your current settings",
+        "Adjust the width if the scrollbar is too small to grab",
+        "Try different colors to match your preference",
+        "Corner radius controls how rounded the scrollbar looks",
+        "Changes apply immediately across the application",
+        "Settings are saved automatically",
+        "Use the Reset Defaults button to restore original settings",
+        "Scroll down to see more content",
+        "This preview area lets you test before leaving settings",
+    };
+
+    public AppearanceView(AppServices services)
+    {
+        var s = services.Config.Settings;
+        var status = UiKit.Status();
+
+        var width = UiKit.Text(s.ScrollbarWidth.ToString("0.#"), watermark: "10");
+        var radius = UiKit.Text(s.ScrollbarCornerRadius.ToString("0.#"), watermark: "6");
+        var colour = UiKit.Text(s.ScrollbarColor, watermark: "#FFFFFF");
+
+        var preview = new StackPanel { Spacing = 10 };
+        preview.Children.Add(new TextBlock
+        {
+            Text = "PREVIEW",
+            Opacity = 0.6,
+            FontSize = 11,
+        });
+        foreach (var caption in PreviewCaptions)
+            preview.Children.Add(new TextBlock { Text = caption, Opacity = 0.75 });
+
+        var save = UiKit.Button("Save", () =>
+        {
+            if (double.TryParse(width.Text, out var w)) s.ScrollbarWidth = w;
+            if (double.TryParse(radius.Text, out var r)) s.ScrollbarCornerRadius = r;
+            if (!string.IsNullOrWhiteSpace(colour.Text)) s.ScrollbarColor = colour.Text!;
+            services.Config.Save();
+            status.Text = "Saved.";
+        });
+
+        var reset = UiKit.Button("Reset Defaults", () =>
+        {
+            s.ScrollbarWidth = 10;
+            s.ScrollbarCornerRadius = 6;
+            s.ScrollbarColor = "#FFFFFF";
+            services.Config.Save();
+            status.Text = "Scrollbar settings reset.";
+        });
+
+        Content = UiKit.Scroll(UiKit.Form(
+            UiKit.PlainCard(
+                new TextBlock { Text = "Scrollbar", Opacity = 0.6, Margin = new Thickness(0, 0, 0, 6) },
+                UiKit.Row("Scrollbar Width", width),
+                UiKit.Row("Corner Radius", radius),
+                UiKit.Row("Scrollbar Color", colour)),
+            UiKit.PlainCard(preview),
+            UiKit.Buttons(save, reset),
+            status));
+    }
+}
+
+/// <summary>
+/// Notifications (Cybersole.Ui.Views.Settings.NotificationsView).
+///
+/// <para>
+/// R75 read the live page: an <c>Enable Notifications</c> switch, then five tabs —
+/// <b>Checkout / Decline / Captcha / Smart Actions / Other</b> — and inside each one the same four
+/// switches (<c>In-Bot Notifications</c>, <c>Desktop Notifications</c>, <c>Sounds</c> with a
+/// <c>Default</c> sound) plus, for Checkout, <c>Allow Checkout Notifications</c>.
+/// </para>
+///
+/// <para>
+/// The five tabs are exactly the five sets in <see cref="NotificationSet"/>, which is why the tabs
+/// are generated from it rather than hand-listed: a sixth category on the model would get a tab
+/// for free, and one renamed here would fail to compile.
+/// </para>
+/// </summary>
+public sealed class NotificationsView : UserControl
+{
+    /// <summary>The five categories, in the order the live page lists them.</summary>
+    public static readonly IReadOnlyList<(string Tab, string Model)[]> Categories = new[]
+    {
+        new[] { ("Checkout", "Checkout") },
+        new[] { ("Decline", "Decline") },
+        new[] { ("Captcha", "Captcha") },
+        new[] { ("Smart Actions", "SmartAction") },
+        new[] { ("Other", "Other") },
+    };
+
+    /// <summary>The tab captions, in the live page's order.</summary>
+    public static IReadOnlyList<string> TabCaptions() =>
+        Categories.Select(c => c[0].Tab).ToList();
+
+    public NotificationsView(AppServices services)
+    {
+        var s = services.Config.Settings;
+        var status = UiKit.Status();
+
+        var enabled = UiKit.Check("Enable Notifications", s.NotificationOptions.Checkout.Enabled);
+        enabled.IsCheckedChanged += (_, _) =>
+        {
+            s.NotificationOptions.Checkout.Enabled = enabled.IsChecked == true;
+            services.Config.Save();
+            status.Text = s.NotificationOptions.Checkout.Enabled
+                ? "Notifications enabled."
+                : "Notifications disabled.";
+        };
+
+        var tabs = new TabControl { Height = 320 };
+        foreach (var (tab, options) in new (string, NotificationOptions)[]
+                 {
+                     ("Checkout", s.NotificationOptions.Checkout),
+                     ("Decline", s.NotificationOptions.Decline),
+                     ("Captcha", s.NotificationOptions.Captcha),
+                     ("Smart Actions", s.NotificationOptions.SmartAction),
+                     ("Other", s.NotificationOptions.Other),
+                 })
+        {
+            var target = options;
+            var centre = UiKit.Check("In-Bot Notifications", target.Centre);
+            var desktop = UiKit.Check("Desktop Notifications", target.Desktop);
+            var sound = UiKit.Check("Sounds", target.Sound);
+            var path = UiKit.Text(target.Path, watermark: "Default");
+
+            void Persist()
+            {
+                target.Centre = centre.IsChecked == true;
+                target.Desktop = desktop.IsChecked == true;
+                target.Sound = sound.IsChecked == true;
+                target.Path = path.Text ?? string.Empty;
+                services.Config.Save();
+            }
+
+            centre.IsCheckedChanged += (_, _) => Persist();
+            desktop.IsCheckedChanged += (_, _) => Persist();
+            sound.IsCheckedChanged += (_, _) => Persist();
+
+            var body = new StackPanel
+            {
+                Spacing = 8,
+                Margin = new Thickness(12),
+                Children =
+                {
+                    tab == "Checkout" ? enabled : new TextBlock { Text = " " },
+                    centre,
+                    desktop,
+                    sound,
+                    UiKit.Row("Sound file", path),
+                },
+            };
+
+            tabs.Items.Add(new TabItem { Header = tab, Content = UiKit.Scroll(body) });
+        }
+
+        Content = UiKit.Scroll(UiKit.Form(
+            UiKit.PlainCard(enabled),
+            UiKit.PlainCard(tabs),
+            status));
+    }
+}
+
+/// <summary>
+/// Keyboard Shortcuts (Cybersole.Ui.Views.Settings.KeyBindsView).
+///
+/// <para>
+/// R76 drove the live page and copied the whole table. Three sections — Tasks, Proxies and Billing —
+/// each listing two bindings per row, each with its chord in a chip and an ✕ to clear it, under a
+/// single <c>Enable Keyboard Shortcuts</c> switch:
+/// </para>
+///
+/// <code>
+/// Tasks    New Group Ctrl+G      Task Creator Ctrl+N
+///          Task Editor Ctrl+E    Start All F1
+///          Stop All F2           Delete Selected Delete
+///          Clone Selected Ctrl+C Search Ctrl+F
+///          Quicktask Ctrl+Q      Link Change Ctrl+M
+///          Next Group Ctrl+Right Previous Group Ctrl+Left
+/// Proxies  New Group Ctrl+G      Add Proxies Ctrl+N
+///          Test All Ctrl+T       Copy Selected Ctrl+C
+///          Clone Selected Ctrl+D Delete Selected Delete
+/// Billing  New Group Ctrl+G      Add Profile Ctrl+N
+///          Clone Selected Ctrl+D Delete Selected Delete
+/// </code>
+///
+/// <para>
+/// The model already carried all 22 (<see cref="TaskKeyBinds"/> 12, <see cref="ProxyKeyBinds"/> 6,
+/// <see cref="BillingKeyBinds"/> 4) — R116 read them off this same page. The <b>view</b> listed
+/// seven, four and three, with invented labels, so five task chords had no row at all and the clash
+/// check could not see them.
+/// </para>
+/// </summary>
+public sealed class KeyBindsView : UserControl
+{
+    /// <summary>The Tasks chords, in the live page's order, with the labels it prints.</summary>
+    public static readonly IReadOnlyList<string> TaskLabels = new[]
+    {
+        "New Group", "Task Creator", "Task Editor", "Start All", "Stop All", "Delete Selected",
+        "Clone Selected", "Search", "Quicktask", "Link Change", "Next Group", "Previous Group",
+    };
+
+    /// <summary>The Proxies chords, in order.</summary>
+    public static readonly IReadOnlyList<string> ProxyLabels = new[]
+    {
+        "New Group", "Add Proxies", "Test All", "Copy Selected", "Clone Selected", "Delete Selected",
+    };
+
+    /// <summary>The Billing chords, in order.</summary>
+    public static readonly IReadOnlyList<string> BillingLabels = new[]
+    {
+        "New Group", "Add Profile", "Clone Selected", "Delete Selected",
+    };
+
+    public KeyBindsView(AppServices services)
+    {
+        var s = services.Config.Settings;
+        var status = UiKit.Status();
+
+        // the row currently listening for a chord, if any
+        (Button Button, KeyBind Bind, string Page, string Label)? capturing = null;
+
+        // every editable chord and the button that displays it, so capture can repaint its own row
+        var pairs = new List<(KeyBind Bind, Button Button)>();
+
+        void EndCapture(string? message)
+        {
+            if (capturing is not { } c) return;
+            c.Button.Content = Cybersole.Core.Input.KeyBindMatcher.Describe(c.Bind);
+            capturing = null;
+            if (message is not null) status.Text = message;
+        }
+
+        Control Section(string title, string page, params (string Label, KeyBind Bind)[] binds)
+        {
+            var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("150,Auto,24,150,Auto") };
+
+            for (var i = 0; i < binds.Length; i++)
+            {
+                var row = i / 2;
+                var right = i % 2 == 1;
+                var first = right ? 3 : 0;
+
+                while (grid.RowDefinitions.Count <= row)
+                    grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+
+                var (label, bind) = binds[i];
+
+                var text = new TextBlock
+                {
+                    Text = label,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 3, 8, 3),
+                };
+                Grid.SetRow(text, row);
+                Grid.SetColumn(text, first);
+                grid.Children.Add(text);
+
+                var capture = new Button
+                {
+                    Content = Cybersole.Core.Input.KeyBindMatcher.Describe(bind),
+                    MinWidth = 76,
+                    HorizontalContentAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 2, 4, 2),
+                };
+
+                capture.Click += (_, _) =>
+                {
+                    if (capturing?.Bind == bind) { EndCapture("Capture cancelled."); return; }
+
+                    EndCapture(null);
+                    capturing = (capture, bind, page, label);
+                    capture.Content = "Press a key…";
+                    capture.Focus();
+                    status.Text = $"Listening for {page} · {label}. Esc cancels.";
+                };
+
+                Grid.SetRow(capture, row);
+                Grid.SetColumn(capture, first + 1);
+                grid.Children.Add(capture);
+                pairs.Add((bind, capture));
+
+                // The X clears the chord; Key 0 matches nothing, which is the unbound state.
+                var clear = new Button
+                {
+                    Content = "✕",
+                    Padding = new Thickness(4, 0),
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Margin = new Thickness(0, 2, 16, 2),
+                };
+                var target = bind;
+                var shown = capture;
+                clear.Click += (_, _) =>
+                {
+                    target.Key = 0;
+                    target.Modifiers = 0;
+                    shown.Content = Cybersole.Core.Input.KeyBindMatcher.Describe(target);
+                    services.Config.Save();
+                    status.Text = $"{page} · {label} cleared.";
+                };
+
+                Grid.SetRow(clear, row);
+                Grid.SetColumn(clear, first + 2);
+                grid.Children.Add(clear);
+            }
+
+            return UiKit.PlainCard(
+                new TextBlock { Text = title, Opacity = 0.6, Margin = new Thickness(0, 0, 0, 6) },
+                grid);
+        }
+
+        var tasks = Section("Tasks", "Tasks",
+            ("New Group", s.KeyBinds.Tasks.New),
+            ("Task Creator", s.KeyBinds.Tasks.Creator),
+            ("Task Editor", s.KeyBinds.Tasks.Editor),
+            ("Start All", s.KeyBinds.Tasks.StartAll),
+            ("Stop All", s.KeyBinds.Tasks.StopAll),
+            ("Delete Selected", s.KeyBinds.Tasks.Delete),
+            ("Clone Selected", s.KeyBinds.Tasks.Clone),
+            ("Search", s.KeyBinds.Tasks.Search),
+            ("Quicktask", s.KeyBinds.Tasks.Quicktask),
+            ("Link Change", s.KeyBinds.Tasks.LinkChange),
+            ("Next Group", s.KeyBinds.Tasks.NextGroup),
+            ("Previous Group", s.KeyBinds.Tasks.PreviousGroup));
+
+        var proxies = Section("Proxies", "Proxies",
+            ("New Group", s.KeyBinds.Proxies.New),
+            ("Add Proxies", s.KeyBinds.Proxies.Add),
+            ("Test All", s.KeyBinds.Proxies.TestAll),
+            ("Copy Selected", s.KeyBinds.Proxies.Copy),
+            ("Clone Selected", s.KeyBinds.Proxies.Clone),
+            ("Delete Selected", s.KeyBinds.Proxies.Delete));
+
+        var billing = Section("Billing", "Billing",
+            ("New Group", s.KeyBinds.Billing.New),
+            ("Add Profile", s.KeyBinds.Billing.Add),
+            ("Clone Selected", s.KeyBinds.Billing.Clone),
+            ("Delete Selected", s.KeyBinds.Billing.Delete));
+
+        // One handler on the page, not one per row: the capture target changes and a page-level
+        // tunnel sees the key before any child control consumes it.
+        AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (capturing is not { } c) return;
+
+            e.Handled = true;
+
+            if (e.Key == Avalonia.Input.Key.Escape)
+            {
+                EndCapture("Capture cancelled.");
+                return;
+            }
+
+            var code = Cybersole.Core.Input.KeyBindMatcher.VirtualKey(e.Key.ToString());
+            if (code == 0)
+            {
+                status.Text = $"{e.Key} cannot be used as a shortcut.";
+                return;
+            }
+
+            var mods = Cybersole.Core.Input.KeyBindMatcher.Modifiers(
+                e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Alt),
+                e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Control),
+                e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Shift));
+
+            // A chord that already exists on the same page would make one of the two unreachable,
+            // because the handler matches in declaration order.
+            var clash = AllOnPage(s, c.Page)
+                .FirstOrDefault(o => o.Bind != c.Bind
+                                     && o.Bind.Key == code
+                                     && o.Bind.Modifiers == mods);
+
+            if (clash.Bind is not null)
+            {
+                status.Text = $"{Cybersole.Core.Input.KeyBindMatcher.Describe(clash.Bind)} is already "
+                            + $"{clash.Label} on this page.";
+                return;
+            }
+
+            c.Bind.Key = code;
+            c.Bind.Modifiers = mods;
+            services.Config.Save();
+
+            var described = Cybersole.Core.Input.KeyBindMatcher.Describe(c.Bind);
+            EndCapture($"{c.Page} · {c.Label} is now {described}.");
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+
+        // The original's whole page-level control is one switch. The replica had four buttons here
+        // (Enable / Disable / Reset / Save); the switch covers the first two, and every edit saves
+        // immediately, which is what the X and the capture already do.
+        var enabled = new ToggleSwitch
+        {
+            IsChecked = s.Keybinds,
+            OnContent = string.Empty,
+            OffContent = string.Empty,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        enabled.IsCheckedChanged += (_, _) =>
+        {
+            s.Keybinds = enabled.IsChecked == true;
+            services.Config.Save();
+            status.Text = s.Keybinds ? "Shortcuts enabled." : "Shortcuts disabled.";
+        };
+
+        var toggleRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        toggleRow.Children.Add(new TextBlock
+        {
+            Text = "Enable Keyboard Shortcuts",
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        Grid.SetColumn(enabled, 1);
+        toggleRow.Children.Add(enabled);
+
+        Content = UiKit.Scroll(UiKit.Form(
+            toggleRow,
+            tasks,
+            proxies,
+            billing,
+            status));
+    }
+
+    /// <summary>
+    /// Every chord on one page, with the label the page prints. The clash check reads this, so it
+    /// has to list exactly what the table shows — R76 found it listing seven of twelve.
+    /// </summary>
+    private static IEnumerable<(KeyBind Bind, string Label)> AllOnPage(GlobalSettings s, string page)
+    {
+        return page switch
+        {
+            "Tasks" => new (KeyBind, string)[]
+            {
+                (s.KeyBinds.Tasks.New, "New Group"),
+                (s.KeyBinds.Tasks.Creator, "Task Creator"),
+                (s.KeyBinds.Tasks.Editor, "Task Editor"),
+                (s.KeyBinds.Tasks.StartAll, "Start All"),
+                (s.KeyBinds.Tasks.StopAll, "Stop All"),
+                (s.KeyBinds.Tasks.Delete, "Delete Selected"),
+                (s.KeyBinds.Tasks.Clone, "Clone Selected"),
+                (s.KeyBinds.Tasks.Search, "Search"),
+                (s.KeyBinds.Tasks.Quicktask, "Quicktask"),
+                (s.KeyBinds.Tasks.LinkChange, "Link Change"),
+                (s.KeyBinds.Tasks.NextGroup, "Next Group"),
+                (s.KeyBinds.Tasks.PreviousGroup, "Previous Group"),
+            },
+            "Proxies" => new (KeyBind, string)[]
+            {
+                (s.KeyBinds.Proxies.New, "New Group"),
+                (s.KeyBinds.Proxies.Add, "Add Proxies"),
+                (s.KeyBinds.Proxies.TestAll, "Test All"),
+                (s.KeyBinds.Proxies.Copy, "Copy Selected"),
+                (s.KeyBinds.Proxies.Clone, "Clone Selected"),
+                (s.KeyBinds.Proxies.Delete, "Delete Selected"),
+            },
+            _ => new (KeyBind, string)[]
+            {
+                (s.KeyBinds.Billing.New, "New Group"),
+                (s.KeyBinds.Billing.Add, "Add Profile"),
+                (s.KeyBinds.Billing.Clone, "Clone Selected"),
+                (s.KeyBinds.Billing.Delete, "Delete Selected"),
+            },
+        };
+    }
+}
+

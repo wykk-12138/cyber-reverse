@@ -1,0 +1,595 @@
+[
+  {
+    "id": "44f3af3c",
+    "name": "Group 1",
+    "running": 0,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": []
+  },
+  {
+    "id": "f123de10",
+    "name": "G",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "d4d5f313",
+        "name": "t1",
+        "store": "shop",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "d32d3dbf",
+    "name": "G copy",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "b116bca7",
+        "name": "t1",
+        "store": "shop",
+        "groupId": "d32d3dbf",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "ccdfd728",
+    "name": "G",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "1a1024ed",
+        "name": "t1",
+        "store": "shop",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "a8b775ba",
+    "name": "G copy",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "3c201913",
+        "name": "t1",
+        "store": "shop",
+        "groupId": "a8b775ba",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "3f51e987",
+    "name": "G",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "7fa8fa59",
+        "name": "t1",
+        "store": "shop",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "5f0f81b4",
+    "name": "G copy",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "c19aaba0",
+        "name": "t1",
+        "store": "shop",
+        "groupId": "5f0f81b4",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "1caf28fe",
+    "name": "G",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "99b3bf57",
+        "name": "t1",
+        "store": "shop",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "355b1692",
+    "name": "G copy",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "df2f0f6f",
+        "name": "t1",
+        "store": "shop",
+        "groupId": "355b1692",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "7c5ba22d",
+    "name": "G",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "02e63dfc",
+        "name": "t1",
+        "store": "shop",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "3c290f5a",
+    "name": "G copy",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "4b57725f",
+        "name": "t1",
+        "store": "shop",
+        "groupId": "3c290f5a",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "a4b394f2",
+    "name": "G",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "edaff904",
+        "name": "t1",
+        "store": "shop",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "6a4c2922",
+    "name": "G copy",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "86f404f8",
+        "name": "t1",
+        "store": "shop",
+        "groupId": "6a4c2922",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "45ea3efc",
+    "name": "G",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "ae5bf897",
+        "name": "t1",
+        "store": "shop",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  },
+  {
+    "id": "a75a06ab",
+    "name": "G copy",
+    "running": 0,
+    "monitorDelay": 1000,
+    "linkedDelays": false,
+    "pinned": false,
+    "captchaSource": "empty",
+    "webhooks": [],
+    "totalCheckouts": 0,
+    "totalDeclines": 0,
+    "tasks": [
+      {
+        "id": "639849aa",
+        "name": "t1",
+        "store": "shop",
+        "groupId": "a75a06ab",
+        "product": {
+          "name": "",
+          "priceCheck": false,
+          "color": "",
+          "sizes": []
+        },
+        "state": "idle",
+        "monitorMode": false,
+        "checkoutDelay": 0,
+        "products": [
+          {
+            "name": "",
+            "priceCheck": false,
+            "color": "",
+            "sizes": []
+          }
+        ],
+        "properties": {},
+        "status": "",
+        "enabled": true,
+        "quantity": 1,
+        "extraProducts": []
+      }
+    ]
+  }
+]

@@ -1,0 +1,12 @@
+| **Guarded** | 401 / 403 / 429 | 主机在，拒绝自动化——**不算腐烂** |
+| **Missing** | 404 / 410 | 域名解析但没站点 |
+| **Dead** | DNS / TLS 失败 | 没人应答 |
+
+### 结果
+
+```
+total 61 modules
+  Live      44
+  Guarded    6   fanatics, goat, offspring, pocketgames, scheels, yeezysupply
+  Missing    2   shopify, trophyroom
+  Dead       9   bodega, demandware, hypecommerce, livestock, nakedcph,

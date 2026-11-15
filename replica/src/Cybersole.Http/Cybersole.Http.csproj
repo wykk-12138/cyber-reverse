@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Cybersole.Http</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Cybersole.Core\Cybersole.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.5.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- RFC 7932's preset dictionary, carried as the same resource name the live build uses
+         (Cybersole.Http.Compression.BrotliDictionary.bin). -->
+    <EmbeddedResource Include="Compression\BrotliDictionary.bin"
+                      LogicalName="Cybersole.Http.Compression.BrotliDictionary.bin" />
+  </ItemGroup>
+</Project>

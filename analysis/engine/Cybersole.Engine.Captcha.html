@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en" style="overflow: hidden; height: 100%; width: 100%;">
+<head>
+    <script>
+        var frameId = 0;
+
+        (async function () {
+
+            Object.defineProperty(document, "referrer", {
+                get: function () {
+                    return `https://${window.location.host}/cart`;
+                }
+            });
+        })();
+
+        function execute(onClick) {
+            if (document.Solver.Captcha.Type === 0) {
+                if (!onClick && document.Solver.Settings.AutoClick)
+                    document.Solver.Recaptcha();
+            } else if (document.Solver.Captcha.Type === 1) {
+                grecaptcha.execute();
+            }
+        }
+    </script>
+    <meta content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" id="viewport" name="viewport" />
+</head>
+<body id="checkpoint" class="template-checkpoint" style='background-color: #161620; margin:0' onload='execute(false)' onclick='execute(true)'>
+    <main class="main-content" role="main" style="display: flex; flex-flow: row wrap; justify-content: center; align-items: center; width: 100%; height: 100vh">
+        <div class="wrapper">
+            <div class="checkpoint__wrapper content" style="text-align: center">
+                <div class="content--desc" style="display: inline-block">
+                    <div class="checkpoint__captcha content--desc" style="display: inline-block">
+                        <form action="/checkpoint" accept-charset="UTF-8" method="post">
+                            <input type="hidden" name="authtoken" value="kgBhZrJ30ofH+vhNMY1qFpT2UqcG+PxAQneMq2KOul4PsrW3CrZZFDLfwugQhdc5ZXoZBIsk1URO9hbw6EsW3Q==">
+                            <div class="recaptcha__wrapper" style="overflow: hidden">
+                                <script>
+                                    //<![CDATA[
+                                    var onCaptchaSuccess = function (response) {
+                                        var event;
+
+                                        try {
+                                            event = new Event('captchaSuccess', { bubbles: true, cancelable: true });
+                                        } catch (e) {
+                                            event = document.createEvent('Event');
+                                            event.initEvent('captchaSuccess', true, true);
+                                        }
+
+                                        window.dispatchEvent(event);
+                                    }
+
+                                    //]]>
+                                </script>
+                                <script>
+                                    //<![CDATA[
+                                    window.addEventListener('captchaSuccess', function () {
+                                        var responseInput = document.querySelector('.g-recaptcha-response');
+                                        var submitButton = document.querySelector('.dialog-submit');
+
+                                        if (submitButton instanceof HTMLElement) {
+                                            var needResponse = (responseInput instanceof HTMLElement);
+                                            var responseValueMissing = !responseInput.value;
+                                            submitButton.disabled = (needResponse && responseValueMissing);
+                                        }
+                                        document.Solver.Captcha.Solve(grecaptcha.getResponse());
+                                    }, false);
+
+                                    //]]>
+                                </script>
+                                <script>
+                                    //<![CDATA[
+                                    var recaptchaCallback = function () {
+                                        grecaptcha.render('g-recaptcha', {
+                                            sitekey: document.Solver.Captcha.Sitekey,
+                                            size: document.Solver.Captcha.Type === 0 ? 'normal' : 'invisible',
+                                            theme: 'dark',
+                                            callback: 'onCaptchaSuccess',
+                                            s: document.Solver.Captcha.Data
+                                        });
+                                    };
+
+                                    var recaptchaV3Callback = function () {
+                                        grecaptcha.execute(document.Solver.Captcha.Sitekey, {
+                                            action: document.Solver.Captcha.Action
+                                        }).then(document.Solver.Captcha.Solve);
+                                    };
+                                    //]]>
+                                </script>
+                                <script>
+                                    let script = document.createElement("script");
+
+                                    if (document.Solver.Captcha.Type === 2) {
+                                        script.setAttribute("src", "https://www.google.com/recaptcha/api.js?onload=recaptchaV3Callback&render=" + document.Solver.Captcha.Sitekey + "&hl=" + document.Solver.Captcha.Language)
+                                    } else {
+                                        script.setAttribute("src", "https://www.google.com/recaptcha/api.js?onload=recaptchaCallback&render=explicit&hl=" + document.Solver.Captcha.Language)
+                                    }
+
+                                    document.body.appendChild(script);
+                                </script>
+                                <noscript>
+                                    <div class="g-recaptcha-nojs">
+                                        <iframe class="g-recaptcha-nojs__iframe" frameborder="0" scrolling="no" src="https://www.google.com/recaptcha/api/fallback?k=6LeXJ7oUAAAAAHIpfRvgjs3lcJiO_zMC1LAZWlSz"></iframe>
+                                        <div class="g-recaptcha-nojs__input-wrapper"><textarea id="g-recaptcha-response" name="g-recaptcha-response" class="g-recaptcha-nojs__input"></textarea></div>
+                                    </div>
+                                </noscript>
+                                <div id="g-recaptcha" class="g-recaptcha"></div>
+                                <input type="hidden" name="data_via" value="cookie">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

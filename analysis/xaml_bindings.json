@@ -1,0 +1,1169 @@
+{
+ "Cybersole.Ui.Controls.ComboBoxToken": [
+  "Text"
+ ],
+ "Cybersole.Ui.Controls.ComboBoxEdit": [
+  "ClearSelectionCommand",
+  "RemoveTokenCommand"
+ ],
+ "Cybersole.Ui.Controls.ComboBoxGroupHeader": [
+  "Name"
+ ],
+ "Cybersole.Ui.Views.Accounts.AccountGrid": [
+  "AccountGroup",
+  "Accounts",
+  "Add",
+  "Clear",
+  "CopyAccounts",
+  "CopyPassword",
+  "Delete",
+  "DeleteSelected",
+  "Edit",
+  "MoveGroup",
+  "OpenSettings",
+  "Rows"
+ ],
+ "Cybersole.Models.AccountGroup": [
+  "Accounts",
+  "Name",
+  "Store"
+ ],
+ "Cybersole.Ui.Localization.LocalizeSwitchExtension": [
+  "Condition"
+ ],
+ "Cybersole.Ui.Localization.LocalizeFormatExtension": [
+  "Value",
+  "Value2"
+ ],
+ "Cybersole.Models.Account": [
+  "Created",
+  "Email",
+  "Password"
+ ],
+ "Cybersole.Ui.Views.Accounts.AccountStoreType": [
+  "Stores",
+  "Type"
+ ],
+ "Cybersole.Ui.Views.Accounts.AccountStoreEntry": [
+  "IsSelected",
+  "Name"
+ ],
+ "Cybersole.Ui.Views.Accounts.AccountView": [
+  "CreateGroup"
+ ],
+ "Cybersole.Ui.Views.Accounts.GroupGrid": [
+  "DeleteGroup",
+  "Items",
+  "Store"
+ ],
+ "Cybersole.Ui.Views.Accounts.Modals.AccountGroupView": [
+  "Close",
+  "Delete",
+  "GroupName",
+  "Save"
+ ],
+ "Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView": [
+  "Add",
+  "Close"
+ ],
+ "Cybersole.Ui.Views.Accounts.Modals.CreateGroupModal": [
+  "Close",
+  "Create",
+  "Types"
+ ],
+ "Cybersole.Models.Store": [
+  "ColorSupport",
+  "Currency",
+  "Elements",
+  "Info",
+  "Name",
+  "Url"
+ ],
+ "Cybersole.Ui.Views.Analytics.AnalyticsView": [
+  "ChangeChart",
+  "LoadAnalytics",
+  "MoveNext",
+  "MovePrevious",
+  "OpenRelease"
+ ],
+ "Cybersole.Ui.Localization.LocalizeEnumExtension": [
+  "Value"
+ ],
+ "Cybersole.Models.Analytics": [
+  "Spent",
+  "Success"
+ ],
+ "Cybersole.Global.Settings": [
+  "AutoOpen3DS",
+  "AutoOpen3DSLimit",
+  "BackupInterval",
+  "BetaUpdates",
+  "BrowserLimit",
+  "BrowserPath",
+  "BrowserProfileAssignment",
+  "BrowserWindowMode",
+  "Clock",
+  "Currency",
+  "Keybinds",
+  "Language",
+  "MaxBackups",
+  "MaxLogRetention",
+  "MaxLogSize",
+  "MonitorConcurrency",
+  "MonitorDelay",
+  "MonitorFilters",
+  "Notifications",
+  "PinGroups",
+  "ProfileGroupOrder",
+  "ProxyGroupOrder",
+  "QueuePresentation",
+  "QuickTaskProfiles",
+  "QuickTaskProxies",
+  "RetryDelay",
+  "ScrollbarColor",
+  "ScrollbarCornerRadius",
+  "ScrollbarWidth",
+  "ShopifyBrowserProxy",
+  "SmartActions",
+  "StartupPage",
+  "TaskGroupOrder",
+  "Timeout"
+ ],
+ "Cybersole.Models.Release": [
+  "Drops",
+  "Image",
+  "Price",
+  "Product",
+  "ReleaseDate"
+ ],
+ "Cybersole.Ui.Views.Analytics.CheckoutList": [
+  "Show"
+ ],
+ "Cybersole.Models.BaseCheckout": [
+  "Image",
+  "Price",
+  "Product",
+  "Properties",
+  "Size",
+  "Store",
+  "Timestamp",
+  "Type"
+ ],
+ "Cybersole.Ui.Views.Analytics.Modals.CheckoutView": [
+  "Checkout",
+  "Close",
+  "Next",
+  "OpenTracking",
+  "Previous",
+  "Properties"
+ ],
+ "Cybersole.Models.Checkout": [
+  "Order",
+  "Profile",
+  "Tracking"
+ ],
+ "Cybersole.Ui.Views.Analytics.Modals.CheckoutProperty": [
+  "Key",
+  "Value"
+ ],
+ "Cybersole.Ui.Views.Analytics.Modals.ReleaseSitelistView": [
+  "Create",
+  "Release"
+ ],
+ "Cybersole.Models.Drop": [
+  "Stores",
+  "Time",
+  "Type"
+ ],
+ "Cybersole.Ui.Views.Analytics.Modals.ReleaseView": [
+  "Close",
+  "Next",
+  "Previous",
+  "Release",
+  "ShowGuide",
+  "ShowSitelist"
+ ],
+ "Cybersole.Ui.Views.Auth.AuthWindow": [
+  "Exit",
+  "Logout",
+  "Minimise"
+ ],
+ "Cybersole.Ui.Views.Auth.LicenseControl": [
+  "Authenticate",
+  "Dashboard",
+  "Refresh"
+ ],
+ "Cybersole.Models.License": [
+  "Last4",
+  "Name"
+ ],
+ "Cybersole.Ui.Localization.LocalizeFallbackExtension": [
+  "Value"
+ ],
+ "Cybersole.Models.AsyncCommand": [
+  "IsExecuting"
+ ],
+ "Cybersole.Ui.Views.Auth.LoginControl": [
+  "Cancel",
+  "OpenBrowser",
+  "SignIn",
+  "SignUp",
+  "UseCode"
+ ],
+ "Cybersole.Ui.Views.Browser.CustomBrowser": [
+  "Autofill",
+  "Back",
+  "Exit",
+  "Forward",
+  "Minimise",
+  "Refresh",
+  "Status",
+  "Type"
+ ],
+ "Cybersole.Ui.Views.Captcha.GoogleLogin": [
+  "Close",
+  "Save"
+ ],
+ "Cybersole.Ui.Views.Captcha.SolverWindow": [
+  "Add",
+  "CloseSolver",
+  "Dispose",
+  "Minimise",
+  "Panels",
+  "Solvers"
+ ],
+ "Cybersole.Models.Solver": [
+  "AIStatus",
+  "Account",
+  "Captcha",
+  "Filter",
+  "Name",
+  "Proxy",
+  "Reload",
+  "Settings",
+  "View"
+ ],
+ "Cybersole.Models.SolverSettings": [
+  "AutoBoundingBox",
+  "AutoCanvas",
+  "AutoClick",
+  "AutoTickBox",
+  "QuestionSharing",
+  "ReCaptchaMultiClassification",
+  "ReCaptchaSegmentation"
+ ],
+ "Cybersole.Models.GoogleAccount": [
+  "Email",
+  "Name",
+  "Proxy",
+  "State"
+ ],
+ "Cybersole.Models.Captcha": [
+  "Proxy"
+ ],
+ "Cybersole.Ui.Views.Captcha.YoutubeWindow": [
+  "Account"
+ ],
+ "Cybersole.Ui.Views.MainWindow": [
+  "AccountView",
+  "AnalyticsView",
+  "BillingView",
+  "Clock",
+  "Exit",
+  "Minimise",
+  "Navigate",
+  "OpenMonitor",
+  "OpenNotifications",
+  "OpenProfile",
+  "ProxyView",
+  "SettingsView",
+  "TaskView"
+ ],
+ "Cybersole.Services.ClockService": [
+  "Current"
+ ],
+ "Cybersole.Models.User": [
+  "Discord",
+  "Email",
+  "FirstName",
+  "Image",
+  "IsStaff",
+  "LastName"
+ ],
+ "Cybersole.Models.Notification": [
+  "Message",
+  "Timestamp",
+  "Title",
+  "Type"
+ ],
+ "Cybersole.Ui.Views.Modals.DesktopNotification": [
+  "Close"
+ ],
+ "Cybersole.Ui.Views.Modals.DropdownModal": [
+  "ButtonText",
+  "Placeholder",
+  "Title"
+ ],
+ "Cybersole.Ui.Views.Modals.InputModal": [
+  "ButtonText",
+  "Close",
+  "Placeholder",
+  "Title"
+ ],
+ "Cybersole.Ui.Views.Modals.MessageBoxDialog": [
+  "ActionText",
+  "Cancel",
+  "CancelText",
+  "Close",
+  "Confirm",
+  "ShowAction",
+  "ShowCancel",
+  "TextAlignment",
+  "Title",
+  "Type"
+ ],
+ "Cybersole.Ui.Views.Modals.NotificationView": [
+  "Clear",
+  "Clock",
+  "Delete"
+ ],
+ "Cybersole.Ui.Views.Modals.UserView": [
+  "LogOut",
+  "OpenUrl"
+ ],
+ "Cybersole.Ui.Views.Monitor.MonitorView": [
+  "LinkChange",
+  "OpenFilter",
+  "OpenUrl",
+  "Quicktask",
+  "View"
+ ],
+ "Cybersole.Models.Flag": [
+  "Enabled",
+  "Name"
+ ],
+ "Cybersole.Models.MonitorProduct": [
+  "AvailableVariants",
+  "Image",
+  "Input",
+  "Price"
+ ],
+ "Cybersole.Models.MonitorEvent": [
+  "Name",
+  "Store",
+  "Timestamp",
+  "Type"
+ ],
+ "Cybersole.Models.Input": [
+  "Type"
+ ],
+ "Cybersole.Ui.Views.Monitor.MonitorWindow": [
+  "Exit",
+  "Minimise",
+  "ShowMonitor",
+  "ShowSmartActions",
+  "ShowUtilities"
+ ],
+ "Cybersole.Ui.Views.Profiles.Modals.ExpressionView": [
+  "Copy",
+  "Expressions",
+  "Refresh"
+ ],
+ "Cybersole.Ui.Views.Profiles.Modals.ExpressionExample": [
+  "Description",
+  "Key",
+  "Output"
+ ],
+ "Cybersole.Models.Address": [
+  "Address1",
+  "Address2",
+  "Barangay",
+  "City",
+  "Country",
+  "FirstName",
+  "FullName",
+  "LastName",
+  "State",
+  "ZipCode"
+ ],
+ "Cybersole.Models.Country": [
+  "Code",
+  "Name",
+  "States"
+ ],
+ "Cybersole.Models.State": [
+  "Name"
+ ],
+ "Cybersole.Ui.Views.Profiles.Modals.ProfileAdvancedView": [
+  "Profile"
+ ],
+ "Cybersole.Models.Profile": [
+  "Card",
+  "Delivery",
+  "Email",
+  "Name",
+  "Phone",
+  "Username"
+ ],
+ "Cybersole.Ui.Views.Tasks.ElementCell": [
+  "Column",
+  "ColumnSpan",
+  "Content",
+  "Name"
+ ],
+ "Cybersole.Ui.Views.Profiles.Modals.ProfileCreatorView": [
+  "AdvancedView",
+  "BillingView",
+  "Close",
+  "Count",
+  "IsBulk",
+  "IsCreating",
+  "Names",
+  "Navigate",
+  "PaymentView",
+  "Profile",
+  "Save",
+  "ShippingView",
+  "Summary"
+ ],
+ "Cybersole.Ui.Views.Profiles.Modals.ProfileCsvEditorView": [
+  "Apply",
+  "Close",
+  "ColumnChoices",
+  "GroupName",
+  "ProfileCount"
+ ],
+ "Cybersole.Ui.Views.Profiles.Modals.ProfileCsvRow": [
+  "FullySelected",
+  "Number",
+  "RowError",
+  "RowStatus"
+ ],
+ "Cybersole.Ui.Views.Profiles.Modals.ProfileGroupView": [
+  "Close",
+  "Delete",
+  "GroupName",
+  "Save"
+ ],
+ "Cybersole.Ui.Views.Profiles.Modals.ProfilePaymentView": [
+  "Profile"
+ ],
+ "Cybersole.Models.Card": [
+  "Cvv",
+  "Number"
+ ],
+ "Cybersole.Ui.Views.Profiles.ProfileView": [
+  "Clear",
+  "Clone",
+  "CreateGroup",
+  "CreateTest",
+  "Delete",
+  "DeleteSelected",
+  "EditSelected",
+  "Groups",
+  "MoveGroup",
+  "OpenCreator",
+  "OpenCsvEditor",
+  "OpenSettings"
+ ],
+ "Cybersole.Models.RemoteData": [
+  "Name"
+ ],
+ "Cybersole.Models.ProfileGroup": [
+  "Profiles"
+ ],
+ "Cybersole.Ui.Views.Proxies.Modals.ProxyCreatorView": [
+  "Add",
+  "Close"
+ ],
+ "Cybersole.Models.ProxyGroup": [
+  "Behaviour",
+  "MaxUsage",
+  "Name",
+  "NextReset",
+  "Proxies",
+  "TotalDownload",
+  "TotalUpload",
+  "UsageExpiry"
+ ],
+ "Cybersole.Ui.Views.Proxies.Modals.ProxyGroupView": [
+  "Close",
+  "Delete",
+  "Draft",
+  "Reset",
+  "Save",
+  "TimeSpans"
+ ],
+ "Cybersole.Ui.Views.TimeSpanOption": [
+  "Name",
+  "Value"
+ ],
+ "Cybersole.Ui.Views.Proxies.ProxyView": [
+  "AddProxies",
+  "ClearAll",
+  "ClearFailed",
+  "ClearOver",
+  "CloneProxies",
+  "CopyProxies",
+  "CreateGroup",
+  "Delete",
+  "DeleteProxies",
+  "Groups",
+  "MoveGroup",
+  "OpenSettings",
+  "ProxyTesters",
+  "Test",
+  "TestAll",
+  "TestAllKeybind",
+  "TestProxies"
+ ],
+ "Cybersole.Models.Proxy": [
+  "Host",
+  "Port",
+  "Status",
+  "Username"
+ ],
+ "Cybersole.Models.Status": [
+  "Clickable",
+  "Color",
+  "Icon",
+  "Text"
+ ],
+ "Cybersole.ProxyTesters.ProxyTester": [
+  "Name"
+ ],
+ "Cybersole.Ui.Views.Settings.AppearanceView": [
+  "ResetDefaults"
+ ],
+ "Cybersole.Ui.Views.Settings.CaptchaProvidersView": [
+  "Add",
+  "DisabledProviders",
+  "Edit",
+  "EnabledProviders",
+  "FetchBalance",
+  "Reorder"
+ ],
+ "Cybersole.CaptchaProviders.CaptchaProvider": [
+  "ApiKey",
+  "Balance",
+  "BalanceSupported",
+  "Concurrency",
+  "Count",
+  "IsFetchingBalance",
+  "Name",
+  "Priority",
+  "Type"
+ ],
+ "Cybersole.Ui.Views.Settings.CloudflareSolversView": [
+  "Add",
+  "Edit",
+  "FetchBalance"
+ ],
+ "Cybersole.CloudflareSolvers.CloudflareSolver": [
+  "ApiKey",
+  "Balance",
+  "BalanceSupported",
+  "Concurrency",
+  "Count",
+  "Id",
+  "IsFetchingBalance",
+  "Name",
+  "Type"
+ ],
+ "Cybersole.Ui.Views.Settings.CustomSizesView": [
+  "Add",
+  "Clear",
+  "Delete",
+  "Rows",
+  "View"
+ ],
+ "Cybersole.Models.Size": [
+  "Value"
+ ],
+ "Cybersole.Ui.Views.Settings.CustomStoresView": [
+  "Add",
+  "Clear",
+  "Delete",
+  "Rows",
+  "View"
+ ],
+ "Cybersole.Ui.Views.Settings.DataView": [
+  "Backup",
+  "DataProviders",
+  "Export",
+  "Reset",
+  "Restore",
+  "ViewBackups",
+  "ViewLogs"
+ ],
+ "Cybersole.Providers.IDataProvider": [
+  "Name"
+ ],
+ "Cybersole.Ui.Views.Settings.GeneralSettingsView": [
+  "ProfileItems"
+ ],
+ "Cybersole.Models.Concurrency": [
+  "Maximum",
+  "Mode",
+  "Ratio"
+ ],
+ "Cybersole.Ui.Views.Settings.LocalizedOption": [
+  "Text",
+  "Value"
+ ],
+ "Cybersole.Ui.Views.Settings.GoogleAccountsView": [
+  "Add",
+  "Clear",
+  "Delete",
+  "Edit",
+  "Rows",
+  "YouTube"
+ ],
+ "Cybersole.Ui.Views.Settings.HelpView": [
+  "OpenUrl"
+ ],
+ "Cybersole.Ui.Views.Settings.ErrorEntry": [
+  "Key",
+  "Value"
+ ],
+ "Cybersole.Models.AycdInboxAccount": [
+  "ApiKey",
+  "Enabled",
+  "Error",
+  "Status",
+  "TaskCount"
+ ],
+ "Cybersole.Ui.Views.Settings.ImapView": [
+  "Add",
+  "Clear",
+  "Configure",
+  "Delete",
+  "DisconnectAycd",
+  "Rows"
+ ],
+ "Cybersole.Services.ImapProvider": [
+  "Host",
+  "MessageCount",
+  "Status",
+  "Username"
+ ],
+ "Cybersole.Ui.Views.Settings.KeyBindSection": [
+  "Key",
+  "Shortcuts"
+ ],
+ "Cybersole.Models.Shortcut": [
+  "Gesture",
+  "Name"
+ ],
+ "Cybersole.KeyInput.KeyGesture": [
+  "Key",
+  "Modifiers"
+ ],
+ "Cybersole.Ui.Views.Settings.KeyBindsView": [
+  "Delete"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.AycdInboxCreatorView": [
+  "Close",
+  "Save"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.CaptchaProviderCreatorView": [
+  "Close",
+  "Creating",
+  "Delete",
+  "Properties",
+  "Save"
+ ],
+ "Cybersole.Attributes.CreateInfo": [
+  "Name",
+  "Properties"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.CloudflareSolverCreatorView": [
+  "Close",
+  "Creating",
+  "Delete",
+  "Save"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.GoogleAccountEditView": [
+  "Account",
+  "AccountName",
+  "Close",
+  "EditMode",
+  "Proxy",
+  "Save"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.ImapCreatorView": [
+  "Close",
+  "Save"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.PayPalAccountCreatorView": [
+  "AutoReopen",
+  "Close",
+  "EditMode",
+  "InactivateAfter",
+  "Model",
+  "Password",
+  "ProxyGroup",
+  "Save",
+  "UseLoginProxy"
+ ],
+ "Cybersole.Models.PayPalAccount": [
+  "Email",
+  "LastRefresh",
+  "ProxyGroup",
+  "Running"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.SizeCreatorView": [
+  "Clear",
+  "Close",
+  "Save",
+  "Search",
+  "SizeOptions",
+  "ToggleSizeSelected"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.SizeOption": [
+  "Selected",
+  "Title"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.StoreCreatorView": [
+  "Close",
+  "Save"
+ ],
+ "Cybersole.Ui.Views.Settings.Modals.WebhookCreatorView": [
+  "Close",
+  "Save"
+ ],
+ "Cybersole.Ui.Views.Settings.NotificationsView": [
+  "PlaySound",
+  "ResetSound",
+  "Select",
+  "SelectSound",
+  "Types"
+ ],
+ "Cybersole.Models.NotificationOptions": [
+  "Centre",
+  "Desktop",
+  "EnableSound",
+  "Enabled",
+  "Name",
+  "Sound"
+ ],
+ "Cybersole.Models.NotificationSound": [
+  "SoundLocation"
+ ],
+ "Cybersole.Ui.Views.Settings.PaymentView": [
+  "Configure",
+  "DetectedProfiles",
+  "Refresh",
+  "SelectedProfiles"
+ ],
+ "Cybersole.Helpers.BrowserProfile": [
+  "DisplayName"
+ ],
+ "Cybersole.Ui.Views.Settings.PayPalAccountsView": [
+  "Add",
+  "Clear",
+  "Delete",
+  "Edit",
+  "Rows",
+  "Toggle"
+ ],
+ "Cybersole.Ui.Views.Settings.SettingsView": [
+  "AppearanceView",
+  "CaptchaProvidersView",
+  "CloudflareSolversView",
+  "CustomSizesView",
+  "CustomStoresView",
+  "DataView",
+  "GeneralSettingsView",
+  "GoogleAccountsView",
+  "HelpView",
+  "ImapView",
+  "KeyBindsView",
+  "LogOut",
+  "NotificationsView",
+  "PayPalAccountsView",
+  "PaymentView",
+  "Transition",
+  "Update",
+  "Version",
+  "WebhookView"
+ ],
+ "Cybersole.Webhook.IWebhook": [
+  "Enabled",
+  "Events",
+  "ExtraFields",
+  "Name",
+  "Type",
+  "Url"
+ ],
+ "Cybersole.Ui.Views.Settings.WebhookView": [
+  "Add",
+  "Delete",
+  "Test"
+ ],
+ "Cybersole.Ui.Views.SmartActions.ActionsModal": [
+  "Add",
+  "Close"
+ ],
+ "Cybersole.SmartActions.Action": [
+  "Config",
+  "Description",
+  "Image",
+  "Name",
+  "Variables"
+ ],
+ "Cybersole.Ui.Views.SmartActions.HistoryWindow": [
+  "Exit",
+  "Filter",
+  "Minimise",
+  "ShowAll",
+  "SmartAction",
+  "View"
+ ],
+ "Cybersole.SmartActions.SmartAction": [
+  "Actions",
+  "Enabled",
+  "Filters",
+  "LastResult",
+  "LastRun",
+  "Logs",
+  "Name",
+  "Notifications",
+  "RunInterval",
+  "RunOnce",
+  "Trigger",
+  "Webhooks"
+ ],
+ "Cybersole.SmartActions.RunHistory": [
+  "Exception",
+  "Result",
+  "Timestamp",
+  "Trigger"
+ ],
+ "Cybersole.SmartActions.Trigger": [
+  "Description",
+  "Image",
+  "Name",
+  "Variables"
+ ],
+ "Cybersole.Ui.Views.SmartActions.FilterRow": [
+  "Filter",
+  "Inputs",
+  "IsFirst",
+  "Passed",
+  "Title",
+  "ValueText"
+ ],
+ "Cybersole.SmartActions.Filter": [
+  "Behaviour",
+  "Inputs",
+  "Operator",
+  "Variable"
+ ],
+ "Cybersole.SmartActions.Operator": [
+  "Name"
+ ],
+ "Cybersole.Ui.Views.SmartActions.InputRow": [
+  "Matched",
+  "Text"
+ ],
+ "Cybersole.Ui.Views.SmartActions.ActionRow": [
+  "Action",
+  "IsFirst",
+  "Result",
+  "Tooltip"
+ ],
+ "Cybersole.Ui.Views.SmartActions.PublishTemplateModal": [
+  "Close",
+  "Groups"
+ ],
+ "Cybersole.Ui.Views.SmartActions.SmartActionsCreator": [
+  "AddAction",
+  "AddFilter",
+  "AddInput",
+  "Clone",
+  "CloseOverlay",
+  "Delete",
+  "DeleteAction",
+  "DeleteFilter",
+  "DeleteInput",
+  "DeleteParam",
+  "Exit",
+  "IsEditing",
+  "Minimise",
+  "Save",
+  "Settings",
+  "SmartAction",
+  "TimeSpans",
+  "ToggleFilterBehaviour",
+  "UseTemplate"
+ ],
+ "Cybersole.SmartActions.Variable": [
+  "Description"
+ ],
+ "Cybersole.Ui.Views.SmartActions.FilterInputEntry": [
+  "Filter",
+  "Input",
+  "IsFirst"
+ ],
+ "Cybersole.SmartActions.ActionParams": [
+  "Action"
+ ],
+ "Cybersole.Helpers.ObservableDictionary`2": [
+  "Count"
+ ],
+ "Cybersole.Ui.Views.SmartActions.ActionConfigEntry": [
+  "Config",
+  "Key",
+  "Parameters"
+ ],
+ "Cybersole.SmartActions.ActionConfig": [
+  "Name",
+  "Required"
+ ],
+ "Cybersole.Ui.Views.SmartActions.SmartActionsView": [
+  "Clock",
+  "Clone",
+  "Delete",
+  "Edit",
+  "Export",
+  "Filters",
+  "OpenCreator",
+  "View",
+  "ViewLogs"
+ ],
+ "Cybersole.Ui.Views.SmartActions.TemplateGroup": [
+  "Key",
+  "Templates"
+ ],
+ "Cybersole.SmartActions.Template": [
+  "Actions",
+  "Description",
+  "Filters",
+  "Title",
+  "Trigger"
+ ],
+ "Cybersole.Ui.Views.Tasks.Modals.GroupSummary": [
+  "Clone",
+  "Delete",
+  "Edit",
+  "PinGroup",
+  "StartAll",
+  "StopAll"
+ ],
+ "Cybersole.Models.TaskGroup": [
+  "CaptchaSource",
+  "CheckoutLimit",
+  "CloudflareSolverId",
+  "LinkedDelays",
+  "MonitorDelay",
+  "Name",
+  "NextReset",
+  "Pinned",
+  "ProfileLimit",
+  "RetryDelay",
+  "Running",
+  "Tasks",
+  "Timeout",
+  "TotalCheckouts",
+  "TotalDeclines",
+  "UsageExpiry",
+  "Webhooks"
+ ],
+ "Cybersole.Ui.Views.Tasks.Modals.StaggerStartView": [
+  "Cancel",
+  "Start",
+  "TotalTasks"
+ ],
+ "Cybersole.Ui.Views.Tasks.Modals.TaskDetailsView": [
+  "Close",
+  "Task"
+ ],
+ "Cybersole.Models.BotTask": [
+  "MonitorDelay",
+  "MonitorMode",
+  "Product",
+  "Products",
+  "Profile",
+  "Properties",
+  "ProxyGroup",
+  "RetryDelay",
+  "Running",
+  "StartTime",
+  "Status",
+  "Store",
+  "Task",
+  "Timeout"
+ ],
+ "Cybersole.Models.Product": [
+  "Color",
+  "Image",
+  "Input",
+  "Name",
+  "Price",
+  "PriceCheck",
+  "Variant"
+ ],
+ "Cybersole.Models.Variant": [
+  "Name",
+  "Sizes"
+ ],
+ "Cybersole.Models.WebTask": [
+  "Account",
+  "Steps"
+ ],
+ "Cybersole.Elements.Element": [
+  "Name",
+  "PropName"
+ ],
+ "Cybersole.Models.TaskStep": [
+  "Completed",
+  "Duration",
+  "Name",
+  "Running",
+  "Started"
+ ],
+ "Cybersole.Ui.Views.Tasks.TaskView": [
+  "ClearAll",
+  "CloneSelected",
+  "CopyUrl",
+  "CreateGroup",
+  "Delete",
+  "DeleteSelected",
+  "Edit",
+  "EditAll",
+  "EditSelected",
+  "ForceStartSelected",
+  "LinkChange",
+  "MoveGroup",
+  "NextGroup",
+  "OpenBrowser",
+  "OpenGroupPopup",
+  "OpenSettings",
+  "OpenSolvers",
+  "OpenStaggerStart",
+  "OpenTaskCreator",
+  "OpenTaskView",
+  "PinGroups",
+  "PreviousGroup",
+  "Quicktask",
+  "Search",
+  "SetQuery",
+  "StartAll",
+  "StartSelected",
+  "StopAll",
+  "StopSelected",
+  "Toggle"
+ ],
+ "Cybersole.Ui.Views.Tasks.Modals.TaskGroupListView": [
+  "Groups"
+ ],
+ "Cybersole.Ui.Views.Tasks.Modals.TaskGroupView": [
+  "Close",
+  "CloudflareSolvers",
+  "Delete",
+  "Draft",
+  "Link",
+  "Reset",
+  "Save",
+  "TimeSpans"
+ ],
+ "Cybersole.Models.CreateModel": [
+  "AccountGroup",
+  "AccountSelectionMode",
+  "Group",
+  "Input",
+  "Inputs",
+  "IsEditing",
+  "MonitorDelay",
+  "MonitorMode",
+  "Profile",
+  "Profiles",
+  "ProxyGroup",
+  "Quantity",
+  "RetryDelay",
+  "StartTime",
+  "Store",
+  "Tasks",
+  "Timeout",
+  "Total"
+ ],
+ "Cybersole.Models.EditValue`1": [
+  "HasMultiple",
+  "HasMultiple_101",
+  "HasMultiple_87",
+  "HasMultiple_88",
+  "HasMultiple_91",
+  "HasMultiple_93",
+  "HasMultiple_94",
+  "HasMultiple_95",
+  "HasMultiple_97",
+  "HasMultiple_98",
+  "HasMultiple_99",
+  "Value",
+  "Value_100",
+  "Value_92"
+ ],
+ "Cybersole.Ui.Views.Tasks.TaskCreatorCartView": [
+  "Add",
+  "Delete",
+  "SizeItems"
+ ],
+ "Cybersole.Models.CreateInputModel": [
+  "AutoQuantity",
+  "Color",
+  "Currency",
+  "Input",
+  "MaxPrice",
+  "MinPrice",
+  "Minus",
+  "Plus",
+  "PriceCheckVisible",
+  "Quantity",
+  "Sizes",
+  "Symbol",
+  "TogglePriceCheck"
+ ],
+ "Cybersole.Attributes.Platform": [
+  "InputType",
+  "MultiCart",
+  "Name",
+  "QuantityAutoAdjustSupport",
+  "QuantitySupport"
+ ],
+ "Cybersole.Ui.Views.Tasks.TaskCreatorMainView": [
+  "ProfileGroupItems",
+  "ProfileItems",
+  "ShowCartView",
+  "SizeItems"
+ ],
+ "Cybersole.Models.ProfileItem": [
+  "Description",
+  "Name"
+ ],
+ "Cybersole.Ui.Views.Tasks.TaskCreatorView": [
+  "Close",
+  "Create"
+ ],
+ "Cybersole.Ui.Views.Utilities.StoreGroupModal": [
+  "Close",
+  "Delete",
+  "IsEditing",
+  "RemoveStore",
+  "Save",
+  "Stores",
+  "Title"
+ ],
+ "Cybersole.Ui.Views.Utilities.UtilitiesView": [
+  "CloneStoreGroup",
+  "CreateStoreGroup",
+  "DeleteStoreGroup",
+  "EditStoreGroup",
+  "StoreGroups"
+ ],
+ "Cybersole.Models.ValueGroup": [
+  "Name",
+  "Preview",
+  "Values"
+ ]
+}

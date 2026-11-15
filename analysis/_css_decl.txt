@@ -1,0 +1,1 @@
+"constructor", "cssText", "cssRules", "length", "parentRule", "item", "getPropertyValue", "getPropertyPriority", "setProperty", "removeProperty", "getPropertyCSSValue"

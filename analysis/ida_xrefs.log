@@ -1,0 +1,24 @@
+text seg 0x140001000 len 51634176
+lea-rip insns found: 824531 in 0.5s
+[https://api.cybersole.io] 3 string hits
+  str@0x1433b46f1 lea_refs=0 []
+  str@0x147036b8c lea_refs=0 []
+[https://cybersole.io/api/apisecuretoken] 2 string hits
+  str@0x143359a69 lea_refs=0 []
+  str@0x147044f7c lea_refs=0 []
+[https://api.humanpresence.io/v2] 2 string hits
+  str@0x14330edd9 lea_refs=0 []
+  str@0x147036d24 lea_refs=0 []
+[https://cf-solver.cybersole.io] 3 string hits
+  str@0x14344694f lea_refs=0 []
+  str@0x14703fd54 lea_refs=0 []
+[LicenseVerifier] 2 string hits
+  str@0x1431f8277 lea_refs=0 []
+  str@0x146b10d34 lea_refs=0 []
+[VerifyLicense] 4 string hits
+  str@0x1432e5b34 lea_refs=0 []
+  str@0x143358fa6 lea_refs=0 []
+[TlsClientOptions] 1 string hits
+  str@0x1433bf51c lea_refs=0 []
+[ClientHelloBuilder] 1 string hits
+  str@0x1433bf13f lea_refs=0 []

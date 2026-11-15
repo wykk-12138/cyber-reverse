@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .logo {
+            width: 200px;
+            margin-bottom: 20px;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #ff6b6b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #666;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://cdn-global-naus.popmart.com/global-web/naus-prod/assets/images/logo.png?x-oss-process=image/format,webp" alt="Pop Mart Logo" class="logo">
+        <div class="loader"></div>
+        <div class="loading-text">Loading Pop Mart Account...</div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function () {
+
+            const now = new Date();
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+
+            var token = "%TOKEN%";
+            var region = "%REGION%";
+            var data = JSON.parse(atob(token.split('.')[1]).replace("'", ""))
+
+            localStorage.setItem('IS_FIRST_TIME', '{"data":true,"time":1750422651943,"expire":"20250620"}');
+            localStorage.setItem('PRE_CLUSTER', `"${data.projectId}"`);
+            localStorage.setItem('PRE_COUNTRY', `"${region}"`);
+            localStorage.setItem('REFFERRER_URL', '"https://www.popmart.com/de/account"');
+            localStorage.setItem('REFFERRER_URL_HOST', '"www.popmart.com"');
+            localStorage.setItem('REFFERRER_URL_PATH_NAME', `"/${region}/account"`);
+            localStorage.setItem('SELECT_COUNTRY_HISTORY', `["${region}"]`);
+            localStorage.setItem('USERIP_DIFF_SITECOUNTRY_MODAL', `"${yesterday.toLocaleDateString()} ${yesterday.toLocaleTimeString()}"`);
+            localStorage.setItem('arnofrutos@hotmail.com_user_auth_verify', 'true');
+            localStorage.setItem('manual_change_country', 'false');
+            localStorage.setItem('undefined_has_bind_tz', `["${region}"]`);
+            localStorage.setItem('user_auth_email', `"${data.providerID}"`);
+            localStorage.setItem('user_auth_info', `{"gid":${+data.gid},"nickname":"${data.nickname}","avatar":"https://cdn-global.popmart.com/images/default-avatar.png","birthday":"","gender":0,"phone":"","email":"${data.providerID}","identityId":""}`);
+            localStorage.setItem('user_auth_token', `"${token}"`);
+            localStorage.setItem('user_manual_close_live', 'false');
+
+            sessionStorage.setItem('LANGUAGE', '"en"');
+            sessionStorage.setItem('SOURCE_ENTRY_URL', `"https://www.popmart.com/${region}/account"`);
+
+            setTimeout(function() {
+                window.location.href = `https://www.popmart.com/${region}/account`;
+            }, 500);
+        });
+    </script>
+</body>
+</html>

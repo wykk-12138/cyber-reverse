@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Cybersole.Ui</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- R447: the replica shipped with NO icon at all. The original carries nine RT_ICON leaves (16..256 px)
+         plus a RT_GROUP_ICON; ours had only MANIFEST + VERSION, which is why claim C5 read "12 <-> 2".
+         The .ico is rebuilt verbatim from the original's own icon blobs by analysis/extract_icons.py, so the
+         artwork is the original's, not a redraw. -->
+    <ApplicationIcon>..\..\assets\cybersole.ico</ApplicationIcon>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.2" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Cybersole.Core\Cybersole.Core.csproj" />
+    <ProjectReference Include="..\Cybersole.Http\Cybersole.Http.csproj" />
+    <ProjectReference Include="..\Cybersole.Services\Cybersole.Services.csproj" />
+    <ProjectReference Include="..\Cybersole.Stores\Cybersole.Stores.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- R59: the view tests call ProxyView.TestProxy by name rather than raising a routed
+         MenuItem.Click, which needs a dispatcher the test host does not always have. -->
+    <InternalsVisibleTo Include="Cybersole.Tests" />
+  </ItemGroup>
+</Project>

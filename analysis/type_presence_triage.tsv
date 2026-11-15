@@ -1,0 +1,18 @@
+absent_type	members	best_replica_class	members_hit	jaccard	verdict
+Cybersole.KeyInput.KeyGesture	2	KeyBind	2	1.00	RENAMED
+Cybersole.Models.Concurrency	3	ConcurrencySettings	3	1.00	RENAMED
+Cybersole.SmartActions.ActionConfig	2	SmartActionStepConfig	2	1.00	RENAMED
+Cybersole.CloudflareSolvers.CloudflareSolver	9	CloudflareSolverConfig	8	0.89	RENAMED
+Cybersole.Global.Settings	34	GlobalSettings	33	0.66	RENAMED
+Cybersole.Ui.Localization.LocalizeEnumExtension	1	Size	1	1.00	UNIMPLEMENTED
+Cybersole.Ui.Localization.LocalizeFallbackExtension	1	Size	1	1.00	UNIMPLEMENTED
+Cybersole.Ui.Views.Tasks.TaskCreatorCartView	3	WebhookView	2	0.67	UNIMPLEMENTED
+Cybersole.Helpers.ObservableDictionary`2	1	TaskCombinationBuilder	1	0.50	UNIMPLEMENTED
+Cybersole.Ui.Localization.LocalizeFormatExtension	2	Size	1	0.50	UNIMPLEMENTED
+Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView	2	ProxyCreatorView	1	0.33	UNIMPLEMENTED
+Cybersole.Services.ImapProvider	4	ImapMailProvider	4	0.29	UNIMPLEMENTED
+Cybersole.Ui.Views.Tasks.TaskCreatorMainView	4	TaskCreatorView	4	0.29	UNIMPLEMENTED
+Cybersole.Ui.Views.Auth.AuthWindow	3	MonitorWindow	2	0.25	UNIMPLEMENTED
+Cybersole.Ui.Views.Auth.LicenseControl	3	BillingView	1	0.25	UNIMPLEMENTED
+Cybersole.Ui.Views.Settings.SettingsView	19	UserView	1	0.05	UNIMPLEMENTED
+Cybersole.Ui.Localization.LocalizeSwitchExtension	1		0	0.00	UNIMPLEMENTED

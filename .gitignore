@@ -1,0 +1,43 @@
+# ---- build output ----
+bin/
+obj/
+.publish-aot/
+replica/.publish-aot/**
+replica/tools/.mutation-backup/
+
+# ---- large inputs and analysis databases: never tracked ----
+*.i64
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+*.pdb
+*.dmp
+target/*.exe
+target/*.dll
+target/db-backup-*/
+target-alt/*.exe
+target-*/*.exe
+
+# ---- test run artefacts ----
+TestResults/
+*.trx
+*.coverage
+coverage*
+
+# ---- oversized derived analysis output (recomputable from analysis/*.py) ----
+analysis/pe_strings.txt
+analysis/pe_strings_utf8.txt
+analysis/replica_funcs.txt
+analysis/replica_aot_funcs.txt
+analysis/original_funcs.txt
+analysis/strings_all.tsv
+analysis/functions.tsv
+analysis/_fp_*.tsv
+
+# ---- temp ----
+*.tmp
+*.bak
+*.orig
+*~

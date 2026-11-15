@@ -1,0 +1,26 @@
+        // no evidence in the image pool yet (R293)
+        new[]
+        {
+            ("/account/recover", "src/Cybersole.Stores/Flows/StoreFlow.cs"),
+            ("/account/verify", "src/Cybersole.Stores/Flows/MagentoFlow.cs"),
+            ("/api/basket/v1/items", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
+            ("/api/beast", "src/Cybersole.Stores/Flows/BstnFlow.cs"),
+            ("/api/checkout/submit", "src/Cybersole.Stores/Flows/RetailFlows.cs"),
+            ("/api/checkout/v1/basket/{basketId}", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
+            ("/api/checkout/v1/basket/{basketId}/place-order", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
+            ("/api/checkout/v1/basket/{basketId}/shipping", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
+            ("/api/order/submit", "src/Cybersole.Stores/Flows/PopMartEndpoints.cs"),
+            ("/api/payments", "src/Cybersole.Stores/Payments/Gateways.cs"),
+            ("/api/preorder/entry", "src/Cybersole.Stores/Flows/RetailFlows.cs"),
+            ("/api/search", "src/Cybersole.Stores/Flows/ScheelsFlow.cs"),
+            ("/api/stock", "src/Cybersole.Stores/Flows/PopMartEndpoints.cs"),
+            ("/api/v1/carts/{c.Session.CartId}", "src/Cybersole.Stores/Flows/HbxFlow.cs"),
+            ("/api/v1/carts/{c.Session.CartId}/items", "src/Cybersole.Stores/Flows/HbxFlow.cs"),
+            ("/api/v2/shop/countries", "src/Cybersole.Stores/Flows/HbxFlow.cs"),
+            ("/collections/new-releases", "src/Cybersole.Stores/Flows/MagentoFlow.cs"),
+            ("/json/list", "src/Cybersole.Stores/Scripts/ChromiumBridge.cs"),
+            ("/rest/V1/carts/mine/totals", "src/Cybersole.Stores/Flows/MagentoFlow.cs"),
+            ("/v1/buys", "src/Cybersole.Stores/Flows/GoatFlow.cs"),
+            ("/v1/buys/{c.Session.CartId}", "src/Cybersole.Stores/Flows/GoatFlow.cs"),
+            ("/view/resources/getUserInfo", "src/Cybersole.Stores/Flows/HybrisFlow.cs"),
+        };

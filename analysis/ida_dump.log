@@ -1,0 +1,15 @@
+segments: 5
+  .text      0x0140001000-0x014313f000 perm=5 class=CODE
+  .idata     0x014313f000-0x014313fe38 perm=4 class=DATA
+  .rdata     0x014313fe38-0x0146a2c000 perm=4 class=DATA
+  .data      0x0146a2c000-0x0147525000 perm=6 class=DATA
+  .pdata     0x0147525000-0x0147851000 perm=4 class=DATA
+functions: 320933 in 1.6s
+  named: 10033 (3.1%)
+  ... 50000 strings (53s)
+  ... 100000 strings (53s)
+  ... 150000 strings (53s)
+  ... 200000 strings (53s)
+  ... 250000 strings (53s)
+strings: 265462 in 53.5s
+TOTAL 65.9s

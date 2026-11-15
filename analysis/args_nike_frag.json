@@ -1,0 +1,1 @@
+{"pattern": "(shipping_address|billing_address|initiatePayment|initiate_payment|/shipping|fulfillment_offerings|payment_preview|/payment)", "limit": 40}

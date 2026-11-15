@@ -1,0 +1,223 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Cybersole.Core.Models;
+using Cybersole.Core.Settings;
+using Cybersole.Services;
+
+namespace Cybersole.Ui.Views.Settings;
+
+/// <summary>
+/// Notifications (Cybersole.Ui.Views.Settings.NotificationsView).
+///
+/// <para>
+/// R78 drove all five tabs of the live page. Every one of them is the same panel with a different
+/// first line — it is a formula, not five hand-built pages:
+/// </para>
+///
+/// <code>
+/// Enable Notifications                        [switch]     page level
+/// Checkout | Decline | Captcha | Smart Actions | Other      tab bar
+///   Allow {Tab} Notifications                 [switch]
+///   In-Bot Notifications                      [switch]
+///   Desktop Notifications                     [switch]
+///   Sounds                                    [switch]
+///   [ Default ]                                            sound file button
+///   [ Reset ]  [ Play ]
+/// </code>
+///
+/// <para>
+/// The five first lines read <c>Allow Checkout Notifications</c>, <c>Allow Decline Notifications</c>,
+/// <c>Allow Captcha Notifications</c>, <c>Allow Smart Actions Notifications</c> and
+/// <c>Allow Other Notifications</c> — the tab name and the word "Notifications", nothing else.
+/// </para>
+///
+/// <para>
+/// The tab bar is five text buttons, not a <see cref="TabControl"/>: the live page underlines
+/// nothing and boxes nothing, it just makes the active word white and bold.
+/// </para>
+/// </summary>
+public sealed class NotificationsView : UserControl
+{
+    /// <summary>The five categories, in the order the live page lists them.</summary>
+    public static readonly IReadOnlyList<string> Tabs = new[]
+    {
+        "Checkout", "Decline", "Captcha", "Smart Actions", "Other",
+    };
+
+    /// <summary>What the first switch on each tab says: "Allow " + tab + " Notifications".</summary>
+    public static string AllowLabel(string tab) => "Allow " + tab + " Notifications";
+
+    /// <summary>The options object behind a tab.</summary>
+    public static NotificationOptions OptionsFor(GlobalSettings settings, string tab) => tab switch
+    {
+        "Checkout" => settings.NotificationOptions.Checkout,
+        "Decline" => settings.NotificationOptions.Decline,
+        "Captcha" => settings.NotificationOptions.Captcha,
+        "Smart Actions" => settings.NotificationOptions.SmartAction,
+        _ => settings.NotificationOptions.Other,
+    };
+
+    public NotificationsView(AppServices services)
+    {
+        var s = services.Config.Settings;
+        var status = UiKit.Status();
+
+        // ---- page-level master switch
+        var enabled = UiKit.Check("Enable Notifications", s.Notifications);
+        enabled.IsCheckedChanged += (_, _) =>
+        {
+            s.Notifications = enabled.IsChecked == true;
+            services.Config.Save();
+            status.Text = s.Notifications ? "Notifications enabled." : "Notifications disabled.";
+        };
+
+        // ---- tab bar
+        var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 18 };
+        var tabButtons = new Dictionary<string, Button>(StringComparer.Ordinal);
+        var host = new ContentControl();
+
+        void Select(string tab)
+        {
+            foreach (var (name, button) in tabButtons)
+            {
+                var active = name == tab;
+                button.FontWeight = active ? FontWeight.SemiBold : FontWeight.Normal;
+                button.Foreground = active ? Brushes.White : UiKit.Dim;
+            }
+
+            host.Content = BuildPanel(tab, services, status);
+        }
+
+        foreach (var tab in Tabs)
+        {
+            var name = tab;
+            var button = new Button
+            {
+                Content = tab,
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(2, 4),
+                FontSize = 14,
+            };
+            button.Click += (_, _) => Select(name);
+            tabButtons[tab] = button;
+            bar.Children.Add(button);
+        }
+
+        Content = UiKit.Scroll(UiKit.Form(
+            UiKit.PlainCard(enabled),
+            UiKit.PlainCard(bar, host),
+            status));
+
+        Select("Checkout");
+    }
+
+    /// <summary>
+    /// One tab's panel. Identical for all five except the first caption, which is the whole point
+    /// of building it here instead of five times.
+    /// </summary>
+    private static Control BuildPanel(string tab, AppServices services, TextBlock status)
+    {
+        var s = services.Config.Settings;
+        var options = OptionsFor(s, tab);
+
+        var allow = UiKit.Check(AllowLabel(tab), options.Enabled);
+        var centre = UiKit.Check("In-Bot Notifications", options.Centre);
+        var desktop = UiKit.Check("Desktop Notifications", options.Desktop);
+        var sound = UiKit.Check("Sounds", options.Sound);
+
+        void Save()
+        {
+            options.Enabled = allow.IsChecked == true;
+            options.Centre = centre.IsChecked == true;
+            options.Desktop = desktop.IsChecked == true;
+            options.Sound = sound.IsChecked == true;
+            services.Config.Save();
+        }
+
+        allow.IsCheckedChanged += (_, _) => Save();
+        centre.IsCheckedChanged += (_, _) => Save();
+        desktop.IsCheckedChanged += (_, _) => Save();
+        sound.IsCheckedChanged += (_, _) => Save();
+
+        // ---- the sound file button. "Default" is an empty path, which the player turns into the
+        // platform's notification sound; a chosen file is played as-is.
+        var picker = new Button
+        {
+            Content = string.IsNullOrWhiteSpace(options.Path)
+                ? "Default"
+                : System.IO.Path.GetFileName(options.Path),
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Padding = new Thickness(12, 8),
+        };
+        ToolTip.SetTip(picker, string.IsNullOrWhiteSpace(options.Path)
+            ? "The default notification sound. Click to choose a .wav file."
+            : options.Path);
+
+        picker.Click += async (_, _) =>
+        {
+            if (TopLevel.GetTopLevel(picker)?.StorageProvider is not { CanOpen: true } sp)
+            {
+                status.Text = "This platform has no file dialog.";
+                return;
+            }
+
+            var files = await sp.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+            {
+                Title = "Choose a notification sound",
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("Sound files")
+                    {
+                        Patterns = new[] { "*.wav", "*.mp3" },
+                    },
+                },
+            });
+
+            var file = files.FirstOrDefault();
+            if (file is null) return;
+
+            options.Path = file.Path.LocalPath;
+            services.Config.Save();
+            picker.Content = System.IO.Path.GetFileName(options.Path);
+            ToolTip.SetTip(picker, options.Path);
+            status.Text = $"{tab} sound is now {picker.Content}.";
+        };
+
+        var reset = UiKit.Button("Reset", () =>
+        {
+            options.Path = string.Empty;
+            services.Config.Save();
+            picker.Content = "Default";
+            ToolTip.SetTip(picker, "The default notification sound. Click to choose a .wav file.");
+            status.Text = $"{tab} sound reset to the default.";
+        });
+
+        // Play goes through the same player the fan-out uses, so the button proves the real path.
+        var play = UiKit.Button("Play", () =>
+        {
+            services.Notify.PlaySound(options.Path);
+            status.Text = string.IsNullOrWhiteSpace(options.Path)
+                ? $"Playing the default sound for {tab}."
+                : $"Playing {System.IO.Path.GetFileName(options.Path)}.";
+        });
+
+        return new StackPanel
+        {
+            Spacing = 10,
+            Children =
+            {
+                allow,
+                centre,
+                desktop,
+                sound,
+                picker,
+                UiKit.Buttons(reset, play),
+            },
+        };
+    }
+}

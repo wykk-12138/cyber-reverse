@@ -1,0 +1,90 @@
+ 121 
+ 122         c.Session.VariantId = chosen["id"]?.ToString();
+ 123         c.Session.VariantTitle = chosen["public_title"]?.ToString() ?? chosen["title"]?.ToString();
+ 124         c.Session.Vars["price"] = chosen["price"]?.ToString() ?? root["price"]?.ToString() ?? string.Empty;
+ 125         c.Session.Vars["sizes"] = string.Join('|', sizes);
+ 126         c.Session.Vars["availableVariants"] = string.Join('|', availableIds);
+ 127         return StepOutcome.Success();
+ 128     }
+ 129 
+ 130     public override async Task<StepOutcome> ScrapeVariantAvailabilityAsync(FlowContext c, CancellationToken ct)
+ 131     {
+ 132         if (!c.Session.Vars.TryGetValue("raw", out var raw) || string.IsNullOrWhiteSpace(raw))
+ 133             return StepOutcome.Fail("shopify: no product payload");
+ 134 
+ 135         var root = JObject.Parse(raw);
+ 136         var variants = root["variants"] as JArray;
+ 137         var anyAvailable = variants is not null &&
+ 138                            variants.Any(v => v["available"]?.ToObject<bool?>() == true);
+ 139 
+ 140         c.Session.Vars["available"] = anyAvailable ? "true" : "false";
+ 141         return StepOutcome.Success();
+ 142     }
+ 143 
+ 144     // 鈹€鈹€ cart 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹
+ 145     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
+ 146     {
+ 147         if (string.IsNullOrEmpty(c.Session.VariantId)) return StepOutcome.Fail("shopify: no variant to add");
+ 148 
+ 149         var payload = new JObject
+ 150         {
+ 151             ["id"] = long.TryParse(c.Session.VariantId, out var id) ? id : c.Session.VariantId,
+ 152             ["quantity"] = c.Session.Quantity,
+ 153         };
+ 154 
+ 155         var res = await PostJsonAsync(c, Origin(c.Url) + "/cart/add.js",
+ 156             payload.ToString(Newtonsoft.Json.Formatting.None), "shopify-cart-add", ct)
+ 157             .ConfigureAwait(false);
+ 158 
+ 159         if (res is null) return StepOutcome.Fail("shopify add to cart failed", retryable: true);
+ 160         if (res.StatusCode is 422 or 404) return StepOutcome.Fail("shopify: variant sold out");
+ 161         if (!res.IsSuccess) return StepOutcome.Fail($"shopify cart HTTP {res.StatusCode}", retryable: true);
+ 162 
+ 163         c.Session.Vars["cart"] = res.Body;
+ 164         return StepOutcome.Success();
+ 165     }
+ 166 
+ 167     public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
+ 168     {
+ 169         var res = await GetAsync(c, Origin(c.Url) + "/cart.js", "shopify-cart-get", ct).ConfigureAwait(false);
+ 170         if (res is null) return StepOutcome.Fail("shopify cart fetch failed", retryable: true);
+ 171         if (!res.IsSuccess) return StepOutcome.Fail($"shopify cart HTTP {res.StatusCode}", retryable: true);
+ 172 
+ 173         c.Session.Vars["cart"] = res.Body;
+ 174         var total = JObject.Parse(res.Body)["total_price"]?.ToString();
+ 175         if (total is not null) c.Session.Vars["total"] = total;
+ 176         return StepOutcome.Success();
+ 177     }
+ 178 
+ 179     public override async Task<StepOutcome> EditLineAsync(FlowContext c, CancellationToken ct)
+ 180     {
+ 181         if (c.Session.Quantity <= 1) return StepOutcome.Success();
+ 182 
+ 183         var payload = new JObject { ["line"] = 1, ["quantity"] = c.Session.Quantity };
+ 184         var res = await PostJsonAsync(c, Origin(c.Url) + "/cart/update.js",
+ 185             payload.ToString(Newtonsoft.Json.Formatting.None), "shopify-cart-change", ct)
+ 186             .ConfigureAwait(false);
+ 187 
+ 188         return res is { IsSuccess: true }
+ 189             ? StepOutcome.Success()
+ 190             : StepOutcome.Fail($"shopify cart change HTTP {res?.StatusCode}", retryable: true);
+ 191     }
+ 192 
+ 193     // 鈹€鈹€ checkout 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹
+ 194     public override async Task<StepOutcome> InitiateCheckoutAsync(FlowContext c, CancellationToken ct)
+ 195     {
+ 196         var res = await GetAsync(c, Origin(c.Url) + "/checkout", "shopify-checkout-init", ct)
+ 197             .ConfigureAwait(false);
+ 198         if (res is null) return StepOutcome.Fail("shopify checkout init failed", retryable: true);
+ 199 
+ 200         var token = CheckoutTokenOf(res.Url.ToString()) ?? CheckoutTokenOf(res.Body);
+ 201         if (token is null) return StepOutcome.Fail("shopify: no checkout token");
+ 202 
+ 203         c.Session.CheckoutToken = token;
+ 204         c.Session.CheckoutUrl = Origin(c.Url) + "/checkouts/" + token;
+ 205         return StepOutcome.Success();
+ 206     }
+ 207 
+ 208     public override async Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct)
+ 209     {
+ 210         if (string.IsNullOrEmpty(c.Session.CheckoutToken))

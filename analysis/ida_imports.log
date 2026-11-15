@@ -1,0 +1,6 @@
+modules with imports: 17
+import symbols: 17
+   NCryptCreatePersistedKey ['0x14313fd48']
+[NCryptCreatePersistedKey] iat=0x14313fd48 callers=1 ['0x1430f60e3']
+entries: 41
+done chars=456

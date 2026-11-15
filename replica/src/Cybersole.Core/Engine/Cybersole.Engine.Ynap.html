@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MrPorter</title>
+    <style>
+        #captcha-grid {
+            pointer-events: auto;
+            box-sizing: border-box;
+            position: relative;
+            width: 100%;
+            line-height: 0;
+            padding-top: 100%;
+            background: lightgrey;
+        }
+
+        #captcha-image {
+            pointer-events: auto;
+            line-height: 0;
+            box-sizing: border-box;
+            border-style: none;
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            left: 0;
+        }
+
+        #captcha-toggles {
+            pointer-events: auto;
+            line-height: 0;
+            box-sizing: border-box;
+            display: flex;
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: stretch;
+            left: 0;
+        }
+
+        .captcha-toggle {
+            pointer-events: auto;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 100%;
+            line-height: 1.15;
+            overflow: visible;
+            text-transform: none;
+            width: 33.3333%;
+            outline: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #fff;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .toggled {
+            background-color: hsla(0, 0%, 100%, .75);
+            position: relative;
+        }
+
+        .toggled::after {
+            content: "✓";
+            position: absolute;
+            top: 0;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+            font-size: 3em;
+            left: 0;
+        }
+
+        .captcha-actions {
+            display: flex;
+            margin: 20px 0px 20px 0px;
+        }
+
+        .captcha-actions>.refresh {
+            flex-grow: 2;
+            font: 14px/22px Georgia;
+            font-weight: 400;
+            height: 48px;
+            vertical-align: bottom;
+            border: none;
+            margin: auto 0;
+            cursor: pointer;
+            background-color: #fff;
+            padding: 0;
+        }
+
+        .captcha-actions>.refresh::before {
+            content: "";
+            background: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEzLjY3MyA2LjAxNWw3LjA1MiAzLjI1TDI0IDIuMjY4bC0uOTA3LS40MTlMMjAuNiA3LjE3N0ExMC41NzYgMTAuNTc2IDAgMDAxMC41OCAwQzQuNzQ3IDAgMCA0LjcxIDAgMTAuNVM0Ljc0NyAyMSAxMC41OCAyMWM0LjQyMiAwIDguMjEzLTIuNzA4IDkuNzkzLTYuNTM3aC0xLjA5NWE5LjU5MiA5LjU5MiAwIDAxLTguNjk4IDUuNTQ0QzUuMjk4IDIwLjAwNyAxIDE1Ljc0MyAxIDEwLjUgMSA1LjI1NyA1LjI5OC45OTMgMTAuNTguOTkzYTkuNTg1IDkuNTg1IDAgMDE5LjE1NyA2LjcyM2wtNS42NDMtMi42MDEtLjQyMS45eiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+") no-repeat;
+            margin: 1px auto 7px;
+            width: 24px;
+            height: 21px;
+            display: block;
+        }
+
+        .captcha-actions>.verify {
+            flex-grow: 4;
+            margin: 0;
+            text-transform: none;
+            text-decoration: none;
+            color: #fff;
+            font: 14px/22px Georgia;
+            font-weight: 400;
+            height: 48px;
+            vertical-align: bottom;
+            text-align: center;
+            border: 1px solid #000;
+            border-radius: 2px;
+            cursor: pointer;
+            padding: 12px 24px;
+            background-repeat: no-repeat;
+            background-position: 12px 12px;
+            background-color: #000;
+        }
+
+        #captcha-error {
+            color: red;
+        }
+
+        .hide {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+<main>
+    <strong id="challenge-description">Select the images with ...</strong>
+    <div id="captcha-grid">
+        <img id="captcha-image" src="" alt="">
+        <div id="captcha-toggles">
+            <button class="captcha-toggle" value="1"></button>
+            <button class="captcha-toggle" value="2"></button>
+            <button class="captcha-toggle" value="3"></button>
+            <button class="captcha-toggle" value="4"></button>
+            <button class="captcha-toggle" value="5"></button>
+            <button class="captcha-toggle" value="6"></button>
+            <button class="captcha-toggle" value="7"></button>
+            <button class="captcha-toggle" value="8"></button>
+            <button class="captcha-toggle" value="9"></button>
+        </div>
+    </div>
+    <div id="captcha-error" class="hide">
+        <strong>Failed to solve captcha. Please try again</strong>
+    </div>
+    <div class="captcha-actions">
+        <button class="refresh" onclick="loadChallenge()">Refresh</button>
+        <button class="verify" onclick="verifyChallenge()">Verify</button>
+    </div>
+
+</main>
+
+<script>
+    var selected = [];
+    var token;
+
+    function toggle() {
+        var nr = this.getAttribute("value");
+
+        if (this.classList.contains("toggled")) {
+            this.classList.remove("toggled");
+            selected.splice(selected.indexOf(nr), 1);
+        } else {
+            this.classList.add("toggled");
+            selected.push(nr);
+        }
+    }
+
+    function notifySolved(token) {
+        document.Solver.Captcha.Solve(token);
+    }
+
+    function resetSelected() {
+        selected = [];
+        var toggles = document.getElementsByClassName("captcha-toggle");
+        for (var i = 0; i < toggles.length; i++) {
+            toggles[i].classList.remove("toggled");
+        }
+    }
+
+    function loadChallenge() {
+        resetSelected();
+
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function () {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                var json = JSON.parse(xmlHttp.responseText);
+                document.getElementById("captcha-image").setAttribute("src", json.asset);
+                token = json.token;
+                document.getElementById("challenge-description").innerText = json.text;
+            }
+            // else {}
+            // NOTE: when captcha fails to load, users will report that the captcha image doesn't show.
+            // this should never happen, unless the captcha API changes (which is out of our reach and just needs to be fixed if that happens).
+        }
+        xmlHttp.open("GET", "https://ecomm.ynap.biz/api/captcha/new/MRP/en/", true);
+        xmlHttp.send(null);
+    }
+
+    function verifyChallenge() {
+        if (selected.length != 0 && token != null) {
+            var nrs = selected.join("");
+
+            var xmlHttp = new XMLHttpRequest();
+            var jsonBody = JSON.stringify({
+                token,
+                solution: nrs
+            });
+            xmlHttp.open("POST", "https://ecomm.ynap.biz/api/captcha/verify", true);
+            xmlHttp.setRequestHeader("Content-type", "application/json");
+            xmlHttp.onreadystatechange = function () {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    var json = JSON.parse(xmlHttp.responseText);
+                    if (json.status.toLowerCase() != "solved") {
+                        document.getElementById("captcha-error").classList.remove("hide");
+                        loadChallenge();
+                    } else {
+                        notifySolved(token);
+                    }
+                }
+            }
+            xmlHttp.send(jsonBody);
+        }
+    }
+
+    var toggles = document.getElementsByClassName("captcha-toggle");
+
+    for (var i = 0; i < toggles.length; i++) {
+        toggles[i].addEventListener("click", toggle, false);
+    }
+
+    loadChallenge();
+
+</script>
+</body>
+
+</html>

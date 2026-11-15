@@ -1,0 +1,16 @@
+=== start Tue Nov 10 11:15:33 2026
+idalib imported ok
+db opened (no analysis) in 25.7s
+auto_wait done in 326.5s
+func qty: 320933
+entries: 41
+imagebase: 0x140000000
+segments:
+  .text 0x140001000-0x14313f000
+  .idata 0x14313f000-0x14313fe38
+  .rdata 0x14313fe38-0x146a2c000
+  .data 0x146a2c000-0x147525000
+  .pdata 0x147525000-0x147851000
+hexrays init err module 'ida_hexrays' has no attribute 'hexrays_ready'
+save_database done in 1.9s
+=== done total 354.1s

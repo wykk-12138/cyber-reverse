@@ -1,0 +1,21 @@
+﻿
+[15:27:07] elevated check
+[15:27:07] desktop-dsd1mju\wykk
+[15:27:07] --- acl before ---
+[15:27:07] C:\Users\wykk\scoop\apps\tokensave\current DESKTOP-DSD1MJU\wykk:(OI)(IO)(F)
+                                           DESKTOP-DSD1MJU\wykk:(CI)(F)
+                                           BUILTIN\Administrators:(OI)(CI)(F)
+
+已成功处理 1 个文件; 处理 0 个文件时失败
+[15:27:07] --- takeown ---
+[15:27:07] 
+成功: 此文件(或文件夹): "C:\Users\wykk\scoop\apps\tokensave\current" 现在由用户 "DESKTOP-DSD1MJU\wykk" 所有。
+[15:27:07] --- grant ---
+[15:27:07] 已处理的文件: C:\Users\wykk\scoop\apps\tokensave\current
+已成功处理 1 个文件; 处理 0 个文件时失败
+[15:27:07] --- rmdir ---
+[15:27:07] 
+[15:27:07] exists after: False
+[15:27:07] --- parent ---
+[15:27:07] 
+[15:27:07] parent exists: False

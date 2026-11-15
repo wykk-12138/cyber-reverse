@@ -1,0 +1,324 @@
+"""Single source of truth for every "current value" this project quotes.
+
+WHY THIS TOOL EXISTS (AGENTS.md §1.2 requires the reason be stated):
+The five metrics scripts each print their own shape -- `real gap : N`, `types with scope misses: N`,
+`total mismatches: N`, a 19-row table, two section counts -- so every document that wants to quote
+"the current number" re-typed it by hand. That is how AGENTS.md §4, GOAL.md, HANDOFF.md,
+SESSION_STATE.md and DEVIATIONS.md drifted apart (R433 found eight stale figures in six files while
+the tools themselves were correct). A number that lives in six places is a number that will be wrong
+in five of them.
+
+So: run the five scripts in one process, capture their raw output verbatim, and write ONE generated
+file -- docs/METRICS.md -- that carries the timestamp, the exact command per metric, and a parsed
+summary table. Documents then cite `docs/METRICS.md` instead of hard-coding a value, and "what is
+the number now" stops being a discipline question and becomes a generation question.
+
+Reproduce:
+    cd replica
+    python tools/metrics_report.py                  # five metrics + full suite
+    python tools/metrics_report.py --skip-tests     # five metrics only (no build, ~2 s)
+    python tools/metrics_report.py --out ../docs/METRICS.md
+
+Side effects of the metrics themselves (not of this wrapper): copy_audit_report.py rewrites
+docs/COPY_QUEUE.md; copy_audit_report.py and the others only read src/.
+
+Exit code: 0 when every metric script exited 0 (and, with tests, the suite passed). A non-zero exit
+is reported in the file and returned here -- "could not run" is never recorded as "passed".
+"""
+
+import argparse
+import datetime
+import io
+import os
+import re
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DEFAULT_OUT = os.path.abspath(os.path.join(ROOT, "..", "docs", "METRICS.md"))
+DOTNET = os.environ.get("DOTNET", r"D:\tools\dotnet8\dotnet.exe")
+
+METRICS = [
+    ("名字级绑定缺口", ["tools/bind_diff.py", "--buckets"]),
+    ("类型级绑定缺口", ["tools/bind_scope.py"]),
+    ("类型缺失（type presence）", ["tools/bind_diff.py", "--type-presence"]),
+    ("成员形状差异", ["tools/shape_audit.py"]),
+    ("文案缺口总表", ["tools/copy_audit_report.py"]),
+    ("绑定缺口分桶", ["tools/backlog_report.py"]),
+    # R466: fifth metric. Reads the TSV written by analysis/binding_descriptors.py (IDA-dependent, slow) so
+    # this wrapper stays fast; it fails loudly if the TSV is missing rather than reporting zeros.
+    ("原版绑定描述符表", ["tools/descriptor_report.py"]),
+    # R600 sixth metric: the persisted-data file names. The other five all measure the binding surface; none of them
+    # looks at what the application writes to disk, which is part of behaviour when data has to be exchangeable.
+    ("数据文件名对照", ["tools/datafiles_diff.py"]),
+]
+
+SCOPE_NOTE = "note: base-class inheritance is counted (by design since R343)"
+
+
+def run(argv, timeout=1800):
+    command = " ".join(argv)
+    try:
+        done = subprocess.run(argv, cwd=ROOT, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=timeout)
+        return done.returncode, command, done.stdout, done.stderr
+    except FileNotFoundError as exc:
+        return 127, command, "", "missing executable: %s" % exc
+    except subprocess.TimeoutExpired:
+        return 124, command, "", "timeout after %ss" % timeout
+
+
+def summary_bits(name_out):
+    """Pull the one line each script uses to state its headline number."""
+    found = {}
+    patterns = {
+        "real gap": r"real gap\s*:\s*(\d+)",
+        "missing": r"\nmissing:\s*(\d+)",
+        "types with scope misses": r"types with scope misses:\s*(\d+)",
+        "types absent from source": r"type presence: \d+ declared in bindings, \d+ present in source, (\d+) absent",
+        "total mismatches": r"total mismatches:\s*(\d+)",
+        "copy: zones with a missing key": r"^\s+(\S+)\s+\d+\s+(\d+) missing",
+        "backlog: classes missing members": r"classes that EXIST in the replica but miss members:\s*(\d+)",
+        "backlog: types absent": r"types that DO NOT exist \(structural\):\s*(\d+)",
+        # R466 fifth metric
+        "descriptor entries": r"descriptor entries\s*:\s*(\d+)",
+        "descriptor types": r"descriptor types\s*:\s*(\d+)",
+        "only in descriptors": r"only in descriptors\s*:\s*(\d+)",
+        "only in xaml table": r"only in xaml table\s*:\s*(\d+)",
+        # R600 sixth metric; R602 switched its original side to the data directory (see the tool's header)
+        "datafiles: original-on-disk not in replica": r"original-on-disk but not written by the replica\s*:\s*(\d+)",
+        "datafiles: replica-only": r"replica-referenced, found in neither source\s*:\s*(\d+)",
+    }
+    for label, pattern in patterns.items():
+        hits = re.findall(pattern, name_out, re.M)
+        if label.startswith("copy:"):
+            total = sum(int(m) for _, m in hits)
+            zones = sum(1 for _, m in hits if int(m) > 0)
+            if hits:
+                found[label] = "%d (in %d zone[s])" % (total, zones)
+        elif hits:
+            found[label] = hits[-1] if isinstance(hits[-1], str) else hits[-1][0]
+    return found
+
+
+def _free_memory_gb():
+    """Free physical memory in GB, or None when it cannot be read (R684)."""
+    try:
+        import ctypes
+
+        class _MS(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+
+        stat = _MS()
+        stat.dwLength = ctypes.sizeof(_MS)
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat)):
+            return None
+        return stat.ullAvailPhys / (1024.0 ** 3)
+    except Exception:
+        return None
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--skip-tests", action="store_true", help="do not run the full xunit suite")
+    parser.add_argument("--out", default=DEFAULT_OUT)
+    args = parser.parse_args(argv)
+
+    # R684: the session ran out of memory and the machine was restarted. This wrapper is the command run every
+    # round, and the full suite builds and loads a test assembly each time, so it refuses to start when the box is
+    # already tight -- adding load to a starved machine is how a round turns into a reboot. The project rule is
+    # 2 GB for builds and 1 GB to stop entirely; the floor here is the stop line, and --skip-tests is exempt
+    # because it builds nothing.
+    if not args.skip_tests:
+        gb = _free_memory_gb()
+        if gb is not None:
+            print("  free memory: %.2f GB" % gb)
+            if gb < 1.0:
+                raise SystemExit(
+                    "free memory %.2f GB is below 1.0 GB -- free memory before running the suite, "
+                    "or pass --skip-tests to refresh the metrics only" % gb
+                )
+            if gb < 2.0:
+                print("  WARNING: below the 2 GB build floor; the suite will run with -m:1 only")
+
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
+    stamp = now.strftime("%Y-%m-%d %H:%M:%S %z")
+
+    results = []
+    worst = 0
+    # R502: copy_audit_report.py finishes its work and then dies during interpreter shutdown (exit -1 /
+    # 0xC0000005). Its rows and file may or may not reach the buffer before that, so neither the exit code nor
+    # stdout is a reliable verdict. What it *produces* is: if the target file was rewritten during the call, the
+    # metric ran. That is the check.
+    VERDICT_BY_FILE = {"文案缺口总表": os.path.join("docs", "COPY_QUEUE.md")}
+    for title, script_args in METRICS:
+        watched = VERDICT_BY_FILE.get(title)
+        before = os.path.getmtime(watched) if watched and os.path.exists(watched) else None
+        code, command, out, err = run([sys.executable] + script_args)
+        ok = code == 0
+        if not ok and watched:
+            after = os.path.getmtime(watched) if os.path.exists(watched) else None
+            ok = after is not None and (before is None or after > before)
+        worst = max(worst, 0 if ok else code)
+        results.append({"title": title, "command": command, "code": code,
+                        "out": out, "err": err, "bits": summary_bits(out)})
+
+    tests = None
+    if not args.skip_tests:
+        # R493: the browser-dependent classes are excluded from the default run, and named so the exclusion is
+        # visible. They drive a real Chrome through CDP (`ChromiumBridge.LaunchAsync`), each takes ~2 minutes when
+        # the endpoint doesn't come up, and on 2026-11-14 a full run of them contributed to the machine running out
+        # of memory and rebooting mid-session. Run them deliberately, one class at a time:
+        #   dotnet test --filter "FullyQualifiedName~VoiceListTests"
+        browser_filter = ("Speed!=Slow"
+                          "&FullyQualifiedName!~VoiceListTests"
+                          "&FullyQualifiedName!~GlobalSurfaceTests"
+                          "&FullyQualifiedName!~KeyOrderDispatchTests"
+                          "&FullyQualifiedName!~PatchJournalTests"
+                          "&FullyQualifiedName!~PruneWhitelistTests"
+                          "&FullyQualifiedName!~NetworkRecorderLiveTests"
+                          # R555: ChromiumStealthTests also drives a real Chrome — it asserts on the
+                          # fingerprint a launched instance reports (`typeof navigator.something`).
+                          # Without a live endpoint it fails with "Expected: object / Actual: undefined",
+                          # which says nothing about the replica. It belongs with the classes above.
+                          "&FullyQualifiedName!~ChromiumStealthTests")
+        code, command, out, err = run([
+            DOTNET, "test", "tests/Cybersole.Tests/Cybersole.Tests.csproj", "-c", "Debug",
+            "--filter", browser_filter, "-m:1"], timeout=3600)
+        worst = max(worst, 0 if code == 0 else code)
+        m = re.search(r"失败:\s*(\d+)，通过:\s*(\d+)，已跳过:\s*(\d+)，总计:\s*(\d+)", out)
+        tests = {"command": command, "code": code,
+                 "failed": m.group(1) if m else "?",
+                 "passed": m.group(2) if m else "?",
+                 "skipped": m.group(3) if m else "?",
+                 "total": m.group(4) if m else "?",
+                 "out": out, "err": err}
+        if not m:
+            tests.update({"failed": "unparsed", "passed": "unparsed", "skipped": "unparsed", "total": "unparsed"})
+
+    # the scope note must be visible in the generated file, not only in the script
+    if SCOPE_NOTE not in results[1]["out"]:
+        results[1]["err"] = (results[1]["err"] + "\n" if results[1]["err"] else "") + \
+            "WARNING: bind_scope.py did not print the scope note; the script predates the R433 decision."
+
+    lines = []
+    lines.append("# 度量快照（生成文件，请勿手改）")
+    lines.append("")
+    lines.append("> 本文件由 `python tools/metrics_report.py` 生成。")
+    lines.append("> **所有文档里的「当前值」都引用本文件，不再各自硬编码。**")
+    lines.append("> 要更新：重跑生成命令即可；手改本文件会在下一次生成时被覆盖。")
+    lines.append("")
+    lines.append("| 项 | 值 |")
+    lines.append("|---|---|")
+    lines.append("| 生成时间 | %s |" % stamp)
+    lines.append("| 工作目录 | `%s` |" % ROOT)
+    lines.append("| 生成命令 | `python tools/metrics_report.py%s` |" % ("" if not args.skip_tests else " --skip-tests"))
+    lines.append("| 度量脚本结果 | %s |" % ("全部 exit 0" if all(r["code"] == 0 for r in results) else "**有非零退出，见下**"))
+    if tests is not None:
+        lines.append("| 完整套件 | **%s 通过 / %s 失败 / %s 跳过 / %s 总计** |"
+                     % (tests["passed"], tests["failed"], tests["skipped"], tests["total"]))
+    else:
+        lines.append("| 完整套件 | 本次跳过（`--skip-tests`） |")
+    lines.append("")
+    lines.append("## 摘要素值")
+    lines.append("")
+    lines.append("| 指标 | 值 |")
+    lines.append("|---|---|")
+    for r in results:
+        if not r["bits"]:
+            lines.append("| %s | （未解析，见下方原始输出） |" % r["title"])
+            continue
+        for label, value in r["bits"].items():
+            lines.append("| %s — %s | %s |" % (r["title"], label, value))
+    lines.append("")
+
+    lines.append("## 逐条命令与原始输出")
+    lines.append("")
+    for r in results:
+        lines.append("### %s" % r["title"])
+        lines.append("")
+        lines.append("```")
+        lines.append("cd %s" % ROOT)
+        lines.append(r["command"])
+        lines.append("```")
+        lines.append("")
+        lines.append("`exit %d`" % r["code"])
+        lines.append("")
+        if r["out"].strip():
+            lines.append("```text")
+            lines.append(r["out"].rstrip())
+            lines.append("```")
+        if r["err"].strip():
+            lines.append("")
+            lines.append("stderr:")
+            lines.append("")
+            lines.append("```text")
+            lines.append(r["err"].rstrip())
+            lines.append("```")
+        lines.append("")
+
+    if tests is not None:
+        lines.append("### 完整套件")
+        lines.append("")
+        lines.append("```")
+        lines.append("cd %s" % ROOT)
+        lines.append(tests["command"])
+        lines.append("```")
+        lines.append("")
+        lines.append("`exit %d` · %s 通过 / %s 失败 / %s 跳过 / %s 总计"
+                     % (tests["code"], tests["passed"], tests["failed"],
+                        tests["skipped"], tests["total"]))
+        lines.append("")
+        tail = [l for l in tests["out"].splitlines() if l.strip()][-15:]
+        if tail:
+            lines.append("```text")
+            lines.extend(tail)
+            lines.append("```")
+            lines.append("")
+        if tests["err"].strip():
+            lines.append("stderr:")
+            lines.append("")
+            lines.append("```text")
+            lines.append(tests["err"].rstrip())
+            lines.append("```")
+            lines.append("")
+    else:
+        lines.append("### 完整套件")
+        lines.append("")
+        lines.append("本次未运行（`--skip-tests`）。**这不等于通过**：判据 e 需要它。")
+        lines.append("")
+
+    lines.append("---")
+    lines.append("")
+    lines.append("## 谁引用本文件")
+    lines.append("")
+    lines.append("`AGENTS.md §4` · `docs/GOAL.md` 判据 a · `docs/HANDOFF.md` · `docs/COPY_QUEUE.md` 头部 ·")
+    lines.append("`replica/docs/SESSION_STATE.md` · `replica/docs/DEVIATIONS.md`。")
+    lines.append("")
+    lines.append("`replica/docs/VERDICT.md` **不引用也不修改** —— 它是按轮次的历史记录。")
+    lines.append("")
+
+    out_path = os.path.abspath(args.out)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    io.open(out_path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+    print("wrote %s" % out_path)
+    for r in results:
+        print("  %-22s exit %d  %s" % (r["title"], r["code"], r["bits"] or ""))
+    if tests is not None:
+        print("  %-22s exit %d  %s 通过 / %s 失败 / %s 跳过"
+              % ("完整套件", tests["code"], tests["passed"], tests["failed"], tests["skipped"]))
+    return 0 if worst == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

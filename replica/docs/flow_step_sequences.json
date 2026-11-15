@@ -1,0 +1,2562 @@
+[
+ {
+  "addr": "0x035c6587",
+  "steps": [
+   [
+    0,
+    "ResolveAsync"
+   ],
+   [
+    9,
+    "FetchTokensAsync"
+   ]
+  ],
+  "lambdas": [
+   11,
+   18,
+   21
+  ],
+  "neighbours": [
+   "H<SendTokenRequestToBrokerAsync>d__104IS",
+   "SilentRequest",
+   "$<ResolveAsync>d__0,<FetchTokensAsync>d_",
+   "MSAL no longer performs auto-discovery f",
+   "NotSpecified"
+  ]
+ },
+ {
+  "addr": "0x033e6c69",
+  "steps": [
+   [
+    1,
+    "CalculateFileSHA1AndSHA256Async"
+   ],
+   [
+    9,
+    "RetryAsync"
+   ]
+  ],
+  "lambdas": [
+   9
+  ],
+  "neighbours": [
+   ",<>c__DisplayClass4_0`2",
+   "?,<>c__DisplayClass7_1`1",
+   "J<CalculateFileSHA1AndSHA256Async>d__1$<",
+   "<LockAsync>d__9\"<LockAsync>b__9_0g",
+   "?0<GetPackageFiles>b__14_3@"
+  ]
+ },
+ {
+  "addr": "0x0353cee4",
+  "steps": [
+   [
+    1,
+    "CreateAuthorityForRequestAsync"
+   ],
+   [
+    66,
+    "IsAuthorityAliasedAsync"
+   ],
+   [
+    5,
+    "ValidateSameHostAsync"
+   ]
+  ],
+  "lambdas": [
+   22
+  ],
+  "neighbours": [
+   "NeverRemove",
+   "THostedService(<<CreateAsync>b__0>dg",
+   "H<CreateAuthorityForRequestAsync>d__1:<I",
+   ",<MergeAccounts>b__23_2<<GetAccountsInte",
+   "<Microsoft.Identity.Client.ITokenCacheIn"
+  ]
+ },
+ {
+  "addr": "0x03396fa0",
+  "steps": [
+   [
+    4,
+    "AddToCartStoreFront"
+   ],
+   [
+    5,
+    "RefreshSession"
+   ]
+  ],
+  "lambdas": [
+   4
+  ],
+  "neighbours": [
+   "(<AccountLogin>b__1_3g",
+   "(<AccountLogin>b__1_1(<AccountLogin>b__1",
+   "2<AddToCartStoreFront>d__4(<RefreshSessi",
+   "6<AddToCartStoreFront>b__4_06<AddToCartS",
+   "<Start>d__1"
+  ]
+ },
+ {
+  "addr": "0x03399670",
+  "steps": [
+   [
+    4,
+    "Newsletter"
+   ],
+   [
+    5,
+    "AccountLogin"
+   ]
+  ],
+  "lambdas": [
+   4,
+   5
+  ],
+  "neighbours": [
+   "\"<PollRelease>d__2",
+   "&<PollRelease>b__2_1",
+   "<Newsletter>d__4$<AccountLogin>d__5*<<Ne",
+   "Newsletterg",
+   "$<Newsletter>b__4_0$<Newsletter>b__4_1g"
+  ]
+ },
+ {
+  "addr": "0x033a1bc0",
+  "steps": [
+   [
+    4,
+    "GetCartItemId"
+   ],
+   [
+    50,
+    "UpdateCart"
+   ],
+   [
+    60,
+    "GetStorefrontToken"
+   ]
+  ],
+  "lambdas": [
+   4,
+   5,
+   7
+  ],
+  "neighbours": [
+   "$AnalyticsSessionId",
+   "AnonymousId",
+   "&<GetCartItemId>d__4 <UpdateCart>d__50<G",
+   "0<<AccountLogin>b__7_10>d0<<AccountLogin",
+   "GetCartItemIdg"
+  ]
+ },
+ {
+  "addr": "0x03398963",
+  "steps": [
+   [
+    5,
+    "CheckRaffleStatus"
+   ],
+   [
+    68,
+    "GenerateVariables"
+   ]
+  ],
+  "lambdas": [
+   5
+  ],
+  "neighbours": [
+   "_shopCoordinates",
+   "\"<GetProperty>d__4",
+   ".<CheckRaffleStatus>d__5.<GenerateVariab",
+   "\"CheckRaffleStatusg",
+   "2<CheckRaffleStatus>b__5_02<CheckRaffleS"
+  ]
+ },
+ {
+  "addr": "0x033ace12",
+  "steps": [
+   [
+    5,
+    "GetId"
+   ],
+   [
+    6,
+    "CreateIntent"
+   ],
+   [
+    7,
+    "SubmitPayment"
+   ],
+   [
+    8,
+    "AuthorizePayment"
+   ]
+  ],
+  "lambdas": [
+   5,
+   7,
+   8
+  ],
+  "neighbours": [
+   "<Test2>d__4",
+   "<Test3>d__5",
+   "<GetId>d__5$<CreateIntent>d__6&<SubmitPa",
+   "CreateIntentg",
+   "AuthorizePaymentg"
+  ]
+ },
+ {
+  "addr": "0x034ae76e",
+  "steps": [
+   [
+    5,
+    "ScrapeRaffleForm"
+   ],
+   [
+    66,
+    "SubmitKlaviyoForm"
+   ]
+  ],
+  "lambdas": [
+   5,
+   6
+  ],
+  "neighbours": [
+   "_windowHeight",
+   "_windowWidth",
+   ",<ScrapeRaffleForm>d__5.<SubmitKlaviyoFo",
+   "\"SubmitKlaviyoFormg",
+   "0<ScrapeRaffleForm>b__5_00<ScrapeRaffleF"
+  ]
+ },
+ {
+  "addr": "0x03511e3d",
+  "steps": [
+   [
+    6,
+    "ReadAsync"
+   ],
+   [
+    14,
+    "WaitWithConnectionCancellationAsync"
+   ],
+   [
+    98,
+    "CreateContentReadStreamAsyncCore"
+   ],
+   [
+    6,
+    "SerializeToStreamAsync"
+   ]
+  ],
+  "lambdas": [
+   2,
+   7,
+   56,
+   59
+  ],
+  "neighbours": [
+   "2<CompleteCopyToAsync>d__5\"<DrainAsync>d",
+   "<ReadAsync>d__32<CompleteCopyToAsync>d__",
+   "<ReadAsync>d__6T<WaitWithConnectionCance",
+   "RstStream",
+   "PushPromise"
+  ]
+ },
+ {
+  "addr": "0x0339b254",
+  "steps": [
+   [
+    7,
+    "AccountLogin"
+   ],
+   [
+    8,
+    "ScrapeProduct"
+   ],
+   [
+    96,
+    "CreateCart"
+   ],
+   [
+    10,
+    "CreateCustomCheckout"
+   ]
+  ],
+  "lambdas": [
+   7,
+   9,
+   10
+  ],
+  "neighbours": [
+   "_authHost",
+   "_ssoRedirectUriThttps://clientsso-rl.leg",
+   "$<AccountLogin>d__7&<ScrapeProduct>d__8 ",
+   "(CreateCustomCheckoutg",
+   "(<AccountLogin>b__7_0(<AccountLogin>b__7"
+  ]
+ },
+ {
+  "addr": "0x034a90dd",
+  "steps": [
+   [
+    7,
+    "ScrapeRaffleForm"
+   ],
+   [
+    96,
+    "SubmitKlaviyoBulkEvents"
+   ],
+   [
+    102,
+    "SubmitKlaviyoProfile"
+   ],
+   [
+    11,
+    "SubmitKlaviyoEvent"
+   ],
+   [
+    126,
+    "SubmitKlaviyoSubscription"
+   ]
+  ],
+  "lambdas": [
+   7,
+   10,
+   12
+  ],
+  "neighbours": [
+   "_bearerToken",
+   "_orderNumber",
+   ",<ScrapeRaffleForm>d__7:<SubmitKlaviyoBu",
+   "FindListIdg",
+   "0<ScrapeRaffleForm>b__7_00<ScrapeRaffleF"
+  ]
+ },
+ {
+  "addr": "0x03385140",
+  "steps": [
+   [
+    8,
+    "Login"
+   ],
+   [
+    9,
+    "FindProduct"
+   ],
+   [
+    10,
+    "AddToCart"
+   ],
+   [
+    11,
+    "GetCheckout"
+   ],
+   [
+    12,
+    "SubmitShipping"
+   ],
+   [
+    13,
+    "SubmitRate"
+   ]
+  ],
+  "lambdas": [
+   11,
+   12,
+   13
+  ],
+  "neighbours": [
+   "<Start>d__6",
+   "<GetHome>d__7",
+   "<Login>d__8\"<FindProduct>d__9 <AddToCart",
+   "SubmitRateg",
+   "<GetHome>b__7_0"
+  ]
+ },
+ {
+  "addr": "0x0339388a",
+  "steps": [
+   [
+    8,
+    "FindProduct"
+   ],
+   [
+    9,
+    "GetProduct"
+   ],
+   [
+    10,
+    "CreateCart"
+   ],
+   [
+    11,
+    "AddToCart"
+   ],
+   [
+    13,
+    "SubmitPayment"
+   ],
+   [
+    14,
+    "SubmitOrder"
+   ],
+   [
+    15,
+    "ProcessOrder"
+   ]
+  ],
+  "lambdas": [
+   7,
+   8,
+   10,
+   13,
+   14,
+   15
+  ],
+  "neighbours": [
+   "<GetHome>d__6",
+   "<Login>d__7",
+   "\"<FindProduct>d__8 <GetProduct>d__9\"<Cre",
+   "<GetHome>b__6_0",
+   "<Login>b__7_1"
+  ]
+ },
+ {
+  "addr": "0x03397e40",
+  "steps": [
+   [
+    10,
+    "GetToken"
+   ],
+   [
+    11,
+    "PollQueue"
+   ]
+  ],
+  "lambdas": [
+   8,
+   9,
+   10
+  ],
+  "neighbours": [
+   "*<GetRaffleData>b__4_0&<EnterRaffle>b__6",
+   "<GetHome>d__8\"<ParseScript>d__9",
+   "<GetToken>d__10 <PollQueue>d__11$<<GetHo",
+   "ParseScriptg",
+   "PollQueueg"
+  ]
+ },
+ {
+  "addr": "0x03398036",
+  "steps": [
+   [
+    10,
+    "ScrapeRaffleForm"
+   ],
+   [
+    116,
+    "SubmitKlaviyoBulkEvents"
+   ],
+   [
+    122,
+    "SubmitKlaviyoProfile"
+   ],
+   [
+    13,
+    "SubmitKlaviyoEvent"
+   ],
+   [
+    14,
+    "SubmitKlaviyoSubscription"
+   ]
+  ],
+  "lambdas": [
+   12,
+   14
+  ],
+  "neighbours": [
+   "_scriptUrl",
+   "_queueUrl",
+   ".<ScrapeRaffleForm>d__10<<SubmitKlaviyoB",
+   "ScrapeRaffleFormg",
+   "2SubmitKlaviyoSubscriptiong"
+  ]
+ },
+ {
+  "addr": "0x034a884c",
+  "steps": [
+   [
+    10,
+    "FindProduct"
+   ],
+   [
+    12,
+    "SubmitEmail"
+   ],
+   [
+    14,
+    "SubmitRate"
+   ]
+  ],
+  "lambdas": [
+   12,
+   14,
+   15
+  ],
+  "neighbours": [
+   "_baseUrl",
+   "<ClearCart>d__9",
+   "$<FindProduct>d__10$<SubmitEmail>d__12\"<",
+   "*<>c__DisplayClass15_1",
+   "(<FindProduct>b__10_0(<SubmitEmail>b__12"
+  ]
+ },
+ {
+  "addr": "0x03388fd2",
+  "steps": [
+   [
+    11,
+    "FindProductFlow"
+   ],
+   [
+    12,
+    "GetCheckout"
+   ],
+   [
+    13,
+    "GetShippingRate"
+   ],
+   [
+    140,
+    "SubmitShipping"
+   ],
+   [
+    150,
+    "GetStructureToken"
+   ],
+   [
+    16,
+    "CreateTransaction"
+   ],
+   [
+    17,
+    "SubmitPayment"
+   ],
+   [
+    18,
+    "ProcessPayment"
+   ]
+  ],
+  "lambdas": [
+   12,
+   13,
+   14,
+   15,
+   18
+  ],
+  "neighbours": [
+   "_accertify",
+   "<Start>d__10",
+   ",<FindProductFlow>d__11$<GetCheckout>d__",
+   "\"GetStructureTokeng",
+   "\"CreateTransactiong"
+  ]
+ },
+ {
+  "addr": "0x0338a27a",
+  "steps": [
+   [
+    12,
+    "GetShippingRates"
+   ],
+   [
+    13,
+    "SubmitShipping"
+   ],
+   [
+    14,
+    "SubmitBilling"
+   ],
+   [
+    15,
+    "SubmitOrder"
+   ]
+  ],
+  "lambdas": [
+   8,
+   9,
+   11,
+   12,
+   13,
+   14,
+   15
+  ],
+  "neighbours": [
+   "&CommercehubCardType",
+   "<Start>d__5",
+   ".<GetShippingRates>d__12*<SubmitShipping",
+   "<Login>b__8_5g",
+   "<Login>b__8_7g"
+  ]
+ },
+ {
+  "addr": "0x033a38e9",
+  "steps": [
+   [
+    12,
+    "FindProduct"
+   ],
+   [
+    15,
+    "GetRaffleData"
+   ],
+   [
+    174,
+    "WaitForRelease"
+   ]
+  ],
+  "lambdas": [
+   17
+  ],
+  "neighbours": [
+   "_placesSecret _validationToken",
+   "_entryId",
+   "$<FindProduct>d__12(<GetRaffleData>d__15",
+   ",<GetRaffleData>b__15_0.<WaitForRelease>",
+   "(<GetRaffleData>d__22,<LoadCountryData>d"
+  ]
+ },
+ {
+  "addr": "0x034aab21",
+  "steps": [
+   [
+    13,
+    "GetSession"
+   ],
+   [
+    14,
+    "RefreshToken"
+   ],
+   [
+    15,
+    "CreateCart"
+   ],
+   [
+    16,
+    "FindProduct"
+   ],
+   [
+    18,
+    "GenerateCheckout"
+   ],
+   [
+    19,
+    "SubmitEmail"
+   ],
+   [
+    20,
+    "SubmitShipping"
+   ]
+  ],
+  "lambdas": [
+   13,
+   14,
+   15,
+   19,
+   20
+  ],
+  "neighbours": [
+   ",<SubmitPayment>b__17_1g",
+   "&_forceRandomVariant _paymentIntentId",
+   "\"<GetSession>d__13&<RefreshToken>d__14\"<",
+   "get__localeg",
+   "RefreshTokeng"
+  ]
+ },
+ {
+  "addr": "0x0353e123",
+  "steps": [
+   [
+    13,
+    "FindAccessTokenAsync"
+   ],
+   [
+    178,
+    "FindFamilyRefreshTokenAsync"
+   ],
+   [
+    18,
+    "FindRefreshTokenAsync"
+   ],
+   [
+    15,
+    "GetAccountAssociatedWithAccessTokenAsync"
+   ],
+   [
+    20,
+    "GetAccountsAsync"
+   ],
+   [
+    166,
+    "GetIdTokenCacheItemAsync"
+   ],
+   [
+    19,
+    "IsAppFociMemberAsync"
+   ],
+   [
+    21,
+    "RefreshCacheForReadOperationsAsync"
+   ],
+   [
+    12,
+    "RefreshCacheForReadOperationsIfEnabledAsync"
+   ],
+   [
+    14,
+    "SaveTokenResponseAsync"
+   ]
+  ],
+  "lambdas": [
+   21
+  ],
+  "neighbours": [
+   "<Microsoft.Identity.Client.ITokenCacheIn",
+   "8<GetTenantProfilesAsync>b__2",
+   "6<FindAccessTokenAsync>d__13D<FindFamily",
+   "0MsalAppMetadataCacheItem",
+   "#4CacheSerializationContract"
+  ]
+ },
+ {
+  "addr": "0x034a9a48",
+  "steps": [
+   [
+    14,
+    "LoadProduct"
+   ],
+   [
+    17,
+    "LoadCheckout"
+   ],
+   [
+    19,
+    "SubmitInfo"
+   ],
+   [
+    200,
+    "SubmitOrder"
+   ]
+  ],
+  "lambdas": [
+   17,
+   19,
+   20
+  ],
+  "neighbours": [
+   "_tokenRegex,_billingAddressIdRegex$_cred",
+   "_creditCardId&Entertainment Earth",
+   "$<LoadProduct>d__14&<LoadCheckout>d__17\"",
+   "*<>c__DisplayClass18_2",
+   "\"NavigationHeaders@"
+  ]
+ },
+ {
+  "addr": "0x034a9462",
+  "steps": [
+   [
+    15,
+    "GetLogin"
+   ],
+   [
+    16,
+    "ContinueAsGuest"
+   ],
+   [
+    176,
+    "ConfirmShippingAddress"
+   ],
+   [
+    18,
+    "SubmitShippingMethod"
+   ],
+   [
+    196,
+    "AddPaymentMethod"
+   ],
+   [
+    202,
+    "SelectBillingAddress"
+   ],
+   [
+    21,
+    "ApplyPaymentMethod"
+   ],
+   [
+    22,
+    "PlaceOrder"
+   ]
+  ],
+  "lambdas": [
+   13,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22
+  ],
+  "neighbours": [
+   "_companyId",
+   "\"<GetProduct>d__13",
+   "<GetLogin>d__15,<ContinueAsGuest>d__16:<",
+   "GetLoging",
+   "ContinueAsGuestg"
+  ]
+ },
+ {
+  "addr": "0x033c7412",
+  "steps": [
+   [
+    18,
+    "SubmitEmail"
+   ],
+   [
+    20,
+    "EncryptCard"
+   ],
+   [
+    21,
+    "SubmitBilling"
+   ]
+  ],
+  "lambdas": [
+   13,
+   16,
+   19,
+   20,
+   21
+  ],
+  "neighbours": [
+   "<GetHome>d__13(<GetCartCookie>d__15",
+   "<GetCart>d__16 <AddToCart>d__17",
+   "$<SubmitEmail>d__18$<EncryptCard>d__20(<",
+   "*<>c__DisplayClass17_1",
+   "GetCartCookieg"
+  ]
+ },
+ {
+  "addr": "0x0338bf0d",
+  "steps": [
+   [
+    19,
+    "GetPaymentToken"
+   ],
+   [
+    20,
+    "SubmitCreditCard"
+   ]
+  ],
+  "lambdas": [
+   14,
+   16,
+   17,
+   18,
+   19
+  ],
+  "neighbours": [
+   "<Start>d__11",
+   "$<FindProduct>d__13$<FindVariant>d__14$<",
+   ",<GetPaymentToken>d__19.<SubmitCreditCar",
+   "SubmitCreditCardg",
+   "(<FindProduct>b__13_0(<FindVariant>b__14"
+  ]
+ },
+ {
+  "addr": "0x0339456a",
+  "steps": [
+   [
+    20,
+    "GetToken"
+   ],
+   [
+    21,
+    "TokenizeCard"
+   ],
+   [
+    22,
+    "SubmitOrder"
+   ]
+  ],
+  "lambdas": [
+   15,
+   17,
+   20,
+   21,
+   22
+  ],
+  "neighbours": [
+   "_euSizes",
+   "*<CreateCheckout>d__17\"<SubmitRate>d__19",
+   "<GetToken>d__20&<TokenizeCard>d__21$<Sub",
+   "TokenizeCardg",
+   "(<FindProduct>b__15_1g"
+  ]
+ },
+ {
+  "addr": "0x035b2879",
+  "steps": [
+   [
+    20,
+    "DisposeAsync"
+   ],
+   [
+    17,
+    "ForeachService"
+   ],
+   [
+    14,
+    "StartAsync"
+   ],
+   [
+    16,
+    "StopAsync"
+   ],
+   [
+    15,
+    "TryExecuteBackgroundServiceAsync"
+   ]
+  ],
+  "lambdas": [
+   14
+  ],
+  "neighbours": [
+   "\"HandlePosixSignal@",
+   "*HandleWindowsShutdown,<<StartAsync>b__1",
+   "&<DisposeAsync>d__20.<ForeachService>d__",
+   "filterOptions",
+   "filterOption"
+  ]
+ },
+ {
+  "addr": "0x034aa1d0",
+  "steps": [
+   [
+    21,
+    "GetDrop"
+   ],
+   [
+    220,
+    "SubmitCaptcha"
+   ],
+   [
+    230,
+    "CreateReservation"
+   ],
+   [
+    24,
+    "SubmitReservation"
+   ],
+   [
+    25,
+    "PollReservation"
+   ]
+  ],
+  "lambdas": [
+   16,
+   17,
+   19,
+   20,
+   22,
+   23,
+   24
+  ],
+  "neighbours": [
+   "<Login>d__168<Login_EnsureTaskAlive>d__1",
+   "(<SendTwoFactor>d__18(<GetShippingId>d__",
+   "<GetDrop>d__21(<SubmitCaptcha>d__220<Cre",
+   "GetShippingIdg",
+   "GetBillingIdg"
+  ]
+ },
+ {
+  "addr": "0x034bda81",
+  "steps": [
+   [
+    21,
+    "DialSharedAsync"
+   ],
+   [
+    32,
+    "DisposeAsync"
+   ],
+   [
+    20,
+    "SendAsync"
+   ],
+   [
+    29,
+    "SendHttp1Async"
+   ]
+  ],
+  "lambdas": [
+   20
+  ],
+  "neighbours": [
+   "<FillAsync>d__13*<ReadFrameAsync>d__186<",
+   "*<DialHttp3Async>d__18*<DialHttp3Async>d",
+   "?,<DialSharedAsync>d__21&<DisposeAsync>d",
+   "*<WriteLoopAsync>d__56(<ReadLoopAsync>d_",
+   "*<>c__DisplayClass64_1"
+  ]
+ },
+ {
+  "addr": "0x034c5ff4",
+  "steps": [
+   [
+    21,
+    "SendLoopAsync"
+   ],
+   [
+    24,
+    "DisposeAsync"
+   ]
+  ],
+  "lambdas": [
+   7
+  ],
+  "neighbours": [
+   "EndOfMessage$DisableCompression",
+   "\"WebSocketDeflater\"WebSocketInflater ZLi",
+   "$<EnterAsync>b__7_1(<SendLoopAsync>d__21",
+   "OnRequest@",
+   "$OnConnectionOpened@"
+  ]
+ },
+ {
+  "addr": "0x0336eaed",
+  "steps": [
+   [
+    22,
+    "GetCsrf"
+   ],
+   [
+    23,
+    "SendManualNotification"
+   ]
+  ],
+  "lambdas": [
+   17,
+   18,
+   20,
+   21,
+   22
+  ],
+  "neighbours": [
+   "<Start>d__13",
+   "$<FindProduct>d__15 <AddToCart>d__16$<Ge",
+   "<GetCsrf>d__22:<SendManualNotification>d",
+   "*<>c__DisplayClass21_1",
+   "ParseInputg"
+  ]
+ },
+ {
+  "addr": "0x0342a9c6",
+  "steps": [
+   [
+    22,
+    "OpenFilePickerAsync"
+   ],
+   [
+    6,
+    "SaveFilePickerAsync"
+   ]
+  ],
+  "lambdas": [
+   10
+  ],
+  "neighbours": [
+   "lprcMonitor",
+   "dwData.<UpdateTimerFps>b__32_0@",
+   "2<OpenFilePickerAsync>d__22<SaveFilePick",
+   "L<OpenFilePickerWithResultAsync>b__11_0@",
+   "L<SaveFilePickerWithResultAsync>b__12_02"
+  ]
+ },
+ {
+  "addr": "0x033803b0",
+  "steps": [
+   [
+    24,
+    "GetCsrf"
+   ],
+   [
+    25,
+    "SubmitShipping"
+   ],
+   [
+    26,
+    "SubmitOrder"
+   ],
+   [
+    27,
+    "SendManualNotification"
+   ]
+  ],
+  "lambdas": [
+   19,
+   24,
+   25,
+   26
+  ],
+  "neighbours": [
+   "<StartCore>d__17",
+   "<GetHome>d__19.<FindProductMulti>d__20$<",
+   "<GetCsrf>d__24*<SubmitShipping>d__25$<Su",
+   "*<>c__DisplayClass26_3",
+   "StartCoreg"
+  ]
+ },
+ {
+  "addr": "0x033865c9",
+  "steps": [
+   [
+    24,
+    "GetCart"
+   ],
+   [
+    25,
+    "SubmitEmail"
+   ],
+   [
+    26,
+    "SubmitShipping"
+   ],
+   [
+    27,
+    "SubmitBilling"
+   ],
+   [
+    29,
+    "SubmitOrder"
+   ],
+   [
+    30,
+    "SendManualNotification"
+   ]
+  ],
+  "lambdas": [
+   21,
+   25,
+   27,
+   29
+  ],
+  "neighbours": [
+   "<Start>d__18",
+   "<GetHome>d__21 <AddToCart>d__23",
+   "<GetCart>d__24$<SubmitEmail>d__25*<Submi",
+   "<.ctor>b__16_0 <GetHome>b__21_0 <GetHome",
+   "<GetHome>b__21_2g"
+  ]
+ },
+ {
+  "addr": "0x03390d79",
+  "steps": [
+   [
+    26,
+    "FindProduct"
+   ],
+   [
+    28,
+    "AddToCart"
+   ],
+   [
+    29,
+    "SubmitDiscount"
+   ],
+   [
+    30,
+    "GetCheckout"
+   ],
+   [
+    31,
+    "GetShippingRates"
+   ],
+   [
+    33,
+    "GetPaypalId"
+   ],
+   [
+    34,
+    "GetPaypalBearer"
+   ],
+   [
+    35,
+    "ProcessPaymentPaypalCreditCard"
+   ],
+   [
+    37,
+    "ProcessOrderPaypalCreditCard"
+   ],
+   [
+    38,
+    "SubmitOrder"
+   ],
+   [
+    39,
+    "ProcessOrder"
+   ]
+  ],
+  "lambdas": [
+   24,
+   29,
+   30,
+   31,
+   32,
+   33,
+   34,
+   35,
+   37,
+   38,
+   39
+  ],
+  "neighbours": [
+   "RestStorePath",
+   "RestPath",
+   "$<FindProduct>d__26 <AddToCart>d__28*<Su",
+   "get_IsLoggedIng",
+   "ParseMaxQuantity"
+  ]
+ },
+ {
+  "addr": "0x033a2e28",
+  "steps": [
+   [
+    27,
+    "ValidateEntry"
+   ],
+   [
+    28,
+    "CreateStripePaymentMethod"
+   ],
+   [
+    292,
+    "CreateEntry"
+   ],
+   [
+    30,
+    "StorePaymentMethod"
+   ],
+   [
+    318,
+    "WaitForEmailVerification"
+   ]
+  ],
+  "lambdas": [
+   19,
+   20,
+   21,
+   22,
+   23,
+   27,
+   28,
+   29,
+   30,
+   31
+  ],
+  "neighbours": [
+   "_countryRules",
+   ".<GetRaffleProduct>d__19(<GetCustomerId>",
+   "(<ValidateEntry>d__27@<CreateStripePayme",
+   "GetCustomerIdg",
+   "\"GetRaffleSettingsg"
+  ]
+ },
+ {
+  "addr": "0x034a8c3c",
+  "steps": [
+   [
+    27,
+    "GetRates"
+   ],
+   [
+    28,
+    "SubmitRate"
+   ]
+  ],
+  "lambdas": [
+   20,
+   21,
+   23,
+   24,
+   25,
+   27,
+   28,
+   29
+  ],
+  "neighbours": [
+   "_guestToken",
+   "\"<GetSession>d__20&<GetAuthToken>d__21 <",
+   "<GetRates>d__27\"<SubmitRate>d__28,<<GetS",
+   "&<GetSession>b__20_0&<GetSession>b__20_1",
+   "*<GetAuthToken>b__21_0*<GetAuthToken>b__"
+  ]
+ },
+ {
+  "addr": "0x03391940",
+  "steps": [
+   [
+    29,
+    "InitialisePayPal"
+   ],
+   [
+    30,
+    "SubmitPaypal"
+   ],
+   [
+    31,
+    "SubmitOrder"
+   ]
+  ],
+  "lambdas": [
+   21,
+   22,
+   23,
+   25,
+   27,
+   28,
+   29,
+   30,
+   31
+  ],
+  "neighbours": [
+   "IsLoggedIn",
+   "$<FindVariant>d__20 <AddToCart>d__21.<Ge",
+   ".<InitialisePayPal>d__29&<SubmitPaypal>d",
+   "RegisterCustomerg",
+   "\"InitialisePaymentg"
+  ]
+ },
+ {
+  "addr": "0x034b14b8",
+  "steps": [
+   [
+    29,
+    "FindProductMulti"
+   ],
+   [
+    30,
+    "FindProductFlow"
+   ],
+   [
+    32,
+    "FindVariant"
+   ],
+   [
+    33,
+    "AddToCartMulti"
+   ],
+   [
+    37,
+    "GetCheckout"
+   ],
+   [
+    38,
+    "GetMerchantCode"
+   ],
+   [
+    39,
+    "GetShippingRate"
+   ],
+   [
+    40,
+    "SubmitShipping"
+   ],
+   [
+    410,
+    "CalculateTaxes"
+   ],
+   [
+    420,
+    "GetStructureToken"
+   ],
+   [
+    43,
+    "CreateTransaction"
+   ],
+   [
+    44,
+    "SubmitPayment"
+   ],
+   [
+    45,
+    "GetPayPalToken"
+   ],
+   [
+    46,
+    "SubmitPayPal"
+   ],
+   [
+    47,
+    "ProcessPayment"
+   ]
+  ],
+  "lambdas": [
+   23,
+   25,
+   37,
+   38,
+   39,
+   40,
+   42,
+   45,
+   46,
+   47
+  ],
+  "neighbours": [
+   "<GetCsrf>d__23",
+   "<Register>d__256<CompleteRegistration>d_",
+   ".<FindProductMulti>d__29,<FindProductFlo",
+   "*<>c__DisplayClass33_2",
+   "<GetCsrf>b__23_0 <GetCsrf>b__23_1g"
+  ]
+ },
+ {
+  "addr": "0x0338d5ab",
+  "steps": [
+   [
+    30,
+    "Login"
+   ],
+   [
+    31,
+    "CreateOrder"
+   ],
+   [
+    33,
+    "SubmitPayment"
+   ],
+   [
+    346,
+    "StartPayPal"
+   ]
+  ],
+  "lambdas": [
+   25,
+   26,
+   27,
+   30,
+   31,
+   33,
+   34
+  ],
+  "neighbours": [
+   "*<RequestSmsCode>d__24",
+   ",<ValidateSmsCode>d__25\"<GetSession>d__2",
+   "<Login>d__30$<CreateOrder>d__31(<SubmitP",
+   "get_SmsCode",
+   "get_StoreNameg"
+  ]
+ },
+ {
+  "addr": "0x033895e0",
+  "steps": [
+   [
+    31,
+    "GetCsrf"
+   ],
+   [
+    32,
+    "GetCheckout"
+   ],
+   [
+    33,
+    "ApplyDiscount"
+   ],
+   [
+    34,
+    "GetShippingRates"
+   ],
+   [
+    356,
+    "SubmitShippingInformation"
+   ],
+   [
+    36,
+    "SubmitPaymentDetails"
+   ],
+   [
+    37,
+    "GetCommercehubCredentials"
+   ],
+   [
+    380,
+    "CaptureCard"
+   ],
+   [
+    39,
+    "EarlyTokenization"
+   ],
+   [
+    43,
+    "SubmitBillingInformation"
+   ],
+   [
+    444,
+    "SubmitOrder"
+   ]
+  ],
+  "lambdas": [
+   25,
+   27,
+   28,
+   31,
+   34,
+   35,
+   37,
+   38,
+   39
+  ],
+  "neighbours": [
+   "*<GetGeoLocation>d__25\"<GetStoreId>d__26",
+   "<Login>d__28*<AddToCartMulti>d__29\"<Remo",
+   "<GetCsrf>d__31$<GetCheckout>d__32(<Apply",
+   "*<>c__DisplayClass29_2",
+   "\"get__discountCodeg"
+  ]
+ },
+ {
+  "addr": "0x03459db1",
+  "steps": [
+   [
+    32,
+    "HandleResponse"
+   ],
+   [
+    33,
+    "GetScript"
+   ],
+   [
+    34,
+    "GetKasada"
+   ],
+   [
+    35,
+    "GetWorkTime"
+   ]
+  ],
+  "lambdas": [
+   34
+  ],
+  "neighbours": [
+   "VersionProvider",
+   "\"<SetRequest>d__31",
+   "*<HandleResponse>d__32 <GetScript>d__33 ",
+   "*get_WorkTimeCtEnabled*set_WorkTimeCtEna",
+   "<Reset>b__30_0$<GetKasada>b__34_0$<GetKa"
+  ]
+ },
+ {
+  "addr": "0x034b46e8",
+  "steps": [
+   [
+    32,
+    "PlaceOrder"
+   ],
+   [
+    334,
+    "AdyenSession"
+   ],
+   [
+    348,
+    "SubmitPaymentPayPal"
+   ],
+   [
+    356,
+    "AdyenPayPalPatchOrder"
+   ],
+   [
+    36,
+    "GetPayPalAccessToken"
+   ],
+   [
+    37,
+    "AdyenSaveExpressShopperDetails"
+   ],
+   [
+    388,
+    "ShowConfirmationPaymentFromComponent"
+   ]
+  ],
+  "lambdas": [
+   26,
+   28,
+   29,
+   30,
+   31,
+   33,
+   34,
+   35,
+   36,
+   37,
+   38
+  ],
+  "neighbours": [
+   "<EditLine>d__27",
+   "<GetCsrf>d__28$<GetCheckout>d__29(<Submi",
+   "\"<PlaceOrder>d__32&<AdyenSession>d__334<",
+   "AdyenSessiong",
+   "&SubmitPaymentPayPalg"
+  ]
+ },
+ {
+  "addr": "0x0336dea7",
+  "steps": [
+   [
+    33,
+    "GetCsrf"
+   ],
+   [
+    34,
+    "GetCheckout"
+   ],
+   [
+    35,
+    "GetCheckoutHtml"
+   ],
+   [
+    36,
+    "AddToCart"
+   ],
+   [
+    37,
+    "AddToCart2"
+   ],
+   [
+    38,
+    "SubmitDiscount"
+   ],
+   [
+    39,
+    "SubmitShipping"
+   ],
+   [
+    40,
+    "SubmitOrder"
+   ]
+  ],
+  "lambdas": [
+   28,
+   29,
+   32,
+   33,
+   34,
+   35,
+   38,
+   39,
+   40
+  ],
+  "neighbours": [
+   "<ClearCart>d__30",
+   "$<FindProduct>d__314<FindWishlistProduct",
+   "<GetCsrf>d__33$<GetCheckout>d__34,<GetCh",
+   "*<>c__DisplayClass29_1",
+   "*<>c__DisplayClass32_1"
+  ]
+ },
+ {
+  "addr": "0x03380d89",
+  "steps": [
+   [
+    34,
+    "SubmitBilling"
+   ],
+   [
+    356,
+    "SubmitPayment"
+   ]
+  ],
+  "lambdas": [
+   21,
+   23,
+   28,
+   32,
+   36
+  ],
+  "neighbours": [
+   "<Login>d__20",
+   ",<GetPaymentToken>d__21\"<GetSession>d__2",
+   "(<SubmitBilling>d__34(<SubmitPayment>d__",
+   "(GetVerificationTokeng",
+   "\"GetProductDetailsg"
+  ]
+ },
+ {
+  "addr": "0x034b0123",
+  "steps": [
+   [
+    34,
+    "EditLine"
+   ],
+   [
+    36,
+    "GetCheckout"
+   ],
+   [
+    37,
+    "GetMerchantCode"
+   ],
+   [
+    380,
+    "GetShippingRate"
+   ],
+   [
+    400,
+    "GetStructureToken"
+   ],
+   [
+    41,
+    "CreateTransaction"
+   ],
+   [
+    43,
+    "GetPayPalToken"
+   ],
+   [
+    44,
+    "SubmitPayPal"
+   ],
+   [
+    45,
+    "ProcessPayment"
+   ]
+  ],
+  "lambdas": [
+   23,
+   24,
+   33,
+   36,
+   37,
+   38,
+   40,
+   43,
+   44,
+   45
+  ],
+  "neighbours": [
+   "6<CompleteRegistration>d__25",
+   ".<FindProductMulti>d__28,<FindProductFlo",
+   "<EditLine>d__34$<GetCheckout>d__36,<GetM",
+   "*<>c__DisplayClass32_2",
+   "GetMerchantCodeg"
+  ]
+ },
+ {
+  "addr": "0x03395c59",
+  "steps": [
+   [
+    35,
+    "VerifyStripeChallenge"
+   ],
+   [
+    362,
+    "SolveRecaptcha"
+   ],
+   [
+    37,
+    "RaffleVerification"
+   ],
+   [
+    38,
+    "WaitForVerificationCode"
+   ],
+   [
+    408,
+    "RaffleOrder"
+   ]
+  ],
+  "lambdas": [
+   31,
+   32,
+   33,
+   34,
+   35,
+   37,
+   40
+  ],
+  "neighbours": [
+   "_selectedSlot",
+   ".<GetRaffleProduct>d__310<ScrapeProductP",
+   "8<VerifyStripeChallenge>d__35*<SolveReca",
+   "GetRaffleProductg",
+   "\"ScrapeProductPageg"
+  ]
+ },
+ {
+  "addr": "0x0351db92",
+  "steps": [
+   [
+    36,
+    "ExecuteBackup"
+   ],
+   [
+    390,
+    "ExecuteExport"
+   ],
+   [
+    444,
+    "DragBorderPressed"
+   ]
+  ],
+  "lambdas": [
+   37
+  ],
+  "neighbours": [
+   "<get_Add>b__2_0 <get_Edit>b__6_02<get_Fe",
+   "$<get_Delete>b__6_0$<get_Clear>b__10_0",
+   "(<ExecuteBackup>d__36(<ExecuteExport>d__",
+   "<Import>d__41&<RestoreAsync>d__38",
+   "ExecuteBackupg"
+  ]
+ },
+ {
+  "addr": "0x0338b682",
+  "steps": [
+   [
+    37,
+    "GetPayPalResult"
+   ],
+   [
+    38,
+    "PollRestock"
+   ],
+   [
+    39,
+    "PollRestock2"
+   ],
+   [
+    40,
+    "PollRelease"
+   ]
+  ],
+  "lambdas": [
+   24,
+   26,
+   28,
+   29,
+   30,
+   31,
+   34,
+   36,
+   38,
+   39,
+   40
+  ],
+  "neighbours": [
+   "$<FindProduct>d__27$<FindVariant>d__28.<",
+   "<EditLine>d__30$<SubmitEmail>d__31.<GetP",
+   ",<GetPayPalResult>d__37$<PollRestock>d__",
+   "FormField",
+   ".ExtractDynamicHtmlNames"
+  ]
+ },
+ {
+  "addr": "0x03520b1a",
+  "steps": [
+   [
+    38,
+    "ExecuteAuthenticate"
+   ],
+   [
+    40,
+    "ExecuteRefresh"
+   ]
+  ],
+  "lambdas": [
+   6,
+   10
+  ],
+  "neighbours": [
+   "<.ctor>b__32_1(<ExecuteLogout>d__26",
+   "ExecuteLogoutg",
+   "(<get_Minimise>b__6_0\"<get_Exit>b__10_04",
+   "&LicenseDoubleTapped&ExecuteAuthenticate",
+   "ExecuteRefreshg"
+  ]
+ },
+ {
+  "addr": "0x0331e01c",
+  "steps": [
+   [
+    40,
+    "OnBoardGuest"
+   ],
+   [
+    416,
+    "ApproveOnBoard"
+   ]
+  ],
+  "lambdas": [
+   25
+  ],
+  "neighbours": [
+   "*<>c__DisplayClass39_2",
+   "*<>c__DisplayClass39_6",
+   "&<OnBoardGuest>d__40*<ApproveOnBoard>d__",
+   "4<<ApproveOnBoard>b__41_0>d4<<ApproveOnB",
+   "*<>c__DisplayClass26_1"
+  ]
+ },
+ {
+  "addr": "0x033a41b2",
+  "steps": [
+   [
+    40,
+    "AddToCartSvelte"
+   ],
+   [
+    428,
+    "RefreshSession"
+   ]
+  ],
+  "lambdas": [
+   17
+  ],
+  "neighbours": [
+   "*<AddToCartAstro>d__262<StartCheckoutAst",
+   "(<AddToCartNext>d__364<ScrapeProductSvel",
+   ",<AddToCartSvelte>d__40*<RefreshSession>",
+   "*<>c__DisplayClass23_1",
+   "*<>c__DisplayClass37_2"
+  ]
+ },
+ {
+  "addr": "0x034b23a5",
+  "steps": [
+   [
+    40,
+    "EditLine"
+   ],
+   [
+    41,
+    "AddToCart"
+   ],
+   [
+    42,
+    "GetCheckout"
+   ],
+   [
+    43,
+    "GetShippingRate"
+   ],
+   [
+    44,
+    "SubmitShipping"
+   ],
+   [
+    450,
+    "CalculateTaxes"
+   ],
+   [
+    460,
+    "GetStructureToken"
+   ],
+   [
+    47,
+    "CreateTransaction"
+   ],
+   [
+    48,
+    "SubmitPayment"
+   ],
+   [
+    49,
+    "GetPayPalToken"
+   ],
+   [
+    50,
+    "SubmitPayPal"
+   ],
+   [
+    51,
+    "ProcessPayment"
+   ]
+  ],
+  "lambdas": [
+   26,
+   27,
+   28,
+   37,
+   39,
+   43,
+   44,
+   45,
+   46,
+   49,
+   50,
+   51
+  ],
+  "neighbours": [
+   "<Register>d__286<CompleteRegistration>d_",
+   ".<FindProductMulti>d__32,<FindProductFlo",
+   "<EditLine>d__40 <AddToCart>d__41$<GetChe",
+   "GetLotteryFormg",
+   "SubmitLotteryg"
+  ]
+ },
+ {
+  "addr": "0x034ac2e6",
+  "steps": [
+   [
+    45,
+    "GetOrder"
+   ],
+   [
+    49,
+    "LogBadRequest"
+   ]
+  ],
+  "lambdas": [
+   32,
+   33,
+   34,
+   35,
+   39,
+   40,
+   41,
+   42,
+   43
+  ],
+  "neighbours": [
+   "<AddToCart>d__32.<InitiateCheckout>d__33",
+   ":<GetStripePaymentIntent>d__44",
+   "<GetOrder>d__45(<LogBadRequest>d__49*<<A",
+   "get_CsrfToken",
+   "get_XsrfTokeng"
+  ]
+ },
+ {
+  "addr": "0x03459881",
+  "steps": [
+   [
+    49,
+    "GetMfc"
+   ],
+   [
+    50,
+    "GetWorkTime"
+   ]
+  ],
+  "lambdas": [
+   48,
+   49
+  ],
+  "neighbours": [
+   "$ReadOnlyMemoryByte@",
+   "*<HandleResponse>d__46 <GetScript>d__47 ",
+   "<GetMfc>d__49$<GetWorkTime>d__50\"<<-ctor",
+   "get__version@",
+   "get_IsMobile"
+  ]
+ },
+ {
+  "addr": "0x0338e9a4",
+  "steps": [
+   [
+    50,
+    "StartApp"
+   ],
+   [
+    51,
+    "GetSessionApp"
+   ],
+   [
+    520,
+    "AddToCartApp"
+   ],
+   [
+    53,
+    "SubmitDiscountApp"
+   ],
+   [
+    54,
+    "GetCartValueApp"
+   ],
+   [
+    55,
+    "SubmitInfoApp"
+   ],
+   [
+    560,
+    "SubmitEmailApp"
+   ],
+   [
+    57,
+    "SubmitShippingApp"
+   ],
+   [
+    58,
+    "SubmitBillingApp"
+   ],
+   [
+    59,
+    "SubmitOrderApp"
+   ]
+  ],
+  "lambdas": [
+   24,
+   25,
+   26,
+   27,
+   29,
+   34,
+   51,
+   52,
+   54,
+   59
+  ],
+  "neighbours": [
+   "<GetHome>d__25 <AddToCart>d__27*<SubmitD",
+   ".<InitializePayPal>d__45*<GetPayPalNonce",
+   "<StartApp>d__50(<GetSessionApp>d__51&<Ad",
+   "*<>c__DisplayClass59_1",
+   "*<>c__DisplayClass59_2"
+  ]
+ },
+ {
+  "addr": "0x03392b51",
+  "steps": [
+   [
+    52,
+    "ThreeDS"
+   ],
+   [
+    53,
+    "ProcessPayment"
+   ],
+   [
+    54,
+    "StartPayPal"
+   ]
+  ],
+  "lambdas": [
+   33,
+   34,
+   35,
+   36,
+   38,
+   42,
+   43,
+   44,
+   45,
+   46,
+   48,
+   49,
+   50,
+   53,
+   54
+  ],
+  "neighbours": [
+   "<Start>d__30",
+   "<GetHome>d__33\"<GetProduct>d__34*<FindPr",
+   "<ThreeDS>d__52*<ProcessPayment>d__53$<St",
+   "SetupTaskg",
+   "ParseUrlg"
+  ]
+ },
+ {
+  "addr": "0x033952c8",
+  "steps": [
+   [
+    54,
+    "SubmitSignup"
+   ],
+   [
+    60,
+    "SubmitKlaviyoProfile"
+   ],
+   [
+    7,
+    "SubmitKlaviyoEvent"
+   ],
+   [
+    8,
+    "SubmitKlaviyoBulkEvents"
+   ]
+  ],
+  "lambdas": [
+   5,
+   6,
+   8
+  ],
+  "neighbours": [
+   "_lastName",
+   "<Start>d__4",
+   "$<SubmitSignup>d__54<SubmitKlaviyoProfil",
+   "SubmitSignupg",
+   "(SubmitKlaviyoProfileg"
+  ]
+ },
+ {
+  "addr": "0x03419718",
+  "steps": [
+   [
+    57,
+    "CopyToAsyncCore"
+   ],
+   [
+    272,
+    "DisposeAsync"
+   ],
+   [
+    550,
+    "FlushAsyncInternal"
+   ],
+   [
+    37,
+    "ReadAsyncSlowPath"
+   ],
+   [
+    362,
+    "ReadFromNonSeekableAsync"
+   ],
+   [
+    48,
+    "WriteAsyncSlowPath"
+   ],
+   [
+    47,
+    "WriteToNonSeekableAsync"
+   ]
+  ],
+  "lambdas": [
+   15,
+   19,
+   20
+  ],
+  "neighbours": [
+   "4<ReadAtOffsetAsync>b__19_0@",
+   "6<WriteAtOffsetAsync>b__21_0@",
+   "pOverlapped4<ReadLineCoreAsync>b__15_0$<",
+   "6<AsyncModeCopyToAsync>d__214<AsyncModeC",
+   "FindPredicate"
+  ]
+ },
+ {
+  "addr": "0x035b846d",
+  "steps": [
+   [
+    78,
+    "ExecuteDelete"
+   ],
+   [
+    79,
+    "ExecuteSave"
+   ]
+  ],
+  "lambdas": [
+   25
+  ],
+  "neighbours": [
+   "<InfoOf>b__0@",
+   "$<ExecuteSave>d__28",
+   "$<get_Close>b__25_0(<ExecuteDelete>d__78",
+   "FilterSummary",
+   "ExecuteDeleteg"
+  ]
+ },
+ {
+  "addr": "0x035120d9",
+  "steps": [
+   [
+    79,
+    "CopyToAsync"
+   ],
+   [
+    77,
+    "ReadDataAsync"
+   ],
+   [
+    74,
+    "ReadResponseHeadersAsync"
+   ],
+   [
+    816,
+    "SendDataAsync"
+   ],
+   [
+    45,
+    "SendRequestBodyAsync"
+   ],
+   [
+    46,
+    "WaitFor100ContinueAsync"
+   ]
+  ],
+  "lambdas": [
+   80
+  ],
+  "neighbours": [
+   "ValidBits",
+   "Http2ReadStream(Http2ReadWriteStream Htt",
+   "$<CopyToAsync>d__79(<ReadDataAsync>d__77",
+   "2<QueueSettingsAck>b__85_0@",
+   "$<QueuePing>b__86_0@"
+  ]
+ },
+ {
+  "addr": "0x035c677f",
+  "steps": [
+   [
+    104,
+    "TryInitMtlsPopParametersAsync"
+   ],
+   [
+    2,
+    "InitExplicitMtlsPopAsync"
+   ],
+   [
+    7,
+    "InitMtlsPopParametersAsync"
+   ],
+   [
+    0,
+    "TryInitAsync"
+   ],
+   [
+    1,
+    "TryInitImplicitBearerOverMtlsAsync"
+   ]
+  ],
+  "lambdas": [
+   2,
+   6
+  ],
+  "neighbours": [
+   "SilentRequest",
+   "$<ResolveAsync>d__0,<FetchTokensAsync>d_",
+   "MSAL no longer performs auto-discovery f",
+   "NotSpecified",
+   "$<ExecuteAsync>d__2"
+  ]
+ },
+ {
+  "addr": "0x03399fda",
+  "steps": [
+   [
+    114,
+    "CreateToken"
+   ],
+   [
+    128,
+    "AddToCartStoreFront"
+   ],
+   [
+    13,
+    "SubmitDetailsCommerce"
+   ],
+   [
+    140,
+    "CheckGiftCard"
+   ]
+  ],
+  "lambdas": [
+   10,
+   11,
+   14
+  ],
+  "neighbours": [
+   "(<AccountLogin>b__1_5g",
+   "&<AccountLogin>d__10",
+   "$<CreateToken>d__114<AddToCartStoreFront",
+   "CheckGiftCardg",
+   "*<AccountLogin>b__10_4g"
+  ]
+ },
+ {
+  "addr": "0x03398393",
+  "steps": [
+   [
+    150,
+    "CheckBotNot"
+   ],
+   [
+    16,
+    "GetProductDetails"
+   ],
+   [
+    17,
+    "CreateToken"
+   ],
+   [
+    18,
+    "SubmitSession"
+   ],
+   [
+    19,
+    "SubmitLabels"
+   ],
+   [
+    20,
+    "SubmitSensor"
+   ],
+   [
+    21,
+    "StartCheckout"
+   ]
+  ],
+  "lambdas": [
+   17,
+   18,
+   21
+  ],
+  "neighbours": [
+   "_raffleProduct$_livestockLocation",
+   "_formVersionId",
+   "$<CheckBotNot>d__150<GetProductDetails>d",
+   "get_UniqueIdg",
+   "CheckBotNotg"
+  ]
+ },
+ {
+  "addr": "0x0339e45f",
+  "steps": [
+   [
+    160,
+    "VisitRafflePage"
+   ],
+   [
+    17,
+    "GetProductDetails"
+   ],
+   [
+    186,
+    "SolveRecaptcha"
+   ],
+   [
+    196,
+    "CreateRaffleCheckout"
+   ]
+  ],
+  "lambdas": [
+   16,
+   19
+  ],
+  "neighbours": [
+   "\"<GetProperty>d__3.<<AccountLogin>b__2_0",
+   "(<AccountLogin>b__2_0g",
+   ",<VisitRafflePage>d__160<GetProductDetai",
+   "(PickAttributeAnswers",
+   "VisitRafflePageg"
+  ]
+ },
+ {
+  "addr": "0x034bd63d",
+  "steps": [
+   [
+    212,
+    "ConnectAsync"
+   ],
+   [
+    232,
+    "ConnectSocketAsync"
+   ],
+   [
+    24,
+    "ConnectSocketAsync"
+   ],
+   [
+    26,
+    "DialSerialAsync"
+   ],
+   [
+    25,
+    "ResolveAsync"
+   ]
+  ],
+  "lambdas": [
+   25
+  ],
+  "neighbours": [
+   "HelloIPad_15_6",
+   "HelloIOS_16_0$HelloSafari_15_6_1 HelloSa",
+   "?&<ConnectAsync>d__212<ConnectSocketAsyn",
+   "<ReadAsync>d__4",
+   "<ReadAsync>d__0"
+  ]
+ },
+ {
+  "addr": "0x0344a8ab",
+  "steps": [
+   [
+    232,
+    "GetHostedPage"
+   ],
+   [
+    24,
+    "GetHostedSetupPage"
+   ],
+   [
+    25,
+    "GetPaymentIntent"
+   ],
+   [
+    260,
+    "GetSetupIntent"
+   ],
+   [
+    27,
+    "SubmitFingerprint"
+   ],
+   [
+    282,
+    "CompletePayment"
+   ]
+  ],
+  "lambdas": [
+   23,
+   24,
+   25,
+   26,
+   27,
+   28
+  ],
+  "neighbours": [
+   "<Process>d__21",
+   "&<ProcessSetup>d__22",
+   "(<GetHostedPage>d__232<GetHostedSetupPag",
+   "LogResponse@",
+   "ProcessSetup"
+  ]
+ },
+ {
+  "addr": "0x034acb98",
+  "steps": [
+   [
+    292,
+    "Complete3DSOrder"
+   ],
+   [
+    36,
+    "GetCheckoutCaptcha"
+   ]
+  ],
+  "lambdas": [
+   24,
+   26,
+   27,
+   28
+  ],
+  "neighbours": [
+   "CsrfToken",
+   "XsrfToken",
+   ".<Complete3DSOrder>d__292<GetCheckoutCap",
+   "\"get__localeHeader",
+   "get__siteId"
+  ]
+ }
+]

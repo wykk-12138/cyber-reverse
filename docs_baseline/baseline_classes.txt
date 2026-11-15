@@ -1,0 +1,308 @@
+# total binding-visible classes: 162 (Cybersole.*: 153)
+
+## Cybersole.Attributes.CreateInfo
+   props: Name, Properties
+## Cybersole.CaptchaProviders.CaptchaProvider
+   props: ApiKey, Balance, BalanceSupported, Concurrency, Count, IsFetchingBalance, Name, Priority, Type
+## Cybersole.CloudflareSolvers.CloudflareSolver
+   props: ApiKey, Balance, BalanceSupported, Concurrency, Count, Id, IsFetchingBalance, Name, Type
+## Cybersole.Elements.Element
+   props: Name, PropName
+## Cybersole.Global.Settings
+   props: AutoOpen3DS, AutoOpen3DSLimit, BackupInterval, BetaUpdates, BrowserLimit, BrowserPath, BrowserProfileAssignment, BrowserWindowMode, Clock, Currency, Keybinds, Language, MaxBackups, MaxLogRetention, MaxLogSize, MonitorConcurrency, MonitorDelay, MonitorFilters, Notifications, PinGroups, ProfileGroupOrder, ProxyGroupOrder, QueuePresentation, QuickTaskProfiles, QuickTaskProxies, RetryDelay, ScrollbarColor, ScrollbarCornerRadius, ScrollbarWidth, ShopifyBrowserProxy, StartupPage, TaskGroupOrder, Timeout
+## Cybersole.Helpers.BrowserProfile
+   props: DisplayName
+## Cybersole.KeyInput.KeyGesture
+   props: Key, Modifiers
+## Cybersole.Models.Account
+   props: Created, Email, Password
+## Cybersole.Models.AccountGroup
+   props: Accounts, Name, Store
+## Cybersole.Models.Address
+   props: Address1, Address2, Barangay, City, Country, FirstName, FullName, LastName, State, ZipCode
+## Cybersole.Models.Analytics
+   props: Spent, Success
+## Cybersole.Models.AsyncCommand
+   props: IsExecuting
+## Cybersole.Models.AycdInboxAccount
+   props: ApiKey, Enabled, Error, Status, TaskCount
+## Cybersole.Models.BaseCheckout
+   props: Image, Price, Product, Properties, Size, Store, Timestamp, Type
+## Cybersole.Models.BotTask
+   props: MonitorDelay, MonitorMode, Product, Profile, Properties, ProxyGroup, RetryDelay, Running, StartTime, Store, Task, Timeout
+## Cybersole.Models.Captcha
+   props: Proxy
+## Cybersole.Models.Card
+   props: Cvv, Number
+## Cybersole.Models.Checkout
+   props: Order, Profile, Tracking
+## Cybersole.Models.Concurrency
+   props: Maximum, Mode, Ratio
+## Cybersole.Models.Country
+   props: Code, Name, States
+## Cybersole.Models.CreateModel
+   props: ProxyGroup
+## Cybersole.Models.Drop
+   props: Stores, Time, Type
+## Cybersole.Models.EditValue`1
+   props: HasMultiple_98
+## Cybersole.Models.Flag
+   props: Enabled, Name
+## Cybersole.Models.GoogleAccount
+   props: Email, Name, Proxy, State
+## Cybersole.Models.Input
+   props: Type
+## Cybersole.Models.License
+   props: Last4, Name
+## Cybersole.Models.MonitorEvent
+   props: Name, Store, Timestamp, Type
+## Cybersole.Models.MonitorProduct
+   props: AvailableVariants, Image, Input, Price
+## Cybersole.Models.Notification
+   props: Message, Timestamp, Title, Type
+## Cybersole.Models.NotificationOptions
+   props: Centre, Desktop, EnableSound, Enabled, Name, Sound
+## Cybersole.Models.NotificationSound
+   props: SoundLocation
+## Cybersole.Models.PayPalAccount
+   props: Email, LastRefresh, ProxyGroup, Running
+## Cybersole.Models.Product
+   props: Image, Input, Price, PriceCheck, Variant
+## Cybersole.Models.Profile
+   props: Card, Delivery, Email, Name, Phone, Username
+## Cybersole.Models.ProfileGroup
+   props: Profiles
+## Cybersole.Models.Proxy
+   props: Host, Port, Status, Username
+## Cybersole.Models.ProxyGroup
+   props: Behaviour, MaxUsage, Name, NextReset, Proxies, TotalDownload, TotalUpload, UsageExpiry
+## Cybersole.Models.Release
+   props: Drops, Image, Price, Product, ReleaseDate
+## Cybersole.Models.RemoteData
+   props: Name
+## Cybersole.Models.Shortcut
+   props: Gesture, Name
+## Cybersole.Models.Size
+   props: Value
+## Cybersole.Models.Solver
+   props: AIStatus, Account, Captcha, Filter, Name, Proxy, Reload, Settings, View
+## Cybersole.Models.SolverSettings
+   props: AutoBoundingBox, AutoCanvas, AutoClick, AutoTickBox, QuestionSharing, ReCaptchaMultiClassification, ReCaptchaSegmentation
+## Cybersole.Models.State
+   props: Name
+## Cybersole.Models.Status
+   props: Color, Icon, Text
+## Cybersole.Models.Store
+   props: Currency, Elements, Name, Url
+## Cybersole.Models.TaskGroup
+   props: CloudflareSolverId, Webhooks
+## Cybersole.Models.TaskStep
+   props: Completed, Duration, Name, Running, Started
+## Cybersole.Models.User
+   props: Discord, Email, FirstName, Image, IsStaff, LastName
+## Cybersole.Models.Variant
+   props: Name, Sizes
+## Cybersole.Models.WebTask
+   props: Account, Steps
+## Cybersole.Providers.IDataProvider
+   props: Name
+## Cybersole.ProxyTesters.ProxyTester
+   props: Name
+## Cybersole.Services.ClockService
+   props: Current
+## Cybersole.Services.ImapProvider
+   props: Host, MessageCount, Status, Username
+## Cybersole.SmartActions.Action
+   props: Config, Description, Image, Name, Variables
+## Cybersole.SmartActions.Filter
+   props: Operator
+## Cybersole.SmartActions.Operator
+   props: Name
+## Cybersole.SmartActions.RunHistory
+   props: Exception, Result, Timestamp, Trigger
+## Cybersole.SmartActions.SmartAction
+   props: Actions, Filters, Logs, Name, Trigger
+## Cybersole.SmartActions.Trigger
+   props: Description, Name
+## Cybersole.Ui.Controls.ComboBoxEdit
+   cmds : ClearSelectionCommand, RemoveTokenCommand
+## Cybersole.Ui.Controls.ComboBoxGroupHeader
+   props: Name
+## Cybersole.Ui.Controls.ComboBoxToken
+   props: Text
+## Cybersole.Ui.Localization.LocalizeEnumExtension
+   props: Value
+## Cybersole.Ui.Localization.LocalizeFallbackExtension
+   props: Value
+## Cybersole.Ui.Localization.LocalizeFormatExtension
+   props: Value, Value2
+## Cybersole.Ui.Localization.LocalizeSwitchExtension
+   props: Condition
+## Cybersole.Ui.Views.Accounts.AccountGrid
+   props: AccountGroup, Accounts, Add, Clear, CopyAccounts, CopyPassword, Delete, DeleteSelected, Edit, MoveGroup, OpenSettings, Rows
+## Cybersole.Ui.Views.Accounts.AccountStoreEntry
+   props: IsSelected, Name
+## Cybersole.Ui.Views.Accounts.AccountStoreType
+   props: Stores, Type
+## Cybersole.Ui.Views.Accounts.AccountView
+   props: CreateGroup
+## Cybersole.Ui.Views.Accounts.GroupGrid
+   props: DeleteGroup, Items, Store
+## Cybersole.Ui.Views.Accounts.Modals.AccountGroupView
+   props: Close, Delete, GroupName, Save
+## Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView
+   props: Add, Close
+## Cybersole.Ui.Views.Accounts.Modals.CreateGroupModal
+   props: Close, Create, Types
+## Cybersole.Ui.Views.Analytics.AnalyticsView
+   props: ChangeChart, LoadAnalytics, MoveNext, MovePrevious, OpenRelease
+## Cybersole.Ui.Views.Analytics.CheckoutList
+   props: Show
+## Cybersole.Ui.Views.Analytics.Modals.CheckoutProperty
+   props: Key, Value
+## Cybersole.Ui.Views.Analytics.Modals.CheckoutView
+   props: Checkout, Close, Next, OpenTracking, Previous, Properties
+## Cybersole.Ui.Views.Analytics.Modals.ReleaseSitelistView
+   props: Create, Release
+## Cybersole.Ui.Views.Analytics.Modals.ReleaseView
+   props: Close, Next, Previous, Release, ShowGuide, ShowSitelist
+## Cybersole.Ui.Views.Auth.AuthWindow
+   props: Exit, Logout, Minimise
+## Cybersole.Ui.Views.Auth.LicenseControl
+   props: Authenticate, Dashboard, Refresh
+## Cybersole.Ui.Views.Auth.LoginControl
+   props: Cancel, OpenBrowser, SignIn, SignUp, UseCode
+## Cybersole.Ui.Views.Browser.CustomBrowser
+   props: Autofill, Back, Exit, Forward, Minimise, Refresh, Status, Type
+## Cybersole.Ui.Views.Captcha.GoogleLogin
+   props: Close, Save
+## Cybersole.Ui.Views.Captcha.SolverWindow
+   props: Add, CloseSolver, Dispose, Minimise, Panels, Solvers
+## Cybersole.Ui.Views.Captcha.YoutubeWindow
+   props: Account
+## Cybersole.Ui.Views.MainWindow
+   props: AccountView, AnalyticsView, BillingView, Clock, Exit, Minimise, Navigate, OpenMonitor, OpenNotifications, OpenProfile, ProxyView, SettingsView, TaskView
+## Cybersole.Ui.Views.Modals.DesktopNotification
+   props: Close
+## Cybersole.Ui.Views.Modals.DropdownModal
+   props: ButtonText, Placeholder, Title
+## Cybersole.Ui.Views.Modals.InputModal
+   props: ButtonText, Close, Placeholder, Title
+## Cybersole.Ui.Views.Modals.MessageBoxDialog
+   props: ActionText, Cancel, CancelText, Close, Confirm, ShowAction, ShowCancel, TextAlignment, Title, Type
+## Cybersole.Ui.Views.Modals.NotificationView
+   props: Clear, Clock, Delete
+## Cybersole.Ui.Views.Modals.UserView
+   props: LogOut, OpenUrl
+## Cybersole.Ui.Views.Monitor.MonitorView
+   props: LinkChange, OpenFilter, OpenUrl, Quicktask, View
+## Cybersole.Ui.Views.Monitor.MonitorWindow
+   props: Exit, Minimise, ShowMonitor, ShowSmartActions, ShowUtilities
+## Cybersole.Ui.Views.Profiles.Modals.ExpressionExample
+   props: Description, Key, Output
+## Cybersole.Ui.Views.Profiles.Modals.ExpressionView
+   props: Copy, Expressions, Refresh
+## Cybersole.Ui.Views.Profiles.Modals.ProfileAdvancedView
+   props: Profile
+## Cybersole.Ui.Views.Profiles.Modals.ProfileCreatorView
+   props: AdvancedView, BillingView, Close, Count, IsBulk, IsCreating, Names, Navigate, PaymentView, Profile, Save, ShippingView, Summary
+## Cybersole.Ui.Views.Profiles.Modals.ProfileCsvEditorView
+   props: Apply, Close, ColumnChoices, GroupName, ProfileCount
+## Cybersole.Ui.Views.Profiles.Modals.ProfileCsvRow
+   props: FullySelected, Number, RowError, RowStatus
+## Cybersole.Ui.Views.Profiles.Modals.ProfileGroupView
+   props: Close, Delete, GroupName, Save
+## Cybersole.Ui.Views.Profiles.Modals.ProfilePaymentView
+   props: Profile
+## Cybersole.Ui.Views.Profiles.ProfileView
+   props: Clear, Clone, CreateGroup, CreateTest, Delete, DeleteSelected, EditSelected, Groups, MoveGroup, OpenCreator, OpenCsvEditor, OpenSettings
+## Cybersole.Ui.Views.Proxies.Modals.ProxyCreatorView
+   props: Add, Close
+## Cybersole.Ui.Views.Proxies.Modals.ProxyGroupView
+   props: Close, Delete, Draft, Reset, Save, TimeSpans
+## Cybersole.Ui.Views.Proxies.ProxyView
+   props: AddProxies, ClearAll, ClearFailed, ClearOver, CloneProxies, CopyProxies, CreateGroup, Delete, DeleteProxies, Groups, MoveGroup, OpenSettings, ProxyTesters, Test, TestAll, TestAllKeybind, TestProxies
+## Cybersole.Ui.Views.Settings.AppearanceView
+   props: ResetDefaults
+## Cybersole.Ui.Views.Settings.CaptchaProvidersView
+   props: Add, DisabledProviders, Edit, EnabledProviders, FetchBalance, Reorder
+## Cybersole.Ui.Views.Settings.CloudflareSolversView
+   props: Add, Edit, FetchBalance
+## Cybersole.Ui.Views.Settings.CustomSizesView
+   props: Add, Clear, Delete, Rows, View
+## Cybersole.Ui.Views.Settings.CustomStoresView
+   props: Add, Clear, Delete, Rows, View
+## Cybersole.Ui.Views.Settings.DataView
+   props: Backup, DataProviders, Export, Reset, Restore, ViewBackups, ViewLogs
+## Cybersole.Ui.Views.Settings.ErrorEntry
+   props: Key, Value
+## Cybersole.Ui.Views.Settings.GeneralSettingsView
+   props: ProfileItems
+## Cybersole.Ui.Views.Settings.GoogleAccountsView
+   props: Add, Clear, Delete, Edit, Rows, YouTube
+## Cybersole.Ui.Views.Settings.HelpView
+   props: OpenUrl
+## Cybersole.Ui.Views.Settings.ImapView
+   props: Add, Clear, Configure, Delete, DisconnectAycd, Rows
+## Cybersole.Ui.Views.Settings.KeyBindSection
+   props: Key, Shortcuts
+## Cybersole.Ui.Views.Settings.KeyBindsView
+   props: Delete
+## Cybersole.Ui.Views.Settings.LocalizedOption
+   props: Text, Value
+## Cybersole.Ui.Views.Settings.Modals.AycdInboxCreatorView
+   props: Close, Save
+## Cybersole.Ui.Views.Settings.Modals.CaptchaProviderCreatorView
+   props: Close, Creating, Delete, Properties, Save
+## Cybersole.Ui.Views.Settings.Modals.CloudflareSolverCreatorView
+   props: Close, Creating, Delete, Save
+## Cybersole.Ui.Views.Settings.Modals.GoogleAccountEditView
+   props: Account, AccountName, Close, EditMode, Proxy, Save
+## Cybersole.Ui.Views.Settings.Modals.ImapCreatorView
+   props: Close, Save
+## Cybersole.Ui.Views.Settings.Modals.PayPalAccountCreatorView
+   props: AutoReopen, Close, EditMode, InactivateAfter, Model, Password, ProxyGroup, Save, UseLoginProxy
+## Cybersole.Ui.Views.Settings.Modals.SizeCreatorView
+   props: Clear, Close, Save, Search, SizeOptions, ToggleSizeSelected
+## Cybersole.Ui.Views.Settings.Modals.SizeOption
+   props: Selected, Title
+## Cybersole.Ui.Views.Settings.Modals.StoreCreatorView
+   props: Close, Save
+## Cybersole.Ui.Views.Settings.Modals.WebhookCreatorView
+   props: Close, Save
+## Cybersole.Ui.Views.Settings.NotificationsView
+   props: PlaySound, ResetSound, Select, SelectSound, Types
+## Cybersole.Ui.Views.Settings.PayPalAccountsView
+   props: Add, Clear, Delete, Edit, Rows, Toggle
+## Cybersole.Ui.Views.Settings.PaymentView
+   props: Configure, DetectedProfiles, Refresh, SelectedProfiles
+## Cybersole.Ui.Views.Settings.SettingsView
+   props: AppearanceView, CaptchaProvidersView, CloudflareSolversView, CustomSizesView, CustomStoresView, DataView, GeneralSettingsView, GoogleAccountsView, HelpView, ImapView, KeyBindsView, LogOut, NotificationsView, PayPalAccountsView, PaymentView, Transition, Update, Version, WebhookView
+## Cybersole.Ui.Views.Settings.WebhookView
+   props: Add, Delete, Test
+## Cybersole.Ui.Views.SmartActions.ActionRow
+   props: Action, IsFirst, Result, Tooltip
+## Cybersole.Ui.Views.SmartActions.ActionsModal
+   props: Add, Close
+## Cybersole.Ui.Views.SmartActions.FilterRow
+   props: Filter, Inputs, IsFirst, Passed, Title, ValueText
+## Cybersole.Ui.Views.SmartActions.HistoryWindow
+   props: Exit, Filter, Minimise, ShowAll, SmartAction, View
+## Cybersole.Ui.Views.SmartActions.InputRow
+   props: Matched, Text
+## Cybersole.Ui.Views.SmartActions.PublishTemplateModal
+   props: Close, Groups
+## Cybersole.Ui.Views.SmartActions.SmartActionsCreator
+   props: Exit, IsEditing, Minimise, Save, Settings, SmartAction
+## Cybersole.Ui.Views.Tasks.ElementCell
+   props: Column, ColumnSpan, Content, Name
+## Cybersole.Ui.Views.Tasks.Modals.TaskDetailsView
+   props: Task
+## Cybersole.Ui.Views.Tasks.Modals.TaskGroupView
+   props: CloudflareSolvers
+## Cybersole.Ui.Views.Tasks.TaskView
+   props: PinGroups
+## Cybersole.Ui.Views.TimeSpanOption
+   props: Name, Value
+## Cybersole.Webhook.IWebhook
+   props: Enabled, Events, ExtraFields, Name, Type, Url

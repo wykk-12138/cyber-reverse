@@ -1,0 +1,60 @@
+entries: 41
+entry[0] = 0xffffffffffffffff
+   func=None name=
+entry[1] = 0x1430e2eb0
+   func=0x1430e2eb0 name=BrotliDecoderAttachDictionary
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_1_1430e2eb0.c chars 1235
+entry[2] = 0x1430e2fc0
+   func=0x1430e2fc0 name=BrotliDecoderCreateInstance
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_2_1430e2fc0.c chars 645
+entry[3] = 0x1430e3070
+   func=0x1430e3070 name=BrotliDecoderDecompress
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_3_1430e3070.c chars 868
+entry[4] = 0x1430e3140
+   func=0x1430e3140 name=BrotliDecoderDecompressStream
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_4_1430e3140.c chars 32280
+entry[5] = 0x1430e4640
+   func=0x1430e4640 name=BrotliDecoderDestroyInstance
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_5_1430e4640.c chars 342
+entry[6] = 0x1430e4690
+   func=0x1430e4690 name=BrotliDecoderErrorString
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_6_1430e4690.c chars 2676
+entry[7] = 0x1430e4840
+   func=0x1430e4840 name=BrotliDecoderGetErrorCode
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_7_1430e4840.c chars 99
+entry[8] = 0x1430e4850
+   func=0x1430e4850 name=BrotliDecoderHasMoreOutput
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_8_1430e4850.c chars 222
+entry[9] = 0x1430e4890
+   func=0x1430e4890 name=BrotliDecoderIsFinished
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_9_1430e4890.c chars 255
+entry[10] = 0x1430e48d0
+   func=0x1430e48d0 name=BrotliDecoderIsUsed
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_a_1430e48d0.c chars 102
+entry[11] = 0x1430e48f0
+   func=0x1430e48f0 name=BrotliDecoderSetMetadataCallbacks
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_b_1430e48f0.c chars 147
+entry[12] = 0x1430e4910
+   func=0x1430e4910 name=BrotliDecoderSetParameter
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_c_1430e4910.c chars 366
+entry[13] = 0x1430e4960
+   func=0x1430e4960 name=BrotliDecoderTakeOutput
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_d_1430e4960.c chars 919
+entry[14] = 0x143098c10
+   func=0x143098c10 name=BrotliEncoderVersion
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_e_143098c10.c chars 100
+entry[15] = 0x143109590
+   func=0x143109590 name=BrotliDefaultAllocFunc
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_f_143109590.c chars 92
+entry[16] = 0x1431095a0
+   func=0x1431095a0 name=BrotliDefaultFreeFunc
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_10_1431095a0.c chars 76
+entry[17] = 0x143097740
+   func=0x143097740 name=BrotliEncoderAttachPreparedDictionary
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_11_143097740.c chars 2378
+entry[18] = 0x143097940
+   func=0x143097940 name=BrotliEncoderCompress
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_12_143097940.c chars 8135
+entry[19] = 0x143097ef0
+   func=0x143097ef0 name=BrotliEncoderCompressStream
+   wrote C:\Users\wykk\AppData\Local\Cybersole\analysis\entry_13_143097ef0.c chars 3903

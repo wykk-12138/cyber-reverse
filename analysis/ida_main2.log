@@ -1,0 +1,9 @@
+FATAL
+Traceback (most recent call last):
+  File "C:\Users\wykk\AppData\Local\Cybersole\analysis\ida_main2.py", line 77, in <module>
+    main()
+  File "C:\Users\wykk\AppData\Local\Cybersole\analysis\ida_main2.py", line 25, in main
+    ea = iname.get_name_ea_simple("__scrt_common_main_seh")
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'idaapi' has no attribute 'get_name_ea_simple'
+

@@ -1,0 +1,87 @@
+[
+  {
+    "type": "CloudflareSolver",
+    "verdict": "RENAMED",
+    "evidence": "`CaptchaProvider` declares all 9 member(s) — sole declaration match"
+  },
+  {
+    "type": "Settings",
+    "verdict": "RENAMED",
+    "evidence": "best match `GlobalSettings` in GlobalSettings.cs — 34/34 (100%)"
+  },
+  {
+    "type": "ObservableDictionary",
+    "verdict": "UNKNOWN (non-discriminative)",
+    "evidence": "best match `CreateModel` in Checkout.cs — 1/1 (100%)"
+  },
+  {
+    "type": "KeyGesture",
+    "verdict": "RENAMED",
+    "evidence": "`KeyBind` declares all 2 member(s) — sole declaration match"
+  },
+  {
+    "type": "Concurrency",
+    "verdict": "RENAMED",
+    "evidence": "`ConcurrencySettings` declares all 3 member(s) — sole declaration match"
+  },
+  {
+    "type": "ImapProvider",
+    "verdict": "RENAMED",
+    "evidence": "`ImapMailProvider` in ImapMailProvider.cs — 4/4 (100%) documented; its doc comment names ImapProvider"
+  },
+  {
+    "type": "ActionConfig",
+    "verdict": "RENAMED",
+    "evidence": "`SmartActionStepConfig` in SmartActions.cs — 2/2 (100%) documented; its doc comment names ActionConfig"
+  },
+  {
+    "type": "LocalizeEnumExtension",
+    "verdict": "UNKNOWN (non-discriminative)",
+    "evidence": "best match `ExpressionEngine` in ExpressionEngine.cs — 1/1 (100%)"
+  },
+  {
+    "type": "LocalizeFallbackExtension",
+    "verdict": "UNKNOWN (non-discriminative)",
+    "evidence": "best match `ExpressionEngine` in ExpressionEngine.cs — 1/1 (100%)"
+  },
+  {
+    "type": "LocalizeFormatExtension",
+    "verdict": "UNKNOWN (non-discriminative)",
+    "evidence": "best match `ExpressionEngine` in ExpressionEngine.cs — 1/2 (50%)"
+  },
+  {
+    "type": "LocalizeSwitchExtension",
+    "verdict": "UNKNOWN (non-discriminative)",
+    "evidence": "best match `TimeSpansExtensions` in TimeSpans.cs — 0/1 (0%)"
+  },
+  {
+    "type": "AccountsCreatorView",
+    "verdict": "UNKNOWN (non-discriminative)",
+    "evidence": "best match `ChromiumBridge` in ChromiumBridge.cs — 2/2 (100%)"
+  },
+  {
+    "type": "AuthWindow",
+    "verdict": "PARTIAL",
+    "evidence": "best match `CustomBrowserWindow` in CustomBrowserWindow.cs — 2/3 (67%)"
+  },
+  {
+    "type": "LicenseControl",
+    "verdict": "UNIMPLEMENTED",
+    "evidence": "best match `ImapMailProvider` in ImapMailProvider.cs — 1/3 (33%)"
+  },
+  {
+    "type": "SettingsView",
+    "verdict": "PARTIAL",
+    "evidence": "best match `SettingsShell` in SettingsShell.cs — 18/19 (95%)"
+  },
+  {
+    "type": "TaskCreatorCartView",
+    "verdict": "PARTIAL",
+    "evidence": "best match `KeyBindMatcher` in KeyBindMatcher.cs — 2/3 (67%)"
+  },
+  {
+    "type": "TaskCreatorMainView",
+    "verdict": "RENAMED",
+    "evidence": "`TaskCreatorView` declares all 4 member(s) — sole declaration match"
+  }
+]

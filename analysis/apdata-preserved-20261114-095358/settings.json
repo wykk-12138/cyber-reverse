@@ -1,0 +1,211 @@
+{
+  "quickTaskProfiles": [],
+  "monitorDelay": 2500,
+  "retryDelay": 2500,
+  "timeout": 10,
+  "autoOpen3DS": false,
+  "autoOpen3DSLimit": 5,
+  "browserLimit": 10,
+  "browserWindowMode": "tab",
+  "browserProfiles": [],
+  "browserProfileAssignment": "roundRobin",
+  "pinGroups": false,
+  "startup": "home",
+  "keybinds": true,
+  "notifications": true,
+  "clock": 0,
+  "enableClock": false,
+  "clockFormat": "HH:mm",
+  "currency": "usd",
+  "concurrency": {
+    "mode": "unlimited",
+    "maximum": 3,
+    "ratio": 0.1
+  },
+  "monitorConcurrency": 10,
+  "maxLogRetention": "1.00:00:00",
+  "maxLogSize": 50,
+  "backupInterval": "03:00:00",
+  "maxBackups": 5,
+  "smartactions": true,
+  "betaUpdates": false,
+  "taskGroupOrder": "newest",
+  "proxyGroupOrder": "custom",
+  "profileGroupOrder": "custom",
+  "queuePresentation": "standard",
+  "captchaProviders": [],
+  "cloudflareSolvers": [],
+  "webhooks": [],
+  "notificationOptions": {
+    "checkout": {
+      "enabled": true,
+      "centre": true,
+      "desktop": true,
+      "sound": true,
+      "enableSound": true,
+      "path": "",
+      "name": ""
+    },
+    "decline": {
+      "enabled": true,
+      "centre": true,
+      "desktop": true,
+      "sound": true,
+      "enableSound": true,
+      "path": "",
+      "name": ""
+    },
+    "captcha": {
+      "enabled": true,
+      "centre": true,
+      "desktop": true,
+      "sound": true,
+      "enableSound": true,
+      "path": "",
+      "name": ""
+    },
+    "smartAction": {
+      "enabled": true,
+      "centre": true,
+      "desktop": true,
+      "sound": true,
+      "enableSound": true,
+      "path": "",
+      "name": ""
+    },
+    "other": {
+      "enabled": true,
+      "centre": true,
+      "desktop": true,
+      "sound": true,
+      "enableSound": true,
+      "path": "",
+      "name": ""
+    }
+  },
+  "keyBinds": {
+    "tasks": {
+      "new": {
+        "key": 50,
+        "modifiers": 2
+      },
+      "creator": {
+        "key": 57,
+        "modifiers": 2
+      },
+      "editor": {
+        "key": 48,
+        "modifiers": 2
+      },
+      "startAll": {
+        "key": 90,
+        "modifiers": 0
+      },
+      "stopAll": {
+        "key": 91,
+        "modifiers": 0
+      },
+      "delete": {
+        "key": 32,
+        "modifiers": 0
+      },
+      "clone": {
+        "key": 46,
+        "modifiers": 2
+      },
+      "search": {
+        "key": 49,
+        "modifiers": 2
+      },
+      "quicktask": {
+        "key": 60,
+        "modifiers": 2
+      },
+      "linkChange": {
+        "key": 56,
+        "modifiers": 2
+      },
+      "nextGroup": {
+        "key": 25,
+        "modifiers": 2
+      },
+      "previousGroup": {
+        "key": 23,
+        "modifiers": 2
+      }
+    },
+    "proxies": {
+      "new": {
+        "key": 50,
+        "modifiers": 2
+      },
+      "add": {
+        "key": 57,
+        "modifiers": 2
+      },
+      "testAll": {
+        "key": 63,
+        "modifiers": 2
+      },
+      "copy": {
+        "key": 46,
+        "modifiers": 2
+      },
+      "clone": {
+        "key": 47,
+        "modifiers": 2
+      },
+      "delete": {
+        "key": 32,
+        "modifiers": 0
+      }
+    },
+    "billing": {
+      "new": {
+        "key": 50,
+        "modifiers": 2
+      },
+      "add": {
+        "key": 57,
+        "modifiers": 2
+      },
+      "clone": {
+        "key": 47,
+        "modifiers": 2
+      },
+      "delete": {
+        "key": 32,
+        "modifiers": 0
+      }
+    }
+  },
+  "customStores": [
+    {
+      "id": "b817f0c0",
+      "name": "one",
+      "url": "",
+      "currency": "USD"
+    },
+    {
+      "id": "3cd63aa7",
+      "name": "two",
+      "url": "",
+      "currency": "USD"
+    }
+  ],
+  "storeGroups": [],
+  "customSizes": [],
+  "monitorFilters": {
+    "shopify": true,
+    "nike": true,
+    "footsites": true,
+    "supreme": true,
+    "offSpringOrOffice": true,
+    "popMart": true,
+    "checkoutFeed": true
+  },
+  "scrollbarWidth": 5.0,
+  "scrollbarColor": "#29293A",
+  "scrollbarCornerRadius": 2.0,
+  "language": "English"
+}

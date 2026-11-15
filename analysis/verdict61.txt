@@ -1,0 +1,75 @@
+867: | `size.co.uk` | **200** + `{"token":"50e1612e…"}` | 同上 | **Shopify** |
+1631: | R56 | `--eval-file` 探卡片 | 61 张卡，2 个 `<a>` 都是导航 |
+1677: {"tiles":61,"anchors":857,"productLinks":[],"clicked":{"tag":"img","cls":"h-9"}}
+2072: store modules        PASS 61 registered
+2096: total 61 modules
+2104: **44 + 6 = 50 / 61 有地方可跑（82%）。**
+2424: store modules         PASS   61 registered
+2876: ### 62 vs 61
+2897: 真实数量是 **61**（`CreateAll()` 里 62 个 `FlowStoreModule`）。
+2904: 'new FlowStoreModule\(')).Count   # 61
+2923: catalogue: 61 modules
+2924: claims in VERDICT: 61
+2925: modules: 61, distinct ids: 61
+2943: {"cards": 61, "productLinks": [],
+2956: | R55 | `--eval-file` 探卡片 | 61 张卡，2 个 `<a>`，都是导航 |
+3133: - 每个函数功能相等：61 模块全实现，7 个平台误判已修正，3 个解析 bug 已修
+3716: total     61
+4684: R216 又量了一次（每 15 秒采一次，共 170 秒）：变化点 **31s / 93s / 154s**，间隔 **62 秒和 61 秒**。
+4708: //     62 s and 61 s. R120 saw
+5432: **每个模块都是 `FlowStoreModule` 包装，所以 `GetType()` 说 61 次「FlowStoreModule」。**
+5765: **前两个从注册那天起就注定是这个结果。** 它们和「店关了」并列了 61 轮。
+6500: store modules     PASS 61 registered
+6600: store modules            PASS 61 registered
+6746: store modules                       PASS 61 registered
+6872: store modules                       PASS 61 registered
+7038: store modules    PASS 61 registered
+7161: store modules    PASS 61 registered
+7323: store modules    PASS 61 registered
+7423: // session-20261029-102720 (iOS 27.0.1 / CriOS 156) and transplanted
+7489: store modules    PASS 61 registered
+7542: // session-20261029-102720 (iOS 27.0.1 / CriOS 156) and transplanted -- do not hand-edit them.
+7549: - 设备表来自**两次真机抓取**（`20260827-092142` 和 `20261029-102720`）
+7602: store modules    PASS 61 registered
+7750: store modules    PASS 61 registered
+7853: store modules    PASS 61 registered
+7985: store modules    PASS 61 registered
+8118: store modules    PASS 61 registered
+8241: store modules    PASS 61 registered
+8381: store modules    PASS 61 registered
+8474: store modules    PASS 61 registered
+8544: MainWindow.cs:61         await _vm.SignOutAsync()
+8546: ProviderViews.cs:761     await Task.CompletedTask
+8568: | 全库 | `verify.ps1` | 580 测试 / live / 61 模块 |
+8575: store modules    PASS 61 registered
+8696: store modules    PASS 61 registered
+8789: 15:40:44.226 GET  200   961ms     206B http/1.1 license
+8817: store modules    PASS 61 registered
+8946: store modules    PASS 61 registered
+9080: store modules    PASS 61 registered
+9216: store modules    PASS 61 registered
+9377: store modules    PASS 61 registered
+9517: store modules    PASS 61 registered
+9651: store modules    PASS 61 registered
+9751: store modules    PASS 61 registered
+9933: store modules    PASS 61 registered
+10053: store modules    PASS 61 registered
+10181: store modules    PASS 61 registered
+10391: store modules    PASS 61 registered
+10446: "created": "2026-11-10T14:44:13.7261827Z", "statusText": "Idle", "enabled": true}
+10448: "created": "2026-11-10T14:44:13.7262861Z", "statusText": "Idle", "enabled": true}
+10490: store modules    PASS 61 registered
+10619: store modules    PASS 61 registered
+10735: store modules    PASS 61 registered
+10829: store modules    PASS 61 registered
+10949: store modules    PASS 61 registered
+11100: store modules    PASS 61 registered
+11326: store modules    PASS 61 registered
+11415: store modules    PASS 61 registered
+11426: 614: UiKit.Button("Clone", () => Status("Select a task to clone.")),
+11794: store modules   PASS 61 registered
+11878: store modules        PASS 61 registered
+11966: store modules        PASS 61 registered
+12084: store modules        PASS 61 registered
+12119: store modules                     PASS   61 registered
+12966: 拆成 `ProxyGrid`（表）+ `ProxyView`（页），并保留 R56–R61 的每一条：

@@ -1,0 +1,10 @@
+{
+  "accountGroups": [],
+  "payPal": [],
+  "google": [],
+  "imap": [],
+  "aycdInbox": {
+    "timeoutSeconds": 600,
+    "enabled": true
+  }
+}

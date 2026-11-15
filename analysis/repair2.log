@@ -1,0 +1,64 @@
+﻿
+[15:26:19] Elevated: True
+[15:26:19] 
+[15:26:19] === 1. tokensave leftovers ===
+[15:26:19]   target: C:\Users\wykk\scoop\apps\tokensave  (attrs: Directory)
+[15:26:19]   takeown ...
+[15:26:19]   icacls grant ...
+[15:26:19]   remove ...
+[15:26:19]     unlink junction: C:\Users\wykk\scoop\apps\tokensave\current
+[15:26:19]     FAILED: 无法删除项 C:\Users\wykk\scoop\apps\tokensave\current: 对路径“current”的访问被拒绝。
+[15:26:19]   target: C:\Users\wykk\scoop\buckets\tokensave  (attrs: Directory)
+[15:26:19]   takeown ...
+[15:26:19]   icacls grant ...
+[15:26:19]   remove ...
+[15:26:19]     removed
+[15:26:19]   target: C:\Users\wykk\scoop\cache\tokensave#4.3.13#bcb7bf2.zip  (attrs: Archive)
+[15:26:19]   takeown ...
+[15:26:19]   icacls grant ...
+[15:26:19]   remove ...
+[15:26:19]     removed
+[15:26:19]   leftovers now:
+[15:26:19]     C:\Users\wykk\scoop\apps\tokensave
+[15:26:19] 
+[15:26:19] === 2. minifilters ===
+[15:26:19]   
+[15:26:19]   筛选器名称                      数字实例       高度          框架
+[15:26:19]   ------------------------------  -------------  ------------  -----
+[15:26:19]   bindflt                                 1       409800         0
+[15:26:19]   MessageTransfer                         9       389612         0
+[15:26:19]   UCPD                                   10       385250.5       0
+[15:26:19]   WdFilter                               10       328010         0
+[15:26:19]   storqosflt                              0       244000         0
+[15:26:19]   wcifs                                   1       189900         0
+[15:26:19]   CldFlt                                  1       180451         0
+[15:26:19]   FileCrypt                               1       141100         0
+[15:26:19]   luafv                                   1       135000         0
+[15:26:19]   npsvctrig                               1        46000         0
+[15:26:19]   Wof                                     5        40700         0
+[15:26:19]   FileInfo                               10        40500         0
+[15:26:19] 
+[15:26:19] === 3. AliPaladin state ===
+[15:26:19]   [SC] QueryServiceConfig 成功
+[15:26:19]   
+[15:26:19]   SERVICE_NAME: AliPaladin
+[15:26:19]           TYPE               : 2  FILE_SYSTEM_DRIVER 
+[15:26:19]           START_TYPE         : 3   DEMAND_START
+[15:26:19]           ERROR_CONTROL      : 1   NORMAL
+[15:26:19]           BINARY_PATH_NAME   : \??\C:\Windows\system32\drivers\AliPaladinEx64.sys
+[15:26:19]           LOAD_ORDER_GROUP   : FSFilter Activity Monitor
+[15:26:19]           TAG                : 0
+[15:26:19]           DISPLAY_NAME       : AliPaladin
+[15:26:19]           DEPENDENCIES       : FltMgr
+[15:26:19]           SERVICE_START_NAME : 
+[15:26:19] 
+[15:26:19] === 4. counters (PDH, locale-proof) ===
+[15:26:20]   typeperf: "11/13/2026 15:26:20.617","4.234952"
+[15:26:21]   PerformanceCounter: 3.6 %
+[15:26:21] 
+[15:26:21] === 5. service load state at boot ===
+[15:26:21]   tokensave-daemon: 
+[15:26:21]   AliPaladin:         STATE              : 1  STOPPED 
+[15:26:21]   cplspcon:         STATE              : 1  STOPPED 
+[15:26:21] 
+[15:26:21] === done ===

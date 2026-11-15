@@ -1,0 +1,567 @@
+# hosts (195)
+github.com                                           52
+aka.ms                                               36
+cdn.cybersole.io                                     36
+www.w3.org                                           36
+schemas.microsoft.com                                21
+icsharpcode.net                                      21
+                                                     12
+inbox-api.aycd.io                                    9
+www.typography.comGotham                             8
+cybersole.io                                         7
+schemas.datacontract.org                             6
+www.typography.com                                   6
+www.popmart.com                                      6
+go.microsoft.com                                     5
+www.google.com                                       5
+crl3.digicert.com                                    5
+localhost                                            5
+cdn.superswipe.com                                   4
+ecomm.ynap.biz                                       4
+crl.d-trust.net                                      4
+cacerts.digicert.com                                 4
+pci-connect.squareup.com                             4
+schemas.xmlsoap.org                                  4
+authenticate.riotgames.com                           3
+api.paynamics.net                                    3
+static.geetest.com                                   3
+www.accv.es                                          3
+www                                                  3
+127.0.0.1                                            3
+login.microsoftonline.com                            3
+links.teamdev.com                                    3
+rabbitmq.com,Pivotal                                 2
+telemetry.cybersole.io                               2
+api.humanpresence.io                                 2
+analytics.cybersole.io                               2
+arno-1863--matcher-standby-web.modal.run             2
+match.cybersole.io                                   2
+checkoutshopper-live.adyen.com                       2
+www.casio.com                                        2
+pci-connect.squareup.com&SquareApplicationId         2
+js.stripe.com*_stripePublishableKey,_stripePaymentMethodId 2
+api.unzer.com                                        2
+commercehub-secure-data-capture.fiservapps.com&_commercehubApiHost*_commercehubSessionId$_commercehubApiKey._commercehubAccessToken*_commercehubPublicKey 2
+checkout.johnlewis.com                               2
+api2.endclothing.com                                 2
+api.endclothing.com                                  2
+r419.com                                             2
+clientsso-rl.legendsapis.com                         2
+playriftbound.com                                    2
+captcha.superswipe.com                               2
+status.superswipe.com                                2
+enter.superswipe.com                                 2
+admin.hypecommerce.io                                2
+api.uncaptcha.io                                     2
+api.cybersole.io                                     2
+ipfs.io                                              2
+id.fanatics.com                                      2
+clicks.superswipe.com                                2
+cf-solver.cybersole.io                               2
+api.parallaxsystems.io                               2
+www.paypal.com$_returnUrlRequired                    2
+checkout-page.omise.co                               2
+nodecde1.paynamics.net                               2
+api.sibspayments.com                                 2
+login.mywarhammer.com                                2
+example.com                                          2
+discord.com                                          2
+$                                                    2
+www.supremenewyork.com                               2
+challenges.cloudflare.com                            2
+www.d-trust.net                                      2
+www.casi                                             2
+www.asic                                             2
+api.endclothing.                                     2
+&pageURL                                             2
+api.pocketgames.                                     2
+admin.hypecommer                                     2
+learn.microsoft.com                                  2
+api.lndg.page                                        1
+abovetheclouds.nodnod.digitalP6Lc-Y8EcAAAAAApx8Id2jl5WShYzslt9YAS4c5vG 1
+api.pocketgames.nl                                   1
+www.nuget.org                                        1
+arno-1863--recaptcha-ai-web.modal.run                1
+www.vietcomic.comVNI-Thufap2                         1
+titan22.com                                          1
+js.hcaptcha.com                                      1
+cdn-global-naus.popmart.com                          1
+cdn-global.popmart.com                               1
+ocsp.accv.es0                                        1
+www.cert.fnmt.es                                     1
+wwww.certigna.fr                                     1
+crl.certigna.fr                                      1
+crl.dhimyotis.com                                    1
+www.firmaprofesional.com                             1
+dictionaryperceptionrevolutionfoundationpx;height    1
+mathematicsmargin-top                                1
+Descriptionrelatively                                1
+applicationslink                                     1
+navigation                                           1
+www.World                                            1
+www.years                                            1
+interested                                           1
+familiar                                             1
+whether                                              1
+interpreted                                          1
+addEventListenerresponsible                          1
+.jpg                                                 1
+according                                            1
+www.interpretation                                   1
+s;text-align                                         1
+html4                                                1
+style=                                               1
+staticsuggested                                      1
+www.a                                                1
+An                                                   1
+www.recent                                           1
+In                                                   1
+www.                                                 1
+cript                                                1
+www.wencodeURIComponent(                             1
+encoding=                                            1
+www.icon                                             1
+imEnglish                                            1
+site_name                                            1
+www.hortcut                                          1
+iparticipation                                       1
+xt                                                   1
+link                                                 1
+www.text-decoration                                  1
+option                                               1
+.css                                                 1
+www.style=                                           1
+www.css                                              1
+ator                                                 1
+www.language=                                        1
+www-                                                 1
+UA-Compatible                                        1
+www.C                                                1
+ocsp.digicert.com0A                                  1
+www.digicert.com                                     1
+crl4.digicert.com                                    1
+ocsp.digicert.com0                                   1
+ocsp.digicert.com0]                                  1
+ocsp.digicert.com0C                                  1
+www.apache.org                                       1
+www.accv.e                                           1
+BotDetecotDetectBotDefleeflector                     1
+https                                                1
+www.asicAsics                                        1
+www.asicwww.asicsics.com&csrf_toClearing             1
+www.asic&csrf_to                                     1
+checkout.johnlew                                     1
+api.lndg                                             1
+&storeUniqCode=1https                                1
+&storeId                                             1
+auth.jbhifi.com.&tx=StatePropert&p=B2C_1A_v1_sign_up_sig 1
+app-wallee.com                                       1
+&languagRedirecttShopperChallengeShopperIdentifyyShopperhttps 1
+&languaghttps                                        1
+api.prod.warhamm                                     1
+login.mywarhamme                                     1
+&shipping_address[provinProduct                      1
+cdn0.forter.com                                      1
+dlpa.nike.com                                        1
+.ciamlog                                             1
+socks4                                               1
+www.footlocker.ph                                    1
+www.paypal.com                                       1
+www.rabbitmq.com                                     1
+openid.net                                           1
+teamdev.com                                          1
+www.bing.com                                         1
+username                                             1
+store.polaroid.com                                   1
+169.254.169.254                                      1
+fail                                                 1
+james.newtonking.com                                 1
+microsoft.com                                        1
+timeout                                              1
+www.ibm.com                                          1
+020d06-2.myshopify.com                               1
+0593bf-2.myshopify.com                               1
+061e33-3.myshopify.com                               1
+098myu-gm.myshopify.com                              1
+0af183-20.myshopify.com                              1
+0c7e29-92.myshopify.com                              1
+0gtp0n-nm.myshopify.com                              1
+0jjp1c-nz.myshopify.com                              1
+0mae7a-1y.myshopify.com                              1
+0o7qahbl52.execute-api.ap-northeast-1.amazonaws.com  1
+100t.myshopify.com                                   1
+100thieves.com                                       1
+10corsocomo.com                                      1
+10corsocomo.myshopify.com                            1
+10spib-sv.myshopify.com                              1
+
+# raw urls (369)
+http://.css
+http://.jpg
+http://127.0.0.1
+http://127.0.0.1/callbachttps://cybersol/account/authorize?redirect_uri=&code_challenge=allenge_method=S
+http://127.0.0.1:
+http://169.254.169.254/metadata/instance/compute
+http://An
+http://Descriptionrelatively
+http://In
+http://UA-Compatible
+http://according
+http://addEventListenerresponsible
+http://applicationslink
+http://ator
+http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0E
+http://cacerts.digicert.com/DigiCertTrustedG4CodeSigningRSA4096SHA3842021CA1.crt0
+http://cacerts.digicert.com/DigiCertTrustedG4TimeStampingRSA4096SHA2562025CA1.crt0_
+http://cacerts.digicert.com/DigiCertTrustedRootG4.crt0C
+http://cript
+http://crl.certigna.fr/certignarootca.crl01
+http://crl.d-trust.net/crl/d-trust_br_root_ca_1_2020.crl0y
+http://crl.d-trust.net/crl/d-trust_br_root_ca_2_2023.crl0
+http://crl.d-trust.net/crl/d-trust_ev_root_ca_1_2020.crl0y
+http://crl.d-trust.net/crl/d-trust_ev_root_ca_2_2023.crl0
+http://crl.dhimyotis.com/certignarootca.crl0
+http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl0
+http://crl3.digicert.com/DigiCertTrustedG4CodeSigningRSA4096SHA3842021CA1.crl0S
+http://crl3.digicert.com/DigiCertTrustedG4TimeStampingRSA4096SHA2562025CA1.crl0
+http://crl3.digicert.com/DigiCertTrustedRootG4.crl0
+http://crl4.digicert.com/DigiCertTrustedG4CodeSigningRSA4096SHA3842021CA1.crl0
+http://dictionaryperceptionrevolutionfoundationpx;height:successfulsupportersmillenniumhis
+http://encoding=
+http://example.com
+http://example.com/test.png]
+http://fail/
+http://familiar
+http://go.microsoft.com/fwlink/?LinkID=391919
+http://html4/loose.dtd
+http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008
+http://imEnglish
+http://interested
+http://interpreted
+http://iparticipation
+http://james.newtonking.com/projects/json
+http://link
+http://localhost
+http://localhost/
+http://localhost:
+http://localhost:port
+http://mathematicsmargin-top:eventually
+http://microsoft.com/wsdl/types/
+http://navigation
+http://ocsp.accv.es0
+http://ocsp.digicert.com0
+http://ocsp.digicert.com0A
+http://ocsp.digicert.com0C
+http://ocsp.digicert.com0]
+http://option
+http://rabbitmq.com,Pivotal
+http://s;text-align:centerfont-weight:
+http://schemas.datacontract.org/2004/07/Avalonia.Markup.Xaml.PortableXaml
+http://schemas.microsoft.com/2003/10/Serialization/Arrays
+http://schemas.microsoft.com/SMI/2005/WindowsSettings
+http://schemas.microsoft.com/SMI/2016/WindowsSettings
+http://schemas.microsoft.com/netfx/2013/01/metadata
+http://schemas.microsoft.com/rel/trusted-realm
+http://schemas.microsoft.com/ws/2008/06/identity/claims/denyonlyprimarygroupsid
+http://schemas.microsoft.com/ws/2008/06/identity/claims/denyonlyprimarysid
+http://schemas.microsoft.com/ws/2008/06/identity/claims/denyonlywindowsdevicegroup
+http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid
+http://schemas.microsoft.com/ws/2008/06/identity/claims/primarygroupsid
+http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid
+http://schemas.microsoft.com/ws/2008/06/identity/claims/role
+http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsdeviceclaim
+http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsdevicegroup
+http://schemas.microsoft.com/ws/2008/06/identity/claims/windowssubauthority
+http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsuserclaim
+http://schemas.xmlsoap.org/soap/encoding/
+http://schemas.xmlsoap.org/ws/2005/05/identity/claims/denyonlysid
+http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name
+http://schemas.xmlsoap.org/wsdl/
+http://site_name
+http://staticsuggested
+http://style=
+http://timeout/
+http://whether
+http://www
+http://www-//W3C//DTD
+http://www./div
+http://www.C//DTD
+http://www.a
+http://www.accv.e
+http://www.accv.es/fileadmin/Archivos/certificados/raizaccv1.crt0
+http://www.accv.es/fileadmin/Archivos/certificados/raizaccv1_der.crl0
+http://www.accv.es/legislacion_c.htm0U
+http://www.apache.org/licenses/LICENSE-2.0RobotoLight
+http://www.cert.fnmt.es/dpcs/0
+http://www.css
+http://www.d-trust.net/crl/d-trust_root_class_3_ca_2_2009.crl0
+http://www.d-trust.net/crl/d-trust_root_class_3_ca_2_ev_2009.crl0
+http://www.digicert.com/CPS0
+http://www.firmaprofesional.com/cps0
+http://www.hortcut
+http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd
+http://www.icon
+http://www.interpretation
+http://www.language=
+http://www.rabbitmq.com/
+http://www.style=
+http://www.supremenewyork.com/shop
+http://www.text-decoration:underthe
+http://www.typography.com
+http://www.typography.com/support/eula.html
+http://www.typography.comGotham
+http://www.vietcomic.comVNI-Thufap2
+http://www.w3.org/
+http://www.w3.org/1998/Math/MathML
+http://www.w3.org/1999/xhtml
+http://www.w3.org/1999/xlink
+http://www.w3.org/2000/svg
+http://www.w3.org/2000/xmlns/
+http://www.w3.org/2001/XMLSchema
+http://www.w3.org/2001/XMLSchema#boolean
+http://www.w3.org/2001/XMLSchema#dateTime
+http://www.w3.org/2001/XMLSchema#double
+http://www.w3.org/2001/XMLSchema#integer
+http://www.w3.org/2001/XMLSchema#integer64
+http://www.w3.org/2001/XMLSchema#string
+http://www.w3.org/2001/XMLSchema#uinteger64
+http://www.w3.org/2001/XMLSchema-instance
+http://www.w3.org/2003/05/soap-encoding
+http://www.w3.org/2003/11/xpath-datatypes
+http://www.w3.org/TR/REC-html40/strict.dtd
+http://www.w3.org/TR/html4/strict.dtd
+http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd
+http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd
+http://www.w3.org/XML/1998/namespace
+http://www.w3.org/shortcut
+http://www.wencodeURIComponent(
+http://www.years
+http://xt/css
+https://$
+https://&languagRedirecttShopperChallengeShopperIdentifyyShopperhttps://&languaghttps://.burberrhttps://&languaghttps://&languaghttps://&languaghttps://&country&languag
+https://&languaghttps://&languaghttps://&languag
+https://&pageURL/V1/adyen/orders/payment/payment-informa
+https://&shipping_address[provinProduct
+https://&storeId
+https://&storeUniqCode=1https://&storeId
+https://.ciamlog
+https:///.well-known/webfinger?r&resourclogin_rerequired
+https:///?databa
+https:///CheckPupostformexternalernalPrelCollect
+https:///challen
+https:///collectf
+https:///fp/es.js?org_id&sessioncheck.js
+https:///fp?x-kphttps:///fp?x-kp
+https:///ips.js?&x-kpsdkCybersol
+https:///order-confirmat
+https:///spa-api/enqueue?cid=en-/status?cid=en-U
+https:///userreaU
+https://020d06-2.myshopify.com/
+https://0593bf-2.myshopify.com/
+https://061e33-3.myshopify.com/
+https://098myu-gm.myshopify.com/
+https://0af183-20.myshopify.com/
+https://0c7e29-92.myshopify.com/
+https://0gtp0n-nm.myshopify.com/
+https://0jjp1c-nz.myshopify.com/
+https://0mae7a-1y.myshopify.com/
+https://0o7qahbl52.execute-api.ap-northeast-1.amazonaws.com/prod/draft_create?hmac=
+https://100t.myshopify.com/
+https://100thieves.com
+https://10corsocomo.com
+https://10corsocomo.myshopify.com/
+https://10spib-sv.myshopify.com/
+https://BotDetecotDetectBotDefleeflector
+https://abovetheclouds.nodnod.digitalP6Lc-Y8EcAAAAAApx8Id2jl5WShYzslt9YAS4c5vG
+https://admin.hypecommer/api/ent
+https://admin.hypecommerce.io
+https://aka.ms/GlobalizationInvariantMode
+https://aka.ms/binaryformatter
+https://aka.ms/dotnet-warnings/
+https://aka.ms/msal-brokers
+https://aka.ms/msal-client-apps
+https://aka.ms/msal-conditional-access-claims
+https://aka.ms/msal-conditional-access-claims-obo
+https://aka.ms/msal-net-authority-override
+https://aka.ms/msal-net-b2c
+https://aka.ms/msal-net-cca-token-cache-serialization
+https://aka.ms/msal-net-custom-instance-metadata
+https://aka.ms/msal-net-invalid-client
+https://aka.ms/msal-net-logging
+https://aka.ms/msal-net-os-browser
+https://aka.ms/msal-net-pop
+https://aka.ms/msal-net-region-discovery
+https://aka.ms/msal-net-throttling
+https://aka.ms/msal-net-token-cache-serialization
+https://aka.ms/msal-statemismatcherror
+https://aka.ms/nativeaot-compatibility
+https://aka.ms/net-cache-persistence-errors
+https://aka.ms/serializationformat-binary-obsolete
+https://aka.ms/signalr-core-differences
+https://analytics.cybersole.io
+https://api.cybersole.io
+https://api.endclothing./link/re/catalog/link?li&context=web&reg&relativ
+https://api.endclothing.com
+https://api.humanpresence.io/v2
+https://api.lndg.page
+https://api.lndg/campaig/entriesfirst_narst_namelast_namast_name
+https://api.parallaxsystems.io/gen&HoldCaptchaEndpointThttps://api.parallaxsystems.io/holdcaptcha
+https://api.paynamics.net/v1/rpf
+https://api.pocketgames./v1/public/drop-schedule&variant
+https://api.pocketgames.nl
+https://api.prod.warhamm
+https://api.sibspayments.com
+https://api.uncaptcha.io/v1
+https://api.unzer.com
+https://api2.endclothing.com
+https://app-wallee.com/s/payment/transaction/ifr?securitREQUIRESS_ACTION
+https://arno-1863--matcher-standby-web.modal.run/
+https://arno-1863--recaptcha-ai-web.modal.run
+https://auth.jbhifi.com.&tx=StatePropert&p=B2C_1A_v1_sign_up_sig
+https://authenticate.riotgames.com/
+https://captcha.superswipe.com
+https://cdn-global-naus.popmart.com/global-web/naus-prod/assets/images/logo.png?x-oss-process=image/format,webp
+https://cdn-global.popmart.com/images/default-avatar.png
+https://cdn.cybersole.io/fonts/woff/Gotham-BlackItalic_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-Black_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-BoldItalic_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-Bold_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-BookItalic_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-Book_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-LightItalic_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-Light_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-MediumItalic_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-Medium_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-ThinItalic_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-Thin_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-UltraItalic_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-Ultra_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-XLightItalic_Web.woff
+https://cdn.cybersole.io/fonts/woff/Gotham-XLight_Web.woff
+https://cdn.cybersole.io/fonts/woff2/Gotham-BlackItalic_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-Black_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-BoldItalic_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-Bold_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-BookItalic_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-Book_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-LightItalic_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-Light_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-MediumItalic_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-Medium_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-ThinItalic_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-Thin_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-UltraItalic_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-Ultra_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-XLightItalic_Web.woff2
+https://cdn.cybersole.io/fonts/woff2/Gotham-XLight_Web.woff2
+https://cdn.cybersole.io/icons/copy.svg
+https://cdn.cybersole.io/icons/tickmark.svg
+https://cdn.cybersole.io/releases/
+https://cdn.superswipe.com/superswipe-country-data.js$LaunchAttributeKey,_superswipe_launch_id_
+https://cdn.superswipe.com/superswipe-logo.png
+https://cdn0.forter.com//prop.jshttps://.cdn.forter.com/prop.jsohttps://cdn6.forter.com//prop.jshttps://cdn0.forter.com//wpt.jso
+https://cf-solver.cybersole.io
+https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback
+https://checkout-page.omise.co/
+https://checkout.johnlew/web/han
+https://checkout.johnlewis.com
+https://checkoutshopper-live.adyen.com
+https://clicks.superswipe.com/c
+https://clientsso-rl.legendsapis.com/Login
+https://commercehub-secure-data-capture.fiservapps.com&_commercehubApiHost*_commercehubSessionId$_commercehubApiKey._commercehubAccessToken*_commercehubPublicKey
+https://cybersole.io
+https://cybersole.io/
+https://cybersole.io/api/apisecuretoken
+https://discord.com/api/webhooks
+https://dlpa.nike.com/cc.js?sid=&namespahttps://dlpa.nike.com/s2&x=1&sid
+https://ecomm.ynap.biz/api/captcha/new/MRP/en/
+https://ecomm.ynap.biz/api/captcha/verify
+https://enter.superswipe.com/enter
+https://github.com/AngleSharp/AngleSharp
+https://github.com/AvaloniaUI/Avalonia.Controls.DataGrid
+https://github.com/AvaloniaUI/Avalonia/
+https://github.com/AvaloniaUI/AvaloniaEdit/
+https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet
+https://github.com/AzureAD/microsoft-authentication-library-for-dotnet
+https://github.com/Cybersole/NetClient(Cybersole.Http.Tests(Cybersole.Http.Smoke.Cybersole.Http.IosSmoke
+https://github.com/JamesNK/Newtonsoft.Json
+https://github.com/JoshClose/CsvHelper
+https://github.com/adams85/acornima
+https://github.com/avaloniaui
+https://github.com/avaloniaui/avaloniaedit(AvaloniaEdit.Editing,AvaloniaEdit.Rendering2AvaloniaEdit.Highlighting&AvaloniaEdit.SearchZCopyright
+https://github.com/bcgit/bc-csharp
+https://github.com/bchavez/Bogus/issues/115
+https://github.com/bchavez/Bogus/issues/54
+https://github.com/bchavez/Bogus/wiki/Bogus-Premium
+https://github.com/bchavez/Bogus]
+https://github.com/dotnet/dotnet
+https://github.com/dotnet/dotnet/tree/95017c711e6afc1085133d440e42b4bd78155701,OriginalRepoCommitHashPcb21a42eafcd44cc35fad48d99dc82ff7512ce2f
+https://github.com/jstedfast/MailKit/blob/master/FAQ.md#ssl-handshake-exception
+https://github.com/kekekeks/MicroCom
+https://github.com/metalama/Metalama
+https://github.com/mono/linker/issues/1416
+https://github.com/mono/linker/issues/1981
+https://github.com/protocolbuffers/protobuf.git
+https://github.com/sebastienros/jint
+https://github.com/velopack/velopack
+https://go.microsoft.com/fwlink/?linkid=2132227
+https://go.microsoft.com/fwlink/?linkid=2233907
+https://go.microsoft.com/fwlink/?linkid=868515
+https://https:///javascriptqueue&ver=js2
+https://id.fanatics.com/
+https://inbox-api.aycd.io/api/v1/tasks/completed?group=
+https://inbox-api.aycd.io/api/v1/tasks/mail/create
+https://inbox-api.aycd.io/api/v1/user/verify
+https://ipfs.io
+https://js.hcaptcha.com/1/api.js?%apiquery%
+https://js.stripe.com*_stripePublishableKey,_stripePaymentMethodId
+https://learn.microsoft.com/dotnet/api/system.text.json.serialization.jsonnumberhandling
+https://links.teamdev.com/dotnetbrowser-installing-license
+https://links.teamdev.com/dotnetbrowser-product-updates
+https://links.teamdev.com/dotnetbrowser-trial-period
+https://login.microsoftonline.com/common
+https://login.microsoftonline.com/dsts/
+https://login.mywarhamme/authori?audienc&client_FOekf58n9BSojYTYZyq7jeWqPmGwNeJt&redirec&anonymo&storeKe&login_h
+https://login.mywarhammer.com
+https://match.cybersole.io/
+https://nodecde1.paynamics.net/possible
+https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
+https://pci-connect.squareup.com&SquareApplicationId:sq0idp-IHOCkIE2YwtxidR3fPWIEg
+https://pci-connect.squareup.com/v2/card-nonce?_&version
+https://playriftbound.com/en-us/preorder/registration/
+https://r419.com/
+https://socks4:/
+https://static.geetest.com/static/tools/gt.js
+https://static.geetest.com/v4/gt4.js
+https://status.superswipe.com
+https://store.polaroid.com/products/
+https://teamdev.com/dotnetbrowser/docs/guides/gs/chromium/#sandbox
+https://telemetry.cybersole.io
+https://titan22.com/account/login
+https://username:password@hostname.com:443/
+https://www.World
+https://www.asic
+https://www.asic&csrf_to
+https://www.asic/wishlison/demandware.store/Sites-asics-on/demandware.store/Sites-asics-/checkouon/demandware.store/Sites-asics-/CSRF-Generate?format=ajhttps://www.asic
+https://www.asicAsics
+https://www.asicwww.asicsics.com&csrf_toClearing
+https://www.bing.com
+https://www.casi
+https://www.casi/content/casio/l/products/produc
+https://www.casio.com
+https://www.footlocker.ph/
+https://www.google.com/recaptcha/api.js?onload=recaptchaCallback&render=explicit&hl=
+https://www.google.com/recaptcha/api.js?onload=recaptchaV3Callback&render=
+https://www.google.com/recaptcha/api/fallback?k=6LeXJ7oUAAAAAHIpfRvgjs3lcJiO_zMC1LAZWlSz
+https://www.google.com/recaptcha/enterprise.js?render=%sitekey%
+https://www.nuget.org/packages/Newtonsoft.Json.Bson
+https://www.paypal.com$_returnUrlRequired
+https://www.paypal.com/webapps/hermes?
+https://www.popmart.com/$
+https://www.popmart.com//checkout?type=normal&or&payType
+https://www.popmart.com/?payType=Alipay+&salesCh
+https://www.popmart.com/?payTypesucceedeucceededcard_decdeclinedsucceedeucceededcard_decdeclinedcard_decdeclinedproducts
+https://www.popmart.com/de/account
+https://www.recent
+https://www.supremenewyork.com/shop/cart
+https://wwww.certigna.fr/autorites/0m

@@ -1,0 +1,19 @@
+opened in 14.5s
+imagebase 0x140000000
+functions: 320933 in 0.4s
+strings: 265462 total_len=6782882 in 55.1s
+FATAL
+Traceback (most recent call last):
+  File "C:\Users\wykk\AppData\Local\Cybersole\analysis\ida_probe.py", line 62, in <module>
+    main()
+  File "C:\Users\wykk\AppData\Local\Cybersole\analysis\ida_probe.py", line 41, in main
+    segs = [(idc.get_segm_name(x), idc.get_segm_start(x), idc.get_segm_end(x),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\wykk\AppData\Local\Cybersole\analysis\ida_probe.py", line 42, in <listcomp>
+    idc.get_segm_class(x)) for x in idautils.Segments()]
+    ^^^^^^^^^^^^^^^^^^
+  File "D:\projects\IDA-pro\python\ida_ida.py", line 2937, in __getattribute__
+    return getattr(self.orig, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'idc' has no attribute 'get_segm_class'
+

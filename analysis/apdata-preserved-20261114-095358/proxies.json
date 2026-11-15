@@ -1,0 +1,11 @@
+[
+  {
+    "id": "22e394db",
+    "name": "Group 1",
+    "order": 0,
+    "behaviour": "roundRobin",
+    "proxies": [],
+    "totalDownload": 0,
+    "totalUpload": 0
+  }
+]

@@ -1,0 +1,25 @@
+ccurrence diagnosable instead of mysterious.
+    $slowExit = $LASTEXITCODE
+    $slowRetried = $false
+
+    # R108: these tests hit real hosts and about half of the full runs lose one of them, while the
+    # failed test passes on its own. Retrying the whole filtered set once keeps the terminal verdict
+    # meaningful without turning a host hiccup into a build failure. A genuine regression fails both
+    # passes; a hiccup fails one. The detail line records that the retry is what went green.
+    if ($slowExit -ne 0) {
+        $firstFail = ($slow -split "`r?`n" |
+                      Where-Object { $_ -match '^\s*(失败|Failed|\[xUnit\.net.*FAIL)' } |
+                      Select-Object -First 1)
+        Write-Host ("  [retry] slow tests failed once ({0}) — retrying the set" -f "$firstFail".Trim())
+
+        $slow = & $dotnet test tests\Cybersole.Tests\Cybersole.Tests.csproj `
+            --filter "Speed=Slow" -v m --nologo 2>&1 | Out-String
+        $slowExit = $LASTEXITCODE
+        $slowRetried = $true
+    }
+
+    $slowOk = ($slowExit -eq 0)
+
+    # R223: this used to extract '失败\s+(\w+)', which matches "Cybersole" out of
+    # "失败 Cybersole.Tests.SomeTests.SomeMethod" and therefore reported nothing useful. When it
+    # matched nothing at all the detail was the literal "failed: " — a 

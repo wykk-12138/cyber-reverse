@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // document.referrer is one of the 11 fields api.js reports (setData("dr")). The solver
+        // navigates this page directly, so a real read returns "" on every single solve, while any
+        // genuine visitor to a login page arrives from somewhere. The mobile app stub -- the path
+        // that passes -- defines this same getter, and it is the only collected field the two stubs
+        // disagreed on.
+        // %referrer% defaults to this page's own origin (CaptchaService); a site whose login is only
+        // reachable through a redirect chain passes the origin the chain started from instead.
+        (function () {
+            Object.defineProperty(document, "referrer", {
+                get: function () {
+                    return '%referrer%';
+                }
+            });
+        })();
+
+        (function () {
+        // The C# bridge arrives as window.Shopify, which wdata would transmit on every site. Keep it in
+        // this closure and take it off window; the globals table below re-adds a plain `Shopify` where
+        // the impersonated page really has one (Shopify stores), and nowhere else (Riot).
+        var bridge = window.Shopify;
+        if (bridge) {
+            try { delete window.Shopify; } catch (e) { }
+            if ('Shopify' in window) try { Object.defineProperty(window, 'Shopify', { enumerable: false }); } catch (e) { }
+        }
+        var captcha = function () { return (bridge || window.Shopify).Captcha; };
+
+        // The two callbacks live in this closure instead of being globals. api.js hands the host page's
+        // globals to hsw -- wdata = Object.keys(window).sort().join(",") -- so every `var` declared at
+        // this level is transmitted. They used to be two `var <10 random letters>`, which would show up
+        // as two nonsense names on every solve. hCaptcha takes function references for its callbacks,
+        // so only the onload name (%onload%), which api.js looks up on window, has to be a global; the
+        // globals table below installs it at the impersonated page's position for it.
+        var onload = (function () {
+        var restart = function () {
+            hcaptcha.reset();
+
+            if (captcha().Data) {
+                hcaptcha.setData({ rqdata: captcha().Data });
+            }
+
+            hcaptcha.execute();
+        }
+
+        var solved = function (token) {
+            if (!token) {
+                console.log("NO TOKEN");
+                onError();
+                return;
+            }
+
+            captcha().Solve(token);
+        }
+
+        return function () {
+            let config = {
+                'sitekey': captcha().Sitekey,
+                // No theme. api.js defaults to "light", and motionData.topLevel.theme is the crc32
+                // of that string. Passing "dark" submitted crc32("dark") on every solve; device
+                // captures of this widget submit crc32("light").
+                // Render the challenge in English for the solver, which keys its question cache and
+                // SpecialCaptchaHandler on English prompt text. Set here, NOT as ?hl= on the api.js URL:
+                // api.js sends the render-config hl to the widget (sendTranslation) but builds
+                // clientOptions.hl from the URL param, so this leaves the URL matching Shopify's genuine
+                // load and clientOptions.hl consistent with the nl-NL browser.
+                'hl': 'en',
+                'callback': solved,
+                "error-callback": restart,
+                "close-callback": restart,
+                "expired-callback": restart,
+                "chalexpired-callback": restart,
+            };
+
+            if (captcha().Type === 4)
+                config["size"] = "invisible";
+
+            hcaptcha.render('h-captcha', config);
+
+            if (captcha().Data) {
+                hcaptcha.setData({ rqdata: captcha().Data });
+            }
+
+             hcaptcha.execute();
+
+            //window.interval = setInterval(waitTextField, 500);
+        };
+        })();
+
+        // ---------------------------------------------------------------- host-page globals
+        // api.js ships the host page's global NAMES to hsw:
+        //     function sr(){ return Object.keys(window).sort().join(",") }   // -> wdata
+        // and hsw separately sweeps the LAST 25 window names, reporting any whose value is not a
+        // native function (its Oe() check). Both fields were measured against a real visitor to
+        // titan22.com/account/login and against this stub:
+        //
+        //                        window keys   sr() length   page-defined   last-25 sweep reports
+        //   real login page          379          5026           142            25 (all of them)
+        //   this stub (before)       228          2923             1             0
+        //
+        // A client claiming to be on a Shopify storefront whose window contains NO Shopify globals is
+        // the single largest measurable gap in the sensor, and it is not something the spoof can fix:
+        // the solver serves this stub for every https URL (SolverProvider sets
+        // Schemes[Scheme.Https] = CaptchaService), so the real storefront never loads or executes.
+        // The spoof's topList() already reports "device built-ins + what the page really defined", so
+        // anything defined HERE flows into wdata by itself -- which is why these are real properties
+        // rather than names added to the spoof's list. A name with nothing behind it is the exact bug
+        // that work removed.
+        //
+        // Scope: this list is a SCRAPE, not a guess. It is the exact set of page-defined globals on
+        // https://titan22.com/account/login, in that page's own enumeration order, with that page's
+        // types -- taken by diffing Object.keys(window) against a pristine same-browser global (a
+        // detached about:blank iframe's window) so only page-defined names survive: 379 keys - 237
+        // built-ins - 4 frame indices = 138.
+        //
+        // Why a scrape and nothing else: an earlier pass wrote 114 Shopify-ish names from memory and
+        // 59 of them were absent from the real page -- 42 invented outright (initQuickAdd,
+        // appBlocksReady, sizeChartData, refreshCart, shopCurrency, routes, sections ...). wdata is
+        // compared as a membership SET and hCaptcha holds millions of genuine samples per popular
+        // host, so a name that exists on no real site anywhere is a stable signature of THIS client
+        // rather than camouflage. Guessed TYPES were wrong too (ShopifyPaypalV4VisibilityTracking is
+        // a boolean, _fbq a function, __klFormEnvironment a string, dataLayer/_learnq/_klOnsite are
+        // arrays). Regenerate, never edit by hand:
+        //
+        //     const f = document.createElement('iframe'); f.style.display = 'none';
+        //     document.documentElement.appendChild(f);
+        //     const base = new Set(Object.keys(f.contentWindow)); f.remove();
+        //     Object.keys(window).filter(k => !base.has(k) && !/^[0-9]+$/.test(k));
+        //
+        // This is titan22's app stack (Yotpo, Tapcart, Swell, Intercom, KiwiSizing, SearchSpring,
+        // Shogun, Hotjar, Clarity, Klaviyo, GTM) served for EVERY store, which hCaptcha can see is
+        // not store X's stack since checksiteconfig carries the host. That is a deliberate trade:
+        // every name is real and the list has a real page's length, order and tail, where the old
+        // generic 55-name subset was no store's list either. Per-store scrapes are the next step,
+        // and the block above is literally the generator for them.
+        //
+        // Two names are regenerated per load rather than pinned, because on the real page they are
+        // random per load and a CONSTANT value would be the tell: jQuery's expando
+        // (jQuery + version + Math.random() digits, real sample jQuery112408248414527689193) and
+        // giftbee's elem<digits> id global. Strings are always installed as "" -- several of the real
+        // values are titan22's own keys and ids (__klKey, _ks_shopID, shopicomUrl) and shipping
+        // another store's credentials would be both wrong and a perfect fingerprint.
+        //
+        // Declaration order IS enumeration order, so the last 25 entries here are what hsw's
+        // suspicious-globals sweep reports, and they are the same app-code tail the real page has.
+        // `Shopify` stays in the list at its real position: the C# bridge was taken off window above, so
+        // a plain object is installed here like any other name.
+        //
+        // Per site: a captcha can pass its own scrape as %globals% (same SPEC format; `L` marks where the
+        // page defines the onload callback). Anything api.js itself creates (hcaptcha, Raven, grecaptcha
+        // with recaptchacompat) stays out -- it appears on its own. With no scrape, titan22's is used,
+        // with the onload callback ahead of everything as before. A scrape starting with '+' is added to
+        // titan22's instead of replacing it (a page template's own globals on an unscraped store).
+        (function () {
+            var SITE = '%globals%';
+            var SPEC =
+                'dataLayer:a clarity:f KiwiSizing:o theme:o searchspringConfig:o ' +
+                'mo_getCookie:f mo_setCookie:f eraseCookie:f Shopify:o __st:o ' +
+                'ShopifyPaypalV4VisibilityTracking:b ShopifyAnalytics:o portableWalletsHideBuyerConsent:f portableWalletsShowBuyerConsent:f __shgMoneyFormat:o ' +
+                '__shgCurrentCurrencyCode:o SHG_CUSTOMER:n dayjs_plugin_customParseFormat:f dayjs:f dayjs_plugin_timezone:f ' +
+                'dayjs_plugin_utc:f hj:f _hjSettings:o EG_INFO:o tapcartParams:o ' +
+                'CF:o patchRegistrationLinks:f patchLoginGrecaptchaConflict:f __core-js_shared__:o core:o ' +
+                'regeneratorRuntime:o lazySizes:o yotpoWidgetsContainer:o __shopifyOriginTrialsDone:b google_tag_data:o ' +
+                'google_tag_manager:o _klOnsite:a klaviyo:o klaviyoReviewsProductDesignMode:b __TREKKIE_SHIM_QUEUE:a ' +
+                'meta:o attr:s trekkie:o ga:f privacyBanner:o ' +
+                '_visit:o Yotpo:o gtag:f fbq:f _fbq:f ' +
+                'zESettings:o _learnq:a __klKey:s EasyGiftScriptLoaded:b setImmediate:I ' +
+                'clearImmediate:C ShopifyForms:o $:f jQuery:f minMaxify:o ' +
+                'getLimits:f mmIsEnabled:f sca_default_callback_function:f _:u Basil:f ' +
+                '_ks_getDataFromIPCountryDone:b _ks_userUnitFromIPCountry:n ks:o IntelliSuggest:o __defProp:f ' +
+                '__typeError:f __accessCheck:f __privateGet:f __privateAdd:f __privateSet:f ' +
+                '__privateMethod:f __privateWrapper:f Abra:o litPropertyMetadata:o reactiveElementVersions:a ' +
+                'litHtmlVersions:a litElementVersions:a loadedSelfExecutableWidgets:a shogunAnalytics:o hjSiteSettings:o ' +
+                'hjLazyModules:o hjBootstrap:f hjBootstrapCalled:a __clr:o webpackChunk_klaviyo_onsite_modules:a ' +
+                'gaGlobal:o __klFormEnvironment:s onYouTubeIframeAPIReady:f __klaviyoRequestedEventListeners:a CartBotScriptAppended:b ' +
+                'Tapcart:o swellConfig:o swellrequire:f Materia:o User:o ' +
+                'OAuth:o JQEXPANDO:o spapi:o swellAPI:o Swell:o ' +
+                'any_match:u $mcSite:o myAppJavaScript:f storeCartCookies:f isSiteUsesJQuerySlim:f ' +
+                'loadScript:f docCookies:o shopicomUrl:s giftbee_settings_updated:s ELEMID:e ' +
+                'giftbeeloaded:b canPreventCheckout:b changesWereMadeToTheCart:b OpusNoATC:b cartbot:o ' +
+                'elements:o toggleSwellModal:f showSwellModal:f closeSwellModal:f showIframe:f ' +
+                'hideIframe:f runLogOutIfUserRoleWhenReady:f shopicom_i:f shopicom_l:f intercomSettings:o ' +
+                'Intercom:f loadKiwiSizingChart:f loadIndividuaKiwiSizingChart:f loadIndividualKiwiSizingChart:f _ks_shopID:s ' +
+                '_ks_sizingLoaded:b __intercomAssignLocation:f __intercomReloadLocation:f';
+            SPEC = SITE.charAt(0) === '+' ? SPEC + ' ' + SITE.slice(1) : (SITE || SPEC);
+
+            // A plain page function: toString() is its source, so hsw's native-template check (Oe)
+            // fails on it exactly as it does on a real page's functions, which is why the real page
+            // reports all 25 of its tail names.
+            function pageFn(n, body) {
+                var fn = body || function () { return null; };
+                try { Object.defineProperty(fn, 'name', { value: n, configurable: true }); } catch (e) { }
+                return fn;
+            }
+
+            var parts = SPEC.split(' ');
+            if (!/:L( |$)/.test(SPEC))
+                window['%onload%'] = onload;
+
+            for (var i = 0; i < parts.length; i++) {
+                if (!parts[i]) continue;
+                var bits = parts[i].split(':'), name = bits[0], kind = bits[1], value;
+
+                if (name === 'JQEXPANDO') name = 'jQuery' + ('1.12.4' + Math.random()).replace(/\D/g, '');
+                else if (name === 'ELEMID') name = 'elem' + (10000000 + Math.floor(Math.random() * 89999999));
+
+                if (name in window) continue;            // never shadow anything real
+
+                switch (kind) {
+                    // setImmediate/clearImmediate are WORKING shims, not the null-returning stubs the
+                    // rest of the table uses. Chromium has neither, so a bundled polyfill (core-js, a
+                    // promise shim, lodash) that feature-detects window.setImmediate would find ours and
+                    // schedule real work through it, and a null stub would silently drop that callback.
+                    // On the real page these names exist precisely because something polyfilled them, so
+                    // they have to behave. Everything else here is only ever enumerated, never called.
+                    case 'I':
+                        value = pageFn(name, function (fn) {
+                            var extra = Array.prototype.slice.call(arguments, 1);
+                            return setTimeout(function () { fn.apply(null, extra); }, 0);
+                        });
+                        break;
+                    case 'C': value = pageFn(name, function (id) { return clearTimeout(id); }); break;
+                    case 'L': name = '%onload%'; value = onload; break;
+                    case 'f': value = pageFn(name); break;
+                    case 'a': value = []; break;
+                    case 'b': value = i % 3 !== 0; break;  // the sweep reads the name, never the value
+                    case 's': value = ''; break;
+                    case 'n': value = null; break;
+                    case 'u': value = undefined; break;    // `var x;` on the real page: own prop, no value
+                    case 'e': value = document.createElement('div'); break;
+                    default:  value = {}; break;
+                }
+                try { window[name] = value; } catch (e) { }
+            }
+        })();
+        })();
+
+    </script>
+    <meta charset="utf-8" />
+    <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible" />
+    <title>Supreme</title>
+    <meta content="Supreme. The official website of Supreme. EST 1994. NYC." name="description" />
+    <meta content="telephone=no" name="format-detection" />
+    <meta content="on" http-equiv="cleartype" />
+    <meta content="notranslate" name="google" />
+    <meta content="app-id=664573705" name="apple-itunes-app" />
+    <!-- %apiquery% is the impersonated site's own api.js query (CaptchaService defaults it to Shopify's).
+         The default is matched to how Shopify actually loads hCaptcha, taken verbatim from the
+         manual capture that PASSES on titan22:
+           /1/api.js?render=explicit&recaptchacompat=off&onload=__shopify_hcap_load_r4wnppq6
+         Param order, recaptchacompat and the callback prefix all match. Two of these reach the
+         SENSOR via clientOptions, which rides in the checkcaptcha payload:
+           - recaptchacompat: we reported "true", every genuine load of this key reports "off".
+           - hl: forcing hl=en reported "en" while navigator.language is nl-NL, which nothing
+             real does. Dropping it lets hCaptcha derive the language the way the device does. -->
+    <script src="https://js.hcaptcha.com/1/api.js?%apiquery%" async defer></script>
+    <meta content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" id="viewport" name="viewport" />
+    <!-- Chromium on Windows uses CLASSIC scrollbars, which take 15px out of the layout viewport the
+         moment the page overflows. hCaptcha samples documentElement.clientWidth into
+         motionData.topLevel.xy[2] on every scroll, so that 15px showed up as the ratio stepping
+         1.2437 -> 1.2065 mid-solve. iOS uses overlay scrollbars and never changes layout width, so a
+         ratio that moves on scroll is something no iPhone can produce. The invisible widget's injected
+         iframe is what overflows here; nothing on this page is meant to scroll. -->
+    <style>
+        html { scrollbar-width: none; overflow: hidden; }
+        html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+        /* api.js positions the challenge itself, centring it in the viewport whenever it's invisible, in its
+           mobile layout, or doesn't fit beside the checkbox -- so it ignores where #h-captcha sits. aria-hidden
+           is only absent while it's open (close() parks it at top:-10000px); 10px is api.js's own minimum. */
+        body > div:not([aria-hidden]):has(> div > iframe[src*="frame=challenge"]) { top: 10px !important; }
+    </style>
+</head>
+<body style='background-color: #161620; margin:0'>
+    <div style="display: flex; flex-flow: row wrap; justify-content: center; align-items: flex-start; width: 100%; height: 100vh">
+        <div id="h-captcha"%widgetattrs%></div>
+    </div>
+    %body%
+</body>
+</html>

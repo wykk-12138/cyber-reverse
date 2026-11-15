@@ -1,0 +1,326 @@
+﻿  正在确定要还原的项目…
+C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr [C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+  所有项目均是最新的，无法还原。
+C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr
+  Cybersole.Core -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Core\bin\Debug\net8.0\Cybersole.Core.dll
+  Cybersole.Http -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Http\bin\Debug\net8.0\Cybersole.Http.dll
+  Cybersole.Stores -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Stores\bin\Debug\net8.0\Cybersole.Stores.dll
+  Cybersole.Services -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Services\bin\Debug\net8.0\Cybersole.Services.dll
+  Cybersole.Ui -> C:\Users\wykk\AppData\Local\Cybersole\replica\src\Cybersole.Ui\bin\Debug\net8.0\Cybersole.Ui.dll
+  Cybersole.Tests -> C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
+C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+C:\Users\wykk\AppData\Local\Cybersole\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.33)
+[xUnit.net 00:00:00.04]   Discovering: Cybersole.Tests
+[xUnit.net 00:00:00.11]   Discovered:  Cybersole.Tests
+[xUnit.net 00:00:00.12]   Starting:    Cybersole.Tests
+[xUnit.net 00:00:03.13]   Finished:    Cybersole.Tests
+  已通过 Cybersole.Tests.IdentifierFieldProbeTests.EveryIdentifierFieldOnThePageIsListed [2 s]
+  标准输出消息:
+ === hbx ===
+   HTTP 200  265,902 bytes
+   android                  https
+   in_ID                    https
+   qrCode                   https
+   ID                       in_ID
+ 
+ === popmart ===
+   HTTP 200  519,730 bytes
+   mainSpuID                4205, 2064, 12
+   id                       503, 416, 323
+   code                     CODE, US, CA
+   project_id               naus, eude, uk
+   paypal_client_id         Aeo778KQJoIgZRnaV1eNW-6bbuV1WNZy1Kmf8x3acEE9OH7Y, AeqBvEuIuLAheh8yCNs7OjaXB8efMWxZMIEePVkpiA2Fn-pC, AdoanlBjt1NvihH2-81wYHaJsalwQXr8l0tdv3nJzmeF3aE1
+   service_access_id        9757daea-2628-4d34-8bfe-78067104321f, 268aa415-1649-4772-8c4d-ccf93688bbac, 889ff1ba-5410-4e90-8f5d-75e3b0bc4e54
+   paypal_store_client_id   AUPCOnWiE6pL0b1TEcQiGYjmjjUlIbofGp6qWWEt1y3S7Md5, AdebcR3M_0z_q8WT3rGYrysKGhF_Qd-uCm9u5Ox5W7yJJbuM
+   brandID                  5
+   designerID               0
+   countryCodeList          null
+   spuID                    0
+   skuList                  null
+   currentChooseStoreID     0
+   bundleExtId              0
+   spuExtID                 0
+   wishListID               0
+   Barcode                  Barcode
+   Invalid_checkout_request Invalid
+   Need_id_for_pickup       The
+   Unpaid                   Unpaid
+   account_no_qualideal     No
+   account_phone_number_invalid_at Phone
+   account_phone_number_invalid_au Phone
+   account_phone_number_invalid_be Phone
+   account_phone_number_invalid_ca Phone
+   account_phone_number_invalid_ch Phone
+   account_phone_number_invalid_cn Phone
+   account_phone_number_invalid_cz Phone
+   account_phone_number_invalid_de Phone
+   account_phone_number_invalid_dk Phone
+   account_phone_number_invalid_ee Phone
+   account_phone_number_invalid_es Phone
+   account_phone_number_invalid_fi Phone
+   account_phone_number_invalid_fr Phone
+   account_phone_number_invalid_gr Phone
+   account_phone_number_invalid_hk Phone
+   account_phone_number_invalid_hr Phone
+   account_phone_number_invalid_hu Phone
+   account_phone_number_invalid_ie Phone
+   account_phone_number_invalid_it Phone
+   account_phone_number_invalid_jp Phone
+   account_phone_number_invalid_kr Phone
+   account_phone_number_invalid_lt Phone
+   account_phone_number_invalid_lu Phone
+   account_phone_number_invalid_lv Phone
+   account_phone_number_invalid_mo Phone
+   account_phone_number_invalid_mx Phone
+   account_phone_number_invalid_my Phone
+   account_phone_number_invalid_nl Phone
+   account_phone_number_invalid_nz Phone
+   account_phone_number_invalid_ph Phone
+   account_phone_number_invalid_pl Phone
+   account_phone_number_invalid_pt Phone
+   account_phone_number_invalid_se Phone
+   account_phone_number_invalid_sg Phone
+   account_phone_number_invalid_si Phone
+   account_phone_number_invalid_sk Phone
+   account_phone_number_invalid_th Phone
+   account_phone_number_invalid_tw Phone
+   account_phone_number_invalid_uk Phone
+   account_phone_number_invalid_us Phone
+   account_phone_number_invalid_vn Phone
+   account_sign_in_with_code Log
+   activity__valid_before   Valid
+   activity_calendar_friday Fri
+   activity_fa_artist_phone_code Phone
+   address_PleaseEnterYourZipCode Please
+   address_city_invalid_error_info City
+   address_component_error_postal_code_2 Postal
+   address_component_error_postal_code_and_city_1 We
+   address_component_error_postal_code_and_city_2 City
+   address_detail_error_IdNumber Please
+   address_detail_id_tip    Please
+   address_detail_placeholder_IdNumber Personal
+   address_kr_zipcode_error Please
+   address_line1_validation_jp Please
+   address_line2_validation_jp Please
+   address_line2_validation_th Address
+   address_line2_validation_vn Apartment
+   address_my_zipcode_error Please
+   address_postal_invalid_error_info Postal
+   address_postalcode_error_jp Please
+   address_verify_default_invalid_info is
+   address_zipcode_error_vn Please
+   ali_payment_invalid_card Card
+   avoid_duplicate_payment_hint_text Please
+   birthday_doublecheck_notice_android Please
+   calendar_friday          Fri
+   cart_invalid_items_view_all_app View
+   cart_invalid_items_view_all_web View
+   cart_invalid_title       -
+   cart_product_hide        Empty
+   checking_payment_result_please_avoid_duplicate_payments Checking
+   checkout_YourPurchaseAndUnboxingSignifies Your
+   checkout_activity_hide   Hide
+   code_entered_is_incorrect The
+   code_has_sent_h3_warn    Verification
+   code_has_sent_your_email The
+   code_has_sent_your_phone The
+   collection_info_identity_type Identity
+   coupon_button_show_code  SHOW
+   coupon_card_copy_code    COPY
+   coupon_code_s            CODE
+   coupon_er_code           COUPON
+   coupon_list_code         Code
+   coupon_redeem_your_coupon_easily_by_scanning_this_qr_code_at_our_stores Redeem
+   detail_verify_code       Redemption
+   draw_product_eligibility_invalidated_payment_timeout Your
+   draw_product_payment_timeout_invalidated Your
+   earlybirdcardlist_card_validtime Valid
+   empty_title_product_hidden Product
+   empty_title_wishList_hidden Click
+   error_address_province_invalid State
+   error_code_474           The
+   error_invalid_coupon     Invalid
+   error_tab_invalid        tab
+   exhibit_order_unpaid     Pending
+   exhibit_orderdesc_unpaid Pay
+   exhibit_orderdesc_unpaidsimple Please
+   exhibit_status_unpaid    Pending
+   exo_video_player_error_please_try_again_later Video
+   filter_hide              Hide
+   footer_localization_id_01 Consumer
+   footer_localization_id_02 PT
+   footer_localization_id_03 Whatsapp
+   footer_localization_id_04 Email
+   footer_localization_id_05 Directorate
+   footer_localization_id_06 Ministry
+   footer_localization_id_07 0853
+   goods_detail_share_code  Scan
+   goods_hidden_style_content The
+   goods_hidden_style_title SECRET
+   hiddenstyle_rate         The
+   hide                     Hide
+   invalidSetNumber         Invalid
+   login_phone_validation_hk Please
+   login_v2_code_bind_sucess Account
+   login_v2_code_unbind_sucess Account
+   luckypoint_page_earlybird_redeem_validtime Valid
+   luckypoint_page_redeem_validtime Valid
+   me_btn_prepop_entry_android EARLYPASS
+   me_ercode_email          Email
+   me_ercode_no             Member
+   me_ercode_no_APAC        Member
+   me_ercode_no_APAC_s      Member
+   me_ercode_no_web         Member
+   me_ercode_title          Member
+   me_fragment_luckypoints_android LUCKY
+   me_fragment_tipscard_entry_android HINT
+   me_widget_instruction    Widget
+   me_widget_name           Widget
+   me_widget_skin_change    Skin
+   me_widget_tips           Here
+   me_widget_use            USE
+   me_widget_using          USING
+   member_identifyID        Membership
+   new_arrivals_upcoming    COMING
+   new_user_end_in_days_app_android Ends
+   new_user_end_in_hours_app_android Ends
+   no_qualideal             No
+   od_unpaid_duplicate_error You
+   orderUnpaidState         Unpaid
+   order_checkout_entry_coupon_code Enter
+   order_checkout_please_choose_coupon_code Please
+   order_hide_summary_text  Hide
+   order_pickup_code_btn    PICKUP
+   order_unpaid             Unpaid
+   order_unpaid_continue_pay CONTINUE
+   order_unpaid_continue_pay_finish I
+   order_unpaid_countdown_text Order
+   pdp_coupon_copy_code_btn COPY
+   pickup_code              PICKUP
+   pickup_code_please_scan  Check
+   pickup_code_please_scan_1 Please
+   pickup_code_please_scan_2 Redemption
+   pickup_code_please_scan_to_pick_up Please
+   please_enter_a_valid_personal_id Please
+   please_enter_the_coupon_code Please
+   please_input_identity_content Last
+   please_input_identity_content_max Please
+   please_input_identity_content_pattern Please
+   please_select_identity_type Select
+   popart_email_invalid     Invalid
+   popart_phone_code_required Please
+   popart_portfolio_invalid Invalid
+   popart_social_invalid    Invalid
+   popart_submit_invalid    Please
+   popart_telephone_invalid Invalid
+   province_state_missing_or_invalid_please_check_your_address_or_contact_customer_service Province
+   qr_code_allow            Allow
+   redeem_code_action_use   Use
+   redeem_code_action_view_order View
+   redeem_code_entry_title  Redeem
+   redeem_code_error_empty  Please
+   redeem_code_error_ended  This
+   redeem_code_error_expired This
+   redeem_code_error_ineligible You
+   redeem_code_error_invalid Invalid
+   redeem_code_error_limit_reached You
+   redeem_code_error_not_started This
+   redeem_code_error_sold_out This
+   redeem_code_error_system System
+   redeem_code_error_used   This
+   redeem_code_history_empty Empty
+   redeem_code_history_entry History
+   redeem_code_input_label  Enter
+   redeem_code_input_placeholder Enter
+   redeem_code_page_title   Redeem
+   redeem_code_record_expire_date Expire
+   redeem_code_record_page_title Redemption
+   redeem_code_record_redeem_date Redemption
+   redeem_code_status_expired Expired
+   redeem_code_status_unused Unuse
+   redeem_code_status_used  Used
+   redeem_code_submit_btn   Redeem
+   redeem_code_success_btn_checkout Redeem
+   redeem_code_success_btn_history View
+   redeem_code_success_desc You
+   redeem_code_success_title Redeemed
+   redemption_code          Please
+   redemption_code2         CODE
+   redemption_code_text     Redemption
+   redemption_valid_period_s_s Redemption
+   refresh_footer_idle      pull
+   region_code_list         Choose
+   rewards_coupon_must_android For
+   rewards_redeem_expire_xhour_after_android Expired
+   rewards_redeem_valid_period Valid
+   rewards_redemption_valid_period Redemption
+   rewards_redemption_valid_period_sub Redemption
+   robot_checkout_qr_code_expired QR
+   sorry_there_are_no_more_spots_available_for_this_qr_code Sorry
+   store_appintment_participant_ID ID
+   store_appintment_participant_ID_hint Please
+   store_appointment_ID_hint Please
+   store_appointment_choose_slot_hide_calendar Hide
+   store_appointment_entry_code Entry
+   store_appointment_entry_code_view_hint Go
+   store_pickup_order_show_pickup_code Show
+   store_pickup_redemption_code Redemption
+   storepickup_sku_sold_out This
+   switch_region_continent_oceania Oceania
+   td_error_middleRisk      Unusual
+   text_didn_t_apply_discount_correctly Didn
+   the_code_has_been_sent   The
+   the_code_you_entered_is_incorrect The
+   tipscardlist_card_validtime Valid
+   toast_argument_invalid   argument
+   toast_invalid_argument   invalid
+   unpaid_dispatch_already_exists Unpaid
+   user_account_address_address_zipcode Zip
+   user_account_address_id_number Identification
+   user_account_form_nickname_invalid Nickname
+   user_account_form_nickname_types_invalid Please
+   user_account_input_error_address_invalid Address
+   user_account_input_error_apartment_invalid Apartment
+   user_account_input_error_city_invalid Entry
+   user_account_input_error_line1_invalid Invalid
+   user_account_input_error_line1_invalid_us Invalid
+   user_account_input_error_line2_invalid Enter
+   user_account_input_error_phone_invalid Please
+   user_account_input_error_phone_invalid_hk Please
+   user_account_input_error_phone_invalid_kr Phone
+   user_account_input_error_phone_invalid_my Please
+   user_account_input_error_phone_invalid_other Please
+   user_account_input_error_phone_invalid_th Please
+   user_account_input_error_phone_invalid_us Please
+   user_account_input_error_zipcode Please
+   user_account_my_qualideal My
+   user_bind_code_required_msg Code
+   user_bind_email_code     Enter
+   user_coupon_code         CONPON
+   user_login_tab_code      One-Time
+   user_qualideal_title     Earned
+   user_qualideal_viewdetail view
+   user_register_code       Click
+   user_register_code_msg   Please
+   user_register_continue_to_send_code CONTINUE
+   user_resetpassword_password_invalid 8
+   view_store_code          VIEW
+   xml_hint_personal_customs_code Personal
+   xml_text_coupon_code     COUPON
+   youHaveAnOrderToPay      You
+   your_order_has_been_paid_view_your_order_in_the_order_list Your
+   buildId                  20261110183623
+   pc_actBanner_id          26
+   paypal_ca_client_id      AeRl2uySLo0x5c7tpI5hLd991HE9VDJxEAveR0urcDN72wpt
+   paypal_mx_client_id      AUNdfxi6N4bsZOTi45iqOg4qpSuIaaycoBgI0E0O9q4XQ-Sj
+   module skuish match -> (none)
+ 
+
+
+
+测试运行成功。
+测试总数: 1
+     通过数: 1
+总时间: 3.3826 秒

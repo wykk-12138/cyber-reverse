@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geetest Captcha</title>
+    <style>
+        #captcha {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100vh;
+            color: white;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+
+<body style='background-color: #161620; margin:0'>
+<div id="captcha">loading...</div>
+
+    <script src="https://static.geetest.com/static/tools/gt.js"></script>
+    <script>
+        var properties = JSON.parse(document.Solver.Captcha.GetProperties());
+
+        function onInit(captchaObj) {
+            document.getElementById("captcha").innerHTML = "";
+            captchaObj.appendTo("#captcha");
+            captchaObj.onSuccess(function () {
+                var result = captchaObj.getValidate();
+                document.Solver.Captcha.Solve(result.geetest_challenge + '&' + result.geetest_validate + '&' + result.geetest_seccode);
+            });
+
+            captchaObj.onError(function (err) {
+                document.getElementById("captcha").innerHTML = '<strong class="error">Failed to load captcha</strong>';
+                document.Solver.Captcha.Solve('user_error');
+            });
+        }
+
+        initGeetest({
+            api_server: properties.apiServer || 'api-na.geetest.com',
+            gt: properties.gt,
+            challenge: properties.challenge,
+            product: 'popup',
+            offline: properties.offline || false,
+            new_captcha: properties.newCaptcha || true, // new_captcha false = V2, new_captcha true = V3 -- see geetest docs
+            lang: 'en-us',
+        }, onInit)
+    </script>
+</body>
+
+</html>

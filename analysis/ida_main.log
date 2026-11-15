@@ -1,0 +1,17 @@
+entry func: 0x1430f65c8 name: start
+=== main decompile ===
+__int64 start()
+{
+  sub_1430F6F18();
+  return __scrt_common_main_seh();
+}
+
+FATAL
+Traceback (most recent call last):
+  File "C:\Users\wykk\AppData\Local\Cybersole\analysis\ida_main.py", line 61, in <module>
+    main()
+  File "C:\Users\wykk\AppData\Local\Cybersole\analysis\ida_main.py", line 39, in main
+    ea = ida_ua.next_head(ea, f.end_ea)
+         ^^^^^^^^^^^^^^^^
+AttributeError: module 'ida_ua' has no attribute 'next_head'
+

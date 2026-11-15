@@ -1,0 +1,1 @@
+{"pattern": "<(SubmitCustomer|ValidateAddress|GetShippingMethods|SubmitShippingMethod|SubmitBillingAddress|GetShopperIp|GetPaymentMethods|GetAccessToken|CreateBasket|CheckInventory)>d__[0-9]+", "limit": 40}

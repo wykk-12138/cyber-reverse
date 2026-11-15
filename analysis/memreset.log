@@ -1,0 +1,3 @@
+﻿# memreset 2026-11-13 18:12:16  elevated=False
+[18:12:16] before   Commit  29.97 /  65.71 GB   available 11.77 GB   cache  9.66 GB
+[18:12:16] ABORT: purging standby lists needs SeProfileSingleProcessPrivilege (administrator)

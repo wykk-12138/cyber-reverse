@@ -1,0 +1,2167 @@
+[
+ {
+  "base": "0x31e2a0a",
+  "steps": [
+   [
+    50,
+    "InitAsync"
+   ],
+   [
+    51,
+    "InitAsync"
+   ],
+   [
+    59,
+    "ConnectionLoop"
+   ],
+   [
+    66,
+    "ValidateInput"
+   ]
+  ]
+ },
+ {
+  "base": "0x32d5d3c",
+  "steps": [
+   [
+    2,
+    "Stop"
+   ],
+   [
+    2,
+    "ConnectAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x32e1a3d",
+  "steps": [
+   [
+    234,
+    "Copy"
+   ],
+   [
+    233,
+    "Cut"
+   ],
+   [
+    235,
+    "Paste"
+   ]
+  ]
+ },
+ {
+  "base": "0x3300e34",
+  "steps": [
+   [
+    77,
+    "StartBase"
+   ],
+   [
+    87,
+    "GetCaptcha"
+   ],
+   [
+    89,
+    "GetCaptcha"
+   ],
+   [
+    100,
+    "Delay"
+   ],
+   [
+    102,
+    "ScheduleWait"
+   ],
+   [
+    105,
+    "GetMonitorDelay"
+   ],
+   [
+    106,
+    "Login"
+   ]
+  ]
+ },
+ {
+  "base": "0x3304820",
+  "steps": [
+   [
+    54,
+    "Invalidate"
+   ],
+   [
+    55,
+    "GetAuthToken"
+   ]
+  ]
+ },
+ {
+  "base": "0x330556a",
+  "steps": [
+   [
+    84,
+    "ResetIdentity"
+   ],
+   [
+    86,
+    "Load"
+   ]
+  ]
+ },
+ {
+  "base": "0x33055d6",
+  "steps": [
+   [
+    87,
+    "Remove"
+   ],
+   [
+    88,
+    "Load"
+   ]
+  ]
+ },
+ {
+  "base": "0x330f3aa",
+  "steps": [
+   [
+    20,
+    "StopAsync"
+   ],
+   [
+    30,
+    "DispatchLoop"
+   ],
+   [
+    31,
+    "FlushOnceAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x330f45a",
+  "steps": [
+   [
+    33,
+    "DrainLocalQueueAsync"
+   ],
+   [
+    35,
+    "SendAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3310303",
+  "steps": [
+   [
+    11,
+    "GenerateSensor"
+   ],
+   [
+    12,
+    "SubmitSensor"
+   ]
+  ]
+ },
+ {
+  "base": "0x331091a",
+  "steps": [
+   [
+    10,
+    "CreateProfile"
+   ],
+   [
+    12,
+    "GetFingerprint"
+   ]
+  ]
+ },
+ {
+  "base": "0x331acde",
+  "steps": [
+   [
+    35,
+    "Generate"
+   ],
+   [
+    36,
+    "GetSbsdData"
+   ]
+  ]
+ },
+ {
+  "base": "0x331ae27",
+  "steps": [
+   [
+    37,
+    "GetSbsdScript"
+   ],
+   [
+    38,
+    "GenerateSbsd"
+   ]
+  ]
+ },
+ {
+  "base": "0x331b701",
+  "steps": [
+   [
+    30,
+    "GetSensorData"
+   ],
+   [
+    31,
+    "Generate"
+   ],
+   [
+    32,
+    "GetSbsdData"
+   ],
+   [
+    33,
+    "GetSbsdHash"
+   ],
+   [
+    34,
+    "GenerateSbsd"
+   ],
+   [
+    35,
+    "SolveCptChallenge"
+   ]
+  ]
+ },
+ {
+  "base": "0x331d2ab",
+  "steps": [
+   [
+    10,
+    "ShortenUrl"
+   ],
+   [
+    18,
+    "LaunchBrowserLimit"
+   ]
+  ]
+ },
+ {
+  "base": "0x331d64f",
+  "steps": [
+   [
+    23,
+    "Process"
+   ],
+   [
+    24,
+    "ProcessGuest"
+   ]
+  ]
+ },
+ {
+  "base": "0x331d714",
+  "steps": [
+   [
+    28,
+    "SubmitCheckoutPayment"
+   ],
+   [
+    33,
+    "WalkObjects"
+   ]
+  ]
+ },
+ {
+  "base": "0x331d8d4",
+  "steps": [
+   [
+    35,
+    "SetCurrency"
+   ],
+   [
+    36,
+    "ApproveMemberPayment"
+   ],
+   [
+    37,
+    "GetThreeDsJwtQuery"
+   ],
+   [
+    38,
+    "SolvePayPal3DS"
+   ]
+  ]
+ },
+ {
+  "base": "0x332bb2a",
+  "steps": [
+   [
+    2,
+    "Process"
+   ],
+   [
+    3,
+    "Poll3D"
+   ]
+  ]
+ },
+ {
+  "base": "0x332d0fb",
+  "steps": [
+   [
+    6,
+    "HandleResponse"
+   ],
+   [
+    7,
+    "GetInputs"
+   ],
+   [
+    8,
+    "SubmitSensor"
+   ],
+   [
+    9,
+    "GenerateSensor"
+   ]
+  ]
+ },
+ {
+  "base": "0x3365599",
+  "steps": [
+   [
+    59,
+    "AddAsync"
+   ],
+   [
+    62,
+    "ExecuteAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3365f4e",
+  "steps": [
+   [
+    36,
+    "StartAsync"
+   ],
+   [
+    37,
+    "StopAsync"
+   ],
+   [
+    38,
+    "LoadAsync"
+   ],
+   [
+    39,
+    "WriteAsync"
+   ],
+   [
+    42,
+    "WriteToFileAsync"
+   ],
+   [
+    43,
+    "ExecuteAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3366d83",
+  "steps": [
+   [
+    57,
+    "ExecuteAsync"
+   ],
+   [
+    59,
+    "GetPublicClientOAuth2CredentialsAsync"
+   ],
+   [
+    60,
+    "FindAccountAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3367360",
+  "steps": [
+   [
+    8,
+    "SignInWithCodeAsync"
+   ],
+   [
+    10,
+    "AcceptCallbacksAsync"
+   ],
+   [
+    11,
+    "ReadCallbackAsync"
+   ],
+   [
+    12,
+    "RespondAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3368038",
+  "steps": [
+   [
+    8,
+    "StartAsync"
+   ],
+   [
+    10,
+    "RefreshTokenAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x33683ab",
+  "steps": [
+   [
+    8,
+    "FlushAsync"
+   ],
+   [
+    11,
+    "StopAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3368678",
+  "steps": [
+   [
+    20,
+    "WaitAsync"
+   ],
+   [
+    21,
+    "VerifyAsync"
+   ],
+   [
+    22,
+    "CreateAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x33689eb",
+  "steps": [
+   [
+    37,
+    "PollAsync"
+   ],
+   [
+    38,
+    "FetchAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3368e47",
+  "steps": [
+   [
+    5,
+    "BackupAsync"
+   ],
+   [
+    6,
+    "RestoreAsync"
+   ],
+   [
+    11,
+    "ExecuteAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x336902a",
+  "steps": [
+   [
+    13,
+    "RemoveProviderAsync"
+   ],
+   [
+    14,
+    "AddAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3369103",
+  "steps": [
+   [
+    20,
+    "LoadAsync"
+   ],
+   [
+    21,
+    "StartAsync"
+   ],
+   [
+    22,
+    "StopAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3369360",
+  "steps": [
+   [
+    4,
+    "GetAnalyticsAsync"
+   ],
+   [
+    5,
+    "ListAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3369dbe",
+  "steps": [
+   [
+    2,
+    "GetAsync"
+   ],
+   [
+    13,
+    "StartAsync"
+   ],
+   [
+    14,
+    "InstallAsync"
+   ],
+   [
+    15,
+    "DownloadAsync"
+   ],
+   [
+    16,
+    "DownloadPackageAsync"
+   ],
+   [
+    18,
+    "AcquireLockAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x336a2c1",
+  "steps": [
+   [
+    7,
+    "RunAsync"
+   ],
+   [
+    8,
+    "ConnectAsync"
+   ],
+   [
+    10,
+    "SessionAsync"
+   ],
+   [
+    15,
+    "WriteRawFrameAsync"
+   ],
+   [
+    16,
+    "ReadFrameAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x336a6f1",
+  "steps": [
+   [
+    5,
+    "WaitAsync"
+   ],
+   [
+    6,
+    "AddProviderAsync"
+   ],
+   [
+    7,
+    "RemoveProviderAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x336aa77",
+  "steps": [
+   [
+    8,
+    "WriteAsync"
+   ],
+   [
+    12,
+    "ExecuteAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x336ab3c",
+  "steps": [
+   [
+    0,
+    "WaitAsync"
+   ],
+   [
+    1,
+    "Guard"
+   ],
+   [
+    2,
+    "WaitImapAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x336afbf",
+  "steps": [
+   [
+    1,
+    "ExecuteAsync"
+   ],
+   [
+    2,
+    "RefreshAsync"
+   ],
+   [
+    3,
+    "GenTokenAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x336c9af",
+  "steps": [
+   [
+    30,
+    "DownloadAsync"
+   ],
+   [
+    45,
+    "StartAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x336dcf2",
+  "steps": [
+   [
+    27,
+    "Start"
+   ],
+   [
+    28,
+    "GetHome"
+   ],
+   [
+    29,
+    "Login"
+   ],
+   [
+    30,
+    "ClearCart"
+   ]
+  ]
+ },
+ {
+  "base": "0x336f061",
+  "steps": [
+   [
+    20,
+    "Start"
+   ],
+   [
+    22,
+    "FindProduct"
+   ]
+  ]
+ },
+ {
+  "base": "0x3371cea",
+  "steps": [
+   [
+    22,
+    "Start"
+   ],
+   [
+    24,
+    "GetHome"
+   ],
+   [
+    25,
+    "FindProduct"
+   ],
+   [
+    26,
+    "GetProductHtml"
+   ],
+   [
+    27,
+    "FindVariant"
+   ],
+   [
+    28,
+    "AddToCartPreload"
+   ],
+   [
+    29,
+    "EditLine"
+   ],
+   [
+    30,
+    "SubmitEmail"
+   ],
+   [
+    31,
+    "GetShippingRate"
+   ],
+   [
+    32,
+    "SubmitShipping"
+   ],
+   [
+    33,
+    "SubmitBilling"
+   ],
+   [
+    34,
+    "SubmitOrder"
+   ],
+   [
+    35,
+    "CompleteOrder"
+   ],
+   [
+    36,
+    "GetCartCsrf"
+   ],
+   [
+    37,
+    "GetPayPalOrderId"
+   ]
+  ]
+ },
+ {
+  "base": "0x3372ad1",
+  "steps": [
+   [
+    112,
+    "Login"
+   ],
+   [
+    114,
+    "RefreshEmailLogin"
+   ]
+  ]
+ },
+ {
+  "base": "0x3372ca2",
+  "steps": [
+   [
+    143,
+    "SolveQuestions"
+   ],
+   [
+    144,
+    "GetProperty"
+   ],
+   [
+    145,
+    "ScrapePreload"
+   ],
+   [
+    146,
+    "ScrapeJson"
+   ]
+  ]
+ },
+ {
+  "base": "0x3376bbb",
+  "steps": [
+   [
+    43,
+    "Start"
+   ],
+   [
+    44,
+    "CreateCheckout"
+   ]
+  ]
+ },
+ {
+  "base": "0x3376d7f",
+  "steps": [
+   [
+    55,
+    "SubmitOrderCommerce"
+   ],
+   [
+    56,
+    "CreatePayPalToken"
+   ]
+  ]
+ },
+ {
+  "base": "0x3378b8d",
+  "steps": [
+   [
+    25,
+    "GetProduct"
+   ],
+   [
+    26,
+    "Login"
+   ],
+   [
+    27,
+    "ClearCart"
+   ]
+  ]
+ },
+ {
+  "base": "0x3378cb1",
+  "steps": [
+   [
+    28,
+    "FindProduct"
+   ],
+   [
+    29,
+    "Preload"
+   ],
+   [
+    30,
+    "AddToCart"
+   ],
+   [
+    31,
+    "EditLine"
+   ],
+   [
+    32,
+    "GetCsrf"
+   ],
+   [
+    33,
+    "SubmitShipping"
+   ],
+   [
+    34,
+    "SubmitDiscount"
+   ],
+   [
+    35,
+    "SubmitBilling"
+   ],
+   [
+    36,
+    "SubmitOrder"
+   ]
+  ]
+ },
+ {
+  "base": "0x3379856",
+  "steps": [
+   [
+    58,
+    "ProcessDeferredPayment"
+   ],
+   [
+    69,
+    "Login"
+   ]
+  ]
+ },
+ {
+  "base": "0x337b054",
+  "steps": [
+   [
+    65,
+    "SendTwoFactor"
+   ],
+   [
+    67,
+    "Register"
+   ]
+  ]
+ },
+ {
+  "base": "0x337b151",
+  "steps": [
+   [
+    70,
+    "Login"
+   ],
+   [
+    71,
+    "Login_EnsureTaskAlive"
+   ]
+  ]
+ },
+ {
+  "base": "0x337bdd2",
+  "steps": [
+   [
+    181,
+    "RpcSolveThreeDS"
+   ],
+   [
+    182,
+    "RpcSubmitAdyenDetails"
+   ]
+  ]
+ },
+ {
+  "base": "0x337bef8",
+  "steps": [
+   [
+    183,
+    "RpcInitiatePayPal"
+   ],
+   [
+    184,
+    "RpcCapturePayPal"
+   ],
+   [
+    186,
+    "StartTasksFlow"
+   ]
+  ]
+ },
+ {
+  "base": "0x337c044",
+  "steps": [
+   [
+    190,
+    "FetchPopNowSpuIds"
+   ],
+   [
+    191,
+    "ViewPopNow"
+   ],
+   [
+    192,
+    "ClaimReward"
+   ]
+  ]
+ },
+ {
+  "base": "0x337f769",
+  "steps": [
+   [
+    21,
+    "Start"
+   ],
+   [
+    23,
+    "GetHome"
+   ],
+   [
+    24,
+    "CheckVerification"
+   ],
+   [
+    25,
+    "SubmitSaleRegistration"
+   ],
+   [
+    26,
+    "CheckLogin"
+   ],
+   [
+    27,
+    "Register"
+   ]
+  ]
+ },
+ {
+  "base": "0x337fa33",
+  "steps": [
+   [
+    30,
+    "GetCart"
+   ],
+   [
+    31,
+    "ClearCart"
+   ],
+   [
+    32,
+    "FindProduct"
+   ],
+   [
+    33,
+    "AddToCart"
+   ],
+   [
+    34,
+    "ReplaceProduct"
+   ],
+   [
+    35,
+    "GetCsrf"
+   ],
+   [
+    36,
+    "SubmitEmail"
+   ],
+   [
+    37,
+    "GetForm"
+   ],
+   [
+    38,
+    "SubmitShipping"
+   ],
+   [
+    39,
+    "SubmitBilling"
+   ]
+  ]
+ },
+ {
+  "base": "0x3380326",
+  "steps": [
+   [
+    16,
+    "Start"
+   ],
+   [
+    17,
+    "StartCore"
+   ]
+  ]
+ },
+ {
+  "base": "0x3380b08",
+  "steps": [
+   [
+    18,
+    "Register"
+   ],
+   [
+    19,
+    "AddAddress"
+   ],
+   [
+    20,
+    "Login"
+   ]
+  ]
+ },
+ {
+  "base": "0x3382481",
+  "steps": [
+   [
+    6,
+    "SetAdyenPayment"
+   ],
+   [
+    7,
+    "SubmitAdyenOrder"
+   ]
+  ]
+ },
+ {
+  "base": "0x33825eb",
+  "steps": [
+   [
+    39,
+    "Start"
+   ],
+   [
+    40,
+    "Login"
+   ],
+   [
+    41,
+    "ClearCart"
+   ],
+   [
+    42,
+    "GetCustomerToken"
+   ]
+  ]
+ },
+ {
+  "base": "0x338286e",
+  "steps": [
+   [
+    55,
+    "LogBadRequest"
+   ],
+   [
+    73,
+    "GetCardNonce"
+   ],
+   [
+    74,
+    "SquareHydrate"
+   ],
+   [
+    75,
+    "SquareCardNonce"
+   ]
+  ]
+ },
+ {
+  "base": "0x3382ca9",
+  "steps": [
+   [
+    103,
+    "ContinueUnzerThreeDs"
+   ],
+   [
+    105,
+    "WalkUnzerReturn"
+   ]
+  ]
+ },
+ {
+  "base": "0x338511b",
+  "steps": [
+   [
+    6,
+    "Start"
+   ],
+   [
+    7,
+    "GetHome"
+   ]
+  ]
+ },
+ {
+  "base": "0x3387874",
+  "steps": [
+   [
+    9,
+    "Start"
+   ],
+   [
+    11,
+    "Login"
+   ]
+  ]
+ },
+ {
+  "base": "0x33882c9",
+  "steps": [
+   [
+    35,
+    "GetHome"
+   ],
+   [
+    36,
+    "Login"
+   ]
+  ]
+ },
+ {
+  "base": "0x338c52c",
+  "steps": [
+   [
+    12,
+    "HandleOrderResult"
+   ],
+   [
+    13,
+    "PayerAuthenticate"
+   ]
+  ]
+ },
+ {
+  "base": "0x338dd1f",
+  "steps": [
+   [
+    22,
+    "GetHome"
+   ],
+   [
+    23,
+    "Login"
+   ]
+  ]
+ },
+ {
+  "base": "0x339025e",
+  "steps": [
+   [
+    28,
+    "Start"
+   ],
+   [
+    29,
+    "GetHome"
+   ]
+  ]
+ },
+ {
+  "base": "0x339381c",
+  "steps": [
+   [
+    6,
+    "GetHome"
+   ],
+   [
+    7,
+    "Login"
+   ]
+  ]
+ },
+ {
+  "base": "0x33955ff",
+  "steps": [
+   [
+    15,
+    "FindSlot"
+   ],
+   [
+    16,
+    "SignUp"
+   ]
+  ]
+ },
+ {
+  "base": "0x339c9f7",
+  "steps": [
+   [
+    10,
+    "WaitForDrop"
+   ],
+   [
+    11,
+    "Reserve"
+   ]
+  ]
+ },
+ {
+  "base": "0x33a5cba",
+  "steps": [
+   [
+    8,
+    "FindRegistration"
+   ],
+   [
+    9,
+    "FindSlot"
+   ],
+   [
+    10,
+    "SignUp"
+   ]
+  ]
+ },
+ {
+  "base": "0x33a5f62",
+  "steps": [
+   [
+    5,
+    "Test"
+   ],
+   [
+    6,
+    "GetScore"
+   ],
+   [
+    7,
+    "GetScore2"
+   ]
+  ]
+ },
+ {
+  "base": "0x33acd48",
+  "steps": [
+   [
+    3,
+    "Test"
+   ],
+   [
+    4,
+    "Test2"
+   ],
+   [
+    5,
+    "Test3"
+   ]
+  ]
+ },
+ {
+  "base": "0x33bff4a",
+  "steps": [
+   [
+    9,
+    "SolveWafAsync"
+   ],
+   [
+    10,
+    "FetchBalance"
+   ],
+   [
+    12,
+    "ReadJsonAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x33c08f2",
+  "steps": [
+   [
+    3,
+    "GetActivityAsync"
+   ],
+   [
+    7,
+    "CheckAsync"
+   ],
+   [
+    8,
+    "SendAsync"
+   ],
+   [
+    9,
+    "ClassifyAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x341bad6",
+  "steps": [
+   [
+    9,
+    "WaitResponse"
+   ],
+   [
+    5,
+    "ProcessResponseAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x341e443",
+  "steps": [
+   [
+    2,
+    "Execute"
+   ],
+   [
+    8,
+    "Execute"
+   ]
+  ]
+ },
+ {
+  "base": "0x343297f",
+  "steps": [
+   [
+    68,
+    "GetConsumingEnumerable"
+   ],
+   [
+    35,
+    "GetEnumerator"
+   ]
+  ]
+ },
+ {
+  "base": "0x343c0e3",
+  "steps": [
+   [
+    13,
+    "Download"
+   ],
+   [
+    12,
+    "Load"
+   ]
+  ]
+ },
+ {
+  "base": "0x3447034",
+  "steps": [
+   [
+    17,
+    "Solve"
+   ],
+   [
+    18,
+    "RunWithTimeout"
+   ]
+  ]
+ },
+ {
+  "base": "0x34470e2",
+  "steps": [
+   [
+    26,
+    "MoveMouse"
+   ],
+   [
+    27,
+    "Click"
+   ]
+  ]
+ },
+ {
+  "base": "0x344745c",
+  "steps": [
+   [
+    2,
+    "Solve"
+   ],
+   [
+    3,
+    "GetScript"
+   ],
+   [
+    4,
+    "GetSensor"
+   ]
+  ]
+ },
+ {
+  "base": "0x3449408",
+  "steps": [
+   [
+    32,
+    "Generate"
+   ],
+   [
+    33,
+    "GetLoader"
+   ],
+   [
+    34,
+    "GetCcJs"
+   ],
+   [
+    35,
+    "Get6Js"
+   ],
+   [
+    36,
+    "GetEtJs"
+   ]
+  ]
+ },
+ {
+  "base": "0x344a835",
+  "steps": [
+   [
+    20,
+    "LogResponse"
+   ],
+   [
+    21,
+    "Process"
+   ],
+   [
+    22,
+    "ProcessSetup"
+   ]
+  ]
+ },
+ {
+  "base": "0x344b063",
+  "steps": [
+   [
+    10,
+    "RunAsync"
+   ],
+   [
+    11,
+    "Init"
+   ]
+  ]
+ },
+ {
+  "base": "0x344d225",
+  "steps": [
+   [
+    25,
+    "Generate"
+   ],
+   [
+    26,
+    "Fingerprint"
+   ],
+   [
+    29,
+    "Logo"
+   ],
+   [
+    30,
+    "Decoy"
+   ],
+   [
+    31,
+    "Click"
+   ]
+  ]
+ },
+ {
+  "base": "0x3451dc5",
+  "steps": [
+   [
+    42,
+    "MonitorExecute"
+   ],
+   [
+    43,
+    "SendAsync"
+   ],
+   [
+    44,
+    "SendCoreAsync"
+   ],
+   [
+    45,
+    "SendAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x34535fe",
+  "steps": [
+   [
+    13,
+    "HasRequested"
+   ],
+   [
+    14,
+    "GetOrAddAsync"
+   ],
+   [
+    15,
+    "Handle"
+   ]
+  ]
+ },
+ {
+  "base": "0x3453bb5",
+  "steps": [
+   [
+    51,
+    "GetScript"
+   ],
+   [
+    52,
+    "GenerateCookie"
+   ]
+  ]
+ },
+ {
+  "base": "0x3454562",
+  "steps": [
+   [
+    8,
+    "SetRequest"
+   ],
+   [
+    9,
+    "SolveBrowser"
+   ],
+   [
+    10,
+    "SolveFallback"
+   ]
+  ]
+ },
+ {
+  "base": "0x34549c0",
+  "steps": [
+   [
+    22,
+    "HandleResponse"
+   ],
+   [
+    24,
+    "RunSolverAsync"
+   ],
+   [
+    26,
+    "SolveRemotelyAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x3454c1c",
+  "steps": [
+   [
+    27,
+    "PrefetchAsync"
+   ],
+   [
+    38,
+    "ExitSessionAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x345b081",
+  "steps": [
+   [
+    12,
+    "HandleResponse"
+   ],
+   [
+    13,
+    "PollQueue"
+   ]
+  ]
+ },
+ {
+  "base": "0x345b2f5",
+  "steps": [
+   [
+    19,
+    "GenerateCookies"
+   ],
+   [
+    22,
+    "CallParallax"
+   ]
+  ]
+ },
+ {
+  "base": "0x345b70d",
+  "steps": [
+   [
+    33,
+    "WaitCookie"
+   ],
+   [
+    34,
+    "HandleResponse"
+   ]
+  ]
+ },
+ {
+  "base": "0x345c076",
+  "steps": [
+   [
+    42,
+    "SolveBotCaptcha"
+   ],
+   [
+    43,
+    "DoChallengeAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x345ccd0",
+  "steps": [
+   [
+    19,
+    "HandleResponse"
+   ],
+   [
+    20,
+    "Submit"
+   ],
+   [
+    21,
+    "Failed"
+   ]
+  ]
+ },
+ {
+  "base": "0x345cf53",
+  "steps": [
+   [
+    13,
+    "NavigationFinished"
+   ],
+   [
+    14,
+    "NavigationFinished_Source"
+   ]
+  ]
+ },
+ {
+  "base": "0x345d112",
+  "steps": [
+   [
+    28,
+    "SetCookies"
+   ],
+   [
+    30,
+    "GetCookies"
+   ],
+   [
+    32,
+    "MoveMouse"
+   ]
+  ]
+ },
+ {
+  "base": "0x345d686",
+  "steps": [
+   [
+    18,
+    "FindFields"
+   ],
+   [
+    28,
+    "FillAsync"
+   ],
+   [
+    29,
+    "FillExpiryAsync"
+   ],
+   [
+    30,
+    "FillSelectAsync"
+   ],
+   [
+    33,
+    "FocusAsync"
+   ],
+   [
+    35,
+    "ClearAsync"
+   ],
+   [
+    36,
+    "TypeAsync"
+   ],
+   [
+    37,
+    "PressAsync"
+   ],
+   [
+    38,
+    "MoveMouseAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x345e166",
+  "steps": [
+   [
+    10,
+    "OnLoadedAsync"
+   ],
+   [
+    11,
+    "OnLoadedAsync"
+   ],
+   [
+    44,
+    "Init"
+   ],
+   [
+    45,
+    "Continue"
+   ]
+  ]
+ },
+ {
+  "base": "0x345e2b6",
+  "steps": [
+   [
+    48,
+    "SubmitRender"
+   ],
+   [
+    49,
+    "SubmitBrowserData"
+   ],
+   [
+    52,
+    "SubmitMethodUrls"
+   ]
+  ]
+ },
+ {
+  "base": "0x348b065",
+  "steps": [
+   [
+    4,
+    "CropCanvasAsync"
+   ],
+   [
+    6,
+    "GetCanvasFingerprintAsync"
+   ],
+   [
+    7,
+    "GetFrameRectForSelectorAsync"
+   ],
+   [
+    8,
+    "GetChallengeFrameRectAsync"
+   ],
+   [
+    11,
+    "MoveMouseAndClickWithoutTrajectoryAsync"
+   ],
+   [
+    13,
+    "MoveMouseAndClickAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x34a5f17",
+  "steps": [
+   [
+    16,
+    "Solve3DS"
+   ],
+   [
+    17,
+    "Navigate"
+   ],
+   [
+    18,
+    "RunShield"
+   ]
+  ]
+ },
+ {
+  "base": "0x34a74d6",
+  "steps": [
+   [
+    4,
+    "Purchase"
+   ],
+   [
+    5,
+    "MethodUrl"
+   ]
+  ]
+ },
+ {
+  "base": "0x34ad3dc",
+  "steps": [
+   [
+    44,
+    "VerifySession"
+   ],
+   [
+    45,
+    "ClearActiveCart"
+   ],
+   [
+    46,
+    "GetActiveCart"
+   ],
+   [
+    47,
+    "RemoveLineItem"
+   ]
+  ]
+ },
+ {
+  "base": "0x34ad64f",
+  "steps": [
+   [
+    64,
+    "Authenticate"
+   ],
+   [
+    65,
+    "AwaitAuthentication"
+   ]
+  ]
+ },
+ {
+  "base": "0x34aefe3",
+  "steps": [
+   [
+    40,
+    "SubmitPickup"
+   ],
+   [
+    41,
+    "SubmitPayment"
+   ]
+  ]
+ },
+ {
+  "base": "0x34afec2",
+  "steps": [
+   [
+    24,
+    "Register"
+   ],
+   [
+    25,
+    "CompleteRegistration"
+   ]
+  ]
+ },
+ {
+  "base": "0x34b217c",
+  "steps": [
+   [
+    26,
+    "GetCsrf"
+   ],
+   [
+    27,
+    "Login"
+   ]
+  ]
+ },
+ {
+  "base": "0x34b3399",
+  "steps": [
+   [
+    31,
+    "ProcessThreeDs"
+   ],
+   [
+    32,
+    "FollowGmoRedirects"
+   ]
+  ]
+ },
+ {
+  "base": "0x34bbfd5",
+  "steps": [
+   [
+    8,
+    "GetGarbageCollectionCounts"
+   ],
+   [
+    9,
+    "GetCpuTime"
+   ]
+  ]
+ },
+ {
+  "base": "0x34bd6ff",
+  "steps": [
+   [
+    4,
+    "ReadAsync"
+   ],
+   [
+    0,
+    "ReadAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x34c666c",
+  "steps": [
+   [
+    85,
+    "Enumerate"
+   ],
+   [
+    83,
+    "GetEnumerator"
+   ]
+  ]
+ },
+ {
+  "base": "0x34d015c",
+  "steps": [
+   [
+    7,
+    "Initialize"
+   ],
+   [
+    9,
+    "Shutdown"
+   ]
+  ]
+ },
+ {
+  "base": "0x34daed7",
+  "steps": [
+   [
+    104,
+    "Attach"
+   ],
+   [
+    105,
+    "Detach"
+   ]
+  ]
+ },
+ {
+  "base": "0x350d8b2",
+  "steps": [
+   [
+    39,
+    "GetElements"
+   ],
+   [
+    18,
+    "Nodes"
+   ]
+  ]
+ },
+ {
+  "base": "0x350ff12",
+  "steps": [
+   [
+    185,
+    "CoreGetDeclaredSyntheticConstructors"
+   ],
+   [
+    187,
+    "CoreGetDeclaredSyntheticMethods"
+   ]
+  ]
+ },
+ {
+  "base": "0x3525154",
+  "steps": [
+   [
+    6,
+    "SubmitCh"
+   ],
+   [
+    7,
+    "SubmitLe"
+   ]
+  ]
+ },
+ {
+  "base": "0x353b31c",
+  "steps": [
+   [
+    7,
+    "GetEnumerator"
+   ],
+   [
+    8,
+    "GetEnumerator"
+   ]
+  ]
+ },
+ {
+  "base": "0x35bb496",
+  "steps": [
+   [
+    49,
+    "OnUserInput"
+   ],
+   [
+    50,
+    "WaitForUntouchedChallengeAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x35bb5f5",
+  "steps": [
+   [
+    61,
+    "RunPhaseAsync"
+   ],
+   [
+    67,
+    "GetImageAsync"
+   ],
+   [
+    77,
+    "OnNewAnswer"
+   ]
+  ]
+ },
+ {
+  "base": "0x35bbdf7",
+  "steps": [
+   [
+    32,
+    "Run"
+   ],
+   [
+    35,
+    "RunPhaseAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x35be444",
+  "steps": [
+   [
+    13,
+    "InvokeHintLabelsAsync"
+   ],
+   [
+    14,
+    "InvokeMatchApiAsync"
+   ],
+   [
+    20,
+    "InvokeResolveAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x35c2c3b",
+  "steps": [
+   [
+    10,
+    "GetEnumerator"
+   ],
+   [
+    13,
+    "MoveNextAsyncAwaited"
+   ]
+  ]
+ },
+ {
+  "base": "0x35c5de6",
+  "steps": [
+   [
+    2,
+    "GetOidcAsync"
+   ],
+   [
+    2,
+    "ValidateAuthorityAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x35e7952",
+  "steps": [
+   [
+    4,
+    "SolveAsync"
+   ],
+   [
+    5,
+    "ClassifyTilesAsync"
+   ]
+  ]
+ },
+ {
+  "base": "0x35f83ff",
+  "steps": [
+   [
+    11,
+    "ClickCellsAsync"
+   ],
+   [
+    12,
+    "WaitTilesFadedAsync"
+   ],
+   [
+    13,
+    "ReloadAsync"
+   ]
+  ]
+ }
+]

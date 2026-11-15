@@ -1,0 +1,17 @@
+=== decompile start Tue Nov 10 11:21:48 2026
+db opened in 7.4s
+hexrays init: True
+function count: 320933
+segments cached: [('0x140001000', 51634176), ('0x14313f000', 3640), ('0x14313fe38', 59687368), ('0x146a2c000', 11505664), ('0x147525000', 3325952)]
+[https://api.cybersole.io] hits=3 funcs=[]
+[https://cybersole.io/api/apisecuretoken] hits=2 funcs=[]
+[https://api.humanpresence.io/v2] hits=2 funcs=[]
+[https://cf-solver.cybersole.io] hits=3 funcs=[]
+[LicenseVerifier] hits=2 funcs=[]
+[VerifyLicense] hits=4 funcs=[]
+[InvalidLicenseException] hits=1 funcs=[]
+[TlsClientOptions] hits=1 funcs=[]
+[ClientHelloBuilder] hits=1 funcs=[]
+[JA3] hits=3 funcs=[]
+wrote decompiled.c chars=0
+=== done 10.0s

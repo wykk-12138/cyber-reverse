@@ -2910,3 +2910,75 @@ git       32b43f6（三处改动一次提交）
 - 这类"教训写在报告里、犯错发生在操作里"的缺口还有多少处：**Unknown** ——
   本轮只处理了这一条，没有系统清点其它坑是否都有操作入口。
 - 是否还有第三种"稳定的中间态"（不只 IDA 分析）：**Unknown**。
+
+
+---
+
+## 130. 清点 123 条坑的「操作入口」：**25 条只停在报告里** —— 而"分析中途截断"这一族是其中之一
+
+> R697。工具：`analysis/trap_entry_inventory.py`；改 `analysis/func_compare.py`。
+
+### 一、判据（先定）
+
+一条坑算「有操作入口」需其一：① 某脚本**文件头**（前 45 行，§1.2 要求在那里写理由）提到它的 `R` 编号；
+② 某测试文件提到它；③ 操作手册里有对应步骤。否则算「只停在报告里」。
+
+### 二、结果
+
+```
+traps (BLOCKERS.md sections carrying round ids): 123
+have an operational entry point : 98
+report only                     : 25
+```
+
+**这个 98 是上界、25 是下界** —— 匹配是宽松的（某 `R` 编号出现在任何测试文件里就算，不一定是为它写的测试）。
+**所以「25 条只停在报告里」是可以确信的那一半。**
+
+### 三、25 条里有一条正中要害
+
+```
+R610/611  §44. 两侧函数数都曾被"分析中途"截断 —— 差值两端必须同状态
+R612      §45. "同口径"钉住了分析选项，但没钉住符号输入
+```
+
+**R694 踩的坑属于这一族，而这一族一个操作入口都没有。**
+
+R433 踩过一次（写进 `PARITY_PRODUCT.md` §8）、R610/611 又记了一次（写进 `BLOCKERS.md` §44）、
+R694 我第三次踩 —— **三次都写在报告里，三次都没有东西在动手时拦住。**
+
+### 四、修法：把门放在**导出函数**里
+
+`func_compare.py` 的 `export()` 本来就取了 `server_health`，**但拿回来就不看**。现在：
+
+```python
+ready = _ready(health)
+if ready is not True:
+    raise SystemExit(
+        "%s: auto_analysis_ready is %r -- refusing to export.\n"
+        "  Port-open is not readiness; functions are still being recognised.\n"
+        "  Wait first:  python analysis/wait_ready.py <port> <timeout>\n"
+        "  Background:  BLOCKERS 44/45 and 129, PARITY_PRODUCT section 8, IDA_STARTUP_CHECKLIST."
+        % (label, ready))
+```
+
+`_ready()` 兼容四种回包形状（dict 直取、dict 嵌套一层、JSON 文本、缺键）。
+
+**为什么放在这里**：这个坑从来没有在"报告"里被踩到 —— 它只在**运行导出命令**时被踩。
+把门放在别处，等于再写一份报告。
+
+### 五、验证到什么程度（不夸大）
+
+```
+_ready 单测（5 种回包）:
+  dict ready -> True / dict not ready -> False / nested -> True / json text -> True / missing key -> None
+```
+
+**已验**：辅助函数对五种形状判断正确；`if ready is not True` 对 `False` 与 `None` 都会抛。
+**未验**：**没有对真实「未就绪」实例跑过一次**（两个端口现在都就绪，13339 无监听 → 会先在连接处失败）。
+**所以这只是「单测 + 代码审读」，不是「实测拦下」。**
+
+### 六、仍然 Unknown
+
+- 其余 23 条 report-only 的坑要不要同样加门：**Unknown**（逐条判断成本高，且多数是"结论"而不是"动作"）。
+- 「98 条有入口」里有多少是**误计**（某 R 编号只是被顺带提到）：**Unknown**。
+- 是否需要把这套清点接进 `metrics_report.py` 作为常驻度量：**Unknown**（会引入第五个度量，需 YG 同意）。

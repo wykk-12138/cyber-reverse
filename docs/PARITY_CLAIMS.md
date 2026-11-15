@@ -52,7 +52,7 @@ Ghidra 留作后手，只有当某条 claim 必须伪代码级证据时才装，
 
 | id | claim | status | authority | command | gap_reason |
 |---|---|---|---|---|---|
-| C6 | 函数数量与符号可见性对照成立 | **pass（Observation 层）** | manual-from-command | `python analysis\func_compare.py` → 原版 321,244（命名 10,041）/ 复刻件 187,328（命名 175,104）；**R613 同口径复测为 321,244 ↔ 186,732**（两侧分析选项一致后，见 `PARITY_PRODUCT.md` R613 节）；`python analysis\function_breakdown.py` → 复刻件业务代码 **2,485** 个 / 0.92 MB，其余 98.7% 是 BCL/Avalonia/Jint/加密库 | — |
+| C6 | 函数数量与符号可见性对照成立 | **pass（Observation 层）** | manual-from-command | `python analysis\func_compare.py` → 原版 321,244（命名 10,041）/ 复刻件 187,328（命名 175,104）；**三个复刻件数各有条件，不是三份矛盾的测量**：187,328（R433，带 PDB）、187,698（R613，带 PDB）、**186,732（R613，不带 PDB，即同口径基准）**、187,732（R694，带 PDB + 当前源码产物）。带 PDB 的三个数差 370 是**三版产物**，不是误差；186,732 与它们的差是 **PDB 口径**（R613 实测 PDB 影响 +966 = 0.5%）；`python analysis\function_breakdown.py` → 复刻件业务代码 **2,485** 个 / 0.92 MB，其余 98.7% 是 BCL/Avalonia/Jint/加密库 | — |
 | C7a | 绑定成员能否在原版定位到**绑定声明** | **pass** | tool-evidence | `python analysis\binding_descriptors.py` → 原版描述符表 951 条 / 215 类型；**51 个 ABSENT 类型全部在表里、成员全覆盖**（R464） | — |
 | C7b | 成员**形状**（getter / setter）两侧一致 | **fail**（当前条数见 `METRICS.md` 的"成员形状差异"） | tool-evidence | `python tools\shape_audit.py`；**用描述符表交叉验证：报出的每一条在原版描述符表里都有 Setter（0 反例）**（R467） | 构成（**R468 当时的实测，非当前值**；当前条数见 `METRICS.md`）：175 条是"原版要可写属性、复刻件实现成 `method`"；61 条是"复刻件根本找不到该成员"；29 条是"数据属性缺 setter"。运行时不受影响（复刻件代码构造 UI，不走 XAML 绑定），但**结构偏离明确**。R468 同时修掉 10 条误报（`ICommand Foo { get; }` 本来就该只读，不算缺 setter） |
 | C7c | 任意两函数的**伪代码等价** | **unknown** | unknown | — | 缺原版符号（PDB / 调试信息）。**Ghidra 不能提供**（它只会把 `sub_` 改名成 `FUN_`），故不再作为选项。若将来要证行为等价，优先做**行为探针**（同输入 → 两侧输出/副作用对照），而不是伪代码 diff |

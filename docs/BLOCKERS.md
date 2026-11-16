@@ -17917,3 +17917,98 @@ python tools\metrics_report.py                         见下方（1 条文档�
 
 **这一处不是靠「找 bug」找到的，是靠「找空转」找到的 —— 两个问题相邻。**
 **我原本在找「什么都不做的步骤」，找到的是「做了错的事的步骤」。**
+
+
+---
+
+## 248. **两个规范步骤声明了但从不被调用**；而我的调用图扫描两次都错
+
+> R824。未改产品代码（内存 1.22 GB，只读）。
+
+### 一、要回答的问题（交接单第 2 项）
+
+`StoreFlow.HandleResponseAsync` 读 `lastStatus`、按状态码分支，**看起来该被某一步调用**。
+**它到底是不是死代码，以及还有谁。**
+
+### 二、两次扫描都错
+
+| 版本 | 做法 | 结论 | 为什么错 |
+|---|---|---|---|
+| ① | 只搜 `StoreFlowRunner.cs` 里的 `flow.<名字>` | 「137/165 从不被调用」 | **只搜一个文件、一种接收者名** |
+| ② | 搜全 `src` 的 `\w+.<名字>` | 「136/165」 | **要求带接收者的点号**，而委派是**无接收者**调用 |
+
+**决定性反例**：
+
+```csharp
+public virtual Task<StepOutcome> FindProductFlowAsync(FlowContext c, CancellationToken ct)
+    => FindProductAsync(c, ct);          // 无接收者 -> 我的正则匹配不到
+```
+
+**`FindProductAsync` 有 27 处提及、14 个流程重写，却被我的扫描算成「NOWHERE」。**
+
+**这与 R822 的四次失败同族**：**先假设形状，再把不符合假设读成不存在**（AGENTS.md §2.7）。
+
+### 三、改用一个不会漏的形状：只数名字出现次数
+
+**不带任何接收者/调用形式的要求，纯统计 `名字`：**
+
+| 步骤 | 总提及 | 判定 |
+|---|---|---|
+| **`HandleResponseAsync`** | **1** | **只有自己的声明 —— 真死** |
+| **`RefreshSessionAsync`** | **1** | **只有自己的声明 —— 真死** |
+| `VerifySessionAsync` | 3 | 声明 + 2 处重写，**无调用点** |
+| `FindProductAsync` | 27 | 正常（声明 + 重写 + 委派） |
+
+**「总提及 = 1」这个判据不受调用形式影响**：**如果一个方法被任何形式用到，名字至少出现两次。**
+**这是我这一轮唯一可用的判据。**
+
+### 四、两条真死步骤的含义
+
+**`StoreFlowParityTests` 第 24 行钉着的规范步骤表里有 `RefreshSession` 与 `VerifySession`：**
+
+```
+"Init", "GetHome", "GetCsrf", "GetSession", "RefreshSession", "VerifySession", …
+```
+
+**所以镜像里有这些阶段，而复刻件声明了、从未调用。**
+
+**`RefreshSessionAsync` 自己的注释写着它的用途：**
+
+> A cheap GET on the origin is what keeps the session cookie warm between polls.
+
+**从不调用意味着：长时间轮询时 session 会冷掉。** **这是优先级 ① 的真实行为缺口，不是装饰。**
+
+**`HandleResponseAsync` 同理**：它把 401/403/429 等状态映射成 StepOutcome，
+**但没有东西调用它，所以「响应后处理」这一阶段在复刻件里不存在。**
+
+### 五、为什么没直接修
+
+**「该在哪一步之后调用」需要证据**：镜像里这两个阶段挂在哪个请求之后，**得读反编译。**
+**本轮内存 1.22 GB，没有开 IDA。** **凭猜测插一个调用点，会得到一个「看起来实现了」的假覆盖 —— 那正是 R799 的教训。**
+
+### 六、验证
+
+```
+StoreFlow 声明 165 个 virtual step
+总提及=1（真死）: HandleResponseAsync, RefreshSessionAsync
+VerifySessionAsync: 3（有重写无调用）
+本轮未改产品代码
+完整套件未跑（内存 1.22 GB < 2 GB，按纪律只用 -m:1）
+四项度量沿用上一轮：4 / 0 / 17 / 78 / 0
+```
+
+### 七、仍然 Unknown
+
+- **`RefreshSession` 在镜像里挂在哪个时刻**：**Unknown** —— 需要读反编译。**这是下一步。**
+- **`HandleResponseAsync` 在镜像里存不存在对应阶段**：**Inference（中）** ——
+  规范步骤表列了 `RefreshSession` 与 `VerifySession`，**但没有列 `HandleResponse`，所以它可能只是复刻件的多余声明。**
+- **其余 163 个声明的真实调用情况**：**Unknown** —— **我的扫描器两次都不可信，
+  而「总提及 = 1」只能证明「真死」，不能证明「活着」。**
+
+### 八、教训
+
+**这一轮的价值是两个数：`1` 和 `1`。**
+**而为了拿到它们，我先交了两个错的总数（137、136）。**
+
+**错的判据有个共同点：它们都在问「有没有以这种形状被调用」。**
+**对的判据只问「这个名字被提到过几次」—— 因为它不假设形状。**

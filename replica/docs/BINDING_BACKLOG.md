@@ -2031,3 +2031,36 @@ ModuleRobustnessTests 190 / 0 · metrics_report 1766 / 0 · 四项度量未变
 | `MagentoFlow` 无 token 时的实际错误 | 预期「missing form key」，未验 |
 
 **这一处是靠「找空转」找到的，不是靠「找 bug」—— 两个问题相邻。**
+
+
+## 优先级 ① — 两个规范步骤声明了但从不调用（R824）
+
+**判据：`\b名字\b` 总提及次数 = 1 ⇒ 只有自己的声明 ⇒ 真死。这个判据不假设调用形式。**
+
+| 步骤 | 总提及 | 判定 |
+|---|---|---|
+| **`HandleResponseAsync`** | **1** | **真死** |
+| **`RefreshSessionAsync`** | **1** | **真死** |
+| `VerifySessionAsync` | 3 | 有重写、无调用 |
+| `FindProductAsync` | 27 | 正常 |
+
+**`StoreFlowParityTests:24` 的规范步骤表含 `RefreshSession` / `VerifySession` → 镜像有这些阶段。**
+
+**含义**：`RefreshSessionAsync` 注释写「keeps the session cookie warm between polls」，**从不调用 = 长轮询时 session 冷掉。**
+
+**未修原因**：**「挂在哪一步之后」需要读反编译；内存 1.22 GB 没开 IDA。猜一个调用点 = 假覆盖（R799 教训）。**
+
+### 两次失败的扫描（记住形状）
+
+| 做法 | 为什么错 |
+|---|---|
+| 只搜 `StoreFlowRunner.cs` 的 `flow.X` | 一个文件、一种接收者 |
+| 搜全 `src` 的 `\w+.X` | **委派是无接收者调用**（`=> FindProductAsync(c, ct)`） |
+
+**与 R822 同族：先假设形状，再把不符合假设读成不存在。**
+
+| 仍 Unknown | |
+|---|---|
+| `RefreshSession` 挂在哪个时刻 | **需读反编译 —— 下一步** |
+| `HandleResponseAsync` 在镜像有无对应阶段 | Inference（中）：规范表没列它，可能是多余声明 |
+| 其余 163 个的真实调用情况 | **扫描器两次不可信；「提及=1」只能证死、不能证活** |

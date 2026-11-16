@@ -14528,3 +14528,100 @@ PopMartEndpoints.cs: 39 个端点，14 个抽签/展览/预约端点全在（R84
 **这个结论不好看，但它比「14 个都写了（其实就是都发了个 GET）」好。**
 **而 R823 那次删 CSRF 兜底、和这一轮不写那 11 个，是同一条标准的两端：**
 **宁可缺，也不要一个有形状没内容的实现。**
+
+
+---
+
+## 275. **结构性发现**：复刻件一条通用 21 步序列，镜像八条按流程的序列
+
+> R851。未改产品代码。**这一条解释了前面十几轮遇到的全部现象。**
+
+### 一、R850 那个前置问题，答案比预期大
+
+R850 问「`StoreFlowRunner` 的调用序与 `StoreFlowSteps` 的 ordinal 是否一致」。
+
+**答案：不一致，而且不是顺序不一致 —— 是 runner 根本不用 ordinal。**
+
+**`StoreFlowRunner.RunCheckoutAsync` 里是一条手写的固定元组序列，21 步，所有流程共用：**
+
+```
+ 1 GetHome                 8 GetCart                15 SubmitShippingMethod
+ 2 GetCsrf                 9 EditLine               16 SubmitBilling
+ 3 GetSession             10 InitiateCheckout       17 SubmitDiscount
+ 4 FindProduct            11 GetCheckout            18 SubmitPayment
+ 5 FindVariant            12 SubmitEmail            19 GetPaymentToken
+ 6 CreateCart             13 SubmitShipping         20 SubmitOrder
+ 7 AddToCart              14 GetShippingRates       21 ProcessOrder
+```
+
+### 二、而镜像是每个流程一条序列
+
+| 流程 | 步数 | 序列里有什么是通用序列没有的 |
+|---|---|---|
+| Nike | 16 | `ValidateAddress` · `CheckInventory` · `GetShopperIp` · `GetPaymentMethods` · `SubmitCustomer` |
+| PopMart | 24 | 抽签/展览/预约 **17 步** |
+| JohnLewis | 19 | `WebHandOver` · `SessionHandover` · `GuestCallback` · `AuthenticatePayment` |
+| Demandware 经典 | 12 | `GenerateCSRF` · `SubmitConsignment` · `ConfirmPayment` |
+| Demandware 双路 | 15 | `StartAppFast` · `StartAppSafe` · `GetCartDw` · `SaveSessionDw` |
+| CollectPlus | 17 | `GetCollectPlusLocations` · `SubmitCollectPlus` |
+| structure-token ×2 | 15 / 12 | `GetStructureToken` · `CalculateTaxes` · `CreateTransaction` · `ProcessPayment` |
+
+**而镜像是「每个流程一条自己的序列」—— 那些 `d__N` 序号就是该流程内部的顺序，
+不是一张全局表里的编号。**
+
+### 三、这一条解释了前面所有现象
+
+| 现象 | 真正的原因 |
+|---|---|
+| Nike 10 个细步 vs 复刻件 3 个粗步（R843） | **通用序列没有 `ValidateAddress` 的位置，只能并进 `SubmitShipping`** |
+| PopMart 14 个抽签步骤写不进（R849/R850） | **结账序列根本表达不了抽签流程** |
+| John Lewis 的 `WebHandOver` 等无处安放（R847） | **流程专属步骤在通用序列里没有对应位置** |
+| R844 那个 16.9% | **在拿「通用序列的名字」对「八条流程的步骤名」** |
+
+**所以判据 (f) 那条「未覆盖的每条写为什么」，现在有了统一的答案：**
+
+> **不是因为端点缺、不是因为方法没写、不是因为粒度 —— 是因为复刻件用一条通用序列去覆盖八条不同的序列。**
+
+**个体差异（少 14 个方法、少 10 个细步）都是这个结构差的表现。**
+
+### 四、这意味着什么工作量
+
+**要让 PopMart 的 24 步真的跑起来，`PopMartFlow` 里加 14 个方法不够 —— runner 得能按流程取序列。**
+
+**三种做法，代价不同：**
+
+1. **给 `StoreFlow` 加 `IReadOnlyList<Step>`，每个流程返回自己的序列，runner 按它跑** ——
+   最忠实，但要改 runner 与全部 165 个声明的调用方式
+2. **给 runner 加 per-flow 分支** —— 快，但会成为一堆特例
+3. **保持通用序列，把流程专属步骤塞进现有步骤内部** —— 现状，也就是「Nike 10 步并成 3 步」
+
+**现状是 3。而 1 是唯一能让「每个函数功能相等」成立的。**
+**这一轮不改 —— 这是一次架构改动，不该在一轮里顺手做。**
+
+### 五、验证
+
+```
+StoreFlowRunner.cs 294 行；RunCheckoutAsync 的固定元组序列 21 步
+grep 'flow\.' 无命中 —— 用的是 ("Name", flow.XAsync) 元组
+StoreFlowSteps.cs: 8 个流程，步数 16/24/19/12/15/17/15/12，各不相同
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **镜像里 runner 那侧是怎么做的**：**Unknown** ——
+  如果镜像也是「一个调度器按流程取序列」，那做法 1 就是忠实复刻；
+  **但也可能是每个流程自己驱动自己的序列（即 8 个独立执行器）。这两种在镜像里长得很不一样，没查。**
+- **`StoreFlowSteps` 的 24 步是否就是运行顺序**：**Inference（中）** ——
+  ordinal 递增通常意味着顺序，**但没有证据说镜像按 ordinal 跑。**
+- **改成做法 1 后现有的 165 个声明与 1766 个用例会怎样**：**Unknown** —— 影响面没估。
+
+### 七、教训
+
+**我前面十几轮一直在数「哪个方法没有」，而真正的问题是「执行框架的形状不同」。**
+
+**这就像在数一栋楼缺几个房间，而实际是户型不一样 —— 房间数对不上是结果，不是原因。**
+
+**而发现它的路径很便宜：R850 问了一个前置问题（「runner 用 ordinal 吗」），
+答案一读代码就有。那个前置问题我本该在 R849 之前就问。**

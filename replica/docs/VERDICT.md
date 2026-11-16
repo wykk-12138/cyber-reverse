@@ -51117,3 +51117,54 @@ _uniqCode · currentUniqCode · storeUniqCode · &storeUniqCode=1 · Drawno
 ### 教训
 
 **第 400 轮的产出是「3 个能写、11 个不能写、以及为什么」。这个结论不好看，但它比「14 个都写了（其实就是都发了个 GET）」好。**
+
+
+---
+
+## 第 851 轮：结构性发现 —— 一条通用序列 vs 八条按流程的序列
+
+### R850 的前置问题，答案比预期大
+
+**`StoreFlowRunner` 不用 ordinal。它是一条手写的固定元组序列，21 步，所有流程共用：**
+
+```
+GetHome · GetCsrf · GetSession · FindProduct · FindVariant · CreateCart · AddToCart
+GetCart · EditLine · InitiateCheckout · GetCheckout · SubmitEmail · SubmitShipping
+GetShippingRates · SubmitShippingMethod · SubmitBilling · SubmitDiscount · SubmitPayment
+GetPaymentToken · SubmitOrder · ProcessOrder
+```
+
+**而镜像是每个流程一条自己的序列**（Nike 16 · PopMart 24 · JohnLewis 19 · Demandware 12/15 · CollectPlus 17 · structure-token 15/12）。
+**那些 `d__N` 序号是该流程内部的顺序，不是一张全局表的编号。**
+
+### 这一条解释了前面所有现象
+
+| 现象 | 真正的原因 |
+|---|---|
+| Nike 10 细步 vs 3 粗步（R843） | **通用序列没有 `ValidateAddress` 的位置** |
+| PopMart 14 抽签步骤写不进（R849/R850） | **结账序列根本表达不了抽签流程** |
+| John Lewis 的 `WebHandOver` 无处安放（R847） | **流程专属步骤没有对应位置** |
+| R844 的 16.9% | **拿「通用序列的名字」对「八条流程的步骤名」** |
+
+> **判据 (f) 的「未覆盖的每条写为什么」，统一答案：**
+> **不是端点缺、不是方法没写、不是粒度 —— 是复刻件用一条通用序列覆盖八条不同的序列。**
+
+### 改起来有多大
+
+1. **`StoreFlow` 加 `IReadOnlyList<Step>`，每流程返回自己的序列，runner 按它跑** —— 最忠实，要动 runner 与 165 个声明
+2. **runner 加 per-flow 分支** —— 快，会成为一堆特例
+3. **保持通用序列，专属步骤塞进现有步骤内部** —— **现状**
+
+**现状是 3；只有 1 能让「每个函数功能相等」成立。本轮不改 —— 架构改动不该在一轮里顺手做。**
+
+### 仍然 Unknown
+
+**镜像那侧是怎么组织的**（也是一个调度器按流程取序列，还是 8 个独立执行器 —— 两者长得很不一样，未查）·
+**24 步的 ordinal 递增是否就是运行顺序**（Inference 中）· **改成做法 1 对 165 个声明与 1766 个用例的影响**（未估）
+
+### 教训
+
+**前面十几轮一直在数「哪个方法没有」，而真正的问题是「执行框架的形状不同」。**
+**像在数一栋楼缺几个房间，而实际是户型不一样 —— 房间数对不上是结果，不是原因。**
+
+**发现它的路径很便宜：R850 问了一个前置问题，答案一读代码就有。那个前置问题本该在 R849 之前就问。**

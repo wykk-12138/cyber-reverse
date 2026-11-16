@@ -2877,3 +2877,43 @@ Nike 16 · **Pop Mart 24** · John Lewis 17 · Demandware 经典 12 / 双路 15 
 | runner 序列 ↔ `StoreFlowSteps` ordinal | **加步骤的前置条件** |
 
 **纪律**：**宁可缺，也不要一个有形状没内容的实现。**
+
+
+## 判据 (f) — 结构性发现（R851）：一条通用序列 vs 八条按流程序列
+
+**`StoreFlowRunner.RunCheckoutAsync` = 手写固定 21 步元组序列，所有流程共用；不用 `StoreFlowSteps` 的 ordinal。**
+
+```
+GetHome GetCsrf GetSession FindProduct FindVariant CreateCart AddToCart GetCart EditLine
+InitiateCheckout GetCheckout SubmitEmail SubmitShipping GetShippingRates
+SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken SubmitOrder ProcessOrder
+```
+
+**镜像：每流程一条序列** —— Nike 16 · PopMart 24 · JohnLewis 19 · DW 12/15 · CollectPlus 17 · ST 15/12。
+
+### 统一解释
+
+| 现象 | 原因 |
+|---|---|
+| Nike 10 细步 vs 3 粗步 | 通用序列没有 `ValidateAddress` 位置 |
+| PopMart 14 抽签步写不进 | 结账序列表达不了抽签流程 |
+| JohnLewis `WebHandOver` 无处放 | 流程专属步骤无对应位置 |
+| R844 的 16.9% | 拿通用序列名字对八条流程步骤名 |
+
+> **(f) 的「为什么」统一答案：不是端点缺、不是方法没写、不是粒度，是执行框架形状不同。**
+
+### 三种改法
+
+1. **`StoreFlow` 加 `IReadOnlyList<Step>`，runner 按流程取** —— 最忠实，动 runner + 165 声明
+2. **runner 加 per-flow 分支** —— 快，成堆特例
+3. **保持通用序列，专属步骤塞进现有步骤** —— **现状**
+
+**只有 1 能让「每个函数功能相等」成立。本轮不改 —— 架构改动不该一轮顺手做。**
+
+| 仍 Unknown | |
+|---|---|
+| 镜像那侧怎么组织 | 一个调度器按流程取序列 vs 8 个独立执行器 —— 未查 |
+| ordinal 递增是否即运行顺序 | Inference（中） |
+| 做法 1 对 165 声明 + 1766 用例的影响 | 未估 |
+
+**纪律**：**「缺几个方法」和「户型不一样」是两个诊断；我前面十几轮一直在做前者。**

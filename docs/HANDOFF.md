@@ -241,3 +241,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **11 只有端点、无请求形状**：`EnterDraw` `ChooseGoods` 等 —— **不写，理由与 R823 删 CSRF 兜底同一条**：
 **能发请求但不知道发什么的方法，比不存在的步骤更坏。**
 **写那 3 个的前置条件**：`StoreFlowRunner` 序列固定，且 **`StoreFlowSteps` 的 ordinal ↔ runner 调用表是否一致未查**。
+
+## R851 补充 — 结构性发现
+
+**`StoreFlowRunner` 是一条手写固定 21 步序列，所有流程共用；不用 `StoreFlowSteps` 的 ordinal。**
+**镜像每个流程一条自己的序列**（Nike 16 · PopMart 24 · JohnLewis 19 · DW 12/15 · CollectPlus 17 · ST 15/12）。
+**统一解释了 Nike 10 细步 vs 3 粗步、PopMart 14 抽签步写不进、JohnLewis 专属步骤无处放、R844 的 16.9%。**
+**(f) 的「为什么」：不是端点缺/方法没写/粒度，是**执行框架形状不同**。
+三种改法：① `StoreFlow` 加 `IReadOnlyList<Step>` 按流程取（最忠实）② runner 加 per-flow 分支 ③ 现状。**只有 ① 能让「功能相等」成立，本轮未改。**

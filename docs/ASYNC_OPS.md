@@ -448,3 +448,31 @@ Drawno          0x143902b40      属性名
 
 **而那 11 个不写的理由与 R823 删 CSRF 兜底是同一条：**
 **一个能发请求但不知道发什么的方法，比一个不存在的步骤更坏 —— 它会让「14 步已实现」这句话看起来成立。**
+
+
+### 结构性发现：**一条通用序列 vs 八条按流程的序列**（R851）
+
+**复刻件：`StoreFlowRunner` 驱动一条通用 21 步序列，所有流程共用。**
+
+```
+GetHome · GetCsrf · GetSession · FindProduct · FindVariant · CreateCart · AddToCart
+GetCart · EditLine · InitiateCheckout · GetCheckout · SubmitEmail · SubmitShipping
+GetShippingRates · SubmitShippingMethod · SubmitBilling · SubmitDiscount · SubmitPayment
+GetPaymentToken · SubmitOrder · ProcessOrder
+```
+
+**镜像：每个流程有自己的序列**（`StoreFlowSteps`，带该流程自己的 `d__N` 序号）：
+
+| 流程 | 步数 | 与通用 21 步的关系 |
+|---|---|---|
+| Nike | 16 | 有 `ValidateAddress` `CheckInventory` `GetShopperIp` `GetPaymentMethods` —— 通用序列里没有位置 |
+| PopMart | 24 | 抽签/展览/预约 17 步 —— **结账序列根本表达不了** |
+| JohnLewis | 19 | 有 `WebHandOver` `GuestCallback` `AuthenticatePayment` —— 流程专属 |
+| Demandware 经典 | 12 | 与通用接近，但少 `SubmitEmail` 多 `ConfirmPayment` |
+| Demandware 双路 | 15 | 有 `StartAppFast` `GetCartDw` 等双路词汇 |
+| CollectPlus | 17 | 有 `GetCollectPlusLocations` `SubmitCollectPlus` |
+| structure-token ×2 | 15 / 12 | 有 `GetStructureToken` `CalculateTaxes` `ProcessTransaction` |
+
+**这就是「14 个抽签步骤写不进 `PopMartFlow`」的真实原因：不是方法没写，是 runner 里没有它们的位置。**
+
+**也是 Nike「10 个细步 vs 3 个粗步」的真实原因：通用序列没有 `ValidateAddress` 这一步，只能并进 `SubmitShipping`。**

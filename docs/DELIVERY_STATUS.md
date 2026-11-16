@@ -16175,3 +16175,109 @@ R869 发现旁边有一扇门，一直是开的 —— 而且门后的房间比�
 
 **顺带：我在这两轮里各写了一个假成功/重复品，而两个都是可以靠「先读再写」避免的。
 所以下一步不该是继续写，而是先把「写之前读哪里」写清楚 —— 那比再写三处更有用。**
+
+
+---
+
+## 294. 教训做成了命令：`tools/where_is.py` + `AGENTS.md §2.7c`
+
+> R870。未改 C#，新增一个 Python 工具与一节操典。
+
+### 一、为什么做成脚本而不是一段话
+
+**「写之前先查有没有现成的」这句话，我在 R843 / R845 / R846 / R848 / R869 各写了一遍，五次各忘一次。
+第六遍写成话还是会忘 —— 所以写成能跑的东西。**
+
+```
+python tools\where_is.py <名字>
+```
+
+**按四类分组：**
+
+| 组 | 回答 |
+|---|---|
+| **implementation** | **定义行为的地方 —— 先读这组** |
+| analysis | `*StepMap` / `*Steps` / `*Path` / `*Controllers` / `*Endpoints` / `*Witness` 这类「已经算过」的 |
+| test | 已钉住的行为 |
+| doc | 结论可能已写下 |
+
+**分组只看文件名与路径，不看内容。**这是刻意的：**可复现、可解释、不需要模型判断** ——
+与 §2 那条「结论要能被第三方重算」一致。
+
+### 二、它第一次用就抓到自己的 bug
+
+**第一版没排除 `tools/.snapshots/`（`snapshot.py` 每次改动前留的全量副本）。
+`StepActionRunner` 报 39 个文件，其中 29 个是历史快照。**
+
+**修掉之后：**
+
+```
+StepActionRunner --word -> 7 files
+    implementation: StoreFlow.cs · StepAction.cs · StoreFlowRunner.cs
+    test:           StepActionTests.cs
+    doc:            VERDICT.md · BINDING_BACKLOG.md · HISTORY.md
+
+PopMart -> 31 files
+    implementation: PopMartFlow.cs(18) · MonitorFilterPolicy.cs(2) · Profiles.cs · Registry.cs · RetailModules.cs
+    analysis:       PopMartStepMap.cs(18) · LambdaWitness.cs(2) · PopMartEndpoints.cs(2) · StoreFlowSteps.cs(2)
+```
+
+**`PopMart` 那条正好说明它有用：如果我 R835 就跑过这一行，analysis 组会直接把 `PopMartStepMap` 推到我面前 ——
+而那正是 R849 才发现我六轮都没读的文件。**
+
+### 三、写进操典，因为工具不会被记住，操典会
+
+**`AGENTS.md §2.7c`，五次踩坑的表放在规则前面：**
+
+| 轮 | 我造了什么 | 仓里早已有 |
+|---|---|---|
+| R843 | 115 个名字的清单 | `StoreFlowSteps.cs` |
+| R845 | 「108 条不同名」 | `StoreFlow` 165 虚步骤 |
+| R846 | dual 9 条待判 | `ScapiAppPath.cs` |
+| R848 | collectplus 4 条待办 | `LambdaWitness.Unwitnessed` |
+| **R868→R869** | **一张反射派发表** | **`StepActionRunner`** |
+
+**配套两条也写进去了：**
+
+- **「先查有没有现成的」要包括**实现**，不只是分析。** 前四次我都只想到分析文件。
+- **一个名字在 implementation 组里出现，就先去读那个文件再决定写不写。**
+  查的成本三分钟；重复品和假成功的成本是两轮。
+
+### 四、它不做什么（边界写在文件头）
+
+**不查镜像。**问「原版怎么做」是 `analysis/ida.py str`；这个脚本只答「复刻件里有没有」。
+**两者混用会产生假的「不存在」—— §2.7b 已踩四次。**
+
+**也不判「该不该有」。**它只报位置，判断留给人。
+
+### 五、验证
+
+```
+python tools\where_is.py StepDispatch      -> 5 files（impl 2 / test 1 / doc 2）
+python tools\where_is.py StepActionRunner --word -> 7 files（impl 3 / test 1 / doc 3）
+python tools\where_is.py PopMart           -> 31 files（impl 5 / analysis 4 / …）
+AGENTS.md §2.7c 已写入（工具段落 + 五次踩坑表 + 两条配套）
+本轮未改 C# 代码
+套件沿用 1773 通过 / 0 失败 / 0 跳过
+```
+
+### 六、仍然 Unknown
+
+- **`where_is` 的分组判据靠文件名**：**这是它的弱点** ——
+  一个叫 `Foo.cs` 但内容是分析的文件会被归到 implementation。
+  **R870 没处理这个；出现误判时按「把文件改名」处理，不要给脚本加启发式。**
+- **它没有测试**：**Unknown 是否值得加** ——
+  **它是个只读脚本，输出靠人读；加 xunit 去 shell 一个 Python 进程，成本可能高于收益。**
+- **`AGENTS.md §2.7c` 会不会被读到**：**这是它真正的风险** ——
+  **规则文件写了不等于读了，R861 就是没读 `BINDING_BACKLOG.md` 而白走四轮。**
+
+### 七、教训
+
+**一个教训被重复写五遍，说明「写下来」不是修复手段。**
+
+**真正起作用的是两件：**
+**① 它有一个命令，成本三分钟，不需要我记得；**
+**② 它有一个编号（§2.7c），能被我或下一个会话当成检查项引用。**
+
+**而这两件都不是新的洞察 —— 是这个仓库已经在用的做法（§2.7 与 §2.7b 都是这样）。
+我只是终于把同一条办法用在自己身上。**

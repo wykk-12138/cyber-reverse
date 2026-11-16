@@ -383,3 +383,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **形态谱第五种：编造值 → 空壳方法 → 死字段 → **空循环假成功**。**
 **套件 1773 通过 / 0 失败 / 0 跳过。**
 **教训：「先查有没有现成的」要包括**实现**，不只是分析。**
+
+## R870 补充 — 教训做成命令
+
+**`python tools\where_is.py <名字>`**：按 **implementation / analysis / test / doc** 四组报位置，只看文件名与路径。
+**它第一次用就抓到自己没排除 `tools/.snapshots/`**（`StepActionRunner` 报 39 个文件，29 个是快照），已修 → 7 files。
+**`PopMart` → 31 files，analysis 组含 `PopMartStepMap.cs`(18)** —— **R835 若跑过就会直接看到，而那是 R849 才发现六轮没读的文件。**
+**已写进 `AGENTS.md §2.7c`**（五次踩坑表 + 两条配套：要包括**实现**；implementation 组有命中就先读再写）。
+**边界：不查镜像（那是 `analysis/ida.py str`），不判该不该有。**

@@ -3494,3 +3494,38 @@ map = 165   sequence = 24   implementable = 0
 | 5 条变体建五类还是一条模式 | R855 倾向后者 |
 
 **纪律**：**「先查有没有现成的」要包括**实现**，不只是分析。**
+
+
+## 方法 — `tools/where_is.py` + `AGENTS.md §2.7c`（R870）
+
+**「写之前先查有没有现成的」被写成命令（五次遗忘之后）：**
+
+```
+python tools\where_is.py <名字>     # 按 implementation / analysis / test / doc 四组报位置
+python tools\where_is.py StepDispatch --kind impl
+python tools\where_is.py Sequence --all
+```
+
+**分组只看文件名与路径，不看内容 → 可复现、可解释。**
+**它第一次用就抓到自己没排除 `tools/.snapshots/`（`StepActionRunner` 报 39 个文件，29 个是历史快照），已修。**
+
+### 实测
+
+| 名字 | 结果 |
+|---|---|
+| `StepActionRunner --word` | 7 files（impl 3 / test 1 / doc 3） |
+| `PopMart` | 31 files（impl 5 / **analysis 4，含 `PopMartStepMap.cs`(18)**） |
+
+**`PopMart` 那条说明它有用：R835 若跑过，`PopMartStepMap` 会直接出现 —— 而那是我 R849 才发现六轮没读的文件。**
+
+### 边界
+
+**不查镜像**（`analysis/ida.py str`）· **不判该不该有**，只报位置。
+
+| 仍 Unknown | |
+|---|---|
+| 分组靠文件名 | 误判就改名，不加启发式 |
+| 无测试 | 只读脚本，输出靠人读 |
+| **§2.7c 会被读到吗** | **真风险：R861 就是没读 backlog 白走四轮** |
+
+**纪律**：**教训写五遍没用；有用的是一个三分钟成本的命令 + 一个可引用的编号。**

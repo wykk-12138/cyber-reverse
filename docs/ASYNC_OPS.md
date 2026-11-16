@@ -1122,3 +1122,48 @@ implementable  =   0
 
 **顺便：把 `sequenceDeclared` / `sequenceRunnable` 写进 session，让跳过的步数一直可见 ——
 不然「跑了 24 步里的 9 步」和「跑完了」在结果上一样。**
+
+
+### 把「写之前先查」做成一个命令：`tools/where_is.py`（R870）
+
+**R869 的教训是「先查有没有现成的，要包括**实现**」。而教训写成人话会被忘 —— 五轮里忘了五次。
+所以做成一个能跑的东西，并且写进 `AGENTS.md §2.7c`。**
+
+```
+python tools\where_is.py <名字>
+```
+
+**它按四类报出所有位置：**
+
+| 组 | 判据（只看文件名与路径，不看内容） | 回答什么 |
+|---|---|---|
+| **implementation** | 兜底 | **定义行为的地方 —— 先读这一组** |
+| analysis | 文件名含 `StepMap` / `Steps` / `Path` / `Controllers` / `ApiFamilies` / `Endpoints` / `Witness` / `Candidate` / `Parity` / `Claims` | 已经算过的分析 |
+| test | 路径含 `tests/` | 已钉住的行为 |
+| doc | `.md` / `.txt` / `.json` | 结论可能已写下 |
+
+**分组只看名字，不看内容 —— 所以可复现、可解释，不需要模型判断。**
+
+### 它自己第一次用就暴露了一个 bug
+
+**第一版没排除 `tools/.snapshots/` —— 那是 `snapshot.py` 每次改动前留的全量副本。
+结果 `StepActionRunner` 报「39 个文件」，其中 29 个是历史快照。**
+
+**修掉之后：**
+
+```
+StepActionRunner --word  -> 7 files
+    implementation (3): StoreFlow.cs(5) · StepAction.cs(1) · StoreFlowRunner.cs(1)
+    test           (1): StepActionTests.cs(4)
+    doc            (3): VERDICT.md · BINDING_BACKLOG.md · HISTORY.md
+```
+
+**`PopMart` 那条也是干净的：31 个文件，implementation 5（`PopMartFlow` 18 处）、
+analysis 4（`PopMartStepMap` 18 处 · `LambdaWitness` · `PopMartEndpoints` · `StoreFlowSteps`）。**
+
+**分析组正确分出来的意义：R835–R838 那四轮我该看的就是这一组。**
+
+### 它有一条边界写在文件头
+
+**它不查镜像。**问「原版怎么做」是 `analysis/ida.py str`，这个脚本只答「复刻件里有没有」。
+**两者混用会产生假的「不存在」（§2.7b 已经踩过四次）。**

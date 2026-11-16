@@ -2045,3 +2045,58 @@ BotTask    Task       evidence=Getter,Property,Setter    replica=?
 
 **所以 R364 那个问题的答案更完整了：`BotTask.Task` 在镜像里是**可写属性**，
 而 R883 说的 `Drop.Type` 是另一件事（任务类型 vs 任务本身）。**
+
+
+### 「形状 94」里 **77 条是 UI** —— 而这个指标一直在把我推向优先级 ④（R888）
+
+**R887 把 94 条归了族，但没问**它们属于哪个优先级**。**
+
+**按声明类型所在的 csproj 分组：**
+
+| 项目 | 条数 |
+|---|---|
+| **`Cybersole.Ui`** | **77** |
+| `Cybersole.Core` | 12 |
+| `Cybersole.Services` | 5 |
+| **`Cybersole.Stores`** | **0** |
+
+**YG 的优先级是 ① checkout flow → ② 风控 → ③ 请求指纹层 → ④ **其余（含 UI）**。
+所以这 94 条的 **82%** 落在被明令缓的那一档里，而优先级 ①（`Cybersole.Stores`）是**零缺口**。**
+
+**也就是说：R881–R887 这几轮我在提高一个指标的分辨率，而它的主项不在目标上。**
+
+### 改了什么
+
+```
+shape_audit.py     + 按项目分组输出
+                   + core mismatches: 17        ← Stores + Services + Http + Core
+metrics_report.py  + 取 core mismatches
+                   + patterns 白名单加一条
+
+METRICS.md L23  成员形状差异 — total mismatches |  94
+METRICS.md L24  成员形状差异 — core mismatches  |  17
+```
+
+**现在「差多少」和「差在哪一档」是两个并列的数。**
+
+### 而这个 17 本身也值得看
+
+| 类型 | 项目 | 缺的成员 |
+|---|---|---|
+| `BotTask` | Core | **`Running` · `Task`** |
+| `Checkout` | Core | `Profile` |
+| `CreateModel` | Core | `Inputs` |
+| `Notification` | Core | `Timestamp` · `Title` |
+| `IWebhook` | Core | `Events` · `ExtraFields` · `Name` · `Url`（全是 `prop-get`） |
+
+**`BotTask.Running` 与 `BotTask.Task` 是其中两个，而 `Task` 就是 R364 那个悬案。**
+
+**所以核心那 17 条不是零散的 —— 最大的一族是 `BotTask`，而它是任务模型的中心。**
+
+### 一处实现错，值得记
+
+**第一版按 `_dp.split(os.sep)[1]` 取项目名，而 `ROOT` 是绝对路径，所以 `_parts[1]` 是 `projects`。
+输出成了 `projects 94` 一行。改成「取 `src` 之后那一段」才对。**
+
+**而一个只输出 `projects 94` 的分组表**看起来像在工作**（有分组、有数字），
+**只是每一行都是同一个错名字 —— 与 R876 那次「相邻当归属」同族：形状对，内容错。**

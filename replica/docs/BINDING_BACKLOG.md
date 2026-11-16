@@ -4124,3 +4124,41 @@ R883 的 `Drop.Type` 是「类型挂在哪」，这条是「任务本身是可�
 | `prop-get` 16 条加 setter 会不会破坏双向绑定 | 未查 |
 
 **纪律**：**报数字说差多少，报结构说差在哪 —— 94 不可行动，`Close × 15` 可以。**
+
+
+## 判据 — 「形状 94」里 77 条是 UI；核心 **17**（R888，**改工具链两处**）
+
+### 按优先级分组
+
+| 项目 | 条数 | 优先级 |
+|---|---|---|
+| **`Cybersole.Ui`** | **77** | **④（缓）** |
+| `Cybersole.Core` | 12 | ④ 偏底 |
+| `Cybersole.Services` | 5 | ② 相邻 |
+| **`Cybersole.Stores`** | **0** | **① 零缺口** |
+
+**→ 94 的 82% 在被缓的那一档。R881–R887 在提高一个主项不在目标上的指标的分辨率。**
+
+### 改动
+
+`shape_audit.py` 加按项目分组 + `core mismatches: 17`；`metrics_report.py` 加 pattern；
+**`METRICS.md` L23 总 94 / L24 核心 17。**
+
+### 核心 17 条
+
+**`BotTask`（`Running` · `Task`）· `Checkout`（`Profile`）· `CreateModel`（`Inputs`）·
+`Notification`（`Timestamp` · `Title`）· `IWebhook`（`Events` · `ExtraFields` · `Name` · `Url`）**
+
+**最大一族 `BotTask` = 任务模型中心；`Task` 即 R364 悬案。**
+
+### 实现错一处
+
+**绝对路径下 `_parts[1]` = `projects` → 输出 `projects 94`。**看起来像在工作**（有分组有数字），只是每行同一错名。**
+
+| 仍 Unknown | |
+|---|---|
+| **核心 17 条该不该现在做** | **最该判：不是 Stores 的，仍不在 ① 正中心** |
+| `BotTask.Running`/`Task` 的类型 | 只知是可写属性 |
+| `Cybersole.Http` 未出现 | **94 条没一条命中请求层，而 ③ 正是请求层** |
+
+**纪律**：**指标不需要错才会误导 —— 只需要**没有按目标分解**。**

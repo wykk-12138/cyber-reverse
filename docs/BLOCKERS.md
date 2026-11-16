@@ -23506,3 +23506,84 @@ BotTask 的 ? 行                           -> Running · Task，均 evidence=Ge
 
 **所以报数字和报结构不是同一件事。前者说差多少，后者说差在哪、是不是同一处。
 而我前面几轮一直在报数字。**
+
+
+---
+
+## 312. 「形状 94」里 77 条是 UI；核心项目 **17** 条
+
+> R888。**改工具链两处 + METRICS 增一行。** 套件 **1780 通过 / 0 失败 / 0 跳过**。
+
+### 一、按优先级分组的 94 条
+
+| 项目 | 条数 | 优先级 |
+|---|---|---|
+| **`Cybersole.Ui`** | **77** | **④（YG 明令缓）** |
+| `Cybersole.Core` | 12 | ④ 但偏底 |
+| `Cybersole.Services` | 5 | ② 相邻 |
+| **`Cybersole.Stores`** | **0** | **① 零缺口** |
+
+**YG 的次序是 ① checkout flow → ② 风控 → ③ 请求指纹 → ④ 其余（含 UI）。
+所以 94 条的 82% 在被缓的那一档，而 ① 是零缺口。**
+
+**→ R881–R887 这几轮我在提高一个指标的分辨率，而它的主项不在目标上。**
+
+### 二、改了什么
+
+```
+shape_audit.py     + 按项目分组
+                   + core mismatches: 17
+metrics_report.py  + 取 core mismatches（patterns 白名单加一条）
+METRICS.md L23    总 94
+METRICS.md L24    核心 17
+```
+
+**「差多少」与「差在哪一档」现在是两个并列的数。**
+
+### 三、核心那 17 条
+
+| 类型 | 缺的成员 |
+|---|---|
+| **`BotTask`** | **`Running` · `Task`** |
+| `Checkout` | `Profile` |
+| `CreateModel` | `Inputs` |
+| `Notification` | `Timestamp` · `Title` |
+| `IWebhook` | `Events` · `ExtraFields` · `Name` · `Url` |
+
+**最大一族是 `BotTask`，而它是任务模型的中心 —— 而 `Task` 就是 R364 那个悬案。**
+
+### 四、一处实现错
+
+**第一版用 `_dp.split(os.sep)[1]` 取项目名，而 `ROOT` 是绝对路径 → `_parts[1]` 是 `projects`，
+输出成了 `projects 94` 一行。**
+
+**而它**看起来像在工作** —— 有分组、有数字，只是每行同一个错名字。
+**与 R876「相邻当归属」同族：形状对，内容错。****
+
+**修法是取 `src` 之后那一段。**
+
+### 五、验证
+
+```
+shape_audit.py --baseline -> total 94 · by owning project: Ui 77 / Core 12 / Services 5 · core mismatches 17
+metrics_report.py         -> {'total mismatches': '94', 'core mismatches': '17'}
+docs/METRICS.md L23/L24   -> 94 / 17
+完整套件                   -> 1780 通过 / 0 失败 / 0 跳过
+```
+
+### 六、仍然 Unknown
+
+- **核心那 17 条该不该现在做**：**Unknown，而这是本轮之后最该判的。**
+  **它们是 Core/Services 里的属性形状差异，不是 Stores 的 —— 所以仍然不在优先级 ① 的正中心。**
+- **`BotTask.Running` 与 `BotTask.Task` 是什么类型**：**Unknown** ——
+  **证据只说它们是 `Getter,Property,Setter`（可写属性），类型本身没有。**
+- **`Cybersole.Http` 在分组里没出现**：**Observation** —— 说明那 94 条里没有一条命中 Http 的类型，
+  **而优先级 ③ 正是请求层。**
+
+### 七、教训
+
+**R887 我说「报数字说差多少，报结构说差在哪」。这一轮发现还缺第三个轴：**差在哪一档**。**
+
+**而那个轴最要紧 —— 因为 YG 给过次序，而我的指标把 82% 的注意力指向了被缓的那一档。**
+
+**一个指标不需要错才会误导；它只需要**没有按目标分解**。**

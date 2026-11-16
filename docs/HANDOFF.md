@@ -519,3 +519,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **一个结构故事**：`Close`/`Delete`/`Save`/`Edit`/`Reset`/`Add` 全是视图动作成员，镜像是**可写 `ICommand` 属性** → **一次形态改造，不是 63 次补丁**（`AGENTS.md §3` 八项清单）。
 **`BotTask.Running`/`Task` 均 `Getter,Property,Setter` → 可写属性**；与 R883 的 `Drop.Type` 是两件事。**R364 重述：`Task` 是可写属性，`Type` 挂在 `Drop` 上。**
 **最该判：`Close`×15 要不要一次改**（15×8 项连带，可能改到一半）。
+
+## R888 补充 — 「形状 94」里 **77 条是 UI**；核心 **17**（**改工具链两处**）
+
+**按项目分组**：`Ui` 77（**优先级 ④，YG 明令缓**）· `Core` 12 · `Services` 5 · **`Stores` 0（① 零缺口）**。**→ 94 的 82% 在被缓的那一档；R881–R887 在提高一个主项不在目标上的指标的分辨率。**
+**改动**：`shape_audit.py` 加按项目分组 + `core mismatches: 17`；`metrics_report.py` 加 pattern；**METRICS L23 总 94 / L24 核心 17**。
+**核心 17 条**：`BotTask`(`Running`·`Task`) · `Checkout`(`Profile`) · `CreateModel`(`Inputs`) · `Notification`(`Timestamp`·`Title`) · `IWebhook`(4 个)。**最大一族 `BotTask` = 任务模型中心。**
+**`Cybersole.Http` 未出现 → 94 条没一条命中请求层，而 ③ 正是请求层。**
+**纪律：指标不需要错才会误导 —— 只需要没有按目标分解。**

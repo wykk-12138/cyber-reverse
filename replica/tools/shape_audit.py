@@ -135,6 +135,46 @@ for t, m, kinds, have in rows_out:
 print('total mismatches:', len(rows_out))
 
 # ---------------------------------------------------------------------------------------------
+# R888: the same rows, split by the project that owns each type.
+#
+# The total is a misleading steering signal on its own. Of the ninety-four rows, seventy-seven belong
+# to Cybersole.Ui, which is priority four in the user's ordering -- deferred behind checkout flows,
+# anti-bot and the request layer. Core and Services carry seventeen between them and Cybersole.Stores
+# carries none.
+#
+# So the published total has been dominated by work the ordering defers, and several rounds went into
+# improving the accuracy of a figure whose largest term is out of scope. Splitting it puts the number
+# that matters next to the number that does not.
+# ---------------------------------------------------------------------------------------------
+_owner = {}
+for _dp, _dirs, _fs in os.walk(os.path.join(ROOT, "src")):
+    if (os.sep + "obj" + os.sep) in _dp or (os.sep + "bin" + os.sep) in _dp:
+        continue
+    _parts = _dp.replace("/", os.sep).split(os.sep)
+    # the project is the directory immediately after "src", and ROOT is absolute so an index from the
+    # front would name the drive's parent rather than the project.
+    _proj = _parts[_parts.index("src") + 1] if "src" in _parts and _parts.index("src") + 1 < len(_parts) else "(root)"
+    for _fn in _fs:
+        if not _fn.endswith(".cs"):
+            continue
+        try:
+            _text = io.open(os.path.join(_dp, _fn), encoding="utf-8", errors="replace").read()
+        except OSError:
+            continue
+        for _m in re.finditer(r"\b(?:class|record|interface)\s+(\w+)", _text):
+            _owner.setdefault(_m.group(1), _proj)
+
+_by_proj = collections.Counter(_owner.get(t, "(unknown)") for t, _m, _k, _h in rows_out)
+print("")
+print("by owning project (priority order: Stores > Services > Http > Core > Ui):")
+for _p, _n in _by_proj.most_common():
+    print("  %-22s %3d" % (_p, _n))
+
+# the one line a metrics runner can read without parsing a table
+CORE = ("Cybersole.Stores", "Cybersole.Services", "Cybersole.Http", "Cybersole.Core")
+print("core mismatches: %d" % sum(n for p, n in _by_proj.items() if p in CORE))
+
+# ---------------------------------------------------------------------------------------------
 # R885: the reverse direction, which this tool never reported. The check above finds members the
 # image evidences and the replica lacks; it cannot find members the replica declares and the image
 # does not, which is the question R884 left open about CreateModel's twelve extra properties.

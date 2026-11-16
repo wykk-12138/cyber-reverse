@@ -44,7 +44,11 @@ METRICS = [
     ("名字级绑定缺口", ["tools/bind_diff.py", "--buckets"], ["real gap", "missing"]),
     ("类型级绑定缺口", ["tools/bind_scope.py"], ["types with scope misses"]),
     ("类型缺失（type presence）", ["tools/bind_diff.py", "--type-presence"], ["types absent from source"]),
-    ("成员形状差异", ["tools/shape_audit.py", "--baseline"], ["total mismatches"]),
+    # R888: the total is dominated by Cybersole.Ui, which the priority order defers behind checkout
+    # flows, anti-bot and the request layer. Of the ninety-four rows, seventy-seven are Ui, seventeen
+    # are Core or Services, and Stores carries none. The core figure is the one steering should read.
+    ("成员形状差异", ["tools/shape_audit.py", "--baseline"],
+     ["total mismatches", "core mismatches"]),
     ("文案缺口总表", ["tools/copy_audit_report.py"], ["copy: zones with a missing key"]),
     ("绑定缺口分桶", ["tools/backlog_report.py"], ["backlog: classes missing members", "backlog: types absent"]),
     # R466 fifth metric. Reads the TSV written by analysis/binding_descriptors.py (IDA-dependent, slow);
@@ -88,6 +92,9 @@ def summary_bits(name_out, owned):
         "types with scope misses": r"types with scope misses:\s*(\d+)",
         "types absent from source": r"type presence: \d+ declared in bindings, \d+ present in source, (\d+) absent",
         "total mismatches": r"total mismatches:\s*(\d+)",
+        # R888: the same audit's rows restricted to Stores, Services, Http and Core. The total is
+        # dominated by Ui, so this is the figure that tracks progress on the deferred-behind work.
+        "core mismatches": r"core mismatches:\s*(\d+)",
         "copy: zones with a missing key": r"^\s+(\S+)\s+\d+\s+(\d+) missing",
         "backlog: classes missing members": r"classes that EXIST in the replica but miss members:\s*(\d+)",
         "backlog: types absent": r"types that DO NOT exist \(structural\):\s*(\d+)",

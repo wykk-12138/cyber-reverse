@@ -6021,3 +6021,39 @@ d__85 SelectMultiPopNow · d__86 AddToCartBox · d__87 SelectMultiPopNowUS
 | 13 个里复刻件有几个 | 未逐个数 |
 
 **纪律**：`n=40` 是工具上限不是镜像数量；补救办法（翻页）也不成立时，唯一可靠的是直接查名字。
+
+
+## 判据 (a)/① — AddToCart 三列计数：8 实现 / 5 只有名字 / 4 有 surface 无 step（R940，**+11 用例**）
+
+### 按名字 13/13 是假满分
+
+**六个只在 `AddToCartMatrix.cs`（上一轮的清单）里 → R850「有形状没有内容」。**
+
+### 真实分布
+
+**有实现 8 · 只有名字 5 —— 而 5 里 4 个（Next/Astro/Svelte/Frontend）**有 surface、无 step**。**
+
+### 为什么 surface ≠ step
+
+**surface 答怎么读；step 答往哪写。cart 端点**按店不同不按框架不同** → 拼不出 step，声称能拼是编造地址。**
+
+### 第五个不同
+
+**`AddToCartDummy` —— 不和店说话，唯一不依赖端点证据的缺口。**
+
+### `Scripts/AddToCartCoverage.cs`
+
+**`Rows`(13，各带 note) · `SurfaceWithoutStep`(4) · `IndependentGap` · `ImplementedCount`/`NamedOnlyCount` ·
+`IsImplemented` · `HasSurfaceWithoutStep`**
+
+### 数字
+
+**套件 2001 → 2012 · 陈旧度 6/666 → 7/752**
+
+| 仍 Unknown | |
+|---|---|
+| 四个框架的 cart 端点 | 按店不同，未恢复 |
+| `AddToCartDummy` 的行为 | 只有名字 |
+| 是否还有第 14 个名字 | R939 未扫完 |
+
+**纪律**：「在源码里出现过」对「实现了吗」不够 —— 而它不够的方式很安静：给的是一个满分。

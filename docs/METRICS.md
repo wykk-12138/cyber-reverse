@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 05:15:35 +0800 |
+| 生成时间 | 2026-11-17 05:21:12 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2001 通过 / 0 失败 / 0 跳过 / 2001 总计** |
+| 完整套件 | **2012 通过 / 0 失败 / 0 跳过 / 2012 总计** |
 
 ## 摘要素值
 
@@ -34,8 +34,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 173,653 |
 | 函数数量（.pdata） — functions: ratio | 62.66% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 6 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 666 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 7 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 752 |
 | 核心覆盖：store 宿主 — hosts with a path | 39 |
 | 核心覆盖：store 宿主 — store hosts | 27 |
 | 核心覆盖：store 宿主 — store hosts matched | 24 |
@@ -358,9 +358,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 04:40:00
-newest source: src\Cybersole.Stores\Scripts\AddToCartMatrix.cs (2026-11-17 05:14:28)
-source files newer than the artifact: 6
-lines in those files: 666
+newest source: src\Cybersole.Stores\Scripts\AddToCartCoverage.cs (2026-11-17 05:19:47)
+source files newer than the artifact: 7
+lines in those files: 752
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -473,7 +473,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2001 通过 / 0 失败 / 0 跳过 / 2001 总计
+`exit 0` · 2012 通过 / 0 失败 / 0 跳过 / 2012 总计
 
 ```text
   正在确定要还原的项目…
@@ -490,7 +490,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2001，已跳过:     0，总计:  2001，持续时间: 1 m 28 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2012，已跳过:     0，总计:  2012，持续时间: 1 m 42 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

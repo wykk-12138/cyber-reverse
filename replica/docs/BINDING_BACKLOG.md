@@ -913,3 +913,22 @@ poq-slot-conditions   名字确认，取值未定位
 **加模块的连带清单（R779 实测五处）**：`PARITY.md` 两处、`CoreTests.cs`、
 `ArrowAndBeastTests`（名字里带数字）、`VERDICT.md` 顶部 reading guide。
 **注册新模块前先想到这五处。**
+
+
+## 核心 — R765 那张表的最终裁定（R780）
+
+| 站 | 判定 | 下一步 |
+|---|---|---|
+| scheels · hbx | ✅ 已 100% | — |
+| fanatics · yeezysupply | ✅ 不是缺口（已进豁免） | — |
+| offspring 网页 | ✅ 100% | — |
+| offspring App 面 | ✅ 已建 `poq-app`（57%） | 待定任务类型 |
+| **casio** | 缺**整张配置面**（`CasioRegion` + 5 个 `casio_*` + 3 区域 + `casiostore`） | **可做**：把镜像的配置面用上 |
+| casio 支付 | **信息不足**（Adyen，`_adyenOrderId` 是字段名不是端点） | 未取证 |
+| **hypecommerce** | **抽奖面**（`entries/validate` + `entries/create`） | 尺子待定 |
+| warhammer | Unknown（GraphQL mutation） | 需读调用方 |
+| goat · popmart · superswipe | 抽奖面 | 尺子待定 |
+| bstn | **原版 0 字符串** | 待裁决 |
+
+**方法论提醒**：R767 把「字段名 + 共用支付层字符串」数成了「该站有 2 个结账 URL」。
+**数 URL 之前先看它是不是那个站自己的端点** —— 这是 §2.7 的又一次。

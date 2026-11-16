@@ -47807,3 +47807,47 @@ R772 我也建过 Poq flow，**那次拿一个面替换另一个面，被实机�
 ### 仍然 Unknown
 
 **触发 App 面的任务类型** —— 注册成独立 module **是我选的形状，不是原版的形状**，类注释里写明了。
+
+
+---
+
+## 第 780 轮：逐条查完之后，「12 个下不了单」这个说法站不住了
+
+### casio
+
+镜像给的是**分区 + 登录 + 五个蛇形字段 + 一个 Adyen 订单号字段**，**没有结账端点**。
+**而 R767 我把它算成"有 2 个结账面 URL"—— 那两条一个是字段名，一个是全站共用的 Square PCI。数错了。**
+
+复刻件这一侧：8 个 override，71%（缺 shipping + payment），
+**而且它确实用了镜像证据**（`RecaptchaSiteKey` 就是 Casio 配置里那串）。
+**但 `CasioRegion` 与五个 `casio_*` 字段全 ABSENT** —— 缺的是整张配置面，不是两步。
+
+**支付步补不了**：知道是 Adyen，**但 `_adyenOrderId` 是字段名不是端点**。
+拿猜的 URL 去补，正是 R772 的错。
+
+### hypecommerce
+
+`entries/validate` + `entries/create` —— **先校验再报名，抽奖形状。**
+与 `raffle`/`pocketgames`/`riotgames` 同类：**七步尺子不合身。**
+
+### R765 那张表的最终样子
+
+| 站 | 判定 |
+|---|---|
+| scheels · hbx | 已补齐到 100% |
+| fanatics · yeezysupply | **不是缺口**（原版没有结账面） |
+| offspring | 两种表面，网页已 100%，App 面另建 |
+| casio | 缺整张配置面；支付家数已知、端点未知 |
+| hypecommerce | 抽奖面，尺子不合身 |
+| warhammer | Unknown（GraphQL mutation 未取证） |
+| goat · popmart · superswipe | 抽奖面，尺子未定 |
+| bstn | 原版 0 字符串 |
+
+> **12 个里：2 个真补齐、2 个证明不是缺口、1 个拆两件事、7 个是「尺子或信息」问题。
+> 「12 个下不了单」本身是个过于笼统的结论。**
+
+### 验证
+
+```
+产品代码未改；套件 1752 / 0；度量未变
+```

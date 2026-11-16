@@ -19389,3 +19389,70 @@ PopMartFlow.cs L232: PostJsonAsync(..., PopMartEndpoints.AddBoxListToCart, ...)
 
 **「命中为零」和「命中一片」都可以是无效探针，而我一直只防前一种。**
 **`Next` 命中几十个文件时，那一列看起来很像「已实现」—— 比零命中更危险，因为它看起来像结论。**
+
+
+---
+
+## 265. 第二批 24 条：9 改名实现 · 5「能力存在」 · 10 待判
+
+> R841。`docs/ASYNC_OPS.md` 追加第二批。未改产品代码。
+
+### 一、把 R840 的教训做成了机械规则
+
+**命中文件数 >5 ⇒ 探针无效**（这个词太常见，说明不了任何事）。
+**0 ⇒ 待判。1–5 ⇒ 候选，值得读。**
+
+### 二、结果
+
+| 类别 | 数 | 例 |
+|---|---|---|
+| **改名实现** | **9** | `ProcessOrderPaypalCreditCard`→`NikePersistedOperations.cs` · `SubmitUnzerOrder`→`Gateways.cs`/`PaymentGateway.cs` · `GetSessionToken`/`RequestSessionToken`→`NikePersistedOperations.cs` · `CheckSession`→`VerifySession` · `GetAppCartToken`→`ShopifyHeaders.cs` · `CreateCheckout` · `CreateRaffleCheckout`→`Raffle`（`RetailFlows.cs`×11）· `GenerateCheckout` |
+| **能力存在，命名未对上** | **5** | `Stripe` 9 文件 · `Adyen` 13 文件（含 `AdyenGateway.cs`）· `Commerce` 10 · `SubmitPayment` 19 |
+| **待判（0 命中）** | **10** | `GetPaymentSession` · `GetSessionData` · `RestartSession` · `SetupProxySession` · `GetAtlasSessionToken` · `CreateCustomCheckout` · `FinalizeCheckout` · `LoadCheckoutPage` · `ValidateCheckout` · `VerifyCheckout` |
+
+### 三、这一轮最重要的区分
+
+**R840 说「命中为零」和「命中一片」都可以是无效探针。这一轮发现还要再分：**
+
+> **探针失败有两种读法，必须分开：**
+> **① 词没辨识力** —— 例如 `Stripe` 命中 9 个文件，但那 9 个文件恰恰**证明 Stripe 处理存在**；
+> **② 能力真的没有** —— 零命中，且换词后仍零。
+
+**`SubmitAdyenOrder` 就是 ①：探针 `Adyen` 命中的文件里有 `AdyenGateway.cs` ——
+这不是「名字没对上」，这是「这条能力做得很完整，只是不叫那个名字」。**
+
+**如果我把 ① 也算成「未覆盖」，覆盖表会难看，而且不真。**
+
+### 四、10 条零命中里，值得先看的两个
+
+- **`FinalizeCheckout` / `ValidateCheckout` / `VerifyCheckout`** —— 三个都是**结账前把车锁死**这一步的候选名。
+  复刻件有 `SubmitOrderAsync`，但**「锁车前校验」这一步可能真没有。**
+- **`RestartSession`** —— 与 R824 的 `RefreshSession` 是同一族问题（会话保活），
+  **而 R827 已证镜像没有 `RefreshSession`；`RestartSession` 是另一个名字，值得核。**
+
+### 五、验证
+
+```
+python analysis\adjudicate_batch.py
+  24 行，每行给出 探针 / 命中文件数 / 裁决
+  规则：>5 文件 ⇒ probe-invalid；1-5 ⇒ renamed；0 ⇒ undecided
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **那 10 条零命中是真缺还是词不对**：**Unknown** ——
+  **`ValidateCheckout` 可能叫 `EnsureCheckoutReady` 之类，本轮没试同义词。**
+- **`Stripe` 那 9 个文件是否覆盖了 `SubmitStripeOrder` 的全部语义**：**Unknown** ——
+  **「能力存在」比「实现相等」弱一档。**
+- **剩余 40 条**（71 − 7 − 24）：**全部待判。**
+
+### 七、教训
+
+**这一轮真正得到的不是 9 个裁决，是「探针失败有两种」这条区分。**
+**而我上一轮把它当成了一种 —— 于是 `Next` 命中几十个文件时我说「无效」，**
+**这一轮 `Stripe` 命中 9 个文件，那 9 个文件里就有 `AdyenGateway.cs` 的同族。**
+
+**同样是「命中过多」，一个说明词没用，一个说明功能很全。**
+**差别在：那些文件是不是关于这件事的。**

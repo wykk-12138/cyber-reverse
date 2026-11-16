@@ -106,3 +106,37 @@
 
 **方法**：对每个未命中名，取它最有辨识度的那个词去 grep 复刻件。
 **探针必须有辨识度** —— `Next` 那种词到处都是，用它当探针等于什么都没查。
+
+### 第二批（R841）：支付 + 会话 + 结账面，24 条
+
+| 名字 | 裁决 | 依据 |
+|---|---|---|
+| `SubmitStripeOrder` | 能力存在，命名未对上 | `Stripe` 命中 9 文件 —— 探针无辨识力，但 Stripe 处理显然在 |
+| `ProcessOrderStripe` | 同上 | `Stripe` 9 文件 |
+| `SubmitAdyenOrder` | 能力存在，命名未对上 | `Adyen` 命中 13 文件（含 `AdyenGateway.cs`） |
+| `ProcessOrderPaypalCreditCard` | 改名实现 | `Paypal` -> `NikePersistedOperations.cs` ×10 |
+| `SubmitUnzerOrder` | 改名实现 | `Unzer` -> `Gateways.cs` ×3 · `PaymentGateway.cs` ×1 · `CandidateSteps.cs` ×1 |
+| `ProcessOrderCommerce` | 能力存在，命名未对上 | `Commerce` 命中 10 文件 |
+| `SubmitCheckoutPayment` | 能力存在，命名未对上 | `SubmitPayment` 命中 19 文件 |
+| `GetPaymentSession` | 待判 | `PaymentSession` 0 文件 |
+| `GetSessionToken` | 改名实现 | `SessionToken` -> `NikePersistedOperations.cs` ×4 |
+| `RequestSessionToken` | 改名实现 | 同上 |
+| `GetSessionData` | 待判 | `SessionData` 0 文件 |
+| `CheckSession` | 改名实现 | `VerifySession` -> `StoreFlow.cs` ×2 · `RetailFlows.cs` ×1 · `StepAction.cs` ×1 |
+| `RestartSession` | 待判 | `RestartSession` 0 文件 |
+| `SetupProxySession` | 待判 | `ProxySession` 0 文件 |
+| `GetAtlasSessionToken` | 待判 | `Atlas` 0 文件 |
+| `GetAppCartToken` | 改名实现 | `CartToken` -> `ShopifyHeaders.cs` ×2 |
+| `CreateCheckout` | 改名实现 | -> `StoreFlow.cs` ×1 · `StoreFlowSteps.cs` ×2 |
+| `CreateCustomCheckout` | 待判 | `CustomCheckout` 0 文件 |
+| `CreateRaffleCheckout` | 改名实现 | `Raffle` -> `RetailFlows.cs` ×11 · `DemandwareFlow.cs` ×5 · `DemandwareRaffle.cs` ×1 |
+| `FinalizeCheckout` | 待判 | `Finalize` 0 文件 |
+| `GenerateCheckout` | 改名实现 | -> `StoreFlow.cs` ×1 |
+| `LoadCheckoutPage` | 待判 | `GetCheckoutPage` 0 文件 |
+| `ValidateCheckout` | 待判 | `ValidateCheckout` 0 文件 |
+| `VerifyCheckout` | 待判 | `VerifyCart` 0 文件 |
+
+**新分出一类裁决：「能力存在，命名未对上」。**
+`Stripe` 命中 9 个文件、`Adyen` 13 个、`Commerce` 10 个、`SubmitPayment` 19 个 ——
+**这些探针作为「名字对应」无效，但作为「能力存在」是强证据。**
+**探针失败有两种读法，必须分开：词没辨识力（这一种）vs 能力真的没有（零命中且换词仍零）。**

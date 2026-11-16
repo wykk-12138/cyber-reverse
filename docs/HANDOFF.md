@@ -173,3 +173,10 @@
 
 `docs/ASYNC_OPS.md` 增「裁决记录」表。**3 条改名实现**（`AddToCartBox`/`AddToCartFrontend`/`AddToCartSvelte`）· 1 条探针无效（`AddToCartNext` 用 `Next` 命中几十文件，什么都没证明）· 3 条待判。
 **新失败形态**：此前探针失败都是「命中为零」，这次是「命中一片但无意义」—— 比零命中更像结论。
+
+## R841 补充 — 裁决累计 31/71
+
+第二批 24 条：**9 改名实现 · 5「能力存在，命名未对上」 · 10 待判**。
+**新区分**：探针失败有两种 —— ① 词没辨识力（`Stripe` 9 文件里有 `AdyenGateway.cs` 同族）· ② 能力真的没有。
+机械规则：`>5` 文件 ⇒ 探针无效；`0` ⇒ 待判；`1–5` ⇒ 候选。
+**先看**：`FinalizeCheckout`/`ValidateCheckout`/`VerifyCheckout`（锁车前校验）· `RestartSession`（与 `RefreshSession` 同族）。

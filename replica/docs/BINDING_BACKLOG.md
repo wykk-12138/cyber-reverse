@@ -2544,3 +2544,33 @@ python analysis/ida.py str <Flow|Task|Pop|Cart|Checkout|Order|Session|Signup> --
 | `AddToCartAstro` / `AddToCart2` / `AddToCartDummy` 归属 | 要看哪个流程调用 —— 调用图，不是名字 |
 | `AddToCartNext` 对应物 | 换探针 |
 | 其余 64 条 | 全部待判 |
+
+
+## 判据 (f) — 裁决进度（R841：累计 31/71）
+
+**机械规则**：`>5` 文件 ⇒ 探针无效；`0` ⇒ 待判；`1–5` ⇒ 候选。
+
+### 第二批 24 条
+
+| 类别 | 数 | 例 |
+|---|---|---|
+| **改名实现** | **9** | Paypal→`NikePersistedOperations.cs` · Unzer→`Gateways.cs` · SessionToken×2 · CheckSession→`VerifySession` · CartToken→`ShopifyHeaders.cs` · CreateCheckout · Raffle（`RetailFlows.cs`×11）· GenerateCheckout |
+| **能力存在，命名未对上** | **5** | `Stripe` 9 文件 · `Adyen` 13（含 `AdyenGateway.cs`）· `Commerce` 10 · `SubmitPayment` 19 |
+| **待判** | **10** | `GetPaymentSession` `GetSessionData` `RestartSession` `SetupProxySession` `GetAtlasSessionToken` `CreateCustomCheckout` `FinalizeCheckout` `LoadCheckoutPage` `ValidateCheckout` `VerifyCheckout` |
+
+### 关键区分（新）
+
+> **探针失败有两种：① 词没辨识力；② 能力真的没有。**
+> **`SubmitAdyenOrder` 属 ①：命中的文件里有 `AdyenGateway.cs` —— 能力很全，只是不叫那个名字。**
+> **把 ① 算成「未覆盖」会让表难看且不真。**
+
+### 先看哪两个
+
+**`FinalizeCheckout`/`ValidateCheckout`/`VerifyCheckout`** —— 「锁车前校验」，复刻件可能真没有。
+**`RestartSession`** —— 与 `RefreshSession` 同族；R827 已证镜像无 `RefreshSession`。
+
+| 仍 Unknown | |
+|---|---|
+| 10 条零命中真缺还是词不对 | 未试同义词 |
+| `Stripe` 9 文件是否覆盖全部语义 | 「能力存在」弱于「实现相等」 |
+| 剩余 40 条 | 待判 |

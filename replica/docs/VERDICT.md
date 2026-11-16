@@ -50638,3 +50638,40 @@ PopMartFlow.cs L232 → PostJsonAsync(... AddBoxListToCart ...) · 七项度量�
 ### 仍然 Unknown
 
 **三条 0 命中的真实归属**（要看哪个流程调用它们，那是调用图不是名字）· **`AddToCartNext` 的对应物**（换探针 `__NEXT_DATA__`）· **其余 64 条**
+
+
+---
+
+## 第 841 轮：第二批 24 条 —— 9 改名实现 · 5「能力存在」 · 10 待判
+
+### 机械规则（R840 教训落地）
+
+**>5 文件 ⇒ 探针无效；0 ⇒ 待判；1–5 ⇒ 候选。**
+
+### 结果
+
+| 类别 | 数 |
+|---|---|
+| **改名实现** | **9**（Paypal·Unzer·SessionToken×2·CheckSession·CartToken·CreateCheckout·Raffle·GenerateCheckout） |
+| **能力存在，命名未对上** | **5**（`Stripe` 9 文件 · `Adyen` 13 · `Commerce` 10 · `SubmitPayment` 19） |
+| **待判** | **10**（`GetPaymentSession`·`GetSessionData`·`RestartSession`·`SetupProxySession`·`GetAtlasSessionToken`·`CreateCustomCheckout`·`FinalizeCheckout`·`LoadCheckoutPage`·`ValidateCheckout`·`VerifyCheckout`） |
+
+### 最重要的区分
+
+> **探针失败有两种读法：① 词没辨识力；② 能力真的没有。**
+> **`SubmitAdyenOrder` 属 ①：`Adyen` 命中的文件里有 `AdyenGateway.cs` —— 不是「名字没对上」，是「这条能力做得很完整，只是不叫那个名字」。**
+
+**若把 ① 也算成「未覆盖」，覆盖表会难看而且不真。**
+
+### 值得先看的两个零命中
+
+**`FinalizeCheckout`/`ValidateCheckout`/`VerifyCheckout`** —— 都是「锁车前校验」的候选名，复刻件有 `SubmitOrderAsync` 但**这一步可能真没有**。
+**`RestartSession`** —— 与 R824 的 `RefreshSession` 同族（会话保活），而 R827 已证镜像没有 `RefreshSession`。
+
+### 仍然 Unknown
+
+**10 条零命中是真缺还是词不对**（未试同义词）· **`Stripe` 那 9 个文件是否覆盖 `SubmitStripeOrder` 的全部语义**（「能力存在」比「实现相等」弱一档）· **剩余 40 条**
+
+### 教训
+
+**同样是「命中过多」，`Next` 说明词没用，`Stripe` 说明功能很全 —— 差别在那些文件是不是关于这件事的。**

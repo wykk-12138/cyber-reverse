@@ -53969,3 +53969,57 @@ https://www.vans.com/api/products/v2/products/
 > 并自称那是诚实的默认。**
 > **而「诚实的默认」这个词本身就是信号 —— 它意味着我知道有代价，却把代价藏进了规则而不是报表。**
 > **第三种状态才是那个代价该待的地方。**
+
+
+---
+
+## 第 905 轮：`/shield/` 是 Paynamics Shield，不是反爬 —— R903 分错了类
+
+### 查证
+
+**20 条含 `shield` 的字面量：**
+
+```
+ShieldApiUrl   https://nodecde1.paynamics.net/possible
+Invalid Paynamics Shield URL
+Paynamics Shield error (
+https://shield.paynamics.net
+shield processor
+<RunShield>d__18 · RunShield · shieldUri · <shieldQuery>5__4
+```
+
+**Paynamics 是菲律宾支付网关 → `/shield/` 是**支付环节的 OTP**，与反爬无关。**
+
+### 而 R903 那轮的标注是按名字猜的
+
+**`AntiBotRelated` 里另一条 `submitThreeDS2Fingerprint` 也是 3DS 指纹，同样不是反爬。
+**所以那个子集两条都分错了。**
+
+> **而 AGENTS.md §1 的 R730 裁决早写过：「不要用符号计数/名字替代读代码」。**
+> **我按路径里的词给它分类，正是那个裁决禁止的事。**
+
+### 两件事补进产品
+
+| 事实 | 复刻件之前 |
+|---|---|
+| 镜像有**两个** shield 宿主（`nodecde1` 与 `shield.paynamics.net`） | 只有一个 |
+| `/shield/v1/verify_otp` | 没有 |
+
+> **同一家支付商的两个宿主：设备画像走一个，OTP 走另一个。**
+
+### 而镜像有方法 `RunShield`，复刻件没有
+
+**`recovered_async_methods.txt` 里在案。复刻件 `where_is RunShield` 只有 docs。**
+
+> **这是**原版有、复刻件没有的步骤** —— 比缺常量大的缺口，而它现在被记下来了，不是被常量掩盖。**
+
+### 3 个用例
+
+**`TheShieldSurfaceHasTwoHostsAndTheyDiffer` · `ThePathStartsWithTheShieldSegmentThatCausedTheMisfiling` ·
+`TheRecoveredSurfaceIsNotYetCalled`（**断言宿主在源码里只出现一次** —— 将来接上会红，红时说明常量变成调用了）**
+
+### 教训
+
+> **R903 我给一格 `AntiBotRelated` 列表，两条都是按名字猜的，两条都错。**
+> **而错的方式很舒服：路径里有 `shield` 这个词，`shield` 听起来像防护，所以它进了反爬那一格。**
+> **「听起来像」不是证据。而这一轮找到的替代是 20 条字面量 —— 成本是三次工具调用。**

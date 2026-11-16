@@ -505,6 +505,36 @@ public sealed class PaynamicsGateway : IPaymentGateway
     private const string RpfHost = "https://api.paynamics.net";
     private const string ShieldHost = "https://nodecde1.paynamics.net";
 
+    /// <summary>
+    /// The second shield host, recovered in R905 along with a path the replica never had.
+    ///
+    /// <para>
+    /// The image holds two Paynamics shield hosts, not one: <c>nodecde1.paynamics.net</c>, which this class already
+    /// used for device profiling, and <c>shield.paynamics.net</c>. It also holds <see cref="ShieldVerifyOtp"/> under
+    /// the latter. Neither the host nor the path appears in the replica before this round, so the device-profiling
+    /// call above and the OTP call the image can make are on different hosts.
+    /// </para>
+    ///
+    /// <para>
+    /// Recording the host and the path is what the evidence supports. What it does not support is a call: the body,
+    /// the response and which flow invokes it are all absent. The image does name a method, <c>RunShield</c>, in its
+    /// async-method table, and the replica has no such method — so this is a step the original has and this does not,
+    /// which is a larger gap than a missing constant and is recorded as such rather than papered over.
+    /// </para>
+    /// </summary>
+    private const string PublicShieldHost = "https://shield.paynamics.net";
+
+    /// <summary>
+    /// The OTP verification path on <see cref="PublicShieldHost"/>. See that constant for what is and is not known.
+    /// </summary>
+    private const string ShieldVerifyOtp = "/shield/v1/verify_otp";
+
+    /// <summary>
+    /// What R905 recovered of the second shield surface, exposed so a test can pin it without the constants becoming
+    /// public API. Two facts: the host, and the path. Neither is a callable endpoint yet.
+    /// </summary>
+    public static (string Host, string OtpPath) RecoveredShieldSurface => (PublicShieldHost, ShieldVerifyOtp);
+
     public string Id => "paynamics";
     public string Name => "Paynamics";
 

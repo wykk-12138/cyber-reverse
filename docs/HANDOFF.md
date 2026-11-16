@@ -665,3 +665,15 @@ AntiBotRelated 子集让优先级 ② 可直接数。
 不并入的理由：算 covered 会高报、算 missing 会低报，两种前面都犯过；第三种状态是代价该待的地方。
 
 下一轮：/shield/v1/verify_otp（优先级 ②）；store 那 44 条真缺失清单。
+
+## R905 补充 — /shield/ 是 Paynamics Shield，不是反爬（改产品代码 +3 用例，套件 1802→1805）
+
+20 条含 shield 的字面量给出答案：ShieldApiUrl https://nodecde1.paynamics.net/possible · Invalid Paynamics Shield URL · https://shield.paynamics.net · shield processor · RunShield · shieldUri。
+
+Paynamics 是菲律宾支付网关 → /shield/v1/verify_otp 是支付 OTP。R903 的 AntiBotRelated 两条都分错。
+
+补进产品：两个 shield 宿主（nodecde1 + shield.paynamics.net）· /shield/v1/verify_otp。
+
+以及一个更大的缺口：镜像方法表里有 RunShield，复刻件没有对应方法。
+
+反爬那一格现在为空 —— 「优先级 ② 在端点层有具体缺口」这个说法要撤回（至少在这 154 条范围内）。

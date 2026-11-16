@@ -4744,3 +4744,40 @@ https://www.vans.com/api/products/v2/products/
 | store 44 条真缺失清单 | 下一步 |
 
 **纪律**：**「诚实的默认」这个词是信号 —— 它意味着知道有代价，却把代价藏进规则而非报表。第三种状态才是它该待的地方。**
+
+
+## 优先级 ② 更正 — `/shield/` 是 **Paynamics Shield**，不是反爬（R905，**改产品代码 +3 用例**）
+
+### 查证
+
+**20 条含 `shield` 的字面量 → `ShieldApiUrl https://nodecde1.paynamics.net/possible` ·
+`Invalid Paynamics Shield URL` · `Paynamics Shield error (` · `https://shield.paynamics.net` · `shield processor` ·
+**`<RunShield>d__18` · `RunShield`** · `shieldUri` · `<shieldQuery>5__4`**
+
+**→ Paynamics 是菲律宾支付网关 → `/shield/` 是支付 OTP，与反爬无关。**
+
+### R903 的 `AntiBotRelated` 两条都错了
+
+**`/shield/v1/verify_otp`（支付 OTP）· `submitThreeDS2Fingerprint`（3DS 指纹）—— 都不是反爬。**
+**→ 违反 AGENTS.md §1 的 R730 裁决：「不要用符号计数/名字替代读代码」。**
+
+### 补进产品
+
+| 事实 | 之前 |
+|---|---|
+| 两个 shield 宿主（`nodecde1` + `shield.paynamics.net`） | 只有一个 |
+| `/shield/v1/verify_otp` | 没有 |
+
+**`Gateways.cs` +2 常量 +`RecoveredShieldSurface`；`PaynamicsShieldTests.cs` 3 用例。套件 1802 → 1805。**
+
+### 而 `RunShield` 是原版有、复刻件没有的**方法**
+
+**`recovered_async_methods.txt` 在案；`where_is RunShield` 只有 docs。**
+
+| 仍 Unknown | |
+|---|---|
+| `RunShield` 做什么 | 只有方法名与状态机名 |
+| OTP 请求体/响应 | 无证据 |
+| **反爬那一格还剩什么** | **两条都移出后为空** |
+
+**纪律**：**「听起来像」不是证据。给东西分类前先查它的宿主与相邻字面量 —— 成本三次调用。**

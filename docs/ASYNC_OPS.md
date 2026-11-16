@@ -2784,3 +2784,54 @@ auth.casio-intl.com        /api/connect/v1/login
 
 **而 20% 里有多少是「真的实现」还不确定 —— base-tail 匹配只证明「复刻件里有一段同样的字面量」，
 不证明它挂在同一个 Base 下。所以这一列标注为「知道这个端点，形式我确认不了」。**
+
+
+### `/shield/` 是 **Paynamics Shield**，不是反爬 —— R903 分错了类（R905）
+
+**R903 把 `/shield/v1/verify_otp` 标成「优先级 ② 的第一个具体端点」，靠的是路径里那个词。**
+
+**这一轮查了 20 条含 `shield` 的字面量：**
+
+```
+ShieldApiUrl   https://nodecde1.paynamics.net/possible
+Invalid Paynamics Shield URL
+Paynamics Shield error (
+https://shield.paynamics.net
+shield processor
+shield.paynamics.net
+<RunShield>d__18 · RunShield · shieldUri · <shieldQuery>5__4
+```
+
+**Paynamics 是菲律宾的支付网关。所以 `/shield/` 是**支付环节的 OTP**，与反爬无关。**
+
+### 而这一族的「反爬」标签是我按词猜的
+
+**`AntiBotRelated` 里我还放了 `submitThreeDS2Fingerprint` —— 那是 3DS 指纹，也不是反爬。**
+
+**所以那个子集里现在两条都分错了。R903 那轮的标注是**按名字归类**，而 AGENTS.md §1 的 R730 裁决明写过：
+「不要用符号计数/名字替代读代码」。**
+
+### 查到的两件事，都补进产品
+
+| 事实 | 复刻件状态 |
+|---|---|
+| 镜像有**两个** shield 宿主：`nodecde1.paynamics.net` 与 `shield.paynamics.net` | **只有一个**（`ShieldHost`） |
+| `/shield/v1/verify_otp` | **没有** |
+
+**所以这是**同一家支付商的两个宿主**，而设备画像走其中一个、OTP 校验走另一个。**
+
+### 而镜像里有个方法 `RunShield`，复刻件没有
+
+**`recovered_async_methods.txt` 里 `RunShield` 在（1 条）。复刻件 `where_is RunShield` 只有 docs。**
+
+**所以这是一个**原版有、复刻件没有的步骤** —— 比缺一个常量大的缺口，而它现在被记下来了而不是被常量掩盖。**
+
+### 加了什么
+
+| 文件 | 改动 |
+|---|---|
+| `Payments/Gateways.cs` | +`PublicShieldHost` · +`ShieldVerifyOtp` · +`RecoveredShieldSurface` 公开访问器 |
+| `tests/PaynamicsShieldTests.cs` | **新建 3 用例** |
+
+**第三个用例 `TheRecoveredSurfaceIsNotYetCalled` 断言宿主在源码里只出现一次 ——
+**将来谁把它接上，这条会红，而红的时候说明「这条常量变成调用了」，需要连同测试意图一起改。****

@@ -24753,3 +24753,75 @@ endpoint_coverage.py  -> store 3 verbatim + 8 base-tail = 11/55；vendor 0+5；h
 **而「诚实的默认」这个词本身是信号：它意味着我知道有代价，却把代价藏进了规则而不是报表。**
 
 **第三种状态才是那个代价该待的地方。**
+
+
+---
+
+## 329. `/shield/` 是 Paynamics Shield，不是反爬；同时发现 `RunShield` 是个缺的步骤
+
+> R905。**改产品代码 +3 用例。** 套件 **1805 通过 / 0 失败 / 0 跳过**。
+
+### 一、查证
+
+**20 条含 `shield` 的字面量给出答案：**
+
+```
+ShieldApiUrl   https://nodecde1.paynamics.net/possible
+Invalid Paynamics Shield URL
+Paynamics Shield error (
+https://shield.paynamics.net
+shield processor
+<RunShield>d__18 · RunShield · shieldUri · <shieldQuery>5__4
+```
+
+**Paynamics 是菲律宾支付网关 → `/shield/v1/verify_otp` 是**支付环节的 OTP**。**
+
+### 二、R903 的 `AntiBotRelated` 两条都分错了
+
+**`/shield/v1/verify_otp` 与 `submitThreeDS2Fingerprint` —— 一条支付 OTP，一条 3DS 指纹，都不是反爬。**
+
+**而 AGENTS.md §1 的 R730 裁决写过：「不要用符号计数/名字替代读代码」。
+我按路径里的词分类，正是那条禁止的事。**
+
+### 三、补进产品
+
+| 事实 | 之前 |
+|---|---|
+| 两个 shield 宿主（`nodecde1` + `shield.paynamics.net`） | 只有一个 |
+| `/shield/v1/verify_otp` | 没有 |
+
+**`Gateways.cs`：+`PublicShieldHost` · +`ShieldVerifyOtp` · +`RecoveredShieldSurface`。
+`PaynamicsShieldTests.cs`：3 用例。**
+
+### 四、以及一个更大的缺口
+
+**镜像的方法表里有 `RunShield`，复刻件没有对应方法（`where_is RunShield` 只有 docs）。**
+
+**所以这是**原版有、复刻件没有的步骤**，比缺常量严重，而它现在被记下来了。**
+
+### 五、验证
+
+```
+搜 shield 字面量           -> 20 条，含 Paynamics 宿主与 RunShield
+recovered_async_methods    -> RunShield 在案
+where_is paynamics         -> Gateways.cs 17 处（已有网关，缺 OTP 面）
+where_is RunShield         -> 只有 docs
+test --filter PaynamicsShield -> 3 通过
+metrics_report.py          -> 1805 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **`RunShield` 做什么**：**Unknown** —— 只有方法名、状态机名 `d__18`、一个 `shieldUri` 与 `<shieldQuery>` 局部。
+- **OTP 的请求体与响应**：**Unknown**。
+- **反爬那一格现在还剩什么**：**两条都移出后为空** ——
+  **所以「优先级 ② 在端点层有具体缺口」这个说法要撤回，至少在这 154 条路径的范围里。**
+
+### 七、教训
+
+**路径里有 `shield`，`shield` 听起来像防护，所以它进了反爬那一格。**
+
+**「听起来像」不是证据。替代它的是 20 条字面量 —— 成本三次工具调用。**
+
+**而这一轮同时暴露了 `RunShield`：一个原版有、复刻件没有的方法。
+如果我上一轮就查了那 20 条，这个缺口会早一轮出现。**

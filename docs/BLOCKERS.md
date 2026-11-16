@@ -18084,3 +18084,90 @@ python analysis\read_availability.py    20 个实现 / 0 个不写判定
 **这一轮的答案是「没有缺陷」，而它比找一个缺陷更难得，因为我先确认了抽查不是白抽。**
 **抽读 5 个最短的，是为了验证「它们不一样」—— 而如果一个模板被复制到 5 个站，
 `0 个空转` 这个结论就只是说「都写了同一行」。**
+
+
+---
+
+## 250. 又读两个：`NikeFlow` 是结构化读取，而**长度守卫会把「不是商品页」判成缺货**
+
+> R826。未改产品代码（内存 1.63 GB，只读）。
+
+### 一、`NikeFlow`（31 行）—— 好的那一类
+
+```csharp
+if (!c.Session.Vars.TryGetValue("thread", out var threadJson))
+    return StepOutcome.Fail("nike: no thread loaded");
+var thread = JObject.Parse(threadJson);
+var infos = thread["productInfo"] as JArray;
+if (infos is null) return StepOutcome.Fail("nike: thread has no productInfo");
+...
+var skuAvailable = sku["available"]?.ToObject<bool?>() ?? available;
+if (skuAvailable) anyAvailable = true;
+...
+if (string.Equals(status, "ACTIVE", ...) && available) anyAvailable = true;
+c.Session.Vars["available"] = anyAvailable ? "true" : "false";
+```
+
+**三条值得记**：
+
+1. **结构化读取**（`JObject`/`JArray`），不是子串探针
+2. **缺输入时明确失败**（`"nike: no thread loaded"`），**不是给一个默认值**
+3. **判据是「任何一个 SKU 有货」或「状态 ACTIVE 且 available」** —— 与 Nike 的实际语义相符
+
+### 二、`ScheelsFlow`（25 行）—— 模式正确，但藏了一个转换
+
+```csharp
+var soldOut = body.Contains("OutOfStock", ...) || body.Contains("\"inStock\":false", ...);
+c.Session.Vars["available"] = !soldOut && body.Length > 200 ? "true" : "false";
+```
+
+**`body.Length > 200` 这个守卫的意图是「这看起来像一页真页面」。**
+**但它把三类情况压成同一个答案 `available = false`：**
+
+| 真实情况 | 现在的判定 |
+|---|---|
+| 真的缺货 | `false` ✓ |
+| 响应体很短（重定向页、错误页、captcha 插页） | **`false` ✗ 看起来像缺货** |
+| 响应体为空（请求失败但没抛） | **`false` ✗ 同上** |
+
+**`BstnFlow` 是同一种形状，只是阈值是 `body.Length > 2000`。**
+
+**这是本会话反复出现的那一类：一个可以接受的失败被转换成一个具体的、错误的断言。**
+
+### 三、为什么这比「多判一次缺货」更严重
+
+**监控的存在意义是「有货就去抢」。**
+
+- **误报 `available = true`** → 白跑一次 checkout，代价是一次失败的下单
+- **误报 `available = false`** → **错过 drop，而 drop 是不可重来的**
+
+**后者不可挽回，而它由「响应体长度」这个与商品无关的量决定。**
+
+### 四、为什么没改
+
+**改法有两种，而选哪种需要证据：**
+
+1. **长度不足时 `return StepOutcome.Fail("scheels: response is not a product page")`** —— 诚实，但会让监控在这一步停下
+2. **先看 `lastStatus`，403/429 判 `Blocked`** —— 更准，但 `ScrapeVariantAvailabilityAsync` 现在不读状态槽
+
+**镜像怎么做，得读反编译。内存 1.63 GB，IDA 没开。**
+
+**而且这两个流程的覆盖率判据目前算它们「已实现」—— 改成失败会让那个数字下降（R800 的教训：诚实可能不动数字，也可能动）。**
+
+### 五、验证
+
+```
+本轮未改产品代码
+通读累计 12 / 20（新增 NikeFlow 31 行 · ScheelsFlow 25 行）
+未跑全量（内存 1.63 GB < 2 GB）
+四项度量沿用：4 / 0 / 17 / 78 / 0
+```
+
+### 六、仍然 Unknown
+
+- **`body.Length > N` 这个守卫在镜像里是否存在**：**Unknown** —— 可能形象也是这么做的（那就不是缺陷而是忠实复刻），
+  也可能形象用的是状态码。**这条只有反编译能答。**
+- **其余 8 个未通读的实现里还有几个用长度守卫**：**Unknown** ——
+  本轮只读了 Nike/Scheels，**而 `BstnFlow` 是偶然撞见的。**
+- **`NikeFlow` 的 `JObject.Parse` 在畸形 JSON 上会不会抛**：**Inference（中）会** ——
+  抛了会被 `GuardAsync` 的 catch 转成失败，**所以不会静默，但错误信息会是 JSON 解析器的。**

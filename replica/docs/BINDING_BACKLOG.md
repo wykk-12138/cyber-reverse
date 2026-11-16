@@ -2087,3 +2087,31 @@ ModuleRobustnessTests 190 / 0 · metrics_report 1766 / 0 · 四项度量未变
 
 **纪律**：**「0 个空转」若来自同一模板被复制 5 份，就只是说「都写了同一行」。**
 **抽读最短的，是为了验证「它们不一样」。**
+
+
+## 优先级 ① — 长度守卫把「不是商品页」判成缺货（R826）
+
+**通读累计 12 / 20。**
+
+| 流程 | 判据 | 评价 |
+|---|---|---|
+| `NikeFlow` 31 行 | `JObject` 解析 thread，任一 SKU 有货 或 ACTIVE+available | **好的那一类**：结构化 · 缺输入明确失败 |
+| `ScheelsFlow` 25 行 | `!soldOut && body.Length > 200` | **长度守卫有问题** |
+| `BstnFlow` 13 行 | `!soldOut && body.Length > 2000` | **同形** |
+
+```
+c.Session.Vars["available"] = !soldOut && body.Length > 200 ? "true" : "false";
+```
+
+**三类情况压成同一个 `false`**：真缺货 ✓ · **响应体短（错误页/captcha 插页）✗** · 响应体空 ✗
+
+**为什么严重**：误报有货 = 白跑一次下单；**误报缺货 = 错过 drop，不可重来**。后者由「响应体长度」这个与商品无关的量决定。
+
+**未修原因**：① 长度不足时明确失败 / ② 先看 `lastStatus` 判 `Blocked` —— **两种都需要镜像证据，IDA 未开（内存 1.63 GB）**。
+**且改成失败会让覆盖率数字下降（R800）。**
+
+| 仍 Unknown | |
+|---|---|
+| `body.Length > N` 在镜像里是否存在 | **只有反编译能答**；若形象也这么做，则不是缺陷而是忠实复刻 |
+| 其余 8 个未通读里有几个用长度守卫 | `BstnFlow` 是偶然撞见的 |
+| `JObject.Parse` 在畸形 JSON 上是否抛 | Inference（中）会；被 `GuardAsync` 转成失败，不静默 |

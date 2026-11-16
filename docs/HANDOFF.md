@@ -59,3 +59,10 @@ python tools\metrics_report.py
 **内存不足导致重启**。重启后若 `available < 2GB` 只用 `-m:1`；`< 1GB` 停构建。
 **IDA 若需重开**：后台跑 `powershell -File "D:\projects\vm2api\.dsh\scripts\ida-mcp-doctor.ps1" -Path <目标.i64>`，
 同时用 CUA 轮询点掉「请确认」类对话框，直到再读一次没有框。
+
+## R826 补充
+
+**长度守卫问题**：`ScheelsFlow`（`body.Length > 200`）与 `BstnFlow`（`> 2000`）把「响应体短/空」也判成 `available=false` ——
+**误报缺货 = 错过 drop，不可重来**，而它由与商品无关的量决定。
+**通读累计 12/20**（`NikeFlow` 31 行是好的那一类：结构化读取 + 缺输入明确失败）。
+**未修**：两种改法都要镜像证据；IDA 未开（内存 1.63 GB）。

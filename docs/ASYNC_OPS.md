@@ -3448,3 +3448,79 @@ ProcessResult 14 · OpenSecurePage 15 · Navigate 17 · RunShield 18 · CardHold
 
 **所以那句话该写成结论而不是感慨：**镜像的步骤词汇比任何单个 flow 的序列都宽。**
 **一个 flow 的序列是子集，而 map 是全集 —— 用 coverage 衡量 map 会说谎。****
+
+
+### 判据 (f) 终于有了表，而表在能读之前要修两次（R917）
+
+**判据 (f)：核心覆盖表可复算 —— 原版站点与风控清单从二进制取证 ↔ `Registry.cs` 与 `Flows/Scripts`，
+未覆盖的每条写为什么。**
+
+**核了一遍：METRICS.md 里**没有这一栏**。判据 (f) 一直未满足。**
+
+### 左右两边各自是什么
+
+| 边 | 来源 | 数 |
+|---|---|---|
+| **左** | `Registry.cs` | **64 个注册**（33 个 flow 类型，含 `HybrisFlow("offspring", …)` 这种带参数） |
+| **右** | 镜像 154 条路径的宿主 | **39 个宿主**（store 28 · vendor 11） |
+
+**新工具 `tools/core_coverage.py`：逐宿主比对。**
+
+### 而它修了两次才可信
+
+**① 第一次：只查 `Registry.cs` → `www.vans.com` 判成 unmatched。**
+**而 R899 已经证明 Vans 是处理的 —— 在 `DemandwareControllers.cs` 的 site-id 表里，不在 Registry。**
+**→ 来源太窄，与 R911 的 `Async` 后缀同一类错。改成扫全 `src`：**7/28 → 16/28**。**
+
+**② 第二次：`api-search.dickssportinggoods.com` 取成标签 `api-search`，
+`prod-hk-actapi.popmart.com` 取成 `prod-hk-actapi` —— **而 Pop Mart 明明是一个 flow。****
+**→ 假设「子域要么整体泛用、要么整体有意义」，而连字符前缀两者都不是。
+改成**每一段都当候选**（`search`/`dickssportinggoods`、`actapi`/`popmart`）：**16/28 → 22/28**。**
+
+### 最终
+
+| 桶 | 匹配 | 未匹配 |
+|---|---|---|
+| **store** | **22 / 28** | **6** |
+| vendor | **2 / 11** | **9** |
+
+**store 那 6 个：**
+
+```
+api.braintreegateway.com        (2)   —— 支付商，不是店
+api.vipps.no                    (1)   —— 挪威支付商
+checkout.sportsshoes.com        (1)   —— 真店
+payments.bigcommerce.com        (1)   —— 支付商
+payments.dickssportinggoods.com (2)   —— 真店（但走的是支付子域）
+www.purpledotprice.com          (1)   —— 未知
+```
+
+**vendor 那 9 个：** `aycd` · `eshopworld` ×2 · `disney` ×2 · `global-e` ×2 · `vivapayments` ·
+`checkoutshopper-live.adyen`（脚本层都还没有）。
+
+### 而 22/28 这个数要怎么读
+
+**「matched」的意思是**某个候选标签出现在 `src` 的某个文件里** ——
+不证明那个店能用，也不证明它的结账流程对。**
+
+**而「unmatched」现在是一个**更强**的说法（因为搜索面已经扩到全 `src`）：
+**这个标签在整个复刻件里一次都没出现。****
+
+**所以那 6 个里，`checkout.sportsshoes.com` 与 `payments.dickssportinggoods.com` 是真缺口；
+另 4 个是支付商的子域，可能根本不需要 flow。**
+
+### 数字
+
+| 度量 | R916 | **R917** |
+|---|---|---|
+| 套件 | 1836 | **1836** |
+| **store 宿主覆盖** | 无此栏 | **22 / 28** |
+| vendor 宿主覆盖 | 无此栏 | **2 / 11** |
+
+**这一轮没有改产品代码 —— 它把判据 (f) 从「没有表」变成「有一张带注脚的表」。**
+
+### 教训
+
+> **一张表修两次才可信，而两次都是**来源或形状假设太窄**：
+> 第一次只查一个文件，第二次只取一个段。**
+> **而两次修之前，数都看起来正常：7/28 和 16/28 都是「有零有整」的数，读起来不像坏了。**

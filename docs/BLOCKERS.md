@@ -25548,3 +25548,78 @@ ProcessResult 14 · OpenSecurePage 15 · Navigate 17 · RunShield 18 · CardHold
 
 **所以任何一格的净值都该拆成进出两项。而这一轮如果我只报「11，比上次多 1」，
 就会把自己实现了一个步骤这件事报成退步。**
+
+
+---
+
+## 341. 判据 (f) 有了表：store 22/28 · vendor 2/11
+
+> R917。**新工具，未改产品代码。** 套件沿用 **1836 通过 / 0 失败**。
+
+### 一、先确认了一件坏事
+
+**判据 (f) 要求「核心覆盖表可复算」，而 METRICS.md 里**没有这一栏**。一直未满足。**
+
+### 二、两边
+
+| 边 | 来源 | 数 |
+|---|---|---|
+| 左 | `Registry.cs` | **64 个注册 / 33 个 flow 类型** |
+| 右 | 镜像 154 条路径的宿主 | **39 个宿主**（store 28 · vendor 11） |
+
+### 三、工具修了两次才可信
+
+**① 只查 `Registry.cs` → `www.vans.com` 判 unmatched。
+而 R899 已证明 Vans 在 `DemandwareControllers.cs` 的 site-id 表里。
+→ **来源太窄**，与 R911 的 `Async` 后缀同一类错。扫全 `src`：**7/28 → 16/28**。**
+
+**② `api-search.dickssportinggoods.com` 取成 `api-search`、`prod-hk-actapi.popmart.com` 取成 `prod-hk-actapi`
+—— 而 Pop Mart 是个 flow。
+→ **形状假设太窄**（以为子域整体泛用或整体有意义，而连字符前缀两者都不是）。每段都当候选：**16/28 → 22/28**。**
+
+### 四、结果
+
+| 桶 | 匹配 | 未匹配 |
+|---|---|---|
+| **store** | **22 / 28** | **6** |
+| vendor | **2 / 11** | **9** |
+
+**store 未匹配：** `api.braintreegateway.com`(2) · `api.vipps.no`(1) · **`checkout.sportsshoes.com`(1)** ·
+`payments.bigcommerce.com`(1) · **`payments.dickssportinggoods.com`(2)** · `www.purpledotprice.com`(1)
+
+**vendor 未匹配：** `inbox-api.aycd.io`(3) · `payments-panel.production.eshopworld.com`(3) ·
+`paymentsheet-ent.wdprapps.disney.com`(3) · `retailer-shopifypayments-api.production.eshopworld.com`(2) ·
+`webservices.global-e.com`(3) · `web-dsy.global-e.com`(1) · `www.vivapayments.com`(3) ·
+`checkoutshopper-live.adyen.com`(2) · `registerdisney.go.com`(1)
+
+### 五、22/28 的正确读法
+
+**matched = 某候选标签出现在 `src` 某文件里。不证明那个店能用，也不证明结账流程对。**
+
+**unmatched 现在是更强的说法（搜索面已扩到全 `src`）：这个标签在整个复刻件里一次都没出现。**
+
+**→ 6 个里 `sportsshoes` 与 `dickssportinggoods` 是真缺口；另 4 个是支付商子域，可能不需要 flow。**
+
+### 六、验证
+
+```
+python tools/core_coverage.py     -> 39 宿主（store 28 · vendor 11）；store 22/28；vendor 2/11
+Registry.cs                      -> 64 个 FlowStoreModule(new X)；33 个不同 flow 类型
+metrics_report.py                -> 1836 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **`www.purpledotprice.com` 是什么**：**Unknown** —— 只有一条路径。
+- **vendor 那 9 个各属哪个优先级**：**Unknown** —— 需逐个判。
+- **「有路径的宿主」之外还有没有 store**：**本表只覆盖有路径的宿主**，
+  **而 `Registry.cs` 有 64 个注册、镜像宿主只有 39 个 —— 两边数量本身就不对应，
+  所以这张表不是一个完整的一一对照。**
+
+### 八、教训
+
+**两次修之前，数都看起来正常：7/28 和 16/28 都是「有零有整」的数，读起来不像坏了。**
+
+**只有拿一个**已知答案**去试（Vans 一定该匹配）才把第一次的错暴露出来。**
+
+**所以「数看起来合理」不验证判据 —— 一个已知的正例才验证。**

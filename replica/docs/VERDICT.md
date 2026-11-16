@@ -54610,3 +54610,53 @@ ProcessResult 14 · OpenSecurePage 15 · Navigate 17 · RunShield 18 · CardHold
 > **一个净数会掩盖两个反向的动作。10 → 11 看起来是「又多了一个假名字」，
 > 而实际是一个变真、两个变假。**
 > **所以任何一格的净值都该拆成进出两项。**
+
+
+---
+
+## 第 917 轮：判据 (f) 终于有了表，而表在能读之前要修两次
+
+### 核了一遍：METRICS.md 里没有这一栏
+
+**判据 (f)：核心覆盖表可复算。** 一直未满足。**
+
+### 两边
+
+| 边 | 来源 | 数 |
+|---|---|---|
+| **左** | `Registry.cs` | **64 个注册**（33 个 flow 类型，含带参数的 `HybrisFlow("offspring", …)`） |
+| **右** | 镜像 154 条路径的宿主 | **39 个宿主**（store 28 · vendor 11） |
+
+**新工具 `tools/core_coverage.py`。**
+
+### 修了两次
+
+**① 只查 `Registry.cs` → `www.vans.com` 判 unmatched。而 R899 已证明 Vans 在
+`DemandwareControllers.cs` 的 site-id 表里。→ 来源太窄，与 R911 同一类错。扫全 `src`：7/28 → 16/28。**
+
+**② `api-search.dickssportinggoods.com` 取成 `api-search`、`prod-hk-actapi.popmart.com` 取成 `prod-hk-actapi`
+—— 而 Pop Mart 是个 flow。→ 假设「子域整体泛用或整体有意义」，而连字符前缀两者都不是。
+每段都当候选：16/28 → 22/28。**
+
+### 最终
+
+| 桶 | 匹配 | 未匹配 |
+|---|---|---|
+| **store** | **22 / 28** | **6** |
+| vendor | **2 / 11** | **9** |
+
+**store 那 6 个：** `api.braintreegateway.com`（支付商）· `api.vipps.no`（支付商）·
+**`checkout.sportsshoes.com`（真店）** · `payments.bigcommerce.com`（支付商）·
+**`payments.dickssportinggoods.com`（真店）** · `www.purpleprice.com`（未知）
+
+### 22/28 怎么读
+
+> **「matched」= 某候选标签出现在 `src` 某文件里 —— 不证明那个店能用，也不证明结账流程对。
+> 「unmatched」现在是更强的说法（搜索面已扩到全 `src`）：**这个标签在整个复刻件里一次都没出现。****
+
+**所以 6 个里 `sportsshoes` 与 `dickssportinggoods` 是真缺口，另 4 个是支付商子域，可能不需要 flow。**
+
+### 教训
+
+> **两次修之前，数都看起来正常：7/28 和 16/28 都是「有零有整」的数，读起来不像坏了。**
+> **所以「有零有整」不说明判据对 —— 只有拿一个已知答案去试（Vans）才说明。**

@@ -820,3 +820,20 @@ strip_comments 是字符扫描器不是正则（正则 // 会撞字符串里的 
 而 11 要拆开：RunShield 移出、OpenSecurePage/ProcessResult 移入 —— 一减两加，净 +1 掩盖了两件事。
 
 一个红得正确的测试：FlowSequenceTests map.Count 175→176。连续第三次「map 涨、coverage 不涨」→ 镜像的步骤词汇比任何单个 flow 的序列都宽；用 coverage 衡量 map 会说谎。
+
+## R917 补充 — 判据 (f) 有了表（新工具 tools/core_coverage.py，未改产品代码）
+
+先确认：METRICS.md 里没有「核心覆盖」这一栏 → 判据 (f) 一直未满足。
+
+两边：Registry.cs 64 注册 / 33 flow 类型；镜像 154 条路径 39 宿主（store 28 · vendor 11）。
+
+工具修两次：① 只查 Registry.cs → vans 判 unmatched（R899 已证它在 DemandwareControllers 的 site-id 表里）→ 扫全 src：7/28 → 16/28。② api-search.dickssportinggoods 取成 api-search、prod-hk-actapi.popmart 取成 prod-hk-actapi（而 PopMart 是 flow）→ 每段都当候选：16/28 → 22/28。
+
+结果：store 22/28（未匹配 6）· vendor 2/11（未匹配 9）。
+store 6 里 sportsshoes 与 dickssportinggoods 是真缺口，另 4 个是支付商子域。
+
+matched = 标签出现在 src 某文件里（不证明店能用）；unmatched = 标签全库没出现（更强）。
+
+而 Registry 64 注册 vs 镜像 39 宿主 → 数量本身不对应，这不是完整的一一对照。
+
+下一轮：store 那 2 个真缺口（sportsshoes / dickssportinggoods）各差什么。

@@ -5177,3 +5177,46 @@ ProcessResult 14 · OpenSecurePage 15 · Navigate 17 · RunShield 18 · CardHold
 | 剩下 9 个「只在注释里」哪些该实现 | 逐个判 |
 
 **纪律**：**净数会掩盖两个反向动作 —— 任何一格的净值都该拆成进出两项。**
+
+
+## 判据 (f) — 核心覆盖表（R917，**新工具 `tools/core_coverage.py`，未改产品代码**）
+
+### 之前：METRICS.md 无此栏 → 判据 (f) 未满足
+
+### 两边
+
+| 边 | 来源 | 数 |
+|---|---|---|
+| 左 | `Registry.cs` | **64 注册 / 33 flow 类型** |
+| 右 | 镜像 154 条路径宿主 | **39 宿主**（store 28 · vendor 11） |
+
+### 两次修正（都是来源/形状假设太窄）
+
+**① 只查 Registry.cs → `www.vans.com` unmatched（R899 已证它在 DemandwareControllers 的 site-id 表里）
+→ 扫全 src：7/28 → 16/28。**
+**② `api-search.dickssportinggoods.com` 取成 `api-search`、`prod-hk-actapi.popmart.com` 取成 `prod-hk-actapi`
+→ 每段都当候选：16/28 → 22/28。**
+
+### 结果
+
+| 桶 | 匹配 | 未匹配 |
+|---|---|---|
+| **store** | **22 / 28** | **6** |
+| vendor | **2 / 11** | **9** |
+
+**store 未匹配 6：** `braintreegateway`(支付商) `vipps`(支付商) **`sportsshoes`(真店)** `bigcommerce`(支付商)
+**`dickssportinggoods`(真店)** `purpledotprice`(未知)
+**vendor 未匹配 9：** `aycd` `eshopworld`×2 `disney`×2 `global-e`×2 `vivapayments` `adyen`（脚本层都没有）
+
+### 判据 (f) 现在的状态
+
+**有表、可复算、每条带注脚。** 未覆盖项的原因已写出，但**「为什么」需要逐条判定** —— 6 个 store 里 2 个是真缺口，
+4 个是支付商子域（可能不需要 flow），vendor 9 个是脚本层的缺口。
+
+| 仍 Unknown | |
+|---|---|
+| `purpledotprice` 是什么 | 只有一条路径 |
+| vendor 9 个各属哪个优先级 | 需逐个判 |
+| 32 个 store 宿主里那 6 个之外还有没有 | 本表只覆盖「有路径的宿主」 |
+
+**纪律**：**「有零有整」不说明判据对 —— 只有拿一个已知答案去试才说明。**

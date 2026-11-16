@@ -867,3 +867,18 @@ VERDICT.md 12 处历史 63 个模块不该改 → 守卫按意图收窄到摘要
 (f) 那张表两轮清空两个真缺口 —— 它的价值不在覆盖率，在于未匹配项就是待办清单。
 
 下一轮：purpledotprice 是什么（唯一非支付商未匹配）。
+
+## R920 补充 — Purple Dot：预售服务 + 硬编码 key；store 桶清空（改产品代码 +7 用例，套件 1857）
+
+一条字面量：https://www.purpledotprice.com/api/v1/products/preorder-state?api_key=c114b1fe-…&handle=
+→ 预售服务（不是店）· 硬编码 API key（原版自带的唯一一个）· 按 handle 查预售。
+
+分类修正：VENDOR_HINTS 漏了它。store 28→27 · vendor 11→12 · **store 匹配 24/27，未匹配 3 全是支付商**（braintreegateway/vipps/bigcommerce）→ 判据 (f) 的 store 侧闭合。
+
+Payments/PurpleDot.cs：Host/PreorderState/ApiKey · UrlFor（query 而非 header）· QueryAsync 三态 · IsBuyable。不可读 → 状态不设 → IsBuyable 返 false（默认答案「不买」）。
+
+一处正则写窄：漏 false → {"isPreorder":false} 落进不可读分支。测试抓到。
+
+数字：套件 1850 → 1857 · store 桶 24/28 → 24/27（分母变小，误分类移出）。
+
+下一轮：vendor 桶 12 个逐个判（含 Cloudflare/AYCD/Paynamics/PurpleDot 已做，还剩若干）。

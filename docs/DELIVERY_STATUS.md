@@ -20010,3 +20010,71 @@ metrics_report.py                    -> 1850 通过 / 0 失败
 
 **而 7/28 那个数是错的，它列出的 21 个名字里有 2 个是真的 —— 修正判据之后，那 2 个还在。
 错的数里可以有对的清单，这是两件事。**
+
+
+---
+
+## 344. Purple Dot：预售服务 + 硬编码 key；store 桶清空（24/27，未匹配全是支付商）
+
+> R920。**改产品代码 +7 用例 + 修正分类。** 套件 **1857 通过 / 0 失败 / 0 跳过**。
+
+### 一、一条字面量说清三件事
+
+```
+https://www.purpledotprice.com/api/v1/products/preorder-state?api_key=c114b1fe-63fa-4216-9d7c-07a87697fccd&handle=
+```
+
+**→ 预售服务（不是店）· 硬编码 API key · 按 handle 查预售状态**
+
+### 二、分类修正，而 store 桶因此清空
+
+**`VENDOR_HINTS` 漏了 purpledotprice → 加入。**
+
+| 度量 | R919 | R920 |
+|---|---|---|
+| store 宿主 | 28 | **27** |
+| vendor 宿主 | 11 | **12** |
+| **store 匹配** | 24 / 28 | **24 / 27** |
+| store 未匹配 | 3 | **3（全是支付商）** |
+
+**`braintreegateway` · `vipps` · `bigcommerce` —— 三个支付商子域，都判为不需要 flow。**
+
+**→ 镜像里所有带路径的 store 宿主，复刻件现在都认得。判据 (f) 的 store 侧闭合。**
+
+### 三、`Payments/PurpleDot.cs`
+
+| 成员 | |
+|---|---|
+| `Host` · `PreorderState` · `ApiKey` | 三个恢复到的常量 |
+| `UrlFor(handle)` | 与镜像同形的 URL（**query string，不是 header**） |
+| `QueryAsync(...)` | 三态：预售 / 现货 / **不可读** |
+| `IsBuyable(session)` | 监控需要的判断 |
+
+**不可读 → 状态不设 → `IsBuyable` 返 false。默认答案是「不买」，
+因为把读不懂当「不是预售」会去买几个月后发货的东西。**
+
+### 四、一处正则写窄了
+
+**`(true|""[^""]*"")` 漏了 `false` → `{"isPreorder":false}` 落进不可读分支。
+方向安全（不买），但**最常见的答案永远成功不了**。7 个用例抓出来了。**
+
+### 五、验证
+
+```
+core_coverage.py            -> store 24/27；vendor 12；purpledotprice 已入 vendor 桶
+test --filter PurpleDotTests -> 7 通过
+metrics_report.py           -> 1857 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **API key 是每次安装的还是公共的**：**Unknown** —— 一条字符串看不出作用域。
+- **响应体真实形状**：**Unknown** —— 三个候选字段名，都可能是它自己编的。
+- **vendor 桶 12 个里还有几个该实现**：**Unknown** —— 未逐个判。
+
+### 七、教训
+
+**「比例没变好」和「没有进展」不是一回事。这一轮 store 桶从 24/28 变成 24/27 ——
+分子的数没变，分母小了，因为一个误分类的宿主移了出去。**
+
+**分母变小与分子变大是两种进展，而只看比例会把后者藏起来。**

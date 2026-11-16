@@ -5296,3 +5296,42 @@ checkout.sportsshoes.com/checkout?setCurrencyId=1
 | `purpledotprice` 是什么 | 只剩它一个非支付商未匹配 |
 
 **纪律**：**度量工具最大的价值不是它报的数，是它报出来的清单。**
+
+
+## 优先级 ①/③ — Purple Dot 集成（R920，**改产品代码 +7 用例 + 修正分类**）
+
+### 一条字面量说清三件事
+
+```
+https://www.purpledotprice.com/api/v1/products/preorder-state?api_key=c114b1fe-63fa-4216-9d7c-07a87697fccd&handle=
+```
+
+**→ 预售服务（不是店）· 硬编码 API key · 按 handle 查预售状态**
+
+### 分类修正
+
+**`VENDOR_HINTS` 漏了它 → 加入 `purpledotprice` / `purpledot`。**
+**store 28→27 · vendor 11→12 · **store 匹配 24/27，未匹配 3 全是支付商**（braintreegateway/vipps/bigcommerce）。**
+
+### `Payments/PurpleDot.cs`
+
+**`Host`/`PreorderState`/`ApiKey` · `UrlFor(handle)`（query 而非 header）· `QueryAsync` 三态 · `IsBuyable`**
+
+**不可读响应 → 状态不设 → `IsBuyable` 返 false。**默认答案是「不买」，因为把读不懂当「不是预售」
+会去买几个月后发货的东西。**
+
+### 一处正则写窄了
+
+**`(true|"…")` 漏 `false` → `{"isPreorder":false}` 落进不可读分支。方向安全但最常见答案永远失败。测试抓到。**
+
+### 数字
+
+**套件 1850 → 1857 · store 桶 24/28 → **24/27**（分母变小，因一个误分类移出）**
+
+| 仍 Unknown | |
+|---|---|
+| API key 是每次安装的还是公共的 | 一条字符串看不出 |
+| 响应体真实形状 | 三个候选字段名 |
+| vendor 桶 12 个里还有几个该实现 | 未逐个判 |
+
+**纪律**：**分母变小与分子变大是两种进展，只看比例会把后者藏起来。**

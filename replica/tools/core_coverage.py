@@ -34,6 +34,10 @@ VENDOR_HINTS = (
     "cloudflare", "kasada", "datadome", "perimeterx", "queue-it", "queueit", "recaptcha", "hcaptcha",
     "akamai", "aycd", "turnstile", "captcha", "paypal", "stripe", "adyen", "paynamics", "eshopworld",
     "global-e", "vivapayments", "wdprapps", "disney",
+    # R920: purpledotprice is a preorder service, not a shop. One literal names it --
+    # /api/v1/products/preorder-state?api_key=...&handle= -- so the host asks a vendor whether a product is on
+    # preorder rather than serving a store of its own.
+    "purpledotprice", "purpledot",
 )
 
 # second-level labels that carry no identity

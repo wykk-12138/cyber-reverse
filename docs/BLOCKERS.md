@@ -9087,3 +9087,78 @@ Close / Save / Create / Delete / Reset / Properties / TimeSpans / View / Test / 
 本轮四次修正，方向全部是「向旧工具靠拢」：
 12 是对的、378 是错的；12 是对的、14 是错的；记录位置参数让 55 变小是对的；剥泛型/认接口让 92 变小是对的。
 **没有一次是新工具纠正了旧工具。**
+
+
+---
+
+## 138. 剩下 46 条不是一个东西：**12 条是绑定表的假成员，2 条是字段名不同，32 条是命令做成了 lambda**
+
+> R709。新增 `analysis/check_suffix_members.py`；`c10_split.py` 加继承链解析。
+
+### 一、先做继承解析：55 → 46
+
+沿 `: Base` 链查声明后，9 条落进 `declared-absent`。**但剩下 46 条里绝大多数不是继承问题** —— 它们的成因分三种。
+
+### 二、三种成因（各有证据）
+
+**(1) 12 条是绑定表自己造的假成员**
+
+`Cybersole.Models.EditValue\`1` 的 14 个成员里，**12 个带数字后缀**：
+
+```
+HasMultiple, HasMultiple_87, _88, _91, _93, _94, _95, _97, _98, _99, _101
+Value,       Value_92, Value_100
+```
+
+裸名 `HasMultiple` / `Value` **同时存在**，后缀值像行号（87…101）。
+**判据**：同一类型里裸名与带后缀名并存 → 后缀是提取器的去重标记，不是真成员。
+
+全表只有 `EditValue\`1` 这一处，共 **12 条**。
+
+**所以 819 这个分母虚高 12，真实成员数是 807。** C10 = 12/819 = 1.465% → 按 807 算是 **1.487%**，比值几乎不变，
+**但分母原本是错的** —— 这是 `xaml_bindings.json` 提取器的一个缺陷，会影响所有用 819 的度量。
+
+**(2) 2 条是真的字段名不同**
+
+```csharp
+record Notification(NotificationKind Kind, string Title, string Body, DateTime Timestamp)
+```
+
+绑定表要 `Type` 与 `Message`，复刻件叫 `Kind` 与 `Body`。`Title` / `Timestamp` 对得上。
+**这两条是真实的命名差异**，与 `BINDING_BACKLOG.md` 里那 4 条「结构差异」同类：行为相同，名字不同。
+
+**(3) 32 条是命令做成了 lambda，不是可绑定成员**
+
+`CheckoutView : UserControl`，而 `Close` 在源码里只以按钮文案存在：
+
+```csharp
+UiKit.Button("Close", () => Status("Closed."))
+```
+
+`ReleaseView.Close`（同一文件另一处）同样。其余各 View 的 `Save` / `Create` / `Delete` / `Reset` / `Properties` /
+`TimeSpans` / `View` / `Search` / `Test` / `Export` / `Edit` / `Link` / `Stores` / `Account` / `Model` /
+`Clock` / `Expressions` / `BillingView` / `Task` 属于同一形态：**效果有了，但没有做成原名可绑定成员**。
+
+**这一类是可做的** —— 与 `AGENTS.md` §3 那张「方法改成绑定属性」连带清单一模一样，只是这次是从 819 这个账本里推出来的，
+不是从绑定表缺口推出来的。
+
+### 三、所以 C10 现在能说什么
+
+```
+819（真实 807）
+  ├─ 12  可见符号
+  ├─ 691 源码有声明、产物无符号（裁剪/内联，不是缺陷）
+  ├─ 32  命令做成了 lambda            <- 可做，AGENTS §3 清单
+  ├─  2  字段名不同（Notification）    <- 结构差异，同类已有 4 条
+  ├─ 12  绑定表假成员                 <- 分母该减掉
+  └─ 70  11 个类型，全部已在 triage 结案
+```
+
+**只有 32 + 2 = 34 条是真缺口候选**，其余 785 条都已解释。
+
+### 四、仍然 Unknown
+
+- 那 32 条里有多少在**原版**也只是 lambda 而非绑定成员：**Unknown** —— 需要看原版 XAML 的实际绑定用法，
+  而不是只看绑定表里出现过名字。
+- `EditValue\`1` 的后缀到底是行号还是别的：**Inference（中）**，裸名并存是硬证据，但编号来源未核。
+- 修 `xaml_bindings.json` 会不会影响别的度量：**未评估**（`bind_diff` / `bind_scope` / `shape_audit` 都可能读它）。

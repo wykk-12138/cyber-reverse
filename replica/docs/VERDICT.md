@@ -44476,3 +44476,59 @@ type-absent      70  (8.5%)   11 个类型，全部已在 triage 的 17 条里
 ### 下一轮
 
 55 条里 `Close/Save/Create/Delete/Reset` 几乎全是基类命令 —— 做**继承链解析**，再判哪些是真没实现。
+
+
+---
+
+## 第 709 轮：46 条不是一个东西
+
+### 继承解析：55 → 46
+
+沿 `: Base` 链查，9 条落进 `declared-absent`。**但剩下 46 条主要不是继承问题。**
+
+### 三种成因
+
+**(1) 12 条是绑定表造的假成员**
+
+```
+EditValue`1: HasMultiple, HasMultiple_87.._101, Value, Value_92, Value_100
+```
+
+裸名与带后缀名**并存**，后缀像行号 → 提取器的去重标记。
+**819 虚高 12，真实 807**；比值 1.465% → 1.487%，**几乎不变，但分母原本是错的。**
+
+**(2) 2 条是真字段名不同**
+
+```csharp
+record Notification(NotificationKind Kind, string Title, string Body, DateTime Timestamp)
+```
+
+绑定表要 `Type`/`Message`，复刻件是 `Kind`/`Body`。与已结案的 4 条「结构差异」同类。
+
+**(3) 32 条是命令做成了 lambda**
+
+```csharp
+UiKit.Button("Close", () => Status("Closed."))     // CheckoutView : UserControl
+```
+
+**效果有了，但没有做成原名可绑定成员。** 这一类**可做** —— 正是 `AGENTS.md` §3 那张连带清单。
+
+### 账本
+
+```
+819（真实 807）
+  12 可见符号 · 691 裁剪/内联 · 32 命令 lambda · 2 字段名 · 12 假成员 · 70 已结案类型
+```
+
+**只有 32 + 2 = 34 条是真缺口候选**，其余 785 条已解释。
+
+### 一句话
+
+> 一个桶里装着四种东西时，「还剩 46 条」这个说法本身没有信息量。
+
+> **把桶拆开的价值不在于数字变小，在于其中 12 条根本不是成员、32 条有一个现成的修法清单。**
+
+### 下一轮
+
+做那 32 条：按 `AGENTS.md` §3 清单把 View 上的命令改成 `ICommand` 绑定属性，先拿 `CheckoutView.Close` /
+`ReleaseView.Close` 两个做样板（有明确证据），跑全量，看 `declared-absent` / C10 怎么动。

@@ -56,17 +56,21 @@ def renames():
 
 
 def source_classes():
-    """{simple name: [declaration text]} for every class / record declared under src.
+    """({simple name: [declaration text]}, {simple name: [base simple names]}).
 
     (R708c) A `record` declares its members in the POSITIONAL PARAMETER LIST, not inside braces:
 
         record Notification(NotificationKind Kind, string Title, string Body, DateTime Timestamp)
 
     So `Title`/`Timestamp` are real members with no `{ get; }` anywhere, and a body-only scan calls them undeclared.
-    The captured text therefore starts at the declaration head and includes the parameter list before the body. The
-    same shape covers primary constructors on classes.
+    The captured text therefore starts at the declaration head and includes the parameter list before the body.
+
+    (R709) The base list matters as much: `Close`, `Save`, `Create`, `Delete` and `Reset` appear on a dozen views
+    without being declared on any of them -- they come from a shared view-model base. Reporting those as undeclared
+    would be a false gap, so each declaration also records the type names it derives from and the caller walks that
+    chain.
     """
-    bodies = {}
+    bodies, bases = {}, {}
     for dirpath, dirnames, filenames in os.walk(SRC):
         dirnames[:] = [d for d in dirnames if d not in ("obj", "bin")]
         for name in filenames:
@@ -79,7 +83,7 @@ def source_classes():
                 start = text.find("{", m.end())
                 if start < 0:
                     continue
-                head = text[m.start():start]          # declaration head + parameter list
+                head = text[m.start():start]          # declaration head + parameter list + base list
                 depth, i = 0, start
                 while i < len(text):
                     if text[i] == "{":
@@ -90,7 +94,35 @@ def source_classes():
                             break
                     i += 1
                 bodies.setdefault(simple, []).append(head + text[start:i + 1])
-    return bodies
+
+                # base list: everything after ':' up to 'where' / the body, split on commas, generic args dropped
+                colon = head.find(":")
+                if colon >= 0:
+                    tail = head[colon + 1:]
+                    tail = re.split(r"\bwhere\b", tail)[0]
+                    names = []
+                    for part in tail.split(","):
+                        part = part.split("<")[0].strip()
+                        part = part.split(".")[-1].strip()
+                        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part or ""):
+                            names.append(part)
+                    if names:
+                        bases.setdefault(simple, []).extend(names)
+    return bodies, bases
+
+
+def declares_in_chain(bodies, bases, type_name, member, _seen=None):
+    """True when `member` is declared on the type or anywhere up its base chain."""
+    seen = _seen or set()
+    if type_name in seen or type_name not in bodies:
+        return False
+    seen.add(type_name)
+    if any(declares(b, member) for b in bodies[type_name]):
+        return True
+    for base in bases.get(type_name, []):
+        if declares_in_chain(bodies, bases, base, member, seen):
+            return True
+    return False
 
 
 def visible_symbols():
@@ -150,7 +182,7 @@ def resolve(full_type, rename_map):
 def main(argv):
     bindings = json.load(io.open(BINDINGS, encoding="utf-8"))
     rename_map = renames()
-    classes = source_classes()
+    classes, bases = source_classes()
     visible = visible_symbols()
 
     buckets = {"visible": [], "declared-absent": [], "type-absent": [], "undeclared": []}
@@ -165,7 +197,7 @@ def main(argv):
                 buckets["visible"].append((full_type, member))
             elif not bodies:
                 buckets["type-absent"].append((full_type, member))
-            elif any(declares(b, member) for b in bodies):
+            elif declares_in_chain(classes, bases, resolved, member) or declares_in_chain(classes, bases, simple.split(chr(96))[0], member):
                 buckets["declared-absent"].append((full_type, member))
             else:
                 buckets["undeclared"].append((full_type, member))

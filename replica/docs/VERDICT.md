@@ -50099,3 +50099,53 @@ str 1 match · xrefs 1 (sub_141156D40) · dec 2747 chars 含 &off_146AB2470 · �
 
 **`−12` 我试了三个地址才命中。下次先试 `−12`。**
 **而「能不能用反编译核对复刻件」这件事，本轮验证了：能，代价是一次字符串搜索加一次 xref。**
+
+
+---
+
+## 第 830 轮：PopMart 的 `/shop/v1` 全部有镜像对应 —— 我差点写出假缺口
+
+### 差点搞错的过程
+
+R294 自注「`/api/cart/add` 等无镜像证据」→ **验证：三个都 0，自注正确。**
+
+然后搜 `popmart` 得 16 条 URL，逐条在复刻件里查——**全是 0**：
+
+```
+prod-*-api.popmart.com · /web/v2?partner=&appKey= · activity/v1 · popDraw.json · PopMartRpcHandler …
+```
+
+**结论已经成形：「镜像有一整套 PopMart 接口，复刻件一个都不知道」。而它是错的。**
+
+### 为什么错
+
+**我搜的是站名 `popmart`，而复刻件的端点串是 `/shop/v1/box/box_set/preview` —— 不含站名。**
+
+```
+/shop/v1/  41 matches，含 0x146ab803c addBoxListToCart / 0x146ab861c buyNow 等
+```
+
+> **复刻件那 13 个端点全部有镜像对应。它没错。**
+
+### 真正成立的结论
+
+**复刻件做的是 `/shop/v1` 店铺面（镜像有），而镜像另外还有三块它没有：**
+
+| 面 | 复刻件 |
+|---|---|
+| 6 个区域 API 主机 `prod-{apac,global,hk,mo,na,uk-online}-api` | **0** |
+| appKey web API `/web/v2?partner=popmart&appKey=` | **0** |
+| 活动抽签 `activity/v1/sample_info` · `exhibit_draw/draw` · `popDraw.json` | **0** |
+| GraphQL `query buynow {...}`（`0x14713e034`） | 未查 |
+
+**定性：不是「搞错了」，是「只做了一面」。** 覆盖矩阵里 PopMart 的「已实现」应读作「`/shop/v1` 这面实现了」。
+
+### 仍然 Unknown
+
+**那三块是否属于下单流程**（区域 API 与 appKey 像，但抽签是另一条业务线）· **`PopMartBrowser` 是什么**（可能与 captcha 有关）· **区域 API 与 `/shop/v1` 的主机分工**
+
+### 教训
+
+**我搜站名，于是只找到含站名的串；复刻件的串不含它，于是「复刻件全无」凭空成立。**
+
+**挡住它的动作只有一个：搜镜像时用「复刻件实际写的那个串」，不用「站名」。**

@@ -2207,3 +2207,35 @@ HandleBlock 0 · SetRequest 0 · HandleResponse 0 · GetHome 0 · VerifySession 
 | `HandleBlock` 的代码 | **本轮未推进** |
 
 **纪律**：**`xrefs` 的地址要 `−12`。下次先试它，别再试 `+12`。**
+
+
+## 优先级 ① — PopMart：`/shop/v1` 已覆盖，另有三块未建模（R830）
+
+**复核件自注（R294）正确**：`/api/cart/add` · `/api/order/submit` · `/api/stock` 在镜像里**都是 0**。
+
+**复刻件的 13 个 `/shop/v1/...` 端点全部有镜像对应**（`/shop/v1/` 共 41 matches，
+含 `0x146ab803c addBoxListToCart`、`0x146ab861c buyNow` 等）。
+
+### 未建模的三块（镜像有、复刻件 0）
+
+| 面 | 镜像证据 |
+|---|---|
+| 6 个区域 API 主机 | `prod-{apac,global,hk,mo,na,uk-online}-api.popmart.com` |
+| appKey web API | `/web/v2?partner=popmart&appKey=` |
+| 活动抽签 | `prod-hk-actapi.popmart.com/activity/v1/activity/sample_info` · `…/exhibit_draw/draw` · `cdn-global…/popDraw.json` |
+| GraphQL | `0x14713e034`: `query buynow { buynow(item: {sku: "", qty: 1, quote_id: "1"…` |
+
+**类型名（复刻件全 0）**：`PopMartRpcHandler` · `PopMartHandler` · `PopMartBrowser` · `PopMartField` · `$PopMartProductType`
+
+**定性**：不是「搞错了」，是「只做了一面」。覆盖矩阵里 PopMart 的「已实现」= `/shop/v1` 这面。
+
+| 仍 Unknown | |
+|---|---|
+| 三块面是否属下单流程 | 区域 API/appKey 像；**抽签是另一条业务线** |
+| `PopMartBrowser` 是什么 | 可能与 captcha 有关（优先级 ②） |
+| 区域 API 与 `/shop/v1` 分工 | 未查 |
+
+### 纪律（重要）
+
+**搜镜像时用「复刻件实际写的那个串」，不要用「站名」。**
+搜 `popmart` 只得到含站名的串；复刻件的 `/shop/v1/...` 不含它 —— **于是「复刻件全无」凭空成立**。

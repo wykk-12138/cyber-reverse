@@ -114,3 +114,9 @@
 
 **首个用例 `/cart.js` 印证复刻件 `ShopifyFlow.cs:181` 已一致 —— 反编译核对这条路是通的。**
 **`HandleBlock` 不走这条路**（不被字符串引用），需 MethodTable。
+
+## R830 补充 — PopMart 覆盖面
+
+复刻件的 13 个 `/shop/v1/...` 端点**全部有镜像对应**（`/shop/v1/` 41 matches）。自注「`/api/cart/add` 等无证据」也正确（0 匹配）。
+**镜像另有四块未建模**：6 个 `prod-*-api.popmart.com` 区域主机 · `/web/v2?partner=&appKey=` · `activity/v1` 抽签 + `popDraw.json` · GraphQL `query buynow`。
+**教训：搜镜像用「复刻件实际写的那个串」，不要用「站名」** —— 用站名会凭空得出「复刻件全无」。

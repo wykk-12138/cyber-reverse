@@ -18436,3 +18436,109 @@ python analysis\ida.py dec 0x141156d40     -> 2747 chars, 含 &off_146AB2470
 **而代价只是一次字符串搜索加一次 xref 尝试。**
 
 **`−12` 这个偏移我试了三个地址才命中。** **下次先试 `−12`，别再试 `+12`。**
+
+
+---
+
+## 254. PopMart：**复刻件的 13 个 `/shop/v1` 端点全部有镜像对应**；而镜像另有三个面没建模
+
+> R830。未改产品代码。**这一轮差点写出一个假缺口。**
+
+### 一、我是怎么差点搞错的
+
+R294 在 `PopMartEndpoints.cs` 留了一句自注：
+
+```csharp
+"/api/cart/add", "/api/order/submit", "/api/stock",   // inferred: no image evidence (R294)
+```
+
+**验证它 —— 三个都 0 匹配，自注正确：**
+
+```
+api/cart/add     0
+api/order/submit 0
+api/stock        0
+popmart         38
+```
+
+**然后我搜 `popmart` 拿到 16 条 URL 形态的串，里面是 `prod-*-api.popmart.com`、`/web/v2?partner=`、
+`activity/v1`、`popDraw.json` —— 而我在复刻件里逐个查，全是 0：**
+
+```
+prod-apac-api 0 · prod-global-api 0 · prod-hk-api 0 · prod-na-api 0 · prod-uk-online 0
+appKey 0 · activity/v1 0 · exhibit_draw 0 · popDraw 0
+RpcHandler 0 · PopMartBrowser 0 · PopMartField 0 · PopMartProductType 0
+```
+
+**那时候结论已经成形：「镜像有一整套 PopMart 接口，复刻件一个都不知道」。**
+
+**而它是错的。**
+
+### 二、为什么错
+
+**我搜的是 `popmart` 这个词，于是只拿到「串里含 popmart」的那些。**
+**而复刻件的端点串是 `/shop/v1/box/box_set/preview` 这种 —— 不含 `popmart`。**
+
+**查一次 `/shop/v1/` 就够了：**
+
+```
+/shop/v1/     41 matches
+0x146ab803c   /shop/v1/box/boxCart/addBoxListToCart
+0x146ab809c   /shop/v1/box/box_set/extract
+0x146ab80ec   /shop/v1/box/box_set/preview
+0x146ab813c   /shop/v1/box/box_spu/detail
+0x146ab818c   /shop/v1/box/extract
+0x146ab81cc   /shop/v1/box/goodsListV2
+0x146ab861c   /shop/v1/order/pre/v2/buyNow
+```
+
+**复刻件那 13 个端点全部有镜像对应。它没错。**
+
+### 三、真正成立的结论
+
+**复刻件模型的是 `/shop/v1` 这条店铺面，镜像里有它 —— 而且镜像另外还有三块复刻件没有的：**
+
+| 面 | 镜像证据 | 复刻件 |
+|---|---|---|
+| **6 个区域 API 主机** | `prod-apac-api` / `prod-global-api` / `prod-hk-api` / `prod-mo-api` / `prod-na-api` / `prod-uk-online-api` `.popmart.com` | **0** |
+| **appKey 认证的 web API** | `/web/v2?partner=popmart&appKey=` | **0** |
+| **活动抽签 API** | `https://prod-hk-actapi.popmart.com/activity/v1/activity/sample_info?key=`<br>`…/activity/v1/exhibit_draw/draw?` | **0** |
+| **抽签数据源** | `https://cdn-global.popmart.com/global-activities/json/popDraw.json?t=` | **0** |
+| **GraphQL buynow** | `0x14713e034`: `query buynow { buynow(item: {sku: "", qty: 1, quote_id: "1", type: "Simpl…` | 未查 |
+| **类型** | `PopMartRpcHandler` · `PopMartHandler` · `PopMartBrowser` · `PopMartField` · `$PopMartProductType` | **0** |
+
+**所以 PopMart 这一站的形态是：店铺面（`/shop/v1`，复刻件有）+ 区域 API + 活动抽签 + GraphQL —— 后三块复刻件没有。**
+
+### 四、这个缺口该怎么定性
+
+**不是「复刻件搞错了」，是「复刻件只做了一面」。**
+**而 `PopMartFlow` 在覆盖矩阵里算「已实现」—— 那个「已实现」现在要理解为「`/shop/v1` 这面实现了」。**
+
+**这不是缺陷声明，是覆盖面的事实。**
+
+### 五、验证
+
+```
+python analysis\ida.py str "/shop/v1/"          -> 41 matches，含复刻件那 13 个的原文
+python analysis\ida.py str "api/cart/add"       -> 0（复刻件自注正确）
+python analysis\ida.py str "prod-na-api"        -> 有；复刻件 0
+本轮未改产品代码
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 六、仍然 Unknown
+
+- **那三块面是否属于「下单流程」**：**Unknown** —— 区域 API 与 appKey 很像下单路径，
+  **但活动抽签是另一条业务线（抽签买盒），可能不属于 checkout。**
+  **这一条要用 R829 的路线（xrefs → MoveNext）去看哪个函数用它们。**
+- **`PopMartBrowser` 是什么**：**Unknown** —— 名字暗示浏览器路径，**可能与 captcha 有关（优先级 ②）。**
+- **区域 API 与 `/shop/v1` 的关系**：**Unknown** —— 是同一后端的两个入口，还是不同的主机分工，**没查。**
+
+### 七、教训
+
+**我搜 `popmart`，于是只找到含 `popmart` 的串；复刻件的串不含它，于是「复刻件全无」这个结论凭空成立。**
+
+**这已经是同一族的第 N 次：先按一个词搜，再把「这个词没搜到」读成「不存在」。**
+**而这一次的错更大 —— 它会把一个基本正确的实现说成「一个都不知道」。**
+
+**挡住它的动作只有一个：搜镜像时用「复刻件实际写的那个串」，不用「站名」。**

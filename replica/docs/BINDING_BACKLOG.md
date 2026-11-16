@@ -624,3 +624,16 @@ R685：这个「类型」在源码里找不到      → 1 条真缺 + 3 条判�
 | 纪律 | 即便 `Window.Close()` 存在，把 `RemoveStore` 映到它是猜语义（同 §24 / §31） |
 | 自纠 | 第一版脚本把"源码外基类"说成"链上没有任何方法"，已改为 Unknown |
 
+
+
+## 核心 — 结账收尾（R765 发现）
+
+| 模块 | 缺的步骤 | 状态 |
+|---|---|---|
+| bstn, casio, fanatics, goat, hbx, hypecommerce, offspring, popmart, scheels, superswipe, warhammer, yeezysupply | `SubmitShippingAsync` + `SubmitPaymentAsync` | **未结案** |
+
+来源：`ModuleCoverageTests` 的反射矩阵（`analysis/coverage_raw.txt` 是采集的原始输出）。
+**不要用 grep 判"有没有实现"** —— 继承会骗人；矩阵看得穿继承。
+
+取证前提：**先确认该站在原版里是否真有这两个步骤**，再实现。
+`popmart` / `superswipe` 是非电商形态（抽奖应用），七步尺子对它们不合身，要先判定它们该用什么尺子。

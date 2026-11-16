@@ -47142,3 +47142,53 @@ domains claimed by >1 entry: 0
 ```
 产品代码未改；套件 1751 / 0
 ```
+
+
+---
+
+## 第 765 轮：这一层不用新仪器
+
+### 先查有没有现成的 —— 有
+
+`ModuleCoverageTests` 从 R25 起就用**反射**算每模块七步覆盖，注释里写着为什么反射优于文本扫描：
+**继承来的实现也该算**。**所以"有没有 module 只是壳"这个问题早就有答案。**
+
+### 62 × 七步
+
+```
+100%   47
+ 71%   12
+ 29%    2   pocketgames, riotgames
+  0%    1   raffle
+```
+
+### 真正的问题在中间那 12 个
+
+```
+bstn casio fanatics goat hbx hypecommerce
+offspring popmart scheels superswipe warhammer yeezysupply
+```
+
+**缺的始终是同一对：`SubmitShippingAsync` / `SubmitPaymentAsync`。**
+
+> **能加购、能进结账页，交不了运费与支付 —— 下不了单。**
+
+**这正是"各网站自动下单"里"下单"那一步。**
+
+### 交叉印证与它的边界
+
+grep 这 12 个 flow：`MagentoFlow`/`OffspringFlow` 有那两个方法，其余 11 个没有。
+`offspring` 的 71% 是因为它注册的是 **`HybrisFlow("offspring", …)`**，不是 `OffspringFlow`。
+
+**"方法名不在文件里" ≠ "没实现"**（可能继承）—— **矩阵是权威，grep 只是印证。**
+
+### 验证
+
+```
+ModuleCoverageTests 4/4；原始输出存 analysis/coverage_raw.txt 供复算
+```
+
+### 下一轮
+
+按站取证这 12 个在原版里是否真有 shipping/payment —— **不能假定"原版都有"**。
+先做最可能有的一两个（`goat` / `scheels` 这类标准电商），`popmart`/`superswipe` 这种非电商形态另判。

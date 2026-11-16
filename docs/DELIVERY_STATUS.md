@@ -9358,3 +9358,89 @@ ApproveOnboardPaymentMutation  4022 chars  (declared)
 - **支付 `token` 的来源**：**Unknown**。
 - **两条匿名 mutation 在镜像里的真名**：**Unknown** —— 现在用的是根字段名。
 - **`WarhammerFlow` 仍是 71%**（缺 shipping / payment 两步）—— **这一轮把它们的原文备好了，但没有硬接。**
+
+
+---
+
+## 217. Warhammer 补上运费/地址步：**71% → 86%**，映射来自 mutation 原文
+
+> R791。`RetailFlows.cs` 新增 `WarhammerFlow.SubmitShippingAsync`。
+
+### 一、R790 说缺的东西，原文里就有
+
+R790 把 `UpdateShippingAddress` 的 `attributes` 映射记成"没取证"。这一轮把那段整行打出来，映射就在里面：
+
+```
+变量      $copyFromId: Int, $firstname: String, $lastname: String, $address1: String,
+          $address2: String, $zipcode: String, $city: String, $state_id: Int,
+          $country_id: Int, $phone: String, $document_number: String,
+          $tax_code: String, $neighborhood: String
+
+attributes {copyFromId: …, firstname: $firstname, …, stateId: $state_id, countryId: $country_id,
+            phone: $phone, documentNumber: $document_number, taxCode: $tax_code, neighborhood: …}
+```
+
+**十三个字段全部可选（没有一个 `!`）。** 变量 snake_case、属性 camelCase ——
+**对应关系是原文写死的，不是推断。**
+
+### 二、顺带解答了 R790 的第二个 Unknown
+
+选择集里有 **`shippingRates { ...shippingRate }`** ——
+**运费率是这一步的返回值。所以 `selectedShippingRateId` 不是"来源未知"，是"从这里来"。**
+
+复刻件因此把返回体里的第一个 rate id 记进 `Session.Vars["shippingRateId"]`。
+
+### 三、实现
+
+七个字段直接对上 `ProfileData`：`FirstName` / `LastName` / `Address1` / `Address2` / `Zip` / `City` / `Phone`。
+
+**`state_id` / `country_id` 是 Int，而 Profile 里 `State` / `Country` 是名字 —— 对不上。**
+所以只有会话里已解析出数字 id 时才发：
+
+```csharp
+foreach (var numeric in new[] { "state_id", "country_id" })
+    if (c.Session.Vars.TryGetValue(numeric, out var id) && int.TryParse(id, out var parsed))
+        variables[numeric] = parsed;
+```
+
+**为什么不硬发**：把州名塞进 Int 会被拒；猜一个 id 会把订单挂到错误的地区**而且不报错**。
+**十三个变量全可选，省略之后请求仍然合法。**
+
+### 四、`operationName`
+
+**这条 mutation 在镜像里是匿名的**（`mutation (` 无名字），所以请求体**不带** `operationName` ——
+与 `AddToCart`（有名字）不同。**这个差别写进了代码注释。**
+
+### 五、覆盖率
+
+```
+warhammer    +  +  +  +  +  -  +   86%
+resolved 63/63 flows; fully covered 49; exempt 2
+```
+
+**71% → 86%，只剩 `SubmitPaymentAsync`。`fully covered` 仍 49** —— 要 7/7 才进那一栏。
+
+### 六、验证
+
+```
+构建                已成功
+ModuleCoverageTests warhammer 86%
+完整套件            1766 通过 / 0 失败 / 0 跳过（与改动前同数）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 七、仍然 Unknown
+
+- **`state_id` / `country_id` 的数值**：**Unknown** —— 有就发、没有就不发。
+- **`document_number` / `tax_code` / `neighborhood` / `copyFromId`**：**Unknown** —— 未用。
+- **支付 `token` 的来源**：**Unknown** —— 挡着 100%。
+- **`shippingRateId` 的选取规则**：**Inference（低）** —— 现在取第一个 `id`，真实规则未取证。
+
+### 八、两次过程事故，都记下来
+
+1. **又以为写坏了 `WarhammerQueries.UpdateShippingAddress`** —— 构建证明文件是对的，坏字只在调用回显里。
+   **但这次不同：标识符是编译期检查的**（R789 那次是字符串字面量）。
+   **把手抄文本换成生成的标识符引用，同时消掉了抄写风险和这种误判。**
+2. **记录脚本第一次根本没跑**：输出被管道接进 `Select-String -Pattern "+=|check"`，
+   **而 `+=` 不是合法正则 —— 参数绑定错误发生在管道执行之前，所以 Python 从未启动。**
+   **教训：记录脚本裸跑，不要接过滤；"没有输出"要先确认脚本跑了没有。**

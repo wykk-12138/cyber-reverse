@@ -1170,3 +1170,27 @@ AddItemToCart 2107 · AddToCart 536 · ApproveOnboardPaymentMutation 4022
 
 **可复算**：`python analysis/emit_warhammer_queries.py` 后 `git diff` 应无变化；
 有变化说明证据文件或生成器动了。
+
+
+## 核心 — Warhammer（R791：86%，只差支付）
+
+| 步骤 | operation | 状态 |
+|---|---|---|
+| `AddToCartAsync` | `AddToCart`（536） | ✅ R789 |
+| `SubmitShippingAsync` | `UpdateShippingAddress`（1994） | ✅ R791 |
+| 运费选择 | `UpdateShippingRate`（2248） | 原文备好，未接 |
+| `SubmitOrderAsync` | — | ❌ **仍是编的 `/api/orders`** |
+| `SubmitPaymentAsync` | `ApproveOnboardPaymentMutation`（4022） | ❌ 缺支付 `token` 来源 |
+
+**覆盖率 86%（6/7）。**
+
+**R791 的映射依据**（原文写死）：13 个变量全可选，snake_case 变量 → camelCase 属性。
+
+| 仍 Unknown | |
+|---|---|
+| `state_id` / `country_id` 数值 | 有就发、没有就省 |
+| 支付 `token` 来源 | 挡着 100% |
+| `shippingRateId` 选取规则 | 取第一个 `id`，Inference（低） |
+| 订单提交 operation | 未定位 |
+
+**下一步**：`SubmitOrderAsync` 的 operation 定位（比支付 token 更可能取证成功）。

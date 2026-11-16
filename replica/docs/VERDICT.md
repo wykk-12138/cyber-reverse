@@ -48289,3 +48289,52 @@ ApproveOnboardPaymentMutation  4022  (declared)
 ```
 6 条生成 · 构建绿 · 方法体未改 · 整套 1766 / 0 · 度量未变
 ```
+
+
+---
+
+## 第 791 轮：Warhammer 补上地址/运费步 —— 71% → 86%
+
+### R790 说缺的东西，原文里就有
+
+```
+变量      $copyFromId: Int, $firstname: String, …, $state_id: Int, $country_id: Int, $phone: String, …
+attributes {copyFromId: …, firstname: $firstname, …, stateId: $state_id, countryId: $country_id, …}
+```
+
+**十三个字段全可选；变量 snake_case、属性 camelCase，对应关系是原文写死的。**
+
+### 顺带解答了第二个 Unknown
+
+选择集里有 `shippingRates { ...shippingRate }` ——
+**运费率是这一步的返回值，所以 `selectedShippingRateId` 不是"来源未知"，是"从这里来"。**
+
+### 实现
+
+七个字段直接对 `ProfileData`。**`state_id`/`country_id` 是 Int，Profile 里是名字 → 有就发、没有就省。**
+
+> **把州名塞进 Int 会被拒；猜一个 id 会把订单挂到错误地区而且不报错。十三字段全可选，省略后仍合法。**
+
+**匿名 mutation → 不带 `operationName`**（与有名字的 `AddToCart` 不同）。
+
+### 覆盖率
+
+```
+warhammer    +  +  +  +  +  -  +   86%
+resolved 63/63 · fully covered 49 · exempt 2
+```
+
+**只剩 `SubmitPaymentAsync`。**
+
+### 验证
+
+```
+构建绿 · warhammer 86% · 整套 1766 / 0 · 度量未变
+```
+
+### 两次过程事故
+
+1. 又以为写坏了 `WarhammerQueries.UpdateShippingAddress` —— **构建证明文件是对的；标识符是编译期检查的。**
+2. **记录脚本第一次根本没跑** —— 输出接进了 `Select-String -Pattern "+=|check"`，
+   而 `+=` 不合法，**参数绑定错误在管道执行前发生，Python 从未启动**。
+   **教训：记录脚本裸跑；"没有输出"先确认脚本跑了没有。**

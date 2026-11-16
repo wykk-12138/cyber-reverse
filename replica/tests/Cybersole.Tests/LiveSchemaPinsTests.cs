@@ -39,7 +39,15 @@ public sealed class LiveSchemaPinsTests
             "scrollbarCornerRadius", "language",
         };
 
-        var props = typeof(GlobalSettings).GetProperties().Select(p => p.Name.ToLowerInvariant()).ToHashSet();
+        // R927: the list above is file keys, read from a backup the original wrote, so the comparison has to be against
+        // the name each property serialises to rather than against the property itself. StartupPage and the file's
+        // "startup" are the same member under two names -- a binding names the first, the file holds the second -- and
+        // comparing property names made that legitimate pair look like a missing key.
+        var props = typeof(GlobalSettings).GetProperties()
+            .Select(p => (p.GetCustomAttributes(typeof(Newtonsoft.Json.JsonPropertyAttribute), true)
+                              .OfType<Newtonsoft.Json.JsonPropertyAttribute>()
+                              .FirstOrDefault()?.PropertyName ?? p.Name).ToLowerInvariant())
+            .ToHashSet();
         var missing = names.Where(n => !props.Contains(n.ToLowerInvariant())).ToList();
 
         _out.WriteLine($"{names.Length} live keys, missing: {missing.Count}");

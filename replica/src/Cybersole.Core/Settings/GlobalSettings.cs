@@ -124,7 +124,12 @@ public sealed class GlobalSettings : ObservableObject
 
     // ---- ui behaviour ----
     public bool PinGroups { get => _pinGroups; set => SetProperty(ref _pinGroups, value); }
-    public StartupPage Startup { get => _startup; set => SetProperty(ref _startup, value); }
+    // R927: the binding calls this member StartupPage and the settings file calls it startup. Both are facts and
+        // neither can give way: the binding is what the original exposes and the file key is what it writes, so the
+        // property carries the binding name and the attribute carries the file name. Renaming the property alone made
+        // the live-schema pin report a missing "startup" key, which is how the difference surfaced.
+        [Newtonsoft.Json.JsonProperty("startup")]
+        public StartupPage StartupPage { get => _startup; set => SetProperty(ref _startup, value); }
     public bool Keybinds { get => _keybinds; set => SetProperty(ref _keybinds, value); }
     public bool Notifications { get => _notifications; set => SetProperty(ref _notifications, value); }
     public int Clock { get => _clock; set => SetProperty(ref _clock, value); }

@@ -247,7 +247,7 @@ public sealed class GeneralSettingsView : UserControl
             languageSvc.CurrentIndex);
         var currency = UiKit.Combo(Enum.GetNames<Core.Models.Currency>(),
             (int)s.Currency);
-        var startup = UiKit.Combo(Enum.GetNames<StartupPage>(), (int)s.Startup);
+        var startup = UiKit.Combo(Enum.GetNames<StartupPage>(), (int)s.StartupPage);
         var queue = UiKit.Combo(Enum.GetNames<QueuePresentation>(), (int)s.QueuePresentation);
         var clock = UiKit.Number(s.Clock);
         var enableClock = UiKit.Check("Enable clock", s.EnableClock);
@@ -306,7 +306,7 @@ public sealed class GeneralSettingsView : UserControl
             if (UiKit.TryReadInt(timeout.Text, out var t)) s.Timeout = t;
             languageSvc.Select(language.SelectedItem as string);
             s.Currency = (Core.Models.Currency)Math.Max(0, currency.SelectedIndex);
-            s.Startup = (StartupPage)Math.Max(0, startup.SelectedIndex);
+            s.StartupPage = (StartupPage)Math.Max(0, startup.SelectedIndex);
             s.QueuePresentation = (QueuePresentation)Math.Max(0, queue.SelectedIndex);
             if (UiKit.TryReadInt(clock.Text, out var ck)) s.Clock = ck;
             s.EnableClock = enableClock.IsChecked == true;

@@ -974,3 +974,19 @@ Viva 三条：chargetokens → paymentdetails?ref= → transactions。四家里�
 数字：套件 1896 → 1911 · 类型缺失 17 → 16。
 
 下一轮：剩 7 个 UNKNOWN 判定里的非区分匹配那一个；或 6 个 RENAMED 的成员补齐（覆盖率是下界）。
+
+## R927 补充 — Settings 34/34；绑定名与文件键分离（改产品代码 + 改一个钉，套件 1911）
+
+6 个 RENAMED 逐个核：5 个全覆盖，Settings 33/34 —— 缺 StartupPage（复刻件属性叫 Startup，而 StartupPage 是枚举）。
+
+改名后 LiveSchemaPinsTests 报缺 startup —— 那个清单来自原版备份，是文件键。
+→ 一个成员有两个名字：绑定 StartupPage + 文件 startup，两个都是事实。
+→ 加 [JsonProperty("startup")] 到 StartupPage 属性；钉改成比「每个属性序列化成的名字」。
+
+三条结论：① 覆盖率是下界 → RENAMED ≠ 齐 · ②「改名允许」只覆盖绑定不覆盖持久化格式 · ③ 按名字比的钉要比对的那一边的名字。
+
+数字：套件 1911（同数，先加一次失败再修回）· Settings 33/34 → 34/34 · 类型缺失 16。
+
+纪律：一个属性名可以是两个契约的一部分。改名前要问 —— 还有谁在用这个名字？
+
+下一轮：其余 33 个成员的属性名与文件键是否一致（未逐个核）。

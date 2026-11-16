@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 03:37:14 +0800 |
+| 生成时间 | 2026-11-17 03:56:21 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -360,7 +360,7 @@ registry identifiers: 82   flow types: 35
 store hosts
   matched api-search.dickssportinggoods.com         1 paths  dickssportinggoods
   unmatched api.braintreegateway.com                  2 paths  
-  matched api.nike.com                              4 paths  nikegs, nike
+  matched api.nike.com                              4 paths  nike, nikegs
   matched api.sibspayments.com                      1 paths  in src
   matched api.tobe-official.jp                      1 paths  in src
   unmatched api.vipps.no                              1 paths  
@@ -383,7 +383,7 @@ store hosts
   matched threeds.airwallex.com                     1 paths  in src
   matched www.goat.com                              9 paths  goat
   matched www.ibm.com                               1 paths  in src
-  matched www.nike.com                              1 paths  nikegs, nike
+  matched www.nike.com                              1 paths  nike, nikegs
   matched www.vans.com                              6 paths  in src
 
 vendor hosts
@@ -467,7 +467,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  1911，已跳过:     0，总计:  1911，持续时间: 1 m 22 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  1911，已跳过:     0，总计:  1911，持续时间: 1 m 38 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

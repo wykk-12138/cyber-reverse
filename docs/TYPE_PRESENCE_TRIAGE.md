@@ -13,7 +13,7 @@
 | 类型（简单名） | 判定 | 证据 |
 |---|---|---|
 | `CloudflareSolver` | **RENAMED** | `CaptchaProvider` declares all 9 member(s) — sole declaration match |
-| `Settings` | **RENAMED** | best match `GlobalSettings` in GlobalSettings.cs — 33/34 (97%) |
+| `Settings` | **RENAMED** | `GlobalSettings` declares all 34 member(s) — sole declaration match |
 | `ObservableDictionary` | **UNKNOWN (non-discriminative)** | best match `CaptchaProvider` in GlobalSettings.cs — 1/1 (100%) |
 | `Concurrency` | **RENAMED** | `ConcurrencySettings` declares all 3 member(s) — sole declaration match |
 | `ImapProvider` | **RENAMED** | `ImapMailProvider` in ImapMailProvider.cs — 4/4 (100%) documented; its doc comment names ImapProvider |

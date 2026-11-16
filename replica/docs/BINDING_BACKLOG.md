@@ -4880,3 +4880,37 @@ https://www.vans.com/api/products/v2/products/
 | `BoxExtract` vs `BoxSetExtract` | 两变体，前者不明 |
 
 **纪律**：**「1 条有调用者」比「零条」更危险 —— 它让整族看起来被覆盖。**
+
+
+## 优先级 ① — `AddToCartBox` 输入修正（R909，**改产品代码 +3 用例**）
+
+### 修
+
+```
+before:  必须 boxSkuId（无人设）→ 方法不可达
+after :  boxSkuId → 回退 c.Session.VariantId → 都无才失败
+```
+
+**`VariantId` 由 `FindSlot` 设过 → 普通流程可达；显式 `boxSkuId` 仍可覆盖。**
+
+### 而 `BoxGoodsList` / `BoxExtract` 刻意不接
+
+**`FindProduct` 取商品页 json · `FindVariant` 读 `raw` · `FindSlot` 正则取 skuId —— `goodsListV2` 在这三个里无自然位置。**
+**→ 硬接 = R850 的「有形状无内容」，故留 Unknown。**
+
+### 数字
+
+**套件 1805 → 1808 · 虚步骤 175（不变）· box 调用者 4/6（不变）**
+**这一轮不增覆盖，只把不可达变可达。**
+
+### 一次测试写错的红
+
+**`TheChainUsesFourEndpoints` 用固定 2400 字符窗口 → 第四个端点被截 → 红。改成取到下一个 `override`。**
+
+| 仍 Unknown | |
+|---|---|
+| `BoxGoodsList` 的调用者 | 列表端点，发现侧无自然位置 |
+| `BoxExtract` vs `BoxSetExtract` | 两变体 |
+| 5 个 AddToCart 真缺口 | 各自实现未读 |
+
+**纪律**：**「有调用者」要问第二句 —— 那个调用者跑得到吗？**

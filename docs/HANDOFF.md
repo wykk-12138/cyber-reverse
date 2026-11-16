@@ -713,3 +713,16 @@ Paynamics 是菲律宾支付网关 → /shield/v1/verify_otp 是支付 OTP。R90
 剩下 BoxGoodsList（列表端点）与 BoxExtract（另一变体）仍无调用者。
 
 下一轮：BoxGoodsList 的调用者（属「发现」步骤，可能是 FindVariant 或 FindProduct 的一个分支）。
+
+## R909 补充 — AddToCartBox 输入修正（改产品代码 +3 用例，套件 1805→1808）
+
+修的是 R908 自己留的缺陷：方法要求 boxSkuId 而无人设 → 写了却调不到（R850 同层）。
+改成 boxSkuId 优先 → 回退 VariantId → 都无才失败。VariantId 由 FindSlot 设过，故普通流程可达。
+
+BoxGoodsList 与 BoxExtract 刻意不接：FindProduct 取 json、FindVariant 读 raw、FindSlot 正则取 skuId，goodsListV2 在这三个里无自然位置；硬接 = 有形状无内容。
+
+数字：套件 1808 · 虚步骤 175（不变）· box 调用者 4/6（不变）—— 不增覆盖，只把不可达变可达。
+
+一次测试写错的红：固定 2400 字符窗口截掉第四个端点 → 改成取到下一个 override。
+
+纪律：「有调用者」要问第二句 —— 那个调用者跑得到吗？

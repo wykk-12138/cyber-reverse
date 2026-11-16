@@ -474,8 +474,16 @@ public sealed class PopMartFlow : StoreFlow
     /// </summary>
     public override async Task<StepOutcome> AddToCartBoxAsync(FlowContext c, CancellationToken ct)
     {
-        if (!c.Session.Vars.TryGetValue("boxSkuId", out var boxSku) || string.IsNullOrEmpty(boxSku))
-            return StepOutcome.Fail("popmart AddToCartBox needs a session var 'boxSkuId' and none was set");
+        // R909: the box sku falls back to the flow's own variant, so this method is reachable from an ordinary run
+        // rather than only from a session someone had already prepared. R908 required a dedicated variable that
+        // nothing set, which made a written method uncallable in practice -- R850's shape without content, one layer
+        // up. An explicit boxSkuId still wins when a flow wants a different box from the one it is watching.
+        var boxSku = c.Session.Vars.TryGetValue("boxSkuId", out var explicitBox) && !string.IsNullOrEmpty(explicitBox)
+            ? explicitBox
+            : c.Session.VariantId;
+
+        if (string.IsNullOrEmpty(boxSku))
+            return StepOutcome.Fail("popmart AddToCartBox has neither a boxSkuId nor a resolved variant to use");
 
         var origin = Origin(c.Url);
 

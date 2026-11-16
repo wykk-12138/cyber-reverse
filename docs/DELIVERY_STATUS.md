@@ -12103,3 +12103,74 @@ python analysis\scan_url_ignoring4.py    22 / 3 / 无重复归属
 
 **另一个更值得记的**：**R821 版报「3」，正确答案也是「3」—— 但两个集合不同。**
 **只核总数会放过它。** **这次是靠「没有类该有多个重写」这条不变量发现的，不是靠对照答案。**
+
+
+---
+
+## 247. 三个流程**自己编 CSRF token** —— 已删掉兜底
+
+> R823。改 `ShopifyFlow` / `FootsitesFlow` / `MagentoFlow` 各一处。
+
+### 一、怎么发现的
+
+上一轮把「声明了步骤但实现空转」当作扫描目标：245 个 `StepOutcome` 重写里 72 个不含 `await`/HTTP。
+**其中 26 个只返回成功** —— 多数是 `ScrapeVariantAvailabilityAsync`（读 `Session.Vars["raw"]`、算 `available`、写回去，是真活）。
+
+**但 `GetCsrfAsync` 有 4 个实例，读其中一个就看到了这个：**
+
+```csharp
+public override async Task<StepOutcome> GetCsrfAsync(FlowContext c, CancellationToken ct)
+{
+    if (!string.IsNullOrEmpty(c.Session.CsrfToken)) return StepOutcome.Success();
+    c.Session.CsrfToken = Guid.NewGuid().ToString("N");     // ← 编一个
+    return StepOutcome.Success();
+}
+```
+
+**三处都在编**：`ShopifyFlow`（`GetHomeAsync` 提取不到 `name="authenticity_token"` 时）、
+`FootsitesFlow:55`（页面与 `XSRF-TOKEN` cookie 都没有时）、`MagentoFlow:51`（`form_key` 提取不到时）。
+
+**而 `MagentoFlow:532` 真的把它发出去**：`["CSRFToken"] = c.Session.CsrfToken ?? string.Empty`。
+
+### 二、为什么这是错的
+
+**同一个代码库里正确的做法就摆着**：`DemandwareFlow` 从 body 提取、
+`FarfetchFlow` 读 `csrfToken`/`token`、`GoatFlow` 反转义 `xsrf`、`MagentoFlow` 自己第 41 行也在提取 `form_key`。
+
+**编造的 token 只会触发「无效」，而空 token 触发「缺失」** —— **后者指向真正的原因（提取失败），前者把责任推给协议。**
+
+**这是本会话一直在用的标准**：静默的错值比明确的失败更坏。**而这个是故意生成的静默错值。**
+
+### 三、改了什么
+
+三处都删掉兜底，**token 保持为空**（消费方已有 `IsNullOrEmpty` 守卫）：
+
+- `ShopifyFlow.GetCsrfAsync` → 只 `return Success()`，注释说明为什么不再编
+- `FootsitesFlow` → `if (!string.IsNullOrEmpty(token)) c.Session.CsrfToken = token;`
+- `MagentoFlow.GetCsrfAsync` → 保留 `X-Requested-With` 头，删掉 GUID 赋值
+
+**改前查过：没有任何测试断言这个 GUID。**
+
+### 四、验证
+
+```
+dotnet test --filter "Flow|Shopify|Magento|Footsites"   139 通过 / 0 失败
+python tools\metrics_report.py                         见下方（1 条文档守卫红，是我自己的措辞）
+四项度量                                                 4 / 0 / 17 / 78 / 0（未变）
+```
+
+**全套 1765 / 1 失败**：`DocsConsistencyTests` 报一个非 63 的计数，
+**那是 R822 记录里我自己写的数字撞了守卫的句式**，已在本次保存前一并改掉。
+
+### 五、仍然 Unknown
+
+- **Shopify 的 `/cart/add.js` 是否真的不需要 CSRF token**：**Inference（中）** ——
+  代码里原本就没有在取到 token 时强制要求，**但镜像里怎么做的没查。**
+- **`FootsitesFlow` 的 `XSRF-TOKEN` cookie 是否覆盖了全部情况**：**Unknown**。
+- **`MagentoFlow` 现在无 token 时会得到什么错误**：**Unknown** —— 预期是「missing form key」，
+  **没有在实站上验过。**
+
+### 六、教训
+
+**这一处不是靠「找 bug」找到的，是靠「找空转」找到的 —— 两个问题相邻。**
+**我原本在找「什么都不做的步骤」，找到的是「做了错的事的步骤」。**

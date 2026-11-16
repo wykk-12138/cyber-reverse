@@ -2013,3 +2013,21 @@ ModuleRobustnessTests 190 / 0 · metrics_report 1766 / 0 · 四项度量未变
 | **缩进切类 + 截到下一成员** | 自洽 |
 
 **纪律**：**发现错误靠的是不变量（「没有类该有多个重写」），不是对照答案。**
+
+
+## 优先级 ① — CSRF GUID 兜底已删（R823）
+
+`ShopifyFlow` / `FootsitesFlow` / `MagentoFlow` 各删一处 `Guid.NewGuid().ToString("N")`。
+**编造的 token 只会触发「无效」，空 token 触发「缺失」—— 后者指向真正原因（提取失败）。**
+
+```
+流程相关用例 139 / 0 · 四项度量未变
+```
+
+| 仍 Unknown | |
+|---|---|
+| Shopify `/cart/add.js` 是否真不需要 token | Inference（中） |
+| `FootsitesFlow` 的 `XSRF-TOKEN` cookie 覆盖度 | Unknown |
+| `MagentoFlow` 无 token 时的实际错误 | 预期「missing form key」，未验 |
+
+**这一处是靠「找空转」找到的，不是靠「找 bug」—— 两个问题相邻。**

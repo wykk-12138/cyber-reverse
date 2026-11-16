@@ -48,7 +48,9 @@ public class MagentoFlow : StoreFlow
     {
         if (!string.IsNullOrEmpty(c.Session.CsrfToken)) return StepOutcome.Success();
 
-        c.Session.CsrfToken = Guid.NewGuid().ToString("N");
+        // R823: Magento sends this value as ["CSRFToken"], so a fabricated one guaranteed an "invalid form key" answer
+        // that looked like a protocol mismatch. GetHomeAsync extracts form_key when the page carries it; when it does
+        // not, the session stays tokenless and the submission reports a missing key, which is the true condition.
         c.Session.Headers["X-Requested-With"] = "XMLHttpRequest";
         return StepOutcome.Success();
     }

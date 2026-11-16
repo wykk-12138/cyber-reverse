@@ -53,8 +53,10 @@ public class ShopifyFlow : StoreFlow
 
     public override async Task<StepOutcome> GetCsrfAsync(FlowContext c, CancellationToken ct)
     {
-        if (!string.IsNullOrEmpty(c.Session.CsrfToken)) return StepOutcome.Success();
-        c.Session.CsrfToken = Guid.NewGuid().ToString("N");
+        // R823: no fabricated fallback. GetHomeAsync already extracts name="authenticity_token" from the page when the
+        // page carries one; if it did not, inventing a GUID here would put a token in the session that this server never
+        // issued, and every request carrying it would be rejected as invalid rather than recognised as tokenless.
+        // Shopify's cart endpoints do not require one at all, so an absent token is the truthful state.
         return StepOutcome.Success();
     }
 

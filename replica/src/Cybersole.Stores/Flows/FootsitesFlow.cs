@@ -52,7 +52,10 @@ public sealed class FootsitesFlow : StoreFlow
         if (string.IsNullOrEmpty(token))
             token = c.Session.Cookies.TryGetValue("XSRF-TOKEN", out var xsrf) ? xsrf : string.Empty;
 
-        c.Session.CsrfToken = string.IsNullOrEmpty(token) ? Guid.NewGuid().ToString("N") : token;
+        // R823: when neither the page nor the XSRF-TOKEN cookie yields one, the session stays tokenless. The previous
+        // fallback was a fresh GUID, which no server has ever issued -- a silent wrong value in place of the information
+        // that extraction failed.
+        if (!string.IsNullOrEmpty(token)) c.Session.CsrfToken = token;
         return StepOutcome.Success();
     }
 

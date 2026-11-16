@@ -2921,9 +2921,8 @@ $modules = ([regex]::Matches($registry.Substring($start, $end - $start),
 输出：
 
 ```
-catalogue: 61 modules
-claims in VERDICT: 61
-modules: 61, distinct ids: 61
+catalogue: 这个数
+claims in VERDICT: 这个数: 61, distinct ids: 61
 ```
 
 ### 为什么这件事值得做
@@ -49688,7 +49687,7 @@ ctx.Session.Vars.Remove("lastStatus");
 
 `poq-app` 与 `nike`/`nike-gs`/`superswipe` 并列：**报的是它真的撞到的门。**
 
-**不是放宽断言**：其余 59 个模块仍必须报 `Error`，`Available` 仍一律不许。
+**不是放宽断言**：其余 这个数仍必须报 `Error`，`Available` 仍一律不许。
 
 ### 验证
 

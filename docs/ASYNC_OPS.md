@@ -689,3 +689,34 @@ public bool MonitorMode { get; init; }
 | 种类 | **顶层五个 `Start*Flow`，真的有分派** | **`Task.Type` 字段存在，无人写、无人按它分派** |
 
 **死字段比缺字段更糟：它让「种类这一层」看起来存在。**
+
+
+### `CreateInputModel` 的 13 个属性里**没有 `Type`**（R859）
+
+**镜像里属性以 `声明类型,程序集.属性名!访问器` 的形式出现，可以逐条列出来。
+`Cybersole.Models.CreateInputModel` 扫到 13 个：**
+
+```
+AutoQuantity · Color · Currency · Input · MaxPrice · MinPrice · Minus
+Plus · PriceCheckVisible · Quantity · Sizes · Symbol · TogglePriceCheck
+```
+
+**没有 `Type`。**
+
+### 边界：这是**创建表单的输入模型**，不一定是任务模型本身
+
+**所以这一步能说：镜像的创建表单里没有「种类」这个输入项。**
+**不能说：镜像的任务对象没有 Type。**
+
+**而这也回答了一个相关问题 —— 五个 `Start*Flow` 的种类不是在创建表单里选的。**
+
+### 顺带：复刻件的任务字段是混合物
+
+| 字段 | 镜像里有？ |
+|---|---|
+| `MonitorMode` | **有**（`get_MonitorMode` @ `0x143300b4a`） |
+| `PriceCheck` | **有**（`get_PriceCheck` @ `0x143303724`） |
+| `MultiCart` | **有**（`get_MultiCart` / `set_MultiCart` @ `0x1432fd992`） |
+| `NameTemplate` | **0 命中** —— 复刻件自己起的名字 |
+| `CheckoutDelay` | **0 命中** —— 同上 |
+| **`Type`** | **`CreateInputModel` 里没有；任务模型未查** |

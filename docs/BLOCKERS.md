@@ -20951,3 +20951,91 @@ replica\src\Cybersole.Core\Store\TaskCombinationBuilder.cs: TaskCombinationReque
 **两个说法差别很大，因为第一个说法会让人去找「层」在哪，第二个说法会让人去查「字段为什么空」。**
 
 **而这两种后续动作里，只有第二种会走到「镜像里到底有没有这个字段」这个问题上。**
+
+
+---
+
+## 283. `CreateInputModel` 的 13 个属性里没有 `Type`；而**种类也不是在创建表单里选的**
+
+> R859。未改产品代码。
+
+### 一、镜像里的属性可以逐条列
+
+**镜像里属性以 `Cybersole.Models.CreateInputModel,Cybersole.Core.<属性名>!Getter` 的形式出现。
+沿这个模式扫，`CreateInputModel` 得到 13 个属性：**
+
+```
+AutoQuantity · Color · Currency · Input · MaxPrice · MinPrice · Minus
+Plus · PriceCheckVisible · Quantity · Sizes · Symbol · TogglePriceCheck
+```
+
+**没有 `Type`。**
+
+### 二、边界要说清
+
+**这是**创建表单的输入模型**，不一定是任务对象本身。**
+
+| 能说 | 不能说 |
+|---|---|
+| 镜像的创建表单里没有「种类」这个输入项 | 镜像的任务对象没有 Type |
+
+**所以 R858 那个「留还是删」还没答完 —— 但它推进了一步：
+`Task.Type` 不是从 `CreateInputModel` 来的。**
+
+### 三、一个附带结论，对 R857 有用
+
+**五个 `Start*Flow` 的种类，**不是**在创建表单里选的。**
+
+**那它在哪选？两种可能：**
+1. **任务创建后按别的字段派发**（如 store 决定种类）
+2. **种类是创建时的另一个入口**（不是这个表单）
+
+**这解释了复刻件为什么没有种类层却也能跑：它的创建表单与镜像一样不含种类，
+所以复刻件是从「没有种类输入」这个正确起点，走向了「也没有种类派发」这个错误终点。**
+
+### 四、顺带：复刻件的任务字段是混合物
+
+| 字段 | 镜像 |
+|---|---|
+| `MonitorMode` | **有**（`get_MonitorMode` @ `0x143300b4a`） |
+| `PriceCheck` | **有**（`get_PriceCheck` @ `0x143303724`） |
+| `MultiCart` | **有**（`get_MultiCart` / `set_MultiCart` @ `0x1432fd992`） |
+| `NameTemplate` | **0** —— 复刻件自造 |
+| `CheckoutDelay` | **0** —— 复刻件自造 |
+| `Type` | `CreateInputModel` 无；任务对象未查 |
+
+**所以那个模型的字段一半有出处、一半是自造。而自造的那两个（`NameTemplate` / `CheckoutDelay`）
+是复刻件为了自己的批量创建功能加的，不是镜像的行为。**
+**这在「功能 1:1」下是一个独立的小问题 —— 它们在复刻件里有实际用途，但**多出来的功能也是一种不相等**。**
+
+### 五、验证
+
+```
+ida.py str CreateInputModel  -> 27 matches
+  按 '<类型>,Cybersole.Core.<名>!Getter/Setter' 抽出 13 个属性；无 Type
+ida.py str get_MonitorMode   -> 1（0x143300b4a）
+ida.py str get_PriceCheck    -> 3
+ida.py str NameTemplate      -> 0
+ida.py str CheckoutDelay     -> 0
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **镜像的任务对象（不是创建表单）有没有 Type**：**Unknown** ——
+  **要找任务对象的类型名。`Cybersole.Ui.Views.Tasks.Modals.TaskDetail…` 与 `TaskGroup…` 是线索。**
+- **种类按什么派发**：**Unknown** ——
+  **创建表单不含种类（本轮 Observation），所以派发依据是别的字段。**
+- **复刻件那两个自造字段要不要留**：**Unknown** ——
+  **它们支撑 `TaskCombinationBuilder` 的批量创建，而那个功能镜像里有没有没查。**
+
+### 七、教训
+
+**R858 我问「镜像有没有 Type」，问得太粗 —— `Type` 这个词在镜像里有 27 个变体（`get_TypeId` / `get_TypeOfT` …），
+直接搜等于没搜。**
+
+**这一轮换成「先找到字段的书写模式（`类型,程序集.名字!访问器`），再按模式抽表」，才得到 13 个属性这样一个可核对的答案。**
+
+**找到一个领域里的**语法**，比搜一个词有用 —— 而 AGENTS.md §2.7 说的「先问有几种写法」，
+说的就是这个，只是我这次才真的照做。**

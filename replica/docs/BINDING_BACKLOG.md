@@ -3135,3 +3135,34 @@ SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken 
 | `Task.Type` 谁加的 | git log 可查，未必记了理由 |
 
 **纪律**：**「没有这一层」vs「有字段、没有层」—— 后者才会让人走到「镜像里到底有没有这个字段」。**
+
+
+## 判据 (f) — `CreateInputModel` 13 属性无 Type（R859）
+
+**按镜像的属性书写模式 `类型,程序集.名字!访问器` 抽表：**
+`CreateInputModel` = `AutoQuantity` `Color` `Currency` `Input` `MaxPrice` `MinPrice` `Minus` `Plus`
+`PriceCheckVisible` `Quantity` `Sizes` `Symbol` `TogglePriceCheck` —— **13 个，无 `Type`。**
+
+**边界**：这是**创建表单输入模型**，不是任务对象本身。
+
+### 附带结论（对 R857）
+
+> **五个 `Start*Flow` 的种类不是在创建表单里选的。**
+
+**→ 复刻件从「没有种类输入」（正确）走到「也没有种类派发」（错误）。**
+
+### 复刻件任务字段是混合物
+
+| 有出处 | `MonitorMode` · `PriceCheck` · `MultiCart` |
+|---|---|
+| **自造** | **`NameTemplate` · `CheckoutDelay`（0 命中）** |
+
+**→ 「功能 1:1」下，多出来的功能也是一种不相等。**
+
+| 仍 Unknown | |
+|---|---|
+| 镜像任务对象有无 Type | 线索 `TaskDetail…` / `TaskGroup…` |
+| 种类按什么派发 | 创建表单不含种类，依据是别的字段 |
+| 两个自造字段留不留 | 支撑 `TaskCombinationBuilder`；镜像有无此功能未查 |
+
+**纪律**：**找一个领域的**语法**比搜一个词有用 —— `Type` 有 27 个变体，直接搜等于没搜。**

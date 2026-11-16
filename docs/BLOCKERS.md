@@ -14296,3 +14296,80 @@ admin.hypecommerce.io/api/settings
 - `casio` 的五个蛇形字段如何取用：**Unknown** —— 只知道名字。
 - `hypecommerce` 的 `entries/create` 请求体：**Unknown**。
 - `goat` / `popmart` / `superswipe` 的尺子：**Unknown**。
+
+
+---
+
+## 207. Casio 的判定逻辑读出来了：`data.products.items` + `casio_can_purchase`
+
+> R781。未改产品代码。`off_` 读取器第一次在别的任务上派上用场。
+
+### 一、先查用法，再谈实现
+
+R780 的结论是"Casio 缺整张配置面"。这一轮**先查 `CasioRegion` 怎么被用**：
+
+```
+CasioRegion           xrefs=0     —— 配置键，按名字读，没有代码引用
+casio_can_purchase    xrefs=1     → sub_140954410 (2,116 B)
+casiostore.bhawar     xrefs=1     → sub_14117C4E0 (687 KB，R759 那个 IDA 并片)
+casioid               xrefs=2     → sub_14094AF90 (187 B) · sub_140952790 (893 B)
+```
+
+**`CasioRegion` 零 xref 是个有用的结果**：它与 store 元数据同类 —— **数据记录里的键，代码按名字读**，
+所以"找不到引用"不是"没用到"。
+
+### 二、`sub_140954410` 读的是三个键
+
+函数体里有三次 `sub_141FD2400(对象, &off_xxx, …)` —— 那形状是"按键取值"。三个键用新读取器一读即出：
+
+```
+off_146FEA418  ->  'data'      len=4
+off_147118348  ->  'products'  len=8
+off_1470ABD58  ->  'items'     len=5
+```
+
+**所以它走的是 `data → products → items` 这条 JSON 路径。**
+再往里（第 170 行之后，`0x140954a20` 处）才引用 `casio_can_purchase`。
+
+**合起来读**：
+
+```
+遍历 data.products.items[*]，用每个 item 的 casio_can_purchase 判定可购
+```
+
+**这是 Observation**：路径三段是键名，`casio_can_purchase` 的引用点在这个函数体内。
+
+### 三、复刻件缺的正是这两样
+
+`casio_can_purchase` 与另外四个 `casio_*` 字段在 `replica/src` 里**全部 ABSENT**（R780 查过）。
+**所以复刻件的 Casio 解析没有走镜像这条路径，也没用那个判定字段。**
+
+**这就把 R780 那句"缺整张配置面"具体成了两件可做的事**：
+
+1. 按 `data.products.items` 解析（而不是现在的形状）
+2. 用 `casio_can_purchase` 判定可购（而不是自己推）
+
+### 四、读取器的第一次外部收益
+
+R777 建 `off_slot_reader.py` 时记的是"工具债"，这一轮**三个键一次读全**。
+**上一轮 R776 为同样的事烧掉了五次工具尝试。**
+
+另外：`0x144C1E320` 读回 `'\x01'` 且 `len=1155229432` —— **那不是字符串对象，是类型表。**
+**读取器的长度校验（长度必须等于字符数）把它标了出来。**
+
+**这条守护是有用的：没有它，那个 1,155,229,432 会被当成"读到了"，然后写进文档。**
+
+### 五、验证
+
+```
+off_slot_reader.py 校准通过（off_1471151D0 -> 'poq-app-id'）
+四个槽位读取，三个通过长度校验，一个被标出
+本轮未改产品代码；完整套件保持 1752 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- `data.products.items` 里每个 item 的**完整字段集**：**Unknown** —— 只确认了路径与一个判定字段。
+- `CasioRegion` 的**取值集合**（AU / SG / US 之外还有没有）：**Unknown**。
+- `casiostore.bhawar.com` 的用途：**Unknown** —— 它落在 R759 那个 687 KB 并片里，读不出边界。
+- `casioid` 两个函数的语义：**Unknown**。—— 187 B 与 893 B，未读。

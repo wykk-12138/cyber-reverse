@@ -47851,3 +47851,47 @@ R772 我也建过 Poq flow，**那次拿一个面替换另一个面，被实机�
 ```
 产品代码未改；套件 1752 / 0；度量未变
 ```
+
+
+---
+
+## 第 781 轮：Casio 的判定逻辑是「一条 JSON 路径 + 一个标志」
+
+### 先查用法
+
+```
+CasioRegion         xrefs=0   ← 配置键，按名字读（与 store 元数据同类）
+casio_can_purchase  xrefs=1   → sub_140954410 (2,116 B)
+casiostore.bhawar   xrefs=1   → sub_14117C4E0（R759 那个 687 KB 并片）
+casioid             xrefs=2   → sub_14094AF90 · sub_140952790
+```
+
+### `sub_140954410` 读三个键，新读取器一次读出
+
+```
+'data' · 'products' · 'items'
+```
+
+**所以它走 `data → products → items` 这条 JSON 路径**，再往里才引用 `casio_can_purchase`。
+
+**合起来：遍历 `data.products.items[*]`，用每项的 `casio_can_purchase` 判定可购。**
+
+### 于是 R780 那句"缺整张配置面"具体成两件事
+
+1. 按 `data.products.items` 解析
+2. 用 `casio_can_purchase` 判定可购
+
+**两者在复刻件里都 ABSENT。**
+
+### 读取器的第一次外部收益
+
+R776 为同样的事烧掉五次尝试；这一轮**三个键一次读全**。
+
+而且：`0x144C1E320` 读回 `'\x01'` 且 `len=1,155,229,432` —— **那是类型表不是字符串。**
+**长度校验把它标了出来。没有它，那个数字会被当成"读到了"写进文档。**
+
+### 验证
+
+```
+产品代码未改；套件 1752 / 0
+```

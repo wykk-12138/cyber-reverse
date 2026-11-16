@@ -932,3 +932,30 @@ poq-slot-conditions   名字确认，取值未定位
 
 **方法论提醒**：R767 把「字段名 + 共用支付层字符串」数成了「该站有 2 个结账 URL」。
 **数 URL 之前先看它是不是那个站自己的端点** —— 这是 §2.7 的又一次。
+
+
+## 核心 — Casio 的具体缺口（R781）
+
+原版判定逻辑（Observation）：
+
+```
+遍历 data.products.items[*]
+每一项用 casio_can_purchase 判定可购
+```
+
+键名已用 `off_slot_reader.py` 读出：`data` / `products` / `items`。
+
+| 要做的 | 现状 |
+|---|---|
+| 按 `data.products.items` 解析 | 复刻件未走这条路径 |
+| 用 `casio_can_purchase` 判定可购 | **ABSENT** |
+
+| 仍 Unknown | |
+|---|---|
+| item 的完整字段集 | 只确认路径 + 一个判定字段 |
+| `CasioRegion` 的取值集合 | AU/SG/US 之外未知 |
+| `casiostore.bhawar.com` 用途 | 落在 R759 那个 687 KB 并片里 |
+| `casioid` 两个函数语义 | 187 B / 893 B，未读 |
+
+**注意**：`CasioRegion` 零 xref 不等于没用到 —— 它是**数据记录里的键，代码按名字读**。
+与 store 元数据同类（R761）。

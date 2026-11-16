@@ -1730,3 +1730,63 @@ TheModuleCountPhraseDoesNotSpread
 | 一个不增长的句式 | 一条 ceiling 测试 |
 | ceiling 的初值 | **被自己的测试纠正：13 → 16** |
 | 一个记录 | 一条「别用手工计数当基准」的实例 |
+
+
+### 5 个 `Start*Flow` 与 Pop Mart 的抽签步骤**同一个字面量 blob**（R882）
+
+**R880 说接 `FlowKind → StoreFlow` 需要「哪个站有哪个 `Start*Flow`」。把这把那一段完整读出来：**
+
+```
+14337b02a  Login_EnsureTaskAlive · CheckSession · Authorize · Authenticate · SubmitTwoFactor · GetToken
+14337b55e  _cartId _itemId _visitorId _marketPlace _language _basePath _locationId _priceId
+           _priceSnapshot _productPrice _shippingPrice _locationData _forter
+           _paymentApprovalId _paymentUri _paypalToken _product _scope _state
+           _twoFactorEnabled _redirectUrl _accountKasada
+14337bda2  <Start>d__56
+14337bdc4  <StartSignupFlow>d__57  <StartClearFlow>d__58  <StartInStoreFlow>d__59
+           <StartPopNowFlow>d__60  <StartNormalFlow>d__61
+14337be54  <SendTwoFactor>d__65    14337be6a  <Register>d__67
+14337bf2d  <GetConfig>d__68  <GetSession>d__69   14337bf51  <Login>d__70  <Login_EnsureTaskAlive>d__71
+14337bff7  <CanPlaceOrder>d__72  <FindProductMulti>d__73  <FindProduct>d__74
+14337c042  <FindProductMultiInstore>d__75  <FindProductInstore>d__76  <ClearCart>d__77
+```
+
+**而 R871 认定的 `GetOrders>d__104` 在 `0x14337c7e5`，R849 的 `StartDrawFlow>d__115` 也在同一段。**
+
+**所以同一个 blob 里有 ordinal 56 到 115+。**
+
+### 这看起来像「这个类支持 5 种任务」，但不是
+
+**一个字面量 blob 可以同时装**基类和派生类**的字面量 ——
+NativeAOT 把方法名字面量集中放，不按类分块。**
+
+**所以能说的只有：**
+
+| 能说 | 不能说 |
+|---|---|
+| 5 个 `Start*Flow` 与 Pop Mart 的抽签步骤**在同一片字面量区** | **「Pop Mart 支持这 5 种任务」** |
+| 这片区域有 ordinal 56–61 与 104–116+ | 「这是同一个类」 |
+| 字段里有 `_accountKasada` 与 `_forter` | 「这个类属于哪个站」 |
+
+**R878 的教训直接适用：位置相邻不是归属。而这次相邻的粒度是**blob**，比字符串更粗 —— 证据更弱，不是更强。**
+
+### 而字段透露的东西仍然有用
+
+| 字段 | 读法 |
+|---|---|
+| `_accountKasada` | **Kasada token 存在账号级**（不是请求级临时变量） |
+| `_forter` | **Forter 风控 token 也在模型里** |
+| `_marketPlace` · `_locationId` · `_locationData` · `_basePath` | **门店/市场模型** —— 与 `FindProductInstore` 一致 |
+| `_paymentUri` · `_paypalToken` · `_paymentApprovalId` | 支付态 |
+
+**`AntiBotVendors.cs` 把 Kasada 与 Forter 都列了，而 `GetKasada` 那一行的示例串是 `Nike-Kasada-Version`。
+所以「Kasada 出现在这片的字段里」不指向唯一一个站。**
+
+### 为什么没写映射表
+
+**R880 说要建 `FlowKind × Store → StoreFlow`。这一轮查完，**证据不够**：
+
+**要写「PopMart 支持 Normal/Clear/Signup/PopNow/InStore」，我需要「这 5 个 `Start*Flow` 的 ordinal
+与 PopMart 的 ordinal 属于同一个类」的证据。而 blob 共享给不出这个。**
+
+**所以映射表这一轮**不写**。写它就是拿 blob 相邻当归属，重犯 R876。**

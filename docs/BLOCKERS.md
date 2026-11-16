@@ -23004,3 +23004,92 @@ python tools\metrics_report.py                                    -> 1780 通过
 
 **R878 说「能用算术回答的就不该靠推断」。这一轮的版本是：
 能用**可复核的工具**回答的，就不该靠手工计数。**
+
+
+---
+
+## 306. 5 个 `Start*Flow` 与 Pop Mart 抽签步骤**同一片字面量区** —— 而这不够写映射表
+
+> R882。未改产品代码。
+
+### 一、读出来的完整段落
+
+```
+14337b02a  Login_EnsureTaskAlive · CheckSession · Authorize · Authenticate · SubmitTwoFactor · GetToken
+14337b55e  _marketPlace _locationId _priceId _locationData _forter _paymentUri _paypalToken
+           _twoFactorEnabled _redirectUrl _accountKasada …
+14337bda2  <Start>d__56
+14337bdc4  <StartSignupFlow>d__57 <StartClearFlow>d__58 <StartInStoreFlow>d__59
+           <StartPopNowFlow>d__60 <StartNormalFlow>d__61
+14337bff7  <CanPlaceOrder>d__72 <FindProductMulti>d__73 <FindProduct>d__74
+14337c042  <FindProductMultiInstore>d__75 <FindProductInstore>d__76 <ClearCart>d__77
+```
+
+**而 `GetOrders>d__104` 在 `0x14337c7e5`、`StartDrawFlow>d__115` 也在同一段。**
+
+**所以一个 blob 里有 ordinal 56–61 与 104–116+。**
+
+### 二、看起来像「这个类支持 5 种任务」，但不是
+
+**一个字面量 blob 可以同时装**基类与派生类**的字面量 ——
+NativeAOT 把方法名字面量集中放，不按类分块。**
+
+| 能说 | 不能说 |
+|---|---|
+| 5 个 `Start*Flow` 与 Pop Mart 抽签步骤**同一片字面量区** | **「Pop Mart 支持这 5 种任务」** |
+| 这片有 ordinal 56–61 与 104–116+ | 「这是同一个类」 |
+| 字段有 `_accountKasada` / `_forter` | 「这个类属于哪个站」 |
+
+**R878 的教训适用，而这次相邻的粒度是 **blob**，比单条字符串更粗 ——
+**证据更弱，不是更强。****
+
+### 三、所以映射表不写
+
+**R880 说下一步是 `FlowKind × Store → StoreFlow`。要写它，我需要
+「这 5 个 `Start*Flow` 与 Pop Mart 的 ordinal 属于同一个类」的证据。blob 共享给不出。**
+
+**写它就是拿 blob 相邻当归属 —— 重犯 R876。**
+**所以这一轮**什么都没写**，而这是对的：一个没有证据的映射表比没有映射表更坏，
+因为它会把「看起来接了」当成「接了」（R869 那条假成功的同族）。**
+
+### 四、字段仍然给出了东西
+
+| 字段 | 读法 |
+|---|---|
+| `_accountKasada` | **Kasada token 在账号级**，不是请求级临时量 |
+| `_forter` | Forter token 也在模型里 |
+| `_marketPlace` `_locationId` `_locationData` `_basePath` | **门店/市场模型**，与 `FindProductInstore` 一致 |
+| `_paymentUri` `_paypalToken` `_paymentApprovalId` | 支付态 |
+
+**但「哪些字段在这片」也不指向唯一一个站：`AntiBotVendors.cs` 的 `GetKasada` 行示例串是
+`Nike-Kasada-Version`，而 Kasada 在这片字段里 —— 两者不构成「这是 Nike」。**
+
+### 五、验证
+
+```
+idautils.Strings() @0x14337B000–0x14337CE00 -> 78 条，按地址序（完整列出）
+  含 5 个 Start*Flow（ordinal 57–61）· Start d__56 · Register d__67 · FindProduct*Instore d__75-76
+  字段段含 _accountKasada _forter _marketPlace _locationId
+where_is FindProductInstore  -> 只在 docs（无实现）
+where_is AccountKasada       -> 全仓无
+where_is Forter              -> AntiBotVendors.cs 17 处（厂商表）
+本轮未改产品代码
+```
+
+### 六、仍然 Unknown
+
+- **那 5 个 `Start*Flow` 属于哪个类**：**Unknown** ——
+  **需要 ordinal→类 的映射，而 blob 给不出。R504 那堵墙（描述符无 xref）大概率也挡这条。**
+- **16 个方法名（56–61、65、67–77、104–116）是否同一个类**：**Unknown。**
+- **`_accountKasada` 与 `_forter` 在同一个模型里是否意味着「这个站同时用两家风控」**：**Inference，未证。**
+
+### 七、教训
+
+**这一轮我有机会写一张看起来很有价值的映射表：把 14 个 `FlowKind` 中的 5 个接到 Pop Mart 上。
+它会让 `TaskKinds.cs` 从「清单」变成「接上了」。**
+
+**而我没写，因为我查的时候发现证据的粒度不够。**
+
+**这是 R869 之后第一次，我在**动手之前**判定「这个改动会制造看起来完成的东西」。**
+
+**代价是这一轮没有产品代码改动。收益是 `TaskKinds.cs` 仍然只声称它证明的了的东西。**

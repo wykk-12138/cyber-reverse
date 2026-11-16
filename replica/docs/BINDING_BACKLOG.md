@@ -3914,3 +3914,35 @@ StartRaffleFlow StartReservationFlow StartRpcFlow StartSignupFlow StartTasksFlow
 | 16 余量是否太松 | 可能会 |
 
 **纪律**：**能用可复核工具回答的，就不该靠手工计数。**
+
+
+## 判据 — 5 个 `Start*Flow` 与 Pop Mart 抽签步骤同一片字面量区（R882）
+
+**`0x14337B000`–`0x14337CE00` 共 78 条，含：`Start>56` · `StartSignupFlow>57` · `StartClearFlow>58` · `StartInStoreFlow>59` · `StartPopNowFlow>60` · `StartNormalFlow>61` · `FindProductInstore>76`**
+**而同段还有 `GetOrders>104` · `StartDrawFlow>115` → **一个 blob 有 ordinal 56–116+**。**
+
+### 这不够写映射表
+
+**blob 可同时装**基类与派生类**字面量（NativeAOT 不按类分块）。**
+
+| 能说 | 不能说 |
+|---|---|
+| 同一片字面量区 | 「Pop Mart 支持这 5 种」 |
+| ordinal 56–61 与 104–116+ | 「同一个类」 |
+| 字段 `_accountKasada`/`_forter` | 「属于哪个站」 |
+
+> **相邻粒度是 blob，比单条字符串更粗 → 证据更弱。R878 的教训升级版。**
+
+**所以 `FlowKind × Store → StoreFlow` 映射表**本轮不写** —— 没证据的映射表会把「看起来接了」当成「接了」（R869 假成功同族）。**
+
+### 字段收获
+
+**`_accountKasada`（Kasada token 账号级）· `_forter` · `_marketPlace`/`_locationId`/`_locationData`（门店模型，配 `FindProductInstore`）· `_paymentUri`/`_paypalToken`**
+
+| 仍 Unknown | |
+|---|---|
+| 5 个 `Start*Flow` 属哪个类 | 需 ordinal→类 映射；R504 那堵墙大概率也挡 |
+| 56–61/65/67–77/104–116 是否同一类 | 未证 |
+| 两风控同模型 = 同时用两家？ | Inference |
+
+**纪律**：**有证据的缺席，好过没证据的接线。**

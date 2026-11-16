@@ -472,3 +472,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **新增 `DocsConsistencyTests.TheModuleCountPhraseDoesNotSpread`**：散文里「<数字> 个模块」(>=20) 处数 **<= 16**，只许降不许升。**不削既有守卫、不改历史、只针对增长。**
 **它第一次跑就纠正我**：我先数出 13 当 ceiling，测试报 16 → 复核 16 才对（毛病：here-string 里 `chr(10)` + 反引号）。**所以它防的不只是句式，是「拿手工计数当基准」。**
 **套件 1780 通过 / 0 失败（原 1779 + 1）。**
+
+## R882 补充 — 5 个 `Start*Flow` 与 Pop Mart 抽签步骤同一片字面量区（**本轮未改产品代码**）
+
+**`0x14337B000`–`0x14337CE00` 78 条**：`Start>56` `StartSignupFlow>57` `StartClearFlow>58` `StartInStoreFlow>59` `StartPopNowFlow>60` `StartNormalFlow>61` `FindProductInstore>76`，**同段还有 `GetOrders>104` `StartDrawFlow>115`** → 一个 blob 有 ordinal 56–116+。
+**但 blob 可同时装基类与派生类字面量 → **不能说「PopMart 支持这 5 种」**。相邻粒度是 blob（比字符串更粗）→ 证据更弱。**
+**所以 `FlowKind × Store → StoreFlow` 映射表本轮**不写** —— 没证据的映射表 = 把「看起来接了」当「接了」。**
+**字段收获**：`_accountKasada`（Kasada token 账号级）· `_forter` · `_marketPlace`/`_locationId`/`_locationData`（门店模型）。
+**下一步：查 ordinal→类 的映射手段（R504 那堵墙可能也挡）。**

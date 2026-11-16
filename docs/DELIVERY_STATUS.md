@@ -4607,3 +4607,73 @@ R725 那条「用版本差分选稳定见证」的计划，**按哈希实现不�
 
 **这不是白跑**：如果不量就按 R725 的计划去挑「稳定函数」，我会挑到一批**因为不含地址引用而稳定**的函数 ——
 它们恰好是最不像业务逻辑的那种。
+
+
+---
+
+## 156. §1.2 检查：两个参考仓库都没有「功能等价」的答案，但留下了可行路线
+
+> R727。读 `seep-reverse-lab/MANUAL/POC-VALIDATION.md`（AGENTS.md 标为"待读"）、
+> `rea/docs/native-function-matching.md`；实测 35 的字符串可抽。
+
+### 一、seep-reverse-lab：**不覆盖**
+
+`MANUAL/POC-VALIDATION.md`（171 行）定义的是 **Frida 脚本 / Smali 补丁 / 代理 DLL 的自动化验证 SOP**：
+三阶段闭环（静态自检 → 沙箱执行 → 报错自愈），配一张「常见报错 → 自愈映射表」。
+
+**它是"我改的这个补丁能不能跑起来"的验证，不是"我的复刻件和原版功能是否相同"的验证。**
+两件事：一个的失败信号是**崩溃**，另一个的失败信号是**行为不同但没有崩溃**。
+
+**所以最高优先级的参考里没有 C7c 的答案。** 这构成了去读 `rea` 的理由，也写清了缺什么。
+
+### 二、rea：工具更强，但字节层撞同一堵墙
+
+`docs/native-function-matching.md`（10,426 B）说得很直接：
+
+> A byte match requires every body byte, equal total size, equal ordered range lengths,
+> a unique SHA-256 fingerprint and the same known architecture.
+> **Extents are never guessed from the next entry, and relocations are not normalized.**
+
+**`relocations are not normalized`** —— **这正是 R726 撞的那堵墙。** REA 的字节层会给出同样的 25%。
+
+名字层也不行：它「先配唯一精确名字」，而 **NativeAOT 只有 3.13% 的函数有名字**，覆盖率接近零。
+
+**但 REA 还有第三层：`compatible CFG/call/string fingerprints propose unresolved groups`。**
+**CFG / 调用 / 字符串指纹是重排不变的东西** —— 这才是它比我那 30 行哈希强的地方。
+
+### 三、用它的成本
+
+`match_native_functions` 要两个 `list_procedures` **Evidence**，即**两个 129 MB 的 NativeAOT 都要开进 provider**。
+`docs/providers/ghidra-nativeaot.md` 存在，说明支持；但**一次开两个 129 MB 的镜像不是一轮能做完的事**。
+
+**判断**：不在本轮盲开。**先走一个便宜的、同样重排不变的近似**（见下），如果它够用，就不必付那个成本。
+
+### 四、便宜的近似：**字符串引用签名**（本轮已验证可行性）
+
+思路：一个函数引用了哪些**字符串内容**，是重排不变的（内容不变、地址变了不影响）。
+
+**可行性第一步已测**：35 的字符串能**纯字节**抽出，不需要 IDA：
+
+```
+5.18.35  ASCII runs >=6 : 313,119
+         UTF-16 runs>=6 :  76,529
+         含 "Cybersole." :   1,383
+```
+
+与 32 的 324,895 条字符串池同一量级。**所以两侧都能建「地址 → 字符串内容」表。**
+
+### 五、下一轮的具体做法
+
+1. 两侧各自：`地址 → 字符串内容` 表（32 已有 `pe_strings.txt`；35 用同法抽）
+2. 两侧各自：`disp32_scan_any.scan` 扫 `.text`，命中点 → 所属函数（`.pdata` 已会解析）
+3. 每个函数得到 **引用字符串内容集合**（排序去重）
+4. 两侧比这个集合 → **重排不变的相同/不同**
+
+**这不能证明行为相同**（引用同一批字符串的两个函数仍可能逻辑不同），**但它能可靠地把"因为重排而不同"剔掉**，
+这正是 R726 缺的那一步。
+
+### 六、仍然 Unknown
+
+- rea 的 CFG/字符串指纹层在这两个镜像上能配到多少：**Unknown**（未跑，成本高）。
+- 字符串签名相同的函数里有多少逻辑真相同：**Unknown**（签名是必要条件不是充分条件）。
+- `ghidra-nativeaot.md` 描述的 provider 是否支持 129 MB 镜像：**Unknown**（未读该文档，未实测）。

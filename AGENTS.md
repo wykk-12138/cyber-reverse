@@ -35,7 +35,7 @@
 | 资源 | 用途 | 状态 |
 |---|---|---|
 | `seep-reverse-lab/MANUAL/IDA-PRO.md` | IDA/MCP 三段链、端口、就绪判定 | 已采用 |
-| `seep-reverse-lab/MANUAL/POC-VALIDATION.md` | 验证口径（待读） | 待采用 |
+| `seep-reverse-lab/MANUAL/POC-VALIDATION.md` | **R727 已读**：Frida/Smali 补丁的三阶段动态验证 SOP，**不覆盖复刻件的功能等价** | 已读，不适用 |
 | `ida-reverse` skill | 启动 IDA → 轮询 13337 → MCP 工具矩阵 → 失败降级 r2 | 已加载 |
 | `analysis/ida.py` | **过渡件**：DSH 代理缺失时直连插件的 MCP 客户端（66 工具）。代理稳定后应退役 | 在用 |
 | `rea` MCP（`D:\projects\rea`） | 第二意见：`compare_functions`、`match_native_functions`、`trace_application_feature`、`compare_application_versions` | 建设中 |

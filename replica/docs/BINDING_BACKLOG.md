@@ -4261,3 +4261,41 @@ R883 的 `Drop.Type` 是「类型挂在哪」，这条是「任务本身是可�
 | 有没有第三个族 | **只在 PopMart 域里找过** |
 
 **纪律**：**空间的边界用词划，不用形状猜。**
+
+
+## 判据 — 端点族 **56 个 / 32 个完全没有**（R892）
+
+### 第一次报 40，多报 8 —— 错在存储形式
+
+**`JohnLewisBff.Base = ".../bff/"` + 相对路径 `"v2/orders"` → 整条字面量判据找不到它。**
+
+| 级 | 判据 | 族数 |
+|---|---|---|
+| exact | 整条路径是字面量 | 3 |
+| relative | 族名出现，或去掉族前缀的尾部是字面量 | 21 |
+| **absent** | **族名根本不出现** | **32** |
+
+**→ 与 R889 同族（第三次）；方向与 R888 相反（假 0 vs 假 40），来源相同：判据里藏了一个以为成立的前提。**
+
+### 32 个完全没有（按路径数）
+
+**`/customer/v1/` 10** · **`/Checkout/v2/` · `/bff/v4/` 各 5** · `/threeds/v1/` `/bff/v3/` `/checkout/v2/` `/cart/v2/` 各 3–4 ·
+`/activity/v1/` `/api/v7/` `/cart/v1/` `/client_api/v1/` `/commerce/v1/` `/marketing/v1/` `/paygate/v2/` `/product-core/v1/` `/legacy/v1/` 各 2 ·
+**`/turnstile/v0/`** **`/shield/v1/`** `/flex/v2/` `/form/v1/` `/jgc/v8/` `/snap/v1/` `/snap/v2/` `/rest/v2/` `/public/v1/` 各 1
+
+### 优先级 ② 的两条
+
+**`/turnstile/v0/`（Cloudflare Turnstile，R876 的 `_turnstileKey`）· `/shield/v1/`（内容未查）**
+
+### 边界
+
+**56 族是**全镜像**的：`/bff/*` 属 John Lewis，`/activity/v1/` `/shop/v1/` `/store/v1/` 属 PopMart。
+→「32 个完全没有」≠「PopMart 缺 32 族」。**按站分组未做 = 这张表成为判据 (f) 成品的前提。**
+
+| 仍 Unknown | |
+|---|---|
+| 32 族的顶层归属 | 域名字面看不出 |
+| `/shield/v1/` `/turnstile/v0/` 做什么 | 只有路径 |
+| relative 21 族里多少「基址对路径缺」 | 判据只查族名/尾部 |
+
+**纪律**：**挑一个预期应该缺席的样本去推翻自己的判据，比相信判据的输出便宜得多。**

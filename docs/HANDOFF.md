@@ -550,3 +550,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **改动**：`PopMartEndpoints` +5 常量 · `StoreFlow` +2 虚方法 · `PopMartFlow` +2 override。**虚步骤 172→174 · coverage 7→8 · 套件 1783 通过。**
 **两点要紧**：① **锚用词不用形状**（松正则抓 GUID/base64，70 条无一条含 `order`）；② **`implementable` 8 不是 9** —— `FindProductInstore` 已实现但**不在 PopMart 的 24 个名字里**（ordinal 76 属更早的段），**测试两个都钉**。
 **下一轮**：`/store/v1/` 那 3 条 cart 路径的步骤归属；有没有第三个族。
+
+## R892 补充 — 端点族 **56 / 32 完全没有**（**未改产品代码**）
+
+**第一次报 40，多报 8**：`JohnLewisBff.Base = ".../bff/"` + 相对路径 `"v2/orders"` → 整条字面量判据找不到。**改三级：exact 3 / relative 21 / absent 32。**
+**32 个完全没有**：`/customer/v1/` 10 · `/Checkout/v2/` `/bff/v4/` 各 5 · `/threeds/v1/` `/bff/v3/` `/checkout/v2/` `/cart/v2/` 各 3–4 · … · **`/turnstile/v0/`（Cloudflare Turnstile）** **`/shield/v1/`**。
+**优先级 ② 有两条具体缺口**：`/turnstile/v0/`（R876 的 `_turnstileKey`）与 `/shield/v1/`。
+**边界：56 族是全镜像的**，`/bff/*` 属 John Lewis → 「32 个没有」≠「PopMart 缺 32 族」。**按站分组未做。**
+**纪律：两次判据错方向相反（假 0 / 假 40），来源相同 —— 判据里藏了以为成立的前提。挑样本来推翻自己比相信输出便宜。**

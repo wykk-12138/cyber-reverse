@@ -12244,3 +12244,88 @@ Settings.AccountCountFormat     '{0} Accounts'          （1 档 AccountCountOne
 - 那 18 组"三段"里哪些是真的：**Unknown** —— 只有读过的几组是 Observation，其余是命名空间近似。
 - 7 条未消费的计数型文案各自的原版产生点：**Unknown** —— 需按 `csv_key_functions.py` 的办法逐个扫。
 - `ProfileCsv.SubtitleFormat` 是否就是 CSV 编辑器副标题的原版文案：**Inference（中）**，未核。
+
+
+---
+
+## 182. 首次用活窗口取证据：拿到 Settings 全表；**我的扫描报了个假缺席**；**`(i)` 是图标占位符**
+
+> R753。未改产品代码（内存 2.45 GB，不构建）。证据来源：运行中的 **5.18.35**（pid 30936）。
+> **身份声明**：观测对象是 5.18.35，不是对等目标 `target\Cybersole.exe`（5.18.32）。
+> YG 说明「小版本更新都是个别网站的微调，不影响前端界面」—— 这是 **user-statement 级**依据，
+> 不是 5.18.32 的 tool-evidence。**本节的每条 UI 观测都带着这个限定。**
+
+### 一、活窗口给出的 Settings 全表（Observation）
+
+窗口自己印 **`Version 5.18.35`** + `CHECK FOR UPDATES`。
+
+左侧 16 项，中间有 `ADVANCED` 分隔：
+
+```
+General  Appearance  Notifications  Webhooks  Email Accounts  Google Accounts
+PayPal Accounts  Data
+--- ADVANCED ---
+Captcha Providers  Cloudflare Providers  Keyboard Shortcuts
+Custom Stores  Custom Sizes  Payment  Need Help?  Log Out
+```
+
+General 面板的标签与值：
+
+```
+Language = English
+Default Delays: Default Monitor 2,500 ms | Default Error 2,500 ms | Default Timeout 10 sec
+Quicktask Settings: Default Profiles None | Default Proxies None
+Shopify Settings: ATC Browser Proxy None | Queue Presentation "Time remaining"
+Monitor Concurrency = Maximum / 3 max
+Startup Page = Home
+Currency = USD
+Enable clock
+```
+
+**Home 页另有两个可校核点**：`Releases ‹ 1 / 1 ›`（3 张卡 → `(3+2)/3 = 1` 页，
+印证 R747 修的分页模型：`0 / 0` 是空态、`1 / 1` 是常态），
+以及三句空态文案逐字一致（R205 钉的 `EmptyHeadline` / `EmptyPeriodBody` / `EmptyFeedBody`）。
+
+### 二、**我的扫描报了个假缺席**
+
+我按 `"Startup Page"`（引号紧邻）扫复刻件源码，报 **ABSENT**。
+
+**实际存在** —— `SettingsViews.cs:362`：
+
+```csharp
+UiKit.Row("(i)  Startup Page", startup)
+```
+
+**真实标签是 `"(i)  Startup Page"`，我的规则要求 `"` 紧跟 `Startup`。**
+按子串重扫：**16/16 分区在、15/15 General 标签在。**
+
+> **这正是我反复写进 AGENTS.md 的那一条：缺席的证据 ≠ 行为不存在。**
+> **这次踩它的是我自己的工具，而不是我的判断 —— 而工具比判断更危险，因为它看起来客观。**
+
+**另一条更重要的限定**：即使子串命中，也只证明**字符串存在于源码**，
+**不证明那一行被渲染**。所以「15/15」是覆盖率的上界，不是渲染确认。
+
+### 三、**`(i)` 是字面文字冒充图标**
+
+`"(i)  Startup Page"` 里的 `(i)` 是**图标占位符**。活窗口那几行前面是 `ⓘ` 字形。
+
+统计：**`UiKit.Row` 共 259 处调用，只有 3 处首参以 `"(i)"` 开头，全在 `SettingsViews.cs`。**
+
+**而活窗口的 General 面板有 4 行带 `ⓘ`**：`Language`、`Monitor Concurrency`、`Startup Page`、`Currency`。
+
+**所以复刻件渲染时那三行会显示字符 `(i)`，而不是图标** —— 与原版可见的差异。
+**四度量结构上看不到这类差异**（它们数成员与类型，不数渲染）。
+
+### 四、下一轮该做什么
+
+1. **把 `(i)` 换成真图标**（`UiKit.Row` 加一个 icon 参数，3 处调用改）——
+   需要一次构建，本轮内存不足。
+2. 补 `Language` 那行缺的图标。
+3. 回 `analysis/count_shaped_copy.py` 的 7 条未消费文案。
+
+### 五、仍然 Unknown
+
+- 那 4 个 `ⓘ` 图标的确切字形与位置：**Inference（中）**，从截图看出、未取字形资源。
+- `Language` 行为何没有 `(i)` 前缀：**Unknown** —— 可能用别的机制，也可能是漏的。
+- 5.18.32 的 Settings 是否与这 16 项完全一致：**Unknown** —— 只有 5.18.35 的观测 + YG 的口头判断。
+- General 各下拉框的**完整选项集**：**Unknown**（只看到当前值）。

@@ -1639,3 +1639,55 @@ Start*Task  共 2 个
 所以它们不是同一件事的两种叫法，`Start` 是镜像里一个真实存在而复刻件没有的方法。**
 
 **→ 8/12 就是 8/12，不是 9/12。**
+
+
+### 任务种类这一层建起来了：**14 + 2**，6 个测试；而文档守卫又一次抓到我（R880）
+
+**R879 说最大的结构缺口是「任务种类这一层在复刻件里几乎没有对应物」。这一轮把它建起来。**
+
+### 新增 `TaskKinds.cs`
+
+| 类型 | 内容 |
+|---|---|
+| `FlowKind` | **14 个**：Normal · Clear · Signup · AccountRegistration · PopNow · InStore · Draw · DrawCheck · DrawEvent · Exhibit · Raffle · Reservation · Rpc · Tasks |
+| `TaskKind` | **2 个**：DailyCheckIn · PopNowView |
+| `TaskKindCatalog` | 每个成员 ↔ 镜像名（`StartNormalFlow` …）· `Resolve(imageName)` 往返 |
+
+**每个成员都有基线出处（`recovered_async_methods.txt` 的 `Start*Flow` / `Start*Task` 行）。
+没有一个是为了对称而加的 —— 这是 R876/R878 那两轮的直接后果：那里的错，是把相邻当成归属。**
+
+**而 `FlowKind` 与 `TaskKind` 分开，是因为镜像自己的名字就分开：
+flow 跑一条结账形状的序列，task 按计划做一件事。合并就重犯 R877 那个
+「`storeOfflineDraw` 与 `drawScratch` 看着像一家」的错误 —— 而它们服务不同的东西。**
+
+### 6 个测试
+
+| 用例 | 钉住什么 |
+|---|---|
+| `ThereAreFourteenFlowKinds` | **14，不是 5** |
+| `ThereAreTwoTaskKinds` | 2，且与 flow 分开 |
+| `EveryMemberHasAnImageNameAndResolvesBackToItself` | 每个成员都有出处名，且往返一致 |
+| `TheImageNamesAreDistinct` | 16 个名字互不重复 |
+| `AnUnclaimedNameResolvesToNothing` | **不认得的名字返回 null，不返回「最像的那个」** |
+| `TheKindAxisIsNotYetWiredToAnyFlow` | **还没接进任何流程，断言这个缺席** |
+
+**最后一条是刻意的：如果我只写前五条，这个目录看起来像个已完成的功能。
+第六条说清它现在只是一张清单 —— 而这正是 R850 「空壳方法」那条教训的形态：
+宁可报缺席，不报看起来完整。**
+
+### 而文档守卫第四次抓到我
+
+**`DocsConsistencyTests.TheModuleCountInVerdictMatchesTheCatalogue` 红了。**
+
+**我在 R879 写了「`Registry.cs` 的 **64** 个模块」，而目录实际是 **63**。**
+
+**这个守卫的历史（VERDICT 里自己记着）：R457 · R464 · R813 · **现在**。**
+**四次同一个模式：引用旧轮次的数字时顺手写成「N 个模块」。**
+
+**修法不是改那个 64 —— 是承认这个句式本身就是陷阱。
+守卫扫的是 `(\d+)\s*(?:个模块|modules)` 且 `n >= 20`，它分不清
+「目录有 N 个模块」这个断言和「某一轮处理了 N 个模块」这个事实陈述。**
+
+**所以正确做法是：**在 VERDICT 里不写「N 个模块」，写「模块」或直接引 `METRICS.md`。****
+
+**这一轮我只把 64 改成 63（四处文档）。下次该改成不带数字的说法。**

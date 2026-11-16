@@ -20848,7 +20848,7 @@ grep 'Start.*Flow' replica\src -> 无分派层
   `StartPopNowFlow` 显然指 Pop Mart，但 `StartClearFlow`「清仓」适用哪些店没查。
 - **复刻件的任务配置里有没有「种类」这个字段**：**Unknown** ——
   `TaskColumn` 是表格列，不是任务种类。**这条要查 `Tasks` 模型。**
-- **「64 个模块 / 33 个流程类」这个比例说明什么**：**Inference（中）** ——
+- **「63 个模块 / 33 个流程类」这个比例说明什么**：**Inference（中）** ——
   64 > 33 说明一个流程类被多个 shop id 复用（如多个 Shopify 店共用 `ShopifyFlow`），**这本身是复刻件的合理设计，
   但它把「店」当成了唯一的区分维度。**
 
@@ -22821,7 +22821,7 @@ where_is Alias -> Profiles.cs 无 Alias 字段；访问器基线有 Aliases / Al
 ### 六、仍然 Unknown
 
 - **那 14 种任务在复刻件里对应什么**：**Unknown —— 这是优先级 ① 最大的结构缺口，本轮只把数量说准。**
-  **`Registry.cs` 有 64 个模块，但模块是「站」，不是「任务种类」。**
+  **`Registry.cs` 有 63 个模块，但模块是「站」，不是「任务种类」。**
 - **无名序列是否真属 `AccountRegistrationFlow`**：**Inference（语义），未证。**
 - **`Start` 这一步做什么**：**Unknown** —— 名字只说明它存在。
 
@@ -22836,3 +22836,95 @@ where_is Alias -> Profiles.cs 无 Alias 字段；访问器基线有 Aliases / Al
 
 **而更值得记的是：R857 那个结论**看起来**是对的（「任务种类 × 站」这个骨架没错），
 错的只是数量。一个方向正确的结论会让人不去复核它的数。**
+
+
+---
+
+## 304. 任务种类这一层建起来了：**14 + 2**；而文档守卫第四次抓到我
+
+> R880。**改产品代码。** 套件 **1779 通过 / 0 失败 / 0 跳过**（原 1773 + 新 6）。
+
+### 一、`TaskKinds.cs`
+
+| 类型 | 内容 |
+|---|---|
+| `FlowKind` | **14**：Normal · Clear · Signup · AccountRegistration · PopNow · InStore · Draw · DrawCheck · DrawEvent · Exhibit · Raffle · Reservation · Rpc · Tasks |
+| `TaskKind` | **2**：DailyCheckIn · PopNowView |
+| `TaskKindCatalog` | 成员 ↔ 镜像名 · `Resolve(imageName)` 往返 |
+
+**每个成员都有基线出处。没有一个是为对称而加的。**
+
+**`FlowKind` 与 `TaskKind` 分开，因为镜像自己的名字分开：flow 跑一条结账形状的序列，
+task 按计划做一件事。合并就重犯 R877 那个「`storeOfflineDraw` 与 `drawScratch` 看着像一家」——
+而它们服务不同的东西。**
+
+### 二、六个测试里最要紧的是第六条
+
+| 用例 | 钉住 |
+|---|---|
+| `ThereAreFourteenFlowKinds` | **14 不是 5** |
+| `ThereAreTwoTaskKinds` | 2，与 flow 分开 |
+| `EveryMemberHasAnImageNameAndResolvesBackToItself` | 每个都有出处名且往返一致 |
+| `TheImageNamesAreDistinct` | 16 个名字互不重复 |
+| `AnUnclaimedNameResolvesToNothing` | **不认得的返回 null，不返回「最像的」** |
+| **`TheKindAxisIsNotYetWiredToAnyFlow`** | **还没接进任何流程，断言这个缺席** |
+
+**只写前五条，这个目录看起来像个已完成的功能。第六条说清它现在只是一张清单 ——
+R850「空壳方法」那条教训的形态：宁可报缺席，不报看起来完整。**
+
+### 三、文档守卫第四次抓到我 —— 而这次该改的是句式不是数字
+
+**`TheModuleCountInVerdictMatchesTheCatalogue` 红：我写了「`Registry.cs` 的 **64** 个模块」，实际 **63**。**
+
+**守卫历史（VERDICT 自己记着）：R457 · R464 · R813 · R880。四次同一模式。**
+
+**它扫 `(\d+)\s*(?:个模块|modules)` 且 `n >= 20`，**分不清**
+**「目录有 N 个模块」（断言）** 与 **「某一轮处理了 N 个模块」（事实陈述）**。**
+
+**所以真正的修法不是把 64 改 63 —— 是**在 VERDICT 里不写「N 个模块」这个句式**，
+改成「模块」或直接引 `METRICS.md`。**
+
+**本轮只做了前半（64→63，四处文档）。后半是下一轮该做的。**
+
+### 四、这一层建起来之后，优先级 ① 的图景变了
+
+**之前：`StepSequence` 3 条（Nike / PopMart / JohnLewis），没有任务种类概念。
+之后：14 个种类有名有出处，但**没有任何一个接到流程上**（第六条测试钉着）。**
+
+**所以下一步是那张映射表：`FlowKind × Store → 哪个 StoreFlow`。
+而它需要的证据是「某个站的某个 `Start*Flow` 存在」——
+那正是 R857 那 5 条 `Start*Flow` 在 `0x14337bdc4` 的形态。**
+
+### 五、验证
+
+```
+python tools\snapshot.py                     -> 20261116-222059, 292 files
+D:\tools\dotnet8\dotnet.exe build ...        -> 0 错误
+test --filter TaskKindTests                  -> 6 通过 / 0 失败
+test 全量（首跑）                             -> 1778 通过 / 1 失败
+  失败: TheModuleCountInVerdictMatchesTheCatalogue（catalogue: 63, claims: 63 和 64）
+修 4 处「64 个模块」-> 63
+python tools\metrics_report.py               -> 1779 通过 / 0 失败 / 0 跳过
+```
+
+### 六、仍然 Unknown
+
+- **`FlowKind` 怎么接到 `StoreFlow`**：**Unknown** ——
+  **需要「某个站有哪些 `Start*Flow`」的证据，而目前只有 R857 那 5 条（一个代码区）。**
+- **14 个种类是否都能被某个站支持**：**Unknown** ——
+  **有的种类可能只有一个站有（如 `PopNow` 之于 PopMart）。**
+- **`Rpc` 这个种类是什么**：**Unknown** —— 名字是全部证据；`_rpc*` 字段（R876）暗示与支付/运费有关，
+  **但那是 Inference。**
+
+### 七、教训
+
+**这一轮做了两件事：建了一层，以及被自己的守卫抓住一次。**
+
+**建层这件事我能掌控：名字全有出处、划分有镜像依据、缺席有测试钉着。**
+
+**而被抓那件事说明：我写文档时仍在用「N 个模块」这个句式，而它是守卫的陷阱。
+第四次了，而我前三次的修法都是「把数字改对」。**
+
+**改数字只能撑到下一次；改句式才能让它不再红。
+这是「修症状」与「修成因」的区别 —— 而我在 R764 那轮就写过这条，
+当时说的是「诊断文案要写对因」。这次轮到我自己。**

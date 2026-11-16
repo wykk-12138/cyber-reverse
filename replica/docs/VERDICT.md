@@ -52670,7 +52670,7 @@ Start*Task (2): StartDailyCheckInTask StartPopNowViewTask
 **「任务种类 × 站」这个骨架若按 5 种建就少 9 种；而复刻件的 `StepSequence` 只有 3 条（Nike/PopMart/JohnLewis），连 5 都没到。**
 
 > **所以不是「差几条序列」，是「**任务种类这一层在复刻件里几乎没有对应物**」。**
-> **`Registry.cs` 的 64 个模块是「站」，不是「任务种类」。**
+> **`Registry.cs` 的 63 个模块是「站」，不是「任务种类」。**
 
 ### 仍然 Unknown
 
@@ -52680,3 +52680,68 @@ Start*Task (2): StartDailyCheckInTask StartPopNowViewTask
 ### 教训
 
 > **R857 那个结论**看起来**是对的，错的只是数量 —— 一个方向正确的结论会让人不去复核它的数。**
+
+
+---
+
+## 第 880 轮：任务种类这一层建起来了 —— 14 + 2，六个测试
+
+### `TaskKinds.cs`
+
+| 类型 | 内容 |
+|---|---|
+| `FlowKind` | **14**：Normal · Clear · Signup · AccountRegistration · PopNow · InStore · Draw · DrawCheck · DrawEvent · Exhibit · Raffle · Reservation · Rpc · Tasks |
+| `TaskKind` | **2**：DailyCheckIn · PopNowView |
+| `TaskKindCatalog` | 成员 ↔ 镜像名 · `Resolve()` 往返 |
+
+**每个成员都有基线出处（`recovered_async_methods.txt` 的 `Start*Flow` / `Start*Task` 行）。没有为对称而加的。**
+
+**`FlowKind` 与 `TaskKind` 分开，因为镜像自己的名字分开 —— 合并会重犯 R877 那个
+「`storeOfflineDraw` 与 `drawScratch` 看着像一家」的错误。**
+
+### 六个测试里最要紧的是第六条
+
+| 用例 | 钉住 |
+|---|---|
+| `ThereAreFourteenFlowKinds` | **14 不是 5** |
+| `ThereAreTwoTaskKinds` | 2，与 flow 分开 |
+| `EveryMemberHasAnImageNameAndResolvesBackToItself` | 出处名 + 往返一致 |
+| `TheImageNamesAreDistinct` | 16 个名字互不重复 |
+| `AnUnclaimedNameResolvesToNothing` | **不认得的返回 null，不返回「最像的」** |
+| **`TheKindAxisIsNotYetWiredToAnyFlow`** | **还没接进任何流程，断言这个缺席** |
+
+> **只写前五条，这个目录看起来像个已完成的功能。第六条说清它现在只是一张清单 —— 宁可报缺席，不报看起来完整。**
+
+### 文档守卫第四次抓到我
+
+**`TheModuleCountInVerdictMatchesTheCatalogue` 红：我写「**64** 个模块」，实际 **63**。**
+
+**历史：R457 · R464 · R813 · R880。四次同一模式。**
+
+**它分不清「目录有 N 个模块」（断言）与「某轮处理了 N 个模块」（事实）。
+所以真正的修法不是改数字 —— 是**不写「N 个模块」这个句式**。**
+
+**本轮只做了前半（64→63，四处）。后半是下一轮该做的。**
+
+### 优先级 ① 的图景变了
+
+**之前：3 条 `StepSequence`，无任务种类概念。之后：14 个种类有名有出处，但**一个都没接到流程上**（第六条钉着）。**
+
+**下一步是映射表 `FlowKind × Store → StoreFlow`，需要的证据是「某站的某 `Start*Flow` 存在」。**
+
+### 验证
+
+```
+snapshot 20261116-222059 · build 0 错误 · TaskKindTests 6 通过
+全量首跑 1778/1 失败（catalogue: 63, claims: 63 和 64）→ 修 4 处 → 1779 通过 / 0 失败
+```
+
+### 仍然 Unknown
+
+**`FlowKind` 怎么接到 `StoreFlow`**（需「某站有哪些 `Start*Flow`」的证据，目前只有 R857 那 5 条）·
+**14 个种类是否都有站支持** · **`Rpc` 是什么**（名字是全部证据）
+
+### 教训
+
+> **改数字只能撑到下一次；改句式才能让它不再红。**
+> **这是「修症状」与「修成因」的区别 —— 而我在 R764 那轮就写过这条，当时说的是「诊断文案要写对因」。这次轮到我自己。**

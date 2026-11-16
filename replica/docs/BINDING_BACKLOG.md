@@ -3838,7 +3838,7 @@ StartRaffleFlow StartReservationFlow StartRpcFlow StartSignupFlow StartTasksFlow
 ### 结构缺口
 
 **「任务种类 × 站」骨架按 5 种建会少 9 种；而复刻件 `StepSequence` 只有 3 条（Nike/PopMart/JohnLewis）。**
-**→ 不是「差几条序列」，是**任务种类这一层几乎没有对应物**（`Registry.cs` 64 个模块是「站」不是「任务种类」）。**
+**→ 不是「差几条序列」，是**任务种类这一层几乎没有对应物**（`Registry.cs` 63 个模块是「站」不是「任务种类」）。**
 
 | 仍 Unknown | |
 |---|---|
@@ -3847,3 +3847,40 @@ StartRaffleFlow StartReservationFlow StartRpcFlow StartSignupFlow StartTasksFlow
 | `Start` 做什么 | 未查 |
 
 **纪律**：**方向正确的结论最容易免于复核 —— 复核时先问它的来源是全量还是抽样。**
+
+
+## 优先级 ① — 任务种类这一层建起来了（R880，**已改产品代码**）
+
+### `TaskKinds.cs`：14 + 2
+
+| 类型 | 内容 |
+|---|---|
+| `FlowKind` | **14**：Normal · Clear · Signup · AccountRegistration · PopNow · InStore · Draw · DrawCheck · DrawEvent · Exhibit · Raffle · Reservation · Rpc · Tasks |
+| `TaskKind` | **2**：DailyCheckIn · PopNowView |
+| `TaskKindCatalog` | 成员 ↔ `Start*Flow`/`Start*Task` 名 · `Resolve()` 往返 |
+
+**每个成员都有基线出处；`FlowKind`/`TaskKind` 分开（镜像名字分开，合并会重犯 R877 的错误）。**
+
+### 六测试
+
+**14 / 2 / 出处名+往返 / 16 名互斥 / 不认识返回 null / **`TheKindAxisIsNotYetWiredToAnyFlow`**（断言它还没接进流程）。**
+
+**套件 1779 通过 / 0 失败（原 1773 + 6）。**
+
+### 文档守卫第四次抓到我
+
+**`TheModuleCountInVerdictMatchesTheCatalogue`：写「64 个模块」，实际 63。历史 R457 · R464 · R813 · R880。**
+**它分不清「目录有 N 个模块」（断言）与「某轮处理 N 个模块」（事实）→ **真正的修法是别写这个句式**。**
+**本轮只把 64→63（四处），**下一轮该改成不带数字的说法**。**
+
+### 下一步
+
+**`FlowKind × Store → StoreFlow` 映射表**；需要「某站的某 `Start*Flow` 存在」的证据（R857 只有 5 条，一个代码区）。
+
+| 仍 Unknown | |
+|---|---|
+| `FlowKind` 怎么接 `StoreFlow` | 缺「某站有哪些 Start*Flow」证据 |
+| 14 种是否都有站支持 | 有的可能只一个站有 |
+| `Rpc` 是什么 | 名字是全部证据 |
+
+**纪律**：**改数字撑到下一次，改句式才不再红 —— R764 写过这条，这次轮到自己。**

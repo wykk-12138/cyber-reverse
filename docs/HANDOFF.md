@@ -458,3 +458,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **无名序列（21–34）按语义归属 `StartAccountRegistrationFlow`**（`CheckVerification`/`SubmitSaleRegistration`/`Register`/`CompleteRegistration` 对上）—— **Inference，不写进 `StoreFlowSteps`。**
 **`Start` ≠ `Init`**（基线里两名都在）→ R877 的 9/12 不存在，**8/12 就是 8/12**。
 **结构缺口**：任务种类这一层在复刻件里几乎没有对应物（`Registry.cs` 64 个模块是「站」不是「任务种类」）。
+
+## R880 补充 — 任务种类这一层建起来了（**已改产品代码**）：14 + 2
+
+**新增 `src/Cybersole.Stores/Flows/TaskKinds.cs`**：`FlowKind` 14 个 · `TaskKind` 2 个 · `TaskKindCatalog`（成员↔`Start*Flow` 名 + `Resolve()` 往返）。**每个成员都有基线出处，没有为对称而加的。**
+**六测试**：14 / 2 / 出处名+往返 / 16 名互斥 / 不认识返回 null / **`TheKindAxisIsNotYetWiredToAnyFlow`（断言还没接进流程）**。
+**套件 1779 通过 / 0 失败（原 1773 + 6）。**
+**文档守卫第四次抓到我**：写「64 个模块」实际 63（历史 R457·R464·R813·R880）。**已修四处 → 63；下一轮改成不带数字的说法。**
+**下一步：`FlowKind × Store → StoreFlow` 映射表**，需「某站的某 `Start*Flow` 存在」的证据。

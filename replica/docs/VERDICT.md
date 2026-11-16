@@ -46837,3 +46837,50 @@ NumberFieldTests   14 / 14（含七个值的往返）
 - 原版**其它**数字框是否也带分隔符：**Inference（中）** —— 按"同一个控件"推广，不是观测
 - 原版是否容忍不带逗号的输入：**Unknown**（红线）
 - 崩溃的触发条件：**Unknown**（5 次未复现）
+
+
+---
+
+## 第 757 轮：转向核心
+
+### YG 的指令
+
+> 「ui先不急着复刻，先把cybersole核心的各个网站自动下单、解决风控的能力复刻出来」
+
+**所以先把手上那处 UI 收尾，然后转向核心。**
+
+### UI 收尾
+
+`ms` / `sec` / `max` 三个单位：**目录里本来就有键，一处都没渲染**，而 `ConcurrencyRow` 上的注释自己写着 `[3 max]`。
+加了 `UiKit.WithUnit`，三处延迟框与 `max` 接上，5 条**构造控件**的测试。
+
+中途我把 `TextBox` 换成了 `Control` 导致回读全断——**改回只在布局处包一层**。
+
+### 核心：先盘清覆盖范围（不盘清就是猜）
+
+**原版**：shopify 1448 / target 846 / nike 143 / topps 121 / footlocker 85 …
+风控：cloudflare 287 / recaptcha 244 / hcaptcha 130 / **forter 59** / kasada 57 / akamai 36 / datadome 15
+
+**复刻件缺**：walmart / bestbuy / pokemoncenter / gamestop / topps / snipes / finishline / newbalance / stockx / bandai
+**缺风控**：funcaptcha（Arkose）/ arkoselabs / forter
+
+**口径声明**：这是**子串计数**，不是实现与否的判据 —— 只是"该往哪儿看"的地图。
+
+### 好消息：核心结构并不缺
+
+**约 40 个 flow 类** + 完整 solver 体系（Kasada 四路 / Cloudflare 两路 / 轮询 / 命名回退 / 两个 captcha driver），
+`Registry.cs` 305 行是站点→flow 的分派表。
+
+> **不是「没有」，是「覆盖范围与风控种类不齐」。所以不是重写，是对表补齐。**
+
+### 卡在哪
+
+原版的 store 清单**没有 locale 键**，只能读二进制里建表的函数。
+**IDA 没开**（重启后没拉起）—— 已用项目里的 doctor 脚本后台启动，等它 ready。
+
+### 验证
+
+```
+UnitSuffixTests   5 / 5
+（本轮未跑全量；UI 改动已收尾，构建通过）
+```

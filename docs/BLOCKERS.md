@@ -12541,3 +12541,99 @@ NumberFieldTests      14 / 14 通过（含 0/1/999/2500/12345/999999/1000000 的
   我按"同一个 `UiKit.Number` 控件"的理由推广到全部，**这是 Inference（中）**，不是 Observation。
 - 原版是否容忍用户输入不带逗号的 `2500`：**Unknown**（要往它框里打字，红线）。
 - `shape_audit.py` 偶发崩溃的触发条件：**Unknown** —— 5 次未复现，与内存压力无关（17 GB 空闲时也出过一次）。
+
+
+---
+
+## 186. 优先级转移：**UI 先放，做核心（各站自动下单 + 风控对抗）**
+
+> R757。YG 明令：「ui先不急着复刻，先把cybersole核心的各个网站自动下单、解决风控的能力复刻出来」。
+> 本轮先把手上那处 UI 收尾，然后做**核心的第一件事：盘清覆盖范围**。
+
+### 一、先收尾（UI 这一批的最后一笔）
+
+R755 查出 `ms` / `sec` / `max` 三个单位在原版印、复刻件不印。查证：**目录里本来就有这三条键**
+
+```
+Settings.General.SuffixMs                'ms'
+Settings.General.SuffixSec               'sec'
+Settings.General.MonitorConcurrency.Max  'max'
+```
+
+**而一处都没被渲染。** 更刺眼的是 `ConcurrencyRow` 上面第 358 行的注释**自己写着 `[Maximum ▾] [3 max]`** ——
+**意图写在注释里、代码里没有。**
+
+做法：`UiKit.WithUnit(Control, string)` 把单位印在控件**右侧**（活窗口的字段上报的是裸数字，单位在框外），
+三处延迟框与 `max` 接上。**中途我自己犯了个错**：直接 `var monitor = UiKit.WithUnit(...)` 把 `TextBox` 换成了
+`Control`，后面 `.Text` 回读全断 —— 改成保持变量是 `TextBox`、只在布局处包一层。
+
+`UnitSuffixTests` 5 条**构造控件断言行为**（不是读源码）；其中一条断言 `"2500"` 被我写成旧值，
+**测试自己抓到了**（R756 已改成 `"2,500"`）。
+
+### 二、转向核心：先盘清覆盖范围
+
+**不盘清就写代码，等于猜。** 两个方向都扫了。
+
+**原版字符串池（324,895 条）里的站点与风控厂商：**
+
+```
+shopify 1448 | target 846 | nike 143 | topps 121 | footlocker 85 | crocs 65 | supreme 60
+popmart 41 | kith 38 | vans 32 | newbalance 32 | converse 30 | funko 29 | goat 25
+amazon 20 | gameStop 13 | jdsports 7 | adidas 5 | yeezy 3 | finishline 3
+
+cloudflare 287 | recaptcha 244 | hcaptcha 130 | forter 59 | kasada 57
+akamai 36 | datadome 15 | queue-it 14 | perimeterx 5
+```
+
+**复刻件源码（2.75 M 字符）里：**
+
+```
+缺站：walmart / bestbuy / pokemoncenter / gamestop / topps / snipes / finishline / newbalance / stockx / bandai
+缺风控：funcaptcha（Arkose）/ arkoselabs / forter
+```
+
+**注意口径**：这是**子串计数**，不是"实现了/没实现"。`shopify` 1448 次多半含 API 路径；
+`target` 里有一部分是普通英文单词。**所以这只是"该往哪儿看"的地图，不是判据。**
+
+### 三、好消息：核心结构并不缺
+
+复刻件已有 **约 40 个 flow 类**：
+
+```
+ShopifyFlow  NikeFlow  NikeGsFlow  FootsitesFlow  SupremeFlow  MagentoFlow（含 Kith/JdSports/
+Offspring/Size?/Sns/Notre/JohnLewis/Footpatrol/EndClothing）  DemandwareFlow（含 Funko）
+HybrisFlow  FarfetchFlow  GoatFlow  HbxFlow  BstnFlow  ScheelsFlow  PopMartFlow
+RetailFlows（Casio/Fanatics/HypeCommerce/JbHiFi/PocketGames/Raffle/RiotGames/Superswipe/
+Warhammer/YeezySupply）  AdyenPayPalFlow
+```
+
+solver 侧：`KasadaSolver` / `LocalKasadaSolver` / `ApiKasadaSolver` / `ChromiumKasadaSolver` /
+`CloudflareStrategy`（InBot + Service 两路）/ `PollingSolver` / `NamedFallbackSolver` /
+`CaptchaSolverService` + `CfSolverDriver` / `CapSolverDriver`。
+
+**`StoreModuleCatalog` / `Registry.cs`（305 行、约 40 个 store 条目）** 是站点→flow 的分派表。
+
+**所以核心不是"没有"，是"覆盖范围与风控种类不齐"。** 这决定了做法：**不是重写，是对表补齐。**
+
+### 四、下一步的证据目标（本轮没做完）
+
+**原版那侧的 store 清单没有 locale 键**（`Settings.CustomStores.Header.Name` 只是表头）。
+所以只能找二进制里**建那个表的函数**：拿一个已知域名反查 xref。
+
+**本轮卡在这里**：`ida.py find` 连接被拒 —— **IDA 没开**（机器重启后没再拉起）。
+`target\Cybersole.exe.i64`（1375 MB）在，已用 `ida-mcp-doctor.ps1` 后台启动，等它 ready。
+
+### 五、验证
+
+```
+UnitSuffixTests              5 / 5 通过
+GeneralSettingsLayoutTests   5 / 5 通过
+本轮未跑全量（构建已过，UI 改动已收尾）
+```
+
+### 六、仍然 Unknown
+
+- **原版的 store 清单**：**Unknown** —— 需读那个建表函数，IDA 正在启动。
+- 缺的那 10 个站是**独立 flow** 还是**已被 Shopify/Footsites 覆盖**：**Unknown** —— 域名不在源码里不等于没覆盖。
+- `forter`（59 次）在原版里是**检测**还是**规避**：**Unknown**。
+- 子串计数与实际功能的关系：**Unknown** —— 明确不是判据。

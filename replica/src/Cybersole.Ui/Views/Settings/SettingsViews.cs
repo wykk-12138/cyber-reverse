@@ -234,6 +234,9 @@ public sealed class GeneralSettingsView : UserControl
         _generalServices = services;
         var s = services.Config.Settings;
 
+        // R757: the live pane prints "2,500 ms" and "10 sec". The boxes hold the bare numbers -- that is what the
+        // live fields report as their value -- so the units are added at the layout site, not here, and these stay
+        // TextBox so the readers below keep compiling.
         var monitor = UiKit.Number(s.MonitorDelay);
         var retry = UiKit.Number(s.RetryDelay);
         var timeout = UiKit.Number(s.Timeout);
@@ -340,9 +343,9 @@ public sealed class GeneralSettingsView : UserControl
                     ColumnDefinitions = new ColumnDefinitions("*,*,*"),
                     Children =
                     {
-                        UiKit.Row("Default Monitor", monitor, 120),
-                        DockedColumn(UiKit.Row("Default Error", retry, 120), 1),
-                        DockedColumn(UiKit.Row("Default Timeout", timeout, 120), 2),
+                        UiKit.Row("Default Monitor", UiKit.WithUnit(monitor, "ms"), 120),
+                        DockedColumn(UiKit.Row("Default Error", UiKit.WithUnit(retry, "ms"), 120), 1),
+                        DockedColumn(UiKit.Row("Default Timeout", UiKit.WithUnit(timeout, "sec"), 120), 2),
                     },
                 }),
             UiKit.PlainCard(
@@ -374,7 +377,8 @@ public sealed class GeneralSettingsView : UserControl
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         row.Children.Add(mode);
-        row.Children.Add(maximum);
+        // R757: the comment above the call site has said "[3 max]" since R216; the suffix is now drawn.
+        row.Children.Add(UiKit.WithUnit(maximum, "max"));
         row.Children.Add(ratio);
         return row;
     }

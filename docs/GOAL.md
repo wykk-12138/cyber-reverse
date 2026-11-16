@@ -115,3 +115,19 @@ e) 全量套件绿 + 变异测试全部 fired（**条数以 `python tools\mutati
 | `target-alt\Cybersole-5.18.35.exe` | 对照物：两版只差三个小版本，用 `compare_application_versions` 反推结构变化 |
 | `analysis\pe_strings.txt` + `docs\xaml_bindings.json` | 名字/文案/绑定形状的"廉价真值" |
 | `replica\docs\GUI_BASELINE.md` | 十次 GUI 实测，GUI 侧的唯一可信记录 |
+
+
+---
+
+## R757 优先级修正（YG 明令，覆盖此前默认）
+
+> 「ui先不急着复刻，先把cybersole核心的各个网站自动下单、解决风控的能力复刻出来」
+
+**从本轮起，取件顺序改为：**
+
+1. **核心 —— 站点 checkout flow 的覆盖与行为**（`Cybersole.Stores.Flows`）
+2. **核心 —— 风控对抗**（Kasada / Cloudflare / DataDome / PerimeterX / Queue-it / 各类 captcha）
+3. **核心 —— 请求与指纹层**（`BouncyHttpClient` / `Http2` / `Tls12Client` / `BrowserIdentity` / `ChromiumStealth`）
+4. 其余（含 UI 文案与布局）**降为收尾项**，只在核心无进展时做
+
+**判据 a–e 不变。** 判据 (e) 的全量套件与变异测试照旧。

@@ -79,6 +79,30 @@ public static class UiKit
         return int.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
     }
 
+    /// <summary>
+    /// A control with its unit printed beside it, the way the window draws "2,500 ms" and "3 max".
+    /// </summary>
+    /// <remarks>
+    /// R757: the catalogue carries Settings.General.SuffixMs, Settings.General.SuffixSec and
+    /// Settings.General.MonitorConcurrency.Max, and the live pane prints all three, but nothing in the replica
+    /// rendered any of them -- the comment above ConcurrencyRow even recorded "[Maximum ▾] [3 max]" while the
+    /// code drew two boxes and no suffix. The unit sits outside the box rather than inside it: the live fields
+    /// report the bare number as their value.
+    /// </remarks>
+    public static Control WithUnit(Control input, string unit)
+    {
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var label = new TextBlock
+        {
+            Text = unit,
+            Foreground = Dim,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        panel.Children.Add(input);
+        panel.Children.Add(label);
+        return panel;
+    }
+
     public static CheckBox Check(string text, bool value, Action<bool>? onChanged = null)    {
         var box = new CheckBox { Content = text, IsChecked = value };
         if (onChanged is not null)

@@ -198,6 +198,17 @@ git             工作树干净
 **不需要**。R710 起的所有轮次都是对磁盘上 `target\Cybersole.exe` 的静态反编译 + 改复刻件。
 只有上表那四项需要它运行。
 
+### R757 起：**核心优先**（YG 明令）
+
+> 「ui先不急着复刻，先把cybersole核心的各个网站自动下单、解决风控的能力复刻出来」
+
+**取件顺序：站点 flow 覆盖 → 风控对抗 → 请求/指纹层 → 其余（含 UI）。**
+
+核心不是"没有"（复刻件已有约 40 个 flow 类 + 完整 solver 体系 + 305 行 `Registry.cs` 分派表），
+**是覆盖范围与风控种类不齐**：缺 forter / funcaptcha(Arkose) / arkoselabs，
+缺 walmart / bestbuy / newbalance / finishline 等站的显式引用。
+**做法是对表补齐，不是重写。**
+
 ### R753 起：活窗口已可用，且它能看到四度量看不到的东西
 
 运行中的是 **5.18.35**（`%LOCALAPPDATA%\Cybersole\current`），**不是对等目标 5.18.32**。

@@ -20221,3 +20221,75 @@ metrics_report.py                  -> 1868 通过 / 0 失败
 **四样都来自同一件事 —— 恢复到的是一条**完整 URL**，不是一条路径。**
 
 **所以「证据有多少」不取决于服务多复杂，取决于镜像里存的是路径还是完整请求行。**
+
+
+---
+
+## 347. eShopWorld：vendor 9/12；两个轮询循环共用一个轮询器
+
+> R923。**改产品代码 +13 用例。** 套件 **1881 通过 / 0 失败 / 0 跳过**。
+
+### 一、五条路径排起来是两台宿主、两个循环
+
+```
+payments-panel…/api/v2/PaymentMethods/url        面板在哪
+payments-panel…/api/v2/PaymentMethods?paymentId= 某笔支付是什么
+payments-panel…/api/v2/WebComponent/state        面板状态   ← 轮询
+retailer-shopifypayments-api…/payment/apm/session/status          替代支付  ← 轮询
+retailer-shopifypayments-api…/payment/apm/session/post_pay_status 刚付完
+```
+
+**面板状态与 APM session 是两个独立循环 → 同时有这两条路的流程不能轮询一个就假定另一个。**
+
+### 二、为什么一个轮询器
+
+**两个端点都回答「还没好/好了/坏了」，都需要截止时间、间隔、终止条件。
+写两遍会邀请两份拷贝对「什么叫好了」产生分歧 —— 结账就是这样在一条路上成功、另一条路上挂住。**
+
+### 三、三个结果，第三个是关键
+
+| 结果 | |
+|---|---|
+| `Success()` | 成功词 |
+| `Fail(...)` | 失败词 |
+| **`settled = "unknown"` + retryable** | **到截止还没定** |
+
+**没定下来不是失败：慢网关不该看起来像被拒的卡。**
+
+### 四、两个刻意的窄
+
+1. **不认识的词继续等** —— 猜错一个失败词会放弃一笔即将成功的支付。
+2. **只认 `state`/`status`/`paymentStatus`/`result` 字段内的词** —— `{"note":"completed"}` 不终止。
+
+### 五、数字
+
+| 度量 | R922 | R923 |
+|---|---|---|
+| 套件 | 1868 | **1881** |
+| **vendor 命名** | 7 / 12 | **9 / 12** |
+| **vendor 缺失** | 5 | **3** |
+
+**剩 3 个：Disney（2 台）· Viva（1 台）。**
+
+### 六、验证
+
+```
+vendor_coverage.py                -> 两台 eshopworld 宿主均 yes（EshopWorldPanel.cs）；9 named / 3 absent
+test --filter EshopWorldPanelTests -> 13 通过
+metrics_report.py                 -> 1881 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **真实状态词**：**Unknown** —— 无响应体，14 个词是猜的。
+- **`post_pay_status` 与 `status` 的区别**：**Unknown** —— 只有路径名。
+- **面板返回什么**：**Unknown**。
+
+### 八、教训
+
+**前两家 vendor 都是「发一个请求、读一个答案」。这一家是**一个带截止时间的等待**。**
+
+**「等待」比「请求」多三件事：间隔、终止条件、以及**没定下来时说什么**。**
+
+**第三件最难，因为它既不是成功也不是失败，而大多数流程只有两格 ——
+所以这一轮新加的那一格（`unknown`）比两条路径本身更值钱。**

@@ -911,3 +911,19 @@ Stores/GlobalECheckout.cs：ParamOrder 记顺序（按位置比对）· 空值�
 纪律：证据有多少不取决于服务多复杂，取决于镜像里存的是路径还是完整请求行。
 
 下一轮：eShopWorld（5 条路径，含 APM session 轮询）。
+
+## R923 补充 — eShopWorld：两个轮询循环共用一个轮询器（改产品代码 +13 用例，套件 1868→1881）
+
+五条路径两台宿主：payments-panel（PaymentMethods/url · PaymentMethods?paymentId= · WebComponent/state）· retailer-shopifypayments-api（apm/session/status · post_pay_status）。
+
+两个轮询循环（WebComponent state 与 APM session）在**两台不同宿主**上 → 不能轮询一个就假定另一个。共用一个轮询器，因为写两遍会让两份拷贝对「什么叫好了」产生分歧。
+
+三结果：成功 / 失败 / **settled = unknown + retryable**（到截止还没定，不是失败）。
+
+两个刻意的窄：不认识的词继续等（猜错失败词会放弃即将成功的支付）· 只认 state/status/paymentStatus/result 字段内的词。
+
+数字：套件 1881 · vendor 命名 7/12 → 9/12 · 缺失 5 → 3（Disney×2 · Viva×1）。
+
+纪律：「等待」比「请求」多三件事 —— 间隔、终止条件、没定下来时说什么。第三件最难。
+
+下一轮：Disney（2 台，含 card/token + checkout + v3/process）。

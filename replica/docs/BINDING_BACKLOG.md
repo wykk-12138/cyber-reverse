@@ -5409,3 +5409,39 @@ https://www.purpledotprice.com/api/v1/products/preorder-state?api_key=c114b1fe-6
 | `isNECAllowed` 的真实边界 | Inference |
 
 **纪律**：**证据有多少不取决于服务多复杂，取决于镜像里存的是路径还是完整请求行。**
+
+
+## 优先级 ① — eShopWorld 面板 + 两个轮询（R923，**改产品代码 +13 用例**）
+
+### 五条路径，两台宿主
+
+```
+payments-panel…/api/v2/{PaymentMethods/url, PaymentMethods?paymentId=, WebComponent/state}
+retailer-shopifypayments-api…/api/v1/payment/apm/session/{status, post_pay_status}
+```
+
+### `Payments/EshopWorldPanel.cs`
+
+**两台宿主 · 五条路径 · `Loop` 枚举（WebComponent / Apmp）· `StateUrl` · `MethodsUrlFor` ·
+**`PollAsync`（共享轮询器）** · `StateWord` · `TerminalStates` / `SuccessWords`**
+
+### 三个结果（第三个是关键）
+
+**成功 / 失败 / **`settled = "unknown"` + retryable** —— 没定下来不是失败：慢网关不该看起来像被拒的卡。**
+
+### 两个刻意的窄
+
+**① 不认识的词**继续等**（猜错失败词会放弃即将成功的支付）。
+② 只认 `state`/`status`/`paymentStatus`/`result` 字段内的词 → `{"note":"completed"}` 不终止。**
+
+### 数字
+
+**套件 1868 → 1881 · vendor 命名 7/12 → **9/12** · 缺失 5 → **3**（Disney×2 · Viva×1）**
+
+| 仍 Unknown | |
+|---|---|
+| 真实状态词 | 无响应体，14 个词是猜的 |
+| `post_pay_status` 与 `status` 的区别 | 只有路径名 |
+| 面板返回什么 | 无响应体 |
+
+**纪律**：**「等待」比「请求」多三件事 —— 间隔、终止条件、以及没定下来时说什么。第三件最难，因为大多数流程只有两格。**

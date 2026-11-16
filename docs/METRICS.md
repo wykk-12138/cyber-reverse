@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 02:55:13 +0800 |
+| 生成时间 | 2026-11-17 03:00:03 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **1868 通过 / 0 失败 / 0 跳过 / 1868 总计** |
+| 完整套件 | **1881 通过 / 0 失败 / 0 跳过 / 1881 总计** |
 
 ## 摘要素值
 
@@ -40,8 +40,8 @@
 | 核心覆盖：store 宿主 — store hosts unmatched | 3 |
 | 核心覆盖：store 宿主 — vendor hosts | 12 |
 | 核心覆盖：vendor 宿主 — vendor hosts carrying a path | 12 |
-| 核心覆盖：vendor 宿主 — vendors named somewhere in src | 7 |
-| 核心覆盖：vendor 宿主 — vendors absent from src | 5 |
+| 核心覆盖：vendor 宿主 — vendors named somewhere in src | 9 |
+| 核心覆盖：vendor 宿主 — vendors absent from src | 3 |
 
 ## 逐条命令与原始输出
 
@@ -427,10 +427,10 @@ host                                                        pt  service      nam
 challenges.cloudflare.com                                    1  Cloudflare   yes  AntiBotProtocol.cs, AntiBotVendors.cs, BouncyH2Client.cs
 checkoutshopper-live.adyen.com                               2  Adyen        yes  AdyenGateway.cs, AdyenPayPalFlow.cs, BstnFlow.cs
 inbox-api.aycd.io                                            3  AYCD         yes  Accounts.cs, AycdInboxAccount.cs, AycdInboxClient.cs
-payments-panel.production.eshopworld.com                     3  eShopWorld   NO   -
+payments-panel.production.eshopworld.com                     3  eShopWorld   yes  EshopWorldPanel.cs
 paymentsheet-ent.wdprapps.disney.com                         3  Disney       NO   -
 registerdisney.go.com                                        1  Disney       NO   -
-retailer-shopifypayments-api.production.eshopworld.com       2  eShopWorld   NO   -
+retailer-shopifypayments-api.production.eshopworld.com       2  eShopWorld   yes  EshopWorldPanel.cs
 web-dsy.global-e.com                                         1  Global-e     yes  GlobalECheckout.cs
 webservices.global-e.com                                     3  Global-e     yes  GlobalECheckout.cs
 www.paypal.com                                               4  PayPal       yes  Accounts.cs, AdyenPayPalFlow.cs, CandidateSteps.cs
@@ -438,8 +438,8 @@ www.purpledotprice.com                                       1  PurpleDot    yes
 www.vivapayments.com                                         3  Viva         NO   -
 
 vendor hosts carrying a path: 12
-vendors named somewhere in src: 7
-vendors absent from src: 5
+vendors named somewhere in src: 9
+vendors absent from src: 3
 NOTE: 'yes' means some source file contains the service's name. It does not mean the integration is complete
       or correct -- a constant naming a host and a working flow are different things.
 ```
@@ -451,7 +451,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 1868 通过 / 0 失败 / 0 跳过 / 1868 总计
+`exit 0` · 1881 通过 / 0 失败 / 0 跳过 / 1881 总计
 
 ```text
   正在确定要还原的项目…
@@ -468,7 +468,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  1868，已跳过:     0，总计:  1868，持续时间: 1 m 25 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  1881，已跳过:     0，总计:  1881，持续时间: 1 m 27 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

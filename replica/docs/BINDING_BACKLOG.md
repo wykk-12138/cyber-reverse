@@ -6184,3 +6184,35 @@ d__45 GetProduct · d__46 AddToCartDummy · d__47 AddToCartMulti · d__48 Remove
 | `_pxvid` 与 `__pxvid` 是否同值 | 无证据 |
 
 **纪律**：一个错被写成断言就变成「已验证」；写成三次就变成「显然」。
+
+
+## 优先级 ② — Imperva 否定已验证；两个否定的对照（R945，**+5 用例，未改产品代码**）
+
+### 五条搜索
+
+**`Imperva` / `incap_ses` / `visid_incap` / `nlbi_` / `_Incapsula_` → 全 0。**
+
+### 对照
+
+| 否定 | 结果 |
+|---|---|
+| PerimeterX 无 `_px` cookie | **假** |
+| Imperva 无 cookie | **真** |
+
+**区别不在写法，在有没有命令。**
+
+### `VendorNegativeClaimsTests`（5 例）
+
+**一假一真 · 四条前缀被点名 · 断言带证据 · Imperva 非已知厂商 · cookie 表 5 家不含它**
+
+### 数字
+
+**套件 2043 → 2048 · 陈旧度 10/1044（不变）· 带命令的否定 0/2 → 2/2**
+
+| 仍 Unknown | |
+|---|---|
+| 其余否定断言有多少没带命令 | 未扫 |
+| Imperva 是否曾出现在别的版本 | 只有本版 |
+| PerimeterX 求解流程 | 只有名字与措辞 |
+
+**纪律**：「对」和「可复算」是两件事，只有后者能在改动之后还成立。

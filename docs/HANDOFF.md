@@ -1265,3 +1265,18 @@ cookie 表 4 → 5（不是 7：Queue-it 用路由、TrustDecision 用脚本）�
 纪律：一个听起来像纪律的错误，比一个听起来像错误的错误贵得多。
 
 下一轮：Imperva 是否也有 cookie（同一类未验证断言）；或 ③ 请求与指纹层。
+
+## R945 补充 — Imperva 否定已验证；两个否定的对照（+5 用例，未改产品代码，套件 2048）
+
+五条搜索全 0：Imperva / incap_ses / visid_incap / nlbi_ / _Incapsula_ → Imperva 无 cookie 的否定是真的。
+
+对照：PerimeterX「刻意不填」是假（_px3 在），Imperva 是真。区别不在写法，在有没有一条命令产生它 —— 没有命令的否定，是用事实语法写出来的猜测。
+
+Imperva 只作为反例（AntiBotVendors.Knows = false）→ 不是忘掉的厂商，是不在的厂商。
+断言改成「verified rather than asserted」+ 四条前缀点名，让下一个读的人能重跑。
+
+数字：套件 2043 → 2048 · 陈旧度不变 · 带命令的否定 0/2 → 2/2。
+
+纪律：「对」和「可复算」是两件事，只有后者能在改动之后还成立。
+
+下一轮：扫其余否定断言有多少没带命令；或 ③ 请求与指纹层。

@@ -21717,3 +21717,66 @@ metrics_report.py                -> 2043 通过 / 0 失败
 「deliberately absent rather than filled in from memory」正是我会赞同的那种句子。**
 
 **一个听起来像纪律的错误，比一个听起来像错误的错误贵得多。**
+
+
+---
+
+## 369. Imperva 否定已验证；两个否定的对照
+
+> R945。**+5 用例，未改产品代码。** 套件 **2048 通过 / 0 失败 / 0 跳过**。
+
+### 一、五条搜索全 0
+
+```
+Imperva 0 · incap_ses 0 · visid_incap 0 · nlbi_ 0 · _Incapsula_ 0
+```
+
+**→ Imperva 无 cookie 的否定是**真的**。**
+
+### 二、两个否定写得一模一样
+
+| 断言 | 当时 | 现在 |
+|---|---|---|
+| PerimeterX 无 `_px` | 「刻意不填」 | **假** |
+| Imperva 无 cookie | 同句式 | **真** |
+
+**区别不在写得多小心，在有没有一条命令产生它。
+没有命令的否定，是一个用事实的语法写出来的猜测。**
+
+### 三、Imperva 只作为反例
+
+**`AntiBotVendors.Knows("Imperva")` = false → 不是「忘掉的厂商」，是「不在的厂商」。
+`Assert.Null` 单独看不出这个区别。**
+
+### 四、断言改带证据
+
+**「no search was run on it」→「verified rather than asserted」+ 四条前缀点名。**
+
+### 五、数字
+
+| 度量 | R944 | R945 |
+|---|---|---|
+| 套件 | 2043 | **2048** |
+| 产物陈旧度 | 10 / 1044 | **10 / 1044** |
+| **带命令的否定** | 0 / 2 | **2 / 2** |
+
+### 六、验证
+
+```
+analysis/ida.py str 五条          -> 全 0
+test --filter VendorNegativeClaimsTests -> 5 通过
+metrics_report.py                 -> 2048 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **其余否定断言有多少没带命令**：**Unknown** —— 未扫。
+- **Imperva 是否曾出现在别的版本**：**Unknown** —— 只有本版。
+- **PerimeterX 求解流程**：**Unknown**。
+
+### 八、教训
+
+**上一轮修了一个**错的**否定；这一轮把**对的**那个也装上了证据 ——
+因为一个碰巧为真的猜测，下一次改代码时仍然不可信。**
+
+**「对」和「可复算」是两件事。而只有后者能在改动之后还成立。**

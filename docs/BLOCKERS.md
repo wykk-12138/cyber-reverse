@@ -12188,3 +12188,59 @@ SmartActionTriggerLabelTests   5 / 5 通过
   **读起来像对应物（条件式 vs 总是运行），但那是猜，不是映射。**
 - `{0} if` 那个 `{0}` 填什么：**Unknown**（`property(2)`，类型未解）。
 - `sub_1405FFD50` 里前三行的那几个 `<= 1` 守卫各自判什么：**Unknown**（未逐行解）。
+
+
+---
+
+## 181. 计数型文案的仪表：7 条复刻件从不引用；**而仪表自己的分组有缺陷**
+
+> R752。新增 `analysis/count_shaped_copy.py`。本轮未改产品代码、未加测试（套件数不变）。
+
+### 一、为什么要造这个仪表
+
+R750 发现 ranking 只数带占位符的文案，于是 0/1/n 三段里 0 和 1 两档整类不可见；
+R751 把判别式钉在**参数种类**上（计数 → 三段；名字或比较值 → 两段）。
+
+**推论**：ranking 的盲区**不均匀**，它恰好落在计数型文案上。所以换一个方向问：
+
+> **目录里哪些「文本以 `{0} ` 开头」的键，复刻件根本没有消费？**
+
+`analysis/count_shaped_copy.py`（按 §1.2 注明为什么现有工具不覆盖：这是关于 locale 目录与复刻件源码的问题，
+不是关于二进制的问题；`witness_ranking.py` 问的是另一个方向的映射，目录是纯 JSON）。
+
+### 二、结果：41 条计数型文案，**7 条复刻件从不引用**
+
+```
+Accounts.AccountsFormat         '{0} Accounts'          （1 档 AccountsOne，无 0 档）
+Notifications.HeaderFormatOne   '{0} Notification'
+ProfileCsv.SubtitleFormat       '{0} · {1} profiles'
+Settings.AccountCountFormat     '{0} Accounts'          （1 档 AccountCountOne）
+…（共 7 条，见脚本输出）
+```
+
+**其中 `ProfileCsv.SubtitleFormat` 是第二条 R744 那类"自造文案"的对照物**：
+目录里有 `{0} · {1} profiles`，而复刻件的 CSV 编辑器副标题是自造的。
+
+### 三、而仪表**自己有缺陷**，必须写下来
+
+它按**命名空间**给兄弟分组：`Accounts.AccountsFormat` 的"0 档"被判成 `Accounts.Subtitle`、
+"1 档"判成 `AccountsOne`。**那只是同命名空间，不是同一组文案。**
+
+**所以输出里那 18 组"三段"多数未经证实。** 只有 R750/R751 亲手读过的那几组是 Observation。
+
+**这个缺陷的成因值得记**：兄弟关系在**目录里没有显式表达** —— 它只体现在函数的三个分支里。
+**命名空间是唯一能在静态侧拿到的近似，而它明显不够。**
+
+**要真的判组，得读函数**（这正是 AGENTS.md §1 那条「要判断是接线还是逻辑，读伪代码」的同一课）。
+
+### 四、一条独立印证
+
+`SmartActionsCreator.BehaviourFormat`（`{0} if`）被标为 **NO CONSUMER** ——
+**这与 R751 独立得出的"未实现，因为另一支的槽没解"完全一致。**
+两个不同方法给同一结论，这类交叉印证值得记。
+
+### 五、仍然 Unknown
+
+- 那 18 组"三段"里哪些是真的：**Unknown** —— 只有读过的几组是 Observation，其余是命名空间近似。
+- 7 条未消费的计数型文案各自的原版产生点：**Unknown** —— 需按 `csv_key_functions.py` 的办法逐个扫。
+- `ProfileCsv.SubtitleFormat` 是否就是 CSV 编辑器副标题的原版文案：**Inference（中）**，未核。

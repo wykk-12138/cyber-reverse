@@ -48093,3 +48093,53 @@ casioid                                -> 取值 (187 B) + 构造 (893 B)
 ```
 构建绿 · Casio 相关 9/9 · 整套 1761 / 0 · 度量未变
 ```
+
+
+---
+
+## 第 787 轮：Warhammer 在 AWS WAF 后面
+
+### 先问有几种写法
+
+```
+WafHandler    -> 1 match   &WarhammerWafHandler
+-waf-auth     -> 1 match   warhammer-com-waf-auth
+```
+
+**全镜像只有一个站点级 WAF 处理器，就是 Warhammer 的。**
+
+### 请求头键解出来
+
+```
+content-length · sec-ch-ua · sec-ch-ua-platform · sec-ch-ua-mobile
+authorization · warhammer-com-waf-auth · x-aws-waf-token · x-trace-id
+user-agent · accept · content-type · origin · sec-fetch-site/mode/dest
+```
+
+**两个 token 同行：AWS 自己的作请求头，站点自己的作 cookie（也按头发）。**
+**处理器的职责是拿到第一个，才能出示第二个。**
+
+### 复刻件缺的两样，外加一个编出来的端点
+
+`LoginAsync` 原发 `/api/login` —— **编的**。镜像里 Auth0 四步都在
+（`usernamepassword/challenge` · `usernamepassword/login` · `oauth/token` · `login/callback`）。
+
+### 改了什么
+
+1. **WAF 常量 + `ApplyWaf`**：从会话取值，**有才设** —— 第五次用「最坏情况等于没改」
+2. **登录端点** → `/usernamepassword/challenge`
+
+**Auth0 还要 `client_id`/`state`/`nonce`，都没取证。这一步可能只拿到 challenge —— 代码如实报错。**
+
+### 验证
+
+```
+构建绿 · 整套 1761 / 0 · 度量未变 · Warhammer 覆盖率未变
+```
+
+### 一个反复出现的自伤
+
+我这轮又以为把 `PostJsonAsync` 写坏了，**但构建显示文件其实是对的** ——
+**坏字来自工具调用回显，不是文件内容。**
+
+> **判定依据必须是文件本身（`repr()` 打出来），不是我对调用的记忆。**

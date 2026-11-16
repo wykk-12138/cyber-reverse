@@ -1066,3 +1066,31 @@ poq-slot-conditions   名字确认，取值未定位
 
 **纪律**：`analysis/casio_record_dump.py` 已加守卫 —— `START < IMAGE_BASE` 直接报「字面量少了一位」，
 因为 R786 就犯过这个错（`0x146B7D800` → `0x146B7CC0`，RVA 变负）。
+
+
+## 风控 — Warhammer AWS WAF（R787）
+
+**镜像里唯一的站点级 WAF 处理器**（`WarhammerWafHandler` 与 `warhammer-com-waf-auth` 各 1 次）。
+
+**两个 token 同行**：
+
+```
+x-aws-waf-token          ← AWS 自己的，作请求头
+warhammer-com-waf-auth   ← 站点自己的，作 cookie（但按头发）
+```
+
+**另有完整 client hints**：`sec-ch-ua` / `sec-ch-ua-platform` / `sec-ch-ua-mobile`。
+
+**已做**：`WarhammerFlow.ApplyWaf(c)` —— 从 `Session.Vars` 取两个 token，有才设。
+**登录端点**从编的 `/api/login` 换成镜像的 `/usernamepassword/challenge`。
+
+| 项 | 状态 |
+|---|---|
+| AWS WAF token 的取得方式 | **Unknown**（产出它的挑战交换不在字符串里） |
+| Auth0 的 `client_id` / `state` / `nonce` | Unknown |
+| **GraphQL operation 名** | **Unknown —— 复刻件仍发 REST，这是 Warhammer 最大的缺口** |
+| 处理器四个方法各做什么 | Unknown（只读了构造器） |
+
+**注意优先级**：这一条是第 2 层（风控对抗），不是第 1 层。
+
+**工具记录**：`off_slot_reader.py` 一次解出 15 个头名 —— R776 为 6 个烧掉五次尝试，现在 15 个一次。

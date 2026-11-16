@@ -14772,3 +14772,92 @@ Casio 相关测试      9 / 9
 - 它是运行时拼的还是配置给的：**Unknown**。
 - `casioid` 商品 id / 变体 id：**Unknown**（R783）。
 - `Casio Login` 的端点：**Unknown**。
+
+
+---
+
+## 213. Warhammer 在 AWS WAF 后面：**两个 token**，一个头一个 cookie
+
+> R787。改 `RetailFlows.cs`（`WarhammerFlow` 加 WAF 常量与 `ApplyWaf`；登录端点从编的换成镜像的）。未加测试。
+
+### 一、先问有几种写法（§2.7）
+
+```
+WafHandler      -> 1 match   &WarhammerWafHandler
+-waf-auth       -> 1 match   warhammer-com-waf-auth
+```
+
+**全镜像只有一个站点级 WAF 处理器，就是 Warhammer 的。没有通用机制可抄。**
+
+### 二、请求头键解出来，风控机制就清楚了
+
+`sub_140E4ABE0`（647 B）是请求构造器，`sub_1408BAD40(容器, 键, 值)` 反复调用。
+十五个键用 `off_slot_reader` 一次读全：
+
+```
+content-length    sec-ch-ua      sec-ch-ua-platform    sec-ch-ua-mobile
+authorization     warhammer-com-waf-auth              x-aws-waf-token
+x-trace-id        user-agent     accept                content-type
+origin            sec-fetch-site sec-fetch-mode        sec-fetch-dest
+```
+
+**`x-aws-waf-token` 与 `warhammer-com-waf-auth` 同时出现** ——
+**一个 AWS 自己的 token（作请求头），一个站点自己的（作 cookie，但同样按头发）。**
+
+**所以那个处理器的职责是：拿到第一个，才能出示第二个。**
+
+另外**完整的 client hints（`sec-ch-ua` / `-platform` / `-mobile`）** 也在，那是现代浏览器的指纹面。
+
+**这一条属于第 2 优先级（风控对抗），不是第 1。**
+
+### 三、复刻件缺的两样
+
+```
+WarhammerWafHandler      ABSENT
+warhammer-com-waf-auth   ABSENT
+x-aws-waf-token          ABSENT（这次加的）
+usernamepassword         ABSENT
+```
+
+**而且 `LoginAsync` 原来发到 `{IdentityHost}/api/login` —— 那是编的。**
+镜像里 Auth0 的四步都在：
+
+```
+/usernamepassword/challenge
+/usernamepassword/login
+/oauth/token
+/login/callback
+```
+
+### 四、改了什么
+
+1. **WAF 常量 + `ApplyWaf(c)`**：从 `Session.Vars["awsWafToken"]` / `["wafAuthCookie"]` 取值，
+   **有才设，没有就不动请求头** —— 第五次用「最坏情况等于没改」。
+2. **登录端点**：`/api/login` → `/usernamepassword/challenge`（Auth0 流程的第一步）。
+
+**注意**：Auth0 还要 `client_id` / `state` / `nonce`，**这三样都没取证**。
+**所以这一步可能只拿到 challenge 而不是 token。代码会如实报错，不假装成功。**
+
+### 五、验证
+
+```
+构建                已成功
+完整套件            1761 通过 / 0 失败 / 0 跳过（与改动前同数）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+Warhammer 覆盖率    未变（这一轮加的是请求头与端点，不是补步骤）
+```
+
+### 六、仍然 Unknown
+
+- **AWS WAF token 怎么拿**：**Unknown** —— 产出它的挑战交换不在已取回的字符串里。
+- **Auth0 的 `client_id` / `state` / `nonce`**：**Unknown**。
+- **GraphQL 的 operation 名**：**Unknown** —— 复刻件仍发 REST，镜像发 GraphQL，**这一轮没解决**。
+- `WarhammerWafHandler` 的四个方法各做什么：**Unknown** —— 只读了最小的一个（构造器）。
+
+### 七、一个反复出现的自伤，值得单独记
+
+这一轮我又一次把 `PostJsonAsync` 写成 `PostjsonAsync`、把 `StepOutcome` 写成别的东西。
+**但这次构建显示文件里其实是对的** —— 我看到的"坏字"来自工具调用回显，不是文件内容。
+
+**教训是双向的**：坏字会发生（前面几次真坏了），**但不要凭回显判定文件坏了** ——
+**要看文件本身**（这次用 `repr()` 打出来才看清）。**判定依据必须是文件内容，不是我对调用的记忆。**

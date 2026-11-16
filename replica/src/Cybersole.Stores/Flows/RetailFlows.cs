@@ -457,6 +457,56 @@ public sealed class WarhammerFlow : StoreFlow
     private const string IdentityHost = "https://login.mywarhammer.com";
     private const string ApiHost = "https://api.prod.warhammer.com";
 
+    /// <summary>
+    /// Warhammer is behind AWS WAF, and the image carries a bespoke handler for it. R787.
+    ///
+    /// <para>
+    /// <b>Observation:</b> <c>WarhammerWafHandler</c> and <c>warhammer-com-waf-auth</c> each occur exactly once in the
+    /// pool -- this is the only site in the image with a dedicated WAF handler class, so there is no shared mechanism
+    /// to copy. Four adjacent functions reference the cookie, one of them building a request whose header keys resolve
+    /// to: content-length, sec-ch-ua, sec-ch-ua-platform, sec-ch-ua-mobile, authorization, warhammer-com-waf-auth,
+    /// x-aws-waf-token, x-trace-id, user-agent, accept, content-type, origin, sec-fetch-site, sec-fetch-mode,
+    /// sec-fetch-dest.
+    /// </para>
+    ///
+    /// <para>
+    /// So two tokens travel together: AWS's own, as a header, and the site's, as a cookie. The handler's job is to
+    /// obtain the first so the second can be presented.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown:</b> how the AWS token is obtained -- the challenge exchange that produces it is not among the
+    /// strings recovered. The values are therefore taken from the session when a caller supplies them, and nothing is
+    /// invented; with no session values the requests are exactly as they were before.
+    /// </para>
+    /// </summary>
+    public const string AwsWafTokenHeader = "x-aws-waf-token";
+
+    /// <summary>The site's own WAF cookie, sent as a header by the same builder.</summary>
+    public const string WafAuthCookie = "warhammer-com-waf-auth";
+
+    // Auth0's universal login: the image names all four steps. R787.
+    public const string UsernamePasswordLogin = IdentityHost + "/usernamepassword/login";
+    public const string UsernamePasswordChallenge = IdentityHost + "/usernamepassword/challenge";
+    public const string OAuthToken = IdentityHost + "/oauth/token";
+    public const string LoginCallback = IdentityHost + "/login/callback";
+
+    /// <summary>
+    /// Put the two WAF tokens on the session when a caller has obtained them.
+    ///
+    /// <para>
+    /// Both are read from <c>Session.Vars</c> rather than computed, because the exchange that produces the AWS token is
+    /// not recovered. Setting nothing leaves the request headers untouched.
+    /// </para>
+    /// </summary>
+    private static void ApplyWaf(FlowContext c)
+    {
+        if (c.Session.Vars.TryGetValue("awsWafToken", out var aws) && aws.Length > 0)
+            c.Session.Headers[AwsWafTokenHeader] = aws;
+        if (c.Session.Vars.TryGetValue("wafAuthCookie", out var site) && site.Length > 0)
+            c.Session.Headers[WafAuthCookie] = site;
+    }
+
     public override bool RequiresAccount => true;
 
     public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
@@ -472,13 +522,20 @@ public sealed class WarhammerFlow : StoreFlow
         var account = c.Account;
         if (account?.Email is null) return StepOutcome.Fail("warhammer: no account");
 
+        ApplyWaf(c);
+
         var payload = new JObject
         {
             ["email"] = account.Email,
             ["password"] = account.Password,
         };
 
-        var res = await PostJsonAsync(c, $"{IdentityHost}/api/login",
+        // R787: was $"{IdentityHost}/api/login", which is invented. The image names Auth0's own steps --
+        // usernamepassword/login, usernamepassword/challenge, oauth/token, login/callback -- and the challenge comes
+        // first in that flow. Inference (medium): that this endpoint accepts a bare email/password. Auth0 also wants a
+        // client_id, state and nonce, none of which are recovered, so this step may answer with a challenge rather
+        // than a token; the code reports that rather than pretending otherwise.
+        var res = await PostJsonAsync(c, UsernamePasswordChallenge,
             payload.ToString(Newtonsoft.Json.Formatting.None), "wh-login", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("warhammer login failed", retryable: true);

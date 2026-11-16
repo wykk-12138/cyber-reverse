@@ -41,6 +41,8 @@
 | `0x14071fd80` | `ProfileCsv.Status.Exported` | **不可探**（R743） | 200+ 行、50 局部变量的导出**编排器**；`Exported` 只是其中一句 |
 | `0x1407145a0` | `ProfileCsv.Status.IgnoredColumns` | **复刻件已实现**（R743） | 同上 |
 | `0x14061e0e0` | `SmartActions.LastRun.Format` | **已实现**（R749，8 条探针） | 两条类型守卫**都 return 0** → 畸形记录不产出标签；**与 R740 的降级行为相反** |
+| `0x140600020` | `SmartActionsCreator.Filters*` | **已实现**（R750，9 条探针） | **0/1/n 三段**：`No Filters` / `1 Filter Saved`（数字写死）/ `{0} Filters Saved`；条件无下界，负数走格式化 |
+| `0x1406000e0` | `SmartActionsCreator.Actions*` | **已实现**（R750） | 同上，同形 31 行 |
 | `0x1407b8ac0` | `Update.Downloading*` | **不可探** | 构造下载对话框，**百分比参数硬编码为 0**，没有计算 |
 | `0x140654480` | `Common.Hour12/Hour24/Disabled` 等 | **不可探** | 构造选项列表：三个 `{label=槽位, value=0/1/2}` + 两个 `{label, value=0/1}`。**label↔value 的对应在槽位里，解不出**（同 R731）；结构本身（3 项/2 项）不足以断言行为 |
 

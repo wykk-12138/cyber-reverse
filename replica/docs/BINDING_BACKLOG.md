@@ -1456,3 +1456,30 @@ exempt 5
 | `CreateStripePaymentMethod` 是否第四步 | 名字在、端点未见 |
 
 **规矩**：**核名字来源要在补条目之前。** 自造的名字放进去，表看起来一样满分。
+
+
+## 核心 — casio 的天花板（R804）
+
+**5/7 是镜像能支撑的上限，不是没做完。**
+
+```
+bhawar                                   2 条（casiostore.bhawar.com + https 形式）
+casio.*(cart|order|checkout|payment|…)   0 条
+(动作词).*casio                          1 条（_adyenOrderId + casio.com + reCAPTCHA key）
+```
+
+**镜像只给了主机名、Adyen 字段名、站点名、reCAPTCHA key —— 零个端点路径。**
+
+| 决定 | 理由 |
+|---|---|
+| **不补** `SubmitShipping`/`SubmitPayment` | 端点不存在，无法取证 |
+| **不豁免** | `YardstickDoesNotApply` 是「原版无结账面」；**casio 有结账面**，只是路径不在池子里 |
+
+**「来源不全」≠「尺子不合身」** —— 前者该记天花板，后者才是豁免（R801 的教训反向用）。
+
+**同时排除的**：`DemandwareFlow` 已是满的（10 override），**12 个缺口各是各自的 flow，没有共享基类可补。**
+
+| 下一个该试 | |
+|---|---|
+| `动作词 × bhawar` 组合 | **没搜过**（§2.7：先问有几种写法） |
+| 其余 11 个模块的端点可得性 | 每个都要单独探 |

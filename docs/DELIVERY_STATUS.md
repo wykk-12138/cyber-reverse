@@ -10254,3 +10254,84 @@ ModuleCoverageTests hypecommerce 3/3；exempt 5
 **这一轮它们碰巧一样，所以问题被掩盖了；如果不一样，我就会在表里放一个自造的名字，而表看起来仍然满分。**
 
 **所以核名字来源这件事，要在补条目之前做，不是之后。**
+
+
+---
+
+## 228. `casio` 的 71% 是**镜像的天花板**，不是没做完
+
+> R804。未改产品代码。这一轮是把「能不能补」这个问题问到底。
+
+### 一、先排除了一个可能：不是共用 flow 的问题
+
+12 个模块缺 `SubmitShipping`/`SubmitPayment`。**如果它们共用一个未完成的基类，补一处就够。**
+
+查了一遍：**`DemandwareFlow` 已经有全部三步**（10 个 override，覆盖 `GetHome` 到 `SubmitOrder`），
+用的是 `convey` 与 `demandware` 两个模块，**都是 100%。**
+
+**所以那 12 个都是各自的 flow，不是一个共享缺口。** 没有「补一处、修十二处」的便宜。
+
+### 二、`casio` 这一侧的字符串，可以数清
+
+三个探测，结果小得可以直接列完：
+
+```
+bhawar                                    2 条
+  casiostore.bhawar.com
+  https://casiostore.bhawar.com
+
+casio.*(cart|order|checkout|payment|shipping|address)      0 条
+(cart|order|checkout|payment|shipping|address).*casio      1 条
+  _adyenOrderId*https://www.casio.com RecaptchaSiteKeyP6LfeU4...
+
+```
+
+**就这些。零个端点路径。**
+
+**镜像给 `casio` 的是：一个主机、一个 Adyen 订单号字段名、一个 casio.com 站点名、一个 reCAPTCHA key。**
+**没有 `/cart/add`，没有 `/checkout`，没有支付端点。**
+
+### 三、所以 5/7 是天花板
+
+复刻件现有的 5 步（home / product / variant / add-to-cart / checkout）**是照实机抓包写的**，
+**而镜像只提供了主机名与字段名 —— 连一步的路径都没有。**
+
+**这意味着**：
+
+- **补 `SubmitShipping`/`SubmitPayment` 需要端点**
+- **端点在镜像里不存在**（三个探测都是 0 或只有字段名）
+- **所以这两步不能从镜像取证**
+
+**这不是「没做完」，是「来源里没有」。**
+
+### 四、为什么**不**豁免它
+
+`YardstickDoesNotApply` 的定义是**「原版没有结账面，无需复刻」**。
+**`casio` 有结账面** —— 它有购物车、有 Adyen、有 reCAPTCHA，**只是路径不在池子里。**
+
+**把它放进豁免，就是用「来源不全」冒充「尺子不合身」** ——
+**那正是 R801 我刚犯过的错，只是换了个方向。**
+
+**所以它留在 5/7，并**在这里写清天花板**。**
+
+### 五、这一条对完成判据 (f) 的意义
+
+判据 (f) 要求「未覆盖的每条写为什么」。
+**`casio` 的两条理由现在是最硬的一种**：**不是"还没查"，是"查了三个写法，都是 0"。**
+
+### 六、仍然 Unknown
+
+- **`casio` 的端点在镜像里是否以别的形式存在**：**Unknown** ——
+  我搜了 `bhawar` 与四对「动作词 × casio」的组合，**但没有搜「动作词 × bhawar」**。
+  **这是下一个该试的写法**（§2.7：先问有几种写法）。
+- **`_adyenOrderId` 是字段名这件事**：**Observation**，R773 已定。
+- **12 个模块里其余的端点可得性**：**没查** —— 每个都要单独探。
+
+### 七、验证
+
+```
+本轮未改产品代码
+完整套件保持 1766 通过 / 0 失败
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+casio 仍 71%（5/7），但它的缺口现在有据可查
+```

@@ -97,6 +97,88 @@ public sealed class PopMartFlow : StoreFlow
     }
 
     /// <summary>
+    /// The draw family, first four steps — R873.
+    ///
+    /// <para>
+    /// R116 paired fourteen of Pop Mart's steps with <c>/shop/v1</c> endpoints. Seven of those endpoints take a query
+    /// parameter whose shape is fixed in the constant itself, which is what makes a step writable without inventing a
+    /// request; the rest are POSTs whose bodies nothing evidences, and those stay unwritten.
+    /// </para>
+    ///
+    /// <para>
+    /// Two things are deliberately not smoothed over. The <c>uniqCode</c> and <c>uniqID</c> these steps need are read
+    /// from the session and <b>nothing in this replica puts them there yet</b>, so the steps fail rather than send an
+    /// empty parameter — the failure names what is missing. And the responses are stored whole, unparsed, because their
+    /// shape is unevidenced.
+    /// </para>
+    ///
+    /// <para>
+    /// R850 found the parameter markers in the image (<c>_uniqCode</c>, <c>currentUniqCode</c>, <c>storeUniqCode</c>,
+    /// <c>&amp;storeUniqCode=1</c>), which is why the naming here is not a guess even though the plumbing is not built.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> StartDrawFlowAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("uniqCode", out var code) || string.IsNullOrEmpty(code))
+            return StepOutcome.Fail("StartDrawFlow needs a session var 'uniqCode' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.DrawScratchDetail + code,
+            "popmart-draw-detail", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart draw unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart draw HTTP {res.StatusCode}");
+
+        c.Session.Vars["draw"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Look up a draw — R116 pairs this with the same detail endpoint as <see cref="StartDrawFlowAsync"/>, which is
+    /// the pattern of one endpoint and two client phases seen throughout this session.
+    /// </summary>
+    public override async Task<StepOutcome> FindDrawAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("uniqCode", out var code) || string.IsNullOrEmpty(code))
+            return StepOutcome.Fail("FindDraw needs a session var 'uniqCode' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.DrawScratchDetail + code,
+            "popmart-draw-find", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart draw unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart draw HTTP {res.StatusCode}");
+
+        c.Session.Vars["draw"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// The dates a store ticket runs on. No query parameter, so nothing has to be supplied and nothing is invented.
+    /// </summary>
+    public override async Task<StepOutcome> FindDatesAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.StoreTicketDates, "popmart-ticket-dates", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart ticket dates unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart ticket dates HTTP {res.StatusCode}");
+
+        c.Session.Vars["ticketDates"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>The time slots for a store ticket, which needs the ticket's <c>uniqID</c> from the session.</summary>
+    public override async Task<StepOutcome> FindTimeSlotsAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("uniqID", out var id) || string.IsNullOrEmpty(id))
+            return StepOutcome.Fail("FindTimeSlots needs a session var 'uniqID' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.StoreTicketMainPage + id,
+            "popmart-ticket-slots", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart ticket slots unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart ticket slots HTTP {res.StatusCode}");
+
+        c.Session.Vars["timeSlots"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// Pop Mart's order list — step <c>GetOrders</c>, ordinal 104, first of the flow's sequence.
     ///
     /// <para>

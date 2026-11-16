@@ -405,3 +405,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **改写了一对**：`FindExhibit` → `StoreOfflineDrawInfo?alias=`（缺 alias 失败）· `EnterExhibit` → `POST StoreOfflineDrawJoin`（缺 exhibit 体失败）。**`StoreFlow` 各加默认失败的虚方法。**
 **数字：`map 166→168` · `implementable 1→3` · 四数一起钉（168/24/3 + 三条 CanRunStep）。套件 1773 通过 / 0 失败。**
 **待办里不写「likely」——只写「已确认，因为 X」或「未查，下一步查 Y」。**
+
+## R873 补充 — 再写四个（**已改产品代码**）：coverage 3 → 7
+
+**判据：查询形状写在常量里才可写。**写了 `StartDrawFlow`/`FindDraw`（`?uniqCode=`）· `FindDates`（无查询）· `FindTimeSlots`（`?uniqID=`）。**7 个 POST 请求体无证据 → 不写。**
+**三个步骤会明确失败（刻意）**：`uniqCode`/`uniqID` 从 session 取而**没人往里放** —— 发空参数可能得 200，会被读成跑通。
+**数字：`map 168→172` · `coverage 3→7` · 七条 CanRunStep 各标轮次。套件 1773 通过 / 0 失败。**
+**下一轮该查「镜像里谁 produce `uniqCode`/`uniqID`」，不是再写步骤 —— 三步已写但跑不通。**

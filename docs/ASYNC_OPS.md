@@ -1285,3 +1285,49 @@ StoreTicketDates / StoreTicketMainPage
 map.Count     166 -> 168
 implementable   1 ->   3
 ```
+
+
+### 再写四个：`coverage 3 → 7`，而选哪四个是有判据的（R873）
+
+**判据：R116 配了 14 步端点；其中**查询形状写在常量里**的才可写（GET + 参数名固定）。
+其余是 POST，请求体无证据。**
+
+| 步骤 | 端点 | 形状 | 写了吗 |
+|---|---|---|---|
+| `StartDrawFlow` | `DrawScratchDetail` | `?uniqCode=` | **写了** |
+| `FindDraw` | `DrawScratchDetail` | `?uniqCode=` | **写了** |
+| `FindDates` | `StoreTicketDates` | 无查询 | **写了** |
+| `FindTimeSlots` | `StoreTicketMainPage` | `?uniqID=` | **写了** |
+| `EnterDraw` | `DrawScratchDraw` | POST | **没写** —— 请求体无证据 |
+| `ChooseGoods` | `DrawScratchChooseGoods` | POST | **没写** |
+| `FindMegaDraw` · `EnterDrawEvent` | `MegaDrawHit` | POST | 没写 |
+| `RedeemMemberPoints` | `PointsRedeemDraw` | POST | 没写 |
+| `RedeemLuckPoints` | `LuckyPointsDraw` | POST | 没写 |
+| `EnterExhibit` | `StoreOfflineDrawJoin` | POST | **R872 写了** —— 体 = 上一步响应 |
+| `EnterReservation` | `StoreOfflineDrawJoin` | POST | 没写 |
+
+**所以「写了几步」不是均匀推进，是**按证据形状分批**：**
+**GET + 固定参数名的先写；POST 一律等请求体有证据。**
+
+### 两个缺参数就失败的步骤
+
+**`StartDrawFlow` / `FindDraw` 要 `uniqCode`，`FindTimeSlots` 要 `uniqID`，全部从 session 取，
+而**这个复刻件里没有任何地方往 session 放它们**。所以这三个在当前代码里会明确失败。**
+
+**这不是缺陷，是当前状态的可读表达：**缺什么，失败信息就写什么。
+**如果它们发空参数，服务器可能返回 200，而那会被读成「跑通了」。**
+
+### 而 `uniqCode` 这个名字不是猜的
+
+**R850 在镜像里找到 `_uniqCode` · `currentUniqCode` · `storeUniqCode` · `&storeUniqCode=1` 四个记号。
+所以参数名有出处，只是**谁来填**没建立。**
+
+### 数字
+
+```
+map.Count      168 -> 172
+implementable    3 ->   7
+sequence.Count  24 不变
+```
+
+**测试四数一起钉（172 / 24 / 7 + 七条 `CanRunStep`，每条标着哪一轮加的）。**

@@ -16469,3 +16469,85 @@ python tools\metrics_report.py           -> 1773 通过 / 0 失败 / 0 跳过
 而如果不查，我会花一轮去写一个没有端点的步骤，写到一半发现没地方发请求。**
 
 **所以待办里不该有「可能可写」；只该有「已确认可写，因为 X」和「未查，下一步查 Y」。**
+
+
+---
+
+## 297. 再写四个 —— 而「写哪四个」有判据：`coverage 3 → 7`
+
+> R873。**改了产品代码。** 套件 **1773 通过 / 0 失败 / 0 跳过**。
+
+### 一、判据不是「还没写的就写」
+
+**R116 配了 14 步端点。可写的条件是：**查询形状写在常量里**（GET + 参数名固定）。
+其余是 POST，请求体无证据 —— 写出来就是编。**
+
+| 写了 | 端点 | 形状 |
+|---|---|---|
+| `StartDrawFlow` | `DrawScratchDetail` | `?uniqCode=` |
+| `FindDraw` | `DrawScratchDetail` | `?uniqCode=` |
+| `FindDates` | `StoreTicketDates` | 无查询 |
+| `FindTimeSlots` | `StoreTicketMainPage` | `?uniqID=` |
+
+| 没写 | 为什么 |
+|---|---|
+| `EnterDraw` · `ChooseGoods` · `FindMegaDraw` · `EnterDrawEvent` · `RedeemMemberPoints` · `RedeemLuckPoints` · `EnterReservation` | **POST，请求体无证据** |
+
+**所以推进不是均匀的，是按**证据形状**分批。这不是保守，是「能证明发什么才发」。**
+
+### 二、三个步骤缺参数会失败，而这是刻意的
+
+**`StartDrawFlow` / `FindDraw` 要 `uniqCode`，`FindTimeSlots` 要 `uniqID`，都从 session 取 ——
+而**这个复刻件里没有任何地方往 session 放它们**。**
+
+**所以这三个现在会明确失败。失败信息就是缺什么。**
+
+**如果它们发空参数，服务器可能返回 200 —— 而那会被读成「跑通了」。
+这是本会话第八次遇到同一个形态，这次仍然是在写的时候避开的。**
+
+### 三、而 `uniqCode` 这个名字有出处
+
+**R850 在镜像里找到四个记号：`_uniqCode` · `currentUniqCode` · `storeUniqCode` · `&storeUniqCode=1`。
+所以参数名不是我起的，只是**谁来填**没建立。**
+
+**这两件事必须分开写：参数名有证据（Observation），填值链路没建立（Unknown）。**
+
+### 四、数字
+
+```
+map.Count      168 -> 172
+implementable    3 ->   7
+sequence.Count  24 不变
+```
+
+**测试四数一起钉，而七条 `CanRunStep` 每条标着哪一轮加的** ——
+下次有人问「这七步什么时候写的」，测试自己就答了。
+
+### 五、验证
+
+```
+PopMartEndpoints 常量形状扫描 -> DrawScratchDetail?uniqCode= / StoreTicketDates（无查询）/ StoreTicketMainPage?uniqID=
+                                DrawScratchDraw · DrawScratchChooseGoods（POST，无查询串）
+D:\tools\dotnet8\dotnet.exe build ... -> 0 错误
+test --filter FlowSequenceTests          -> 7 通过 / 0 失败
+python tools\metrics_report.py           -> 1773 通过 / 0 失败 / 0 跳过
+```
+
+### 六、仍然 Unknown
+
+- **`uniqCode` / `uniqID` 从哪来**：**Unknown** ——
+  **这是 R873 之后最挡路的一条：三个步骤已写但跑不通，因为没人填这两个值。**
+  **下一轮该查的是「镜像里谁 produce 了它们」，不是再写步骤。**
+- **那七个 POST 的请求体**：**Unknown** —— 它们的端点有了，形状没有。
+- **`StoreOfflineDrawJoin` 也服务 `EnterReservation`**：**Observation（R116）** ——
+  **而 `EnterReservation` 的体是什么，与已写的 `EnterExhibit` 是否同形，未查。**
+
+### 七、教训
+
+**这一轮最重要的不是写了四步，是**说清了为什么只写四步**。**
+
+**如果只报「coverage 3→7」，下一轮的人会问「为什么不写完 24 步」。
+而答案已经在表里：七个是 POST 无体，十个端点都没配。**
+
+**所以每个进度数字旁边都该有「其余多少、为什么」。**
+**R844 那个 16.9% 的错就在这儿 —— 它只有数字，没有旁边的分类。**

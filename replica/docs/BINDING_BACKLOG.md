@@ -3599,3 +3599,37 @@ python tools\where_is.py Sequence --all
 | `StoreOfflineDrawJoin` 请求体结构 | **现在发上一步响应体 = 我的选择，不是镜像行为** |
 
 **纪律**：**「缺就失败」优于「发空的、返回 200 算成功」—— 第七次同一形态，这次写时就避开。**
+
+
+## 优先级 ① — 再写四个（R873，**已改产品代码**）：coverage 3 → 7
+
+**判据：查询形状写在常量里才可写。7 个 POST 请求体无证据，不写。**
+
+| 写了 | 端点 | 形状 |
+|---|---|---|
+| `StartDrawFlow` · `FindDraw` | `DrawScratchDetail` | `?uniqCode=` |
+| `FindDates` | `StoreTicketDates` | 无查询 |
+| `FindTimeSlots` | `StoreTicketMainPage` | `?uniqID=` |
+
+| 没写 | 原因 |
+|---|---|
+| `EnterDraw` `ChooseGoods` `FindMegaDraw` `EnterDrawEvent` `RedeemMemberPoints` `RedeemLuckPoints` `EnterReservation` | **POST，体无证据** |
+
+### 三个步骤会明确失败（刻意）
+
+**`uniqCode`/`uniqID` 从 session 取，**而没人往里放** → 三步跑不通但报得清楚。
+**发空参数可能得 200，那会被读成「跑通了」。**
+
+**参数名是 Observation（R850 的 `_uniqCode`/`storeUniqCode` 记号）；填值链路是 Unknown。**
+
+### 数字
+
+`map 168→172` · `coverage 3→7` · `sequence 24` · **七条 CanRunStep 各标轮次** · 套件 1773 通过。
+
+| 仍 Unknown | |
+|---|---|
+| **`uniqCode`/`uniqID` 从哪来** | **最挡路：三步已写但跑不通 → 下一轮查「谁 produce 它们」，不是再写步骤** |
+| 七个 POST 的请求体 | 端点有，形状没有 |
+| `EnterReservation` 体是否同形于 `EnterExhibit` | 未查 |
+
+**纪律**：**每个进度数字旁边都要有「其余多少、为什么」—— R844 的 16.9% 就是只有数字没有分类。**

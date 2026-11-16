@@ -104,6 +104,31 @@ public abstract class StoreFlow
     public virtual Task<StepOutcome> EnterExhibitAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(StepOutcome.Fail("EnterExhibit is not implemented by " + Id));
 
+    /// <summary>
+    /// Begin a draw flow. Fails by default, like the exhibit and order steps, because it sits outside the checkout
+    /// sequence and a silent success would be a lie about work nobody did.
+    ///
+    /// <para>
+    /// R873. The draw family is where the difference between the image's per-flow sequences and this replica's single
+    /// one showed up first (R851); these four are the first of its steps that can be written, because their endpoints
+    /// carry their query shapes and the others need request bodies nothing evidences.
+    /// </para>
+    /// </summary>
+    public virtual Task<StepOutcome> StartDrawFlowAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("StartDrawFlow is not implemented by " + Id));
+
+    /// <summary>Look up a draw. Fails by default.</summary>
+    public virtual Task<StepOutcome> FindDrawAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("FindDraw is not implemented by " + Id));
+
+    /// <summary>The dates a store ticket is available on. Fails by default.</summary>
+    public virtual Task<StepOutcome> FindDatesAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("FindDates is not implemented by " + Id));
+
+    /// <summary>The time slots for a store ticket. Fails by default.</summary>
+    public virtual Task<StepOutcome> FindTimeSlotsAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("FindTimeSlots is not implemented by " + Id));
+
 
     // ── session ───────────────────────────────────────────────────────────────
     public virtual async Task<StepOutcome> InitAsync(FlowContext c, CancellationToken ct)

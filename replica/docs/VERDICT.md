@@ -52289,3 +52289,55 @@ map.Count 166 -> 168 · implementable 1 -> 3 · sequence 24 不变
 > **一个「likely」在待办里能活很久，而它其实只是「我没查」。**
 > **查它两分钟；不查，我会花一轮去写一个没有端点的步骤，写到一半发现没地方发请求。**
 > **所以待办里不该有「可能可写」；只该有「已确认可写，因为 X」和「未查，下一步查 Y」。**
+
+
+---
+
+## 第 873 轮：再写四个 —— 而「写哪四个」有判据：coverage 3 → 7
+
+### 判据不是「还没写的就写」
+
+**可写条件：查询形状写在常量里（GET + 参数名固定）。POST 的请求体无证据，写出来就是编。**
+
+| 写了 | 端点 | 形状 |
+|---|---|---|
+| `StartDrawFlow` · `FindDraw` | `DrawScratchDetail` | `?uniqCode=` |
+| `FindDates` | `StoreTicketDates` | 无查询 |
+| `FindTimeSlots` | `StoreTicketMainPage` | `?uniqID=` |
+
+| 没写（7 个 POST） | 为什么 |
+|---|---|
+| `EnterDraw` · `ChooseGoods` · `FindMegaDraw` · `EnterDrawEvent` · `RedeemMemberPoints` · `RedeemLuckPoints` · `EnterReservation` | **请求体无证据** |
+
+> **推进不是均匀的，是按**证据形状**分批。这不是保守，是「能证明发什么才发」。**
+
+### 三个步骤缺参数会失败，刻意
+
+**`uniqCode` / `uniqID` 从 session 取，而**没有任何地方往里放** → 三个步骤现在会明确失败。**
+
+**如果发空参数，服务器可能返回 200 —— 那会被读成「跑通了」。第八次同一形态，仍在写时避开。**
+
+### 而参数名有出处
+
+**R850 在镜像里找到 `_uniqCode` · `currentUniqCode` · `storeUniqCode` · `&storeUniqCode=1`。
+参数名是 Observation，**填值链路没建立是 Unknown —— 两件事分开写。****
+
+### 数字
+
+```
+map 168 → 172 · coverage 3 → 7 · sequence 24 不变
+七条 CanRunStep 每条标着哪一轮加的 —— 下次问「这七步什么时候写的」，测试自己答
+套件 1773 通过 / 0 失败
+```
+
+### 仍然 Unknown
+
+**`uniqCode`/`uniqID` 从哪来** —— **R873 之后最挡路的一条：三步已写但跑不通。
+下一轮该查「镜像里谁 produce 它们」，不是再写步骤** · **七个 POST 的请求体** ·
+**`EnterReservation` 的体是否同形于已写的 `EnterExhibit`**
+
+### 教训
+
+> **最重要的不是写了四步，是说清了**为什么只写四步**。**
+> **只报「3→7」，下一轮会问「为什么不写完 24 步」；答案已在表里：七个 POST 无体，十个端点没配。**
+> **所以每个进度数字旁边都该有「其余多少、为什么」—— R844 那个 16.9% 的错就在这儿：只有数字，没有分类。**

@@ -104,15 +104,19 @@ public class FlowSequenceTests
         var map = flow.StepDispatch;
         var implementable = flow.StepSequence.Count(map.ContainsKey);
 
-        // R872 raised the map from 166 to 168 with FindExhibitAsync and EnterExhibitAsync, and the sequence's coverage
-        // from one to three. All four numbers are pinned so none can drift unremarked: a virtual added and never used
+        // R873 raised the map from 168 to 172 with the first four draw-family steps, and the sequence's coverage from
+        // three to seven. All four numbers are pinned so none can drift unremarked: a virtual added and never used
         // moves the first without the others, a written step moves the last without the first.
-        Assert.Equal(168, map.Count);
+        Assert.Equal(172, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
-        Assert.Equal(3, implementable);
+        Assert.Equal(7, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");
         Assert.True(flow.CanRunStep("FindExhibit"), "FindExhibit was added in R872");
         Assert.True(flow.CanRunStep("EnterExhibit"), "EnterExhibit was added in R872");
+        Assert.True(flow.CanRunStep("StartDrawFlow"), "StartDrawFlow was added in R873");
+        Assert.True(flow.CanRunStep("FindDraw"), "FindDraw was added in R873");
+        Assert.True(flow.CanRunStep("FindDates"), "FindDates was added in R873");
+        Assert.True(flow.CanRunStep("FindTimeSlots"), "FindTimeSlots was added in R873");
     }
 
     /// <summary>

@@ -5065,3 +5065,31 @@ python tools/snapshot.py --restore <stamp> [relpath]
 | 分桶按名字是否可靠 | **只为分组，非结论** |
 
 **纪律**：**缺口形状是「基础集一半、变体几乎没有」，而不是「少 244 个」—— 两句话对下一步的指示完全不同。**
+
+
+## 优先级 ③ — WebRTC 表面（R914，**改产品代码 +6 用例**）
+
+### 指纹四个的实况
+
+**`Fingerprint` / `ClientData` / `BrowserData` 概念在（不同名字）· **`WebRtc` 真缺**。**
+
+### 已写 `WebRtcSurface.cs`
+
+**`Rule` · `CandidateLeaks` · `BodyJs()` · `RequiredFor(behindProxy)` —— 与五个同类表面同形。**
+**`BodyJs()` 关两半：`onicecandidate` 过滤 + `localDescription` SDP 剥离。连接仍可构造。**
+
+### 数字
+
+**套件 1815 → 1821 · 异步覆盖 371 → 372**
+
+### 而那个 +1 是假阳性（必须写明）
+
+**`SubmitWebRtc` 只出现在**文档注释**里，被文本扫描算成「有」。
+→ `async_method_coverage.py` 把注释里提到的名字算作实现；而「注释引用镜像名字」是我一直在用的写法。**
+
+| 仍 Unknown | |
+|---|---|
+| 原版 `SubmitWebRtc` 是拦、伪装还是只记录 | 名字不说 |
+| 注释假阳性有多少个 | **未测** —— 下一轮该分开统计 |
+
+**纪律**：**加一个真东西的同时可能给度量制造一个假的东西；只报总数会把两者混在一起。**

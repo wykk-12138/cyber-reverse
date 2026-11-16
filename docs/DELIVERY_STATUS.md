@@ -19597,3 +19597,70 @@ StoreFlow 的 Submit 步骤 -> 26 个（含 SubmitOrder/SubmitPayment/SubmitShip
 
 **这两句话对下一步的指示完全不同：前者指向大规模重写，后者指向补变体 ——
 而补变体之前要先知道每个变体差什么，那需要读实现而不是数名字。**
+
+
+---
+
+## 338. WebRTC 表面（第五个同类表面）；以及一个 +1 的假阳性
+
+> R914。**改产品代码 +6 用例。** 套件 **1821 通过 / 0 失败 / 0 跳过**。
+
+### 一、指纹四个的实况
+
+| 名字 | 复刻件 |
+|---|---|
+| `SubmitFingerprint` | 概念在（`BrowserIdentity`） |
+| `SubmitClientData` | 概念在（`KasadaSolver.cs` 的 `ClientData`） |
+| `SubmitBrowserData` | 概念在（`AppPaths.cs` 的 `BrowserData`） |
+| **`SubmitWebRtc`** | **完全没有** |
+
+**三个只是名字不同，一个是真缺。**
+
+### 二、WebRTC 的姿态与同类表面相反
+
+**`Scripts/` 已有 `CanvasSurface` · `WebGlSurface` · `FontMediaSurface` · `MediaQuerySurface` · `VoiceTable` ——
+都是「报告一个与 persona 一致的值」。**
+
+**WebRTC 不报告值，它**打开通道**，而通道用网络地址回答：
+`host` 给私有地址（或每机稳定的 mDNS 名）· `srflx` 给公网地址 —— 挂代理时那两个地址正是代理存在的理由。**
+
+### 三、`WebRtcSurface.cs`
+
+**`Rule` · `CandidateLeaks` · `BodyJs()` · `RequiredFor(behindProxy)`。
+`BodyJs()` 关两半：`onicecandidate` 过滤 + `localDescription` 的 SDP 剥离。
+连接仍可构造：`Wrapped.prototype = PC.prototype`。**
+
+### 四、数字与一个假阳性
+
+| 度量 | R913 | R914 |
+|---|---|---|
+| 套件 | 1815 | **1821** |
+| 异步覆盖 | 371 | **372** |
+
+**那个 +1 是 `SubmitWebRtc` 被算成「有了」—— 而它只出现在我写的**文档注释**里。**
+
+**→ `async_method_coverage.py` 把注释里提到的名字算作实现。**
+**→ 这是已知假阳性，而在「注释引用镜像名字」这种写法下必然出现 —— 而那种写法我一直在用。**
+
+### 五、验证
+
+```
+test --filter WebRtcSurfaceTests -> 6 通过
+async_method_coverage.py         -> 372 / 1547（含 1 个注释假阳性）
+metrics_report.py                -> 1821 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **原版 `SubmitWebRtc` 是拦、伪装、还是只记录**：**Unknown** —— 名字不说，这一轮实现的是
+  **挂代理的浏览器需要的那个防护**，并把它写成选择而不是原版行为。
+- **注释假阳性共有几个**：**Unknown，未测** —— 下一轮该把「出现在代码里」与「只出现在注释里」分开统计。
+
+### 七、教训
+
+**这一轮加了一个真表面，同时给度量工具制造了一个假阳性。**
+
+**两件事都真实：产品多了一个表面，而覆盖数多了一个不该多的名字。**
+
+**如果我只报「372，涨了 1」，那个 1 会被当成进展。
+而它实际上是我的工具把我的注释读成了代码。**

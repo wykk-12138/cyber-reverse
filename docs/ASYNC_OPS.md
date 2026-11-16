@@ -3244,3 +3244,75 @@ R911 我不是不知道怎么恢复，是**记错了目录名**。所以让命�
 
 **这里用名字**只为把候选分组给人挑**，不声称某个名字属于某一层。
 **分错桶的代价是看一眼，不是错结论。**
+
+
+### 第五个表面：WebRTC —— 而它不是「报告一个值」，是「不报告一个地址」（R914）
+
+**R913 说补变体前要先知道每个变体差什么。从名字最清楚的一组开始：指纹四个。**
+
+### 先查那四个
+
+| 名字 | 复刻件 |
+|---|---|
+| `SubmitFingerprint` | 概念在（`BrowserIdentity` / `BrowserFingerprint`） |
+| `SubmitClientData` | 概念在（`KasadaSolver.cs` 的 `ClientData`） |
+| `SubmitBrowserData` | 概念在（`AppPaths.cs` 的 `BrowserData`） |
+| **`SubmitWebRtc`** | **完全没有** |
+
+**所以四个里三个只是名字不同，一个是真缺。**
+
+### 而 `Scripts/` 里有 57 个文件，其中五个「表面」
+
+`CanvasSurface` · `WebGlSurface` · `FontMediaSurface` · `MediaQuerySurface` · `VoiceTable` ——
+**加上 `WebAssemblySurface` · `NavigatorCensus` · `WindowBaseline` 等。**
+
+**它们都是「让浏览器报告一个和 persona 一致的值」。而 WebRTC 不同：**
+
+> **它不报告值，它**打开通道**，而通道会用网络地址回答。
+> 页面构造一个 offer、收集 ICE candidate，就能读到本机私有地址，并且在没有强制中继时读到公网地址。
+> **挂代理时，那两个地址正是代理存在的理由。**
+
+### 所以姿态是反的
+
+| 其他表面 | WebRTC |
+|---|---|
+| 报告一个**必须与 persona 一致**的值 | **不报告 persona 没声称过的地址** |
+
+**两类泄漏：`host` candidate（私有地址，或 Chromium 的 mDNS 名 —— 不指名地址但每台机器稳定，仍能关联会话）与
+`srflx` candidate（问 STUN 服务器「我这个源地址看起来是什么」，挂代理时是代理地址，不挂时是真公网地址）。**
+
+### 写了 `WebRtcSurface.cs`
+
+**`Rule` · `CandidateLeaks` · `BodyJs()` · `RequiredFor(bool behindProxy)`，与其他 surface 同形。**
+
+**而 `BodyJs()` 关的是**两半**：**
+
+1. `onicecandidate` 事件里过滤掉 `srflx`/`host`
+2. `localDescription` 的 getter 里把同样的 candidate 从 SDP 剥掉
+
+> **只关第一半，直接读 `localDescription.sdp` 的页面仍然看得见。
+> 两个同类 surface 的注释里都写过「两半都得对，不是一半」（`matchMedia` 的 `.media` 与 `.matches`）——
+> 这里是同一句话的另一个实例。**
+
+**而连接仍然可构造：`Wrapped.prototype = PC.prototype` 且 `Object.setPrototypeOf(Wrapped, PC)`。
+**让 `RTCPeerConnection` 抛错会和泄漏一样容易被检出。****
+
+### 6 个用例
+
+`BothCandidateKindsAreNamed` · **`BothHalvesOfTheLeakAreClosed`** · `TheConnectionRemainsConstructible` ·
+`ItDoesNothingWhenTheApiIsAbsent` · `TheGuardIsOnlyRequiredBehindAProxy` · `TheRuleStatesTheReasoningRatherThanAClaim`
+
+### 数字，以及一个我必须说清的 +1
+
+| 度量 | R913 | **R914** |
+|---|---|---|
+| 套件 | 1815 | **1821** |
+| 异步覆盖 | 371（24.0%） | **372（24.0%）** |
+
+**那个 +1 是 `SubmitWebRtc` 被算成「有了」—— 而它只出现在我写的**文档注释**里
+（「The image names `<c>SubmitWebRtc</c>`」）。**
+
+**所以 `async_method_coverage.py` 会把**文档里提到的名字**算作实现。这是一个已知的假阳性，
+而它在**注释引用镜像名字**这种写法下必然出现 —— 而那种写法正是我一直在用的。**
+
+**下一轮该修的是这个：扫描应排除注释，或至少分开统计「出现在代码里」与「只出现在注释里」。**

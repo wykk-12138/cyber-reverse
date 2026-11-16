@@ -780,3 +780,15 @@ challenge 缺 14：RecaptchaChallenge PowChallenge POW Challenges · **Fingerpri
 → R905 的撤回要修正：挑战应答缺几个、**指纹采集缺四个**。
 
 纪律：缺口形状是「基础集一半、变体几乎没有」，不是「少 244 个」。
+
+## R914 补充 — WebRTC 表面（改产品代码 +6 用例，套件 1815→1821）
+
+指纹四个：Fingerprint/ClientData/BrowserData 概念在（不同名字），SubmitWebRtc 真缺。
+
+Scripts/ 已有五个同类表面（Canvas/WebGl/FontMedia/MediaQuery/Voice），都是「报告与 persona 一致的值」；WebRTC 相反 —— 它打开通道，host candidate 给私有地址、srflx 给公网地址，挂代理时那两个正是代理要藏的。
+
+写了 WebRtcSurface.cs：Rule · CandidateLeaks · BodyJs()（关两半：onicecandidate 过滤 + localDescription SDP 剥离）· RequiredFor(behindProxy)。连接仍可构造。
+
+数字：套件 1821 · 异步覆盖 372（含 **1 个假阳性**：SubmitWebRtc 只在文档注释里）。
+
+下一轮：把「出现在代码里」与「只出现在注释里」分开统计 —— 注释假阳性必然出现在「注释引用镜像名字」这种写法下。

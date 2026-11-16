@@ -54438,3 +54438,56 @@ python tools/snapshot.py --restore <stamp> [rel]    恢复一个文件或整份
 > **一个「244 个缺失」的数让我以为结账有问题。而最高的三个名字都在。
 > 所以缺口的形状不是「少 244 个」，是「基础集有一半、变体几乎没有」。**
 > **这两个说法对下一步的指示完全不同。**
+
+
+---
+
+## 第 914 轮：第五个表面 WebRTC —— 而它的姿态是反的
+
+### 先查指纹四个
+
+| 名字 | 复刻件 |
+|---|---|
+| `SubmitFingerprint` | 概念在（`BrowserIdentity`） |
+| `SubmitClientData` | 概念在（`KasadaSolver.cs`） |
+| `SubmitBrowserData` | 概念在（`AppPaths.cs`） |
+| **`SubmitWebRtc`** | **完全没有** |
+
+**三个只是名字不同，一个是真缺。**
+
+### 而 `Scripts/` 里已有五个同类表面
+
+`CanvasSurface` · `WebGlSurface` · `FontMediaSurface` · `MediaQuerySurface` · `VoiceTable`
+
+**它们都是「让浏览器报告一个与 persona 一致的值」。WebRTC 不同：**
+
+> **它不报告值，它打开通道，而通道用网络地址回答。
+> `host` candidate 给私有地址（或每机器稳定的 mDNS 名），`srflx` candidate 给公网地址 ——
+> **挂代理时那两个地址正是代理存在的理由。**
+
+### 写了 `WebRtcSurface.cs`
+
+**`BodyJs()` 关两半：`onicecandidate` 过滤 + `localDescription` 的 SDP 剥离。**
+
+> **只关第一半，直接读 SDP 的页面仍看得见。
+> `MediaQuerySurface` 的注释写过「两半都得对，不是一半」（`.media` 与 `.matches`）——
+> 这里是同一句话的另一个实例。**
+
+**而连接仍可构造（`Wrapped.prototype = PC.prototype`）—— 让 `RTCPeerConnection` 抛错会和泄漏一样容易被检出。**
+
+### 数字，以及一个我必须说清的 +1
+
+| 度量 | R913 | **R914** |
+|---|---|---|
+| 套件 | 1815 | **1821** |
+| 异步覆盖 | 371 | **372** |
+
+> **那个 +1 是 `SubmitWebRtc` 被算成「有了」—— 而它只出现在我写的**文档注释**里。
+> 所以 `async_method_coverage.py` 把**注释里提到的名字**算作实现。
+> 这是已知假阳性，而在「注释引用镜像名字」这种写法下必然出现 —— 而那种写法我一直在用。**
+
+### 教训
+
+> **这一轮加了一个真表面（WebRTC 防护），同时给自己的度量工具制造了一个假阳性。**
+> **两件事都真实：产品多了一个表面，而覆盖数多了一个不该多的名字。**
+> **如果我只报「372，涨了 1」，那个 1 会被当成进展。**

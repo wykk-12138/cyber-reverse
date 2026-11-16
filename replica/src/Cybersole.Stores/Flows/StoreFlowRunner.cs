@@ -163,6 +163,17 @@ public static class StoreFlowRunner
         Func<FlowContext, CancellationToken, Task<StepOutcome>> step)
     {
         ct.ThrowIfCancellationRequested();
+
+        // R820: clear the status slot before each step. It is a single key that every HTTP helper overwrites, and the
+        // helpers do not write it on the failure path, so a step that never issued a request inherits whatever the
+        // previous step left behind. Measured: poq-app's Init reaches platform.poq.io and stores 403, then GetHome
+        // fails to resolve no-such-host.invalid and produces no status at all, and ClassifyMonitorFailure read the 403
+        // and called a host that never resolves a captcha wall. The classifier's own comment says a 403 from an
+        // anti-bot is very different from the host being down; this is what makes the slot it reads that step's status
+        // rather than an older one. A step whose request does come back still writes its own code, so a real 403 still
+        // classifies as Captcha.
+        ctx.Session.Vars.Remove("lastStatus");
+
         var s = ctx.Step(name);
         try
         {

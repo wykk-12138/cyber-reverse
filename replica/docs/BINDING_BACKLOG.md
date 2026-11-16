@@ -1928,3 +1928,31 @@ ChromiumStealthTests 5 通过 / 0 失败
 **套件现状：1765 / 1 失败。不抹平。**
 
 **纪律**：**「被默认排除」说的是不在定期跑的范围里，不是不重要** —— 它恰恰覆盖默认套件看不到的那一层。
+
+
+## 优先级 ①/③ — 状态槽已清；poq-app 期望已改正（R820）
+
+### 改了两处
+
+1. **`StoreFlowRunner.GuardAsync`**：每步开始前 `ctx.Session.Vars.Remove("lastStatus")` —— 一个位置覆盖 monitor 与 checkout 两条路径
+2. **`ModuleRobustnessTests`**：例外名单加 `poq-app`，附原因
+
+### 为什么第二处不是放水
+
+`PoqAppFlow.GetHomeAsync` **忽略 `c.Url`**，POST 到 `platform.poq.io/clients/<client>/account/guest-token`；
+**该主机对无身份请求回 403**，`IsBlocked` 把 403 当 blocked。**流程报的是它真撞到的门。**
+
+**其余 59 个模块仍必须报 `Error`；`Available` 仍一律不许。**
+
+```
+ModuleRobustnessTests 190 / 0 · metrics_report 1766 / 0 · 四项度量未变
+```
+
+| 仍 Unknown | |
+|---|---|
+| `platform.poq.io` 是否真回 403 | Inference（高），未单独抓 |
+| `HandleResponseAsync` 为何是死代码 | 有定义无调用点，原因未知 |
+| 还有谁忽略 `c.Url` | **只查了 poq-app**；忽略 URL 但不回 403 的流程会静默通过 |
+
+**纪律**：**「按诊断改了、症状没变」比「改了就好」信息量更大** —— 它推翻了假设。
+**一条通用前提在某些实现上不成立时，改前提的表述，不改实现，并写清是哪一类实现。**

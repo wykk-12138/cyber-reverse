@@ -57,7 +57,14 @@ public class ModuleRobustnessTests
 
         // nike-gs inherits NikeFlow, so it fails closed on the same Kasada gate — it was missing
         // from this list and had been failing here since the module was added.
-        if (id is "nike" or "nike-gs" or "superswipe")
+        //
+        // R821: poq-app belongs here for a different reason. Its GetHomeAsync ignores the context URL entirely and
+        // POSTs to https://platform.poq.io/clients/<client>/account/guest-token, because the Poq surface is an app API
+        // addressed per client rather than a web page. That host answers 403 to an unattributed request, and
+        // PoqAppFlow.IsBlocked treats 403 as blocked, so the flow reports the gate it actually met. The test's premise
+        // — that a URL which never resolves must not look like stock — holds for every flow that fetches the URL it is
+        // given; this one never fetches it, so the expectation has to say what it means.
+        if (id is "nike" or "nike-gs" or "superswipe" or "poq-app")
             Assert.True(result.Status is MonitorStatus.Blocked or MonitorStatus.Captcha,
                 $"{id} should report its gate, got {result.Status}");
         else

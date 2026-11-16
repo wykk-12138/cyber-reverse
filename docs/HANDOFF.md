@@ -990,3 +990,17 @@ Viva 三条：chargetokens → paymentdetails?ref= → transactions。四家里�
 纪律：一个属性名可以是两个契约的一部分。改名前要问 —— 还有谁在用这个名字？
 
 下一轮：其余 33 个成员的属性名与文件键是否一致（未逐个核）。
+
+## R928 补充 — 设置 schema 反方向：48 属性 vs 44 键，差 4 每个有理由（+4 用例，套件 1915）
+
+既有钉只查「键→属性」，反方向（属性→键）才是 1:1 违规能藏处。
+
+差 4：EnableClock（原版的 —— R198 locale 有 Settings.General.EnableClock 带 tooltip，证明备份早于属性）· ClockFormat / StoreGroups（不在绑定契约）· MonitorConcurrency（仍开着：契约有 int，而 concurrency 已被 ConcurrencySettings 占）。
+
+SettingsUnmatchedMembersTests 4 例：集合固定 · EnableClock 有 locale 为证 · 两个不在契约 · 钉住矛盾本身。
+
+数字：套件 1911 → 1915 · 设置 48/44 从「未解释」到「4 个每个有理由」。
+
+纪律：「48 对 44」不说你是缺 4 个还是多 4 个 —— 一个要补一个要删。四种情况，一个数字。
+
+下一轮：MonitorConcurrency 的持久化形态（契约有、键被占）。

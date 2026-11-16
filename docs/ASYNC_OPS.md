@@ -4174,3 +4174,62 @@ public StartupPage StartupPage { get => _startup; set => ... }
 > **我改了一个属性名，而它同时是两个契约的一部分 —— 一个是 C# 里的绑定，一个是磁盘上的 JSON。
 > 改名前我只想到了第一个。**
 > **而把它告诉我的方式，是一条从**原版备份**读出来的键清单。**
+
+
+### 设置 schema 的**反方向**：48 个属性对 44 个键，差 4 个，每个都有理由（R928）
+
+**R927 那条钉只查一个方向：**每个恢复到的键都有属性**。
+**而反方向没人查 —— 那里才是 1:1 违规能藏的地方：一个复刻件写出去、原版从不写的键。**
+
+### 限定到 `GlobalSettings` 类体：48 属性 vs 44 键
+
+**差 4 个：`EnableClock` · `ClockFormat` · `MonitorConcurrency` · `StoreGroups`。**
+
+### 而每一个的答案都不同
+
+| 属性 | 结论 | 依据 |
+|---|---|---|
+| **`EnableClock`** | **原版的，只是备份早于它** | **R198 注记指向 locale 的 `Settings.General.EnableClock`（带 tooltip）** |
+| `ClockFormat` | 不在绑定契约里 | 契约没有这个名字 |
+| `StoreGroups` | 不在绑定契约里 | 同上 |
+| **`MonitorConcurrency`** | **仍然开着的问题** | **契约**有**它，而 `concurrency` 键已被嵌套的 `ConcurrencySettings` 占掉** |
+
+### 所以「差 4 个」不是「4 个 bug」
+
+**而 `EnableClock` 那一条最有价值：它证明**备份早于属性**这件事是真的可能**，不是我为差异找的借口。**
+
+> **判据：一条 locale 键带 tooltip。那是原版自己的字符串，不是我的推断。
+> 所以这个属性在原版里，而 44 键备份里没有它 —— **两份证据都真，只是来自不同版本**。**
+
+### 而 `MonitorConcurrency` 是这一轮唯一没有答案的那一个
+
+**契约说 `Settings` 有它（`int`），备份说 `concurrency` 是个对象（`ConcurrencySettings`，契约里 `Models.Concurrency` 的映射）。
+**两个都对，而它们不能是同一个成员。**
+
+**所以钉住这个矛盾本身**，让问题不会消失：
+**一个测例断言 `MonitorConcurrency` 是 `int`、`Concurrency` 不是、且两者序列化名不同。**
+**这样某天有人「顺手统一」它们时，会先红。**
+
+### 新增 4 个测例
+
+| 测例 | 守什么 |
+|---|---|
+| `TheUnmatchedMembersAreTheExpectedFourAndEachHasAReason` | 恰好这 4 个，顺序无关但集合固定 |
+| `EnableClockIsOriginalDespiteHavingNoKey` | 有 locale 键为证 |
+| `ClockFormatAndStoreGroupsAreNotInTheContract` | 不在契约里 |
+| `MonitorConcurrencyIsAContractMemberWithNoKeyAndConcurrencyIsObject` | **矛盾本身** |
+
+### 数字
+
+| 度量 | R927 | **R928** |
+|---|---|---|
+| 套件 | 1911 | **1915** |
+| 设置属性 / 恢复键 | 48 / 44（未解释） | **48 / 44，4 个每个有理由** |
+| 类型缺失 | 16 | 16 |
+
+### 教训
+
+> **一个度量报「48 对 44」，而它不告诉你是 4 个缺失还是 4 个多余 —— 这两个是完全不同的问题，
+> 一个要补，一个要删。**
+> **而这四个里三个是「多余但合法」，一个是「两边都对而互相冲突」。
+> 四种情况，一个数字。**

@@ -5592,3 +5592,35 @@ chargetokens → paymentdetails?ref= → transactions
 | 剩 5 个 RENAMED 的成员类型是否对 | 只核了名字 |
 
 **纪律**：**一个属性名可以是两个契约的一部分。改名前要问：还有谁在用这个名字？**
+
+
+## 判据 (a)/数据契约 — 设置 schema 反方向：48 属性 vs 44 键，差 4 每个有理由（R928，**+4 用例**）
+
+### 反方向此前无人查
+
+**既有钉只查「键 → 属性」。反方向（属性 → 键）才是 1:1 违规能藏处。**
+
+### 4 个差
+
+| 属性 | 结论 |
+|---|---|
+| **`EnableClock`** | **原版的 —— R198 locale 有 `Settings.General.EnableClock`（带 tooltip）** |
+| `ClockFormat` | 不在绑定契约 |
+| `StoreGroups` | 不在绑定契约 |
+| **`MonitorConcurrency`** | **仍开着：契约有（int），而 `concurrency` 是嵌套对象** |
+
+### `SettingsUnmatchedMembersTests`（4 例）
+
+**集合固定 · `EnableClock` 有 locale 为证 · 两个不在契约 · **钉住 `MonitorConcurrency` 与 `Concurrency` 的矛盾****
+
+### 数字
+
+**套件 1911 → 1915 · 设置 48/44 从「未解释」到「4 个每个有理由」· 类型缺失 16**
+
+| 仍 Unknown | |
+|---|---|
+| `MonitorConcurrency` 的持久化形态 | 契约有、键被占，两边都对而冲突 |
+| `ClockFormat` / `StoreGroups` 是否该持久化 | 不在契约里 |
+| 44 键备份的版本 | 至少早于 `EnableClock` |
+
+**纪律**：「48 对 44」不说你是缺 4 个还是多 4 个。四种情况，一个数字。

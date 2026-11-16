@@ -34,6 +34,8 @@
 | `0x1406e9190` | `Profiles.DeleteConfirm.*` | **待读** | 闸门是**三层**（取委托值 → 查表 → 判空），语义 Unknown，未接 |
 | `0x1405c52e0` | `TaskGroups.Context.Pin/UnpinFormat` | **已实现**（R740，6 条探针） | 三段合取条件；非零 = 已钉 → 显示相反动作（**Inference 高，备择未排除**）；**类型标签不对时降级为「未钉」—— 复刻件表达不出来** |
 | `0x1406458f0` | `Settings.Stores.DeleteConfirm.*` | **已实现**（R741，+2 条探针） | 与 sizes 同形（零值闸门 + int32 + 两文案）；**出厂文案说 presets，与 stores 屏无关，照抄** |
+| `0x140797d30` | `Accounts.DeleteConfirm.*` | **与另三个同形**（R742） | 不新增实现；accounts 至此是 **4 个原版函数 → 1 个实现**，**函数数差 -3** |
+| `0x140f77350` / `0x140f777e0` | `ProfileCsv` 校验器 | **已被 R718 覆盖** | 那 15 条探针就是这两个函数的（国家 / 州） |
 | `0x1407b8ac0` | `Update.Downloading*` | **不可探** | 构造下载对话框，**百分比参数硬编码为 0**，没有计算 |
 | `0x140654480` | `Common.Hour12/Hour24/Disabled` 等 | **不可探** | 构造选项列表：三个 `{label=槽位, value=0/1/2}` + 两个 `{label, value=0/1}`。**label↔value 的对应在槽位里，解不出**（同 R731）；结构本身（3 项/2 项）不足以断言行为 |
 

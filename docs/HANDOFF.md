@@ -599,3 +599,12 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **R894 那半句对**：「模块在」（site id + 2 条测试）·「端点不在」（3 个族一条常量都没）→ **0/3 是真缺口。**
 **同一串第三次默认值错误**（R884 子串 / R885 抽样池 / R897 大小写），**三次发现都靠副作用动作，没有一次是按计划查的。**
 **下一轮**：取 Vans 那 3 个族的具体路径（R895 的路径级判据要具体路径），然后补常量。
+
+## R898 补充 — Vans 6 条路径（**改产品代码 +6 用例**，套件 1783→**1789**）
+
+**6 条**：`/cart/v1/cart/` · `/cart/v1/cartWithItem?locale=` · `/cart/v2/cart/` · `/cart/v2/checkout/order/` · `/cart/v2/checkout/order?locale=` · `/products/v2/products/`。
+**而扫描输出里 `HOST` 行一条都没有** → 归属分两级：**族 = Observation（R893 共现）· 路径 = Inference**。**`VansEndpoints.OwnershipIsInference = true` 固化进类型。**
+**6 用例**，含 `TheProductsPathReallyRepeatsItsWord`（双词是镜像里的）与 `OwnershipIsRecordedAsInferenceNotObservation`。
+**一个恒真测试被换掉**（读自己的文件再查自己的字面量）。
+**纪律：Observation 与 Inference 在文档里长得一样，只有标注能分开。**
+**下一轮**：判这 6 条到底属不属 Vans（找路径级共现证据，扫描说没有）。

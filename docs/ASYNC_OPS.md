@@ -2482,3 +2482,55 @@ METRICS.md L24  成员形状差异 — core mismatches  |  17
 2. **`-`（无宿主）算进「站」那一桶** —— 这是错的，它应该单列。
 
 **所以 142 里有几条归属可议；这条写在这里而不是藏起来。**
+
+
+### Vans 的 6 条路径取到了，而**归属是 Inference 不是 Observation**（R898）
+
+**R897 留下的下一步：取 Vans 那 3 个族的精确路径。**
+
+### 结果：6 条
+
+```
+/cart/v1/cart/
+/cart/v1/cartWithItem?locale=
+/cart/v2/cart/
+/cart/v2/checkout/order/
+/cart/v2/checkout/order?locale=
+/products/v2/products/
+```
+
+### 而扫描结果里没有一条带宿主
+
+**输出里 `HOST` 行一条都没有 —— 也就是说这 6 条字面量**没有一个自带 `www.vans.com`**。**
+
+**所以归属是**族级**的：R893 的共现扫描证明 `/cart/v1/`、`/cart/v2/`、`/products/v2/` 三个**族**
+与 `www.vans.com` 同处一条字面量，而这 6 条**具体路径**没有。**
+
+**两者强度不同：**
+- **族级归属 = Observation（共现）**
+- **路径级归属 = Inference（同平台的别的站也可能用同样的路径）**
+
+**所以 `VansEndpoints` 里写了一个 `OwnershipIsInference = true` 常量，把这条限制固化进类型而不是只写在注释里。**
+
+### 加了什么
+
+| 文件 | 内容 |
+|---|---|
+| `src\Cybersole.Stores\Flows\VansEndpoints.cs` | **新建**：6 常量 + `All` + `FamilyHost` + `OwnershipIsInference` |
+| `tests\Cybersole.Tests\VansEndpointTests.cs` | **新建 6 用例** |
+
+### 6 个用例里三个值得说
+
+| 用例 | 钉住 |
+|---|---|
+| `BothCartVersionsArePresent` | **v1 与 v2 两个都留着** —— 镜像里都有，删任一个都是丢证据 |
+| `TheOrderEndpointHasTwoSpellings` | 同一端点有 path 与 query 两种写法 |
+| `TheProductsPathReallyRepeatsItsWord` | **`products/v2/products/` 的双词是镜像里的，不是我的笔误** |
+| `OwnershipIsRecordedAsInferenceNotObservation` | **把「这是推断」钉成断言** —— 将来谁要按「观察到的归属」用这些路径，得先删掉这条 |
+
+### 一个被换掉的测试
+
+**第一版最后一个用例 `EveryPathAppearsVerbatimInTheSource` 读 `VansEndpoints.cs` 再查同一个文件里有没有这些字面量 —— 恒真，什么也没证明。**
+
+**换成 `EveryPathStartsWithOneOfTheThreeFamilies`：每条路径必须以那三个族之一开头。
+族段打错一个字仍会编译、仍看起来合理，所以这个检查有实际效力。**

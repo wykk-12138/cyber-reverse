@@ -1,0 +1,1 @@
+﻿{"result":"None","stdout":"HOST\twww.vans.com\nP\twww.vans.com\t/cart/v1/cart/\nP\twww.vans.com\t/cart/v1/cartWithItem?locale=\nP\twww.vans.com\t/cart/v2/cart/\nP\twww.vans.com\t/cart/v2/checkout/order/\nP\twww.vans.com\t/cart/v2/checkout/order?locale=\nP\twww.vans.com\t/products/v2/products/\n","stderr":""}

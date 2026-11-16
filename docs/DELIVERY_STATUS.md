@@ -18528,3 +18528,77 @@ where_is Vans --case   -> 2 files（只有 docs）
 
 **R884 之后我给 `where_is` 加了整词默认，理由是「工具默认值本身可能是陷阱」。
 这一轮证明那句话还成立：**修了一个默认值，不等于修完了所有默认值**。**
+
+
+---
+
+## 322. Vans 6 条路径取到，归属标为 Inference；套件 1783 → **1789**
+
+> R898。**改产品代码 +6 用例。** 套件 **1789 通过 / 0 失败 / 0 跳过**。
+
+### 一、6 条
+
+```
+/cart/v1/cart/                      /cart/v2/cart/
+/cart/v1/cartWithItem?locale=       /cart/v2/checkout/order/
+/cart/v2/checkout/order?locale=     /products/v2/products/
+```
+
+### 二、而它们都没有自带宿主
+
+**扫描输出里 `HOST` 行一条都没有 —— 这 6 条字面量没有一个含 `www.vans.com`。**
+
+**所以归属分两级：**
+
+| 级 | 结论 | 强度 |
+|---|---|---|
+| **族** | `/cart/v1/` `/cart/v2/` `/products/v2/` 与 `www.vans.com` 同处一条字面量 | **Observation**（R893 的共现） |
+| **路径** | 这 6 条属 Vans | **Inference** —— 同平台的别的站可能用同样的路径 |
+
+**所以类型里有一个 `OwnershipIsInference = true` 常量，把这条限制固化进代码而不是只写在注释里。**
+
+### 三、6 个用例
+
+| 用例 | 钉住 |
+|---|---|
+| `SixPathsWereRecovered` | 6 条且互不重复 |
+| `BothCartVersionsArePresent` | **v1 与 v2 都留** —— 镜像里都有 |
+| `TheOrderEndpointHasTwoSpellings` | path 与 query 两种写法 |
+| `TheProductsPathReallyRepeatsItsWord` | **双词是镜像里的，不是笔误** —— 防止将来「整理」成服务器不认的路径 |
+| `OwnershipIsRecordedAsInferenceNotObservation` | **把「这是推断」钉成断言** |
+| `EveryPathStartsWithOneOfTheThreeFamilies` | 族段打错仍会编译，所以查前缀有实效 |
+
+### 四、一个被换掉的恒真测试
+
+**第一版最后一个用例读 `VansEndpoints.cs` 再查同一文件里有没有这些字面量 —— 恒真。**
+
+**换成前缀检查。这个错误值得记：**我写了一个只测试「我刚才写了什么」的用例**，
+它通过不代表任何关于镜像的事实。**
+
+### 五、验证
+
+```
+图像扫描 /(?:cart|products)/v\d+/...  -> 6 条，无 HOST 行
+VansEndpoints.cs 新建                  -> 6 常量 + All + FamilyHost + OwnershipIsInference
+test --filter VansEndpointTests        -> 6 通过 / 0 失败
+python tools\metrics_report.py         -> 1789 通过 / 0 失败（原 1783 + 6）
+```
+
+### 六、仍然 Unknown
+
+- **这 6 条到底属不属 Vans**：**Unknown，而这是本轮最要紧的限制。**
+  **要判它得找 `www.vans.com` 与这些路径同处一条字面量的证据，而扫描说没有。**
+- **请求体与响应形状**：**Unknown** —— 所以没有步骤调它们。
+- **v1 与 v2 哪个是当前用的**：**Unknown** —— 镜像里两个都在。
+- **`/products/v2/products/` 那类路径还有多少属别的站**：**Unknown** ——
+  **`cart/v1`、`products/v2` 都是泛用段，可能同时是多个站的。**
+
+### 七、教训
+
+**这一轮最重要的动作不是取到 6 条路径，是**发现它们没有宿主**。**
+
+**如果我没看 `HOST` 行为空，我会把「Vans 的端点」当观察写下去 —— 而它是推断。
+两者的区别是：将来有人问「这真是 Vans 的吗」，Observation 能回答，Inference 不能。**
+
+**R895 我学了「上界/下界/精确」；这一轮是它的另一个轴：**Observation 还是 Inference**。
+而这两件事在文档里长得一模一样，只有标注能分开。**

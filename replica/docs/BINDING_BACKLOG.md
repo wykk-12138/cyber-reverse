@@ -4495,3 +4495,44 @@ after : 默认不分, --case 才严格
 | `where_is` 还有别的错默认吗 | 同批工具第三次 |
 
 **纪律**：**修了一个默认值，不等于修完了所有默认值。**
+
+
+## 优先级 ① — Vans 6 条路径（R898，**改产品代码 +6 用例**）
+
+### 6 条
+
+```
+/cart/v1/cart/                      /cart/v2/cart/
+/cart/v1/cartWithItem?locale=       /cart/v2/checkout/order/
+/cart/v2/checkout/order?locale=     /products/v2/products/
+```
+
+### 归属分两级（要紧）
+
+| 级 | 强度 |
+|---|---|
+| **族**：三族与 `www.vans.com` 同处一条字面量 | **Observation**（R893 共现） |
+| **路径**：这 6 条属 Vans | **Inference** —— 同平台别的站可能用同样路径 |
+
+**→ `VansEndpoints.OwnershipIsInference = true` 固化进类型。**
+
+### 6 用例
+
+**`SixPathsWereRecovered` · `BothCartVersionsArePresent`（v1/v2 都留）· `TheOrderEndpointHasTwoSpellings` ·
+`TheProductsPathReallyRepeatsItsWord`（**双词是镜像里的**）· `OwnershipIsRecordedAsInferenceNotObservation` ·
+`EveryPathStartsWithOneOfTheThreeFamilies`**
+
+**套件 1783 → 1789 通过 / 0 失败。**
+
+### 一个恒真测试被换掉
+
+**第一版读 `VansEndpoints.cs` 再查同一文件里的字面量 → 恒真，什么也没证明。**
+
+| 仍 Unknown | |
+|---|---|
+| 6 条到底属不属 Vans | **本轮最要紧的限制** |
+| 请求体/响应形状 | 故无步骤调用 |
+| v1 与 v2 哪个当前用 | 镜像里两个都在 |
+| 多少泛用段路径属别的站 | `cart/v1`、`products/v2` 可能多站共用 |
+
+**纪律**：**Observation 与 Inference 在文档里长得一样，只有标注能分开；不看「HOST 行为空」就会把推断写成观察。**

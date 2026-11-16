@@ -53626,3 +53626,56 @@ after :  默认不分，--case 才严格
 > **那不是判断失误 —— 推理链在工具输出上是自洽的。错的是**我把一个区分大小写的搜索当成了穷举**。**
 > **R884 之后我给 `where_is` 加了整词默认，理由是「工具默认值本身可能是陷阱」。
 > 这一轮证明那句话还成立：**修了一个默认值，不等于修完了所有默认值**。**
+
+
+---
+
+## 第 898 轮：Vans 6 条路径取到，而归属是 Inference 不是 Observation
+
+### 6 条
+
+```
+/cart/v1/cart/                      /cart/v2/cart/
+/cart/v1/cartWithItem?locale=       /cart/v2/checkout/order/
+/cart/v2/checkout/order?locale=     /products/v2/products/
+```
+
+### 而扫描输出里没有一条带宿主
+
+**`HOST` 行一条都没有 —— 这 6 条字面量没有一个含 `www.vans.com`。**
+
+| 级 | 结论 | 强度 |
+|---|---|---|
+| **族** | 三个族与 `www.vans.com` 同处一条字面量 | **Observation**（R893 共现） |
+| **路径** | 这 6 条属 Vans | **Inference** —— 同平台别的站可能用同样路径 |
+
+> **所以类型里有 `OwnershipIsInference = true` 常量，把限制固化进代码而不是只写注释。**
+
+### 6 个用例
+
+| 用例 | 钉住 |
+|---|---|
+| `SixPathsWereRecovered` | 6 条互不重复 |
+| `BothCartVersionsArePresent` | **v1 与 v2 都留** |
+| `TheOrderEndpointHasTwoSpellings` | path 与 query 两种写法 |
+| `TheProductsPathReallyRepeatsItsWord` | **双词是镜像里的，防将来「整理」错** |
+| `OwnershipIsRecordedAsInferenceNotObservation` | **把「这是推断」钉成断言** |
+| `EveryPathStartsWithOneOfTheThreeFamilies` | 族段打错仍会编译 |
+
+### 一个被换掉的恒真测试
+
+**第一版最后一个用例读 `VansEndpoints.cs` 再查同一文件里有没有那些字面量 —— 恒真。**
+
+> **我写了一个只测试「我刚才写了什么」的用例。它通过不代表任何关于镜像的事实。**
+
+### 仍然 Unknown
+
+**这 6 条到底属不属 Vans**（**本轮最要紧的限制**）· **请求体与响应形状**（故无步骤调用）·
+**v1 与 v2 哪个是当前的** · **还有多少 `cart/v1`、`products/v2` 这类泛用段路径属别的站**
+
+### 教训
+
+> **这一轮最重要的动作不是取到 6 条路径，是**发现它们没有宿主**。
+> 如果没看 `HOST` 行为空，我会把「Vans 的端点」当观察写下去 —— 而它是推断。**
+> **R895 我学了「上界/下界/精确」；这一轮是另一个轴：**Observation 还是 Inference**。
+> 两者在文档里长得一模一样，只有标注能分开。**

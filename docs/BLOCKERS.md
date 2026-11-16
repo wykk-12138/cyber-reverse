@@ -9490,3 +9490,99 @@ python analysis/write_member_gap_doc.py         42 rows，无「该做成什么�
 - `EditValue\`1` 那 12 个名字的语义：**Unknown**（不变）。
 - 为什么 Avalonia 对 78% 的绑定同时产出 Getter 与 Setter 描述符：**Unknown** ——
   可能是编译期统一产出，也可能是这些绑定都是 TwoWay；未查证。
+
+
+---
+
+## 144. 访问器名字是**新证据源**，但它不带类型 —— 42 条里只有 3 条可归因，仍缺类型
+
+> R715。新增 `analysis/accessor_names.py`（含归因守卫）。
+
+### 一、这一轮找到的新证据
+
+反编译找 `EditValue\`1` 的类型时，字符串池里露出一组**新的、独立于描述符**的证据 —— **CLR 访问器名本身**：
+
+```
+0x1432ffff9  'get_HasMultiple'
+0x143300009  'set_HasMultiple'
+0x143300069  '<HasMultiple>k__BackingField'
+0x143300087  'HasMultiple'
+```
+
+**`set_X` 的存在说明类型声明了 setter** —— 而 `ICommand` 属性通常只有 getter。
+**这比 R714 那个方向字段强**（那个 78% 都是 G/S，等于背景）。
+
+全池规模：`get_` **4892** / `set_` **2145** / `k__BackingField` **1049**。
+
+### 二、然后它失败在同一个地方
+
+第一版跑出来：`get+set+field` 15 条、`get+set` 3 条 —— 看起来很有用。
+**但这些名字不带类型。** 而绑定表里同名成员遍布多个类型：
+
+```
+Name    37 个类型      Close  29      Delete 23      Save 17      Running 4
+```
+
+**所以 `get_Save` 可能属于 17 个类型中的任何一个。** 这正是 R708 第一版「只匹配成员名」得到 378/819 的那个错，
+**同一个错，隔了七轮，换了一个数据源。**
+
+### 三、修法：把归因条件写进工具
+
+> **只有名字在全表唯一的成员，访问器证据才可归因。**
+
+加了守卫后：
+
+```
+get+set+field   2   TaskGroupView.Link, PayPalAccountCreatorView.Model
+get only        1   CheckoutView.Checkout
+none           13   12 个 EditValue 数字名 + ExpressionView.Expressions
+unattributable 26   Name / Save / View / Delete 这些共享名字
+```
+
+**42 条里只剩 3 条可归因。**
+
+### 四、而这 3 条仍然没有类型
+
+| 成员 | 访问器证据 | 还缺什么 |
+|---|---|---|
+| `TaskGroupView.Link` | get+set+field → 有 setter 的自动属性 | **类型 Unknown** |
+| `PayPalAccountCreatorView.Model` | 同上 | **类型 Unknown** |
+| `CheckoutView.Checkout` | get only | 可能是 `ICommand`，也可能是只读数据 —— **Unknown** |
+
+**知道"有 setter"不等于知道"setter 收什么"。** 写一个 `object Link { get; set; }` 能过编译、能让名字出现，
+**但那是发明，不是复刻。**
+
+**所以本轮仍然零实现。** 这是结论，不是没时间。
+
+### 五、反编译这条路的结论
+
+七个探针：
+
+```
+xrefs 0x143300069  0      (backing field 名)
+xrefs 0x143300087  0      (属性名字面量)
+xrefs 0x1432ffff9  0      (get_ 名)
+xrefs 0x143300009  0      (set_ 名)
+xrefs 0x143300068  0      (长度前缀字节)
+xrefs 0x143300086  0
+xrefs 0x143220dbd  0      (描述符 blob)
+```
+
+**全 0。** 这些是元数据里的名字表，代码通过**数据表查名字**访问，没有地址引用。
+**所以"顺着名字找代码、再从代码读类型"这条路线，对这个二进制不成立** —— 与 R703 修好的字符串引用问题是**不同**的：
+那个是 `lea` 的 disp32 没被 xref 收录；**这里是根本没有代码引用这个名字**。
+
+**AOT 元数据的字段类型，用现有能力取不到。** 这是 Unknown 的**具体缺什么**：
+需要一个 AOT `EEType`/`FieldDesc` 解析器，或者运行期探针（需登录凭据，属 YG 那一类）。
+
+### 六、这一轮的判断
+
+> 我找到了一种更好的证据，然后在用它之前先问了"它能不能归因" —— 答案是不能，除了 3 条。
+
+**这一轮的价值不是新增 15 个实现，是拦住 15 个伪造。**
+
+### 七、仍然 Unknown
+
+- `EditValue\`1` 那 12 个名字的类型与语义：**Unknown**，且用现有能力**不可得**（写清缺什么）。
+- 26 条共享名字成员的访问器形态：**Unknown**（不可归因）。
+- 3 条可归因成员的类型：**Unknown**。

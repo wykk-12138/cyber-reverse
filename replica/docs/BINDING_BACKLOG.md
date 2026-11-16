@@ -1013,3 +1013,32 @@ poq-slot-conditions   名字确认，取值未定位
 
 **方法论记录**：在整份 `RetailFlows.cs` 里按方法名找 `FindVariantAsync`，**先命中 `YeezySupplyFlow`** ——
 **同名方法在一个文件里有多个，按名字找必须先限定类体。**（§2.7 第八次）
+
+
+## 核心 — Casio 的共同前置（R785）
+
+**镜像的 Casio 集成有五块**，复刻件只有商品一块：
+
+| 面 | 原版证据 | 复刻件 |
+|---|---|---|
+| 分区 | `CasioRegion` · AU/SG/US · `/{region}/` 前缀 | ❌ |
+| 登录 | `Casio Login` | ❌ 无 `LoginAsync` |
+| 注册字段 | `casio_dob` · `casio_gender`（同一函数 `sub_140948FA0`） | ❌ |
+| 商品字段 | `casio_can_purchase` · `casio_image_url` · `casioid` | ✅ 已用（R782/R784） |
+| Adyen 支付 | `_adyenOrderId` | ❌ 端点未知 |
+
+**四件事（登录/注册/加购/支付）卡在同一个缺口**：
+
+> **区域 token 的取值，以及它在前缀里的拼法。**
+
+`CasioRegion` 零 xref = **设置项，按名字读**。`AU`/`SG`/`US` 是显示名，**token 本身未知**。
+
+| 项 | 状态 |
+|---|---|
+| 区域 token 与拼法 | **Unknown —— 最高优先的前置** |
+| `sub_140948FA0` 其余读取 | Unknown |
+| `casioid` 商品 id / 变体 id | Unknown |
+| 登录端点形状 | Unknown |
+
+**纪律提醒**：`casio_dob` / `casio_gender` / `_adyenOrderId` 都是**字段名**。
+**R780 把字段名当端点栽过一次，不要再犯。**

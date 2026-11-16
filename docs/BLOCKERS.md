@@ -14605,3 +14605,83 @@ Casio 覆盖率        仍 71%（改的是标识来源，不是补步骤）
 - 站点是否区分商品 id 与变体 id：**Unknown** —— 这是 `casioid` 语义的最后一问。
 - `casio_dob` / `casio_gender` / `casio_image_url` 的用途：**Unknown**。
 - Casio 的 shipping / payment：**信息不足**（Adyen 已知、端点未知，R780）。
+
+
+---
+
+## 211. Casio 的五个字段分成**两簇**：商品面与账户面
+
+> R785。未改产品代码。
+
+### 一、五条字段的引用者（Observation）
+
+```
+casio_can_purchase   1  sub_140954410 (0x84a = 2,122 B)
+casio_image_url      1  sub_140954410
+casio_dob            1  sub_140948FA0 (0x2c9 = 713 B)
+casio_gender         1  sub_140948FA0
+casioid              2  sub_14094AF90 (0xbb) · sub_140952790 (0x37d)
+```
+
+**两簇，界限很清楚：**
+
+| 簇 | 字段 | 函数 |
+|---|---|---|
+| **商品面** | `casio_can_purchase` · `casio_image_url` | `sub_140954410`（与 R781 那条 `data.products.items` 路径同一个） |
+| **账户面** | `casio_dob` · `casio_gender` | `sub_140948FA0`（713 B，另一个函数） |
+| 标识 | `casioid` | 取值 + 构造 |
+
+### 二、这说明什么
+
+**`casio_dob`（生日）与 `casio_gender`（性别）同处一个函数** ——
+**那是账户/注册数据的形状，不是商品的。** 商品不会有生日。
+
+**而 R780 的池子里还有 `Casio Login` 与 `CasioRegion`。**
+
+**合起来：镜像的 Casio 集成有**：
+
+1. **分区**（`CasioRegion`、AU/SG/US）
+2. **登录**（`Casio Login`）
+3. **注册/账户字段**（`casio_dob`、`casio_gender`）
+4. **商品字段**（`casio_can_purchase`、`casio_image_url`、`casioid`）
+5. **Adyen 支付字段**（`_adyenOrderId`）
+
+**而复刻件的 `CasioFlow` 只有商品 + 购物车 + 一个恒失败的提交。**
+**登录、注册、分区三样都没有。**
+
+### 三、为什么不改代码
+
+`CasioFlow` 没有 `LoginAsync`。**要加，就得知道往哪发** ——
+而 `casio_dob` / `casio_gender` 是**字段名**，与 `_adyenOrderId` 一样，**不是端点**。
+
+**R780 已经在这个坑里栽过一次**（把字段名当端点）。**这一轮不重犯。**
+
+### 四、真正卡住的是同一件事
+
+`CasioFlow.AddToCartAsync` 里那句注释已经写对了：
+
+> `casio: /cart/add is not there — Casio runs AEM behind Akamai, and every root-relative cart path
+> returns the SPA 404; the real path is under the /{region}/ prefix and has not been captured`
+
+**`/{region}/` 这个前缀就是分区。** 而 `CasioRegion` 零 xref（R781）说明它是**设置项、按名字读**。
+
+**所以要做 Casio 的登录/注册/加购/支付，四件事卡在同一个缺口上：**
+
+> **区域 token 的取值与它在前缀里的拼法。**
+
+**拿到那个，四件事一起可做；拿不到，一件都做不了。**
+
+### 五、验证
+
+```
+本轮未改产品代码
+完整套件保持 1761 通过 / 0 失败
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 六、仍然 Unknown
+
+- **区域 token 的取值与 URL 拼法**：**Unknown —— 四件事的共同前置。**
+- `sub_140948FA0`（713 B）除 `dob`/`gender` 外还读什么：**Unknown**。
+- `casioid` 是商品 id 还是变体 id：**Unknown**（R783，仍未解）。
+- Casio 登录端点的形状：**Unknown**。

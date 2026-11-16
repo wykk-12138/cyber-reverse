@@ -5459,3 +5459,85 @@ off_14492E970 -> 0x14517f978   data
 - **AOT 元数据模型**（`EEType` / `MethodTable` / `FieldDesc` / delegate 布局）：**整体 Unknown**。
   受影响的已知项：`EditValue\`1` 的 12 个成员类型、R731 的四个文案槽、profiles 闸门的两个 delegate。
 - profiles 屏是否接：**取决于上面那条**。
+
+
+---
+
+## 168. §1.2 查证结果：能力存在，但 **.NET 10 不再产出它要读的东西**
+
+> R739。读 `rea/docs/providers/ghidra-nativeaot.md`（本地）；查上游 issue。
+
+### 一、rea 确实有那个能力
+
+`rea/docs/providers/ghidra-nativeaot.md`（10,684 B）原文：
+
+> REA has a built-in read-only snapshot parser for x64 PE targets with **.NET 8 RTR 9.1** metadata. …
+> The parser currently handles x64 PE32+ and **RTR 9.1**, including bounded **DEHYDRATED_DATA** processing,
+> **MethodTable relationships, virtual slots, and frozen strings**. Other RTR versions and PE architectures
+> are reported as unsupported or partial.
+
+**这正是 R738 说缺的那一套**：MethodTable 关系、虚槽、冻结字符串、slot 目标。
+
+### 二、但版本不符 —— 而且不是版本问题
+
+目标二进制的运行时证据：
+
+```
+net10.0   出现 1 次
+net9      0 次
+net8      0 次
+```
+
+（`ReadyToRun` 那一次出现是在类型名列表里 —— `ReadyToRunSectionType`、`CompilerHelpers` ——
+那是**解压后的元数据 blob**，不是 RTR 头。）
+
+**所以目标是 .NET 10，解析器只收 .NET 8/9.1。**
+
+### 三、上游已经有人问过，答案是"读不到数据"
+
+`Washi1337/ghidra-nativeaot` issue #15，标题原文：
+**「.NET 10 Support: No dehydrated data found」**
+（<https://github.com/Washi1337/ghidra-nativeaot/issues/15>）
+
+**这比"版本没支持"更硬**：不是解析器认不出新版本号，是 **.NET 10 的 NativeAOT 输出里没有 `DEHYDRATED_DATA`** ——
+**解析器赖以工作的输入本身不存在了。**
+
+**诚实标注**：我只读到 issue 的**标题**（正文被截断）。所以
+「.NET 10 是否彻底移除 dehydrated data，还是只是换了个位置」**属于 Unknown** ——
+但**标题足以支持"当前解析器在这个目标上读不到东西"这一条**。
+
+### 四、于是 R738 的结论要升级
+
+R738 我写的是「工具在，但版本不达标」。**正确说法是**：
+
+> **工具在，而 .NET 10 的 NativeAOT 输出不再携带该工具所需的那种元数据表。**
+
+**这两句的差别决定了下一步**：版本不达标 → 等上游更新就行；
+**输入格式变了 → 等不到，得换方法。**
+
+### 五、那还剩什么路（三条，各自的代价）
+
+| 路 | 可行性 | 代价 |
+|---|---|---|
+| 等上游支持 .NET 10 | **Unknown**（issue 未说明是否可行） | 不可控 |
+| 自己写 .NET 10 的元数据解析器 | 需要新的布局知识，**不是我有能力凭现有证据推出来的** | 大 |
+| **运行期探针** | 唯一能真正解开的 | **需登录凭据 —— YG 那一类** |
+| 接受 Unknown + 写明缺什么 | **目标判据 (a) 明确允许** | 无 |
+
+**所以现状（记 Unknown + 写明缺什么）不是偷懒，是三条可行路里唯一不需要外部输入的那条。**
+
+### 六、验证
+
+```
+本轮未改产品代码
+完整套件   1697 通过 / 0 失败（与 R738 相同）
+已审候选   14 / 129
+```
+
+### 七、仍然 Unknown（更新 gap_reason）
+
+- `EditValue\`1` 那 12 个成员的类型 / R731 的四个文案槽 / profiles 闸门的两个 delegate：
+  **gap_reason 从"缺 AOT 元数据模型"细化为**「
+  **rea 的解析器只接受 RTR 9.1 与 `DEHYDRATED_DATA`，而 .NET 10 的 NativeAOT 输出不再携带它（上游 issue #15 标题）；
+  自写需要新的布局知识；运行期探针需要凭据**」。
+- issue #15 的正文与是否可行：**Unknown**（只读到标题）。

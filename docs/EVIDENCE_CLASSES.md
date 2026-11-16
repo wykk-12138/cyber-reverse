@@ -94,5 +94,21 @@ R715 / R731 / R738 三次尝试解开二进制里的某个槽位，形式不同�
 **所以这是「一个缺失、三处症状」，不是三次独立失败。**
 在它建起来之前，受影响的成员类型与调用目标一律记 Unknown，并写明缺的是这一类能力。
 
-**要建它，先按 §1.2 查 `rea` 的 `docs/providers/ghidra-nativeaot.md` 与 `seep-reverse-lab` 有没有现成的
-EEType 解析；两处都没有，才自己写。**
+**R739 查证结果：`rea` 有这个能力，但输入不在。**
+
+`rea/docs/providers/ghidra-nativeaot.md` 明确它支持 x64 PE32+ 的 **RTR 9.1**，含 `DEHYDRATED_DATA`、
+MethodTable 关系、虚槽与冻结字符串 —— 正是上表缺的那一套。
+
+**但目标是 .NET 10**（`net10.0` 出现 1 次，`net8`/`net9` 各 0 次），
+而上游 `Washi1337/ghidra-nativeaot` issue #15 的标题是
+**[「.NET 10 Support: No dehydrated data found」](https://github.com/Washi1337/ghidra-nativeaot/issues/15)**。
+
+**所以不是版本号不匹配，是 .NET 10 的 NativeAOT 输出不再携带 `DEHYDRATED_DATA` ——
+解析器要读的那张表本身不存在了。** 等上游更新不会解决这件事。
+
+可行路径只剩三条：
+1. **运行期探针** —— 唯一能真正解开的，**需登录凭据（YG 那一类）**
+2. 自写 .NET 10 元数据解析器 —— 需要新的布局知识，**凭现有证据推不出来**
+3. **记 Unknown 并写明缺什么** —— 目标判据 (a) 明确允许，**当前做法**
+
+（R739 只读到 issue #15 的标题，正文被截断；「是否彻底移除 vs 换了位置」属 Unknown。）

@@ -534,9 +534,16 @@ public sealed class ProfileCsvEditorView : UserControl
         // R654: and it has one for the opposite case -- a header with columns it will ignore
         // (ProfileCsv.Status.IgnoredColumns = "Ignored unknown columns: {0}"). Reporting the count alone hid which
         // columns were dropped, which is the one thing the image's sentence exists to say.
+        //
+        // R745 corrects R653's mechanism, not its key. sub_140F75EE0 loads Status.NoHeader and then reaches
+        // __debugbreak() — in NativeAOT that is a throw, not a status assignment. The sentence is an exception
+        // message, and it surfaces through the parse-failure handler, which wraps it:
+        //     Couldn't read the CSV: The CSV needs a header row with known column names
+        // So the two keys compose rather than compete. Showing Status.NoHeader alone, as this line did before,
+        // puts a sentence on screen that the image never shows on its own.
         var unknown = UnknownColumns();
         _status.Text = !HeaderHasKnownColumn()
-            ? Text("StatusNoHeader")
+            ? string.Format(Text("StatusParseFailed"), Text("StatusNoHeader"))
             : unknown.Count > 0
                 ? string.Format(Text("StatusIgnoredColumns"), string.Join(", ", unknown))
                 : $"{rows.Count} profile(s) parsed.";

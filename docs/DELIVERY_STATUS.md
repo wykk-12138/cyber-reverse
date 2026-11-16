@@ -5879,3 +5879,88 @@ private void Preview()          // 没有源参数
 - **原版 `Preview()` 那种情况（表头正常、无未知列）显示什么**：**Unknown**，未读到对应函数。
 - 原版在哪个上下文产生 `Imported`：**Unknown**（只知道它有这条键）。
 - `ProfileCsv.Clipboard` = `clipboard` 是否是 `Imported` 的 `{1}` 取值之一：**Inference（中）**，未证实。
+
+
+---
+
+## 174. `NoHeader` 是**异常消息**不是状态；复刻件把两句的**组合**做成了单句
+
+> R745。改 `ProfileViews.cs` 的 `Preview()` 一处；新增 `ProfileCsvSentenceCompositionTests`（3 条）。
+
+### 一、先把 CSV 键的产生点画出来
+
+`analysis/csv_key_functions.py`：16 个 CSV 键 → **14 个函数**。
+
+```
+0x140f75ee0  size=2041  ProfileCsv.Status.NoHeader          ← 唯一引用 NoHeader
+0x140713b20  size=1792  ProfileCsv.Status.Imported          ← 唯一引用 Imported
+0x1407145a0  size= 250  ProfileCsv.Status.IgnoredColumns
+0x140713888  size=  88  ProfileCsv.Status.ParseFailed
+0x140721030  size= 915  ProfileCsv.Clipboard
+0x140711f50  size=1631  FixErrors + Summary.*
+…
+```
+
+**两个 R744 留下的缺口函数都定位到了。**
+
+### 二、`0x140F75EE0` 读了 363 行，只有一个 locale 载入
+
+第 213 行的上下文：
+
+```c
+if ( (unsigned int)sub_142DE6B80(v18, v29) )
+{
+    v55 = localise(&off_146E4D768);      // ProfileCsv.Status.NoHeader
+    sub_141D144F0(v54, v55);
+    sub_1430291D0(v54);
+    __debugbreak();                       // ← 抛出
+}
+```
+
+**`__debugbreak()` 在这个二进制里就是抛异常**（与 `sub_141BF8DF0(n); __debugbreak();` 同一族）。
+
+**所以 `NoHeader` 是一句异常消息，不是一条状态文本。** 它**没有分支竞争** ——
+整个 363 行函数**只产生这一条文案**。
+
+### 三、于是两句是**组合**关系，不是二选一
+
+抛出后由外层解析失败处理器包一层：
+
+```
+Couldn't read the CSV: The CSV needs a header row with known column names
+```
+
+**用户看到的是这一句。** 而复刻件（R653 的实现）显示的是**内层那句单独出现**。
+
+**R653 把键找对了，把机制判错了。** 它写的是「so that case reports the image's sentence」——
+**原版不在那种情况"报告那句"，而是"抛出那句，然后被外层包起来"。**
+
+### 四、改了什么（一处，有证据支持）
+
+```csharp
+// 之前
+_status.Text = !HeaderHasKnownColumn() ? Text("StatusNoHeader") : …
+
+// 现在
+_status.Text = !HeaderHasKnownColumn()
+    ? string.Format(Text("StatusParseFailed"), Text("StatusNoHeader"))
+    : …
+```
+
+**没改的**：兜底那句 `"{0} profile(s) parsed."`。**R744 已记：它的原版对应物 Unknown。**
+**没有证据就不动。**
+
+### 五、探针与验证
+
+```
+ProfileCsvSentenceCompositionTests   3 / 3
+ProfileCsvCopyTests（原有）            通过（它断言的是键的文案，不受影响）
+完整套件                             1708 通过 / 0 失败（1705 + 3）
+四项度量                             4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 六、仍然 Unknown
+
+- `Imported`（`Merged {0} rows from {1}`）在哪个上下文产生：**Unknown** —— 函数 `0x140713b20`（1,792 B）已定位，未读。
+- `Preview()` 兜底那句的原版对应物：**Unknown**（R744 记）。
+- `0x140F75EE0` 那 363 行里其余 14 个 CSV 键的调用关系：**Unknown**（只读了 NoHeader 一处）。

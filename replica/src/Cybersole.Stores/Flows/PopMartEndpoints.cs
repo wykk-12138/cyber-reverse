@@ -82,6 +82,24 @@ public static class PopMartEndpoints
     /// <summary>The session list for a store ticket. Same provenance and same caveat as <see cref="StoreTicketReserve"/>.</summary>
     public const string StoreTicketSessionList = "/shop/v1/store_ticket/sessionList";
 
+    // ---- the in-store family, /store/v1/ rather than /shop/v1/
+    //
+    // R891. R890 established that GetInstoreOrders' endpoint was not under /shop/v1/, which narrowed the question to
+    // "where is it not". Enumerating order-shaped paths across the whole image found it at a different prefix
+    // entirely, and the prefix turns out to hold five paths rather than one.
+    //
+    // This is why the anchor matters when scanning: a loose path pattern over the whole pool returned GUIDs and
+    // base64 fragments, and anchoring on the word "order" found the endpoint in one pass.
+    public const string InstoreCartAdd = "/store/v1/store/cart/add";
+    public const string InstoreCartDelete = "/store/v1/store/cart/del";
+    public const string InstoreCartList = "/store/v1/store/cart/listByStore?actionType=1&GID=";
+
+    /// <summary>Step <c>GetInstoreOrders</c>. The query shape is fixed in the constant, so the step needs no invented body.</summary>
+    public const string InstoreOrderList = "/store/v1/store/order/listV3?currentPage=1&status=1&pageSize=20";
+
+    /// <summary>Step <c>FindProductInstore</c> — the image's ordinal 76, which R882 saw next to FindProduct.</summary>
+    public const string InstoreProductDetail = "/store/v1/store/product/detail?storeId=";
+
     // ---- promotions and missions
     public const string CouponsList = "/shop/v1/coupons/list";
     public const string CouponsVerify = "/shop/v1/coupons/verify";

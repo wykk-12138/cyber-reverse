@@ -4228,3 +4228,36 @@ R883 的 `Drop.Type` 是「类型挂在哪」，这条是「任务本身是可�
 | `box/*` 6 条 · `cash/desk/*` 7 条的步骤 | **端点全、步骤缺** |
 
 **纪律**：**搜一个名字答的是那个名字；枚举全部再对比答的是整个空间 —— 还能答「有没有编的」。**
+
+
+## 优先级 ① — 第二个端点族 `/store/v1/`（R891，**改产品代码**）：coverage 7 → 8
+
+### 找到 5 条（`/shop/v1/` 之外）
+
+| 路径 | 步骤 |
+|---|---|
+| `cart/add` · `cart/del` · `cart/listByStore?actionType=1&GID=` | — |
+| **`order/listV3?currentPage=1&status=1&pageSize=20`** | **`GetInstoreOrders`（105）** |
+| **`product/detail?storeId=`** | **`FindProductInstore`（76）** |
+
+**改动**：`PopMartEndpoints` **+5 常量** · `StoreFlow` **+2 虚方法**（默认失败） · `PopMartFlow` **+2 override**（GET）
+**数字**：虚步骤 **172 → 174** · coverage **7 → 8** · `/shop/v1` 41 · `/store/v1` 5 · 套件 **1783 通过 / 0 失败**
+
+### 两点要紧
+
+**① 锚要用**词**不用**形状****
+**松正则会抓到 GUID/base64/`3ds` 碎片（70 条无一条含 `order`）；以词为锚一次就对。**
+**R890 说「枚举整个空间比搜名字强」；这条补：空间的边界要用词划。**
+
+**② `implementable` 从 7 到 8 不是 9**
+**`FindProductInstore` 已实现但**不在 PopMart 的 24 个名字里**（ordinal 76 属 R882 那条更早的段 56–77）。**
+**测试两个都钉：`CanRunStep` 真 + `DoesNotContain` 不在 `StepSequence`。**
+**→ 「实现了几步」与「序列里有几步」是两个分母。**
+
+| 仍 Unknown | |
+|---|---|
+| `/store/v1/` 3 条 cart 路径的步骤归属 | 可能是 `AddToCart`/`GetCart` 的 in-store 变体 |
+| `storeId` 从哪来 | 同 R872 的 `alias` 形态：会明确失败 |
+| 有没有第三个族 | **只在 PopMart 域里找过** |
+
+**纪律**：**空间的边界用词划，不用形状猜。**

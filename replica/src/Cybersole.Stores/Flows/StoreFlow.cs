@@ -129,6 +129,25 @@ public abstract class StoreFlow
     public virtual Task<StepOutcome> FindTimeSlotsAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(StepOutcome.Fail("FindTimeSlots is not implemented by " + Id));
 
+    /// <summary>
+    /// The store's in-store order list, distinct from <see cref="GetOrdersAsync"/>'s online list.
+    ///
+    /// <para>
+    /// R891. R871 wrote GetOrders against <c>/shop/v1/order/list</c>. The image also has an in-store order list, and
+    /// R890 narrowed its endpoint to "not under /shop/v1/" before this round found it under /store/v1/ with its query
+    /// shape fixed in the constant. Two order lists, two prefixes, and until now the replica represented one.
+    /// </para>
+    /// </summary>
+    public virtual Task<StepOutcome> GetInstoreOrdersAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("GetInstoreOrders is not implemented by " + Id));
+
+    /// <summary>
+    /// Looking a product up against a physical store rather than the online catalogue. Ordinal 76 in the image, beside
+    /// FindProduct at 74 and FindProductMultiInstore at 75 (R882).
+    /// </summary>
+    public virtual Task<StepOutcome> FindProductInstoreAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("FindProductInstore is not implemented by " + Id));
+
 
     // ── session ───────────────────────────────────────────────────────────────
     public virtual async Task<StepOutcome> InitAsync(FlowContext c, CancellationToken ct)

@@ -23744,3 +23744,78 @@ python tools\metrics_report.py           -> 1783 通过 / 0 失败 / 0 跳过
 **「搜一个名字」得到的是关于这个名字的答案；「枚举全部再对比」得到的是关于整个空间的答案。**
 
 **而这一轮还顺带验证了「41 个常量有没有编的」这个方向 —— 那是搜名字永远答不了的。**
+
+
+---
+
+## 315. 第二个端点族 `/store/v1/`：5 条，写了 2 步，coverage **7 → 8**
+
+> R891。**改产品代码。** 套件 **1783 通过 / 0 失败 / 0 跳过**。
+
+### 一、R890 的「不在这一族」变成了「在那一族」
+
+**R890 把 `GetInstoreOrders` 的端点缩小到「不在 `/shop/v1/` 下」。这一轮用同一招但换锚：
+全部字面量里搜含 `order` 的路径，找到 `/store/v1/store/order/listV3?…`。**
+
+**而那个前缀不只一条 —— 一整个族：**
+
+| 路径 | 步骤 |
+|---|---|
+| `/store/v1/store/cart/add` · `cart/del` · `cart/listByStore?actionType=1&GID=` | — |
+| **`/store/v1/store/order/listV3?currentPage=1&status=1&pageSize=20`** | **`GetInstoreOrders`（105）** |
+| **`/store/v1/store/product/detail?storeId=`** | **`FindProductInstore`（76）** |
+
+**所以 R871–R890 的全部工作只在第一个族里；现在知道有第二个。**
+
+### 二、而第一次扫是错的
+
+**第一版正则 `(/[a-zA-Z0-9_\-]+(?:/[...]*)+)` 太松 —— 70 条里全是 GUID、base64、`3ds` 碎片，
+没有一条含 `order`。**
+
+**「以形状为锚」失败了，「以词为锚」一次就对。
+这与 R890 的教训是同一条的另一面：R890 说「枚举整个空间比搜名字强」，
+而这一轮说**空间的边界要用词来划，不能用形状来猜**。**
+
+### 三、`implementable` 只到 8，不是 9
+
+**测试红了：`Expected: 9, Actual: 8`。**
+
+**`FindProductInstore` **不在 PopMart 那 24 个名字里** —— 它是 ordinal 76，
+属于 R882 那条更早的段（56–77），而 PopMart 自己的段从 104 起。**
+
+> **所以「已实现」和「在序列里」是两件事。**
+> **测试现在两个都钉：`CanRunStep("FindProductInstore")` 为真，而 `DoesNotContain` 它不在 `StepSequence`。**
+
+**这个区分很重要：如果把「实现了几步」当成分母算覆盖率，那两个不同的分母会给出两个不同的数。**
+
+### 四、验证
+
+```
+全字面量搜 order 形路径（以词为锚）   -> /store/v1/store/order/listV3?... @0x146ab926c
+枚举 /store/v1/                        -> 5 条（列出全部）
++5 常量 · +2 虚方法 · +2 override       -> build 0 错误
+StoreFlow 虚步骤                       -> 172 -> 174
+/shop/v1 常量 41 · /store/v1 常量 5
+test --filter FlowSequence|PopMartEndpoint -> 10 通过 / 0 失败
+python tools\metrics_report.py          -> 1783 通过 / 0 失败 / 0 跳过
+```
+
+### 五、仍然 Unknown
+
+- **`/store/v1/` 那 3 条 cart 路径的步骤归属**：**Unknown** ——
+  **端点有了，但没有 `StepSequence` 名字对得上。可能是 `AddToCart`/`GetCart` 的 in-store 变体。**
+- **`storeId` 从哪来**：**Unknown** —— `FindProductInstore` 从 session 取，而没人放。
+  **与 R872 的 `alias` 同形：步骤会明确失败而不是跑错。**
+- **还有没有第三个族**：**Unknown** —— 现在知道 `/shop/v1/` 与 `/store/v1/`。
+  **别的站可能有别的族，而我只在 PopMart 的域里找过。**
+
+### 六、教训
+
+**R890 我说「枚举整个空间比搜名字强」。这一轮补上一半：**
+**空间的边界要用**词**来划，不能用**形状**来猜。**
+
+**同一个动作（枚举全部再对比），锚错了两分钟全是垃圾，锚对了三十秒出答案。
+而两次的差别只是一个正则。**
+
+**而第二个收获是那个 8 不是 9 —— 一个测试失败逼出了一个我本来会写错的区分：
+「实现了几步」和「序列里有几步」是两个数。**

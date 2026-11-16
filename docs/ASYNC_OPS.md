@@ -2189,3 +2189,50 @@ METRICS.md L24  成员形状差异 — core mismatches  |  17
 | `EveryConstantAppearsInTheImage` | **常量里有的，镜像里必须有**（多 = 我编的） |
 
 **第三个是这两个里更要紧的：一个多出来的常量**看起来像覆盖**，而它是编的。**
+
+
+### 找到**第二个端点族** `/store/v1/` —— 5 条，其中两条能写成步骤（R891）
+
+**R890 说 `GetInstoreOrders` 的端点「不在 `/shop/v1/` 下」。这一轮用同一招但换了锚：**
+**在全部字面量里搜含 `order` 的路径。**
+
+### 第一次扫错，第二次对
+
+**第一版正则 `(/[a-zA-Z0-9_\-]+(?:/[...]*)+)` 太松 —— 抓到 GUID、base64、`3ds` 碎片，70 条里没有一条含 `order`。**
+
+**改成**以词为锚**：`/[A-Za-z0-9_.\-/{}?=&%]*order[...]*`，一次就找到了：**
+
+```
+146ab926c   /store/v1/store/order/listV3?currentPage=1&status=1&pageSize=20
+```
+
+**而那个前缀不只一条。枚举 `/store/v1/`：**
+
+| 路径 | 对应步骤 |
+|---|---|
+| `/store/v1/store/cart/add` | — |
+| `/store/v1/store/cart/del` | — |
+| `/store/v1/store/cart/listByStore?actionType=1&GID=` | — |
+| **`/store/v1/store/order/listV3?currentPage=1&status=1&pageSize=20`** | **`GetInstoreOrders`（105）** |
+| **`/store/v1/store/product/detail?storeId=`** | **`FindProductInstore`（76）** |
+
+**所以这是**第二个端点族**，与 `/shop/v1/` 平行 —— 而 R871–R890 的全部工作都只在第一个族里。**
+
+### 写了什么
+
+| 文件 | 改动 |
+|---|---|
+| `PopMartEndpoints.cs` | **+5 常量**（新族一整块） |
+| `StoreFlow.cs` | **+2 虚方法**：`GetInstoreOrdersAsync` · `FindProductInstoreAsync`，均默认显式失败 |
+| `PopMartFlow.cs` | **+2 override**：GET，查询形状取自常量 |
+
+### 而 `implementable` 只从 7 到 **8**，不是 9
+
+**测试红了，报 `Expected: 9, Actual: 8`。**
+
+**原因：`FindProductInstore` **不在 PopMart 那 24 个名字里**。**
+**它是 ordinal 76，属于 R882 读到的那条更早的字面量段（56–77，含 5 个 `Start*Flow`），
+而 PopMart 自己的段从 104 起。**
+
+**所以：**已实现 ≠ 在序列里**。**
+**测试现在两个都钉：`CanRunStep("FindProductInstore")` 为真，而 `StepSequence` 不含它。**

@@ -179,6 +179,44 @@ public sealed class PopMartFlow : StoreFlow
     }
 
     /// <summary>
+    /// The in-store order list — step <c>GetInstoreOrders</c>, ordinal 105, on a different prefix from the online list.
+    ///
+    /// <para>
+    /// R891. R890 established this endpoint was not under <c>/shop/v1/</c>; enumerating order-shaped paths across the
+    /// whole image located it under <c>/store/v1/</c>, whose query shape is fixed in the constant. No body is invented,
+    /// and the response is kept whole because its schema is unevidenced.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetInstoreOrdersAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.InstoreOrderList, "popmart-instore-orders", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart instore orders unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart instore orders HTTP {res.StatusCode}");
+
+        c.Session.Vars["instoreOrders"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// A product looked up against a physical store — ordinal 76. Needs a <c>storeId</c>, which nothing in this replica
+    /// supplies yet, so it fails rather than sending an empty parameter.
+    /// </summary>
+    public override async Task<StepOutcome> FindProductInstoreAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("storeId", out var storeId) || string.IsNullOrEmpty(storeId))
+            return StepOutcome.Fail("FindProductInstore needs a session var 'storeId' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.InstoreProductDetail + storeId,
+            "popmart-instore-product", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart instore product unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart instore product HTTP {res.StatusCode}");
+
+        c.Session.Vars["instoreProduct"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// Pop Mart's order list — step <c>GetOrders</c>, ordinal 104, first of the flow's sequence.
     ///
     /// <para>

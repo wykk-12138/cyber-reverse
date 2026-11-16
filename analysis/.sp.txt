@@ -1,0 +1,1 @@
+﻿{"result":"None","stdout":"count 5\nS\t146ab915c\t/store/v1/store/cart/add\nS\t146ab91a4\t/store/v1/store/cart/del\nS\t146ab91ec\t/store/v1/store/cart/listByStore?actionType=1&GID=\nS\t146ab926c\t/store/v1/store/order/listV3?currentPage=1&status=1&pageSize=20\nS\t146ab9304\t/store/v1/store/product/detail?storeId=\n","stderr":""}

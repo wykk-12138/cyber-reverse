@@ -543,3 +543,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **3 个用例双向钉住**，其中 `EveryConstantAppearsInTheImage` 钉「多出来的常量」= 编造。**套件 1783 通过 / 0 失败。**
 **我的 grep 错**：`-SimpleMatch "box/|cash/desk"` → `|` 不生效 → 返回空像「都没有」（同一「返回空」形态第二次）。
 **纪律：搜名字答那个名字；枚举全部再对比答整个空间 —— 还能答「有没有编的」。**
+
+## R891 补充 — 第二个端点族 `/store/v1/`（**改产品代码**）：coverage 7 → 8
+
+**找到 5 条**：`cart/add` · `cart/del` · `cart/listByStore?actionType=1&GID=` · **`order/listV3?currentPage=1&status=1&pageSize=20`（`GetInstoreOrders` 105）** · **`product/detail?storeId=`（`FindProductInstore` 76）**。
+**改动**：`PopMartEndpoints` +5 常量 · `StoreFlow` +2 虚方法 · `PopMartFlow` +2 override。**虚步骤 172→174 · coverage 7→8 · 套件 1783 通过。**
+**两点要紧**：① **锚用词不用形状**（松正则抓 GUID/base64，70 条无一条含 `order`）；② **`implementable` 8 不是 9** —— `FindProductInstore` 已实现但**不在 PopMart 的 24 个名字里**（ordinal 76 属更早的段），**测试两个都钉**。
+**下一轮**：`/store/v1/` 那 3 条 cart 路径的步骤归属；有没有第三个族。

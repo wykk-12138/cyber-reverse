@@ -44574,3 +44574,49 @@ Cybersole.Models.EditValue`1,Cybersole.Core.HasMultiple_87!Setter
 ### 下一轮
 
 按证据处理那 32 条 lambda 命令（描述符是真的，实现成 `ICommand` 属性有据）。
+
+
+---
+
+## 第 711 轮：第一条真缺口落地
+
+### 证据
+
+```
+Cybersole.Ui.Views.Analytics.Modals.CheckoutView,Cybersole.UI.Close!Getter
+Cybersole.Ui.Views.Analytics.Modals.ReleaseView,Cybersole.UI.Close!Getter
+```
+
+原版把 `Close` 当**绑定成员**；复刻件只把它当按钮标签。**所以"做"有据，不是猜。**
+
+### 改了什么
+
+两个类各加 `public ICommand Close { get; }`，按钮改 `Close.Execute(null)`。
+形状与同文件已有的 `Previous`/`Next`/`OpenTracking` 一致（R472/R500 就是这个形状）。
+
+### 三个数字
+
+| 度量 | 改前 | 改后 |
+|---|---|---|
+| `undeclared` | 46 | **44** |
+| 形状差异 | 80 | **78** |
+| 套件 | 1624 | 1624 |
+
+### 一个守卫红了，是清单过期
+
+`DeadButtonTests` 断言清单每条都还在。`AnalyticsViews.cs:Close` 现在有命令了 → 清单过期。
+**移除该条并写明原因**，没放宽断言。
+
+那条测试自己的注释写着它分不出「按钮还在」和「理由还成立」——这次正是后者不成立。
+
+### 一句话
+
+> 加一个属性，三个数字一起动：一个降、一个降、一个不动但清单要改。
+
+> **`undeclared` 降是目的，形状降是意外的收获，清单要改是必须承认的副作用 ——
+> 只报第一个就是挑好看的报。**
+
+### 下一轮
+
+继续 44 条，但**先逐条核描述符**（像这轮一样），而不是照名字猜该不该做。
+`CheckoutView.Checkout` / `Properties` 的原始描述符先查清楚。

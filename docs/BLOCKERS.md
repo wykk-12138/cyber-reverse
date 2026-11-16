@@ -9211,3 +9211,69 @@ UiKit.Button("Close", () => Status("Closed."))
 
 - 那 12 个名字（`HasMultiple_87` 等）在原版里承担什么语义：**Unknown** —— 只知道它们是真实绑定属性。
 - 为什么原版会有一族带数字后缀的属性：**Unknown**（可能是混淆、可能是代码生成、可能是历史残留）。
+
+
+---
+
+## 140. 第一条真缺口落地：`CheckoutView.Close` / `ReleaseView.Close` 成了绑定成员
+
+> R711。改 `AnalyticsViews.cs`、`DeadButtonTests.cs`。
+
+### 一、证据先说清
+
+原版字符串池里，这两个名字是**描述符**，不是按钮文案：
+
+```
+Cybersole.Ui.Views.Analytics.Modals.CheckoutView,Cybersole.UI.Close!Getter
+Cybersole.Ui.Views.Analytics.Modals.ReleaseView,Cybersole.UI.Close!Getter
+```
+
+**所以"做"是有据的**：原版把 `Close` 当绑定成员，复刻件只把它当中文案上的按钮标签。
+
+### 二、改了什么
+
+`CheckoutView` 与 `ReleaseView` 各加：
+
+```csharp
+public ICommand Close { get; }        // 构造里 Close = new RelayCommand(() => Status("Closed."));
+```
+
+按钮从 `UiKit.Button("Close", () => Status("Closed."))` 改成 `Close.Execute(null)`。
+**形状与同文件里已有的 `Previous` / `Next` / `OpenTracking` / `ShowGuide` / `ShowSitelist` 一致** ——
+它们是 R472/R500 就用这个形状做的，不是我新发明的。
+
+### 三、三个数字
+
+| 度量 | 改前 | 改后 | 为什么 |
+|---|---|---|---|
+| `c10_split` 的 `undeclared` | 46 | **44** | 两条从"未声明"变成"已声明" |
+| 成员形状差异 | 80 | **78** | 这两条原来是 getter-only 的属性写法，与描述符不符；改成 `ICommand` 后形状对上 |
+| 完整套件 | 1624 | **1624** | 一条测试需要更新清单，见下 |
+
+### 四、一个守卫红了 —— 是清单过期，不是行为坏了
+
+`DeadButtonTests.EveryKnownEntryStillExists` 断言「清单里每条都还真的存在」。
+`Views/Analytics/AnalyticsViews.cs:Close` 那条现在**不再是死按钮**（它有命令了），所以清单过期。
+
+**处置**：从清单移除该条，并写明原因 —— 照 R181/R303/R256 的既有格式。
+**没有放宽断言、没有删测试。** 那句注释还写着这个测试的局限：
+
+> 「`EveryKnownEntryStillExists` 分不出**按钮还在**和**理由还成立**」——
+> 这条正是「按钮还在、理由不成立了」的情形。
+
+### 五、验证
+
+```
+dotnet build                      0 errors
+DeadButtonTests                   2/2 通过
+完整套件                          1624 通过 / 0 失败 / 0 跳过
+c10_split --undeclared            46 -> 44（两个 Close 已消失）
+形状差异                          80 -> 78
+```
+
+### 六、仍然 Unknown
+
+- `Close` 在原版的**行为**（是关窗口、还是清空、还是别的）：**Unknown** —— 只证明了它是绑定成员。
+  复刻件保留原有行为（写状态行），没有假装知道更多。
+- 剩下 44 条里还有多少是同类（描述符证明是真成员）：**未逐条核**。
+- `CheckoutView.Checkout` / `Properties` 这两条的名字在原版描述符里长什么样：**未查**。

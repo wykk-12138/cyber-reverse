@@ -84,7 +84,15 @@ public class DeadButtonTests
         // still present, not that the reason is still true.
 
         // static pages: there is no page to move to
-        "Views/Analytics/AnalyticsViews.cs:Close",
+        // R710 removed one entry from here:
+        //
+        //   Views/Analytics/AnalyticsViews.cs:Close
+        //
+        // It said these were static pages with no page to move to, which is still true -- but the
+        // button is no longer merely a caption. The original's compiled-XAML descriptors carry
+        // `...CheckoutView,Cybersole.UI.Close!Getter` and `...ReleaseView,Cybersole.UI.Close!Getter`,
+        // and R710 wired both views' Close to an ICommand, so the label now runs a bound member the
+        // way the original binds it. A button with a command is not the thing this list is about.
         "Views/Analytics/AnalyticsViews.cs:Show guide",
         "Views/Analytics/AnalyticsViews.cs:Show site list",
         // R303: "Open tracking" was here — it wrote a sentence and nothing else. It now opens

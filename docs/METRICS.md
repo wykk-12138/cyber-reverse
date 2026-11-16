@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-16 11:45:07 +0800 |
+| 生成时间 | 2026-11-16 12:21:54 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -20,7 +20,7 @@
 | 名字级绑定缺口 — missing | 16 |
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 17 |
-| 成员形状差异 — total mismatches | 80 |
+| 成员形状差异 — total mismatches | 78 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
 | 绑定缺口分桶 — backlog: types absent | 4 |
@@ -123,8 +123,6 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   CreateGroupModal           Create                 evidence=Getter,Property,Setter     replica=?
   AnalyticsView              ChangeChart            evidence=Getter,Property,Setter     replica=method
   AnalyticsView              OpenRelease            evidence=Getter,Property,Setter     replica=method
-  CheckoutView               Close                  evidence=Getter,Property,Setter     replica=?
-  ReleaseView                Close                  evidence=Getter,Property,Setter     replica=?
   GoogleLogin                Close                  evidence=Getter,Property,Setter     replica=?
   SolverWindow               Add                    evidence=Getter,Property,Setter     replica=method
   SolverWindow               CloseSolver            evidence=Getter,Property,Setter     replica=method
@@ -197,7 +195,7 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   StoreGroupModal            RemoveStore            evidence=Getter,Property,Setter     replica=method
   StoreGroupModal            Save                   evidence=Getter,Property,Setter     replica=?
   UtilitiesView              CreateStoreGroup       evidence=Getter,Property,Setter     replica=method
-total mismatches: 80
+total mismatches: 78
 ```
 
 ### 文案缺口总表
@@ -318,7 +316,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  1624，已跳过:     0，总计:  1624，持续时间: 51 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  1624，已跳过:     0，总计:  1624，持续时间: 42 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

@@ -507,9 +507,19 @@ public sealed class CheckoutView : UserControl
     /// <summary>Bound as <c>OpenTracking</c>; behaviour unchanged (was a method).</summary>
     public ICommand OpenTracking { get; }
 
+    /// <summary>
+    /// R710: bound as <c>Close</c>. The original's own compiled-XAML descriptors carry
+    /// <c>Cybersole.Ui.Views.Analytics.Modals.CheckoutView,Cybersole.UI.Close!Getter</c>, so this name is a real
+    /// binding member there rather than a button caption. Until now the button only wrote a sentence, which is the
+    /// effect the original produces but not the structure it binds -- `analysis/c10_split.py` counted it as
+    /// undeclared for exactly that reason.
+    /// </summary>
+    public ICommand Close { get; }
+
     public CheckoutView(AppServices services, IReadOnlyList<CheckoutEvent>? events = null, int index = 0)
     {
         OpenTracking = new RelayCommand(() => OpenTrackingCore());
+        Close = new RelayCommand(() => Status("Closed."));
 
         _events = (events ?? services.Stats.Events).OrderByDescending(e => e.At).ToList();
         _index = Math.Clamp(index, 0, Math.Max(0, _events.Count - 1));
@@ -528,7 +538,7 @@ public sealed class CheckoutView : UserControl
                     UiKit.Button("Previous", () => Previous.Execute(null)),
                     UiKit.Button("Next", () => Next.Execute(null)),
                     UiKit.Button("Open tracking", () => OpenTrackingCore()),
-                    UiKit.Button("Close", () => Status("Closed."))),
+                    UiKit.Button("Close", () => Close.Execute(null))),
                 _status,
             },
         };
@@ -650,10 +660,18 @@ public sealed class ReleaseView : UserControl
     /// <summary>Bound as <c>ShowSitelist</c>; behaviour unchanged (was a method).</summary>
     public ICommand ShowSitelist { get; }
 
+    /// <summary>
+    /// R710: bound as <c>Close</c>. The original's descriptor table carries
+    /// <c>Cybersole.Ui.Views.Analytics.Modals.ReleaseView,Cybersole.UI.Close!Getter</c>, so this is a real binding
+    /// member there rather than a caption on a button.
+    /// </summary>
+    public ICommand Close { get; }
+
     public ReleaseView(AppServices services, Release? release = null)
     {
         ShowGuide = new RelayCommand(() => ShowGuideCore());
         ShowSitelist = new RelayCommand(() => ShowSitelistCore());
+        Close = new RelayCommand(() => Status("Closed."));
 
         _releaseServices = services;
         _release = release ?? new Release { Product = "(no release selected)" };
@@ -678,7 +696,7 @@ public sealed class ReleaseView : UserControl
                     UiKit.Button("Show guide", () => Status("Buying guide opened.")),
                     UiKit.Button("Show site list", () => Status(
                         $"{_release.Drops.SelectMany(d => d.Stores).Distinct().Count()} store(s) in this release.")),
-                    UiKit.Button("Close", () => Status("Closed."))),
+                    UiKit.Button("Close", () => Close.Execute(null))),
                 _status,
             },
         };

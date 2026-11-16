@@ -21179,3 +21179,70 @@ metrics_report.py                            -> 1969 通过 / 0 失败
 **前缀匹配**总是**会接受一个只是开头相同的名字。那个 `__sveltekitz` 测例就是为抓它写的，而它抓到了。**
 
 **与 R926 那个大小写滑动同类：**匹配宽松一格，就多接受一个错东西。****
+
+
+---
+
+## 361. `Frontend` 是通用路径；五缺口全关
+
+> R937。**改产品代码 +12 用例。** 套件 **1981 通过 / 0 失败 / 0 跳过**。
+
+### 一、字面量
+
+```
+_frontendDomain · _frontendUrl · _frontendSearch · FrontendUri · get_FrontendUri · IsFrontendUrl
+ScrapeJsonFrontend · ScrapePageFrontend · ScrapeProductFrontend
+ScrapeVariantAvailabilityFrontend · FindProductFrontend · AddToCartFrontend
+```
+
+### 二、两条线索
+
+1. **每个方法都是框架专用方法的通用对应物**（`ScrapeProductFrontend` 挨着 `ScrapeProductSvelte`）。
+2. **三个字段是 URI 组成部分**（domain / url / search）。
+
+**→ frontend 是兜底路径；四个框架是它知道该用哪个之后调的解析器。**
+
+### 三、「五个平台缺口」这个说法一直是错的
+
+**不是五个平台并列，是一个通用路径 + 四个具体解析器。`Box` 当时被当成五个中的一个。**
+
+**`AddToCartFrontend` 是入口，四个具体的挂在它下面 —— 结构是树，不是列。**
+
+### 四、`IsFrontendUrl` 的默认方向
+
+**不像 API 的一律当页面：把页面当 JSON 读会响亮失败；当 API 调会返回 HTML 错误体，
+解析出来像空商品。**
+
+### 五、三个决定
+
+**忽略查询串 · `Describe` 只返回三个部分 · 相对路径无 domain 就说没有**
+
+### 六、数字
+
+| 度量 | R936 | R937 |
+|---|---|---|
+| 套件 | 1969 | **1981** |
+| 产物陈旧度 | 3 / 371 | **4 / 492** |
+| **AddToCart 平台缺口** | 1 剩 | **0** |
+
+### 七、验证
+
+```
+analysis/ida.py str "Frontend"     -> 六字段 + 六个方法
+test --filter FrontendSurfaceTests -> 12 通过
+metrics_report.py                  -> 1981 通过 / 0 失败
+```
+
+### 八、仍然 Unknown
+
+- **十个 API 标记是否与原版一致**：**Inference**。
+- **`Box` 在树里的位置**：**Unknown** —— 已做，但当时按列读的。
+- **其余四个通用方法的行为**：**Unknown** —— 只有名字。
+
+### 九、教训
+
+**一个待办清单的形状决定了它能被关掉多少。**
+
+**五个名字读成一列 → 五个待办；而其中一个是**伞** → 真实结构是一棵树，待办是「把这棵树建起来」一件事。**
+
+**形状读错的时候，进度看起来线性减少，而实际上从来没有接近过。**

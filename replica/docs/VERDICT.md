@@ -55690,3 +55690,59 @@ __sveltekit · x-sveltekit-pathname · x-sveltekit-search
 > **第一版 `IsNonceCookie` 是 `StartsWith("__sveltekit")` —— 前缀匹配**总是**接受只是开头相同的名字。
 > 那个 `__sveltekitz` 测例就是为抓它写的，而它抓到了。**
 > **前缀匹配要配边界 —— 与 R926 那个大小写滑动同类：**匹配宽松一格，就多接受一个错东西**。**
+
+
+---
+
+## 第 937 轮：`Frontend` 不是框架 —— 它是那条通用的，而五个缺口全关
+
+### 字面量
+
+```
+_frontendDomain · _frontendUrl · _frontendSearch · FrontendUri · get_FrontendUri · IsFrontendUrl
+ScrapeJsonFrontend · ScrapePageFrontend · ScrapeProductFrontend
+ScrapeVariantAvailabilityFrontend · FindProductFrontend · AddToCartFrontend
+```
+
+### 两条线索
+
+**① 每个方法都是框架专用方法的通用对应物** —— `ScrapeProductFrontend` 挨着 `ScrapeProductSvelte`
+**② 三个字段是 **URI 组成部分**：domain / url / search**
+
+> **所以 frontend 是**兜底路径**（读站点实际发出的东西），四个框架是它知道该用哪个之后调的解析器。**
+
+### 而「五个平台缺口」这个说法一直是错的
+
+**不是五个平台并列，是**一个通用路径 + 四个具体解析器**。
+`Box` 是第一个做的，当时被当成五个中的一个。**
+
+> **`AddToCartFrontend` 是通用入口，四个具体的挂在它下面。真实结构是**一棵树**，不是一列。**
+> **「还差一个平台」这个待办项，是因为我把它读成一列才出现的。**
+
+### `IsFrontendUrl` 是那个铰链
+
+**一个店同时有 API 和页面，故意不同 URL → 流程必须先判断手里是哪一个。**
+
+> **默认方向刻意：不像 API 的一律当页面。
+> 把页面当 JSON 读会**响亮地失败**；把页面当 API 调会返回 HTML 错误体 ——
+> **解析出来什么都不是，看起来像一个空商品。**
+
+### 三个决定
+
+**忽略查询串（页面可带任意查询，标记落在查询里是假阳性）· `Describe` 只返回三个部分 · 相对路径没有 domain 就说没有**
+
+**而 API 标记列表标了 Inference —— 镜像给了名字没说测什么。**
+
+### 数字
+
+| 度量 | R936 | **R937** |
+|---|---|---|
+| 套件 | 1969 | **1981** |
+| 产物陈旧度 | 3 / 371 | **4 / 492** |
+| AddToCart 平台缺口 | 1 剩 | **0** |
+
+### 教训
+
+> **一个待办清单的形状决定了它能被关掉多少。
+> 五个名字读成一列 → 五个待办；而其中一个是**伞** → 真实结构是一棵树，待办是「把这棵树建起来」一件事。**
+> **形状读错时，进度看起来线性减少，而实际从没接近过。**

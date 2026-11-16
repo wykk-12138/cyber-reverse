@@ -1139,3 +1139,20 @@ island 假设被否：astro-island 0 · component-url 0 · props= 0。
 纪律：前缀匹配要配边界 —— 匹配宽松一格，就多接受一个错东西。
 
 下一轮：Frontend（最后一个平台缺口），查它指什么。
+
+## R937 补充 — Frontend 是通用路径；五缺口全关（+12 用例，套件 1981）
+
+Frontend 不是第四个框架：每个方法都是框架专用方法的通用对应物（ScrapeProductFrontend 挨着 ScrapeProductSvelte），三个字段是 URI 组成部分（domain/url/search）。
+→ 结构是**一个通用路径 + 四个具体解析器（Box/Next/Astro/Svelte）**，AddToCartFrontend 是入口。
+
+而「五个平台缺口」这个说法一直是错的 —— 我读成了一列，实际是一棵树。
+
+IsFrontendUrl 的默认方向刻意：不像 API 的一律当页面（把页面当 JSON 读会响亮失败；当 API 调返回 HTML 错误体解析出来像空商品）。
+
+三个决定：忽略查询串 · Describe 只返回三个部分 · 相对路径无 domain 就说没有。API 标记标 Inference。
+
+数字：套件 1969 → 1981 · 陈旧度 3/371 → 4/492 · AddToCart 平台缺口 1 → 0。
+
+纪律：待办清单的形状决定它能被关掉多少。读成一列 → 五个待办；读成树 → 一件事。
+
+下一轮：Book 在树里的位置已做但按列读的；或转优先级 ②（风控对抗）。

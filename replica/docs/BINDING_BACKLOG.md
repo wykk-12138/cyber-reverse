@@ -5910,3 +5910,36 @@ script#__NEXT_DATA__                                       选择器
 | Frontend 指什么 | 未查 |
 
 **纪律**：前缀匹配要配边界 —— 匹配宽松一格，就多接受一个错东西。
+
+
+## 优先级 ① — Frontend 是通用路径，不是第四个框架（R937，**+12 用例，五缺口全关**）
+
+### 结构读对之后
+
+**一个通用路径 + 四个具体解析器（Box / Next / Astro / Svelte），`AddToCartFrontend` 是入口。**
+
+### `Scripts/FrontendSurface.cs`
+
+**`UriParts`(Domain/Url/Search) · `ApiPathMarkers`（Inference）· `MethodFamily`（6 个通用方法，3 个有具体对应）·
+`LooksLikeApi` · `IsFrontendUrl` · `Describe`**
+
+### 三个决定
+
+**查标记时忽略查询串 · `Describe` 只返回三个部分 · 相对路径无 domain 就说没有**
+
+### `IsFrontendUrl` 的默认方向
+
+**不像 API 的一律当页面 —— 把页面当 JSON 读会响亮失败；当 API 调会返回 HTML 错误体，
+解析出来像空商品。**
+
+### 数字
+
+**套件 1969 → 1981 · 陈旧度 3/371 → 4/492 · **AddToCart 平台缺口 1 → 0****
+
+| 仍 Unknown | |
+|---|---|
+| 十个 API 标记是否与原版一致 | Inference |
+| `Box` 在树里的位置 | 已做，但当时按"列"读的 |
+| 其余四个通用方法的行为 | 只有名字 |
+
+**纪律**：待办清单的形状决定它能被关掉多少。读成一列 → 五个待办；读成树 → 一件事。

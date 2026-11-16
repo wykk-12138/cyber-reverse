@@ -959,3 +959,22 @@ poq-slot-conditions   名字确认，取值未定位
 
 **注意**：`CasioRegion` 零 xref 不等于没用到 —— 它是**数据记录里的键，代码按名字读**。
 与 store 元数据同类（R761）。
+
+
+## 核心 — Casio（R782 更新）
+
+**已做**：`ScrapeVariantAvailabilityAsync` 改为走镜像的 `data.products.items[*]` + `casio_can_purchase`，
+解不出时落回旧启发式。5 条测试钉住，含「解不出 → null 而非 false」。
+
+**仍待做**：
+
+| 项 | 状态 |
+|---|---|
+| `SubmitShippingAsync` / `SubmitPaymentAsync` | **信息不足**：Adyen 已知，`_adyenOrderId` 是字段名不是端点 |
+| `data.products.items[*]` 的其余字段（`casio_image_url` / `casio_gender` / `casio_dob`） | 未接 |
+| `CasioRegion` 的分区行为 | 零 xref＝数据键；取值集合未定 |
+| `casiostore.bhawar.com` | 落在 687 KB 并片里，读不出边界 |
+| `casioid` 两个函数（187 B / 893 B） | 未读 |
+
+**口径提醒**：覆盖率（71%）衡量**有没有这一步**；R782 改的是**这一步判得对不对**。
+**不要把「质量改动」记成「覆盖进展」。**

@@ -270,10 +270,65 @@ public sealed class CasioFlow : StoreFlow
     public override Task<StepOutcome> ScrapeVariantAvailabilityAsync(FlowContext c, CancellationToken ct)
     {
         var body = c.Session.Vars.TryGetValue("raw", out var r) ? r : string.Empty;
+
+        // R782: the image decides availability from data.products.items[*].casio_can_purchase, not from the word
+        // "availability" appearing anywhere in the page. sub_140954410 walks data -> products -> items through three
+        // keyed lookups and then reads casio_can_purchase per item; those four names came out of the string pool and
+        // the off_ reader in R781.
+        var decided = CasioAvailability(body);
+        if (decided is not null)
+        {
+            c.Session.Vars["available"] = decided.Value ? "true" : "false";
+            return Task.FromResult(StepOutcome.Success());
+        }
+
+        // Fall back to the earlier heuristic when the payload is not the shape the image walks -- a product page
+        // rather than the JSON. Keeping the fallback means this change cannot make an existing case worse.
         var inStock = body.Contains("\"availability\"", StringComparison.OrdinalIgnoreCase) ||
                       body.Contains("InStock", StringComparison.OrdinalIgnoreCase);
         c.Session.Vars["available"] = inStock ? "true" : "false";
         return Task.FromResult(StepOutcome.Success());
+    }
+
+    /// <summary>The key the image reads per item to decide whether a Casio product can be bought (R781).</summary>
+    public const string CanPurchaseField = "casio_can_purchase";
+
+    /// <summary>
+    /// Walk <c>data.products.items</c> and report whether any item says it can be purchased, or null when the payload
+    /// is not that shape. Observation: the path and the field name. Inference (medium): that "can purchase" is a
+    /// boolean and that any-true means available -- the image reads the field, but its comparison is downstream of
+    /// the decompiled window.
+    /// </summary>
+    public static bool? CasioAvailability(string body)
+    {
+        if (string.IsNullOrEmpty(body) || body[0] is not ('{' or '[')) return null;
+
+        JToken root;
+        try
+        {
+            root = JToken.Parse(body);
+        }
+        catch (Newtonsoft.Json.JsonException)
+        {
+            return null;
+        }
+
+        var items = root.SelectTokens("$.data.products.items[*]").ToList();
+        if (items.Count == 0) return null;
+
+        var any = false;
+        var sawField = false;
+        foreach (var item in items)
+        {
+            var value = item[CanPurchaseField];
+            if (value is null) continue;
+            sawField = true;
+            if (value.Type == JTokenType.Boolean && value.Value<bool>()) any = true;
+            else if (value.Type == JTokenType.String &&
+                     string.Equals(value.Value<string>(), "true", StringComparison.OrdinalIgnoreCase)) any = true;
+        }
+
+        return sawField ? any : null;
     }
 
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)

@@ -14373,3 +14373,79 @@ off_slot_reader.py 校准通过（off_1471151D0 -> 'poq-app-id'）
 - `CasioRegion` 的**取值集合**（AU / SG / US 之外还有没有）：**Unknown**。
 - `casiostore.bhawar.com` 的用途：**Unknown** —— 它落在 R759 那个 687 KB 并片里，读不出边界。
 - `casioid` 两个函数的语义：**Unknown**。—— 187 B 与 893 B，未读。
+
+
+---
+
+## 208. Casio 的可购判定改成镜像那条路径 —— 且保底不会更差
+
+> R782。改 `RetailFlows.cs`（`CasioFlow.ScrapeVariantAvailabilityAsync` + 新 `CasioAvailability`）；
+> 新增 `CasioAvailabilityTests`（5 条）。
+
+### 一、改之前是什么
+
+```csharp
+var inStock = body.Contains("\"availability\"", OrdinalIgnoreCase) ||
+              body.Contains("InStock", OrdinalIgnoreCase);
+```
+
+**那是猜的** —— 页面上出现 `availability` 或 `InStock` 就算有货。**任何带这两个词的页面都会判成可购。**
+
+### 二、改之后
+
+```csharp
+public const string CanPurchaseField = "casio_can_purchase";     // 镜像里的字段名
+
+public static bool? CasioAvailability(string body)               // 走 data.products.items[*]
+{
+    … SelectTokens("$.data.products.items[*]") …
+    … 每项读 CanPurchaseField … 任一项为真即 true；都没有该字段则返回 null …
+}
+```
+
+**判定顺序**：
+
+1. 能按镜像的路径解出 → 用它（Observation：路径与字段名）
+2. 解不出（不是那个形状 / 是 HTML）→ **落回旧启发式**
+
+**保底是刻意的**：这一改动**不可能让现有任一情形变差** —— 它只在那份 JSON 真的在那儿时才改判。
+
+### 三、Observation 与 Inference 分开
+
+- **Observation**：`data` / `products` / `items` 三个键名（R781 用 `off_slot_reader` 读出）、
+  `casio_can_purchase` 这个字段名（与 reCAPTCHA sitekey 同处一条配置记录）
+- **Inference（中）**：那个字段是布尔、且**任一项为真即可购** ——
+  **镜像读了字段，但消费它的分支在反编译窗口之外**
+
+**这条推断写进了方法注释，也写进了测试类的注释。**
+
+### 四、5 条测试
+
+```
+OnePurchasableItemMakesTheProductAvailable          items 里一项 true -> true
+AllItemsRefusingMeansUnavailable                    全 false -> false
+TheFlagMayArriveAsAString                           "true" 也认
+AShapeWithoutTheFieldIsUndecidedRatherThanUnavailable  空 items / 无该字段 / HTML -> null（不是 false）
+TheFieldNameIsTheImages                             字段名被钉住
+```
+
+**第 4 条是关键**：**「解不出」必须返回 null 而不是 false** —— 否则会把"不是那个形状"误报成"缺货"。
+
+### 五、验证
+
+```
+构建                已成功
+CasioAvailabilityTests  5 / 5
+完整套件            1757 通过 / 0 失败 / 0 跳过（1752 + 5）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+Casio 覆盖率        仍 71%（这一改动不改覆盖率 —— 它改的是既有步骤的判定，不是补步骤）
+```
+
+**注意**：**覆盖率没动，这是对的。** 改的是"同一个步骤做得对不对"，不是"少不少步骤"。
+**判据 f 说的是覆盖，这一轮动的是质量 —— 两者不能混为一谈。**
+
+### 六、仍然 Unknown
+
+- `casio_can_purchase` 的真实类型与比较方式：**Inference（中）**，见第三节。
+- `data.products.items[*]` 的完整字段集：**Unknown**（`casio_image_url` / `casio_gender` / `casio_dob` 未接）。
+- `casio` 的 `SubmitShipping` / `SubmitPayment`：**仍是信息不足**（R780）—— 这一轮没碰。

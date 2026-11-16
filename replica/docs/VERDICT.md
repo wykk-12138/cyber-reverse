@@ -47895,3 +47895,43 @@ R776 为同样的事烧掉五次尝试；这一轮**三个键一次读全**。
 ```
 产品代码未改；套件 1752 / 0
 ```
+
+
+---
+
+## 第 782 轮：Casio 的可购判定改成镜像那条路径
+
+### 改之前是猜的
+
+```csharp
+body.Contains("availability") || body.Contains("InStock")
+```
+
+**任何带这两个词的页面都判成可购。**
+
+### 改之后
+
+走 `data.products.items[*]`（三个键名 R781 用 `off_slot_reader` 读出），每项读 `casio_can_purchase`。
+**解不出那个形状时落回旧启发式** —— **保底是刻意的：这一改动不可能让现有任一情形变差。**
+
+### Observation / Inference 分开
+
+- **Observation**：三个路径键 + `casio_can_purchase` 字段名
+- **Inference（中）**：字段是布尔、**任一项为真即可购** —— 消费它的分支在反编译窗口之外
+
+### 5 条测试，其中一条是关键
+
+```
+AShapeWithoutTheFieldIsUndecidedRatherThanUnavailable
+```
+
+**「解不出」返回 null 而不是 false** —— 否则会把「不是那个形状」误报成「缺货」。
+
+### 验证
+
+```
+构建绿 · CasioAvailabilityTests 5/5 · 完整套件 1757 / 0
+Casio 覆盖率仍 71% —— 这一轮动的是质量，不是覆盖
+```
+
+> **判据 f 说的是覆盖，这一轮改的是「同一个步骤做得对不对」。两者不能混为一谈。**

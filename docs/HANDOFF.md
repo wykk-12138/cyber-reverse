@@ -435,3 +435,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **→ 名字误导：这是**发售注册流程**不是抽签；也不是 PopMart 别名（104 vs 21）。**
 **`_turnstileKey` 作为模型字段存在 —— 优先级 ② 的一条线索。**
 **下一轮第一件事：`where_is` 那几个步骤名，看 `DrawStores` 在复刻件里有没有落点。**
+
+## R877 补充 — 覆盖最高的一条序列没有店类
+
+**`DrawStores` 12 步 vs `StoreFlow` 172 虚方法 = 8/12**：有的 8 个是 `GetHome` `CheckLogin` `Register` `CompleteRegistration` `GetCart` `ClearCart` `FindProduct` `AddToCart`；缺 `Start`（有 `Init`）· `CheckVerification`（最近 `VerifySession`）· `SubmitSaleRegistration` · `ReplaceProduct`。
+**⚠ 覆盖率 ≠ 完成度**：`DrawStores` 8/12 但**一步没写**（名字大多通用）；PopMart 7/24 但**七步真有端点证据**。**报覆盖时同时报两个数。**
+**两个近似没算**：`Start`≈`Init`（推断）· `CheckVerification`≈`VerifySession`（不同概念）—— 算进去就是编的 10/12。
+**`DrawStores` 在 Registry 里无模块 → 流程概念不是站**（同 R855）。**`DrawStores`=门店发售注册 vs PopMart=抽签，共用同一端点族。**
+**最该判的一条：`DrawStores` 要不要建流程类 —— 建了 8 步能跑，但 `Id`/`Domains` 无从写。**

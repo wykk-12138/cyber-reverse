@@ -52516,3 +52516,57 @@ _rpcFingerprint  _rpcFreightAmount  _rpcAdyenPayId  _rpcAdyenClientKey  _rpcPayP
 > **我先猜「请求体键在端点旁」，错了；再猜「在字段旁」，对了一半 —— 对的不是请求体键，是字段表和一条序列。**
 > **而序列是**意外收获**：我去找请求体，找到了 `DrawStores`。**
 > **所以「顺着一个名字读它周围」这个动作，回报不在预期之处是常态。而它这次回报的东西，正好填了 R869 留的一个空洞。**
+
+
+---
+
+## 第 877 轮：覆盖最高的一条序列没有店类 —— 而这个数字要小心读
+
+### `DrawStores` 12 步 vs `StoreFlow` 172 个虚方法：**8 / 12**
+
+| 有了 | `GetHome` `CheckLogin` `Register` `CompleteRegistration` `GetCart` `ClearCart` `FindProduct` `AddToCart` |
+|---|---|
+| **没有** | `Start`（无裸名，有 `Init`）· `CheckVerification`（最近 `VerifySession`）· `SubmitSaleRegistration` · `ReplaceProduct` |
+
+### 这条顺序该倒过来读
+
+| 序列 | 覆盖 |
+|---|---|
+| **`DrawStores`（无店类）** | **8 / 12** |
+| PopMart（有类，真写了 7 步） | 7 / 24 |
+| Nike（有类，0 步） | 0 / 16 |
+
+**但原因不是它更完整，是它更普通 —— 大部分是通用步骤。**
+
+> **一个「覆盖率高」的数字，可以是「这条序列没什么特别的」的同义词。**
+> **8/12 那条一步都没写；7/24 那条里有七步是我真写了、有端点证据的。**
+> **所以「覆盖率」和「完成度」不是一回事 —— 下次比较该同时报两个数。**
+
+### 两个近似我没算进去
+
+| 镜像 | 最近 | 为什么不算 |
+|---|---|---|
+| `Start`(21) | `Init` | 首步同名是推断 |
+| `CheckVerification` | `VerifySession` | 「验证会话」≠「验证账号」 |
+
+**算进去就是 10/12 —— 而那是编的。**
+
+> **这与 R871 的 `GetOrders` 相反：那次核完确认归属，于是用了；这次核完确认是近似，于是没用。同一个动作，两种结论。**
+
+### 它为什么没有店类
+
+**Registry / RetailModules 搜 `DrawStore`：无输出 → 不是站，是**流程概念**（与 R855 五条变体同类）。**
+
+**结合 R849：`DrawStores` 是「门店发售注册」，PopMart 是「抽签」—— 两个不同的东西被同一端点族服务。
+这解释了 `/storeOfflineDraw/*` 与 `/drawScratch/*` 为什么并存。**
+
+### 仍然 Unknown
+
+**`DrawStores` 该不该建流程类**（**本轮之后最该判的一条：建了 8 步能跑，但它是流程概念不是站，`Id`/`Domains` 无从写**）·
+**`Start` 与 `Init` 是否同一件事**（**这是 8/12 与 9/12 之间那一步**）·
+**`ReplaceProduct` 与 `EditLine` 是否同一件事**
+
+### 教训
+
+> **一个覆盖率数字看着像进展，其实可能是「这条序列没什么特别的」。**
+> **而我把「覆盖率」和「完成度」放在同一张表里时，差点读混。**

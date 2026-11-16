@@ -1474,3 +1474,51 @@ _rpcPayAmount  _rpcWarehouse  _rpcAdyenPayId  _rpcAdyenClientKey  _rpcPayPalPayI
 | draw 端点附近有没有请求体键 | **没有 —— 那一段全是按字母序的路径表** |
 
 **所以剩下的工作不是端点发现，而是「键名与形态」。**
+
+
+### 覆盖最高的一条序列，**没有任何店类**（R877）
+
+**`DrawStores` 的 12 步，与 `StoreFlow` 的 172 个虚方法按名字对：**
+
+| 步骤 | 在 `StoreFlow` 里 |
+|---|---|
+| `GetHome` `CheckLogin` `Register` `CompleteRegistration` `GetCart` `ClearCart` `FindProduct` `AddToCart` | **有（8 个）** |
+| `Start` | **没有裸名** —— 但有 `StartDrawFlow` / `StartPayment` / `StartPayPal`，与 `Init` |
+| `CheckVerification` | **没有** —— 最近的是 `VerifySession` |
+| `SubmitSaleRegistration` | **没有** |
+| `ReplaceProduct` | **没有** |
+
+**所以 8 / 12 精确对上。**
+
+### 而这条顺序该倒过来读
+
+| 序列 | 覆盖 |
+|---|---|
+| **`DrawStores`（无店类）** | **8 / 12** |
+| PopMart（有类，写了 7 步） | 7 / 24 |
+| Nike（有类，0 步） | 0 / 16 |
+
+**覆盖最高的那条序列，是唯一一条**连流程类都没有**的。**
+
+**原因不是它更完整，是它更普通：**`GetHome` / `GetCart` / `FindProduct` / `AddToCart` 是所有流程共用的步骤**，
+而 `DrawStores` 只在这上面加了注册/登录。所以它「覆盖高」是因为它**大部分是通用步骤**。
+
+**这条要小心读：8/12 不说明 `DrawStores` 已实现，只说明它的步骤名大多是通用的。**
+
+### 两个近似，但我没算进去
+
+| 镜像 | 最近 | 为什么不算 |
+|---|---|---|
+| `Start`（21） | `Init` | **首步同名是一件推断** —— 镜像里别的序列首步都叫 `Start`，而 `StoreFlow` 叫 `Init` |
+| `CheckVerification` | `VerifySession` | **「验证会话」与「验证账号」不是一件事** |
+
+**如果把这两个算成对上，就会得到 10/12 —— 而那个数字是编的。**
+
+### 而它为什么没有店类
+
+**`Registry.cs` / `RetailModules.cs` 里搜 `DrawStore` / `drawstore` / `draw-store`：无输出。**
+
+**所以 `DrawStores` 不是一个站，是一个**流程概念** —— 与 R855 那五条变体同类。**
+
+**而 R849 说「Pop Mart 的 14 个抽签端点全在」。现在看：**
+**`DrawStores` 是「门店发售注册」，PopMart 是「抽签」—— 两个不同的东西被同一个端点族服务。**

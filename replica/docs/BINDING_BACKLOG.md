@@ -3739,3 +3739,39 @@ DrawStores: 21 Start · 23 GetHome · 24 CheckVerification · 25 SubmitSaleRegis
 | `_turnstileKey` 谁产生谁清 | 未查（优先级 ② 线索） |
 
 **纪律**：**顺着名字读周围，回报常在预期之外 —— 这次要请求体，拿到了 `DrawStores`。**
+
+
+## 判据 — 覆盖最高的一条序列没有店类（R877）
+
+### `DrawStores` 12 步 vs `StoreFlow` 172 虚方法：**8 / 12**
+
+**有**：`GetHome` `CheckLogin` `Register` `CompleteRegistration` `GetCart` `ClearCart` `FindProduct` `AddToCart`
+**没有**：`Start`（有 `Init`）· `CheckVerification`（最近 `VerifySession`）· `SubmitSaleRegistration` · `ReplaceProduct`
+
+### 顺序要倒过来读
+
+| 序列 | 覆盖 | 真写了 |
+|---|---|---|
+| **`DrawStores`（无店类）** | **8/12** | **0** |
+| PopMart | 7/24 | **7** |
+| Nike | 0/16 | 0 |
+
+> **覆盖率 ≠ 完成度。8/12 那条一步没写，只是名字大多通用；7/24 那七步真有端点证据。**
+
+### 两个近似没算（算进去就是编的 10/12）
+
+**`Start`≈`Init`（推断）· `CheckVerification`≈`VerifySession`（不同概念）**
+**→ 与 R871 的 `GetOrders` 相反：那次核完确认归属就用，这次核完确认是近似就不用。**
+
+### `DrawStores` 无店类
+
+**Registry 搜 `DrawStore` 无输出 → 流程概念，不是站（同 R855 五条变体）。**
+**→ `DrawStores`=门店发售注册，PopMart=抽签，**两个不同的东西共用同一端点族**。**
+
+| 仍 Unknown | |
+|---|---|
+| **`DrawStores` 是否建流程类** | **最该判：8 步能跑，但 `Id`/`Domains` 无从写** |
+| `Start` vs `Init` | 8/12 → 9/12 的那一步 |
+| `ReplaceProduct` vs `EditLine` | 可能同一件事 |
+
+**纪律**：**报序列覆盖时同时报两个数 —— 名字对上的、真正实现的。**

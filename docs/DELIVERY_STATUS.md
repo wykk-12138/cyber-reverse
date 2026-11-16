@@ -16813,3 +16813,95 @@ PopMartEndpoints 对比 12 个端点          -> 12/12 HAVE，共 39 个端点
 
 **所以「顺着一个名字读它周围」这个动作，回报不在预期之处是常态。
 而它这次回报的东西，正好填了 R869 留的一个空洞 —— 那条洞我以为要专门去找。**
+
+
+---
+
+## 301. 覆盖最高的一条序列没有店类 —— 而这个数字要小心读
+
+> R877。未改产品代码。
+
+### 一、`DrawStores` 12 步对 `StoreFlow` 172 个虚方法
+
+| 步骤 | 结果 |
+|---|---|
+| `GetHome` `CheckLogin` `Register` `CompleteRegistration` `GetCart` `ClearCart` `FindProduct` `AddToCart` | **有（8）** |
+| `Start` | **无裸名**（有 `StartDrawFlow`/`StartPayment`/`StartPayPal`/`Init`） |
+| `CheckVerification` | **无**（最近 `VerifySession`） |
+| `SubmitSaleRegistration` | **无** |
+| `ReplaceProduct` | **无** |
+
+**8 / 12 精确对上。**
+
+### 二、这条顺序该倒过来读
+
+| 序列 | 覆盖 |
+|---|---|
+| **`DrawStores`（无店类）** | **8 / 12** |
+| PopMart（有类，写了 7 步） | 7 / 24 |
+| Nike（有类，0 步） | 0 / 16 |
+
+**覆盖最高的序列，是唯一一条连流程类都没有的。**
+
+**但原因不是它更完整，是它更普通 —— `GetHome` / `GetCart` / `FindProduct` / `AddToCart`
+是所有流程共用的步骤，而它只在这上面加了注册/登录。**
+
+> **所以 8/12 不说明 `DrawStores` 已实现，只说明它的步骤名大多是通用的。
+> 一个「覆盖率高」的数字，可以只是「这个序列没什么特别的」的同义词。**
+
+### 三、两个近似我没算进去
+
+| 镜像 | 最近 | 为什么不算 |
+|---|---|---|
+| `Start`(21) | `Init` | **首步同名是推断**（别的序列首步叫 `Start`，`StoreFlow` 叫 `Init`） |
+| `CheckVerification` | `VerifySession` | **「验证会话」≠「验证账号」** |
+
+**算进去就是 10/12 —— 而那个数字是编的。**
+
+**这与 R871 那个 `GetOrders` 的处理相反：那次我核完确认归属，于是用了；
+这次我核完确认是近似，于是没用。同一个动作，两种结论。**
+
+### 四、它为什么没有店类
+
+**`Registry.cs` / `RetailModules.cs` 搜 `DrawStore` / `drawstore` / `draw-store`：无输出。**
+
+**所以 `DrawStores` 不是站，是**流程概念** —— 与 R855 那五条变体同类。**
+
+**而结合 R849（Pop Mart 14 个抽签端点全在）：**
+**`DrawStores` 是「门店发售注册」，PopMart 是「抽签」—— 两个不同的东西被同一个端点族服务。**
+
+**这解释了为什么 `/_shop/v1/storeOfflineDraw/*` 与 `/shop/v1/drawScratch/*` 并存：
+它们是两件事。**
+
+### 五、验证
+
+```
+where_is CheckVerification     -> implementation 无（只有 docs）
+where_is SubmitSaleRegistration -> implementation 无
+where_is CheckLogin            -> implementation 3（StepAction.cs · StoreFlow.cs · MagentoFlow.cs）
+where_is CompleteRegistration  -> implementation 3（StepAction.cs · RetailFlows.cs · StoreFlow.cs）
+where_is ReplaceProduct        -> implementation 无
+StoreFlow 虚步骤计数           -> 172
+DrawStores 12 步匹配           -> 8 有 / 4 无
+Registry 搜 DrawStore          -> 无输出
+```
+
+### 六、仍然 Unknown
+
+- **`DrawStores` 该不该建一个流程类**：**Unknown，而这是本轮之后最该判的一条。**
+  **建了它，8 步立刻能跑；但它是流程概念不是站，所以 `Id` / `Domains` 无从写。**
+- **`Start` 与 `Init` 是不是同一件事**：**Unknown（推断，未证）** ——
+  **这是 8/12 与 9/12 之间那一步。**
+- **`ReplaceProduct` 与 `AddToCart` 的关系**：**Unknown** —— 名字像「替换商品」，
+  **但 `EditLine` 已经在 `StoreFlow` 里，`ReplaceProduct` 可能是它的另一种叫法。**
+
+### 七、教训
+
+**一个覆盖率数字看着像进展，其实可能是「这条序列没什么特别的」。**
+
+**8/12 比 7/24 高得多，而 7/24 那条里有七步是我真写了、有端点证据的；
+8/12 这条一步都没写，只是名字大多通用。**
+
+**所以「覆盖率」和「完成度」不是一回事，而我把它们放在同一张表里时差点读混。**
+
+**下次比较序列覆盖时，该同时报两个数：名字对上的，和真正实现的。**

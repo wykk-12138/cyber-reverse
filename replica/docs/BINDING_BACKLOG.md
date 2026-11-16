@@ -5445,3 +5445,38 @@ retailer-shopifypayments-api…/api/v1/payment/apm/session/{status, post_pay_sta
 | 面板返回什么 | 无响应体 |
 
 **纪律**：**「等待」比「请求」多三件事 —— 间隔、终止条件、以及没定下来时说什么。第三件最难，因为大多数流程只有两格。**
+
+
+## 优先级 ① — Disney 支付面板（R924，**改产品代码 +7 用例**）
+
+### 四条路径两台宿主
+
+```
+/api/v1/card/token · /api/v1/checkout · /api/v3/process · jgc/v8/client
+```
+
+### `Payments/DisneyPaymentSheet.cs`
+
+**`SheetHost`/`GuestHost` · 四条路径 · `TokeniseCardAsync` · `CheckoutAsync` · `ProcessAsync` · `StepOrder` · `GuestClientNote`**
+
+### 三个刻意的决定
+
+**① 只有 `TokeniseCardAsync` 收卡** —— 类里没有第二个收卡的方法；`CheckoutAsync` 无 token 就拒绝。
+**② v1 与 v3 分开记** —— 统一会静默改掉两次调用中的一次。
+**③ `jgc/v8/client` 只记录不调用** —— 按猜发请求就是发一个原版可能从不发的请求。
+
+### 测试断言的是实际 body
+
+**`TheCheckoutCarriesTheTokenAndNotTheCard` 断言发出的 body 里没有卡号 —— 只查会话的测试会被追加的卡骗过。**
+
+### 数字
+
+**套件 1881 → 1888 · vendor 命名 9/12 → **11/12** · 缺失 3 → **1**（只剩 Viva）**
+
+| 仍 Unknown | |
+|---|---|
+| 所有请求体与响应 | 只有端点名的顺序 |
+| `jgc/v8/client` 的用途 | 未证 |
+| Viva 三条的顺序 | 名字暗示 token→details→transactions |
+
+**纪律**：「补 vendor」不是同一件事做四遍 —— 每家给的证据形状不同，实现的东西也就不同。

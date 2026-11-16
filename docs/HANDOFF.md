@@ -927,3 +927,17 @@ Stores/GlobalECheckout.cs：ParamOrder 记顺序（按位置比对）· 空值�
 纪律：「等待」比「请求」多三件事 —— 间隔、终止条件、没定下来时说什么。第三件最难。
 
 下一轮：Disney（2 台，含 card/token + checkout + v3/process）。
+
+## R924 补充 — Disney 支付面板（改产品代码 +7 用例，套件 1881→1888）
+
+四条路径两台宿主：api/v1/card/token · api/v1/checkout · api/v3/process · jgc/v8/client。
+
+先 token 化是实现出来的属性：卡端点与结账分开、名字说 token 不说 pay → 只有 TokeniseCardAsync 收卡，类里没有第二个收卡方法；CheckoutAsync 无 token 就拒绝。测试断言实际发出的 body 里没有卡号。
+
+v1 与 v3 分开记（统一会静默改掉两次调用中的一次）；jgc/v8/client 只记录不调用。
+
+数字：套件 1888 · vendor 命名 9/12 → 11/12 · 缺失 3 → 1（只剩 Viva）。
+
+而四轮 vendor 的形状都不同：Global-e 核参数顺序与空值 · eShopWorld 给带第三结果的等待 · Disney 给安全性属性。如果都做成「一组常量」，7 会降到 1，而三家值钱的东西都不会出现。
+
+下一轮：Viva（最后一家，3 条）。

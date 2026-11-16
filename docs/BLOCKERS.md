@@ -26036,3 +26036,68 @@ metrics_report.py                 -> 1881 通过 / 0 失败
 
 **第三件最难，因为它既不是成功也不是失败，而大多数流程只有两格 ——
 所以这一轮新加的那一格（`unknown`）比两条路径本身更值钱。**
+
+
+---
+
+## 348. Disney 支付面板：vendor 11/12；只剩 Viva
+
+> R924。**改产品代码 +7 用例。** 套件 **1888 通过 / 0 失败 / 0 跳过**。
+
+### 一、四条路径
+
+```
+paymentsheet-ent.wdprapps.disney.com/api/v1/card/token   卡 token 化
+paymentsheet-ent.wdprapps.disney.com/api/v1/checkout     结账
+paymentsheet-ent.wdprapps.disney.com/api/v3/process      处理（v3）
+registerdisney.go.com/jgc/v8/client                      Guest Connect
+```
+
+### 二、先 token 化是实现出来的属性
+
+**卡端点与结账分开、名字说 token 不说 pay → 流程里的卡永远不到结账那一步。**
+
+**实现：只有 `TokeniseCardAsync` 收卡，类里没有第二个收卡方法；`CheckoutAsync` 无 token 就拒绝。**
+
+**测试断言**实际发出的 body** 里没有卡号 —— 只查会话的测试即使卡被追加也会过。**
+
+### 三、两个版本分开记
+
+**v1 结账、v3 处理。「处理比启动它的结账活得更久」是常态。统一会静默改掉两次调用中的一次。**
+
+### 四、`jgc/v8/client` 只记录不调用
+
+**没有东西说它返回什么、或购买是否需要它。按猜发请求就是发一个原版可能从不发的请求。**
+
+### 五、数字
+
+| 度量 | R923 | R924 |
+|---|---|---|
+| 套件 | 1881 | **1888** |
+| **vendor 命名** | 9 / 12 | **11 / 12** |
+| **vendor 缺失** | 3 | **1** |
+
+**只剩 Viva（`chargetokens` · `paymentdetails?ref=` · `transactions`）。**
+
+### 六、验证
+
+```
+vendor_coverage.py                  -> 两台 disney 宿主均 yes；11 named / 1 absent
+test --filter DisneyPaymentSheetTests -> 7 通过
+metrics_report.py                   -> 1888 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **所有请求体与响应**：**Unknown** —— 只有端点名的顺序。
+- **`jgc/v8/client` 的用途**：**Unknown** —— 只记录不调用。
+- **Viva 三条的顺序**：**Inference** —— 名字暗示 token → details → transactions。
+
+### 八、教训
+
+**R921 量出 5/12。四轮之后 11/12。**
+
+**而四轮的产品形状都不同：Global-e 核**参数顺序与空值** · eShopWorld 给**一个带第三结果的等待** ·
+Disney 给**一个安全性属性**。**
+
+**如果我把四家都做成「一组常量」，7 会降到 1，而三家真正值钱的东西都不会出现。**

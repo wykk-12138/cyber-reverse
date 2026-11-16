@@ -3915,3 +3915,56 @@ retailer-shopifypayments-api…/api/v1/payment/apm/session/post_pay_status  …�
 > 这一家不是 —— 它是**一个带截止时间的等待**。**
 > **而「等待」比「请求」多三件事：间隔、终止条件、以及**没定下来时说什么**。**
 > **第三件最难，因为它既不是成功也不是失败，而大多数流程只有两格。**
+
+
+### Disney 的支付面板：卡先进一个端点，结账拿 token（R924）
+
+**四条路径、两台宿主，而其中一条决定了整个类的形状：**
+
+```
+paymentsheet-ent.wdprapps.disney.com/api/v1/card/token   一张卡，token 化
+paymentsheet-ent.wdprapps.disney.com/api/v1/checkout     这张 token 付的结账
+paymentsheet-ent.wdprapps.disney.com/api/v3/process      处理步骤，晚一个版本
+registerdisney.go.com/jgc/v8/client                      Disney Guest Connect（身份）
+```
+
+### 为什么先 token 化是一个**该实现的属性**，而不是一句注释
+
+**卡端点与结账分开，且它的名字说的是 token 而不是 pay —— 所以**流程里的卡永远不到结账那一步**。**
+
+> **一个在两个请求体里出现的卡号被暴露两次。原版看起来只让它出现一次。
+> 所以 `TokeniseCardAsync` 收卡并返回 token，而这个类里**没有第二个方法收卡**。**
+
+**而结账方法**没有 token 就拒绝** —— 因为一个没有 token 的结账只能带卡，而那正是这个拆分要避免的。**
+
+### 两个版本并存是对的
+
+**v1 结账、v3 处理。**服务里「处理比启动它的结账活得更久」是常态。
+**所以分开记，不统一 —— 统一会**静默改掉两次调用中的一次**。**
+
+### 而 `jgc/v8/client` **只记录、不调用**
+
+**没有任何东西说它返回什么、或一次购买是否需要它。
+**按猜发一个请求，就是发一个原版可能从不发的请求。****
+
+### 数字
+
+| 度量 | R923 | **R924** |
+|---|---|---|
+| 套件 | 1881 | **1888** |
+| **vendor 命名** | 9 / 12 | **11 / 12** |
+| **vendor 缺失** | 3 | **1** |
+
+**只剩 Viva 一家（3 条：`chargetokens` → `paymentdetails?ref=` → `transactions`）。**
+
+### 而 11/12 这个数到这里可以总结了
+
+**R921 量出 5/12，R922 Global-e、R923 eShopWorld、R924 Disney —— 四轮把 7 个未匹配降到 1。**
+
+**而四轮里每一轮的产品**形状都不同**：**
+- **Global-e**：一条完整 URL → 可核参数顺序与空值
+- **eShopWorld**：两条轮询端点 → **一个带第三结果的等待**
+- **Disney**：卡与结账分开 → **一个安全性属性**
+
+> **所以「补 vendor」不是同一件事做四遍。每家给的证据形状不同，实现的东西也就不同。**
+> **如果我把四家都做成「一组常量」，7 会降到 1，而三家真正值钱的东西都不会出现。**

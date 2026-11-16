@@ -1103,3 +1103,20 @@ StartupPageTests 4 例：六对六 · 五个名字（列名非计数）· 差异
 纪律：同一「平台缺口」证据量可差一个数量级 —— 先做能核形状的那个。
 
 下一轮：Astro（40 条命中，先看里面有没有非名字的字面量）。
+
+## R935 补充 — Astro 是并行路径；island 假设被三条 0 否掉（+9 用例，套件 1955）
+
+方法族七个：ScrapeProductAstro / ScrapeVariantAvailabilityAstro / CheckPriceLimitAstro / AddToCartAstro / StartCheckoutAstro / ParseAstroProduct / ParseAstroImage，外加 AstroAttribute / AstroProp / AstroProps。
+
+island 假设被否：astro-island 0 · component-url 0 · props= 0。
+唯一机制字面量：data-astro-cid（后缀按构建变）→ 前缀匹配。
+
+三个决定：后缀不硬编码 · 不声称知道哪个元素是商品 · 「无 cid」≠「非 Astro」。
+
+测试抓到：EndsWith(Astro) vs ParseAstroProduct 的 Astro 在中间 → 改 Contains。
+
+数字：套件 1946 → 1955 · 陈旧度 1/142 → 2/246 · AddToCart 平台缺口 3 → 2（Frontend / Svelte）。
+
+纪律：排除假设的成本是一次字符串查询；实现一个错假设的成本是一轮。
+
+下一轮：Svelte（22 条，同法筛非名字字面量）。

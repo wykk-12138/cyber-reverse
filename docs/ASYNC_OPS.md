@@ -4666,3 +4666,74 @@ eplica/.publish-aot/**）。于是 **110 MB 二进制 + 17,702 行 IDAHook.log �
 > Astro 只有框架名（40 条但都是名字），Svelte 只有名字，而 Next 有一条选择器和一条正则。**
 > **所以「做完 Astro / Svelte / Frontend」不会是同一件事做三遍 —— 而先做 Next 是对的，
 > 因为它是唯一能核**形状**的那个。**
+
+
+### Astro **不是名字，是一整套并行代码路径** —— 而我的第一个假设是错的（R935）
+
+**R934 说 Astro 40 条命中「先看里面有没有非名字的字面量」。看了，而它比名字多得多。**
+
+### 方法族
+
+```
+ScrapeProductAstro · ScrapeVariantAvailabilityAstro · CheckPriceLimitAstro
+AddToCartAstro · StartCheckoutAstro · ParseAstroProduct · ParseAstroImage
+AstroAttribute · AstroProp · AstroProps
+```
+
+> **七个方法 + 三个名字，覆盖抓商品 / 查变体库存 / 查限价 / 加车 / 开始结账 / 解析商品 / 解析图片。
+> 所以 Astro 在镜像里是一条**并行路径**，不是通用路径里的一个分支。**
+> **而 `AddToCartAstro` 正是那五个平台缺口之一 —— 它不是一个开关，是七分之一。**
+
+### 而我的第一个假设是**错的**
+
+**Astro 最出名的机制是 island：`<astro-island props="{…}">`，我猜原版读的是那个 props 属性。**
+
+**查了：**
+
+```
+astro-island     n=0
+component-url    n=0
+props=           n=0
+```
+
+**三条全空。所以原版读的不是 island 机制。**
+
+### 而把假设排除掉之后，唯一那条字面量就浮出来了
+
+```
+data-astro-cid
+```
+
+**那是 Astro 给**每个渲染出的元素**打的属性（`data-astro-cid-XXXX`，后缀每次构建变），用来 scope 它的样式。**
+
+> **这就是为什么方法族里有一个 `AstroAttribute` 夹在 `AstroProp` / `AstroProps` 之间 ——
+> 它讲的是**从哪个属性认出这些元素**，而不是从哪个 JSON 里读字段。**
+
+### 三个刻意的决定
+
+**① 后缀不能硬编码。**与 Next 的 build hash 同理 —— 按**前缀**匹配。
+**② 只暴露「匹配」与「列举」，不声称知道哪个元素是商品。**
+**因为镜像给了前缀和方法名，两者对得上，但没有一段恢复到的代码显示有人用它拼过选择器。**
+**③ 「没有 cid 属性」≠「不是 Astro 页面」。**
+**scoped style 可以被剥掉，所以这是个**弱**结论，而代码只下这个弱结论（有测例钉住这句注释在）。**
+
+### 而测试抓到我一个断言写错了
+
+**`Assert.All(family, name => Assert.EndsWith("Astro", name))` ——
+而 `ParseAstroProduct` / `ParseAstroImage` 的 Astro 在**中间**。
+改成 `Contains`。**后缀形式只对动作类成立，因为它们是按步骤命名的。****
+
+### 数字
+
+| 度量 | R934 | **R935** |
+|---|---|---|
+| 套件 | 1946 | **1955** |
+| 产物陈旧度 | 1 文件 / 142 行 | **2 文件 / 246 行**（正确累积） |
+| `AddToCart` 平台缺口 | 3 剩 | **2 剩**（Frontend / Svelte —— 而 Astro 的机制已建） |
+
+### 教训
+
+> **假设先排除，比假设先实现便宜。**
+> **我猜 island，查三条字面量、全 0、花了一次调用 —— 而如果我先写一个 island 解析器，
+> 那会是一个**看起来能跑、而原版从不走**的路径。**
+> **排除假设的成本是一次字符串查询；实现一个错假设的成本是一轮。**

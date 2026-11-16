@@ -55573,3 +55573,60 @@ dotnet publish -c Release -r win-x64 -p:PublishAot=true -p:UseSharedCompilation=
 > **同一个「平台缺口」，三个平台的证据量差一个数量级：
 > Astro 与 Svelte 只有框架名，而 Next 有一条选择器和一条正则。**
 > **所以先做 Next 是对的 —— 它是唯一能核**形状**的那个。**
+
+
+---
+
+## 第 935 轮：Astro 是一整套并行路径 —— 而我的第一个假设被三条 0 否掉了
+
+### 方法族
+
+```
+ScrapeProductAstro · ScrapeVariantAvailabilityAstro · CheckPriceLimitAstro
+AddToCartAstro · StartCheckoutAstro · ParseAstroProduct · ParseAstroImage
+AstroAttribute · AstroProp · AstroProps
+```
+
+> **七个方法 + 三个名字。所以 Astro 在镜像里是一条**并行路径**，不是通用路径里的分支。
+> 而 `AddToCartAstro` 是那五个缺口之一 —— 它不是开关，是七分之一。**
+
+### 而我的第一个假设是错的
+
+**我猜原版读 island 的 props 属性。查了：`astro-island` 0 · `component-url` 0 · `props=` 0。**
+
+### 排除之后，唯一那条字面量浮出来了
+
+```
+data-astro-cid
+```
+
+**Astro 给每个渲染出的元素打的属性（后缀每次构建变），用来 scope 样式。**
+
+> **这就是为什么方法族里有个 `AstroAttribute` 夹在 `AstroProp` / `AstroProps` 之间 ——
+> 它讲的是**从哪个属性认出元素**，不是从哪个 JSON 读字段。**
+
+### 三个决定
+
+**① 后缀不能硬编码** —— 按前缀匹配（同 Next 的 build hash）
+**② 只暴露匹配与列举，不声称知道哪个元素是商品** —— 没有恢复到的代码显示有人用它拼过选择器
+**③ 「没有 cid 属性」≠「不是 Astro 页面」** —— scoped style 可被剥掉，代码只下这个弱结论
+
+### 而测试抓到我一个断言写错
+
+**`EndsWith("Astro")` —— 而 `ParseAstroProduct` 的 Astro 在中间。改成 `Contains`。
+**后缀形式只对动作类成立，因为它们是按步骤命名的。****
+
+### 数字
+
+| 度量 | R934 | **R935** |
+|---|---|---|
+| 套件 | 1946 | **1955** |
+| 产物陈旧度 | 1 / 142 | **2 / 246**（正确累积） |
+| AddToCart 平台缺口 | 3 剩 | **2 剩**（Frontend / Svelte） |
+
+### 教训
+
+> **假设先排除，比假设先实现便宜。**
+> **我猜 island，查三条字面量、全 0、花了一次调用 ——
+> 而如果先写一个 island 解析器，那会是一个**看起来能跑、而原版从不走**的路径。
+> 排除假设的成本是一次字符串查询；实现一个错假设的成本是一轮。**

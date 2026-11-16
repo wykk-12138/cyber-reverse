@@ -26781,3 +26781,73 @@ metrics_report.py                -> 1946 通过 / 0 失败；陈旧度 1 文件 
 
 **所以先做 Next 是对的 —— 它是唯一能核**形状**的那一个。
 而陈旧度那一行现在自己证明了用途：加一个文件它就报 1，不需要谁记得去查。**
+
+
+---
+
+## 359. Astro 是并行路径；island 假设被三条 0 否掉
+
+> R935。**改产品代码 +9 用例。** 套件 **1955 通过 / 0 失败 / 0 跳过**。
+
+### 一、方法族说明它是并行路径
+
+```
+ScrapeProductAstro · ScrapeVariantAvailabilityAstro · CheckPriceLimitAstro · AddToCartAstro
+StartCheckoutAstro · ParseAstroProduct · ParseAstroImage · AstroAttribute · AstroProp · AstroProps
+```
+
+**七个方法 + 三个名字 → 不是分支，是七分之一。**
+
+### 二、我的 island 假设是错的
+
+```
+astro-island n=0 · component-url n=0 · props= n=0
+```
+
+### 三、排除之后浮出的唯一字面量
+
+**`data-astro-cid`** —— Astro 给每个渲染元素打的属性（后缀按构建变）。
+
+**→ 这就是 `AstroAttribute` 夹在 `AstroProp`/`AstroProps` 之间的原因。**
+
+### 四、三个决定
+
+1. **后缀不硬编码** —— 按前缀匹配。
+2. **只暴露匹配与列举** —— 不声称知道哪个元素是商品（无恢复代码显示选择器）。
+3. **「无 cid」≠「非 Astro」** —— scoped style 可被剥掉。
+
+### 五、测试抓到一个断言错
+
+**`EndsWith("Astro")` vs `ParseAstroProduct` 的 Astro 在中间 → 改 `Contains`。**
+
+### 六、数字
+
+| 度量 | R934 | R935 |
+|---|---|---|
+| 套件 | 1946 | **1955** |
+| 产物陈旧度 | 1 / 142 | **2 / 246** |
+| **AddToCart 平台缺口** | 3 剩 | **2 剩**（Frontend / Svelte） |
+
+### 七、验证
+
+```
+analysis/ida.py str "Astro"          -> 7 个方法名 + 3 个名字
+analysis/ida.py str "astro-island"   -> 0
+analysis/ida.py str "data-astro-cid" -> 1
+test --filter AstroSurfaceTests      -> 9 通过
+metrics_report.py                    -> 1955 通过 / 0 失败
+```
+
+### 八、仍然 Unknown
+
+- **哪个 cid 元素是商品**：**Unknown** —— 无恢复代码显示选择器。
+- **`AstroProp` 读的是哪一层**：**Unknown** —— 只有名字。
+- **Svelte 的机制**：**Unknown** —— 未查。
+
+### 九、教训
+
+**假设先排除，比假设先实现便宜。**
+
+**我猜 island，三条 0，花一次调用。而如果先写 island 解析器，那会是一条**看起来能跑、而原版从不走**的路径。**
+
+**排除假设的成本是一次字符串查询；实现一个错假设的成本是一轮。**

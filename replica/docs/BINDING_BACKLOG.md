@@ -5842,3 +5842,37 @@ script#__NEXT_DATA__                                       选择器
 | Astro / Svelte / Frontend 的机制 | 只有框架名 |
 
 **纪律**：同一个「平台缺口」，证据量可以差一个数量级 —— 先做能核形状的那个。
+
+
+## 优先级 ① — Astro 并行路径（R935，**+9 用例**）
+
+### 方法族（七 + 三）
+
+**`ScrapeProductAstro` · `ScrapeVariantAvailabilityAstro` · `CheckPriceLimitAstro` · `AddToCartAstro` ·
+`StartCheckoutAstro` · `ParseAstroProduct` · `ParseAstroImage` · `AstroAttribute` · `AstroProp` · `AstroProps`**
+
+### 机制
+
+**`data-astro-cid` —— Astro 给每个元素打的 scoped-style 属性，后缀按构建变。**
+
+**而 island 假设被否：`astro-island` 0 · `component-url` 0 · `props=` 0。**
+
+### `Scripts/AstroSurface.cs`
+
+**`CidPrefix` · `AttributePattern`（前缀锚定）· `MethodFamily` · `Attributes` · `LooksLikeAstro` · `TagsWith`**
+
+### 三个决定
+
+**前缀匹配（后缀不硬编码）· 不声称知道哪个元素是商品 · 「无 cid」≠「非 Astro」**
+
+### 数字
+
+**套件 1946 → 1955 · 陈旧度 1/142 → 2/246 · AddToCart 平台缺口 3 → **2**（Frontend / Svelte）**
+
+| 仍 Unknown | |
+|---|---|
+| 哪个 cid 元素是商品 | 无恢复代码显示选择器 |
+| `AstroProp` 读的是哪层 | 只有名字 |
+| Svelte 的机制 | 未查 |
+
+**纪律**：排除假设的成本是一次字符串查询；实现一个错假设的成本是一轮。

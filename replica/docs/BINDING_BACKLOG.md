@@ -6091,3 +6091,39 @@ d__45 GetProduct · d__46 AddToCartDummy · d__47 AddToCartMulti · d__48 Remove
 | 是否还有第 4 个被误读的名字 | 未扫完 |
 
 **纪律**：名字只能提出假设，连号才能确认。三轮三个名字被纠正，三个都靠这个判据。
+
+
+## 判据 (a)/① — 连号判据扫全 13：6 定位 / 7 未知；`Multi` 是第四个误读（R942，**+13 用例**）
+
+### 判据的范围
+
+**序号按类编 → 连号只在**同一条描述符字符串内**有意义。全镜像范围扫会给出 CastIterator 那种噪声。**
+
+### 定位结果
+
+| 名字 | 类 |
+|---|---|
+| `AddToCart` | 网页结账 |
+| `AddToCartApp` / `AppDw` | App 会话 |
+| `AddToCartDummy` / **`Multi`** | **PopMart 抽签** |
+| `AddToCartPreload` | 商品库存 |
+
+### 第四个误读
+
+**`AddToCartMulti` 是 PopMart 的「加多个盒」，不是通用多件车。**
+
+### `Scripts/AddToCartPlacement.cs`
+
+**`Rows`(13，各带序号/类/邻居) · `FourthMisfiling` · `Placed`(6)/`Unplaced`(7) · `IsPlaced` · `ClassOf`**
+
+### 数字
+
+**套件 2023 → 2036 · 陈旧度 8/832 → 9/916 · 连号定位 0/13 → 6/13**
+
+| 仍 Unknown | |
+|---|---|
+| 7 个未定位名字的类 | 描述符扫描截断 |
+| `AddToCartPreload` 属哪个站 | 只知道商品库存类 |
+| 是否还有第 5 个误读 | 只能对已定位的 6 个下结论 |
+
+**纪律**：判据用错范围时不会报错，它会给出一个语法通顺的错答案。

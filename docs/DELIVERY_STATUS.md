@@ -21509,3 +21509,68 @@ metrics_report.py                     -> 2023 通过 / 0 失败
 **三个都是同一个判据能抓的：**看它旁边是谁**。三个都靠「名字听起来像什么」骗过我一次。**
 
 **所以那条判据不是「别相信名字」，而是**名字只能提出假设，连号才能确认**。**
+
+
+---
+
+## 366. 连号判据扫全 13：6 定位 / 7 未知；`Multi` 是第四个误读
+
+> R942。**改产品代码 +13 用例。** 套件 **2036 通过 / 0 失败 / 0 跳过**。
+
+### 一、第一次扫描是噪声
+
+```
+AddToCart d__36 邻居: CastIterator, CheckForUpdatesAsync, ExpandBufferAsync
+```
+
+**序号**按类编**，`d__36` 在很多类里同时存在 → 连号判据只在**同一条描述符字符串内**成立。**
+
+### 二、按类内读
+
+| 名字 | 序号 | 邻居 | 类 |
+|---|---|---|---|
+| `AddToCart` | 36 | `GetCsrf`/`GetCheckout`/`GetCheckoutHtml` | 网页结账 |
+| `AddToCartApp`/`AppDw` | 41/42 | `StartAppFast`/`GetSessionDw`/`GetCartDw` | App 会话 |
+| `AddToCartDummy`/**`Multi`** | 46/47 | `GetProduct`/`RemoveDummy` | **PopMart 抽签** |
+| `AddToCartPreload` | 90 | `HandleOutOfStock` | 商品库存 |
+
+### 三、第四个误读
+
+**`AddToCartMulti` 记成「通用多件车」是错的 —— 它是 **PopMart 的「加多个盒」**。**
+
+### 四、七个定不了位
+
+**`Box`/`GraphQL`/`PreloadGraphQL`/`Next`/`Astro`/`Svelte`/`Frontend` 未出现在连号 run 里 ——
+描述符扫描截断，所以缺席 ≠ 未知。**
+
+### 五、数字
+
+| 度量 | R941 | R942 |
+|---|---|---|
+| 套件 | 2023 | **2036** |
+| 产物陈旧度 | 8 / 832 | **9 / 916** |
+| **连号定位** | 0 / 13 | **6 / 13** |
+| **被纠正的名字** | 3 | **4** |
+
+### 六、验证
+
+```
+analysis/ida.py（类内连号解析）-> 6 个名字带类与邻居
+test --filter AddToCartPlacementTests -> 13 通过
+metrics_report.py             -> 2036 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **7 个未定位名字的类**：**Unknown** —— 描述符扫描截断。
+- **`AddToCartPreload` 属哪个站**：**Unknown** —— 只知道商品库存类。
+- **是否还有第 5 个误读**：**Unknown** —— 只能对已定位的 6 个下结论。
+
+### 八、教训
+
+**同一个判据，用错范围就变成噪声：连号在类内有意义，在全镜像范围内没有。**
+
+**而它的表现是给出一个看起来很像答案的表 —— `AddToCart` 旁边是 `CastIterator`，
+读起来像「它属于框架迭代器类」，一个完全错误但语法通顺的结论。**
+
+**所以判据用错范围时不会报错，它会**给出一个答案**。**

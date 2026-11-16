@@ -45,7 +45,9 @@ public static class AddToCartCoverage
         // a placeholder item added early and removed later -- cart priming. The name is about the item, not the call.
         ("AddToCartDummy", false, "named only: cart priming with RemoveDummy, not a dry run"),
         ("AddToCartGraphQL", true, "GraphQL transport"),
-        ("AddToCartMulti", true, "multi-item cart"),
+        // R942: adjacency puts this in PopMart's class beside AddToCartDummy and RemoveDummy, so it is add-many-boxes
+        // rather than a generic multi-item cart. The fourth misfiling in four rounds.
+        ("AddToCartMulti", true, "PopMart add-many-boxes, not a generic multi-item cart"),
         ("AddToCartPreload", true, "cart preload"),
         ("AddToCartPreloadGraphQL", true, "preload over GraphQL"),
         ("AddToCartNext", false, "surface exists, step does not: the cart endpoint is per shop, not per framework"),

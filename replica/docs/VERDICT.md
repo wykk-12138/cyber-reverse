@@ -55959,3 +55959,56 @@ CheckFanRewardStat · EnterSweepStakesRaffle
 > **三轮，三个名字被纠正：`Frontend`（伞）· `Box`（PopMart 一步）· `Dummy`（占位不是空）。
 > 三个都是**同一个判据**能抓的：**看它旁边是谁**。**
 > **所以那条判据不是「别相信名字」，而是**名字只能提出假设，连号才能确认**。**
+
+
+---
+
+## 第 942 轮：连号判据扫全 13 个 —— 第四个误读是 `AddToCartMulti`
+
+### 第一次扫描给出的是噪声
+
+```
+AddToCart  d__36  邻居: CastIterator, CheckForUpdatesAsync, ExpandBufferAsync
+```
+
+> **序号按类编，`d__36` 在很多类里同时存在。连号判据只在**同一条描述符字符串内**成立。**
+
+### 按类内读，六个自己就位
+
+| 名字 | 序号 | 邻居 | 类 |
+|---|---|---|---|
+| `AddToCart` | 36 | `GetCsrf`/`GetCheckout`/`GetCheckoutHtml` | 网页结账 |
+| `AddToCartApp` | 41 | `StartAppFast`/`GetSessionDw`/`GetCartDw` | App 会话 |
+| `AddToCartAppDw` | 42 | 同上 | App 会话 |
+| `AddToCartDummy` | 46 | `GetProduct`/`Multi`/`RemoveDummy` | PopMart 抽签 |
+| **`AddToCartMulti`** | **47** | **同 Dummy** | **PopMart 抽签** |
+| `AddToCartPreload` | 90 | `HandleOutOfStock` | 商品库存 |
+
+### 第四个误读
+
+**`AddToCartMulti` 我一直记成「通用多件车」。它和 `Dummy`/`RemoveDummy` 同类 —— 是 **PopMart 的「加多个盒」**。**
+
+> **四轮四个名字：`Frontend`（伞）· `Box`（PopMart 一步）· `Dummy`（占位）· `Multi`（PopMart 多盒）。
+> 四个里两个通用、两个 PopMart —— 而我最初把四者当成同一种东西。**
+
+### 七个定不了位
+
+**`Box` · `GraphQL` · `PreloadGraphQL` · `Next` · `Astro` · `Svelte` · `Frontend` 未出现在连号 run 里。**
+
+> **那不是「不存在」的证据 —— 描述符扫描本身截断。缺席 ≠ 未知（R939 同一纪律）。**
+
+### 数字
+
+| 度量 | R941 | **R942** |
+|---|---|---|
+| 套件 | 2023 | **2036** |
+| 产物陈旧度 | 8 / 832 | **9 / 916** |
+| 连号定位 | 0 / 13 | **6 / 13** |
+| 被纠正的名字 | 3 | **4** |
+
+### 教训
+
+> **同一个判据，用错范围就变成噪声：连号在**类内**有意义，在**全镜像**范围内没有。
+> 而它的表现是**给出一个看起来很像答案的表** —— 读起来像「它属于框架迭代器类」，
+> 一个完全错误但语法通顺的结论。**
+> **所以判据用错范围时不会报错，它会**给出一个答案**。**

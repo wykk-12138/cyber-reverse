@@ -17350,3 +17350,94 @@ where_is Forter              -> AntiBotVendors.cs 17 处（厂商表）
 **这是 R869 之后第一次，我在**动手之前**判定「这个改动会制造看起来完成的东西」。**
 
 **代价是这一轮没有产品代码改动。收益是 `TaskKinds.cs` 仍然只声称它证明的了的东西。**
+
+
+---
+
+## 307. `!Getter` 枚举出 508 个类型；而它把 `Task.Type` 这个悬案解了
+
+> R883。**新增基线文件，不改产品代码。**
+
+### 一、枚举结果
+
+```
+2,587 个 (声明类型, 属性名, 访问器) 三元组 · 508 个声明类型
+-> replica/docs/baseline/recovered_accessors_by_type.txt（带出处与边界说明）
+```
+
+**分布：`Cybersole.Ui.Views.*` 60 · `Cybersole.Models.*` 22 · `Cybersole.SmartActions.*` ·
+`Cybersole.Global.Settings` 21 属性 · **`Cybersole.Stores.*` 0**。**
+
+### 二、`Task.Type` 悬案解了
+
+**R364 起 `BotTask.Task` 的类型是 Unknown；R858 还发现 `BotTask` 里有个没人写的死字段 `Type`。**
+
+```
+Cybersole.Models.Drop   2 props   Time, Type
+```
+
+**`Type` 不在 task 上，在 `Drop` 上。而 `Drop` **只有** `Time` 与 `Type`。**
+
+**所以那个 Unknown 的答案不是「`Task.Type` 是什么类型」，而是**「`Type` 属于另一个对象」**。**
+
+**而 `CreateModel` 的 8 个属性里**没有 `Type`**：
+`AccountGroup` · `AccountSelectionMode` · `IsEditing` · `MonitorDelay` · `MonitorMode` ·
+`ProxyGroup` · `RetryDelay` · `StartTime`。**
+
+**→ 任务创建模型不带类型；类型挂在关联的 `Drop` 上。**
+
+**这是六十轮的 Unknown 变成「换个对象找」的一句话。**
+
+### 三、R504 那堵墙的边界现在准确了
+
+**`Cybersole.Stores.*` 在这个清单里是 **0**。**
+
+**可见类型全是运行时为了**绑定**要物化的成员：Avalonia 控件、视图模型、Models。
+**`Stores` 里的流程类不参与绑定，所以不产生这种字面量。** **
+
+**所以 R504 是对的，但边界比当时更准：不是「全都拿不到」，
+是「**只有参与绑定的成员拿得到**」。**
+
+**而这对 R882 的 ordinal→类 问题**没有帮助** —— 流程类正在拿不到的那一半里。**
+
+### 四、顺带拿到的模型
+
+| 类型 | 属性 |
+|---|---|
+| `Cybersole.Models.Store` | **只有 `Url`** |
+| `Cybersole.Global.Settings` | 21：`BrowserLimit` `MonitorConcurrency` `QueuePresentation` `SmartActions` `TaskGroupOrder` `BackupInterval` … |
+| `Cybersole.Models.TaskGroup` | 9：`CaptchaSource` `CheckoutLimit` `CloudflareSolverId` `LinkedDelays` `ProfileLimit` `TotalCheckouts` `TotalDeclines` `UsageExpiry` `MonitorDelay` |
+| `Cybersole.Models.BaseCheckout` | `Properties` · `Timestamp` |
+
+**`TaskGroup` 那 9 个属性对复刻件直接有用：`CaptchaSource` / `CloudflareSolverId` 是优先级 ② 的，
+`CheckoutLimit` / `ProfileLimit` 是调度层的。**
+
+### 五、验证
+
+```
+idautils.Strings() 全量 + 正则 ([A-Za-z_][\w.<>`+\[\], ]*?),([A-Za-z_][\w.<>`]*?)!(Getter|Setter|Property)
+  -> 2587 raw / 2587 distinct triples / 508 types
+写入 replica/docs/baseline/recovered_accessors_by_type.txt（含 11 行出处与边界说明头）
+Cybersole.Stores.*  -> 0 types
+Cybersole.Models.Drop -> Time, Type
+本轮未改产品代码；套件沿用 1780
+```
+
+### 六、仍然 Unknown
+
+- **`Drop` 与 task 的关联方式**：**Unknown** ——
+  **`Drop` 有 `Time`/`Type`，`CreateModel` 有 `StartTime`，两者怎么连起来没有证据。**
+- **`Drop.Type` 的实际取值**：**Unknown** ——
+  **名字只说是「类型」，而 14 个 `FlowKind` 是否就是它的取值，未证。**
+- **流程类为什么不在这个清单里**：**Inference** ——
+  **「不参与绑定所以不物化」是我从「Stores 为 0」反推的，而反推不是观察。**
+
+### 七、教训
+
+**这个形态 R859 就发现了，我当时只用一个类型（`AccountStoreType`）验证了一下，然后走了。
+六十轮后才回来把它枚举完。**
+
+**代价是这六十轮里 `Task.Type` 一直是 Unknown、R504 的边界一直说得太宽。**
+
+**所以「发现一个形态」和「把它枚举完」是两件事，而我只做了前一件。
+一条正则、一次全量扫，成本十分钟 —— 而我把它留了六十轮。**

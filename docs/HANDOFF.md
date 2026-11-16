@@ -480,3 +480,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **所以 `FlowKind × Store → StoreFlow` 映射表本轮**不写** —— 没证据的映射表 = 把「看起来接了」当「接了」。**
 **字段收获**：`_accountKasada`（Kasada token 账号级）· `_forter` · `_marketPlace`/`_locationId`/`_locationData`（门店模型）。
 **下一步：查 ordinal→类 的映射手段（R504 那堵墙可能也挡）。**
+
+## R883 补充 — `!Getter` 枚举：508 个类型（**新增基线文件，未改产品代码**）
+
+**`replica/docs/baseline/recovered_accessors_by_type.txt`**：2,587 三元组 / 508 类型，带出处与边界头。分布 `Ui.Views` 60 · `Models` 22 · **`Stores` 0**。
+**`Task.Type` 悬案解了**：`Cybersole.Models.Drop { Time, Type }` —— **`Type` 属于 `Drop` 不属于 task**；`CreateModel` 8 属性无 `Type`。
+**R504 边界更正**：不是「全都拿不到」，是「**只有参与绑定的成员拿得到**」（`Stores` 为 0 即证）。**对 R882 的 ordinal→类 无帮助。**
+**顺带**：`Store` 只有 `Url`；`Global.Settings` 21；**`TaskGroup` 9（含 `CaptchaSource`/`CloudflareSolverId` → 优先级 ②）**。
+**纪律：发现一个形态 ≠ 把它枚举完（R859 → R883 隔六十轮，成本十分钟）。**

@@ -52841,3 +52841,54 @@ DocsConsistencyTests 8 通过 · 新测试首跑红（13→16）· 复核后改 
 > **这一轮我有机会写一张看起来很有价值的映射表，让 `TaskKinds.cs` 从「清单」变成「接上了」。我没写，因为查的时候发现证据粒度不够。**
 > **这是 R869 之后第一次，我在**动手之前**判定「这个改动会制造看起来完成的东西」。**
 > **代价是本轮没有产品代码改动。收益是 `TaskKinds.cs` 仍然只声称它证明的了的东西。**
+
+
+---
+
+## 第 883 轮：`!Getter` 枚举出 508 个类型，而它把 `Task.Type` 悬案解了
+
+### 枚举
+
+```
+2,587 个 (声明类型, 属性, 访问器) 三元组 · 508 个声明类型
+-> replica/docs/baseline/recovered_accessors_by_type.txt（含出处与边界说明）
+```
+
+**`Cybersole.Ui.Views.*` 60 · `Cybersole.Models.*` 22 · **`Cybersole.Stores.*` 0**。**
+
+### `Task.Type` 悬案解了
+
+**R364 起 `BotTask.Task` 的类型是 Unknown；R858 发现还有个没人写的死字段 `Type`。**
+
+```
+Cybersole.Models.Drop   2 props   Time, Type
+```
+
+**`Type` 不在 task 上，在 `Drop` 上；而 `Drop` 只有这两个属性。**
+
+> **那个 Unknown 的答案不是「`Task.Type` 是什么类型」，而是「**`Type` 属于另一个对象**」。**
+> **而 `CreateModel` 的 8 个属性里没有 `Type` → 任务创建模型不带类型，类型挂在关联的 `Drop` 上。**
+
+### R504 那堵墙的边界现在准确了
+
+**`Cybersole.Stores.*` 是 0。可见类型全是运行时为**绑定**要物化的成员。**
+
+> **R504 是对的，但边界更准：不是「全都拿不到」，是「**只有参与绑定的成员拿得到**」。**
+> **而这对 R882 的 ordinal→类 问题没有帮助 —— 流程类正在拿不到的那一半里。**
+
+### 顺带拿到的模型
+
+**`Store` 只有 `Url`** · **`Global.Settings` 21 个**（`BrowserLimit` `MonitorConcurrency` `QueuePresentation` `SmartActions` `TaskGroupOrder`…）·
+**`TaskGroup` 9 个**（`CaptchaSource` `CheckoutLimit` `CloudflareSolverId` `ProfileLimit` `TotalCheckouts` `TotalDeclines` `UsageExpiry`…）
+**→ `CaptchaSource`/`CloudflareSolverId` 直接属于优先级 ②，`CheckoutLimit`/`ProfileLimit` 属于调度层。**
+
+### 仍然 Unknown
+
+**`Drop` 与 task 的关联方式** · **`Drop.Type` 的取值是否就是 14 个 `FlowKind`** ·
+**流程类为何不在此清单**（Inference：「不参与绑定所以不物化」是反推，不是观察）
+
+### 教训
+
+> **这个形态 R859 就发现了，我当时只用一个类型验证了一下就走了。六十轮后才回来枚举完。**
+> **代价是这六十轮里 `Task.Type` 一直是 Unknown、R504 的边界一直说得太宽。**
+> **「发现一个形态」和「把它枚举完」是两件事，而我只做了前一件 —— 一条正则、一次全量扫，成本十分钟，我留了六十轮。**

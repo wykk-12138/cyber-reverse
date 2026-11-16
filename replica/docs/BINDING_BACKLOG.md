@@ -3946,3 +3946,36 @@ StartRaffleFlow StartReservationFlow StartRpcFlow StartSignupFlow StartTasksFlow
 | 两风控同模型 = 同时用两家？ | Inference |
 
 **纪律**：**有证据的缺席，好过没证据的接线。**
+
+
+## 判据 — `!Getter` 枚举：508 个类型（R883）
+
+**新增基线 `replica/docs/baseline/recovered_accessors_by_type.txt`**：`2,587` 三元组 / `508` 类型，带出处与边界说明头。
+
+**分布**：`Cybersole.Ui.Views.*` 60 · `Cybersole.Models.*` 22 · **`Cybersole.Stores.*` 0**
+
+### `Task.Type` 悬案解了（R364 → R883）
+
+```
+Cybersole.Models.Drop   2 props   Time, Type
+Cybersole.Models.CreateModel 8 props  AccountGroup … StartTime（无 Type）
+```
+
+**→ `Type` 属于 `Drop`，不属于 task。那个 Unknown 的答案是「换个对象找」。**
+
+### R504 边界更正
+
+**`Stores` 为 0 → R504 不是「全都拿不到」，是「**只有参与绑定的成员拿得到**」。
+→ 对 R882 的 ordinal→类 无帮助（流程类在拿不到的那一半）。**
+
+### 顺带
+
+**`Store` 只有 `Url`** · **`Global.Settings` 21** · **`TaskGroup` 9**（`CaptchaSource`/`CloudflareSolverId` 属优先级 ②，`CheckoutLimit`/`ProfileLimit` 属调度层）
+
+| 仍 Unknown | |
+|---|---|
+| `Drop` 与 task 怎么关联 | `CreateModel.StartTime` vs `Drop.Time` 未连 |
+| `Drop.Type` 取值是否 = 14 个 `FlowKind` | 未证 |
+| 流程类为何不在清单 | Inference（反推） |
+
+**纪律**：**发现一个形态 ≠ 把它枚举完。R859 到 R883 隔了六十轮，成本十分钟。**

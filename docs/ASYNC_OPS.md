@@ -1790,3 +1790,63 @@ NativeAOT 把方法名字面量集中放，不按类分块。**
 与 PopMart 的 ordinal 属于同一个类」的证据。而 blob 共享给不出这个。**
 
 **所以映射表这一轮**不写**。写它就是拿 blob 相邻当归属，重犯 R876。**
+
+
+### `!Getter` 形态给出一份**类型清单**，而它顺手解了悬了六十轮的 `Task.Type`（R883）
+
+**R859 发现过 `<Type>,<Prop>!Getter` 这个形态。这一轮把它枚举完：**
+
+```
+2,587 个 (声明类型, 属性名, 访问器) 三元组
+  508 个声明类型
+存成 docs/baseline/recovered_accessors_by_type.txt（带出处与边界说明）
+```
+
+**分布：`Cybersole.Ui.Views.*` 60 个类型 · `Cybersole.Models.*` 22 个 · `Cybersole.SmartActions.*` ·
+`Cybersole.Global.Settings`（21 属性）· **`Cybersole.Stores.*` 0 个**。**
+
+### 它解了 `Task.Type`
+
+**R364 起 `BotTask.Task` 的类型一直是 Unknown；R858 发现 `BotTask` 里还有**一个没人写的死字段 `Type`**。**
+
+**现在：**
+
+```
+Cybersole.Models.Drop   2 props   Time, Type
+```
+
+**`Type` 不在 task 上，**在 `Drop` 上**。而 `Drop` 只有 `Time` 与 `Type` 两个属性 ——
+这是一个「什么时候、哪种」的模型。**
+
+**所以 R364 那个 Unknown 的答案不是「`Task.Type` 是什么类型」，
+而是「**`Type` 属于另一个对象**」。**
+
+**而 `Cybersole.Models.CreateModel` 8 个属性里**没有 `Type`**：**
+
+```
+AccountGroup · AccountSelectionMode · IsEditing · MonitorDelay · MonitorMode
+ProxyGroup · RetryDelay · StartTime
+```
+
+**所以「任务创建模型」不带类型；类型挂在它关联的 `Drop` 上。**
+
+### 它同时也说明 R504 那堵墙的**准确边界**
+
+**`Cybersole.Stores.*` 在这个清单里是 **0**。**
+
+**所以可见的类型都是运行时为了**绑定**需要物化的成员：Avalonia 控件、视图模型、Models。
+**`Stores` 里的流程类不参与绑定，所以它们的属性不产生这种字面量。**
+
+**→ R504 说的「类型信息拿不到」是对的，但边界比当时说的更准：
+不是「全都拿不到」，是「**只有参与绑定的成员拿得到**」。**
+
+**而这对 R882 那个 ordinal→类 的问题**没有帮助** —— 因为流程类正在拿不到的那一半里。**
+
+### 顺带拿到的东西
+
+| 类型 | 属性 |
+|---|---|
+| `Cybersole.Models.Store` | **只有 `Url`** —— 一个很窄的模型 |
+| `Cybersole.Global.Settings` | 21 个，含 `BrowserLimit` `MonitorConcurrency` `QueuePresentation` `SmartActions` `TaskGroupOrder` |
+| `Cybersole.Models.TaskGroup` | 9 个，含 `CaptchaSource` `CheckoutLimit` `CloudflareSolverId` `ProfileLimit` `TotalCheckouts` `TotalDeclines` `UsageExpiry` |
+| `Cybersole.Models.BaseCheckout` | `Properties` · `Timestamp` |

@@ -117,13 +117,17 @@ def signatures(path):
                 per_func.setdefault(begin, set()).add(content)
 
     sigs = Counter()
+    by_func = {}
     for begin, _end in funcs:
         s = per_func.get(begin)
         if not s:
             sigs["EMPTY"] += 1
+            by_func[begin] = "EMPTY"
         else:
-            sigs[hashlib.sha1(("|".join(sorted(s))).encode()).hexdigest()] += 1
-    return funcs, sigs
+            h = hashlib.sha1(("|".join(sorted(s))).encode()).hexdigest()
+            sigs[h] += 1
+            by_func[begin] = h
+    return funcs, sigs, by_func
 
 
 def main():
@@ -132,8 +136,8 @@ def main():
             print("missing: %s" % p)
             return 1
 
-    fa, sa = signatures(A)
-    fb, sb = signatures(B)
+    fa, sa, by_a = signatures(A)
+    fb, sb, by_b = signatures(B)
     print("5.18.32  functions %d   signatures %d  (distinct non-empty %d)"
           % (len(fa), sum(sa.values()), len([k for k in sa if k != "EMPTY"])))
     print("5.18.35  functions %d   signatures %d  (distinct non-empty %d)"
@@ -161,7 +165,16 @@ def main():
         fh.write("funcs_32\t%d\nfuncs_35\t%d\n" % (len(fa), len(fb)))
         fh.write("empty_32\t%d\nempty_35\t%d\n" % (empty_a, empty_b))
         fh.write("identical\t%d\nonly_32\t%d\nonly_35\t%d\n" % (both, only_a, only_b))
+    # persist which 5.18.32 functions have a signature that also exists in 5.18.35
+    keep = set(nz_b)
+    stable = sorted(begin for begin, h in by_a.items() if h != "EMPTY" and h in keep)
+    with io.open(r"D:\projects\cyber-reverse\analysis\stable_functions.txt", "w",
+                 encoding="utf-8", newline="\n") as fh:
+        fh.write("# 5.18.32 function RVAs whose string signature also exists in 5.18.35 (R729)\n")
+        for rva in stable:
+            fh.write("%x\n" % rva)
     print()
+    print("stable function list written : %d entries" % len(stable))
     print("wrote %s" % OUT)
     return 0
 

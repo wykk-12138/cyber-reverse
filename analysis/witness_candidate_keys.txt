@@ -1,0 +1,130 @@
+# witness candidates and the locale keys they load (R729)
+0x14125fc80	22	KeyBinds.Billing.Add, KeyBinds.Billing.Clone, KeyBinds.Billing.Delete, KeyBinds.Billing.New, KeyBinds.Proxies.Add, KeyBinds.Proxies.Clone
+0x1410e2b60	7	TimeAgo.DaysAgoFormat, TimeAgo.HoursAgoFormat, TimeAgo.JustNow, TimeAgo.MinutesAgoFormat, TimeAgo.OneDayAgo, TimeAgo.OneHourAgo
+0x1405d9c60	7	TaskGroup.TimeSpan.12Hour, TaskGroup.TimeSpan.1Day, TaskGroup.TimeSpan.1Hour, TaskGroup.TimeSpan.30Minutes, TaskGroup.TimeSpan.3Hour, TaskGroup.TimeSpan.6Hour
+0x1406e1430	7	TaskGroup.TimeSpan.12Hour, TaskGroup.TimeSpan.1Day, TaskGroup.TimeSpan.1Hour, TaskGroup.TimeSpan.30Minutes, TaskGroup.TimeSpan.3Hour, TaskGroup.TimeSpan.6Hour
+0x1406f8ff0	7	ExpressionView.Column.Expression, ExpressionView.Column.Output, ExpressionView.EnterExpression, ExpressionView.ResultPlaceholder, ExpressionView.Subtitle, ExpressionView.TestHere
+0x1406d8d30	6	Proxies.Action.Add, Proxies.Action.ClearAll, Proxies.Action.More, Proxies.More.ClearFailed, Proxies.More.ClearOver, Proxies.More.Test
+0x14063bcf0	6	Settings.CloudflareSolvers.AddSolver, Settings.CloudflareSolvers.EmptySubtitle, Settings.CloudflareSolvers.EmptyTitle, Settings.CloudflareSolvers.Name, Settings.CloudflareSolvers.Subtitle, Settings.CloudflareSolvers.Title
+0x140579e40	5	Common.Cancel, Common.Delete, Utilities.StoreGroups.Delete.MessageFormat, Utilities.StoreGroups.Delete.TitleFormat, Utilities.StoreGroups.Delete.UsedMessageFormat
+0x140654480	5	Common.Disabled, Common.Hour12, Common.Hour24, Settings.General.UpdateChannel.Beta, Settings.General.UpdateChannel.Release
+0x1406a8070	4	Creator.Cloudflare.Create, Creator.Cloudflare.EnterApiKey, Creator.Cloudflare.Save, Creator.Cloudflare.SelectProvider
+0x140601620	4	Common.Cancel, Common.Yes, SmartActions.ChangeTrigger.Message, SmartActions.ChangeTrigger.Title
+0x140594500	4	TaskCreator.Button.CreateTask, TaskCreator.Button.CreateTasksFormat, TaskCreator.Button.SaveTask, TaskCreator.Button.SaveTasksFormat
+0x1406c6630	4	Creator.WebhookCreator.EnterName, Creator.WebhookCreator.EnterValidWebhook, Creator.WebhookCreator.Save, Creator.WebhookCreator.SelectPlatform
+0x14064ae10	4	Common.AreYouSure, Common.Cancel, Common.Yes, Data.Restore.Confirm.Message
+0x1407ac930	4	Common.Delete, Common.Save, GroupModal.GroupName, GroupModal.Title
+0x1407b8c00	4	Common.Later, Common.Restart, Update.Ready.Message, Update.ReadyTitleFormat
+0x140653800	4	Data.Import.Success.Message, Data.Import.Success.Title, Data.Import.Unsupported.Title, Data.Import.UnsupportedJson
+0x14069f620	4	Creator.Captcha.Create, Creator.Captcha.EnterApiKey, Creator.Captcha.Save, Creator.Captcha.SelectPlatform
+0x1405943d0	3	TaskCreator.Header.EditTask, TaskCreator.Header.EditTasks, TaskCreator.Header.NewTask
+0x14061e2b0	3	SmartActions.Filters.CountFormat, SmartActions.Filters.None, SmartActions.Filters.One
+0x14059e970	3	Common.None, TaskCreator.MonitorInput.Default, TaskCreator.MonitorInput.Multiple
+0x1406000e0	3	SmartActionsCreator.ActionOne, SmartActionsCreator.ActionsFormat, SmartActionsCreator.NoActions
+0x1406001a0	3	SmartActionsCreator.Complete, SmartActionsCreator.MissingActions, SmartActionsCreator.MissingTrigger
+0x140600020	3	SmartActionsCreator.FilterOne, SmartActionsCreator.FiltersFormat, SmartActionsCreator.NoFilters
+0x1406cb910	3	Proxies.DeleteConfirm.ActionFormat, Proxies.DeleteConfirm.MessageFormat, Proxies.DeleteConfirm.TitleFormat
+0x14064afc0	3	Common.AreYouSure, Data.Reset.Button, Data.Reset.Message
+0x1405b9d20	3	Common.Close, Tasks.LinkChange.InvalidMessage, Tasks.LinkChange.InvalidTitle
+0x140653b0b	3	Common.Close, Data.Import.Fail.Message, Data.Import.Fail.Title
+0x140695fe0	3	Common.Close, Settings.WebhookTest.Message, Settings.WebhookTest.Title
+0x1407b8760	3	Common.Close, Update.Latest.Message, Update.Latest.Title
+0x1407b8d20	3	Common.Close, Update.Failed.MessageFormat, Update.Failed.Title
+0x1407b8820	3	Common.Download, Common.Later, Update.AvailableTitleFormat
+0x1405aa350	3	GroupModal.GroupName, Modal.NewGroup.Button, Modal.NewGroup.Title
+0x1406cbe80	3	GroupModal.GroupName, Modal.NewGroup.Button, Modal.NewGroup.Title
+0x1406e9540	3	GroupModal.GroupName, Modal.NewGroup.Button, Modal.NewGroup.Title
+0x14065ebf0	3	Accounts.DeleteConfirm.ActionFormat, Accounts.DeleteConfirm.MessageFormat, Accounts.DeleteConfirm.TitleFormat
+0x1406686f0	3	Accounts.DeleteConfirm.ActionFormat, Accounts.DeleteConfirm.MessageFormat, Accounts.DeleteConfirm.TitleFormat
+0x140686230	3	Accounts.DeleteConfirm.ActionFormat, Accounts.DeleteConfirm.MessageFormat, Accounts.DeleteConfirm.TitleFormat
+0x140797d30	3	Accounts.DeleteConfirm.ActionFormat, Accounts.DeleteConfirm.MessageFormat, Accounts.DeleteConfirm.TitleFormat
+0x140797f30	3	Accounts.EditPassword.Button, Accounts.EditPassword.Placeholder, Accounts.EditPassword.TitleFormat
+0x1407b8e20	3	ProxyTester.Custom.Button, ProxyTester.Custom.Placeholder, ProxyTester.Custom.Title
+0x1407a8450	3	Accounts.Group.DeleteConfirm.ActionFormat, Accounts.Group.DeleteConfirm.MessageFormat, Accounts.Group.DeleteConfirm.TitleFormat
+0x1405aaa60	3	Tasks.DeleteConfirm.ActionFormat, Tasks.DeleteConfirm.MessageFormat, Tasks.DeleteConfirm.TitleFormat
+0x1405e7f50	3	ActionsModal.Empty, ActionsModal.SearchPlaceholder, ActionsModal.Title
+0x140773371	3	Auth.Login.Error.Denied, Auth.Login.Error.Expired, Auth.Login.Error.Failed
+0x1406688a0	3	Settings.Aycd.Disconnect.Action, Settings.Aycd.Disconnect.Message, Settings.Aycd.Disconnect.Title
+0x14068d060	3	Settings.Aycd.NotConnected, Settings.Imap.Status.Connected, Settings.Imap.Status.Connecting
+0x1406e9190	3	Profiles.DeleteConfirm.ActionFormat, Profiles.DeleteConfirm.MessageFormat, Profiles.DeleteConfirm.TitleFormat
+0x1407b8ac0	3	Update.DownloadingFormat, Update.DownloadingTitleFormat, Update.Hide
+0x14068cf60	3	Settings.Google.Status.Checking, Settings.Google.Status.LoggedIn, Settings.Google.Status.LoggedOut
+0x14068ce20	3	Settings.Imap.Status.Connected, Settings.Imap.Status.Connecting, Settings.Imap.Status.Disconnected
+0x14061e3b0	2	SmartActions.Actions.MoreFormat, SmartActions.Actions.None
+0x14068a3a0	2	Settings.PayPal.Inactive, Settings.PayPal.NoProxy
+0x1405ffd50	2	SmartActionsCreator.BehaviourFormat, SmartActionsCreator.ContinueIf
+0x1405fffa0	2	SmartActionsCreator.NoTrigger, SmartActionsCreator.TriggerFormat
+0x140641190	2	Settings.Sizes.DeleteConfirm.MessageFormat, Settings.Sizes.DeleteConfirm.TitleFormat
+0x1406458f0	2	Settings.Stores.DeleteConfirm.MessageFormat, Settings.Stores.DeleteConfirm.TitleFormat
+0x1406da4c0	2	Proxies.More.SelectSite, Proxies.More.Test
+0x14067e0d0	2	Common.No, Common.Yes
+0x1405750f0	2	Utilities.StoreGroups.Modal.Error.Duplicate, Utilities.StoreGroups.Modal.Error.NoName
+0x1407a08a0	2	Accounts.Action.Add, Accounts.Action.Clear
+0x140574d50	2	Utilities.StoreGroups.Modal.Title.Edit, Utilities.StoreGroups.Modal.Title.New
+0x1405c52e0	2	TaskGroups.Context.PinFormat, TaskGroups.Context.UnpinFormat
+0x1406cbbe0	2	ProxyTester.Test.Button, ProxyTester.Test.Placeholder
+0x140653330	2	Data.Backup.Message, Data.Backup.Title
+0x14065378a	2	Data.Export.Fail.Message, Data.Export.Fail.Title
+0x1406534b0	2	Data.Export.Success.Message, Data.Export.Success.Title
+0x14065400f	2	Data.Restore.Failed.Message, Data.Restore.Failed.Title
+0x140653be0	2	Data.Restore.Success.Message, Data.Restore.Success.Title
+0x1406f7160	2	Profiles.Action.Add, Profiles.Action.Clear
+0x14061e750	1	SmartActions.Filters
+0x14061e0e0	1	SmartActions.LastRun.Format
+0x1405ffe70	1	SmartActionsCreator.Input
+0x1406d5f50	1	Proxies.More.SuffixMs
+0x14056ad30	1	Empty.Nothing.Title
+0x14064b110	1	Common.Close
+0x1407461c0	1	Common.Delete
+0x1406d7e50	1	Common.None
+0x1407b9030	1	ProxyTester.Custom.InvalidUrl
+0x1406fbc90	1	ExpressionView.Copy
+0x1406fc680	1	ExpressionView.Copy
+0x1406cbd60	1	ProxyTester.Test.Title
+0x1406cbde0	1	ProxyTester.TestAll.Title
+0x1406fc250	1	ExpressionView.Refresh
+0x14076d2f0	1	Auth.License.PlaceholderName
+0x14076b23a	1	Auth.Login.Error.Connection
+0x14076b4a8	1	Auth.Login.Error.Connection
+0x140772d40	1	Auth.Login.Error.Connection
+0x1407733ee	1	Auth.Login.Error.Connection
+0x14072f940	1	Monitor.Filters.Title
+0x1407047c0	1	ProfileCreator.Bulk.MultipleValues
+0x1407f4740	1	CloudflareSolver.Default
+0x140fa4c20	1	CloudflareSolver.Default
+0x141263b30	1	CloudflareSolver.Default
+0x141263b70	1	CloudflareSolver.Default
+0x14070ec20	1	ProfileCsv.AllColumns
+0x140721030	1	ProfileCsv.Clipboard
+0x14062ff70	1	Settings.Appearance.SuffixPx
+0x140f771e0	1	ProfileCsv.Error.Boolean
+0x140f76f90	1	ProfileCsv.Error.Month
+0x140f76e80	1	ProfileCsv.Error.NameRequired
+0x140f77350	1	ProfileCsv.Error.UnknownCountry
+0x140f777e0	1	ProfileCsv.Error.UnknownState
+0x140f77060	1	ProfileCsv.Error.Year
+0x140715020	1	ProfileCsv.Status.DiscardConfirm
+0x14071fd80	1	ProfileCsv.Status.Exported
+0x140714980	1	ProfileCsv.Status.FixErrors
+0x1407145a0	1	ProfileCsv.Status.IgnoredColumns
+0x140f75ee0	1	ProfileCsv.Status.NoHeader
+0x140713888	1	ProfileCsv.Status.ParseFailed
+0x140720f8a	1	ProfileCsv.Status.ParseFailed
+0x1407134e8	1	ProfileCsv.Status.RegexInvalid
+0x140713230	1	ProfileCsv.Status.Replaced
+0x1405f9ad0	1	HistoryWindow.EmptyInput
+0x140589ba0	1	Cart.AddInput
+0x14068d720	1	Update.CheckForUpdates
+0x140f59d80	1	Update.CheckForUpdates
+0x140f59af0	1	Update.DownloadFormat
+0x1407b8230	1	Update.DownloadingFormat
+0x140f59ec0	1	Update.DownloadingFormat
+0x140f5aee0	1	Update.DownloadingFormat
+0x140f59c50	1	Update.InstallFormat
+0x1405e3a40	1	Settings.General.SuffixMs
+0x14065ded0	1	Settings.General.SuffixMs
+0x1405e3cb0	1	Settings.General.SuffixSec
+0x14065e160	1	Settings.General.SuffixSec
+0x14069ee50	1	Settings.General.SuffixSec
+0x140790b10	1	Release.AddTasks
+0x14078f480	1	Release.Empty.CheckBack

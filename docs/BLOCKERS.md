@@ -10499,3 +10499,92 @@ R726 缺的是「把版本特有逻辑从见证候选里剔掉」。现在有了
 - 那 15,327 个「变了」的函数里，有多少是**真的逻辑改动**、多少是**字符串被加/删导致的连带**：**Unknown**。
 - 签名相同的那 75,897 个里有多少**行为真相同**：**Unknown**（必要非充分）。
 - 无字符串引用的 69.9% 该怎么筛：**Unknown**（需要另一种重排不变的特征，如调用图指纹）。
+
+
+---
+
+## 158. 第一个由「稳定见证」选出来的函数：相对时间格式化器，**复刻件里原本没有实现**
+
+> R729。新增 `replica/src/Cybersole.Core/Reporting/RelativeTime.cs`、
+> `replica/tests/Cybersole.Tests/RelativeTimeTests.cs`（20 条）；
+> 新增 `analysis/witness_keys.py`、`analysis/witness_candidates.txt`。
+
+### 一、候选池怎么来的（全部基于已有证据）
+
+1. R720：**239 个**函数引用应用 locale 键 → 是应用代码
+2. R728：**76,547 个**函数的字符串签名两版一致 → 版本稳定
+3. **交集 = 129 个**
+
+**两条判据都不是我拍的**：一条是"引用了只有这个应用才有的字符串"，一条是"官方两个版本之间没动它的字符串引用"。
+
+### 二、用键名认职能，不靠读 200 行伪代码
+
+129 个各自的 locale 键一打印，职能自己浮出来：
+
+```
+0x14125fc80  22 keys  KeyBinds.*            → 键位注册
+0x1410e2b60   7 keys  TimeAgo.*Format       → 相对时间格式化器
+0x1405d9c60   7 keys  TaskGroup.TimeSpan.*  → 时间段选项
+0x1406d8d30   6 keys  Proxies.Action.*      → 代理工具栏
+```
+
+**这比看 prologue 有用得多。** 选 `0x1410e2b60`：纯函数、输出可断言、键名直接说明它在干什么。
+
+### 三、反编译读出分支结构
+
+```c
+v4 = now - a1;                     // TimeSpan ticks
+v5 = v4 / 864000000000;            // 整日
+if      (v5 > 1)        DaysAgoFormat(v5)
+else if (v5 == 1)       OneDayAgo
+else if (hours > 1)     HoursAgoFormat(hours)
+else if (hours == 1)    OneHourAgo
+else if (minutes > 1)   MinutesAgoFormat(minutes)
+else if (minutes == 1)  OneMinuteAgo
+else                    JustNow
+```
+
+**七个字面量偏移（`off_146EF0410/_0518/_0450/_0550/_04D0/_0590/_0498`）与目录里的七条 `TimeAgo.*` 键一一对应** ——
+这正是把它认出来的依据；单靠反编译认不出，单靠键名也认不出。
+
+### 四、复刻件里**只有文案，没有实现**
+
+```
+Cybersole.Locales.en.json   14 hits（七个键 × 两处）
+其它 .cs                    0 hits
+```
+
+**七条文案在，没有任何代码产生它们。** 四度量测不到这个（它们数成员，不数行为），
+**这是 C7c 应该抓、而四项度量抓不到的那类缺口。**
+
+### 五、实现与探针
+
+`RelativeTime.Describe(TimeSpan, Func<string,string>)`，七分支照抄；
+`RelativeTimeTests` **20 条**，期望值来自两处独立证据：反编译的分支结构 + 目录里的实际文案。
+
+**边界是重点**（`>` 与 `==` 是严格的）：
+- `59s` → just now，`60s` → 1 min，`119s` → 1 min，`120s` → 2 mins
+- `86399s` → 23 hours，`86400s` → 1 day，`172799s` → **1 day**，`172800s` → 2 days
+- `45h` → **1 day**（截断），`49h` → 2 days
+
+### 六、我标注的不确定点（不藏）
+
+**Observation**：日那一步是 `ticks / 864000000000`（整日截断）—— 反编译直读。
+**Inference（高置信）**：`sub_141D2FEB0` / `sub_141D2FFD0` 是**整小时 / 整分钟**。
+理由：与日那步同一个 `v4`、同一个 `>1`/`==1` 模式，且若读成 `TimeSpan.Hours` 的 0–23 分量，
+「3 天前」的分钟层会给出荒谬结果 —— 而日分支会先命中，所以那种读法与代码不矛盾但产出错误。
+**未排除的备择解释**：确实是 0–23 分量。**要排除它需要看那两个函数的反编译，本轮没做。**
+
+### 七、验证
+
+```
+RelativeTimeTests            20 / 20 通过
+完整套件                     1659 通过 / 0 失败（1639 + 20）
+四项度量                     4 / 0 / 17 / 78 / 0（未变 —— 本轮加的是行为不是成员）
+```
+
+### 八、仍然 Unknown
+
+- `sub_141D2FEB0` / `sub_141D2FFD0` 的确切语义：**Unknown**（未反编译，见第六节）。
+- 这个格式化器在原版里被谁调用：**Unknown**（未查 xrefs）。
+- 129 个候选里其余 128 个：**未处理**（每个都要一轮）。

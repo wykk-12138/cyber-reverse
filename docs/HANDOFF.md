@@ -1038,3 +1038,19 @@ Profiles.cs 默认 Unlimited → Both。
 纪律：发明不需要证据，而搜索只要一分钟。
 
 下一轮：StartupPage 的 6 个值同法核。
+
+## R931 补充 — StartupPage：成员名不可得，换用导航做证据（+4 用例，套件 1932）
+
+二进制只有类型名/绑定描述符/backing field/locale 键，无成员名 → R930 的搜词法只能证存在。
+
+换证据源：Nav.Home/Tasks/Proxies/Billing/Accounts/Settings —— 正好六项。
+复刻件 Home,Tasks,Accounts,Proxies,**Analytics**,Settings —— 第五个导航说 Billing，枚举说 Analytics。
+不改：AnalyticsView 也在资源索引里 → 两个界面都真；两种解释在字符串层不可分。
+
+StartupPageTests 4 例：六对六 · 五个名字（列名非计数）· 差异本身 · Home=0。
+
+数字：套件 1928 → 1932 · 类型缺失 16。
+
+纪律：方法有边界。出路是换证据源，不是换判据。
+
+下一轮：StartupPage 其余五个值的序号不可得；转其他枚举或 (a) 的剩余项。

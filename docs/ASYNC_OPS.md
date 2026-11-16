@@ -4382,3 +4382,67 @@ public enum ConcurrencyMode { Maximum = 0, Ratio = 1, Both = 2 }
 > **而两次的判据是同一个动作：**去镜像里搜那个词**。一次搜出 `<MonitorConcurrency>k__BackingField`，
 > 一次搜出 0 匹配。**
 > **发明不需要证据，而**搜索只要一分钟**。**
+
+
+### `StartupPage` 没有成员字符串 —— 所以证据是**导航**，而有一个名字对不上（R931）
+
+**R930 说下一轮用同法核 `StartupPage`。查了，而这次方法**不够用**。**
+
+### 二进制只给了这些
+
+```
+Cybersole.Global.Settings,Cybersole.Core.StartupPage!Getter / !Setter / !Property
+<StartupPage>k__BackingField
+get_StartupPage / set_StartupPage
+"Settings.General.StartupPage": "Startup Page"
+"Settings.General.StartupPage.Tooltip": "Which page to show on startup."
+```
+
+**类型名、绑定、backing field、locale 键 —— **没有一个是成员名**。**
+
+> **所以 R930 那个方法（去镜像里搜那个词）在这里只能证明「`StartupPage` 存在」，
+> 不能证明「它的六个值叫什么」。方法有边界，而这是它的边界。**
+
+### 但 locale 给了**导航** —— 而导航正好六项
+
+```
+Nav.Home · Nav.Tasks · Nav.Proxies · Nav.Billing · Nav.Accounts · Nav.Settings
+```
+
+### 而复刻件是 `Home, Tasks, Accounts, Proxies, Analytics, Settings`
+
+**六项对六项，五个字母都不差。第五个：导航说 `Billing`，枚举说 `Analytics`。**
+
+### 而这一个我没有改
+
+**因为证据只说「导航提供哪六个页面」，不说「启动选项存的是哪个值」。
+而 `AnalyticsView` 在资源索引里存在 —— **两个界面都是真的**。**
+
+> **所以可能是：`StartupPage.Billing` 是打开 Analytics 的那个键；
+> 也可能是复刻件的 `Analytics` 就是 `Billing` 的改名。**
+> **而这两种在字符串层面**完全不可分**。**
+
+**所以我钉住差异，不选一个。（R772 的教训：两种表面并存时，按一种改会被另一种否掉。）**
+
+### 新增 4 个测例
+
+| 测例 | 守什么 |
+|---|---|
+| `TheEnumHasSixValues` | 六对六 |
+| `FiveNamesMatchTheNavigation` | **列名而非计数** —— 把 A 改名成 B 时总数仍会是 5 |
+| `TheFifthNameDisagreesAndThatIsRecorded` | **差异本身** |
+| `HomeIsTheZeroValue` | 两个来源都同意的那一个 |
+
+### 数字
+
+| 度量 | R930 | **R931** |
+|---|---|---|
+| 套件 | 1928 | **1932** |
+| 类型缺失 | 16 | 16 |
+
+### 教训
+
+> **上一轮的方法这一轮用不了，而**它用了才发现**。
+> 如果我先假设「同法可核」，我会把「搜不到成员名」读成「枚举只有一个值」或者「枚举没有值」——
+> **那正是 §2.7b 说的：反向结论不能从抽样里得。**
+> **而这一轮的出路是换证据源，不是换判据：从**类型名**换到**导航**。**

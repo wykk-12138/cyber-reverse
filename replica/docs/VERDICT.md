@@ -55374,3 +55374,56 @@ public ConcurrencySettings MonitorConcurrency { get; set; } = new();
 > **两轮之内发明了两样东西，两个都被「听起来合理」保护着。
 > 而两次的判据是同一个动作：**去镜像里搜那个词** —— 一次搜出 backing field，一次搜出 0 匹配。**
 > **发明不需要证据，而搜索只要一分钟。**
+
+
+---
+
+## 第 931 轮：`StartupPage` 没有成员字符串 —— 换证据源，找到一个差异
+
+### 二进制只给了类型与绑定，没有成员名
+
+```
+Settings,Cybersole.Core.StartupPage!Getter / !Setter / !Property
+<StartupPage>k__BackingField
+"Settings.General.StartupPage": "Startup Page"
+```
+
+> **R930 那个方法（搜那个词）在这里只能证明「`StartupPage` 存在」，
+> 不能证明「它的六个值叫什么」。方法有边界。**
+
+### 但 locale 给了导航，而导航正好六项
+
+```
+Nav.Home · Nav.Tasks · Nav.Proxies · Nav.Billing · Nav.Accounts · Nav.Settings
+```
+
+### 而复刻件第五个是 `Analytics`
+
+**六对六，五个字母都不差；导航说 `Billing`，枚举说 `Analytics`。**
+
+### 而这一个我没有改
+
+**证据只说「导航提供哪六个页面」，不说「启动选项存的是哪个值」。
+而 `AnalyticsView` 在资源索引里存在 —— **两个界面都是真的**。**
+
+> **可能是 `StartupPage.Billing` 打开 Analytics；也可能是 `Analytics` 就是 `Billing` 的改名。
+> 这两种在字符串层面**完全不可分**。**
+
+**所以钉住差异，不选一个**（R772：两种表面并存时，按一种改会被另一种否掉）。
+
+### 四个测例
+
+**六对六 · 五个名字**列名而非计数** · 差异本身 · `Home` 是零值（两个来源都同意的那一个）**
+
+### 数字
+
+| 度量 | R930 | **R931** |
+|---|---|---|
+| 套件 | 1928 | **1932** |
+| 类型缺失 | 16 | 16 |
+
+### 教训
+
+> **上一轮的方法这一轮用不了，而**它用了才发现**。
+> 如果我先假设「同法可核」，我会把「搜不到成员名」读成「枚举没有值」—— 那正是 §2.7b。
+> **出路是换证据源，不是换判据：从**类型名**换到**导航**。**

@@ -20787,3 +20787,67 @@ metrics_report.py                            -> 1928 通过 / 0 失败
 **而两次的判据是同一个动作：**去镜像里搜那个词**。一次搜出 `<MonitorConcurrency>k__BackingField`，一次搜出 0 匹配。**
 
 **发明不需要证据，而搜索只要一分钟。**
+
+
+---
+
+## 355. `StartupPage`：成员名不可得，换证据源；一个差异被钉住
+
+> R931。**+4 用例，未改产品代码。** 套件 **1932 通过 / 0 失败 / 0 跳过**。
+
+### 一、二进制没有成员名
+
+```
+Settings,Cybersole.Core.StartupPage!Getter / !Setter / !Property
+<StartupPage>k__BackingField
+"Settings.General.StartupPage": "Startup Page"
+"Settings.General.StartupPage.Tooltip": "Which page to show on startup."
+```
+
+**→ R930 的搜词法只能证「类型存在」，不能证「六个值叫什么」。**
+
+### 二、换证据源：导航正好六项
+
+```
+Nav.Home · Nav.Tasks · Nav.Proxies · Nav.Billing · Nav.Accounts · Nav.Settings
+```
+
+### 三、差异
+
+**复刻件 `Home, Tasks, Accounts, Proxies, Analytics, Settings` —— 第五个导航说 `Billing`，枚举说 `Analytics`。**
+
+**不改的理由：`AnalyticsView` 也在资源索引里 → 两个界面都真；
+「`Billing` 打开 Analytics」与「`Analytics` 是 `Billing` 的改名」在字符串层不可分。**
+
+### 四、`StartupPageTests`（4 例）
+
+**六对六 · 五个名字**列名而非计数** · 差异本身 · `Home` = 0**
+
+### 五、数字
+
+| 度量 | R930 | R931 |
+|---|---|---|
+| 套件 | 1928 | **1932** |
+| 类型缺失 | 16 | 16 |
+
+### 六、验证
+
+```
+analysis/ida.py str "StartupPage"   -> 只有类型名/绑定/backing field/locale 键
+test --filter StartupPageTests      -> 4 通过
+metrics_report.py                   -> 1932 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **第五个值的真名**：**Unknown** —— 导航说 Billing，枚举说 Analytics。
+- **其余五个的数值**：**Unknown** —— 只有名字，没有序号。
+- **其余枚举**：**Unknown** —— 同法未核。
+
+### 八、教训
+
+**上一轮的方法这一轮用不了，而**它用了才发现**。**
+
+**如果我先假设「同法可核」，我会把「搜不到成员名」读成「枚举没有值」—— 那正是 §2.7b 说的反向不可用。**
+
+**出路是换证据源，不是换判据：从**类型名**换到**导航**。**

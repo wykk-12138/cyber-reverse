@@ -5699,3 +5699,40 @@ public enum ConcurrencyMode { Maximum = 0, Ratio = 1, Both = 2 }
 | `Ratio` 的取整方向 | Inference |
 
 **纪律**：两轮发明两样东西，都靠「听起来合理」。判据是同一个动作 —— 去镜像里搜那个词。
+
+
+## 判据 (a) — `StartupPage`：成员名不可得，换用导航做证据；一个名字差异被钉住（R931，**+4 用例**）
+
+### 二进制
+
+**只有类型名、绑定描述符、backing field、locale 键 —— 无成员名。**
+
+### 换证据源：导航
+
+```
+Nav.Home · Nav.Tasks · Nav.Proxies · Nav.Billing · Nav.Accounts · Nav.Settings
+```
+
+### 差异
+
+**复刻件：`Home, Tasks, Accounts, Proxies, **Analytics**, Settings`。**
+**第五个：导航 `Billing` vs 枚举 `Analytics`。**
+
+**不改的理由：`AnalyticsView` 也在资源索引里 → 两个界面都真；
+`Billing` 打开 Analytics 与 `Analytics` 是 `Billing` 的改名，在字符串层不可分。**
+
+### `StartupPageTests`（4 例）
+
+**六对六 · 五个名字（列名非计数）· 差异本身 · `Home` = 0**
+
+### 数字
+
+**套件 1928 → 1932 · 类型缺失 16**
+
+| 仍 Unknown | |
+|---|---|
+| 第五个值的真名 | 导航说 Billing，枚举说 Analytics |
+| 其余五个的**数值** | 只有名字，没有序号 |
+| 其余枚举 | 同法未核 |
+
+**纪律**：方法有边界。R930 的搜词法只能证存在，不能证成员名。出路是换证据源，不是换判据。

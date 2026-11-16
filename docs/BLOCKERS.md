@@ -26718,3 +26718,66 @@ artifact_freshness.py    -> 0 files newer；state current
 **而关掉它的方式只有一条：重发布。**
 
 **一个度量如果不能被关掉，它就只是一句抱怨。**
+
+
+---
+
+## 358. Next.js surface：第二条 AddToCart 平台缺口关闭
+
+> R934。**改产品代码 +14 用例。** 套件 **1946 通过 / 0 失败 / 0 跳过**。
+
+### 一、四条字面量
+
+```
+"script#__NEXT_DATA__"                                     a CSS selector
+"/_next/static/chunks/app/[^\"']*?page-[0-9a-f]+\\.js"    a regex
+"/_next/"                                                  asset root
+"/pay/_next/"                                              a payment page's asset root
+```
+
+### 二、机制
+
+**① 数据在 `script#__NEXT_DATA__` 里（JSON）。**
+**② 正则找 app-router 页面 chunk。**
+
+**为什么用正则而非模板：build hash 每次部署都变。镜像给的是**匹配**不是**模板** —— 这本身说明原版也是读出来的。**
+
+### 三、三个决定
+
+1. **按 id 找，不按「第几个 script」** —— 顺序镜像没说任何事。
+2. **`Found.{PageProps, Elsewhere, Absent}`** —— 「按惯例找到」与「搜到了」是两种证据强度，
+   合成一个会让调用方以为结构被确认了。
+3. **app-router 与 pages-router 分开** —— `chunks/pages/index-abc123.js` 不该匹配，有测例钉住。
+
+### 四、一个 HTML 细节被测试抓到
+
+**`<script id=__NEXT_DATA__>` 无引号是合法 HTML，而正则要求引号 → 修成两种都接受。
+压缩器会产出无引号属性 —— 而那正是这类解析器要能吃的输入。**
+
+### 五、数字
+
+| 度量 | R933 | R934 |
+|---|---|---|
+| 套件 | 1932 | **1946** |
+| 产物陈旧度 | 0 / current | **1 文件 / 142 行**（新文件，正确） |
+| **AddToCart 平台缺口** | 4 剩 | **3 剩**（Frontend / Astro / Svelte） |
+
+### 六、验证
+
+```
+test --filter NextJsSurfaceTests -> 14 通过
+metrics_report.py                -> 1946 通过 / 0 失败；陈旧度 1 文件 / 142 行
+```
+
+### 七、仍然 Unknown
+
+- **`props.pageProps` 的真实字段名**：**Unknown** —— 只有惯例。
+- **`/_next/` 与 `/pay/_next/` 的区别**：**Inference** —— 后者是支付页的资源根。
+- **Astro / Svelte / Frontend 的机制**：**Unknown** —— 镜像里只有框架名。
+
+### 八、教训
+
+**同一个「平台缺口」，三个平台的证据量差一个数量级：Astro 与 Svelte 只有框架名，Next 有选择器加正则。**
+
+**所以先做 Next 是对的 —— 它是唯一能核**形状**的那一个。
+而陈旧度那一行现在自己证明了用途：加一个文件它就报 1，不需要谁记得去查。**

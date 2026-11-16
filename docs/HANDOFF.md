@@ -1087,3 +1087,19 @@ StartupPageTests 4 例：六对六 · 五个名字（列名非计数）· 差异
 纪律：一个度量如果不能被关掉，它就只是一句抱怨。
 
 下一轮：跑全量套件确认 1932 仍绿，然后继续推进函数数。
+
+## R934 补充 — Next.js surface（改产品代码 +14 用例，套件 1946）
+
+四条字面量：script#__NEXT_DATA__（选择器）· /_next/static/chunks/app/[^"']*?page-[0-9a-f]+\.js（正则）· /_next/ · /pay/_next/。
+
+机制：数据在那个 id 的 script 里（JSON）；正则找 app-router chunk（build hash 每次部署变，只能读不能拼）。
+
+三个决定：按 id 找不按位置 · Found.{PageProps,Elsewhere,Absent} 报证据强度 · app-router 与 pages-router 分开。
+
+测试抓到：无引号 id=__NEXT_DATA__ 是合法 HTML 而正则需要引号 → 两种都接受（压缩器会产无引号的）。
+
+数字：套件 1932 → 1946 · 陈旧度 0 → 1 文件 / 142 行（正确）· AddToCart 平台缺口 4 → 3（Frontend/Astro/Svelte）。
+
+纪律：同一「平台缺口」证据量可差一个数量级 —— 先做能核形状的那个。
+
+下一轮：Astro（40 条命中，先看里面有没有非名字的字面量）。

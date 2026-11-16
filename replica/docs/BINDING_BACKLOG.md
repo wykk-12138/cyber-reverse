@@ -5807,3 +5807,38 @@ exit 0 · 54,652 KB · 只有 Jint/DataTable trim 警告
 | 旧产物 | 保留为 `.publish-aot-prev` |
 
 **纪律**：**一个度量如果不能被关掉，它就只是一句抱怨。**
+
+
+## 优先级 ① — Next.js surface（R934，**+14 用例**）
+
+### 四条字面量
+
+```
+script#__NEXT_DATA__                                       选择器
+/_next/static/chunks/app/[^"']*?page-[0-9a-f]+\.js         正则
+/_next/  ·  /pay/_next/                                    资源根
+```
+
+### `Scripts/NextJsSurface.cs`
+
+**`DataSelector` · `PageChunkPattern` · `AssetRoot` · `PayAssetRoot` · `ExtractDataJson` · `FindProperty` · `PageChunks`**
+
+### 三个决定
+
+**按 id 找（不按位置）· `Found.{PageProps,Elsewhere,Absent}` 报证据强度 · app-router 与 pages-router 分开**
+
+### 一个 HTML 细节被测试抓到
+
+**无引号 `id=__NEXT_DATA__` 是合法 HTML 而正则需要引号 → 两种都接受（压缩器会产出无引号的）。**
+
+### 数字
+
+**套件 1932 → 1946 · 产物陈旧度 0 → 1 文件 / 142 行（正确）· AddToCart 平台缺口 4 → **3**（Frontend / Astro / Svelte）**
+
+| 仍 Unknown | |
+|---|---|
+| `props.pageProps` 的真实字段名 | 只有惯例 |
+| `/_next/` 与 `/pay/_next/` 的区别 | 后者是支付页 |
+| Astro / Svelte / Frontend 的机制 | 只有框架名 |
+
+**纪律**：同一个「平台缺口」，证据量可以差一个数量级 —— 先做能核形状的那个。

@@ -6496,3 +6496,31 @@ Vipps（三条路径 + `checkout.vipps.no`）· BigCommerce（一条 `/api/publi
 | 接上一个支付类能加多少函数 | 未测 |
 
 **纪律**：一个判据错在「我以为写法只有一种」时，换成问结构。
+
+
+## 判据 (c)/① — 支付派发接上两个网关：+43 函数（R955，**改产品代码**）
+
+### 改动
+
+**`SubmitPaymentAsync` 按 `paymentGateway` 派发 → `VivaPayments.ChargeTokenAsync` / `DisneyPaymentSheet.ProcessAsync`；
+post 委托按网关声明的 `Func<...>` 形状构造；无网关时保持 `NotSupported`。**
+
+### 数字
+
+**函数数 173,781 → **173,824（+43）** · 比 62.71% → **62.73%** · 产物 54,674 → 54,692 KB · 套件 2097 · 陈旧度 0/0**
+
+### 两个样本
+
+**redirect +128 · 两个支付网关 +43（≈21 每个）**
+
+### 教训
+
+**「死代码」是错的词 —— 代码只有可达不可达；不可达需要的不是重写，是一句调用。**
+
+| 仍 Unknown | |
+|---|---|
+| +128 与 +43 的差因 | 泛型面宽窄（Inference） |
+| 另外三个网关（PurpleDot/EshopWorld/GlobalECheckout）的增量 | 未接 |
+| 派发是否与原版一致 | 原版按什么派发未取证 |
+
+**纪律**：五次编译错误都是「我以为签名是什么」而不是「读签名」。

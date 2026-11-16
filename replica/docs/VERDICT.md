@@ -56642,3 +56642,52 @@ DisneyPaymentSheet (R924) · VivaPayments (R925)   ← 全部无人引用
 > **三次判据两次错，而两次都错在「我以为 id 只有一种写法」。第三次只问结构，一次就对。**
 > **而更贵的是后半：那五轮的 commit 信息、测试、METRICS 更新都读起来像进展，而函数数一次没动 ——
 > 因为**没有任何东西调用它们**。**
+
+
+---
+
+## 第 955 轮：接两个支付网关 —— +43 函数，模式第二次成立
+
+### 改动
+
+**`SubmitPaymentAsync` 原来 `=> NotSupported("SubmitPayment")`；现在按 session 的 `paymentGateway`
+派发到 `VivaPayments.ChargeTokenAsync` / `DisneyPaymentSheet.ProcessAsync`。**
+
+### 数字
+
+```
+pdata-replica: 173,781 -> 173,824     +43
+pdata-ratio:   62.71%  -> 62.73%
+size:          54,674 KB -> 54,692 KB
+套件 2097 通过 / 0 失败 / 0 跳过 · 陈旧度 0 / 0
+```
+
+### 而 +43 vs redirect 的 +128
+
+| 接的 | 增量 |
+|---|---|
+| `RedirectPolicy.FollowAsync` | **+128** |
+| 两个支付网关 | **+43**（≈21 每个） |
+
+> **增量不是常数，是**那个 async 带多少实例化**。而两个数都远大于 1 ——
+> 「接一个 async ≈ 十几个到一百多个函数」现在有两个样本。**
+
+### 而这次接线是**对的**，不是「为动数而接」
+
+**`SubmitPaymentAsync` 原本返回 `NotSupported` —— 那是一个**真缺口**：
+支付步骤存在、五个网关实现存在、中间那句调用不存在。**
+
+> **数动是它的**后果**，不是目的。**
+
+### 而修的时候撞了五次签名
+
+**`ChargeTokenAsync(FlowSession, card, expiry, ct, Func<...> post)` —— 最后一个是**调用方传入的 POST 委托**。
+我第一版按 `(NetClient, url, ct)` 写，全错。`StepOutcome` 没有 `Retryable()`；`NotSupported` 要 `await`。**
+
+**五次编译错误，五次都是「我以为签名是什么」而不是「读签名」。**
+
+### 教训
+
+> **上一轮我把五个支付类叫「死代码」，而它们只是**没人调用**。
+> 「死代码」这个词是错的：代码没有死活，只有**可达不可达**。
+> 而不可达的代码需要的不是重写，是**一句调用**。**

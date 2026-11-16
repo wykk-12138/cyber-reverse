@@ -1422,3 +1422,18 @@ PurpleDot · GlobalECheckout · EshopWorldPanel · DisneyPaymentSheet · VivaPay
 纪律：判据错在「我以为写法只有一种」时，换成问结构。
 
 下一轮：给一个支付步骤（StoreFlow 的虚步骤里）接上五个支付类之一，测函数增量。
+
+## R955 补充 — 支付派发接上两个网关：+43 函数（套件 2097）
+
+SubmitPaymentAsync 从 `=> NotSupported` 改成按 paymentGateway 派发到 VivaPayments / DisneyPaymentSheet。
+函数数 173,781 → **173,824（+43）** · 比 62.71% → **62.73%** · 产物 54,674 → 54,692 KB。
+
+两个样本：redirect +128 · 两个支付网关 +43（≈21 每个）—— 增量不是常数，是 async 带的泛型实例化数。
+
+而这次接线是对的：SubmitPaymentAsync 返回 NotSupported 是真缺口（步骤在、实现在、中间调用不在）。
+
+五次签名错误：post 委托形状 · StepOutcome 无 Retryable() · EshopWorldPanel 无 IsSettled · NotSupported 要 await。全是「我以为签名是什么」而非「读签名」。
+
+纪律：「死代码」是错的词 —— 代码只有可达不可达；不可达需要的不是重写，是一句调用。
+
+下一轮：接另外三个网关（PurpleDot/EshopWorld/GlobalECheckout），或按原版证据核对派发方式。

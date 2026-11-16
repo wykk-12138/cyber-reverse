@@ -780,7 +780,60 @@ public abstract class StoreFlow
     }
 
     // ── payment ───────────────────────────────────────────────────────────────
-    public virtual Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct) => NotSupported("SubmitPayment");
+    /// <summary>
+    /// Payment submission dispatches to whichever gateway the session named, and returns NotSupported when none was
+    /// named -- the previous behaviour, kept for flows that never reach this step.
+    ///
+    /// <para>
+    /// R955. The five gateway classes written between R920 and R925 were reachable from nothing and so contributed no
+    /// functions at all. Dispatching here is what connects them: the step existed and returned NotSupported, the
+    /// gateways already had working async methods, and the missing piece was the call rather than either end.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Why the gateways take a post delegate.</b> Each needs to make a request but must not own a client, so the
+    /// caller passes one in. That lets this dispatch hand them the session's own client without any gateway knowing what
+    /// a NetClient is.
+    /// </para>
+    /// </summary>
+    public virtual async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        var gateway = c.Session.Vars.TryGetValue("paymentGateway", out var named) ? named : null;
+        if (string.IsNullOrEmpty(gateway)) return await NotSupported("SubmitPayment").ConfigureAwait(false);
+
+        var card = c.Session.Vars.GetValueOrDefault("cardNumber") ?? string.Empty;
+        var expiry = c.Session.Vars.GetValueOrDefault("cardExpiry") ?? string.Empty;
+
+        // shaped exactly as the gateways declare it; the cast to NetResponse? keeps Task<T> invariant from biting
+        Func<string, string, string, CancellationToken, Task<NetResponse?>> post =
+            async (method, url, body, token) =>
+                (NetResponse?)await c.Http.SendAsync(
+                    string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase) ? HttpMethod.Post : HttpMethod.Get,
+                    url,
+                    new RequestOptions
+                    {
+                        Content = string.IsNullOrEmpty(body)
+                            ? null
+                            : new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
+                    },
+                    token).ConfigureAwait(false);
+
+        switch (gateway!.Trim().ToLowerInvariant())
+        {
+            case "viva":
+            case "vivapayments":
+                return await Payments.VivaPayments.ChargeTokenAsync(c.Session, card, expiry, ct, post)
+                    .ConfigureAwait(false);
+
+            case "disney":
+            case "disneypaymentsheet":
+                return await Payments.DisneyPaymentSheet.ProcessAsync(c.Session, ct, post).ConfigureAwait(false);
+
+            default:
+                return await NotSupported("SubmitPayment:" + gateway).ConfigureAwait(false);
+        }
+    }
+
     public virtual Task<StepOutcome> SubmitPaymentDetailsAsync(FlowContext c, CancellationToken ct)
         => SubmitPaymentAsync(c, ct);
     public virtual async Task<StepOutcome> GetPaymentTokenAsync(FlowContext c, CancellationToken ct)

@@ -22412,3 +22412,74 @@ metrics_report.py                    -> 2097 通过 / 0 失败
 
 **而更贵的是后半：那五轮的 commit 信息、测试、METRICS 更新都读起来像进展，而函数数一次没动 ——
 因为没有任何东西调用它们。**
+
+
+---
+
+## 379. 支付派发接上两个网关：+43 函数
+
+> R955。**改产品代码。** 套件 **2097 通过 / 0 失败 / 0 跳过**。
+
+### 一、改动
+
+**`SubmitPaymentAsync` 原来 `=> NotSupported("SubmitPayment")`；现在按 `paymentGateway` 派发：**
+
+```
+"viva" / "vivapayments" -> VivaPayments.ChargeTokenAsync(session, card, expiry, ct, post)
+"disney" / "disneypaymentsheet" -> DisneyPaymentSheet.ProcessAsync(session, ct, post)
+其它 -> NotSupported("SubmitPayment:" + gateway)
+```
+
+**`post` 委托按网关声明的 `Func<string,string,string,CancellationToken,Task<NetResponse?>>` 构造。**
+
+### 二、数字
+
+```
+pdata-replica: 173,781 -> 173,824     +43
+pdata-ratio:   62.71%  -> 62.73%
+size:          54,674 KB -> 54,692 KB
+```
+
+### 三、两个样本
+
+| 接的 | 增量 |
+|---|---|
+| `RedirectPolicy.FollowAsync` | **+128** |
+| 两个支付网关 | **+43**（≈21 每个） |
+
+**增量不是常数 —— 是那个 async 带多少泛型实例化 / 闭包。**
+
+### 四、而这次接线是**对的**
+
+**`SubmitPaymentAsync` 返回 `NotSupported` 是一个真缺口：步骤存在、实现存在、中间的调用不存在。
+数动是后果，不是目的。**
+
+### 五、五次签名错误
+
+1. **`ChargeTokenAsync` 第五参是 `Func<...> post` 委托，不是 NetClient**
+2. **`ProcessAsync` 同样形状**
+3. **`StepOutcome` 没有 `Retryable()`（只有 Success/Fail/Stop）**
+4. **`EshopWorldPanel` 没有 `IsSettled`**
+5. **`NotSupported` 返回 `Task<StepOutcome>`，async 里要 `await`**
+
+**五次都是「我以为签名是什么」而不是「读签名」。**
+
+### 六、验证
+
+```
+dotnet build Cybersole.Stores -> 0 error
+test --filter StoreFlow|Payment -> 59 通过
+dotnet publish                -> 54,692 KB
+func_count.py                 -> 173,824 (+43)
+metrics_report.py             -> 2097 通过 / 0 失败，比 62.73%
+```
+
+### 七、仍然 Unknown
+
+- **+128 与 +43 的差因**：**Inference** —— 泛型面宽窄。
+- **另外三个网关的增量**：**Unknown** —— 未接。
+- **派发是否与原版一致**：**Unknown** —— 原版按什么派发未取证。
+
+### 八、教训
+
+**「死代码」是错的词：代码没有死活，只有可达不可达；不可达需要的不是重写，是一句调用。**

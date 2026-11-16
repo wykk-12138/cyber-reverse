@@ -1094,3 +1094,30 @@ warhammer-com-waf-auth   ← 站点自己的，作 cookie（但按头发）
 **注意优先级**：这一条是第 2 层（风控对抗），不是第 1 层。
 
 **工具记录**：`off_slot_reader.py` 一次解出 15 个头名 —— R776 为 6 个烧掉五次尝试，现在 15 个一次。
+
+
+## 核心 — Warhammer GraphQL（R788 已取回底本）
+
+**六条 operation，12,508 字符，全文在 nalysis/warhammer_graphql.txt。**
+
+`
+0x1470c8c44   1995  mutation（匿名，地址：copyFromId/firstname/lastname/address1）
+0x1470c9bf4   2249  mutation（匿名，运费：selectedShippingRateId/isNewsletterSubscribed）
+0x1470cad9c    798  mutation AddCreditCard
+0x1470cb3f4   2108  mutation AddItemToCart
+0x1470cc484    536  mutation AddToCart
+0x1470cc8cc   4022  mutation ApproveOnboardPaymentMutation
+`
+
+**找法**：sub_140E4AE90 是静态初始化器，sub_141D25160(945) / (1920) 里的数字是**长度**，
+说明查询文本在池子里 → **直接搜 ^mutation / ^query 长度 > 200 的**。
+
+| 项 | 状态 |
+|---|---|
+| AddItemToCartInput 的请求字段 | Unknown（fragment 里是响应字段） |
+| 两条匿名 mutation 的 operationName | Unknown |
+| 查询类文本是否齐全 | 未找全（只取 > 200） |
+| 响应消费面 | Unknown |
+
+**下一步**：把这六条翻成 WarhammerFlow 的 GraphQL 请求，替换现在的 REST。
+**参照**：复刻件的 NikePersistedOperations.cs 已有 GraphQL 落地先例。

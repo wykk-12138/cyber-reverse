@@ -13713,3 +13713,85 @@ python analysis\adjudicate_batch.py
 
 **同样是「命中过多」，一个说明词没用，一个说明功能很全。**
 **差别在：那些文件是不是关于这件事的。**
+
+
+---
+
+## 266. 71 条全过一轮：21 改名实现 · 5 能力存在 · 4 探针无辨识力 · 40 零命中
+
+> R842。`analysis/adjudicate.py` 成为常驻工具。未改产品代码。
+
+### 一、第三批 39 条
+
+**9 条改名实现，其中两条值得单说：**
+
+- **`AddToCartNext`** —— R840 用 `Next` 探针失败，这一轮换 `__NEXT_DATA__` **命中 `StoreFlow.cs`**。
+  **R840 记的「换探针」这条建议真的成立。**
+- **`StartDailyCheckInTask`** —— `CheckIn` 命中 `NikeSteps.cs` · `PopMartEndpoints.cs` · `StoreFlowSteps.cs`。
+  **每日签到确实有实现，且横跨 Nike / PopMart / 通用步。**
+
+**其余 7 条**：`DetectByteOrderMarkAsync` / `StepByteOrderMarkAsync` → `NetClient.cs` ·
+`GetCartLines` → `ShopifyGraphQl.cs` · `Login_EnsureTaskAlive` → `StoreFlow.cs` ·
+`RaffleOrder` → `RetailFlows.cs` · `RpcCreateOrder` → `StoreApiFamilies.cs` · `StartSignupFlow` → `Demandware*`
+
+**3 条探针无辨识力**：`GetCartId`（`CartId` 11 文件）· `GetRegisterSession`（`Registration` 9 文件）·
+`StartCheckout`（`InitiateCheckout` 7 文件）—— **这三条命中文件需要人工看，不能直接判。**
+
+**27 条零命中。**
+
+### 二、累计
+
+| 批次 | 条数 | 改名实现 | 能力存在 | 探针无辨识力 | 零命中 |
+|---|---|---|---|---|---|
+| R840 | 7 | 3 | 0 | 1 | 3 |
+| R841 | 24 | 9 | 5 | 0 | 10 |
+| R842 | 39 | 9 | 0 | 3 | 27 |
+| **合计** | **70** | **21** | **5** | **4** | **40** |
+
+### 三、「零命中」现在意味着什么，不再意味着什么
+
+**它不再意味着「缺失」。** 探针在本会话里已经错过多次：
+
+- `AddToCartBox` 零命中后靠 `boxCart` 找到
+- `AddToCartNext` 换 `__NEXT_DATA__` 才命中
+- `SubmitAdyenOrder` 命中过多，**而命中的文件里就有 `AdyenGateway.cs`**
+
+**准确含义：用我试过的这些词，在复刻件源码里找不到它。可能是真缺，也可能用的是我没想到的词。**
+
+### 四、探针这条路走到头了
+
+**这 40 条要判，需要调用图 —— 镜像里哪个流程调用它。**
+**而调用图要从「函数地址」走，不是从「名字字符串」走**（R828 已证：名字字符串无 xref，代码地址才有）。
+
+**所以下一阶段的工具不是 `str`，是「按地址找调用者」。**
+
+### 五、验证
+
+```
+python analysis\adjudicate.py
+  39 行；规则 >5⇒探针无辨识力 / 1-5⇒改名实现 / 0⇒待判
+  totals: 待判 27 · 改名实现 9 · 探针无辨识力 3
+docs\ASYNC_OPS.md: 第三批表 + 累计表 + 教训
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **那 40 条的真相**：**Unknown** —— 需要调用图。
+- **3 条探针无辨识力的命中文件是否关于这件事**：**Unknown** —— 未逐个读。
+- **`GetCartId` 的 11 个文件里，哪个是「取车 id」而不是「用 cartId 变量」**：**Unknown。**
+
+### 七、教训
+
+**三轮下来，探针表有了四种结果，而它们不是四种「程度」，是四种「不同的东西」：**
+
+| 结果 | 含义 |
+|---|---|
+| 1–5 文件 | 找到候选，**文件名字本身就是证据** |
+| >5 文件 | **词没用** 或 **能力很全** —— 须看命中文件 |
+| 0 命中 | 用这些词找不到 |
+| 换词仍 0 | 仍未找到 |
+
+**表格里没有一格能单独读成「缺失」。**
+**而判据 (f) 要求「未覆盖的每条写为什么」—— 「为什么」不能是「我搜过没搜到」。**

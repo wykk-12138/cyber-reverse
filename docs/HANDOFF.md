@@ -180,3 +180,10 @@
 **新区分**：探针失败有两种 —— ① 词没辨识力（`Stripe` 9 文件里有 `AdyenGateway.cs` 同族）· ② 能力真的没有。
 机械规则：`>5` 文件 ⇒ 探针无效；`0` ⇒ 待判；`1–5` ⇒ 候选。
 **先看**：`FinalizeCheckout`/`ValidateCheckout`/`VerifyCheckout`（锁车前校验）· `RestartSession`（与 `RefreshSession` 同族）。
+
+## R842 补充 — 裁决一轮完成（累计 21 改名 / 5 能力存在 / 40 零命中）
+
+工具 `analysis/adjudicate.py` 常驻。**`AddToCartNext` 换 `__NEXT_DATA__` 命中 —— R840 建议成立。**
+**`StartDailyCheckInTask` 确认有实现**（`CheckIn` 横跨 `NikeSteps`/`PopMartEndpoints`/`StoreFlowSteps`）。
+**探针到头**：40 条要判需**调用图**（从函数地址走，不从名字串走，R828 已证）。下一阶段工具：按地址找调用者。
+**「为什么」不能是「我搜过没搜到」。**

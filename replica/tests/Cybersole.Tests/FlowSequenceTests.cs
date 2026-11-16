@@ -78,34 +78,39 @@ public class FlowSequenceTests
     {
         var map = new PopMartFlow().StepDispatch;
         Assert.True(map.Count >= 150,
-            "StoreFlow declares 165 virtual steps; a dispatch map of " + map.Count + " means the reflection query broke");
+            "StoreFlow declares 166 virtual steps; a dispatch map of " + map.Count + " means the reflection query broke");
     }
 
     /// <summary>
-    /// The measured gap: none of Pop Mart's twenty-four image steps shares a name with any of StoreFlow's 165 methods.
+    /// The measured gap, as a number that moves: one of Pop Mart's twenty-four image steps is dispatchable.
     ///
     /// <para>
-    /// Asserting zero looks like asserting a failure, and it is — of the flow, not of the mechanism. Before this
-    /// mechanism there was no way to state the gap as a number; R844 guessed at 22 of 130 by comparing names across two
-    /// layers and had to hedge. This is the same comparison done where it means something: a step the image lists
-    /// against a method the replica can actually invoke.
+    /// R871 raised this from zero by adding <c>GetOrders</c>, which R116 paired with
+    /// <see cref="Cybersole.Stores.Flows.PopMartEndpoints.OrderList"/> by name and R849 confirmed exists. That is what
+    /// the number is for: it went from 0 to 1 because a step was written, and it will go to 2 next time. When this
+    /// assertion fails the fix is to write the new number in and say which step arrived — never to delete the
+    /// assertion.
     /// </para>
     ///
     /// <para>
-    /// The number going up is the work. When the draw steps are written this assertion will fail, and the fix is to
-    /// change it to the new number and say what was added — not to delete it.
+    /// It is a pair with <see cref="TheTableIsNotEmptyWhichIsWhyTheZeroAboveMeansDisjoint"/>: that one proves the map is
+    /// populated, so this number measures the two name sets rather than the health of the reflection.
     /// </para>
     /// </summary>
     [Fact]
-    public void NoPopMartImageStepIsDispatchableYet()
+    public void OnePopMartImageStepIsDispatchable()
     {
         var flow = new PopMartFlow();
         var map = flow.StepDispatch;
         var implementable = flow.StepSequence.Count(map.ContainsKey);
 
-        Assert.Equal(165, map.Count);
+        // R871 raised the map from 165 to 166 by adding GetOrdersAsync to StoreFlow, and the sequence's coverage from
+        // zero to one. Both numbers are pinned together so neither can drift unremarked: a new virtual that no sequence
+        // names would move the first without the second, and a written step would move the second without the first.
+        Assert.Equal(166, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
-        Assert.Equal(0, implementable);
+        Assert.Equal(1, implementable);
+        Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");
     }
 
     /// <summary>

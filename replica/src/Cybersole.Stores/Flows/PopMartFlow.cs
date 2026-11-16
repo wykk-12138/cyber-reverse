@@ -35,6 +35,40 @@ public sealed class PopMartFlow : StoreFlow
     /// </summary>
     public override IReadOnlyList<string> StepSequence => StoreFlowSteps.PopMart.Names;
 
+    /// <summary>
+    /// Pop Mart's order list — step <c>GetOrders</c>, ordinal 104, first of the flow's sequence.
+    ///
+    /// <para>
+    /// R871. The endpoint is <see cref="PopMartEndpoints.OrderList"/> and its query shape is fixed in the constant
+    /// itself (<c>?currentPage=1&amp;pageSize=20</c>), so this step needs no invented request: R849 confirmed the
+    /// constant exists and R116 paired it with this step by name.
+    /// </para>
+    ///
+    /// <para>
+    /// The attribution is worth stating because <see cref="CandidateSteps"/> warns that ordinal 104 collides across
+    /// classes. It does, and the collision is between two separate blobs: <c>GetAccessToken&gt;d__104</c> sits with
+    /// <c>CartApiObjectCreate&gt;d__105</c> and <c>AddToCartGraphQL&gt;d__106</c>, while <c>GetOrders&gt;d__104</c> sits
+    /// with <c>GetInstoreOrders&gt;d__105</c> and <c>StartDrawFlow&gt;d__115</c>. The warning is about a bare ordinal
+    /// scan not knowing which blob a name came from; here the name and its ordinal are in the same literal, so the
+    /// owner is not in doubt.
+    /// </para>
+    ///
+    /// <para>
+    /// What the response contains is <b>not</b> established, so the body is stored whole rather than parsed. Parsing it
+    /// would mean inventing a schema, which is the failure this project keeps having to undo.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetOrdersAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.OrderList, "popmart-orders", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart orders unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart orders HTTP {res.StatusCode}");
+
+        c.Session.Vars["orders"] = res.Body;
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
     {
         var res = await GetAsync(c, Origin(c.Url) + "/", "popmart-home", ct).ConfigureAwait(false);

@@ -52167,3 +52167,67 @@ analysis 组里有 `PopMartStepMap.cs`(18) —— **那正是 R849 才发现我�
 > **一个教训被重复写五遍，说明「写下来」不是修复手段。**
 > **起作用的是两件：① 它有一个三分钟成本的命令，不需要我记得；② 它有一个编号，能当检查项引用。**
 > **而这两件都不是新洞察 —— 这个仓库的 §2.7 与 §2.7b 一直是这样用的。我只是终于把同一条办法用在自己身上。**
+
+
+---
+
+## 第 871 轮：第一步写出来了 —— `GetOrders`，coverage 0 → 1
+
+### `where_is` 第一次真用
+
+```
+python tools\where_is.py GetOrders -> 12 files
+    implementation: （无）      ← 确认没人实现，可以写
+    analysis:       CandidateSteps.cs · PopMartStepMap.cs · StoreFlowSteps.cs
+```
+
+**而 analysis 组把我推到 `CandidateSteps.cs`，那里有一句话让我停下来核。**
+
+### 它逼出的疑问，和核出来的答案
+
+```
+104 GetAccessToken / CartApiObjectCreate / GetOrders   (three classes collide)
+```
+
+**核：**
+
+```
+GetAccessToken>d__104  @0x1433737e2 → CartApiObjectCreate>d__105 · AddToCartGraphQL>d__106
+GetOrders>d__104       @0x14337c7e5 → GetInstoreOrders>d__105 · StartDrawFlow>d__115
+```
+
+**104 出现两次，在**两条不同 blob** 里。撞号是真的，但归属不模糊 ——
+名字和 ordinal 在同一个字面量里。**
+
+> **可迁移：看到「N 个类撞号」，要问「同一个字面量还是不同字面量」，不是直接判「归属不可知」。**
+
+### 写了什么
+
+| 文件 | 改动 |
+|---|---|
+| `StoreFlow.cs` | `virtual GetOrdersAsync` —— **默认显式失败** |
+| `PopMartFlow.cs` | `override` → `GET Origin + OrderList` → `Session.Vars["orders"]` |
+| `FlowSequenceTests.cs` | map `165→166`、coverage `0→1`、改名 |
+
+**响应体整份存下不解析（schema 没证据，解析就是编）。**
+**基类默认**失败**——静默成功是 R869 假成功的形态，不在新步骤里重演。**
+
+### 测试红两次，两次都有信息
+
+| 次 | 原因 | 处理 |
+|---|---|---|
+| 1 | coverage 0→1 | 按预先写好的规则改数字并说明 |
+| 2 | map 165→166 | 三个数一起钉：`166`/`24`/`1` |
+
+**第二次是好信号：加虚方法动 map，写步骤动 coverage —— 一起断言就能区分「加了没人用」与「写了一步」，正是 R858 死字段的反面。**
+
+### 仍然 Unknown
+
+**`OrderList` 的响应结构**（所以整份存）· **其余 23 步的请求形状**（R850 边界未变）·
+**`GetInstoreOrders`(105) 能否同法写** —— 同段、可能有对应常量，**未查；下一轮第一件事就是 `where_is GetInstoreOrders`**
+
+### 教训
+
+> **这一轮两件事都是规则带来的，不是我想到的：`where_is` 把会让我判错归属的文件推到我面前；而我没先写代码，先核了那句话。**
+> **核它的成本是两条 `ida.py str`。不核的话，`GetOrders` 会带着一个我没意识到的归属假设 —— 而那是整条序列的地基。**
+> **所以 §2.7c 的用处不只是「避免重复品」，还有「在读到的文件里发现自己的假设」。**

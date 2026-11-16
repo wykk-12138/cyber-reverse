@@ -391,3 +391,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **`PopMart` → 31 files，analysis 组含 `PopMartStepMap.cs`(18)** —— **R835 若跑过就会直接看到，而那是 R849 才发现六轮没读的文件。**
 **已写进 `AGENTS.md §2.7c`**（五次踩坑表 + 两条配套：要包括**实现**；implementation 组有命中就先读再写）。
 **边界：不查镜像（那是 `analysis/ida.py str`），不判该不该有。**
+
+## R871 补充 — 第一步写出来（**已改产品代码**）：`GetOrders`，coverage 0→1
+
+**`where_is GetOrders` → implementation 组空（确认没人实现）**，analysis 组指向 `CandidateSteps.cs`，那里写着「ordinal 104 被三个类共用」。**核：`GetAccessToken>d__104`@`0x1433737e2` 与 `GetOrders>d__104`@`0x14337c7e5` 在两条不同 blob → 撞号真，归属不模糊。**
+**写了**：`StoreFlow.virtual GetOrdersAsync`（默认显式失败）+ `PopMartFlow` override → `GET OrderList` → `Session.Vars["orders"]`。**响应体整份存不解析（无 schema 证据）。**
+**测试三数一起钉：`map=166` / `sequence=24` / `implementable=1`。套件 1773 通过 / 0 失败。**
+**下一轮第一件事：`where_is GetInstoreOrders`（105，同段，可能有常量）。**

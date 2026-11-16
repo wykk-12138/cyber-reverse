@@ -3529,3 +3529,39 @@ python tools\where_is.py Sequence --all
 | **§2.7c 会被读到吗** | **真风险：R861 就是没读 backlog 白走四轮** |
 
 **纪律**：**教训写五遍没用；有用的是一个三分钟成本的命令 + 一个可引用的编号。**
+
+
+## 优先级 ① — 第一步写出来（R871，**已改产品代码**）：`GetOrders`，coverage 0→1
+
+**`where_is GetOrders` → implementation 组为空（确认没人实现）；analysis 组指向 `CandidateSteps.cs`。**
+
+### 它逼出的疑问与答案
+
+```
+104 GetAccessToken / CartApiObjectCreate / GetOrders   (three classes collide)
+```
+**核：`GetAccessToken>d__104`@`0x1433737e2` 与 `GetOrders>d__104`@`0x14337c7e5` 在**两条不同 blob**。
+→ 撞号真，归属不模糊（名字与 ordinal 同字面量）。**
+
+### 改动
+
+| 文件 | 改动 |
+|---|---|
+| `StoreFlow.cs` | `virtual GetOrdersAsync`，**默认显式失败** |
+| `PopMartFlow.cs` | `override` → `GET Origin + OrderList` → `Session.Vars["orders"]` |
+| `FlowSequenceTests.cs` | `166`/`24`/`1` 三数一起钉 |
+
+**响应体整份存不解析（无 schema 证据）。套件 1773 通过 / 0 失败。**
+
+### 测试机制验证
+
+**红两次都对：coverage 0→1（按预写规则改数字）· map 165→166（加虚方法）。
+两数一起断言可区分「加虚方法没人用」与「写一步」—— R858 死字段的反面。**
+
+| 仍 Unknown | |
+|---|---|
+| `OrderList` 响应结构 | 所以整份存 |
+| 其余 23 步请求形状 | R850 边界未变 |
+| `GetInstoreOrders`(105) | 同段、可能有常量 — **下一轮第一件事 `where_is`** |
+
+**纪律**：**§2.7c 不只避免重复品，还能在读到的文件里发现自己没意识到的假设。**

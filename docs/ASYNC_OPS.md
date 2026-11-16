@@ -1167,3 +1167,65 @@ analysis 4（`PopMartStepMap` 18 处 · `LambdaWitness` · `PopMartEndpoints` ·
 
 **它不查镜像。**问「原版怎么做」是 `analysis/ida.py str`，这个脚本只答「复刻件里有没有」。
 **两者混用会产生假的「不存在」（§2.7b 已经踩过四次）。**
+
+
+### `where_is` 第一次真用：它先逼出一个疑问，再把疑问解掉（R871）
+
+**目标：R850 判为「可写」的 `GetOrders`。按 §2.7c 先跑：**
+
+```
+python tools\where_is.py GetOrders   -> 12 files
+    implementation: （无）
+    analysis:       CandidateSteps.cs · PopMartStepMap.cs · StoreFlowSteps.cs
+    test:           FlowSequenceTests · PopMartStepMapTests · StoreFlowDigestTests
+    doc:            VERDICT · BINDING_BACKLOG · ENDPOINT_FAMILIES · docs/baseline/*
+```
+
+**implementation 组空 → 确认没人实现，可以写。而 analysis 组里的 `CandidateSteps.cs` 逼出一个疑问。**
+
+### 那个疑问
+
+`CandidateSteps.cs` 写着：
+
+```
+104 GetAccessToken / CartApiObjectCreate / GetOrders        (three classes collide)
+```
+
+> **ordinals are per class, so a bare ordinal cannot say which class owns a name.**
+
+**如果 104 上三个名字撞号，那「`GetOrders` 是 PopMart 的第 104 步」这个归属就不牢 —— 而整条 PopMart 序列都建立在它上面。**
+
+### 核出来的答案：撞号是真的，但归属不模糊
+
+```
+GetAccessToken>d__104    @0x1433737e2  → 同段 CartApiObjectCreate>d__105 · AddToCartGraphQL>d__106
+GetOrders>d__104         @0x14337c7e5  → 同段 GetInstoreOrders>d__105 · StartDrawFlow>d__115
+```
+
+**ordinal 104 出现两次，在**两条不同的 blob**里 —— 是两个不同类各自的第 104 个方法。**
+
+**所以 `CandidateSteps` 那句警告说的是「裸 ordinal 扫描分不清名字来自哪条 blob」，
+而不是「`GetOrders` 归属不明」。`GetOrders` 和 `104` 在**同一个字面量**里，归属是直接的。**
+
+**这条值得记，因为下次再看到「N 个类撞号」时，第一反应不该是「归属不可知」，
+而是「它们是同一个字面量还是不同字面量」。**
+
+### 写出来的东西
+
+| 文件 | 改动 |
+|---|---|
+| `StoreFlow.cs` | 新增 `virtual GetOrdersAsync` —— **默认显式失败**（不是静默成功） |
+| `PopMartFlow.cs` | `override GetOrdersAsync` → `GET Origin + PopMartEndpoints.OrderList`，存进 `Session.Vars["orders"]` |
+| `FlowSequenceTests.cs` | `165 → 166`（map）、`0 → 1`（coverage），测试改名 |
+
+**响应体整份存下来，不解析** —— 响应 schema 没有证据，解析就是编一个出来。
+
+### 测试自己红了两次，两次都对
+
+| 次 | 为什么红 | 处理 |
+|---|---|---|
+| 1 | `implementable` 从 0 变 1 | 按该测试注释里预先写的规则：改成新数字并说明加了什么 |
+| 2 | `map.Count` 从 165 变 166（我加了基类虚方法） | 两个数一起钉住：`166` + `24` + `1` |
+
+**第二个失败是个好信号：加一个虚方法会动 map，写一个步骤会动 coverage。
+两个数一起断言，就能区分「加了虚方法但没人用」和「写了一步」。**

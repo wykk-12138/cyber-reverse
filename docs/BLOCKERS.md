@@ -22024,3 +22024,99 @@ AGENTS.md §2.7c 已写入（工具段落 + 五次踩坑表 + 两条配套）
 
 **而这两件都不是新的洞察 —— 是这个仓库已经在用的做法（§2.7 与 §2.7b 都是这样）。
 我只是终于把同一条办法用在自己身上。**
+
+
+---
+
+## 295. 第一步写出来了：`GetOrders`，coverage **0 → 1**
+
+> R871。**改了产品代码。** 套件 **1773 通过 / 0 失败 / 0 跳过**。
+
+### 一、`where_is` 第一次真用
+
+```
+python tools\where_is.py GetOrders -> 12 files
+    implementation: （无）              ← 确认没人实现
+    analysis:       CandidateSteps.cs · PopMartStepMap.cs · StoreFlowSteps.cs
+```
+
+**implementation 组空，所以可以写。而 analysis 组把我推到 `CandidateSteps.cs`，那里有一句让我停下来核的话。**
+
+### 二、它逼出的疑问
+
+```
+104 GetAccessToken / CartApiObjectCreate / GetOrders        (three classes collide)
+```
+
+> ordinals are per class, so a bare ordinal cannot say which class owns a name.
+
+**如果 104 撞号，那「`GetOrders` 是 PopMart 第 104 步」就不牢 —— 整条 PopMart 序列都靠它。**
+
+### 三、核完：撞号真，归属不模糊
+
+```
+GetAccessToken>d__104  @0x1433737e2 → CartApiObjectCreate>d__105 · AddToCartGraphQL>d__106
+GetOrders>d__104       @0x14337c7e5 → GetInstoreOrders>d__105 · StartDrawFlow>d__115
+```
+
+**104 出现两次，在**两条不同 blob** 里 —— 两个类各自的第 104 个方法。**
+
+**`CandidateSteps` 说的是「裸 ordinal 分不清名字来自哪条 blob」，
+不是「`GetOrders` 归属不明」。名字和 ordinal 在同一个字面量里，归属是直接的。**
+
+**可迁移的一条：看到「N 个类撞号」，要问的是「同一个字面量还是不同字面量」，
+不是直接判「归属不可知」。**
+
+### 四、写了什么
+
+| 文件 | 改动 |
+|---|---|
+| `StoreFlow.cs` | `virtual GetOrdersAsync` —— **默认显式失败** |
+| `PopMartFlow.cs` | `override` → `GET Origin + PopMartEndpoints.OrderList` → `Session.Vars["orders"]` |
+| `FlowSequenceTests.cs` | map `165→166`、coverage `0→1`、用例改名 |
+
+**响应体整份存下，不解析 —— schema 没证据，解析就是编。**
+
+**基类默认**失败**而不是成功**：一个没有订单端点的店必须说出来。
+**静默成功正是 R869 那个假成功的形态，不在新加的步骤里重演。**
+
+### 五、测试红了两次，两次都有信息
+
+| 次 | 原因 | 处理 |
+|---|---|---|
+| 1 | `implementable` 0 → 1 | 按该测试注释里**预先写好的规则**：改数字并说明加了什么 |
+| 2 | `map.Count` 165 → 166（加了基类虚方法） | 三个数一起钉：`166` / `24` / `1` |
+
+**第二次是好信号：加虚方法动 map，写步骤动 coverage。
+两个数一起断言就能区分「加了虚方法没人用」与「写了一步」—— 这正是 R858 那个死字段的反面。**
+
+### 六、验证
+
+```
+python tools\where_is.py GetOrders      -> implementation 组为空
+ida.py str "GetAccessToken>d__104"      -> 1 match @0x1433737e2（另一条 blob）
+ida.py str "GetOrders>d__104"           -> 1 match @0x14337c7e5（PopMart 那条）
+D:\tools\dotnet8\dotnet.exe build ...  -> 0 错误
+test --filter FlowSequenceTests         -> 7 通过 / 0 失败
+python tools\metrics_report.py          -> 1773 通过 / 0 失败 / 0 跳过
+```
+
+### 七、仍然 Unknown
+
+- **`OrderList` 的响应结构**：**Unknown** —— 所以整份存、不解析。
+  **要解析它得先有证据（原版怎么用这个响应），否则就是编 schema。**
+- **其余 23 步的请求形状**：**Unknown** —— R850 的边界没变（11 个缺形状，3 个可写里现在写了 1 个）。
+- **`GetInstoreOrders`（105）能不能同法写**：**likely** —— 它同段、`PopMartEndpoints` 里可能有对应的常量，
+  **本轮没查。下一轮第一件事就是 `where_is GetInstoreOrders`。**
+
+### 八、教训
+
+**这一轮的两件事都是规则带来的，不是我想到的：**
+
+**① `where_is` 把 `CandidateSteps.cs` 推到我面前，而那里有一句会让我判错归属的话；
+② 我没先写代码，先核了那句话。**
+
+**而核它的成本是两条 `ida.py str`。如果不核，我写出来的 `GetOrders`
+会带着一个我没意识到的归属假设 —— 而那个假设是整条序列的地基。**
+
+**所以 §2.7c 的用处不只是「避免重复品」，还有「在读到的文件里发现自己的假设」。**

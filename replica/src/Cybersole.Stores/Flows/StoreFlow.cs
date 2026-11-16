@@ -72,6 +72,20 @@ public abstract class StoreFlow
     /// </summary>
     public bool CanRunStep(string step) => StepActionRunner.Knows(step);
 
+    /// <summary>
+    /// The store's order list. Not part of the twenty-one-step checkout sequence, so the base has no sensible default —
+    /// and therefore fails explicitly rather than reporting a success nothing performed.
+    ///
+    /// <para>
+    /// R871. This is the first step added since the sequence mechanism existed, and it exists because Pop Mart's own
+    /// order lists it at ordinal 104. Its base body is deliberately a failure: a store that has no order-list endpoint
+    /// must say so, and a silent success here would put this project back in the shape it keeps removing — a step that
+    /// reports done without doing.
+    /// </para>
+    /// </summary>
+    public virtual Task<StepOutcome> GetOrdersAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("GetOrders is not implemented by " + Id));
+
 
     // ── session ───────────────────────────────────────────────────────────────
     public virtual async Task<StepOutcome> InitAsync(FlowContext c, CancellationToken ct)

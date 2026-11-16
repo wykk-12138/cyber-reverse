@@ -3534,3 +3534,68 @@ c10_split --undeclared            46 -> 44（两个 Close 已消失）
   复刻件保留原有行为（写状态行），没有假装知道更多。
 - 剩下 44 条里还有多少是同类（描述符证明是真成员）：**未逐条核**。
 - `CheckoutView.Checkout` / `Properties` 这两条的名字在原版描述符里长什么样：**未查**。
+
+
+---
+
+## 141. 44 条未声明成员：**全部有原版描述符**，方向也拿到了
+
+> R712。新增 `analysis/member_descriptors.py`、`analysis/write_member_gap_doc.py`、
+> 生成的 `docs/MEMBER_GAP_EVIDENCE.md`。
+
+### 一、为什么要一次性铺开而不是逐条判
+
+R709 我看了十二个名字，判断「这不像真成员，是提取器造的」，写进了 BLOCKERS；R710 被字符串池证否。
+**逐条凭印象判，就会重复那次错。** 所以这次把整个桶的证据一次铺开，每一行都能用一条 grep 核对。
+
+### 二、索引自检（先自检，再出结论）
+
+```
+pe_strings.txt 里的 Cybersole 描述符 : 1457 条
+索引出的 (类型, 成员) 键              : 819
+绑定表 xaml_bindings.json 的成员数   : 819
+```
+
+**819 = 819**：两个独立来源给出同一个数。这是索引可用的第一条证据 —— 如果它给出 800 或 830，
+下面那张表就不能信。
+
+### 三、结论
+
+```
+源码未声明、且原版确有描述符 : 44
+源码未声明、原版无描述符     : 0
+```
+
+**44 条全部是原版真的绑定过的名字。** 方向分布：
+
+| 描述符方向 | 条数 | 该做成什么 |
+|---|---|---|
+| `Getter` | 26 | 只读属性，或 `ICommand`（Avalonia 的命令也走 Getter） |
+| `Getter/Setter` | 18 | 可读写属性 |
+
+### 四、这张表改变了什么
+
+改前：44 条「源码没声明」——**这是关于复刻件的陈述，不是关于原版的**。
+改后：44 条「原版绑定过、复刻件没声明」——**这是一个可以动手的缺口定义**。
+
+而且方向是新的信息：`Getter/Setter` 那 18 条（`BotTask.Running`、`Notification.Message`/`Type`、
+`EditValue`1` 的 12 个、`State.Name`、`CreateModel.Inputs`、`ProxyGroupView.Reset`/`Save`…）
+**必须做成可写属性**，不是 `ICommand` —— 这一点只从「没声明」三个字看不出来。
+
+### 五、验证
+
+```
+python tools/metrics_report.py            1624 通过 / 0 失败 / 0 跳过（代码未动）
+python analysis/audit_claims.py           inconsistencies: 0
+python analysis/member_descriptors.py     44 / 44 有描述符
+```
+
+**本轮没有改复刻件代码**，所以四项度量与 R711 一致（4 / 0 / 17 / 78 / 0）。
+**这不是"没有进展"**：进展是把 44 个未知变成了 44 个有据可查、有方向可依的缺口。
+
+### 六、仍然 Unknown
+
+- **行为**：只证明原版绑定过这些名字，不证明它们做什么。**一律 Unknown。**
+- `EditValue`1` 那 12 个带数字后缀的名字承担什么语义：**Unknown**（真实存在，含义未知）。
+- 26 条 `Getter` 里哪些是 `ICommand`、哪些是只读数据属性：**Unknown** ——
+  描述符只说 Getter，区分要看原版的反编译，未做。

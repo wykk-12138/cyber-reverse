@@ -48143,3 +48143,50 @@ user-agent · accept · content-type · origin · sec-fetch-site/mode/dest
 **坏字来自工具调用回显，不是文件内容。**
 
 > **判定依据必须是文件本身（`repr()` 打出来），不是我对调用的记忆。**
+
+
+---
+
+## 第 788 轮：Warhammer 的 GraphQL 全取回来了
+
+### 顺着 `/graphql` 找，撞上一个静态初始化器
+
+```c
+*(qword + 8)  = &off_147054A60;      // https://api.prod.warhammer.com/graphql
+*(qword + 24) = sub_141D25160(945);  // 945 字符
+*(qword + 32) = sub_141D25160(1920); // 1920 字符
+```
+
+**945/1920 是长度参数 —— 查询文本是池子里的长字面量。所以不该顺代码找，该搜池子。**
+
+### 搜池子，六条全出（12,508 字符）
+
+```
+1995  mutation（匿名：copyFromId / firstname / address1 → 地址）
+2249  mutation（匿名：selectedShippingRateId → 运费/更新）
+ 798  mutation AddCreditCard
+2108  mutation AddItemToCart
+ 536  mutation AddToCart
+4022  mutation ApproveOnboardPaymentMutation
+```
+
+**这就是 Warhammer 结账的核心。全文落在 `analysis/warhammer_graphql.txt`（700 行）。**
+抽查可见完整选择集与四个 fragment。
+
+### 为什么这轮不改代码
+
+**这六条是底本，不是结论。** 翻成代码还缺：变量从哪来、匿名两条的 operationName、响应消费面。
+
+**先把底本落盘，下一轮再翻 —— 比这轮凭印象写六个方法可靠。**
+**R772 是「先建再验」，这一轮是它的反面。**
+
+### 验证
+
+```
+12,524 字符 / 700 行 / 6 条 · 产品代码未改 · 套件 1761 / 0
+```
+
+### 一处路径自伤
+
+第一次记录脚本把 `VERDICT.md` 指到根 `docs/`（它在 `replica/docs/`），脚本死在半路，**提交没发生**。
+**教训：记录脚本也要像代码一样核对路径；而"脚本跑完"不等于"记录成功" —— 要看 `git log`。**

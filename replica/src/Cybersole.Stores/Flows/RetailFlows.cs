@@ -1114,107 +1114,68 @@ public sealed class HypeCommerceFlow : StoreFlow
     public override string Name => "HypeCommerce";
     public override IReadOnlyList<string> Domains => new[] { "hypecommerce.io", "hypecommerce.com" };
 
+    /// <summary>
+    /// The host the image names. R799/R800.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the image carries six strings for this platform, all on
+    /// <c>admin.hypecommerce.io/api/</c> -- <c>entries/create</c>, <c>entries/validate</c>,
+    /// <c>payment/methods/store</c> and <c>settings</c>, each with exactly one builder function.
+    /// </para>
+    ///
+    /// <para>
+    /// This class used to carry a storefront chain: <c>/api/auth/login</c>, <c>GET /api/entries/{slug}</c>,
+    /// <c>/api/cart</c>, <c>/api/cart/checkout</c> and <c>/checkout</c>. <b>None of those five is in the image.</b>
+    /// They were invented, and they scored 71% because the coverage matrix asks whether a step is overridden, not
+    /// whether its path came from evidence.
+    /// </para>
+    ///
+    /// <para>
+    /// R799 replaced them with honest failure stubs and the number did not move -- the same defect one layer down,
+    /// since a declared failure counts exactly like a working step. So the stubs are gone and the base class refuses
+    /// these steps instead. The matrix now reports one of seven, which is what the evidence supports, and the reason
+    /// lives here and in the exemption table rather than in a number that overstates.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown:</b> the request bodies for validate and create. The builder serialises an object supplied by its
+    /// caller, so the field names live in the caller's type rather than in the function -- the asymmetry that has cost
+    /// five rounds across casio, goat, popmart and this one.
+    /// </para>
+    /// </summary>
     private const string HypeApi = "https://admin.hypecommerce.io";
 
-    public override bool RequiresAccount => true;
-
-    public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
-    {
-        var res = await GetAsync(c, Origin(c.Url) + "/", "hype-home", ct).ConfigureAwait(false);
-        if (res is null) return StepOutcome.Fail("hype home unreachable", retryable: true);
-        c.Session.Vars["home"] = res.Body;
-
-        var idp = Regex.Match(res.Body, @"""idpHost""\s*:\s*""([^""]+)""").Groups[1].Value;
-        if (!string.IsNullOrEmpty(idp)) c.Session.Vars["idpHost"] = idp;
-        return StepOutcome.Success();
-    }
-
-    public override async Task<StepOutcome> LoginAsync(FlowContext c, CancellationToken ct)
-    {
-        var account = c.Account;
-        if (account?.Email is null) return StepOutcome.Fail("hype: no account");
-
-        var idp = c.Session.Vars.TryGetValue("idpHost", out var h) && !string.IsNullOrEmpty(h)
-            ? "https://" + h
-            : "https://admin.hypecommerce.io";
-
-        var res = await PostJsonAsync(c, $"{idp}/api/auth/login",
-            Newtonsoft.Json.JsonConvert.SerializeObject(new
-            {
-                email = account.Email,
-                password = account.Password,
-            }), "hype-login", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("hype login failed", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"hype login HTTP {res.StatusCode}");
-
-        var token = Regex.Match(res.Body, @"""token""\s*:\s*""([^""]+)""").Groups[1].Value;
-        if (!string.IsNullOrEmpty(token)) c.Session.AntiBotTokens["Authorization"] = "Bearer " + token;
-        return StepOutcome.Success();
-    }
-
-    public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
-    {
-        var slug = new Uri(c.Url).AbsolutePath.Trim('/').Split('/').LastOrDefault() ?? string.Empty;
-        var res = await GetAsync(c, $"{HypeApi}/api/entries/{slug}", "hype-product", ct)
-            .ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("hype product unreachable", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"hype product HTTP {res.StatusCode}", retryable: true);
-
-        c.Session.Vars["raw"] = res.Body;
-        c.Session.Vars["product"] = Regex.Match(res.Body, @"""name""\s*:\s*""([^""]+)""").Groups[1].Value;
-        return StepOutcome.Success();
-    }
-
-    public override Task<StepOutcome> FindVariantAsync(FlowContext c, CancellationToken ct)
-    {
-        var body = c.Session.Vars.TryGetValue("raw", out var r) ? r : string.Empty;
-        var id = Regex.Match(body, @"""entryId""\s*:\s*""?([A-Za-z0-9\-]+)""?").Groups[1].Value;
-        if (string.IsNullOrEmpty(id)) id = Regex.Match(body, @"""id""\s*:\s*""?([A-Za-z0-9\-]{4,})""?").Groups[1].Value;
-        if (string.IsNullOrEmpty(id)) return Task.FromResult(StepOutcome.Fail("hype: no entry id"));
-
-        c.Session.VariantId = id;
-        return Task.FromResult(StepOutcome.Success());
-    }
-
-    public override Task<StepOutcome> ScrapeVariantAvailabilityAsync(FlowContext c, CancellationToken ct)
-    {
-        var body = c.Session.Vars.TryGetValue("raw", out var r) ? r : string.Empty;
-        c.Session.Vars["available"] = body.Contains("\"status\":\"available\"", StringComparison.OrdinalIgnoreCase)
-            ? "true" : "false";
-        return Task.FromResult(StepOutcome.Success());
-    }
-
-    public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
-    {
-        var res = await PostJsonAsync(c, $"{HypeApi}/api/cart",
-            Newtonsoft.Json.JsonConvert.SerializeObject(new
-            {
-                entryId = c.Session.VariantId,
-                quantity = c.Session.Quantity,
-            }), "hype-cart", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("hype cart failed", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"hype cart HTTP {res.StatusCode}", retryable: true);
-        c.Session.Vars["cart"] = res.Body;
-        return StepOutcome.Success();
-    }
-
+    /// <summary>
+    /// Create an entry the way the image does: validate, then create. The only step this module can evidence.
+    ///
+    /// <para>
+    /// The body carries only what the replica knows, and a rejection is the honest outcome until the payload is
+    /// recovered. An invented body would look like progress and would not be one.
+    /// </para>
+    /// </summary>
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
-        var res = await PostJsonAsync(c, $"{HypeApi}/api/cart/checkout", "{}", "hype-order", ct)
-            .ConfigureAwait(false);
-        if (res is null) return StepOutcome.Fail("hype order failed", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"hype order HTTP {res.StatusCode}", retryable: true);
+        var entryId = c.Session.VariantId;
+        if (string.IsNullOrEmpty(entryId))
+            return StepOutcome.Fail("hypecommerce: no entry id to submit");
 
-        c.Session.OrderNumber = Regex.Match(res.Body, @"""orderId""\s*:\s*""?([A-Za-z0-9\-]+)""?").Groups[1].Value;
+        var payload = Newtonsoft.Json.JsonConvert.SerializeObject(new { entryId });
+
+        var validate = await PostJsonAsync(c, HypeApi + "/api/entries/validate", payload,
+            "hype-validate", ct).ConfigureAwait(false);
+        if (validate is null) return StepOutcome.Fail("hypecommerce: validate unreachable", retryable: true);
+        if (!validate.IsSuccess)
+            return StepOutcome.Fail($"hypecommerce: validate HTTP {validate.StatusCode}", retryable: true);
+
+        var create = await PostJsonAsync(c, HypeApi + "/api/entries/create", payload,
+            "hype-create", ct).ConfigureAwait(false);
+        if (create is null) return StepOutcome.Fail("hypecommerce: create unreachable", retryable: true);
+        if (!create.IsSuccess)
+            return StepOutcome.Fail($"hypecommerce: create HTTP {create.StatusCode}", retryable: true);
+
+        c.Session.Vars["entry"] = create.Body;
         return StepOutcome.Success();
     }
-    public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
-        OpenCheckoutAsync(c, "hype-checkout", "/checkout", ct);
-
-
 }
 
 /// <summary>

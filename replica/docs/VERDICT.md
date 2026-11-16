@@ -46884,3 +46884,61 @@ NumberFieldTests   14 / 14（含七个值的往返）
 UnitSuffixTests   5 / 5
 （本轮未跑全量；UI 改动已收尾，构建通过）
 ```
+
+
+---
+
+## 第 759 轮：核心取证第一击 —— 一个方法失败，一个发现不舒服
+
+### IDA 按 goal 的例程走通了
+
+两个「请确认」+ 一个「请稍候…」，与 YG 说的一致。**而且 `PROXY: MISSING` 不是阻塞项**——
+`ida.py` 直连插件。**上一轮我请你去开关 MCP 条目，不必了。**
+
+### `-12` 规则第三次中
+
+Supreme 基址直接 xrefs = 0；`chars − 12` = 3 条。**NativeAOT 的 `lea` 指向对象头。**
+
+### 顺带挖到 captcha 页契约
+
+```js
+grecaptcha.enterprise.execute(document.Solver.Captcha.Sitekey,
+                               { action: document.Solver.Captcha.Action })
+  .then(() => document.Solver.Captcha.Solve(response))
+```
+
+**站点键与 action 由宿主注入，token 经 `Solve(response)` 交回。** 这是 Observation。
+
+### 求交法失败
+
+交集落在 **`sub_14117C4E0`，687,318 字节** —— **不是函数，是 IDA 无边界时的并片。**
+脚本保留，标为失败方法。
+
+### 而不舒服的是另一半
+
+10 个店名里 **7 个在原版里 `literals=0`**：`Superswipe` / `Pocket Games` / `JB Hi-Fi` /
+`Yeezy Supply` / `END.` / `Notre` / `Offspring`。
+
+**这不是"原版没有"的证明**。**但它提出了一个必须回答的问题**：
+
+> **复刻件的 22 个 store，有多少是从原版取证来的，有多少是照名字猜的？**
+
+**判据 f 要的正是这件事 —— 而它给出的第一个结果是不舒服的。**
+
+### 复刻件侧清单也有一处自伤
+
+`store_catalog.py` 输出 22 modules、域名零重复，但 `ShopifyModule` 显示 `?` ——
+因为它的字段在**构造函数链**里赋，脚本只认 `=>`。
+
+**这与 R753 那次「`(i)  Startup Page` 报假缺席」是同一类错误：扫描器假设了声明形式。**
+
+### 验证
+
+```
+产品代码未改；套件 1745 / 0
+```
+
+### 下一轮
+
+换锚点找原版注册表（候选：module id 字符串 / 数组初始化模式）；
+并修 `store_catalog.py` 的构造函数形式。

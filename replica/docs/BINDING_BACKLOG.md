@@ -792,3 +792,27 @@ platform.poq.io/clients/office/{AtaVerifyCaptcha, recaptcha?trackingId=}
 
 **实现前提**：确认调用链之后，把这套身份加进 `BrowserIdentity` / `BrowserFingerprint` 一族，
 **不要建独立死类**（R772 的教训）。
+
+
+## 请求与指纹层 — Poq App 面（R775 更新）
+
+**R774 的 Unknown 已答：App 面是真集成。**
+
+```
+4 个头部构造器（共享 Poq 身份模板，sub_140B3B7C0 / BAC0 / BD40 / C030）
+4 个 per-action 函数（guest-token / cart/items / checkout/start / products?ids=）
+每个 action 有 4 个同形状调用者（thunk + 异步包装）→ 可达
+```
+
+**构建的正确单位**：**一个 App 面 flow**（身份 + 四步 + 一个注册项），
+**不是**单独的身份常量 —— 后者会重复 R772 的死代码问题。
+
+| 项 | 状态 |
+|---|---|
+| 触发它的任务类型名 | Unknown，需穿 4 层接口分派，**不影响判断** |
+| `poq-app-id` 的取值来源 | Unknown（`sub_141CF6230(&off_146B5C780, a1[29])`、`sub_140B399B0(a1)` 未读） |
+| `poq-slot-conditions` 语义 | Unknown |
+| 为何是四个头部构造器 | Unknown |
+
+**注意**：这与 `offspring` 的**网页面**（Hybris，实机证据，`PlatformAssignmentTests`）是**两种表面**，
+**不要互相替换**（R772 的教训）。

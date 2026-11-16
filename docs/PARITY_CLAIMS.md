@@ -43,7 +43,7 @@ Ghidra 留作后手，只有当某条 claim 必须伪代码级证据时才装，
 | C1 | 两个产物是同类（PE32+/amd64/windows_gui/NativeAOT，无 CLR 目录） | **pass** | manual-from-command | `pe_triage.py` 对两产物各一次；见 `PARITY_PRODUCT.md` §2 | — |
 | C2 | 节布局相同 | **fail** | manual-from-command | `pe_diff.py --summary`（6 节 ↔ 9 节）；`pe_triage.py` 节表 | — |
 | C3 | 导出面相同 | **fail** | manual-from-command | 同上（39 ↔ 1） | — |
-| C4 | 导入面相同 | **fail** | tool-evidence | `mcp__rea__inspect_pe_imports` 对两产物各一次：原版 **17 DLL / 438 函数 / imphash `7ed8e147…`**，复刻件 **18 DLL / 409 函数 / imphash `23e3dee0…`**；两侧 `coverage.status=complete`、`delay_imports=0` | 两侧都完整取到，所以这一条现在是**可判的 fail**，不再 unknown。差别可解释：复刻件多一个 `VERSION.dll`（3 个导入，Avalonia 读文件版本），原版多 ADVAPI32 的一组安全 API（AOT 运行时的 ACL/令牌族）。imphash 不同是这两处之和的必然结果 |
+| C4 | 导入面相同 | **fail** | tool-evidence | `mcp__rea__inspect_pe_imports` 对两产物各一次（原版 17 DLL/438 函数 · 复刻件 18 DLL/409 函数，两侧 `coverage.status=complete`）；集合差由 `python analysis\diff_imports.py` 逐条给出 | 两侧都完整取到，所以这是**可判的 fail**。**差集闭合：438 − 83 + 54 = 409。** 原版独有 83：advapi32 21（ACL/令牌族）· kernel32 38（AOT/BCL 面）· bcrypt 5 + ncrypt 4 + crypt32 2（非对称密钥/签名/PBKDF2）· ole32 3（COM 编组）· CRT 7 · iphlpapi 2 · oleaut32 1。复刻件独有 54：crt-math 29（`acosh`/`cbrt`/`fma`/`_dclass`）· kernel32 18（thread-pool IO）· **version 3** · crypt32 2 · iphlpapi 1 · oleaut32 1。**差别全在运行时与 UI 面（AOT+BCL 加密+COM ↔ Avalonia/Skia），不在行为** |
 | C5 | 资源面相同 | **pass** | tool-evidence | `python analysis\pe_resources.py` → 原版 **12** ↔ 复刻件 **12**，逐叶子同路径同类型。**R706 在 11:49 重建的新产物（55,349,248 B）上重算，结论不变** | — |
 
 > C2/C3/C5 判 `fail` 但**每条都可解释**（AOT 版本差 / Brotli 静态库导出 / 复刻件不随附图标，见 `DEVIATIONS.md`）。

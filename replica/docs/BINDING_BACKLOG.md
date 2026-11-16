@@ -1671,3 +1671,30 @@ hit   = 声明模式命中 =  1  -> RENAMED / PARTIAL 判定
 
 **纪律**：**`unknown` 行自带的「补法」是可执行的 —— 写清了怎么补的 `unknown` 只是待办，不是雾。**
 C4 的补法挂了好几轮没人做，包括我。
+
+
+## 判据 — C4 的 fail 逐条列清（R812）
+
+**新增 `analysis/diff_imports.py`**（本地解析 PE 导入表，留作复算工具）。
+
+```
+原版 17 DLL / 438 · 复刻件 18 DLL / 409
+原版独有 83 · 复刻件独有 54
+438 − 83 + 54 = 409   ✓ 闭合
+```
+
+| 侧 | 主要类别 |
+|---|---|
+| **原版独有 83** | `advapi32` 21（ACL/令牌）· `kernel32` 38（AOT/BCL）· `bcrypt`5+`ncrypt`4+`crypt32`2（非对称加密）· `ole32` 3（COM）· CRT 7 · `iphlpapi` 2 · `oleaut32` 1 |
+| **复刻件独有 54** | `crt-math` 29（`acosh`/`cbrt`/`fma`）· `kernel32` 18（thread-pool IO）· `version` 3 · `crypt32` 2 · `iphlpapi` 1 · `oleaut32` 1 |
+
+**结论**：差别全在**运行时与 UI 面**（AOT+BCL 加密+COM ↔ Avalonia/Skia），**没有一条落在行为上**。
+
+| 仍 Unknown | |
+|---|---|
+| `oleaut32` 的 `#200` / `#9` 是什么 | 按序号导入，需查 OLEAUT32 序号表 |
+| `PFXExportCertStoreEx` ↔ `PFXExportCertStore` | 两产物各用其一，成因未定 |
+| 要不要「修」 | **不该修** —— 工具链与 UI 框架的必然结果 |
+
+**纪律**：**在截断的输出上算差集，会得到看起来很精确的错答案。**
+**修法不是「再要更大的输出」，而是「自己读源数据」。**

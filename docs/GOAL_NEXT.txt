@@ -121,7 +121,7 @@ a) 类型级缺口 → 0、类型缺失 → 0（每条若不可得则写 Unknown
 b) 剩余仅"字符串池中截断"的文案，且每条写明为何不可得；
 c) 产物级对照报告可复算（原版 target\Cybersole.exe ↔ 复刻件 .publish-aot 产物）；
 d) claim 表每条都有 authority（tool-evidence / manual-from-command / unknown）+ 命令 + gap_reason；
-e) 全量套件绿 + 29 条变异测试全 fired + 全部文档数字来自 METRICS.md；
+e) 全量套件绿 + 全部变异测试全 fired（条数以 docs\METRICS.md 为准，不在本文写死）+ 全部文档数字来自 METRICS.md；
 f) **核心覆盖表可复算**：原版的站点清单与风控厂商清单（从二进制取证，不从字符串计数取）
    ↔ 复刻件的 Registry.cs 与 Flows/Scripts 目录，逐条列出"已覆盖 / 未覆盖 / 覆盖但未验证"，
    未覆盖的每条写明为什么未覆盖（可做 / 结构差异 / 不可得）。

@@ -4640,3 +4640,39 @@ https://www.vans.com/api/products/v2/products/
 | `/api` 修的 21 条是否在这 55 里 | 未查 |
 
 **纪律**：**「先把度量做对」可能本身是错的 —— 先看度量能不能直接产出可执行清单。**
+
+
+## 优先级 ① — `/customer/v1/` 10 条（R902，**改产品代码 +6 用例**）
+
+### 10 条
+
+**地址 `add` `del` `list` `update` · `customer/app` · `customer/exist` · `customer/guest/register` ·
+`customer/login` · `customer/register` · `verification/send`**
+
+### 数字
+
+| 度量 | R901 | **R902** |
+|---|---|---|
+| `hostless` 覆盖 | 46/67（68.7%） | **56/67（83.6%）** |
+| 总缺失 | 105 | **95** |
+| 套件 | 1790 | **1796** |
+
+### 归属：Unknown（比 Vans 弱一档）
+
+**`CustomerApiEndpoints.OwnerIsUnknown = true`** —— 无任何字面量同时含路径与宿主。
+**对比 `VansEndpoints.OwnershipIsInference = false`（共现有证）。**
+
+**写常量正当（路径是观察）· 写步骤不正当（体/响应/鉴权/调用者四样全缺）。**
+
+### 6 用例
+
+**`TheOwningStoreIsRecordedAsUnknown` · `TheListIsOrderedForUseRatherThanAlphabetically` · 其余钉数量与族前缀**
+
+| 仍 Unknown | |
+|---|---|
+| 这 10 条属哪个站 | 无共现 |
+| 体/响应/鉴权/调用者 | 四样全缺 |
+| missing 95 里还有多少整族缺 | `/commerce/v1/` 2 · `/product-core/v1/` 2 · `/legacy/v1/` 2 |
+| **`/shield/v1/verify_otp`** | **优先级 ②** |
+
+**纪律**：**度量跑到能列清单就停 —— 再往后的精度不如一行常量。**

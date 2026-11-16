@@ -2688,3 +2688,53 @@ auth.casio-intl.com        /api/connect/v1/login
 
 **度量的价值是让下一步可判 —— 但它不能替代下一步。这一轮之后，「有宿主的站 API 只覆盖 3/55」是一个可执行的清单，
 比前面任何一个数都更直接。**
+
+
+### `/customer/v1/` 那 10 条补上了 —— 覆盖率**第一次真的动了**（R902）
+
+**R901 说「下一轮第一件事：跑 `-v` 拿清单」。跑了，然后补了最多的一族。**
+
+### 补了什么
+
+**`/customer/v1/*` 10 条 —— 账户管理的完整四动词集与注册链路：**
+
+| 路径 | 干什么 |
+|---|---|
+| `/customer/v1/address/add` · `del` · `list` · `update` | 地址增删查改 |
+| `/customer/v1/customer/app` | 读当前客户 |
+| `/customer/v1/customer/exist` | 注册前的存在性检查 |
+| `/customer/v1/customer/guest/register` | 访客注册 |
+| `/customer/v1/customer/login` · `register` | 登录 / 注册 |
+| `/customer/v1/verification/send` | 发验证码 |
+
+**而按 §2.7c 先查过：`/customer/v1` 字面量全库没有。
+`ScapiEndpoints.cs` 里那个 customer 是 Salesforce Commerce API，另一回事。**
+
+### 数字变化
+
+| 度量 | R901 | **R902** |
+|---|---|---|
+| `hostless` 覆盖 | 46 / 67（68.7%） | **56 / 67（83.6%）** |
+| 总缺失 | 105 | **95** |
+| 套件 | 1790 | **1796** |
+
+**所以这是 R892 以来第一次有**可测的产品进步**，而不是度量改进。**
+
+### 而这一族比 Vans 那族更值得标注
+
+**`OwnerIsUnknown = true`。它比 `VansEndpoints.OwnershipIsInference = false` 弱一档：**
+
+| 类 | 归属状态 | 为什么 |
+|---|---|---|
+| `VansEndpoints` | **Observation** | 宿主与路径同处一条字面量 |
+| **`CustomerApiEndpoints`** | **Unknown** | **没有任何一条字面量同时含这些路径与宿主** |
+
+**所以这 10 条是「镜像里确实存在的端点，而属哪个站不知道」。
+写常量是正当的（路径是观察），写步骤不是（体、响应、鉴权、调用者四样全缺）。**
+
+### 6 个用例里两个值得说
+
+| 用例 | 钉住 |
+|---|---|
+| `TheOwningStoreIsRecordedAsUnknown` | **把「归属未知」钉成断言** —— 将来谁找到共现证据，得改这个 flag 并说明 |
+| `TheListIsOrderedForUseRatherThanAlphabetically` | **`All` 是按注册流程排的，不是字典序** —— 断言首项是 `CustomerExist` 且整体不等于排序结果 |

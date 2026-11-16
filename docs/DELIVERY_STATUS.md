@@ -18816,3 +18816,71 @@ endpoint_coverage.py       -> 站 3/55=5.5% · 厂商 0/32=0.0% · 无宿主 46/
 
 **如果第一轮就得到 5.5%，那五轮的时间会花在产品上。**
 **所以「先把度量做对」这个决定本身可能是错的 —— 因为度量的精度提升一倍，远不如一行常量值钱。**
+
+
+---
+
+## 326. `/customer/v1/` 10 条补齐：hostless 覆盖 **68.7% → 83.6%**，套件 **1790 → 1796**
+
+> R902。**改产品代码 +6 用例。** 套件 **1796 通过 / 0 失败 / 0 跳过**。
+
+### 一、补了什么
+
+**`/customer/v1/*` 10 条：地址四动词（`add` `del` `list` `update`）· 读当前客户（`app`）·
+存在性检查（`exist`）· 访客注册（`guest/register`）· 登录与注册 · 发验证码（`verification/send`）。**
+
+**先查过（§2.7c）：`/customer/v1` 字面量全库没有；`ScapiEndpoints.cs` 那个 customer 是 Salesforce 的，另一回事。**
+
+### 二、数字
+
+| 度量 | R901 | **R902** |
+|---|---|---|
+| `hostless` 覆盖 | 46 / 67（68.7%） | **56 / 67（83.6%）** |
+| 总缺失 | 105 | **95** |
+| 套件 | 1790 | **1796** |
+
+**R892 以来第一次有可测的**产品**进步，而不是度量改进 —— 这正是 R901 说的缺的东西。**
+
+### 三、归属比 Vans 那族弱一档
+
+| 类 | 归属 | 依据 |
+|---|---|---|
+| `VansEndpoints` | **Observation** | 宿主与路径同处一条字面量 |
+| **`CustomerApiEndpoints`** | **Unknown**（`OwnerIsUnknown = true`） | **没有任何字面量同时含路径与宿主** |
+
+**所以这 10 条是「镜像里确实存在的端点，属哪个站不知道」。
+写常量正当（路径是观察），写步骤不正当（体/响应/鉴权/调用者四样全缺）。**
+
+### 四、6 个用例
+
+**`TenPathsWereRecovered`（含 `RecoveredPathCount` 与去重）· `TheOwningStoreIsRecordedAsUnknown`（把「未知」钉成断言）·
+`TheAddressVerbsAreComplete` · `TheSignupCheckAndTheRegistrationAreSeparate`（只注册不查会重复建号）·
+`EveryPathIsUnderTheCustomerFamily` · `TheListIsOrderedForUseRatherThanAlphabetically`**
+
+### 五、验证
+
+```
+endpoint_coverage.py -v   -> hostless 里列出这 10 条
+where_is customer         -> 11 文件，但 /customer/v1 字面量全库无
+CustomerApiEndpoints.cs   -> 新建，10 常量 + OwnerIsUnknown + RecoveredPathCount
+test --filter CustomerApi -> 6 通过
+endpoint_coverage.py      -> hostless 56/67 = 83.6%，missing 95
+metrics_report.py         -> 1796 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **这 10 条属哪个站**：**Unknown** —— 无共现证据。
+- **请求体 / 响应 / 鉴权 / 谁调用**：**全部 Unknown** —— 所以无步骤。
+- **`missing 95` 里还有多少是这种「整族缺」**：**Unknown** ——
+  **`-v` 里还看到 `/commerce/v1/` 2 条、`/product-core/v1/` 2 条、`/legacy/v1/` 2 条、`/checkout/v1/orders` 等。**
+- **`/shield/v1/verify_otp`**：**特别注意** —— 名字像防护服务的 OTP 校验，**属优先级 ②**。
+
+### 七、教训
+
+**R901 的教训是「先做产品再做度量」。这一轮的验证很直接：
+**补 10 个常量，`hostless` 从 68.7% 到 83.6%，`missing` 从 105 到 95，套件 +6。**
+
+**而前五轮的度量工作，一行产品代码也没动。**
+
+**所以度量的正确用法是：跑到能列出清单就停。R901 之后我确实停了，而清单第一条就是这一族。**

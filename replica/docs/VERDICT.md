@@ -53834,3 +53834,51 @@ https://www.vans.com/api/products/v2/products/
 > **我先花五轮让度量准确，而准确之后得到的是一个**更差的数**（5.5% 而不是 38.7%）。**
 > **如果第一轮就得到 5.5%，那五轮时间会花在产品上。**
 > **所以「先把度量做对」这个决定本身可能是错的 —— 度量精度提升一倍，远不如一行常量值钱。**
+
+
+---
+
+## 第 902 轮：`/customer/v1/` 10 条补齐 —— hostless 覆盖 68.7% → 83.6%
+
+### 补了什么
+
+**10 条：地址四动词（`add` `del` `list` `update`）· `customer/app` · `customer/exist` ·
+`customer/guest/register` · `customer/login` · `customer/register` · `verification/send`**
+
+**先查过（§2.7c）：`/customer/v1` 字面量全库无。**
+
+### 数字
+
+| 度量 | R901 | **R902** |
+|---|---|---|
+| `hostless` 覆盖 | 46 / 67（68.7%） | **56 / 67（83.6%）** |
+| 总缺失 | 105 | **95** |
+| 套件 | 1790 | **1796** |
+
+> **R892 以来第一次有可测的**产品**进步，而不是度量改进。**
+
+### 归属比 Vans 那族弱一档
+
+| 类 | 归属 | 依据 |
+|---|---|---|
+| `VansEndpoints` | **Observation** | 宿主与路径同处一条字面量 |
+| **`CustomerApiEndpoints`** | **Unknown** | **没有字面量同时含路径与宿主** |
+
+> **写常量正当（路径是观察），写步骤不正当（体/响应/鉴权/调用者四样全缺）。**
+
+### 6 个用例
+
+**`TheOwningStoreIsRecordedAsUnknown`（把「未知」钉成断言）· `TheListIsOrderedForUseRatherThanAlphabetically`
+（`All` 按注册流程排，断言首项是 `CustomerExist` 且整体不等于排序结果）· 其余四个钉数量与族前缀。**
+
+### 仍然 Unknown
+
+**这 10 条属哪个站** · **请求体/响应/鉴权/调用者全未知**（故无步骤）·
+**`missing 95` 里还有多少整族缺**（`-v` 还看到 `/commerce/v1/` 2 条、`/product-core/v1/` 2 条、`/legacy/v1/` 2 条）·
+**`/shield/v1/verify_otp`**（**名字像防护服务的 OTP 校验，属优先级 ②**）
+
+### 教训
+
+> **R901 说「先做产品再做度量」。这一轮验证很直接：补 10 个常量，hostless 68.7% → 83.6%，missing 105 → 95，套件 +6。**
+> **而前五轮的度量工作，一行产品代码也没动。**
+> **度量的正确用法是：跑到能列出清单就停 —— 而清单第一条就是这一族。**

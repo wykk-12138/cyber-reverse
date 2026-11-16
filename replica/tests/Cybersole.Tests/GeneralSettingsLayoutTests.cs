@@ -101,7 +101,26 @@ public sealed class GeneralSettingsLayoutTests
         Assert.Contains("UiKit.Row(\"(i)  Currency\"", source);
         Assert.Contains("UiKit.Row(\"(i)  Monitor Concurrency\"", source);
 
+        // R753: the live pane shows a fourth icon row, Language, which carried no marker until the window
+        // showed four and the source showed three.
+        Assert.Contains("UiKit.Row(\"(i)  Language\"", source);
+
         // the clock pair stays, but no longer shares a card with the two above
         Assert.Contains("UiKit.Row(\"Enable clock\"", source);
+    }
+
+    [Fact]
+    // The marker is not meant to reach the screen as the characters "(i)". Row hands its label to MarkedLabel,
+    // which turns the prefix into a circled glyph; this asserts the delegation exists, because nothing in this
+    // suite constructs controls and so nothing can observe the drawing itself.
+    public void TheMarkerIsInterpretedRatherThanPrinted()
+    {
+        var kit = File.ReadAllText(Path.Combine(Root(), "src", "Cybersole.Ui", "Views", "UiKit.cs"));
+
+        Assert.Contains("TwoColumn(MarkedLabel(label, labelWidth), input)", kit);
+        Assert.Contains("private static Control MarkedLabel(", kit);
+        Assert.Contains("const string marker = \"(i)\";", kit);
+        // and the glyph is drawn, not typed: a circled i built from a Border and a single character
+        Assert.Contains("text[marker.Length..]", kit);
     }
 }

@@ -333,7 +333,7 @@ public sealed class GeneralSettingsView : UserControl
 
         Content = UiKit.Scroll(UiKit.Form(
             UiKit.PlainCard(
-                UiKit.Row("Language", language),
+                UiKit.Row("(i)  Language", language),
                 new TextBlock { Text = "Default Delays", Opacity = 0.6, Margin = new Thickness(0, 6, 0, 0) },
                 new Grid
                 {

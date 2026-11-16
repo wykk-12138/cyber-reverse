@@ -86,7 +86,63 @@ public static class UiKit
 
     /// <summary>One label/input pair in a two-column grid.</summary>
     public static Control Row(string label, Control input, double labelWidth = 210) =>
-        TwoColumn(Label(label, labelWidth), input);
+        TwoColumn(MarkedLabel(label, labelWidth), input);
+
+    /// <summary>
+    /// A row label that understands the "(i)" prefix as the little info icon the window draws.
+    /// </summary>
+    /// <remarks>
+    /// R753: the live Settings pane shows a circled lowercase i before four labels — Language, Monitor
+    /// Concurrency, Startup Page and Currency — while the replica carried the characters "(i)" in three label
+    /// strings. Rendered, that puts "(i)" on screen where the original draws a glyph, and no count-based metric
+    /// can see the difference because the strings match the catalogue either way.
+    ///
+    /// Three call sites already carried the marker and Language did not; the window showed four icon rows, which
+    /// is how the missing one was found. The marker stays in the string rather than becoming a parameter because
+    /// it is how the existing rows were written, and putting the interpretation here fixes all of them at once.
+    ///
+    /// The colour is <see cref="Dim"/>, the muted brush this file already uses for secondary text. The live
+    /// glyph's exact colour was not sampled, so this is a close approximation rather than a measurement.
+    /// </remarks>
+    private static Control MarkedLabel(string text, double width)
+    {
+        const string marker = "(i)";
+        if (!text.StartsWith(marker, StringComparison.Ordinal))
+        {
+            return Label(text, width);
+        }
+
+        var glyph = new TextBlock
+        {
+            Text = "i",
+            FontSize = 10,
+            Foreground = Dim,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        var circle = new Border
+        {
+            Child = glyph,
+            Width = 14,
+            Height = 14,
+            CornerRadius = new CornerRadius(7),
+            BorderThickness = new Thickness(1),
+            BorderBrush = Dim,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 6, 0),
+        };
+
+        var panel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Width = width,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        panel.Children.Add(circle);
+        panel.Children.Add(Label(text[marker.Length..].Trim(), double.NaN));
+        return panel;
+    }
 
     /// <summary>
     /// A labelled checkbox, with the text on the label rather than on the box.

@@ -2270,3 +2270,40 @@ HandleBlock 0 · SetRequest 0 · HandleResponse 0 · GetHome 0 · VerifySession 
 | 26 条偏差是否填充 | Inference（中），未逐条核 |
 
 **纪律**：**目标的第一句话是最后才被量的一句 —— 因为数声明比数产物容易。**
+
+
+## 判据 — 函数数量成为第七项度量（R832）
+
+**新增** `replica/tools/func_count.py`（读两个 PE 的 `.pdata`，无需反汇编、无需第二个 IDA）。
+**已注册进 `METRICS`**，`docs/METRICS.md` 新增三项：
+
+```
+functions: original .pdata | 277,120
+functions: replica .pdata  | 171,690
+functions: ratio           | 61.96%
+```
+
+### 注册时暴露的 bug（已修）
+
+`summary_bits` **把所有正则套到每个脚本输出上**。我的 `replica\s*:\s*([\d,]+)` 撞上 `datafiles_diff.py`，
+于是 `数据文件名对照` 里多了一个 `functions: replica .pdata: 0`。
+
+**修法：让标签唯一**（`pdata-original:` / `pdata-replica:` / `pdata-ratio:`），不是调正则松紧。
+
+> **形态**：一个正确的数（真的 0 个匹配）被贴到错误的键上，读起来像一个事实。
+
+### 这个数的读法（已印进工具输出，看到 METRICS 的人也会看到）
+
+| 能说 | 不能说 |
+|---|---|
+| 约 62%，同一口径 | **「少了 38% 功能」** —— 框架不同（.NET 10 AOT ↔ .NET 8 AOT + Avalonia） |
+| | **「函数级对等」** —— `.pdata` 数非叶函数，不含内联/裁剪 |
+| | **与 321,244 相比** —— 那是 IDA `af` 口径 |
+
+| 仍 Unknown | |
+|---|---|
+| 复刻件 IDA `af` 计数 | 需 13338 实例 |
+| 62% 里 Avalonia / BCL 占多少 | `.pdata` 无命名空间信息 |
+| `summary_bits` 其余历史正则有无同类问题 | **未逐个审** |
+
+**纪律**：**一次性脚本只看自己的输出，度量要看所有输出 —— 变成度量这个动作本身会暴露 bug。**

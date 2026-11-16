@@ -51,6 +51,11 @@ METRICS = [
     # R600 sixth metric: the persisted-data file names. The other five all measure the binding surface; none of them
     # looks at what the application writes to disk, which is part of behaviour when data has to be exchangeable.
     ("数据文件名对照", ["tools/datafiles_diff.py"]),
+    # R832 seventh metric: the goal's first clause is that the function counts be equal, and until now nothing in this
+    # table measured it. The six above all count declarations; this one counts the artifacts. It reads .pdata from both
+    # PEs, so it needs no disassembly and no second IDA instance -- func_compare.py can also answer it but requires the
+    # replica's database on port 13338, which is usually not running.
+    ("函数数量（.pdata）", ["tools/func_count.py"]),
 ]
 
 SCOPE_NOTE = "note: base-class inheritance is counted (by design since R343)"
@@ -88,6 +93,12 @@ def summary_bits(name_out):
         # R600 sixth metric; R602 switched its original side to the data directory (see the tool's header)
         "datafiles: original-on-disk not in replica": r"original-on-disk but not written by the replica\s*:\s*(\d+)",
         "datafiles: replica-only": r"replica-referenced, found in neither source\s*:\s*(\d+)",
+        # R832 seventh metric. Unique prefixes on purpose: summary_bits runs every pattern against every
+        # script, and a bare "replica:" matched datafiles_diff.py output, so that metric reported a function
+        # count of zero. A label no other script can emit is the fix; loosening or tightening the regex is not.
+        "functions: original .pdata": r"pdata-original:\s*([\d,]+)",
+        "functions: replica .pdata": r"pdata-replica:\s*([\d,]+)",
+        "functions: ratio": r"pdata-ratio:\s*([\d.]+%)",
     }
     for label, pattern in patterns.items():
         hits = re.findall(pattern, name_out, re.M)

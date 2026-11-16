@@ -50192,3 +50192,58 @@ prod-*-api.popmart.com · /web/v2?partner=&appKey= · activity/v1 · popDraw.jso
 
 > **目标的第一句话，是最后才被量的一句。**
 > **因为前六项度量都在数「声明」，而函数数要数「产物」—— 数声明比数产物容易，所以一直没做。**
+
+
+---
+
+## 第 832 轮：函数数量进 METRICS；而我的正则从别的脚本里读了一个 0
+
+### 新增第七项度量
+
+`replica/tools/func_count.py` —— 读两个 PE 的 `.pdata`，**不需要反汇编、不需要第二个 IDA 实例**。
+已注册进 `METRICS`，`docs/METRICS.md` 新增三行：
+
+```
+函数数量（.pdata） — original .pdata | 277,120
+函数数量（.pdata） — replica .pdata  | 171,690
+函数数量（.pdata） — ratio           | 61.96%
+```
+
+### 注册之后立刻暴露一个真 bug
+
+`summary_bits` **把所有正则套到每个脚本的输出上**。我新加的 `replica\s*:\s*([\d,]+)` 撞上了
+`datafiles_diff.py` 的某一行：
+
+```
+数据文件名对照  {..., 'functions: replica .pdata': '0'}      ← 从别的脚本读来的
+```
+
+**修法不是调正则松紧，是让标签唯一**（`pdata-original:` / `pdata-replica:` / `pdata-ratio:`）。
+修后 `datafiles` 回到原样，`函数数量` 三项齐全。
+
+### 这个 bug 的形态
+
+**`functions: replica .pdata: 0` 是一个正确的数（真的 0 个匹配）被贴到了一个错误的键上，于是读起来像一个事实。**
+
+**如果我只核「第七项有没有出现」，就会把 0 收下。**
+
+### 验证
+
+```
+func_count.py 277,120 / 171,690 / 61.96% · metrics_report --skip-tests 七项全 exit 0
+metrics_report 1766 通过 / 0 失败 · METRICS.md 新增三行
+```
+
+### 怎么读这个数（已印进工具输出）
+
+**能说**：约 62%，同一口径。**不能说**：不是「少了 38% 功能」（**框架不同**：.NET 10 AOT ↔ .NET 8 AOT + Avalonia）·
+不是「函数级对等」（`.pdata` 数非叶函数）· **不能跟 IDA 的 321,244 比**（口径不同）。
+
+### 仍然 Unknown
+
+**复刻件 IDA `af` 计数**（需 13338）· **62% 里 Avalonia/BCL 占多少**（`.pdata` 无命名空间）·
+**`summary_bits` 其余十一项历史正则有没有同类问题**（未逐个审）
+
+### 教训
+
+**「把它变成度量」这个动作本身发现了 bug —— 一次性脚本只看自己的输出，度量要看所有输出。**

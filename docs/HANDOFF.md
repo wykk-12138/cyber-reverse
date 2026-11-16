@@ -126,4 +126,4 @@
 `.pdata` 的 `RUNTIME_FUNCTION` 数：**原版 277,120 · 复刻件 171,690 · 62%**。
 口径差异：与 IDA `af` 的 321,244 不可直接比；`.pdata` 数非叶函数，不含内联与裁剪。
 **不能读成「少了 38% 功能」** —— 两边框架不同（原版 .NET 10 AOT；复刻件 .NET 8 AOT + Avalonia）。
-**待办：把这个数加进 `tools/metrics_report.py`**（或让 `func_compare.py` 在 13338 没起时用 `.pdata` 兜底）。
+**已完成（R832）**：`replica/tools/func_count.py` 注册为**第七项度量**，`METRICS.md` 有三行（original / replica / ratio）。

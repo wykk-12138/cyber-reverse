@@ -3228,3 +3228,45 @@ ProfileValidationListsTests  5/5 通过
 - 触发时机的细节（逐行 vs 逐单元格提交）：**Unknown**（证据到"列定义时注册"为止，R702 §3.4 已声明）。
 - `[+96]`/`[+72]` 对应哪个托管字段名：**Unknown**（只认代码这么取）。
 - 其它 locale 的州表（德 16 / 奥 9 / 阿 22）复刻件尚未导出：**Unknown**（英语那份是当前路径）。
+
+
+---
+
+## 136. 新产物上的重测：复刻件 **189,090** 个函数，C10 仍是 **12/819**
+
+> R707。工具：`analysis/poll_ready.py`（新增）；重开 IDA 于新产物；`func_compare.py` / `aot_member_coverage.py`。
+
+### 一、先把库建对
+
+`replica/.publish-aot/Cybersole.Ui.exe` 已重建（55,349,248 B），旧 `.id0/.id1` 是旧字节的库。
+**第一个模态框这次必须选「覆盖」** —— R691 清单只写了「加载现有」，那是二进制未变时的答案。已在清单里补条件。
+
+过程（CPU 增量是唯一可靠信号）：
+
+```
+覆盖          ws 322 → 567 MB
+加载新文件 确定  CPU 3 → 8.8 s
+PDB 是         CPU 8.8 → 51.2 s
+~400 s 后      auto_analysis_ready: true, input_path = .publish-aot\Cybersole.Ui.exe
+```
+
+**顺带发现 `wait_ready.py` 的缺陷**：它把「连接被拒」当致命错误直接退出，而插件在分析后段才绑端口。
+新增 `analysis/poll_ready.py`：容忍拒绝、打印 CPU 增量、只在 `auto_analysis_ready is True` 时退出。
+
+### 二、重测结果
+
+```
+original: # exportspec symbols=no   named=10,041   total=321,244  ratio=0.0313
+replica : # exportspec symbols=yes  named=176,784  total=189,090  ratio=0.9349
+C10     : 12 / 819 = 1.5%   （上一版产物是 187,732 / 12; 比例为 1.5%，未变）
+```
+
+**新产物比上一版多 1,358 个函数**，而 C10 一点没动 —— 这两件事合起来说明：
+新增的校验器确实**带来了实现**（函数数动了），但**没有让任何绑定成员变得可见**（它不是 view-model 代码）。
+**如果没有 C10 这一项，+1,358 会被误读成"覆盖面变好了"。**
+
+### 三、仍然 Unknown
+
+- 同口径（不带 PDB）的复刻件函数数：R613 的 186,732 是**旧产物**的数，**未在新产物上重做**（需另建不载 PDB 的库）。
+- C10 那 807 个不可见成员是裁剪 / 内联 / 只在元数据里：**Unknown**，判别器仍未建。
+- `strings_cache_ready` 在 READY 时仍为 false / size 0：**未查原因**（不影响本次导出，但会让按字符串查找变慢）。

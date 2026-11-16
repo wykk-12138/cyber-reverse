@@ -4011,3 +4011,40 @@ after : 默认整词, --sub  才子串
 | `where_is` 还有别的错默认吗 | 如是否该排除 `docs/baseline/` |
 
 **纪律**：**§2.7c 只规定「跑」，没规定「怎么用」。命令也有默认值，而默认值本身可能是陷阱。**
+
+
+## 判据 — 「形状 78」的证据源是抽样池（R885）
+
+### 工具早已存在（第三次 §2.7c 生效）
+
+**`tools/shape_audit.py` = 镜像访问器形状 ↔ 复刻件声明，`METRICS.md` 的「形状 78」是它的输出。本轮只加两个开关。**
+
+### 证据源问题
+
+```
+抽样池（pe_strings.txt）: 102 types   -> mismatches 78
+R883 基线（全量）       : 211 types   -> mismatches 0   ← 不是修好了
+```
+
+**池子少一半，且**少掉的那一半含 `Cybersole.Models.CreateModel`** → 「形状 78」从未包含它。**
+
+### 而基线有缺陷（我上一轮引入的）
+
+**格式 `<类型> TAB <数量> TAB <属性列表>` 丢了 `Getter`/`Setter`/`Property` 种类 →
+`want_set` 依赖 `'Setter' in kinds` → 基线模式下永不成立 → **安静返回 0**。**
+
+> **丢了字段的数据比没有数据更危险：78→0 看起来像修好了。**
+
+### R884 那问题的答案
+
+**`CreateModel` 12 个多余属性里：7 个有证据，5 个没有**
+（`AccountId` `ProfileId` `ProxyGroupId` `TaskGroupId` `UseSmartActions`）
+**四个是 `*Id` 外键 —— 镜像用 `ProxyGroup`（对象）而非 `ProxyGroupId`（键）→ 系统性形态差异。**
+
+| 仍 Unknown | |
+|---|---|
+| **基线要不要重生成带访问器种类** | **下一轮第一件事** |
+| 5 个 `*Id` 该不该改成对象 | 形态差异是 Observation；「该改」要看 UI |
+| `--extra` 63 条里多少真多余 | 自称 review list |
+
+**纪律**：**能保留字段时不要压掉 —— 下游读不到会安静返回 0，而不是报错。**

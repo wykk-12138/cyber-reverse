@@ -1894,3 +1894,64 @@ after :  默认整词，--sub  才子串
 所以「镜像的 `Drop` 没有 `Stores`」这句话不能说。**
 
 **`CreateModel` 那条是判据 (a) 的正面证据：镜像的 8 个属性复刻件一个不缺。**
+
+
+### 「形状 78」这个数字的证据源是**抽样池**（R885）
+
+**目标：答 R884 的问题 —— `CreateModel` 那 12 个多余属性是 XAML 需要还是我编的。**
+
+**按 §2.7c 先查，三次都是同一个答案：工具已经有了。`tools/shape_audit.py` 做的正是
+「镜像的访问器形状 ↔ 复刻件声明」的对比，而 `docs/METRICS.md` 里那个「形状 78」就是它的输出。**
+
+### 但它的证据源是抽样池
+
+```
+shape_audit.py:  POOL = analysis/pe_strings.txt     ← 抽样（180,228 行，§2.7b 四次踩坑）
+实测:            evidence: string pool (102 types, sampled)
+```
+
+**而 R883 的基线（`idautils.Strings()` 全量）有 **211** 个类型。**
+
+**池子里少一半，而且少掉的那个包含了 `Cybersole.Models.CreateModel` —— 所以
+「形状 78」这个数从来没包含过 `CreateModel`。**
+
+### 于是我给它加了 `--baseline`
+
+```
+shape_audit.py --baseline   -> evidence: baseline (211 types)
+```
+
+**但结果暴露了我自己那份基线的缺陷：**
+
+| 证据源 | 类型数 | mismatches |
+|---|---|---|
+| 抽样池 | 102 | **78** |
+| R883 基线 | 211 | **0** |
+
+**0 不是好消息 —— 是**基线把 `Getter`/`Setter` 的区分丢了**。**
+
+**R883 的 `dump_accessors.py` 写成 `<类型> TAB <数量> TAB <属性列表>`，
+**访问器种类（Getter/Setter/Property）在格式里就没了**。而 `want_set` 依赖 `'Setter' in kinds`，
+所以基线模式下这个检查永不成立。**
+
+**→ 一份丢了字段的数据比没有数据更危险：它让检查从「78 个不匹配」变成「0 个不匹配」，
+而两句话在报表上看起来像「修好了」。**
+
+### `CreateModel` 的答案：5 条，不是 12
+
+**用基线跑 `--extra --type CreateModel`：**
+
+```
+CreateModel   AccountId          replica=prop+set
+CreateModel   ProfileId          replica=prop+set
+CreateModel   ProxyGroupId       replica=prop+set
+CreateModel   TaskGroupId        replica=prop+set
+CreateModel   UseSmartActions    replica=prop+set
+total review rows: 5
+```
+
+**所以 12 个多余属性里有 **7 个在基线里有证据**，5 个没有。**
+
+**而这 5 个的共同特征：四个是 `*Id`（外键）· 一个是 `UseSmartActions`。
+`CreateModel` 在镜像里用 `ProxyGroup`（对象）而不用 `ProxyGroupId`（键）——
+**这是一致的：镜像传对象，复刻件传 id。****

@@ -1,21 +1,45 @@
-import io, os, re, json, collections
+import io, os, re, sys, json, collections
 
 ROOT = r"D:\projects\cyber-reverse\replica"
 POOL = r"D:\projects\cyber-reverse\analysis\pe_strings.txt"
 BINDS = os.path.join(ROOT, "docs", "xaml_bindings.json")
 
-# 1) shapes from the pool
-lines = io.open(POOL, encoding='utf-8', errors='replace').read().splitlines()
-rows = [m.group(2).strip() for m in (re.match(r'^\s*(0x[0-9a-f]+)\s+(.*)$', l) for l in lines) if m]
+# 1) shapes: two evidence sources, and the choice matters (R885).
+#
+#   pool     -- analysis/pe_strings.txt, the sampled string dump. 180,228 lines that read like a
+#               full inventory and are not; IDA's own inventory is far larger. Section 2.7b records
+#               four rounds of trouble from treating this as complete.
+#   baseline -- docs/baseline/recovered_accessors_by_type.txt, written in R883 from
+#               idautils.Strings() over the whole image: 508 declaring types. This is the source to
+#               prefer, and the reason this switch exists is that the pool does not even contain
+#               Cybersole.Models.CreateModel, so any audit built on it reports that type as absent.
+BASELINE = os.path.join(ROOT, "docs", "baseline", "recovered_accessors_by_type.txt")
 shape = collections.defaultdict(lambda: collections.defaultdict(set))
-for r in rows:
-    for m in re.finditer(r'Cybersole\.(\w+)!(Property|Getter|Setter)', r):
-        member, kind = m.group(1), m.group(2)
-        idx = r.find(',Cybersole.' + member + '!' + kind)
-        if idx <= 0:
+
+if "--baseline" in sys.argv and os.path.exists(BASELINE):
+    for line in io.open(BASELINE, encoding="utf-8", errors="replace"):
+        parts = line.rstrip("\n").split("\t")
+        if len(parts) != 3 or line.startswith("#"):
             continue
-        t = re.split(r'[,\s]', r[:idx])[-1].split('.')[-1]
-        shape[t][member].add(kind)
+        decl, _n, props = parts
+        short = decl.split(".")[-1]
+        for p in props.split(","):
+            p = p.strip().split(".")[-1]
+            if p:
+                shape[short][p].add("Property")
+    print("evidence: baseline (%d types)" % len(shape))
+else:
+    lines = io.open(POOL, encoding='utf-8', errors='replace').read().splitlines()
+    rows = [m.group(2).strip() for m in (re.match(r'^\s*(0x[0-9a-f]+)\s+(.*)$', l) for l in lines) if m]
+    for r in rows:
+        for m in re.finditer(r'Cybersole\.(\w+)!(Property|Getter|Setter)', r):
+            member, kind = m.group(1), m.group(2)
+            idx = r.find(',Cybersole.' + member + '!' + kind)
+            if idx <= 0:
+                continue
+            t = re.split(r'[,\s]', r[:idx])[-1].split('.')[-1]
+            shape[t][member].add(kind)
+    print("evidence: string pool (%d types, sampled)" % len(shape))
 
 # 2) replica declarations, per type body (brace matched)
 bodies = {}
@@ -102,3 +126,46 @@ print('mismatches: member has Setter evidence but the replica is not a settable 
 for t, m, kinds, have in rows_out:
     print('  %-26s %-22s evidence=%-26s replica=%s' % (t, m, kinds, have))
 print('total mismatches:', len(rows_out))
+
+# ---------------------------------------------------------------------------------------------
+# R885: the reverse direction, which this tool never reported. The check above finds members the
+# image evidences and the replica lacks; it cannot find members the replica declares and the image
+# does not, which is the question R884 left open about CreateModel's twelve extra properties.
+#
+# What this report IS: a review list. Every row is a replica member under a type the image also has,
+# with no accessor evidence for that member.
+#
+# What it is NOT: proof the member is invented. R883 established that the accessor baseline covers
+# only members the runtime materialised for binding, so a plain property that no XAML path touches
+# produces no literal either. A row here means "no evidence found", and the two ways that happens --
+# the member is mine, or the member is the image's but unbound -- call for opposite remedies.
+# ---------------------------------------------------------------------------------------------
+want_extra = '--extra' in sys.argv
+if want_extra:
+    only = None
+    if '--type' in sys.argv:
+        i = sys.argv.index('--type')
+        if i + 1 < len(sys.argv):
+            only = sys.argv[i + 1].strip()
+
+    extra = []
+    for short, ev in shape.items():
+        body = "\n".join(bodies.get(short, []))
+        if not ev or not body:
+            continue
+        if only and short != only:
+            continue
+        # every public member the replica declares on this type, against the image's evidence
+        for m in sorted(set(re.findall(r'public\s+[\w<>\[\]?.,\s]+?\s+(\w+)\s*(?:\{|=>)', body))):
+            if m in ev:
+                continue
+            if m in ('get', 'set', 'value', 'ToString', 'Equals', 'GetHashCode'):
+                continue
+            extra.append((short, m, kind_of(body, m)))
+
+    print('')
+    print('review list: replica member with no accessor evidence for that member')
+    print('  not a defect list -- see the header comment above the code that prints it')
+    for t, m, have in extra:
+        print('  %-26s %-24s replica=%s' % (t, m, have))
+    print('total review rows:', len(extra))

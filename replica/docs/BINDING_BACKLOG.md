@@ -890,3 +890,26 @@ poq-slot-conditions   名字确认，取值未定位
 
 **地址规则（第四次踩）**：从代码往字符串走 **+12**；从字符往对象走 **−12**。
 `off_slot_reader.py` 只接受**对象地址**。
+
+
+## App 面 — 已建（R779）
+
+`PoqAppFlow` 已注册为 `poq-app`（域名 `platform.poq.io`），覆盖率 **57%（4/7）**。
+
+```
+身份 8 常量 → c.Session.Headers（请求层真读的地方）
+动作 4 个：guest-token / products?ids= / cart/items / checkout/start
+动态 3 个：poq-country-identifier / currency / user-id ← 从 Session.Vars 取，不照抄
+未写 3 个：shipping / payment / order ← 镜像在该面无端点
+```
+
+| 项 | 状态 |
+|---|---|
+| **触发 App 面的任务类型** | **Unknown —— 独立 module 是我选的形状，不是原版的** |
+| `poq-slot-conditions` 取值 | Unknown |
+| `nl-NL` 是否被区域覆盖 | Unknown |
+| 缺的三步原版是否也没有 | Inference（高），未反证 |
+
+**加模块的连带清单（R779 实测五处）**：`PARITY.md` 两处、`CoreTests.cs`、
+`ArrowAndBeastTests`（名字里带数字）、`VERDICT.md` 顶部 reading guide。
+**注册新模块前先想到这五处。**

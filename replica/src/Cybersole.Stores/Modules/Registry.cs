@@ -167,6 +167,9 @@ public static class StoreModuleCatalog
         new FlowStoreModule(new JohnLewisFlow()),
         new FlowStoreModule(new PopMartFlow()),
         new FlowStoreModule(new YeezySupplyFlow()),
+        // R779: the app surface, which is a second surface rather than a replacement for offspring's web one.
+        // Platform host and per-client actions are the image's; see PoqAppFlow.
+        new FlowStoreModule(new PoqAppFlow()),
         // R773: offspring's WEB surface is Hybris — the home page carries "hybris" and answers JSON at
         // /view/resources/getUserInfo and /view/component/basket/minibasketAjax (PlatformAssignmentTests).
         // The image's platform.poq.io/clients/offspring/* strings are the app surface, a second surface, not a

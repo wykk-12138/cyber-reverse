@@ -130,7 +130,7 @@ public class StoreModuleTests
         var registry = new Cybersole.Http.Stores.StoreRegistry();
         Cybersole.Stores.Modules.StoreModuleCatalog.RegisterAll(registry);
 
-        Assert.Equal(62, registry.Modules.Count);
+        Assert.Equal(63, registry.Modules.Count);
         Assert.Contains(registry.Modules, m => m.Id == "shopify");
         Assert.Contains(registry.Modules, m => m.Id == "nike");
         Assert.Contains(registry.Modules, m => m.Id == "demandware");

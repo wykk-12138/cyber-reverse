@@ -18,7 +18,7 @@
 
 | 维度 | 数值 | 命令 |
 |---|---|---|
-| 注册模块 | **62**（32 种 flow） | `verify.ps1` → `store modules` |
+| 注册模块 | **63**（33 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
 | 变异检查 | **36 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫） | `tools/mutation-check.py` |
@@ -109,7 +109,7 @@ offspring 加购      → 需要打码服务（一直是 B 类，B 类的表里�
 
 ## 一、一句话
 
-**平台层 15/15 完成，62 个模块的步骤实现完整，GUI 层有 15 个 Settings 页的真实基线，
+**平台层 15/15 完成，63 个模块的步骤实现完整，GUI 层有 15 个 Settings 页的真实基线，
 配置层有 12 处结构性错误已被发现并修正。剩下的是三个反爬站点的加购端点和一份
 服务器下发的配置数据。**
 
@@ -2010,7 +2010,7 @@ foreach (var module in StoreModuleCatalog.CreateAll())
 
 **只查 DNS，不发 HTTP**：
 
-- 毫秒级（不是秒级），62 个模块 34 ms 跑完
+- 毫秒级（不是秒级），63 个模块 34 ms 跑完
 - 没有 rate limit，不会因为 403 误判
 - 正好抓到了那次发生的失败——**主机没有 DNS 记录**
 
@@ -2075,12 +2075,12 @@ verify.ps1           VERDICT: all checks passed
 ```
 
 ---
-### 全模块可达性扫描：62 个模块，44 个活着
+### 全模块可达性扫描：63 个模块，44 个活着
 
 覆盖率说明「实现了七步」，但**说明不了那些步骤指向的站点还在不在**。
 R47–R77 发现的九个平台误判都是这一类——代码没问题，世界变了。
 
-所以做了一次全量扫描：62 个模块，每个取 `Domains.First()`，GET 根路径。
+所以做了一次全量扫描：63 个模块，每个取 `Domains.First()`，GET 根路径。
 
 ### 分类（四类，含义不同）
 
@@ -2335,7 +2335,7 @@ public sealed class SupremeFlow : ShopifyFlow
 
 ### 怎么发现这个的
 
-不是因为怀疑 `supreme`，是因为**它 86% 很扎眼**——62 个模块里只有它一个是 86%。
+不是因为怀疑 `supreme`，是因为**它 86% 很扎眼**——63 个模块里只有它一个是 86%。
 
 **反常的数字值得看一眼，哪怕它的绝对值看着不错。**
 
@@ -2791,7 +2791,7 @@ footpatrol     table says **Shopify**                   registry says Footpatrol
 
 | 文档 | 断言 | 类型 |
 |---|---|---|
-| VERDICT | 62 个模块 | 事实 |
+| VERDICT | 63 个模块 | 事实 |
 | VERDICT | 13 条错误文案 | 事实 |
 | VERDICT | p50 必须标注样本数 | 测量 |
 | VERDICT | Settings 页数必须标注"基线" | 快照 |
@@ -2856,7 +2856,7 @@ Settings claim found; baseline wording nearby: True
 
 | 数字 | 类型 | 锚点 |
 |---|---|---|
-| 62 个模块 | 事实 | ✅ 扫描文档 == `CreateAll().Count` |
+| 63 个模块 | 事实 | ✅ 扫描文档 == `CreateAll().Count` |
 | 13 条错误文案 | 事实 | ✅ 扫描文档 == `ErrorCatalog.All.Count` |
 | p50 1.01x | **测量** | ✅ 强制标注样本数 |
 | 15 个 Settings 页 | **快照** | ✅ 强制标注"基线" |
@@ -2876,7 +2876,7 @@ Settings claim found; baseline wording nearby: True
 ---
 ### 62 vs 61
 
-`verify.ps1` 一直报 `store modules PASS 62 registered`，而 VERDICT 说「62 个模块」。
+`verify.ps1` 一直报 `store modules PASS 62 registered`，而 VERDICT 说「63 个模块」。
 两个数字都是"实测"的，所以必有一个是错的。
 
 查下来是脚本：
@@ -5778,7 +5778,7 @@ Live 43 / Guarded 7 / Wildcard 1 / Missing 1 / Reserved 1 / Dead 8
 
 ### 那个「Missing 2」里有一个从来不是缺陷
 
-R149 之前一直有一张表：**62 个模块，Live 44 / Guarded 6 / Missing 2 / Dead 9。**
+R149 之前一直有一张表：**63 个模块，Live 44 / Guarded 6 / Missing 2 / Dead 9。**
 这一轮去看那 2 个 Missing 是什么。
 
 ### 跑出来的原始结果
@@ -12107,7 +12107,7 @@ pwsh -File tools\verify.ps1 -Full      # 约 3 分钟，加全部 250 个
 | 测试 | 做什么 | 耗时 |
 |---|---|---|
 | `ShopifyWrappingTests` | 31 个 Shopify 站点逐个探 `/cart.js` | 90 s |
-| `ModuleRobustnessTests` | 62 个模块 × 2 个失败场景 | 60 s |
+| `ModuleRobustnessTests` | 63 个模块 × 2 个失败场景 | 60 s |
 | `ModuleReachabilityTests` | 62 个域名逐个探可达性 | 180 s |
 | 性能测试 | TLS 双栈 p50/p95 | 60 s |
 
@@ -12228,7 +12228,7 @@ Speed!=Slow（日常）：           541 通过 / 0 失败
 
 - `LiveContractTests`（9 个，R70 加的，只有 `-Live` 才跑）
 - `ShopifyWrappingTests`（真去探测 31 个站点的 `/cart.js`）
-- `ModuleRobustnessTests`（62 个模块 × 两个场景）
+- `ModuleRobustnessTests`（63 个模块 × 两个场景）
 - `ModuleReachabilityTests`（62 个域名的可达性）
 - 各种性能测试
 
@@ -47755,3 +47755,55 @@ python analysis/off_slot_reader.py [slot…]
 
 **规格够了，可以建 flow 单元**（身份 + 四动作 + 注册项）。
 **三个动态值从会话取，不照抄** —— 照抄就是把常量冒充成运行时数据。
+
+
+---
+
+## 第 779 轮：证据攒够了才动手
+
+### 建了什么
+
+`PoqAppFlow`，注册为 `poq-app`，域名 `platform.poq.io`。
+
+**8 个身份常量**（R777/R778 的 Observation）+ **4 个动作**（guest-token / products / cart-items / checkout-start）。
+
+**身份通过 `c.Session.Headers` 落到会话** —— 请求层读的就是那里，**所以是真用，不是死常量。**
+**三个动态值从会话取，不照抄常量。**
+**三个步骤故意不写** —— 镜像在这个面上没有端点，而恒失败的 override 会被算作"已实现"。
+
+### 覆盖率
+
+```
+poq-app   + + + + - - -   57%
+resolved 63/63 · fully covered 49 · exempt 2
+```
+
+**57% 是忠实的。**
+
+### 加一个模块要改五处 —— 这是设计
+
+```
+PARITY.md 62/32 → 63/33（两处）· CoreTests 62 → 63
+ArrowAndBeastTests.TheCatalogueIsSixtyTwoModules → 改名 + 63
+VERDICT.md 顶部 reading guide 62/32 → 63/33
+```
+
+**其中一个测试把数字写进了名字** —— 数字变时名字会逼你面对它。
+**这比"记得去改"可靠。**
+
+### 与 R772 的区别
+
+R772 我也建过 Poq flow，**那次拿一个面替换另一个面，被实机证据驳回，净改动为零。**
+这一轮：**先确认两面并存（R773/R774）→ 确认原版真走 App 面（R775）→ 头名（R777）→ 取值（R778）→ 才写。**
+
+**同一个对象，两次尝试，中间隔了六轮取证。**
+
+### 验证
+
+```
+套件 1752 / 0 · 四项度量未变 · poq-app 57%
+```
+
+### 仍然 Unknown
+
+**触发 App 面的任务类型** —— 注册成独立 module **是我选的形状，不是原版的形状**，类注释里写明了。

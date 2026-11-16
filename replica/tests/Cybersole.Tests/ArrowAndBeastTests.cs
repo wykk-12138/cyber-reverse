@@ -76,11 +76,11 @@ public sealed class ArrowAndBeastTests
 
     /// <summary>The catalogue grew by exactly one in R91.</summary>
     [Fact]
-    public void TheCatalogueIsSixtyTwoModules()
+    public void TheCatalogueIsSixtyThreeModules()
     {
         var count = StoreModuleCatalog.CreateAll().Count;
         _out.WriteLine($"modules: {count}");
 
-        Assert.Equal(62, count);
+        Assert.Equal(63, count);
     }
 }

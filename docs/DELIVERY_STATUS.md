@@ -8380,3 +8380,90 @@ poq_header_values.py 输出上表
 **规格够了，可以建那个 flow 单元了。** 单位仍是 R775 定的：
 **App 面一个 flow（身份 + 四个 action + 一个注册项）**，不是只建常量。
 三个动态值在 flow 里从会话取，**不照抄** —— 照抄就是把常量冒充成运行时数据。
+
+
+---
+
+## 205. App 面的 flow 建起来了 —— 证据攒够了才动手
+
+> R779。新增 `replica/src/Cybersole.Stores/Flows/PoqAppFlow.cs`；`Registry.cs` 加一行注册；
+> 五处计数同步。**这是本会话第一次「证据齐了才写」。**
+
+### 一、写了什么
+
+`PoqAppFlow : StoreFlow`，注册为 `poq-app`，域名 `platform.poq.io`：
+
+```
+身份（8 个常量，R777/R778 的 Observation）
+  user-agent Poq-Native-iOS-App · accept application/json
+  accept-encoding gzip, deflate, br · accept-language nl-NL,nl;q=0.9（标 Inference-low）
+  version-code 26.0 · platform iphone
+  poq-app-id 275 · poq-app-identifier a1dad595-7431-45bc-9fb9-684dac169b5b
+
+四个动作（Observation）
+  account/guest-token · products?ids= · cart/items · checkout/start
+```
+
+**身份通过 `c.Session.Headers` 落到会话上** —— 那是请求层真正读取的地方（`StoreFlow` 第 37/77 行就在这么用），
+**所以身份被使用，不是死常量。**
+
+**三个动态值**（`poq-country-identifier` / `poq-currency-identifier` / `poq-user-id`）从
+`c.Session.Vars["header:<名字>"]` 取，**没有照抄常量** —— 照抄就是把运行时数据冒充成固定值。
+
+**三个步骤故意不写**（shipping / payment / order）：镜像在这个面上没有它们的端点，
+**而写一个恒失败的 override 会被覆盖率算作"已实现"**。
+
+### 二、覆盖率
+
+```
+poq-app   +  +  +  +  -  -  -   57%
+resolved 63/63 flows; fully covered 49; exempt 2
+```
+
+**57% 是忠实数字**：4 步有据，3 步原版没有。
+
+### 三、加一个模块要改五处 —— 这是设计，不是麻烦
+
+注册之后红了一串，全是账簿：
+
+```
+ParityDocTests.TheModuleCountInParityMatchesTheCatalogue      PARITY.md 62 -> 63
+ParityDocTests.TheFlowTypeCountInParityMatchesTheCatalogue    PARITY.md 32 -> 33
+StoreModuleTests.Catalog_Registers_All_Modules                CoreTests.cs 62 -> 63
+ArrowAndBeastTests.TheCatalogueIsSixtyTwoModules              改名 + 62 -> 63
+SummaryBlockTests.ModuleCountInTheGuideMatchesTheRegistry     VERDICT.md 顶部 reading guide 62/32 -> 63/33
+```
+
+**其中 `DocsConsistencyTests` 那处我在注册前就主动改了**（11 处 `62 个模块` → 63），
+**另外五处是守卫替我找出来的。**
+
+**这正是它的价值**：`ArrowAndBeastTests.TheCatalogueIsSixtyTwoModules` **把数字写进了测试名**，
+所以数字变的时候名字会逼你面对它。**我不觉得这是繁文缛节 —— 它比"记得去改"可靠。**
+
+### 四、验证
+
+```
+构建                已成功
+ModuleCoverageTests poq-app 57%，resolved 63/63
+完整套件            1752 通过 / 0 失败 / 0 跳过（与改前同数）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+```
+
+**注意套件总数没变**（1752）：**加了一个模块、改了一个测试名、同步了五处数字，用例条数不变。**
+
+### 五、这一轮与 R772 的区别
+
+R772 我也建过一个 Poq flow，**那次是拿一个面去替换另一个面，被实机证据驳回，净改动为零。**
+这一轮：**先确认了两个面并存（R773/R774）、确认了原版真的走 App 面（R775）、
+把头名（R777）和取值（R778）攒齐**，**然后才写。**
+
+**同一个对象，两次尝试，中间隔了六轮取证。**
+
+### 六、仍然 Unknown
+
+- **触发 App 面的任务类型**：**Unknown** —— 我现在把它注册成一个独立 module，
+  **这是我选的形状，不是原版的形状**。类注释里写明了这一点。
+- `poq-slot-conditions` 的取值：**Unknown**。
+- `nl-NL` 是否被区域覆盖：**Unknown**。
+- 三个动态值的语义：**Unknown**（会话数据）。
+- App 面缺的 shipping/payment/order 是否原版也没有：**Inference（高）** —— 池子里没有端点，**未反证**。

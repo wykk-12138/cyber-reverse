@@ -5943,3 +5943,49 @@ script#__NEXT_DATA__                                       选择器
 | 其余四个通用方法的行为 | 只有名字 |
 
 **纪律**：待办清单的形状决定它能被关掉多少。读成一列 → 五个待办；读成树 → 一件事。
+
+
+## 判据 (a)/优先级 ① — `Box` 是 PopMart 的一步；三名字撤回（R938，**+9 用例**）
+
+### 决定性的连号
+
+```
+d__81 PollRestockMulti · d__83 ExtractPopNow · d__84 SelectPopNow
+d__85 SelectMultiPopNow · d__86 AddToCartBox · d__87 SelectMultiPopNowUS
+```
+
+**一个类的六个方法 → `Box` 是抽签一步。**
+
+### 分开两类的那条判据
+
+**每个框架都有 `ScrapeProduct*`；`ScrapeProductBox` **0 匹配**。**
+
+### 清单修正
+
+| 名字 | 以为 | 实际 |
+|---|---|---|
+| `Frontend` | 框架 | 伞 |
+| `Box` | 框架 | PopMart 一步 |
+
+**框架数 **4**：Next / Astro / Svelte / Frontend。**
+
+### 撤回三个发明
+
+**`BoxGoodsList` · `BoxExtract` · `BoxSku` → 全 0 匹配 → 从来不在镜像里。**
+**R909 的「无调用者」= 「我找不到」，不是「原版没有」—— 这一轮把未知变缺席。**
+
+### `Scripts/PopMartDrawSteps.cs`
+
+**`DrawSteps`(6) · `WithdrawnNames`(3) · `Frameworks`(4) · `FrameworkCount` · `IsDrawStep`**
+
+### 数字
+
+**套件 1981 → 1990 · 陈旧度 4/492 → 5/561**
+
+| 仍 Unknown | |
+|---|---|
+| `SelectMultiPopNowUS` 的美区差异 | 只有名字 |
+| 另外两个 draw 步骤的行为 | 只有名字 |
+| 是否还有别的「听起来像框架」的名字 | 未扫 |
+
+**纪律**：一个名字听起来像什么，和它旁边是谁，是两件不同的事。后者有证据，前者没有。

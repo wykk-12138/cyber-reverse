@@ -21246,3 +21246,71 @@ metrics_report.py                  -> 1981 通过 / 0 失败
 **五个名字读成一列 → 五个待办；而其中一个是**伞** → 真实结构是一棵树，待办是「把这棵树建起来」一件事。**
 
 **形状读错的时候，进度看起来线性减少，而实际上从来没有接近过。**
+
+
+---
+
+## 362. `Box` 是 PopMart 的一步；清单从 5 修正为 4；三名字撤回
+
+> R938。**改产品代码 +9 用例。** 套件 **1990 通过 / 0 失败 / 0 跳过**。
+
+### 一、六条连号 state machine
+
+```
+<PollRestockMulti>d__81 · <ExtractPopNow>d__83 · <SelectPopNow>d__84
+<SelectMultiPopNow>d__85 · <AddToCartBox>d__86 · <SelectMultiPopNowUS>d__87
+```
+
+**连号 = 一个类的六个方法；邻居是 PopMart 的抽签流程 → `Box` 是其中一步，不是框架。**
+
+### 二、分开两类的那条判据
+
+**每个框架都有 `ScrapeProduct*`（Next/Astro/Svelte/Frontend 四个全有）；`ScrapeProductBox` **0 匹配**。**
+
+### 三、清单修正（两个方向都错）
+
+| 名字 | 以为 | 实际 |
+|---|---|---|
+| `Frontend` | 第四个框架 | **伞**（通用路径） |
+| `Box` | 第五个框架 | **PopMart 的一步** |
+
+**同一个来源：把平的名字列表读成并列，没问「旁边是谁」。**
+
+### 四、撤回三个发明
+
+**`BoxGoodsList` · `BoxExtract` · `BoxSku` → 全 **0 匹配**，从来不在镜像里。**
+
+**R909 记的「无调用者」实际是「我找不到调用者」—— 未知；而 0 匹配才是缺席。**
+
+### 五、数字
+
+| 度量 | R937 | R938 |
+|---|---|---|
+| 套件 | 1981 | **1990** |
+| 产物陈旧度 | 4 / 492 | **5 / 561** |
+| **框架数** | 5（名义） | **4** |
+| **撤回名字** | — | **3** |
+
+### 六、验证
+
+```
+analysis/ida.py str "AddToCartBox"     -> 6 命中，全在 d__8x 连号里
+analysis/ida.py str "ScrapeProductBox" -> 0
+analysis/ida.py str "BoxGoodsList"/"BoxExtract"/"BoxSku" -> 各 0
+test --filter PopMartDrawStepsTests    -> 9 通过
+metrics_report.py                      -> 1990 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **`SelectMultiPopNowUS` 的美区差异**：**Unknown** —— 只有名字。
+- **另外两个 draw 步骤的行为**：**Unknown** —— 只有名字。
+- **是否还有别的「听起来像框架」的名字**：**Unknown** —— 未扫。
+
+### 八、教训
+
+**两轮之内，五个名字里两个不是我以为的东西。两个都是「听起来像」的错。**
+
+**`Frontend` 听起来像框架，`Box` 听起来像框架；而「听起来像什么」和「旁边是谁」是两件不同的事。**
+
+**后者有证据（连号 state machine），前者没有。**

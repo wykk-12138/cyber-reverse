@@ -1156,3 +1156,20 @@ IsFrontendUrl 的默认方向刻意：不像 API 的一律当页面（把页面�
 纪律：待办清单的形状决定它能被关掉多少。读成一列 → 五个待办；读成树 → 一件事。
 
 下一轮：Book 在树里的位置已做但按列读的；或转优先级 ②（风控对抗）。
+
+## R938 补充 — Box 是 PopMart 的一步；清单 5 修正为 4；三名字撤回（+9 用例，套件 1990）
+
+六条连号 state machine（d__81 PollRestockMulti · d__83 ExtractPopNow · d__84 SelectPopNow · d__85 SelectMultiPopNow · d__86 AddToCartBox · d__87 SelectMultiPopNowUS）→ Box 是抽签一步。
+
+判据：每个框架都有 ScrapeProduct*；ScrapeProductBox 0 匹配。
+
+清单两个方向都错：Frontend 是伞、Box 是 PopMart 一步 → 框架数 4（Next/Astro/Svelte/Frontend）。
+
+撤回三个发明名字：BoxGoodsList / BoxExtract / BoxSku → 全 0 匹配。
+R909 的「无调用者」= 我找不到（未知），0 匹配才是缺席。
+
+数字：套件 1981 → 1990 · 陈旧度 4/492 → 5/561。
+
+纪律：一个名字听起来像什么，和它旁边是谁，是两件不同的事。后者有证据，前者没有。
+
+下一轮：扫是否还有别的「听起来像框架」的名字；或转优先级 ②（风控对抗）。

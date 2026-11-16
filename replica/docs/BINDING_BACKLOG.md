@@ -3633,3 +3633,41 @@ python tools\where_is.py Sequence --all
 | `EnterReservation` 体是否同形于 `EnterExhibit` | 未查 |
 
 **纪律**：**每个进度数字旁边都要有「其余多少、为什么」—— R844 的 16.9% 就是只有数字没有分类。**
+
+
+## 判据 — `uniqCode` 产者：名字层已到顶（R874）
+
+**镜像里带 `uniqCode` 的串只有 5 条，全列出：**
+
+| 地址 | 串 | 性质 |
+|---|---|---|
+| `0x1433803a5` | `_uniqCode` | 属性后备字段 |
+| `0x146fda6d4` | `currentUniqCode` | 属性名 |
+| `0x1471647ac` | `storeUniqCode` | 属性名 |
+| `0x146a85e4c` | `&storeUniqCode=1` | 查询片段 |
+| `0x146ab82f4` | `/shop/v1/drawScratch/detail?uniqCode=` | 端点 |
+
+**无「产者」形态的串。**
+
+### 结论：不是「没找到」，是「名字层问不出来」
+
+**「谁填 `_uniqCode`」= setter 行为；R504 已证 setter 内联、无独立函数体。**
+**→ 与 R504 那 31 条同一堵墙。而**这堵墙挡所有属性写入，与 UI 无关** —— R863 的「只挡 UI」收得太窄。**
+
+### 还有一条静态路
+
+**`&storeUniqCode=1` 拼在某个 URL 后 → 找到宿主就知道「哪个页面带它」。本轮未做，下一轮第一件事。**
+
+| 路 | 代价 | 能拿到 |
+|---|---|---|
+| 继续搜名字 | 便宜，**已到顶** | 大概没有 |
+| **反推 `&storeUniqCode=1` 宿主** | 中 | **哪个页面带它** |
+| 运行期 | **需凭据** | 真值 |
+
+| 仍 Unknown | |
+|---|---|
+| `_uniqCode` 写入点 | 属性写入，静态拿不到 |
+| `&storeUniqCode=1` 宿主 URL | **下一轮第一件事** |
+| `currentUniqCode` vs `storeUniqCode` | 可能同一属性两种叫法 |
+
+**纪律**：**写 Unknown 要写清它属于哪一层（名字/结构/行为）—— 这次我写在名字层，它其实在行为层。**

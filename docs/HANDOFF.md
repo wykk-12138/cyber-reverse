@@ -412,3 +412,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **三个步骤会明确失败（刻意）**：`uniqCode`/`uniqID` 从 session 取而**没人往里放** —— 发空参数可能得 200，会被读成跑通。
 **数字：`map 168→172` · `coverage 3→7` · 七条 CanRunStep 各标轮次。套件 1773 通过 / 0 失败。**
 **下一轮该查「镜像里谁 produce `uniqCode`/`uniqID`」，不是再写步骤 —— 三步已写但跑不通。**
+
+## R874 补充 — `uniqCode` 产者：名字层已到顶
+
+**5 条全列**：`_uniqCode`(字段) · `currentUniqCode` · `storeUniqCode`(属性名) · `&storeUniqCode=1`(查询片段) · `/shop/v1/drawScratch/detail?uniqCode=`(端点)。**无产者形态。**
+**→ 不是「没找到」，是「名字层问不出来」：写入是 setter 行为，R504 已证内联。**
+**而这条修正 R863**：R504 那堵墙挡的是**所有属性写入**，与 UI 无关；我说「只挡 UI」收得太窄。
+**还没试的静态路：从 `&storeUniqCode=1` 反推宿主 URL → 哪个页面带这个参数。下一轮第一件事。**
+**纪律：写 Unknown 要写清层次（名字/结构/行为）。**

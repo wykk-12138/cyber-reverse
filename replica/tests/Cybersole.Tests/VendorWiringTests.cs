@@ -75,12 +75,15 @@ public sealed class VendorWiringTests
             Assert.Contains(row.Cookie!, cookies);
         }
 
-        // R944: this used to assert that PerimeterX had no cookie, which was false and was the second place the same
-        // false absence was written down -- the doc comment being the first. Written twice, it stopped being a claim
-        // anyone checked. PerimeterX has _px3. Imperva remains absent: no search was run on it, so that one is still an
-        // unverified assertion and is labelled as such rather than trusted.
+        // R944: this used to assert that PerimeterX had no cookie, which was false, and it was the second place that
+        // false absence was written down. PerimeterX has _px3.
         Assert.NotNull(AntiBotProtocol.CookiesFor("PerimeterX"));
         Assert.Contains("_px3", AntiBotProtocol.CookiesFor("PerimeterX")!);
+
+        // R945: Imperva's absence is now verified rather than asserted. Searching the image for Imperva and for its four
+        // known cookie prefixes -- incap_ses, visid_incap, nlbi_, _Incapsula_ -- returned zero each, so a claim that was
+        // written the same way as the false one turns out to be true. Two identical-looking negatives, one false and one
+        // true, is the reason a negative has to carry the command that produced it.
         Assert.Null(AntiBotProtocol.CookiesFor("Imperva"));
     }
 

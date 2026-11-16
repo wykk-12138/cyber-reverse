@@ -343,3 +343,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **R504 的 B 桶 31 条**（UI 成员）= 描述符无 xref / setter 内联 → **结构性**。
 **两者是不同的问题。而 `rea` 的 `match_native_functions` 前提就是没有符号（按字节与 CFG 指纹配对）→ C7c 是**没试过第二套工具**，不是 dead end。**
 **状态：核心请求形状有证据 · 函数级伪代码等价没试 rea 配对 · UI 成员行为结构性拿不到。**
+
+## R865 补充 — C7c 卡在 provider
+
+**`rea` 四个 native provider 全不可用**：ghidra/kuna `not_configured` · hopper `unsupported_host` · **ida 缺 `REA_IDA_MCP_CONFIG`**。
+**→ `match_native_functions` 要的 `list_procedures` 出不来：工具在，provider 不在。**
+**而 ida provider 只差一个环境变量（本会话 IDA MCP 一直通 13337）：写注册 JSON → 设变量 → **重启 REA**（= 允许停等 YG 的条目）。**
+**收益不确定：.NET 10 ↔ .NET 8 AOT，字节相同的函数可能很少。**
+**教训：「有个工具能做」≠「这工具在这台机器上能用」。**

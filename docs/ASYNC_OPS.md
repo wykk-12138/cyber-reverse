@@ -896,3 +896,41 @@ GoogleLogin · InputModal · MessageBoxDialog · PublishTemplateModal · StoreGr
 与 `compare_functions`（对已配对的一对做逐面比较）。AGENTS.md §1 把这两个列为「第二意见」。**
 
 **所以 C7c 未必是 dead end —— 它可能只是没试过第二套工具。**
+
+
+### `rea` 的 native provider 一个都没配 —— C7c 那条路卡在配置（R865）
+
+**`mcp__rea__binary_session`：**
+
+| provider | 状态 | 缺什么 |
+|---|---|---|
+| ghidra | `not_configured` | `GHIDRA_INSTALL_DIR`（Ghidra 12.x） |
+| hopper | `unsupported_host` | win32 不支持 |
+| **ida** | **`not_configured`** | **`REA_IDA_MCP_CONFIG` 指到 IDA MCP 注册** |
+| kuna | `not_configured` | `REA_KUNA_COMMAND` |
+
+**而 `match_native_functions` 要的两侧 `list_procedures` Evidence，只能由 native provider 产出。**
+
+**所以 R864 说的「没试过第二套工具」，落到实处的答案是：工具在，provider 不在。**
+
+### 而缺的那个刚好是我已经有的
+
+**`ida` 那个 provider 只缺 `REA_IDA_MCP_CONFIG` —— 一个指向 IDA MCP 注册的配置。
+而本会话的 IDA MCP 一直是通的（`analysis/ida.py` 直连 13337，`str` / `py` / `xrefs` 都在用）。**
+
+**所以配它不需要装东西，只需要：**
+
+1. **写一个 IDA MCP 注册 JSON**（指向 13337）
+2. **设 `REA_IDA_MCP_CONFIG` 为它的路径**
+3. **重启 REA**
+
+**第 3 步是硬门槛 —— 而「DSH 重启 / 开关 MCP 条目」是 goal 允许停下来等 YG 的两件事之一。**
+
+### 所以 C7c 的完整状态
+
+| 层 | 状态 |
+|---|---|
+| 工具存在（`match_native_functions` / `compare_functions`） | **是** |
+| 工具需要的 provider | **未配（ida 只缺一个环境变量）** |
+| 配它要不要停 | **要 —— 重启 REA 属于允许停等 YG 的条目** |
+| 配了之后能不能配出足够多函数 | **Unknown**（两侧是不同 AOT 框架） |

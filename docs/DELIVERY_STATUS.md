@@ -15738,3 +15738,89 @@ AGENTS.md §1: rea 的 match_native_functions / compare_functions 列为「第�
 
 **而 `AGENTS.md §1` 早就写着 rea 有那两个工具，还注明「第二意见」。
 我没读那一行 —— 和 R861 那次没读 backlog 是同一个毛病，只是这次没读的是 AGENTS.md 自己。**
+
+
+---
+
+## 289. C7c 那条路卡在**配置** —— 而缺的那个 provider 只差一个环境变量
+
+> R865。未改产品代码。**R864 说「没试过第二套工具」；这一轮查清了为什么没试成。**
+
+### 一、`rea` 的四个 native provider 全不可用
+
+| provider | 状态 | 缺什么 |
+|---|---|---|
+| ghidra | `not_configured` | `GHIDRA_INSTALL_DIR`（Ghidra 12.x） |
+| hopper | `unsupported_host` | win32 不支持 |
+| **ida** | **`not_configured`** | **`REA_IDA_MCP_CONFIG`** |
+| kuna | `not_configured` | `REA_KUNA_COMMAND` |
+
+**而 `match_native_functions` 要的两侧 `list_procedures` Evidence 只能由 native provider 产出。
+所以工具在、provider 不在 —— 这是 R864 那条路的准确状态。**
+
+### 二、而缺的那个刚好是我已经有的
+
+**`ida` provider 只缺 `REA_IDA_MCP_CONFIG`：一个指向 IDA MCP 注册 JSON 的路径。**
+
+**而本会话的 IDA MCP 一直是通的** —— `analysis/ida.py` 直连 13337，`str` / `py` / `xrefs` 这几十轮都在用。
+
+**所以配它不需要装任何东西，只需要三步：**
+
+1. 写一个 IDA MCP 注册 JSON（指向 13337）
+2. 设 `REA_IDA_MCP_CONFIG` 为它的路径
+3. **重启 REA**
+
+**第 3 步是硬门槛。而「DSH 重启 / 开关 MCP 条目」正是 goal 允许停下来等 YG 的两件事之一。**
+
+### 三、所以要停一下
+
+**这不是我能自己推的 —— 它需要动 MCP 条目（`rea` 的环境变量）并重启。**
+
+**而且值得说明的是：这一步的收益不确定。**
+
+| 已知 | Unknown |
+|---|---|
+| 工具存在且对口（按字节/CFG 指纹配对，前提就是没符号） | **两侧是不同 AOT 框架（.NET 10 ↔ .NET 8），字节相同的函数可能很少** |
+| 配 provider 只需要一个环境变量 | **配上之后能不能配足够多的函数，未知** |
+
+**所以这是一个「花一次重启，换一个不确定的收益」的决定。**
+**而另一个选项是不动它，按现有优先级做核心，C7c 保持 unknown 并写清理由。**
+
+### 四、这一轮的实际产出
+
+**把「没试过第二套工具」这句话，落成一张可执行的三步清单 + 一个明确的代价。**
+
+**这比「这条路易堵」有用得多 —— 它是**要做，就做这三件事**。**
+
+### 五、验证
+
+```
+mcp__rea__binary_session（detail=summary）
+  analysis_provider_candidates:
+    ghidra  unavailable / not_configured / GHIDRA_INSTALL_DIR
+    hopper  unavailable / unsupported_host（win32）
+    ida     unavailable / not_configured / REA_IDA_MCP_CONFIG
+    kuna    unavailable / not_configured / REA_KUNA_COMMAND
+  tool_availability: match_native_functions / compare_functions 在「available: true」那组（MCP 层可用）
+                     而 list_procedures 在 target_required 那组（要 open_binary）
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **配好 ida provider 后 `match_native_functions` 能配出多少对**：**Unknown** ——
+  **如果很少，这条路依然不通，但至少那时是「试过且知道结果」。**
+- **有没有更省的路**：**Unknown** ——
+  **比如只对少数几个关键函数做字节比对（不用 REA，直接 `read_bytes` 两侧对比）。**
+  **这条路不需要 provider，但只适用于「两侧函数能先按名字对上」的情形 —— 而那正是 C7c 说做不到的事。**
+- **`REA_IDA_MCP_CONFIG` 的 JSON 格式**：**Unknown** —— 要先读 `docs/providers/ida-provider.md`。
+
+### 七、教训
+
+**R864 我写「工具存在、没试过」。这一轮一查：工具存在，**但它依赖的东西不存在**。**
+
+**「有个工具能做这件事」和「这个工具在这台机器上能用」是两句话。**
+**而我上一轮把第一句当成了第二句 —— 并且因此把 C7c 从「可能到头了」改判成「没试过」。**
+
+**改判的方向是对的（它确实不是结构性到头），但「没试过」这个说法暗含「马上能试」，而事实是「要先配」。**

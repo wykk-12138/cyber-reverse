@@ -3322,3 +3322,29 @@ R857 顶层是种类 → R858 `Task.Type` 死字段 → R859 创建表单无 Typ
 | C7c 该不该拆成有粒度的几条 | 「任意两函数」让 claim 无法部分通过 |
 
 **纪律**：**一个是没路，一个是没走那条路 —— 合成一句就变成「不可能」。**
+
+
+## 判据 — C7c 卡在 provider 配置（R865）
+
+**`rea` 四个 native provider 全不可用：ghidra/kuna `not_configured` · hopper `unsupported_host` · **ida `not_configured` 缺 `REA_IDA_MCP_CONFIG`**。**
+**`match_native_functions` 要的 `list_procedures` 只能由 native provider 产出 → 工具在，provider 不在。**
+
+### 而 ida provider 只差一个环境变量
+
+**本会话 IDA MCP 一直通（`analysis/ida.py` → 13337）。三步：写注册 JSON → 设 `REA_IDA_MCP_CONFIG` → **重启 REA**。**
+**第 3 步是硬门槛 —— 「开关 MCP 条目」是允许停等 YG 的两件事之一。**
+
+### 收益不确定
+
+| 已知 | Unknown |
+|---|---|
+| 工具对口（按字节/CFG 配对，前提是没符号） | **.NET 10 ↔ .NET 8 AOT，字节相同可能很少** |
+| 只需一个环境变量 | 配上能配多少对 |
+
+| 仍 Unknown | |
+|---|---|
+| 配好后能配多少对 | 若很少，路仍不通 —— 但那时是「试过且知道」 |
+| 更省的路 | 少数关键函数直接字节比对，不需 provider；**但只适用于能先按名字对上** |
+| 注册 JSON 格式 | 读 `docs/providers/ida-provider.md` |
+
+**纪律**：**「有个工具能做」和「这工具在这台机器上能用」是两句话。**

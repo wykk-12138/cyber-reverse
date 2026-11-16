@@ -51834,3 +51834,48 @@ C7c | 任意两函数的伪代码等价 | unknown | 缺原版符号（PDB / 调�
 > **两个不同的问题在同一个词下 ——「行为拿不到」。一个是**结构**上拿不到（内联），一个是**工具**上没试（配对）。**
 > **合成一句，结论是「不可能」；拆开看，一个是没有路，一个是没走那条路。**
 > **而 `AGENTS.md §1` 早就写着 rea 有那两个工具 —— 我没读那一行，和 R861 没读 backlog 是同一个毛病。**
+
+
+---
+
+## 第 865 轮：C7c 那条路卡在配置，而缺的 provider 只差一个环境变量
+
+### `rea` 的四个 native provider 全不可用
+
+| provider | 状态 | 缺什么 |
+|---|---|---|
+| ghidra | `not_configured` | `GHIDRA_INSTALL_DIR`（Ghidra 12.x） |
+| hopper | `unsupported_host` | win32 不支持 |
+| **ida** | **`not_configured`** | **`REA_IDA_MCP_CONFIG`** |
+| kuna | `not_configured` | `REA_KUNA_COMMAND` |
+
+**`match_native_functions` 要的两侧 `list_procedures` 只能由 native provider 产出 —— 工具在，provider 不在。**
+
+### 而缺的那个刚好是我已经有的
+
+**`ida` provider 只缺 `REA_IDA_MCP_CONFIG`：一个指向 IDA MCP 注册 JSON 的路径。**
+**而本会话的 IDA MCP 一直是通的（`analysis/ida.py` 直连 13337，这几十轮都在用）。**
+
+**三步：① 写注册 JSON（指向 13337）② 设 `REA_IDA_MCP_CONFIG` ③ 重启 REA。**
+
+**第 3 步是硬门槛 —— 而「开关 MCP 条目」是 goal 允许停下来等 YG 的两件事之一。**
+
+### 而收益不确定
+
+| 已知 | Unknown |
+|---|---|
+| 工具对口（按字节/CFG 指纹配对，前提就是没符号） | **两侧是不同 AOT 框架（.NET 10 ↔ .NET 8），字节相同的函数可能很少** |
+| 配 provider 只需一个环境变量 | **配上后能配出多少对，未知** |
+
+> **这是一个「花一次重启，换一个不确定的收益」的决定。**
+
+### 仍然 Unknown
+
+**配好后能配出多少对**（**如果很少，这条路依然不通，但那时至少是「试过且知道结果」**）·
+**有没有更省的路**（只对少数关键函数做字节比对，不需要 provider —— **但只适用于「函数能先按名字对上」，而那正是 C7c 说做不到的事**）·
+**`REA_IDA_MCP_CONFIG` 的 JSON 格式**（要先读 `docs/providers/ida-provider.md`）
+
+### 教训
+
+> **「有个工具能做这件事」和「这个工具在这台机器上能用」是两句话。**
+> **我上一轮把第一句当成了第二句 —— 改判方向对（确实不是结构性到头），但「没试过」暗含「马上能试」，而事实是「要先配」。**

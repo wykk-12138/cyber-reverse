@@ -417,3 +417,34 @@ R844 里我对这两行的映射（指向共用文件）导致的「不同名」
 > 缺的只是 `PopMartFlow` 里那 14 个驱动步骤的方法。**
 
 **「没有抽签面」在端点层是错的，只在步骤层成立。**
+
+
+### PopMart 14 个抽签步骤：证据够写几个，不够写几个（R850）
+
+**镜像里能查到的 draw 参数记号：**
+
+```
+_uniqCode       0x1433803a5      字段名
+currentUniqCode 0x146fda6d4
+storeUniqCode   0x1471647ac
+&storeUniqCode=1 0x146a85e4c     查询串片段
+Drawno          0x143902b40      属性名
+```
+
+| 步骤 | 端点 | 够不够写 |
+|---|---|---|
+| `StartDrawFlow` | `detail?uniqCode=` | **参数有证据**（`uniqCode` + `storeUniqCode`）→ 可写 |
+| `FindDraw` | `detail?uniqCode=` | 同上 → 可写 |
+| `EnterDraw` | `drawScratch/draw` | **请求体无证据** → 不可写 |
+| `ChooseGoods` | `drawScratch/chooseGoods` | **请求体无证据** → 不可写 |
+| `FindMegaDraw` · `EnterDrawEvent` | `megaDraw/hit` | 不可写 |
+| `RedeemMemberPoints` · `RedeemLuckPoints` | `redeem/*` | 不可写 |
+| `FindExhibit` · `EnterExhibit` | `storeOfflineDraw/*` | 不可写 |
+| `FindDates` · `FindTimeSlots` | `store_ticket/*` | 不可写 |
+| `EnterReservation` | `storeOfflineDraw/join` | 不可写 |
+| `GetOrders` | `order/list` | 可写（与复刻件 `GetOrders` 同样式） |
+
+**所以：3 个可写（`StartDrawFlow` `FindDraw` `GetOrders`），11 个只有端点没有形状。**
+
+**而那 11 个不写的理由与 R823 删 CSRF 兜底是同一条：**
+**一个能发请求但不知道发什么的方法，比一个不存在的步骤更坏 —— 它会让「14 步已实现」这句话看起来成立。**

@@ -2851,3 +2851,29 @@ Nike 16 · **Pop Mart 24** · John Lewis 17 · Demandware 经典 12 / 双路 15 
 | 两条路的关系 | 未判 |
 
 **纪律**：**「查了一条路」≠「查了全部路」。**
+
+
+## 优先级 ① — PopMart 14 抽签步骤的证据边界（R850）
+
+**参数记号（镜像）：** `_uniqCode` · `currentUniqCode` · `storeUniqCode` · `&storeUniqCode=1` · `Drawno`
+
+| 判定 | 步骤 |
+|---|---|
+| **可写（3）** | `StartDrawFlow` · `FindDraw`（`detail?uniqCode=`）· `GetOrders` |
+| **只有端点、无请求形状（11）** | `EnterDraw` `ChooseGoods` `FindMegaDraw` `EnterDrawEvent` `RedeemMemberPoints` `RedeemLuckPoints` `FindExhibit` `EnterExhibit` `EnterReservation` `FindDates` `FindTimeSlots` |
+
+**不写这 11 个的理由（与 R823 同一条）**：
+**能发请求但不知道发什么的方法，比不存在的步骤更坏 —— 它让「14 步已实现」看起来成立。**
+
+### 写那 3 个的前置条件（未查）
+
+1. `StoreFlowRunner` 的步骤序列固定 → 加步骤要同时改 runner
+2. **`StoreFlowSteps` 的 ordinal ↔ runner 调用表是否一致** —— **加步骤前必须查清**
+
+| 仍 Unknown | |
+|---|---|
+| `EnterDraw`/`ChooseGoods` 请求体 | **11 步里最关键的两步**，镜像无字段名记号 |
+| `uniqCode` 来源 | `currentUniqCode` 暗示「当前」概念，未证 |
+| runner 序列 ↔ `StoreFlowSteps` ordinal | **加步骤的前置条件** |
+
+**纪律**：**宁可缺，也不要一个有形状没内容的实现。**

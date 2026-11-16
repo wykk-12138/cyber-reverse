@@ -14448,3 +14448,83 @@ PopMartFlow.cs: 11 个重写，无一个 draw/exhibit/reservation 步骤
 
 **这次挡住我的东西和前面几次不同：不是「没读仓里的文件」，是「查了一条路就当成全部路」。**
 **而 R116 的文件名摆在那里（`PopMartStepMap`），我六轮里没点开过。**
+
+
+---
+
+## 274. 那 14 个抽签步骤：**3 个可写，11 个只有端点没有形状**
+
+> R850（第 400 轮）。未改产品代码。
+
+### 一、可查到的参数证据
+
+```
+_uniqCode        0x1433803a5    字段名
+currentUniqCode  0x146fda6d4
+storeUniqCode    0x1471647ac
+&storeUniqCode=1 0x146a85e4c    查询串片段
+Drawno           0x143902b40    属性名
+```
+
+**所以 `detail?uniqCode=` 这条能写出真请求：`uniqCode` 从哪来、`storeUniqCode` 是查询参数，都有记号。**
+
+### 二、逐步骤判定
+
+| 步骤 | 端点 | 够不够写 |
+|---|---|---|
+| `StartDrawFlow` | `detail?uniqCode=` | **可写** |
+| `FindDraw` | `detail?uniqCode=` | **可写** |
+| `GetOrders` | `order/list` | **可写**（与复刻件同样式） |
+| `EnterDraw` | `drawScratch/draw` | 请求体无证据 |
+| `ChooseGoods` | `drawScratch/chooseGoods` | 请求体无证据 |
+| `FindMegaDraw` `EnterDrawEvent` | `megaDraw/hit` | 无 |
+| `RedeemMemberPoints` `RedeemLuckPoints` | `redeem/*` | 无 |
+| `FindExhibit` `EnterExhibit` `EnterReservation` | `storeOfflineDraw/*` | 无 |
+| `FindDates` `FindTimeSlots` | `store_ticket/*` | 无 |
+
+**3 可写 · 11 不可写。**
+
+### 三、为什么那 11 个不写
+
+**与 R823 删掉 CSRF 兜底是同一条：**
+
+> **一个能发请求但不知道发什么的方法，比一个不存在的步骤更坏 —— 它会让「14 步已实现」这句话看起来成立。**
+
+**而写 3 个、留 11 个，也会让覆盖率看起来像 3/14 而不是 0/14 ——
+所以我要在文档里写清「可写的是这 3 个，其余 11 个卡在响应形状」，而不是先写 3 个再去数。**
+
+### 四、这一轮实际没改代码，理由
+
+**写那 3 个还牵涉两步：**
+
+1. **`StoreFlowRunner` 的步骤序列是固定的** —— 加步骤要同时改 runner，不只是加方法
+2. **`PopMartFlow` 的 24 步在 `StoreFlowSteps` 里有序号，而 runner 的调用表未必按那个序号走**
+
+**所以「加 3 个方法」不是 3 个方法的活，是「方法 + runner + 测试」的活，而且第 2 点要先查清。
+本轮只做到「查清证据边界」，没有动代码。这是刻意的：把边界写清楚比先写一半更有用。**
+
+### 五、验证
+
+```
+ida.py str drawScratch   -> 4 matches（四条端点）
+ida.py str uniqCode      -> 5 matches（_uniqCode / currentUniqCode / storeUniqCode / &storeUniqCode=1 / detail?uniqCode=）
+ida.py str Drawno        -> 1 match
+PopMartEndpoints.cs: 39 个端点，14 个抽签/展览/预约端点全在（R849）
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **`EnterDraw` / `ChooseGoods` 的请求体**：**Unknown** —— 镜像里没有对应的字段名记号。**这是 11 步里最关键的两步。**
+- **`StartDrawFlow` 的 `uniqCode` 从哪来**：**Unknown** —— 可能是从商品页或 `detail` 的响应里取；
+  **`currentUniqCode` 这个记号暗示有「当前」的概念，但没证。**
+- **`StoreFlowRunner` 的步骤序列是否按 `StoreFlowSteps` 的序号**：**Unknown** —— **这是加步骤的前置条件。**
+
+### 七、教训
+
+**第 400 轮，而这一轮的产出是「3 个能写、11 个不能写、以及为什么」。**
+
+**这个结论不好看，但它比「14 个都写了（其实就是都发了个 GET）」好。**
+**而 R823 那次删 CSRF 兜底、和这一轮不写那 11 个，是同一条标准的两端：**
+**宁可缺，也不要一个有形状没内容的实现。**

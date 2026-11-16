@@ -234,3 +234,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **缺的只是 `PopMartFlow` 里那 14 个驱动步骤**（11 个重写里一个都不是）。
 **R835–R838 的「没有抽签面」在端点层是错的，只在步骤层成立。**
 为什么没发现：R835 只查了 `activity/v1/exhibit_draw`（actapi 那条路），**而 `/shop/v1/storeOfflineDraw/join` 是另一条路。**
+
+## R850 补充 — PopMart 14 步的证据边界
+
+**3 可写**：`StartDrawFlow` `FindDraw`（`detail?uniqCode=`，参数记号 `_uniqCode`/`storeUniqCode` 都在）· `GetOrders`。
+**11 只有端点、无请求形状**：`EnterDraw` `ChooseGoods` 等 —— **不写，理由与 R823 删 CSRF 兜底同一条**：
+**能发请求但不知道发什么的方法，比不存在的步骤更坏。**
+**写那 3 个的前置条件**：`StoreFlowRunner` 序列固定，且 **`StoreFlowSteps` 的 ordinal ↔ runner 调用表是否一致未查**。

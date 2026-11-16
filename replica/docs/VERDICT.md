@@ -51075,3 +51075,45 @@ StoreTicketDates YES · StoreTicketMainPage YES · OrderList YES
 
 **我六轮前判「没有」，依据是「我查的那条路没有」。而镜像有两条路。**
 **这次挡住我的不是「没读仓里的文件」，是「查了一条路就当成全部路」—— 而文件名 `PopMartStepMap` 摆在那里，六轮没点开。**
+
+
+---
+
+## 第 850 轮（第 400 轮）：14 个抽签步骤，3 个可写、11 个只有端点没有形状
+
+### 可查到的参数证据
+
+```
+_uniqCode · currentUniqCode · storeUniqCode · &storeUniqCode=1 · Drawno
+```
+
+**所以 `detail?uniqCode=` 能写出真请求。**
+
+### 逐步骤判定：3 可写 · 11 不可写
+
+| 可写 | `StartDrawFlow` · `FindDraw`（`detail?uniqCode=`）· `GetOrders`（`order/list`） |
+|---|---|
+| **不可写** | `EnterDraw` · `ChooseGoods` · `FindMegaDraw` · `EnterDrawEvent` · `RedeemMemberPoints` · `RedeemLuckPoints` · `FindExhibit` · `EnterExhibit` · `EnterReservation` · `FindDates` · `FindTimeSlots` |
+
+### 为什么那 11 个不写
+
+> **一个能发请求但不知道发什么的方法，比一个不存在的步骤更坏 —— 它会让「14 步已实现」这句话看起来成立。**
+
+**与 R823 删 CSRF 兜底是同一条标准的两端：宁可缺，也不要一个有形状没内容的实现。**
+
+### 而写那 3 个也不是 3 个方法的活
+
+**① `StoreFlowRunner` 的步骤序列是固定的，加步骤要同时改 runner；**
+**② `PopMartFlow` 的 24 步在 `StoreFlowSteps` 里有序号，而 runner 的调用表未必按那个序号走 —— 这条要先查清。**
+
+**所以本轮只做到「查清证据边界」，没动代码。把边界写清楚比先写一半更有用。**
+
+### 仍然 Unknown
+
+**`EnterDraw`/`ChooseGoods` 的请求体**（11 步里最关键的两步，镜像无字段名记号）·
+**`uniqCode` 从哪来**（`currentUniqCode` 暗示有「当前」概念，未证）·
+**runner 步骤序列是否按 `StoreFlowSteps` 的序号**（加步骤的前置条件）
+
+### 教训
+
+**第 400 轮的产出是「3 个能写、11 个不能写、以及为什么」。这个结论不好看，但它比「14 个都写了（其实就是都发了个 GET）」好。**

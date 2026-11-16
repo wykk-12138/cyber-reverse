@@ -213,3 +213,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **NoOrdersEndpoint**：「SCAPI 家族没有 orders 端点 → app 起手必须拐回经典控制器收尾」。
 **剩 17 条**：johnlewis 8 · demandware-classic 5 · collectplus-app 4。
 **第三次同样的错** —— 规则：**每批裁决前先 `ls Flows/*.cs | grep -i <flow>`**。下一轮先读 `JohnLewisStepMap.cs`，不是先判 johnlewis。
+
+## R847 补充 — 17 塌成 4
+
+**`JohnLewisStepMap.cs`（R118）答完 johnlewis 8 条 · `DemandwareStepMap.cs`（R117）答完 classic 5 条。**
+**只剩 `collectplus-app` 4 条**（`Flows` 里无任何 CollectPlus 专属文件）—— 这次是真待判。
+**关键引文**：「the step list is the client's phases and the endpoints are the server's resources」——
+**步骤与端点不是同一层，用名字对齐去量，量出来的差异有一半是层级差。R844 的 16.9% 就是跨层级量当覆盖率。**

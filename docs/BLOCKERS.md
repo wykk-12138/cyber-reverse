@@ -19893,3 +19893,98 @@ DemandwareFlow.cs: AddToCartViaScapiAsync + scapi.token/basketId/organizationId
 
 **规则：先 grep 同名分析文件，再建待判清单。**
 **否则会把已经答完的问题重新问一遍 —— 而重新问一遍的代价不是时间，是让文档里出现一份「待判 26 条」的假清单。**
+
+
+---
+
+## 271. 规则一用就见效：**17 塌成 4**
+
+> R847。未改产品代码。
+
+### 一、先执行 R846 立的规则
+
+```
+Get-ChildItem replica\src\Cybersole.Stores\Flows -Filter *.cs
+```
+
+**47 个文件。其中与本轮相关的是 `JohnLewisStepMap.cs`(93) 与 `DemandwareStepMap.cs`(82) ——
+两个我都读了一遍。**
+
+**`Flows` 目录里还有一整个 `*StepMap` / `*Steps` 家族**：`PopMartStepMap.cs` `NikeSteps.cs`
+`ScapiEndpoints.cs` `CandidateSteps.cs` `GraphQlCartSteps.cs` `NikePersistedOperations.cs`
+`DemandwareControllers.cs` `RetailApiFamilies.cs` `StoreApiFamilies.cs`。
+**这是一套「按流程把步骤对到端点」的分析层，而我在 R838–R845 五轮里没碰过它。**
+
+### 二、`johnlewis` 8 条：全部已映射
+
+**`JohnLewisStepMap.cs`（R118/R119）** 把 19 步对到 12 个 BFF 端点。我列的 8 条：
+
+| 步骤 | 端点 |
+|---|---|
+| `WebHandOver` · `SessionHandover` | `v2/sessions/web/handover`（共用） |
+| `GuestCallback` | `v4/callback/guest` |
+| `DeliveryPage` | `v3/orderforms/deliveries` |
+| `CreateDelivery` | `v4/orderforms/deliveries`（与 `SubmitShipping` 共用） |
+| `GetDeliveryMethods` · `SubmitDeliveryMethod` | `v3/orderforms/deliveries/details`（共用） |
+| `AuthenticatePayment` | `v2/orderforms/payments` |
+
+**而它给出了一个我没想过的解释：**
+
+> **a BFF endpoint is not a step.** `v2/sessions/web/handover` serves `WebHandOver` and `SessionHandover` both,
+> because **the step list is the client's phases and the endpoints are the server's resources.**
+
+**这句话解释了「19 步 vs 12 端点」的全部张力 —— 也解释了我一直在数的「不同名」为什么不是缺口。**
+**步骤是客户端阶段，端点是服务端资源，两者本来不是一一对应。**
+
+**3 条无端点的理由也写了**：`GetHome` 是页面加载；`HandleRequiresAction` / `GetStripePaymentIntent`
+是 **Stripe 自己的主机**（镜像里 John Lewis 直达 Stripe，而 Demandware 只有 Stripe 步骤没有 Stripe 控制器 ——
+两份地图互为镜像）。
+
+### 三、`demandware-classic` 5 条：4 已映射，1 有意未映射
+
+| 步骤 | 结论 |
+|---|---|
+| `GenerateCSRF` | → `CSRF-Generate` |
+| `SubmitConsignment` | → `CheckoutShippingServices-SubmitShipping` |
+| `SubmitShippingOption` | → `UpdateShippingMethod`（**R117 新查出**） |
+| `ConfirmPayment` | → `PaymentAuthorization`（**R117 新查出**） |
+| `GetPaymentMethod` | **有意未映射** —— 唯一的支付读是 `FetchOrderModel`，正被 `GetCheckout` 占着 |
+
+**同一文件的另一条硬结论：**
+
+> **there is no `Stripe-*` controller anywhere in the image** —— 支付控制器全是 Adyen 的
+> （`AdyenUpgrade-Authorize` · `Adyen-Adyen3DS2` · `Adyen-PaymentsDetails` · `AdyenComponents-Payment*`）
+
+**所以 `CreateStripePaymentMethod` 这个步骤名在镜像里没有控制器支撑。**
+**R117 的选择是「说出这件事而不是编一个控制器」—— 与本会话一直在用的标准一致。**
+
+### 四、17 → 4
+
+| 流程 | R845 | R846 | R847 |
+|---|---|---|---|
+| demandware-dual | 9 | 0 | 0 |
+| johnlewis | 8 | 8 | **0** |
+| demandware-classic | 5 | 5 | **0** |
+| collectplus-app | 4 | 4 | **4** |
+| **合计** | **26** | **17** | **4** |
+
+### 五、仍然 Unknown
+
+- **`collectplus-app` 4 条**（`CreateCheckoutApp` `GetDelivery` `GetCollectPlusLocations` `SubmitCollectPlus`）：
+  **Unknown，且这次是真的** —— **`Flows` 目录里没有任何 CollectPlus 专属文件。**
+- **那 4 条要不要做**：**Unknown** —— 取决于这个流程在镜像里是否被真正使用；
+  **它在 `StoreFlowSteps` 里有一份 17 步的表，说明镜像确实有这个流程。**
+- **`StoreFlowSteps` 的 8 个流程 ↔ `Registry.cs` 的 63 个模块**：**仍未建**（R843 起就记着）。
+
+### 六、教训
+
+**R846 立的规则（先 grep 同名分析文件）一次就用掉两个组，17 变 4。**
+
+**而 `JohnLewisStepMap` 那句话值得单独记住：**
+
+> **the step list is the client's phases and the endpoints are the server's resources.**
+
+**我前面五轮一直在数的「步骤名对不对得上」，在这句话面前是个错问题 ——
+步骤和端点不是同一层的东西，用名字对齐去量它，量出来的差异有一半是层级差。**
+
+**所以 R844 那个 16.9% 的真实问题是：它在用一个跨层级的量当覆盖率。**

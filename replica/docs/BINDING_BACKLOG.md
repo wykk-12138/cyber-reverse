@@ -2749,3 +2749,33 @@ Nike 16 · **Pop Mart 24** · John Lewis 17 · Demandware 经典 12 / 双路 15 
 **下一轮先读 `JohnLewisStepMap.cs`，不是先判 johnlewis 8 条。**
 
 **纪律**：**代价不是时间，是文档里出现一份「待判 26 条」的假清单。**
+
+
+## 判据 (f) — 17 → 4（R847）
+
+**规则（R846 立）**：先 `Get-ChildItem replica/src/Cybersole.Stores/Flows -Filter *.cs`。**47 个文件，其中一整个 `*StepMap`/`*Steps` 分析层。**
+
+| 流程 | R845 | R846 | R847 | 依据 |
+|---|---|---|---|---|
+| demandware-dual | 9 | 0 | 0 | `ScapiAppPath.cs`（R124） |
+| johnlewis | 8 | 8 | **0** | **`JohnLewisStepMap.cs`（R118/R119）** |
+| demandware-classic | 5 | 5 | **0** | **`DemandwareStepMap.cs`（R117）** |
+| collectplus-app | 4 | 4 | **4** | **无专属文件** |
+| **合计** | **26** | **17** | **4** |
+
+### 两句该记的话（都出自已有文件）
+
+> **a BFF endpoint is not a step … the step list is the client's phases and the endpoints are the server's resources.**
+
+> **there is no `Stripe-*` controller anywhere in the image** —— 支付控制器全是 Adyen 的；R117 选择说出这件事而不编一个。
+
+### 剩 4 条 = 真待判
+
+`CreateCheckoutApp` · `GetDelivery` · `GetCollectPlusLocations` · `SubmitCollectPlus`
+
+| 仍 Unknown | |
+|---|---|
+| 这 4 条要不要做 | 流程在 `StoreFlowSteps` 有 17 步表 → 镜像确实有它 |
+| 8 流程 ↔ `Registry.cs` 63 模块 | 仍未建 |
+
+**纪律**：**R844 的 16.9% 的真实问题是「用一个跨层级的量当覆盖率」。**

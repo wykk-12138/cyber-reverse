@@ -50915,3 +50915,55 @@ NikeFlow 17 重写 ∩ 镜像 16 步 = 2 · Pop Mart 24 步中抽签/展览/预�
 
 **三次同样的错不是疏忽，是方法缺一步：我总在「名字对齐」这层建清单，然后往「语义」层爬。而仓里的分析文件已经在语义层。**
 **代价不是时间，是文档里出现一份「待判 26 条」的假清单。**
+
+
+---
+
+## 第 847 轮：规则一用就见效 —— 17 塌成 4
+
+### 先执行 R846 的规则
+
+`Flows` 目录 47 个文件，其中 `JohnLewisStepMap.cs`(93) 与 `DemandwareStepMap.cs`(82) 直接答完了两批。
+**目录里还有一整个 `*StepMap` / `*Steps` 家族**（`PopMartStepMap` `NikeSteps` `ScapiEndpoints` `CandidateSteps`
+`GraphQlCartSteps` `DemandwareControllers` `RetailApiFamilies` `StoreApiFamilies`）—— **一套「步骤对端点」的分析层，
+我在 R838–R845 五轮里没碰过。**
+
+### johnlewis 8 条：全部已映射
+
+`WebHandOver`/`SessionHandover` → `v2/sessions/web/handover` · `GuestCallback` → `v4/callback/guest` ·
+`DeliveryPage` → `v3/orderforms/deliveries` · `CreateDelivery` → `v4/orderforms/deliveries` ·
+`GetDeliveryMethods`/`SubmitDeliveryMethod` → `v3/orderforms/deliveries/details` · `AuthenticatePayment` → `v2/orderforms/payments`
+
+**而它给出了一个我没想过的解释：**
+
+> **a BFF endpoint is not a step … the step list is the client's phases and the endpoints are the server's resources.**
+
+**这句话解释了「19 步 vs 12 端点」的全部张力 —— 也说明我一直在数的「不同名」有一半是层级差。**
+
+### demandware-classic 5 条：4 已映射，1 有意未映射
+
+`GenerateCSRF`→`CSRF-Generate` · `SubmitConsignment`→`SubmitShipping` · `SubmitShippingOption`→`UpdateShippingMethod` · `ConfirmPayment`→`PaymentAuthorization` · **`GetPaymentMethod` 有意未映射**（唯一的支付读是 `FetchOrderModel`，正被 `GetCheckout` 占着）
+
+**同一文件另一条硬结论**：**there is no `Stripe-*` controller anywhere in the image** —— 支付控制器全是 Adyen 的。
+**R117 的选择是「说出这件事而不是编一个控制器」。**
+
+### 17 → 4
+
+| 流程 | R845 | R846 | R847 |
+|---|---|---|---|
+| demandware-dual | 9 | 0 | 0 |
+| johnlewis | 8 | 8 | **0** |
+| demandware-classic | 5 | 5 | **0** |
+| collectplus-app | 4 | 4 | **4** |
+| **合计** | **26** | **17** | **4** |
+
+### 仍然 Unknown
+
+**`collectplus-app` 4 条 —— 这次是真的**（`Flows` 里无任何 CollectPlus 专属文件）·
+**那 4 条要不要做**（流程在 `StoreFlowSteps` 有 17 步表，说明镜像确实有它）· **8 个流程 ↔ 63 个模块**（仍未建）
+
+### 教训
+
+> **`the step list is the client's phases and the endpoints are the server's resources.`**
+> **我前面五轮一直在数的「步骤名对不对得上」，在这句话面前是个错问题 —— 用名字对齐去量它，量出来的差异有一半是层级差。**
+> **所以 R844 那个 16.9% 的真实问题是：它在用一个跨层级的量当覆盖率。**

@@ -321,3 +321,39 @@ R844 里我对这两行的映射（指向共用文件）导致的「不同名」
 **而 `DemandwareFlow` 里 SCAPI 那条路是真的写着**（`AddToCartViaScapiAsync` + `scapi.token`/`scapi.basketId`/`scapi.organizationId`）。
 
 **所以这 9 条不需要新工作 —— 三条映射到已实现的端点，四条本来就没有端点。**
+
+
+### johnlewis 8 与 demandware-classic 5：已有 StepMap 答完（R847）
+
+**`JohnLewisStepMap.cs`（R118/R119）** —— 19 步对 12 个 BFF 端点：
+
+| 我列的 8 条 | 映射到 |
+|---|---|
+| `WebHandOver` · `SessionHandover` | `v2/sessions/web/handover`（共用） |
+| `GuestCallback` | `v4/callback/guest` |
+| `DeliveryPage` | `v3/orderforms/deliveries` |
+| `CreateDelivery` | `v4/orderforms/deliveries`（与 `SubmitShipping` 共用） |
+| `GetDeliveryMethods` · `SubmitDeliveryMethod` | `v3/orderforms/deliveries/details`（共用） |
+| `AuthenticatePayment` | `v2/orderforms/payments` |
+
+**该文件还说明「为什么 19 步多于 12 端点」：BFF 端点是服务端的资源，步骤列表是客户端的阶段。**
+**3 步没有端点的理由也写了**：`GetHome` 是页面加载；`HandleRequiresAction` / `GetStripePaymentIntent` 是 **Stripe 自己的主机**。
+
+**`DemandwareStepMap.cs`（R117）** —— 经典 12 步对控制器，我列的 5 条：
+
+| 我列的 5 条 | 结论 |
+|---|---|
+| `GenerateCSRF` | → `CSRF-Generate` |
+| `SubmitConsignment` | → `CheckoutShippingServices-SubmitShipping` |
+| `SubmitShippingOption` | → `CheckoutShippingServices-UpdateShippingMethod`（R117 新查出） |
+| `ConfirmPayment` | → `CheckoutServices-PaymentAuthorization`（R117 新查出） |
+| **`GetPaymentMethod`** | **有意未映射** —— 镜像里唯一的支付读是 `CheckoutServices-FetchOrderModel`，正被 `GetCheckout` 占着 |
+
+**同一文件还有一条更硬的结论**：`CreateStripePaymentMethod` 无控制器，因为
+**「there is no `Stripe-*` controller anywhere in the image」** —— 镜像的支付控制器全是 Adyen 的
+（`AdyenUpgrade-Authorize` · `Adyen-Adyen3DS2` · `Adyen-PaymentsDetails` · `AdyenComponents-Payment*`）。
+
+### 只剩 collectplus-app 4 条
+
+`CreateCheckoutApp` `GetDelivery` `GetCollectPlusLocations` `SubmitCollectPlus` ——
+**`Flows` 目录里没有任何 CollectPlus 专属文件**（`RetailApiFamilies.cs` / `ServiceHosts.cs` / `ScapiEndpoints.cs` 是通用件）。

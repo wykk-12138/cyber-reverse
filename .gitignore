@@ -41,3 +41,11 @@ analysis/_fp_*.tsv
 *.bak
 *.orig
 *~
+
+# IDA leaves these beside an open database (R758)
+target/*.$
+target/*.id0
+target/*.id1
+target/*.id2
+target/*.nam
+target/*.til

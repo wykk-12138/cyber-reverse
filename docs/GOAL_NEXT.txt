@@ -1,0 +1,86 @@
+把 Cybersole.exe 5.18.32（.NET 10 NativeAOT，无 IL）在 D:\projects\cyber-reverse\replica 里做成功能 1:1 复刻件：函数数量对等、每个函数功能相等、效率相近；命名可不同，不要求字节级相同。根路径 D:\projects\cyber-reverse。
+
+═══ 第一优先级：核心，不是 UI ═══
+
+YG 2026-11-16 明令：「ui先不急着复刻，先把cybersole核心的各个网站自动下单、解决风控的能力复刻出来」。
+
+取件顺序（不可倒置）：
+1. 各站 checkout flow 的覆盖与行为（replica\src\Cybersole.Stores\Flows）
+2. 风控对抗（Kasada / Cloudflare / DataDome / PerimeterX / Queue-it / reCAPTCHA / hCaptcha / Funcaptcha-Arkose / Forter）
+3. 请求与指纹层（BouncyHttpClient / Http2 / Tls12Client / BrowserIdentity / ChromiumStealth）
+4. 其余（含 UI 文案与布局）降为收尾项，只在核心无进展时才做
+
+现状（R757 盘过，别重复盘）：复刻件已有约 40 个 flow 类 + Kasada 四路 solver + Cloudflare 两路 + 轮询/命名回退 + 两个 captcha driver + 305 行 Registry.cs 分派表。缺 forter / funcaptcha(Arkose) / arkoselabs，缺 walmart / bestbuy / pokemoncenter / gamestop / topps / snipes / finishline / newbalance / stockx / bandai 的显式引用。**这是子串计数，是地图不是判据。** 做法是对表补齐，不是重写。
+
+═══ 方法优先级（不可倒置）═══
+
+先抄 seep-reverse-lab（D:\projects\seep-reverse-lab 的 MANUAL\Tool\skill），再抄 rea（D:\projects\rea），都不覆盖才自己写，且须在文件头注明"为什么现有不够用"。反编译是主参照，GUI（CUA）只用于消歧与定位。不常驻用不上的能力；缺依赖/缺版本由你侧装解决。
+
+═══ IDA 每次打开的固定动作（YG 明令，别再忘）═══
+
+IDA 每次启动，GUI 上**至少会弹两个确认框**，不点掉插件就不会起、端口 13337 就不会监听。固定流程：
+
+1) 启动 doctor（带库路径）：
+   powershell -NoProfile -ExecutionPolicy Bypass -File "D:\projects\vm2api\.dsh\scripts\ida-mcp-doctor.ps1" -Path "D:\projects\cyber-reverse\target\Cybersole.exe.i64"
+   后台跑，因为开 1375 MB 的库要几分钟。
+
+2) **同时/随后用 CUA 读屏点框**，不要只等 doctor 的 180 秒超时：
+   mcp__cua__list_windows(app:"ida") → 看到标题是「请确认」的框就 get_window_state 读它 → click 点掉 → **再 list_windows，再读，再点**。
+   **规律是至少两个框**，点完还可能出「请稍候...」——那个是进度条，**等，不要点**。
+   **判据是"再读一次没有任何对话框"**，不是"点了两次就完"。
+
+3) 已知的两个框（按这个选，别猜）：
+   - 「IDA has found an unpacked version of database … It appears IDA did not close properly」
+     → 选 **Proceed with unpacked base**（磁盘上那份就是上几轮读成功的那份；退回 packed 会丢掉已建的符号名）
+   - 「Database for file '…\Cybersole.exe.id0' is not closed. Do you want IDA to repair it?」
+     → 选 **是(Y)**
+
+4) 框清干净后确认就绪（两条都要过）：
+   - doctor 输出 `VERDICT: ready`
+   - mcp__ida__server_health 返回 status: ok，且带 idb_path / hexrays_ready
+
+5) 如果 doctor 报 `PROXY: MISSING - DSH did not spawn [python -m ida_pro_mcp]` 或端口 REFUSED 且点完框仍在：
+   **这是要停下来等 YG 的两类事之一**（DSH 重启 / 开关 MCP 条目）。明确告诉 YG「ida 的 MCP 条目请关一次再开」，不要自己重装或改 YAML。
+
+═══ 每轮固定循环 ═══
+
+① 取一条未结案项：**核心优先**（站点 flow / 风控 solver / 请求指纹），其次类型缺失、类型级缺口，再次名字级，最后截断文案；
+② 用 IDA（字符串 → xrefs → 函数 → Hex-Rays）或 rea investigate_feature 取得反编译证据；
+③ 落实现（先 python tools\snapshot.py；整块锚点替换，禁止按行号手术）；
+④ 用工具复算（python tools\metrics_report.py + 相关 xunit，必要时全量）；
+⑤ 更新 docs\METRICS.md（生成，不手写）与 replica\docs\VERDICT.md 新一轮，写清"改了什么 → 哪条命令验证 → 数字怎么变 → 还剩什么"。
+
+═══ 证据纪律（违反即结论作废）═══
+
+Observation 只能来自工具引用的证据；推理标 Inference + 置信度 + 备择解释；
+覆盖不全/能力不支持/证据冲突一律显式 Unknown，并写清缺哪类证据；
+绝不把"证据不全导致的缺席"当成"行为不存在"或"行为等价"。
+结构对等 ≠ 行为对等：只能证明属性存在的成员，行为必须记 Unknown。
+复刻件自己写出的 settings/tasks/solvers/checkoutHistory 不得当实机证据。
+%APPDATA%\Cybersole 与 %LOCALAPPDATA%\Cybersole 只读。
+
+补充两条（R753/R755 学到）：
+- 子串/存在性扫描只能当"该往哪儿看"的地图，不能当判据；命中也不等于被渲染/被调用。
+- 活窗口可用时优先用它消歧，但运行中的是 %LOCALAPPDATA% 里的 5.18.35，不是对等目标 5.18.32 —— 每条观测都要标注对象。YG 已说明小版本不动前端。
+
+═══ 数字与验证 ═══
+
+数字只有一个来源：docs\METRICS.md（由 python tools\metrics_report.py 生成）。当前四项度量 = 名字级缺口 / 类型级缺口 / 类型缺失 / 成员形状差异；任何文档不得硬编码这些数字。
+
+完成判据（全部满足才算完成，逐条给证据）：
+a) 类型级缺口 → 0、类型缺失 → 0（每条若不可得则写 Unknown + 缺什么）；名字级缺口全部三分类结案（可做 / 结构差异 / 不可得）；
+b) 剩余仅"字符串池中截断"的文案，且每条写明为何不可得；
+c) 产物级对照报告可复算（原版 target\Cybersole.exe ↔ 复刻件 .publish-aot 产物）；
+d) claim 表每条都有 authority（tool-evidence / manual-from-command / unknown）+ 命令 + gap_reason；
+e) 全量套件绿 + 29 条变异测试全 fired + 全部文档数字来自 METRICS.md。
+
+本轮新增一条判据：
+f) **核心覆盖表可复算**：原版的 store 清单与风控厂商清单（从二进制取，不是从字符串计数取）↔ 复刻件 Registry.cs 与 solver 目录，逐条列出"已覆盖 / 未覆盖 / 覆盖但未验证"，未覆盖的每条写为什么。
+
+═══ 内存纪律 ═══
+
+available < 2 GB 只用 -m:1 跑相关用例；< 1 GB 停止构建并先腾内存。
+
+═══ 只有两类事可以停下来等 YG ═══
+
+原版登录凭据；DSH 重启/开关 MCP 条目（含 ida 代理没起）。其它一切自行解决。

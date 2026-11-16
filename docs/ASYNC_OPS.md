@@ -4931,3 +4931,66 @@ ScrapeVariantAvailabilityFrontend · FindProductFrontend · AddToCartFrontend
 > **`Frontend` 听起来像一个框架，`Box` 听起来像一个框架；
 > 而一个名字听起来像什么，和它**旁边是谁**，是两件不同的事。**
 > **而「旁边是谁」有证据（连号的 state machine），「听起来像什么」没有。**
+
+
+### `AddToCart` 是**十三个名字、四条轴**，而扫描只浮出九个（R939）
+
+**R938 说「是否还有别的听起来像框架的名字 —— 未扫」。扫了，而扫描本身先错了一次。**
+
+### 扫出九个，而它漏了四个
+
+```
+AddToCart · AddToCartApp · AddToCartAppDw · AddToCartBox · AddToCartDummy
+AddToCartGraphQL · AddToCartMulti · AddToCartPreload · AddToCartPreloadGraphQL
+```
+
+**而直接查四个框架名，全都在：**
+
+```
+AddToCartNext 5 · AddToCartAstro 6 · AddToCartSvelte 5 · AddToCartFrontend 5
+```
+
+> **所以那次扫描**漏掉了全部四个框架名**。原因是 `n=40` —— 而 40 是**工具的上限**，不是镜像的数量。
+> §2.7b 那条「先问这个来源是全量还是抽样」，我在用它的时候又忘了。**
+> **而 `--cursor` 那条路也没通：翻 8 页仍是那 18 个 —— 所以「翻页」这个补救办法本身也不成立。
+> 唯一可靠的是**直接查名字**。**
+
+### 所以至少十三个
+
+**而它们不并列 —— 有四条正交的轴：**
+
+| 轴 | 值 |
+|---|---|
+| **transport** | plain（REST）· GraphQL |
+| **client** | web · App · AppDw |
+| **purpose** | plain · Preload · Multi · Dummy |
+| **parser** | Next · Astro · Svelte · Frontend |
+
+**而 `AddToCartPreloadGraphQL` 是 transport × purpose；`AddToCartAppDw` 是 client × 平台。**
+
+> **一张十三项的列表**藏起这个结构** —— 而「列表」也正是两个名字被误分类的原因。**
+
+### 而轴能解释名字，**不能生成名字**
+
+**`AddToCartAppGraphQL` 由两个真实轴值组成 —— 而它**不在恢复到的十三个里**。**
+
+> **所以 `Recovered` 是权威，轴只是对它的解释。
+> 从轴生成第十四个名字，会是这几轮一直在找的那种**发明** —— 只不过这次发明的是「一个组合」。**
+
+**而 `AddToCartBox` 是镜像自己给的**反例**：它在家族里，却不由任何轴组合而成 ——
+**它是 PopMart 的一步。****
+
+### 数字
+
+| 度量 | R938 | **R939** |
+|---|---|---|
+| 套件 | 1990 | **2001** |
+| 产物陈旧度 | 5 文件 / 561 行 | **6 文件 / 666 行** |
+| **已记录的 AddToCart 名字** | 5（散落） | **13（有轴）** |
+
+### 教训
+
+> **同一个 §2.7b 我在**用它的时候**又犯了：`n=40` 就在输出里写着，而我读的是「扫出了九个」。
+> 而它的补救办法（翻页）也不成立，所以我把「翻页没通」和「扫描不全」叠在了一起，
+> 于是倾向于相信那九个是全部。**
+> **唯一破掉它的是一个**直接查名字**的动作 —— 而那正是 §2.7b 说反向结论该用的方法。**

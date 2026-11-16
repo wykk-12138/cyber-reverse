@@ -1173,3 +1173,17 @@ R909 的「无调用者」= 我找不到（未知），0 匹配才是缺席。
 纪律：一个名字听起来像什么，和它旁边是谁，是两件不同的事。后者有证据，前者没有。
 
 下一轮：扫是否还有别的「听起来像框架」的名字；或转优先级 ②（风控对抗）。
+
+## R939 补充 — AddToCart 是 13 名字 / 4 轴；扫描只给 9（+11 用例，套件 2001）
+
+扫描 9 个（AddToCart/App/AppDw/Box/Dummy/GraphQL/Multi/Preload/PreloadGraphQL），而直查四个框架名全在（Next 5/Astro 6/Svelte 5/Frontend 5）→ n=40 是工具上限，--cursor 翻页无效。
+
+四条正交轴：transport(plain/GraphQL) · client(web/App/AppDw) · purpose(plain/Preload/Multi/Dummy) · parser(Next/Astro/Svelte/Frontend)。
+
+两条纪律：① 轴能解释不能生成（AddToCartAppGraphQL 由真实轴值组成而不在恢复列表）；② AddToCartBox 是镜像自己给的反例。
+
+数字：套件 1990 → 2001 · 陈旧度 5/561 → 6/666 · AddToCart 名字 5 → 13。
+
+纪律：n=40 是工具上限；补救办法不成立时唯一可靠的是直接查名字。
+
+下一轮：13 个里复刻件有几个（逐个对照）；或转优先级 ②。

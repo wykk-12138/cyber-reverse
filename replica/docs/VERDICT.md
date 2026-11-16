@@ -55801,3 +55801,56 @@ ScrapeVariantAvailabilityFrontend · FindProductFrontend · AddToCartFrontend
 > **两轮之内五个名字里两个不是我以为的东西 —— 都是「听起来像」的错。
 > 一个名字听起来像什么，和它**旁边是谁**，是两件不同的事。
 > 而「旁边是谁」有证据（连号 state machine），「听起来像什么」没有。**
+
+
+---
+
+## 第 939 轮：`AddToCart` 是十三个名字、四条轴，而扫描只浮出九个
+
+### 扫出九个，漏了四个
+
+```
+AddToCart · App · AppDw · Box · Dummy · GraphQL · Multi · Preload · PreloadGraphQL
+```
+
+**而直接查四个框架名，全在：`AddToCartNext` 5 · `AddToCartAstro` 6 · `AddToCartSvelte` 5 · `AddToCartFrontend` 5。**
+
+> **`n=40` 是**工具上限**，不是镜像数量。§2.7b 我在用它的时候又忘了。
+> 而 `--cursor` 翻 8 页仍是那 18 个 —— **补救办法本身也不成立。
+> 唯一可靠的是直接查名字。**
+
+### 四条正交的轴
+
+| 轴 | 值 |
+|---|---|
+| transport | plain（REST）· GraphQL |
+| client | web · App · AppDw |
+| purpose | plain · Preload · Multi · Dummy |
+| parser | Next · Astro · Svelte · Frontend |
+
+**`AddToCartPreloadGraphQL` = transport × purpose；`AddToCartAppDw` = client × 平台。**
+
+> **一张十三项列表藏起这个结构 —— 而「列表」也正是两个名字被误分类的原因。**
+
+### 轴能解释，不能生成
+
+**`AddToCartAppGraphQL` 由两个真实轴值组成 —— 而它**不在**恢复到的十三个里。**
+
+> **所以 `Recovered` 是权威，轴只是解释。从轴生成第十四个名字是一种**发明**，
+> 只不过发明的是「一个组合」。**
+
+**而 `AddToCartBox` 是镜像自己给的反例 —— 在家族里，却不由轴组合而成。**
+
+### 数字
+
+| 度量 | R938 | **R939** |
+|---|---|---|
+| 套件 | 1990 | **2001** |
+| 产物陈旧度 | 5 / 561 | **6 / 666** |
+| AddToCart 名字 | 5（散落） | **13（有轴）** |
+
+### 教训
+
+> **`n=40` 就在输出里写着，而我读的是「扫出了九个」。
+> 而补救办法（翻页）也不成立 → 「翻页没通」和「扫描不全」叠在一起，于是倾向于相信那九个是全部。**
+> **唯一破掉它的是**直接查名字** —— 而那正是 §2.7b 说反向结论该用的方法。**

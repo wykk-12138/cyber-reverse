@@ -27057,3 +27057,68 @@ metrics_report.py                      -> 1990 通过 / 0 失败
 **`Frontend` 听起来像框架，`Box` 听起来像框架；而「听起来像什么」和「旁边是谁」是两件不同的事。**
 
 **后者有证据（连号 state machine），前者没有。**
+
+
+---
+
+## 363. AddToCart 是 13 名字 / 4 轴；而扫描只给 9
+
+> R939。**改产品代码 +11 用例。** 套件 **2001 通过 / 0 失败 / 0 跳过**。
+
+### 一、扫描漏了全部四个框架名
+
+```
+扫出 9：AddToCart · App · AppDw · Box · Dummy · GraphQL · Multi · Preload · PreloadGraphQL
+直查在：AddToCartNext 5 · AddToCartAstro 6 · AddToCartSvelte 5 · AddToCartFrontend 5
+```
+
+**`n=40` 是**工具上限**不是镜像数量；`--cursor` 翻 8 页仍是那 18 个 → 补救办法不成立。**
+
+### 二、四条正交的轴
+
+| 轴 | 值 |
+|---|---|
+| transport | plain · GraphQL |
+| client | web · App · AppDw |
+| purpose | plain · Preload · Multi · Dummy |
+| parser | Next · Astro · Svelte · Frontend |
+
+**`PreloadGraphQL` = transport × purpose；`AppDw` = client × 平台。**
+
+### 三、轴能解释不能生成
+
+**`AddToCartAppGraphQL` 由两个真实轴值组成，而**不在**恢复的 13 个里。
+→ `Recovered` 是权威，从轴生成第 14 个名字是另一种发明。**
+
+**`AddToCartBox` 是镜像自己给的反例：在家族里，不由轴组合成。**
+
+### 四、数字
+
+| 度量 | R938 | R939 |
+|---|---|---|
+| 套件 | 1990 | **2001** |
+| 产物陈旧度 | 5 / 561 | **6 / 666** |
+| **AddToCart 名字** | 5（散落） | **13（有轴）** |
+
+### 五、验证
+
+```
+analysis/ida.py str "AddToCart"        -> n=40（工具上限），9 个去重名
+analysis/ida.py str "AddToCartNext"    -> 5
+test --filter AddToCartMatrixTests     -> 11 通过
+metrics_report.py                      -> 2001 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **是否还有第 14 个**：**Unknown** —— 扫描不全，需逐个直查。
+- **`App` 与 `AppDw` 的差别**：**Inference** —— AppDw ≈ Demandware。
+- **13 个里复刻件有几个**：**Unknown** —— 未逐个数。
+
+### 七、教训
+
+**`n=40` 就在输出里写着，而我读的是「扫出了九个」。**
+
+**而补救办法（翻页）也不成立时，「翻页没通」和「扫描不全」叠在一起，于是倾向于相信那九个是全部。**
+
+**唯一破掉它的是**直接查名字** —— 而那正是 §2.7b 说反向结论该用的方法。**

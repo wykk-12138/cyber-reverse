@@ -5989,3 +5989,35 @@ d__85 SelectMultiPopNow · d__86 AddToCartBox · d__87 SelectMultiPopNowUS
 | 是否还有别的「听起来像框架」的名字 | 未扫 |
 
 **纪律**：一个名字听起来像什么，和它旁边是谁，是两件不同的事。后者有证据，前者没有。
+
+
+## 优先级 ① — AddToCart 矩阵：13 名字 / 4 轴（R939，**+11 用例**）
+
+### 扫描只给了 9，而 40 是工具上限
+
+**直接查四个框架名全在：Next 5 · Astro 6 · Svelte 5 · Frontend 5。`--cursor` 翻 8 页无效。**
+
+### 13 个名字 + 4 条轴
+
+**transport: plain/GraphQL · client: web/App/AppDw · purpose: plain/Preload/Multi/Dummy · parser: Next/Astro/Svelte/Frontend**
+
+### `Scripts/AddToCartMatrix.cs`
+
+**`Recovered`(13) · `Axes`(4) · `NotParsers`(Box) · `AxesOf` · `IsExplainedByAxes` · `ParserNames`(4)**
+
+### 两条纪律
+
+**① 轴能解释不能生成** —— `AddToCartAppGraphQL` 由真实轴值组成而不在恢复列表里。
+**② `Box` 是镜像自己给的反例** —— 在家族里却不由轴组合。
+
+### 数字
+
+**套件 1990 → 2001 · 陈旧度 5/561 → 6/666 · AddToCart 名字 5 → 13**
+
+| 仍 Unknown | |
+|---|---|
+| 是否还有第 14 个 | 扫描不全，需逐个直查 |
+| `App` 与 `AppDw` 的差别 | AppDw ≈ Demandware |
+| 13 个里复刻件有几个 | 未逐个数 |
+
+**纪律**：`n=40` 是工具上限不是镜像数量；补救办法（翻页）也不成立时，唯一可靠的是直接查名字。

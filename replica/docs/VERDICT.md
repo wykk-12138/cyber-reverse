@@ -47288,3 +47288,58 @@ hbx.com/checkout/pay
 - `casio` 的收尾形态
 - 另外 5 个站的端点：**按域名取不到，要换搜法**
 - `HbxFlow` 类注释已部分过时（方法级注释现在是权威）
+
+
+---
+
+## 第 768 轮：那个标签是我编错的
+
+### 先修标签
+
+R767 给五个站打了 `NO-URLS`。**错在我**：`verdict = CHECKOUT if co else (OTHER-SHAPE if ot else NO-URLS)`
+—— **有 URL 但关键词不匹配就落进 `NO-URLS`**，而它读起来是「镜像里没有任何 URL」。
+
+`yeezysupply` 从 R757 起就有 `https://www.yeezysupply.com`，**所以标签当场是假的。**
+
+> **与 R764 的 `class not found` 同一个形状：诊断报错了因。错的原因比没有原因更坏。**
+
+新脚本先 dump 后分类，把 `NO-STRINGS` / `STRINGS` / `URLS` 三件事分开。
+
+### 重跑
+
+```
+bstn         NO-STRINGS   「bstn」「BSTN」都是 0
+fanatics     URLS         全是 oauth2/login —— 账号面
+offspring    URLS         poq.offspring.co.uk
+warhammer    URLS         api.prod.warhammer.com/graphql + oauth/token
+yeezysupply  URLS         一条裸域名
+```
+
+### `bstn` 原版没有
+
+**这是"缺口"的镜像：复刻件多了一个原版没有的模块。**
+删它会牵动注册表、域名断言、覆盖率断言与若干守卫 —— **产品决定，先记录不顺手改。**
+
+### `offspring` 是 Poq，不是 Hybris
+
+```
+platform.poq.io/clients/offspring/cart/items
+platform.poq.io/clients/offspring/checkout/start      ← 结账
+platform.poq.io/clients/offspring/account/guest-token
+platform.poq.io/clients/office/AtaVerifyCaptcha       ← 同模块 Office 走 ATA
+```
+
+**而 `Registry.cs` 把它注册成 `new HybrisFlow("offspring", …)`。**
+**所以补两步修不了它 —— 整个 API 家族选错了。**
+
+### 验证
+
+```
+产品代码未改；套件 1751 / 0；新增 analysis/store_url_dump.py
+```
+
+### 仍然 Unknown
+
+- 删不删 `bstn`：**待裁决**
+- Poq 家族该建成什么形状（多 client 平台，不是一个站）
+- `fanatics`/`warhammer`/`yeezysupply` 的结账面是否**原版也没有**

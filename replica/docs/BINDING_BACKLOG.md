@@ -674,3 +674,16 @@ R685：这个「类型」在源码里找不到      → 1 条真缺 + 3 条判�
 镜像只给 action 名。补任何一步都要把 body 标成推断。
 
 **另立**：`ScheelsFlow.GetCheckoutAsync` 与 `HbxFlow` 的类注释都有过时表述，各自独立处理。
+
+
+## 核心 — 待裁决与新立（R768）
+
+| 项 | 内容 | 性质 |
+|---|---|---|
+| **bstn 是否存在** | 原版 `bstn` / `BSTN` 都是 0 匹配 —— **复刻件多出来的模块** | **待裁决**（删=更忠实，牵动多处守卫） |
+| **offspring 的 API 家族选错** | 注册为 `HybrisFlow`，原版走 Poq（`platform.poq.io/clients/offspring/{cart/items,checkout/start,account/guest-token}`） | **新立**，补两步修不了 |
+| **Poq 家族** | 多 client 平台（`offspring` / `office`），含 `AtaVerifyCaptcha` | 新立，需先定形状 |
+| fanatics / warhammer / yeezysupply | 只有账号面（oauth/login）或一条 GraphQL | **先判"原版有没有结账面"，再决定算不算缺口** |
+
+**方法论提醒**：本站探针的 `NO-URLS` 标签曾把「关键词不匹配」说成「没有 URL」（R768 已修）。
+**诊断文案报错因比没有诊断更坏** —— 见 `AGENTS.md` §2.7。

@@ -13320,3 +13320,86 @@ ModuleCoverageTests hbx 71% → 100%（scheels 保持 100%）
   按域名取不到 URL，需要换成「按站点 action 名」或「按 host 前缀」的搜法。
 - `HbxFlow` 的类注释仍写着「endpoint that is not known yet」：**已部分过时，未改** ——
   方法级注释现在是权威，但类注释迟早要跟着走。
+
+
+---
+
+## 195. `NO-URLS` 这个标签是我编错的；`bstn` 原版没有；`offspring` 是 Poq 不是 Hybris
+
+> R768。新增 `analysis/store_url_dump.py`。未改产品代码。
+
+### 一、先修标签，再看数据
+
+R767 的探针给五个站打了 `NO-URLS`。**这个标签是错的，而且错在我**：
+
+```python
+verdict = "CHECKOUT" if co else ("OTHER-SHAPE" if ot else "NO-URLS")
+```
+
+**有 URL、但两个关键词都不匹配 → 落入 `NO-URLS`。** 而 `NO-URLS` 读起来是
+**「镜像里这个站没有任何 URL」—— 一个比代码实际检查过的强得多的断言。**
+`yeezysupply` 从 R757 起池子里就有 `https://www.yeezysupply.com`，**所以这个标签当场就是假的。**
+
+**与 R764 的 `class not found` 同一个形状：诊断文案报错了因。**
+**错的原因说明比没有说明更坏 —— 它把下一个读的人送到别处去。**
+
+新脚本先 dump、后分类，并把旧标签混在一起的三件事分开：
+
+```
+NO-STRINGS   域名根本不出现
+STRINGS      出现，但没有 URL 形状
+URLS         出现且带 URL；分类是"报出来"，不是"判出来"
+```
+
+### 二、重跑之后
+
+```
+bstn         NO-STRINGS   「bstn」整池子都没有；大写 BSTN 也是 0
+fanatics     URLS         全是 id.fanatics.com/api-internal/oauth2/* —— 账号面
+offspring    URLS         poq.offspring.co.uk + www.offspring.co.uk
+warhammer    URLS         api.prod.warhammer.com/graphql + login.mywarhammer.com/oauth/token
+yeezysupply  URLS         一条裸域名
+```
+
+### 三、`bstn` 在原版里不存在
+
+`str "bstn"` 与 `str "BSTN"` **都是 0 匹配**。
+
+**这是"缺口"的镜像：复刻件多了一个原版没有的模块。**
+**判据 f 要求"未覆盖的每条写为什么"，这条是反过来的 —— 覆盖了但没有对应物。**
+
+**未动手**：删一个模块会牵动注册表、域名断言、覆盖率断言与若干守卫；
+这是一个产品决定，不是一轮里的顺手改。**先记录，列为待裁决项。**
+
+### 四、`offspring` 的真 API 是 Poq，不是 Hybris
+
+```
+https://platform.poq.io/clients/offspring/account/guest-token
+https://platform.poq.io/clients/offspring/cart/items
+https://platform.poq.io/clients/offspring/checkout/start     ← 结账
+https://platform.poq.io/clients/offspring/products?ids=
+https://platform.poq.io/clients/office/AtaVerifyCaptcha      ← 同模块的 Office 走 ATA 验证码
+https://platform.poq.io/clients/office/recaptcha?trackingId=
+```
+
+**所以 `offspring` 的 71% 是真缺口，但根因比"缺两步"深一层**：
+`Registry.cs` 把它注册成 **`new HybrisFlow("offspring", "Offspring", …)`**，**而原版走的是 Poq 平台**
+（`platform.poq.io/clients/{client}/…`，`client` 是 `offspring` 与 `office` 两个）。
+
+**补两步修不了它** —— 它的整个 API 家族选错了。
+
+### 五、验证
+
+```
+本轮未改产品代码
+完整套件保持 1751 通过 / 0 失败
+新增 analysis/store_url_dump.py
+```
+
+### 六、仍然 Unknown
+
+- 删不删 `bstn`：**待裁决**（删=更忠实，代价是牵动多处守卫）。
+- Poq 家族要建成什么形状：**Unknown** —— 它是一个多 client 的平台，不是一个站。
+- `fanatics` / `warhammer` / `yeezysupply` 的结账面：**Unknown** ——
+  现有证据是账号面（oauth/login）与一条 GraphQL，**结账端点可能同样不存在**。
+- 这五个站里**有几个的 71% 其实不该算缺口**（原版就没有）：**Unknown，需逐站判定**。

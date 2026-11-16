@@ -9342,3 +9342,74 @@ python analysis/member_descriptors.py     44 / 44 有描述符
 - `EditValue`1` 那 12 个带数字后缀的名字承担什么语义：**Unknown**（真实存在，含义未知）。
 - 26 条 `Getter` 里哪些是 `ICommand`、哪些是只读数据属性：**Unknown** ——
   描述符只说 Getter，区分要看原版的反编译，未做。
+
+
+---
+
+## 142. 18 条 `Getter/Setter` 不是"机械活"：**做 2 条，拒 16 条**，每条都给理由
+
+> R713。改 `NotificationService.cs`。
+
+### 一、上一轮我说错了一件事
+
+R712 结尾我写「先做 18 条 `Getter/Setter`（可写属性，**最机械**）」。
+**这句话不成立。** 描述符只给**名字**和**方向**（Getter / Setter），**不给类型、不给含义**。
+
+而 `CreateModel` 里有一条前一轮留下的注释，正好管这件事：
+
+> **R363**：… `Input` / `Inputs` 是**故意**不做的 —— "input" 可能是商品选项、也可能是选项列表，
+> **选一个就是猜行为，不是猜数据**。
+
+**那条先例否掉了"照名字加属性"这个做法本身。**
+
+### 二、做的那 2 条，靠排除法不是靠猜
+
+原版在 `Notification` 上绑定的名字**正好四个**：`Title` / `Timestamp` / `Message` / `Type`。
+复刻件的 record **正好四个位置参数**：`Kind` / `Title` / `Body` / `Timestamp`。
+
+**两个精确对上**（`Title`、`Timestamp`），剩下两个**必须 1:1** → `Message↔Body`、`Type↔Kind`。
+**Inference（高）** —— 依据是基数相等 + 两个已对齐，不是"Message 听起来像 Body"。
+
+实现成**别名**：
+
+```csharp
+public string Message => Body;
+public NotificationKind Type => Kind;
+```
+
+**行为一字未动**：构造调用、代码路径全不变，改的只是"能不能被 `Message` 绑定到"。
+
+### 三、拒掉的 16 条，分三组
+
+| 组 | 条数 | 为什么不做 |
+|---|---|---|
+| `EditValue\`1` 的 `Value_92`/`_100`、`HasMultiple_87…_101` | 12 | **语义 Unknown**。加 12 个空属性只为了让 `undeclared` 变小，那是把度量当目标。名字古怪是 Observation，含义不是 |
+| `CreateModel.Input` / `Inputs` | 2 | R363 已经判过：候选不唯一，选一个就是发明 |
+| `BotTask.Running` | 1 | 同上 —— `Running` 是 bool？是 `TaskState` 的派生？是计时器状态？三个都可能，没有基数能排除 |
+| 命令形态的 `Save`/`Create`/`Reset`/`Export`/`Link`/`Edit` | 6 | **`Getter/Setter` 挂在命令名上本身可疑** —— 命令通常是 getter-only。要判定得先看各视图的基类与原版反编译，本轮没做 |
+
+**注意这和 R711 的 `Close` 不同**：`Close` 是 `Getter`（单方向）+ 我在源码里看到它已经是 lambda 按钮，
+**两条证据合起来**才够。这里只有一条。
+
+### 四、数字
+
+```
+undeclared  44 -> 42        （两条 Notification 成员）
+完整套件     1624 通过 / 0 失败
+形状差异     78（不变 —— 别名不改变形状）
+四项度量     4 / 0 / 17 / 78 / 0（名字级/类型级/类型缺失/形状/文案）
+```
+
+### 五、仍然 Unknown
+
+- `EditValue\`1` 那 12 个名字的语义：**Unknown**，且**不打算靠猜去填**。
+- 6 条命令形态的 `Getter/Setter`：是命令还是有 setter 的属性 —— **Unknown**，要反编译。
+- 原版 `Notification.Message` 与复刻件 `Body` 的行为是否等价：**Unknown** ——
+  这是别名，不是独立实现；如果原版在这两个名字上行为不同，这里是看不见的。
+
+### 六、这一轮的判断
+
+> **拒掉一条缺口，比硬填一条更需要理由 —— 但理由是一样的东西：证据。**
+
+16 条全部保留在 `undeclared` 里，`docs/MEMBER_GAP_EVIDENCE.md` 里有它们每一条的描述符。
+**它们不是被遗忘了，是被判定为"证据不够，不填"。**

@@ -44671,3 +44671,57 @@ audit_claims 0
 
 按方向分两批做：先 18 条 `Getter/Setter`（可写属性，最机械），再 26 条 `Getter`
 （其中哪些是 `ICommand` 需要看反编译，别一律当命令）。
+
+
+---
+
+## 第 713 轮：18 条里做 2 条，拒 16 条
+
+### 上一轮有句话说错了
+
+R712 结尾我写「18 条 `Getter/Setter`，**最机械**」。**不成立。**
+描述符只给名字和方向，**不给类型、不给含义**。
+
+`CreateModel` 里 R363 的注释正好管这个：
+
+> `Input`/`Inputs` 故意不做 —— 可能是选项也可能是选项列表，**选一个就是猜行为**。
+
+### 做的 2 条：排除法，不是猜
+
+原版在 `Notification` 上绑定**正好四个**名字（Title/Timestamp/Message/Type），
+复刻件 record **正好四个**参数（Kind/Title/Body/Timestamp）。**两个已对上，剩下必须 1:1。**
+
+```csharp
+public string Message => Body;
+public NotificationKind Type => Kind;
+```
+
+**行为一字未动**，只是让 `Message` 能被绑到。**Inference（高）**。
+
+### 拒的 16 条
+
+| 组 | 数 | 理由 |
+|---|---|---|
+| `EditValue\`1` 数字后缀 | 12 | **语义 Unknown**；加空属性只为让度量变小 |
+| `CreateModel.Input(s)` | 2 | R363 已判：候选不唯一 |
+| `BotTask.Running` | 1 | 三四种可能，没有基数能排除 |
+| 命令形态的 G/S | 6 | G/S 挂在命令名上本身可疑，需反编译 |
+
+**与 R711 的 `Close` 不同**：那是 `Getter` 单方向 + 源码里已是 lambda 按钮，**两条证据**才够；这里只有一条。
+
+### 数字
+
+```
+undeclared 44 -> 42 · 套件 1624 · 形状 78 · 度量 4/0/17/78/0
+```
+
+### 一句话
+
+> **拒掉一条缺口，比硬填一条更需要理由 —— 但理由是一样的东西：证据。**
+
+> 16 条不是被遗忘了，是被判定为「证据不够，不填」，全部留在 `undeclared` 里，
+> 每条的描述符都在 `docs/MEMBER_GAP_EVIDENCE.md`。
+
+### 下一轮
+
+攻那 6 条命令形态的 G/S：反编译看它们到底是不是命令。这一步能顺带判掉 `BotTask.Running` 一类。

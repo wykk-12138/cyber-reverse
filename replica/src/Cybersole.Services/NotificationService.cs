@@ -37,7 +37,27 @@ public sealed class NotificationService
     /// convention the rest of the codebase already follows (<c>EventBus.LogEntry</c> and the monitor's event both
     /// carry the time they were created).
     /// </remarks>
-    public sealed record Notification(NotificationKind Kind, string Title, string Body, DateTime Timestamp);
+    public sealed record Notification(NotificationKind Kind, string Title, string Body, DateTime Timestamp)
+    {
+        /// <summary>
+        /// Bound as <c>Notification.Message</c> — the original's compiled XAML carries
+        /// <c>Cybersole.Models.Notification,...,Message!Getter</c> and <c>!Setter</c>
+        /// (see <c>docs/MEMBER_GAP_EVIDENCE.md</c>).
+        ///
+        /// Why this pairing rather than another: the original binds exactly four names on this type — Title,
+        /// Timestamp, Message, Type — and this record has exactly four positional members — Title, Timestamp, Kind,
+        /// Body. Two match outright, so the remaining two correspond one-to-one. That is elimination, not a guess
+        /// about what the original stores. R363 declined `CreateModel.Input`/`Inputs` for the opposite reason:
+        /// nothing there narrowed the candidates, so any choice would have been invention.
+        ///
+        /// Behaviour is untouched — this is an alias over the existing positional member, so every constructor call
+        /// and every code path stays exactly as it was. What it makes possible is a binding to `Message` resolving.
+        /// </summary>
+        public string Message => Body;
+
+        /// <inheritdoc cref="Message"/>
+        public NotificationKind Type => Kind;
+    }
 
     /// <summary>
     /// Plays a notification sound now — what the Notifications page's Play button does. It routes

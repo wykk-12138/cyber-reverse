@@ -56,6 +56,62 @@ public static class AntiBotVendors
     /// <summary>Forter's event upload endpoint, the one the sensor is posted to.</summary>
     public const string ForterEvents = "https://cdn3.forter.com/events";
 
+    /// <summary>
+    /// Riskified's three hosts. R807.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the image names <c>https://beacon.riskified.com/?shop=</c>,
+    /// <c>https://c.riskified.com/v2/client_infos</c> and <c>https://img.riskified.com/img/image-l.gif?t=</c>. The three
+    /// serve different jobs -- a beacon, a client-info post, and a tracking pixel -- which is why they are kept apart
+    /// rather than collapsed into one host.
+    /// </para>
+    /// </summary>
+    public const string RiskifiedBeacon = "https://beacon.riskified.com/?shop=";
+
+    /// <inheritdoc cref="RiskifiedBeacon"/>
+    public const string RiskifiedClientInfo = "https://c.riskified.com/v2/client_infos";
+
+    /// <inheritdoc cref="RiskifiedBeacon"/>
+    public const string RiskifiedPixel = "https://img.riskified.com/img/image-l.gif?t=";
+
+    /// <summary>
+    /// Riskified's cookie names, verbatim from the image. R807.
+    ///
+    /// <para>
+    /// <c>_riskified</c>, <c>_riskifiedId</c> and <c>_riskifiedToken</c> are three distinct cookies rather than one
+    /// family, and <c>FNL_RISKIFIED_ID=([^;]+)</c> is a regex the image uses to pull the id out of a cookie header --
+    /// so it is recorded as the extraction pattern it is, not as a cookie name.
+    /// </para>
+    /// </summary>
+    public const string RiskifiedLegacyCookie = "_riskified";
+
+    /// <inheritdoc cref="RiskifiedLegacyCookie"/>
+    public const string RiskifiedIdCookie = "_riskifiedId";
+
+    /// <inheritdoc cref="RiskifiedLegacyCookie"/>
+    public const string RiskifiedTokenCookie = "_riskifiedToken";
+
+    /// <summary>The shop identifier cookie the beacon carries.</summary>
+    public const string RiskifiedShopCookie = "riskified_cookie";
+
+    /// <summary>
+    /// Signifyd's two endpoints, both on <c>apihub.scheels.com/frontastic/action/cart/</c>. R807.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the image carries <c>sendSignifydStepUpCode</c> and
+    /// <c>completeSignifydStepUpCheckout</c> as frontastic cart actions, with <c>HandleSignifydStepUp</c>,
+    /// <c>GetSignifydCode</c> and <c>CompleteSignifydStepUp</c> as the state machine around them, and
+    /// <c>requiresSignifydStepUp</c> as the flag that starts it. That is a code-verification step-up, not a passive
+    /// sensor, which is why Signifyd is a handled vendor rather than a named one.
+    /// </para>
+    /// </summary>
+    public const string SignifydSendCode =
+        "https://apihub.scheels.com/frontastic/action/cart/sendSignifydStepUpCode";
+
+    /// <inheritdoc cref="SignifydSendCode"/>
+    public const string SignifydCompleteStepUp =
+        "https://apihub.scheels.com/frontastic/action/cart/completeSignifydStepUpCheckout";
+
     public static readonly IReadOnlyList<Vendor> All = new[]
     {
         new Vendor("DataDome", new[]
@@ -90,6 +146,36 @@ public static class AntiBotVendors
             ForterEvents, "https://cdn123.forter.com/?u=", ".cdn.forter.com/prop.json", ForterRelay,
             "forterToken", "forterCookieToken", "CheckoutData.ForterToken", "BuildForterSessionId",
             "ForterEnvelope", "ForterEventsEncoder",
+        }),
+        new Vendor("Signifyd", new[]
+        {
+            "HandleSignifydStepUp", "SendSignifydStepUpCode", "CompleteSignifydStepUp",
+            "GetSignifydCode", "requiresSignifydStepUp", "_signifydStepUpDone",
+            SignifydSendCode, SignifydCompleteStepUp,
+        }),
+    };
+
+    /// <summary>
+    /// Vendors the image names but does not handle. R807.
+    ///
+    /// <para>
+    /// Riskified has three hosts and four cookie names in the pool, and no handler: <c>BuildRiskified</c>,
+    /// <c>HandleRiskified</c> and <c>GetRiskified</c> are all absent, unlike <c>BuildForterSessionId</c> or
+    /// <c>GetKasada</c> for the vendors in <see cref="All"/>. So it is recorded as named-and-nothing-more rather than
+    /// counted among the handled ones.
+    /// </para>
+    ///
+    /// <para>
+    /// The distinction matters because <see cref="All"/> is what the anti-bot layer claims to defend against. A host
+    /// string proves the original knew the vendor existed; it does not prove the original did anything about it.
+    /// </para>
+    /// </summary>
+    public static readonly IReadOnlyList<Vendor> NamedButNotHandled = new[]
+    {
+        new Vendor("Riskified", new[]
+        {
+            RiskifiedBeacon, RiskifiedClientInfo, RiskifiedPixel,
+            RiskifiedIdCookie, RiskifiedTokenCookie, RiskifiedLegacyCookie, RiskifiedShopCookie,
         }),
     };
 

@@ -10547,3 +10547,88 @@ python analysis\off_slot_reader.py 0x146B5E268 ...    （见上，全串显示�
 
 **工具显示截断会伪装成工具读错，而「工具坏了」这个假设比「我没看清长度」更容易被接受。**
 **判断工具坏了之前，先看它自己印出来的校验字段（`len=40` 就在同一行）。**
+
+
+---
+
+## 231. 风控清单对账：**第一次对错了，第二次才有结论**；`Signifyd` 进表，`Riskified` 单列
+
+> R807。`AntiBotVendors.cs` 加 `Signifyd`（第 8 家）与 `NamedButNotHandled`；`AntiBotVendorTests` 从 7 改 8。
+
+### 一、第一次对账是错的
+
+我写了个脚本，从 `AntiBotVendors` 里抽出所有字符串字面量（9 条），拿它当厂商清单去和镜像比，
+**得出「18 个厂商在镜像里但未声明」。**
+
+**这个结论从头就不成立**：那 9 条是 `DataDomeKey`、`datadome.cybersole.io/sensor` 这类**具体 token 键**，
+不是厂商清单。**真实的清单位于 `Vendor` 记录里 —— 7 条。**
+
+**而且计数也可疑**：`kasada` / `cloudflare` / `shape` / `recaptcha` / `adyen` / `stripe` 全是 40，
+和 `dwfrm` 的 40 一样 —— **那是搜索结果上限，不是巧合。**
+
+**如果我把第一版写进文档，"18 个缺口"会变成一条查不出来的假账。**
+
+### 二、真实清单
+
+```
+AntiBotVendors.All (7 -> 8)
+  DataDome · PerimeterX · Akamai · Kasada · TrustDecision · Cloudflare · Forter · Signifyd
+AntiBotProtocol: Akamai/DataDome/Cloudflare/Kasada 的 cookie 表 + QueueIt + TrustDecisionScripts
+CaptchaKind (5): ReCaptcha · HCaptcha · Turnstile · Geetest · Question
+```
+
+**12 个已声明项全部在镜像里** —— **没有虚报。**
+
+### 三、三个候选，三种结论
+
+| 厂商 | 镜像里的样子 | 结论 |
+|---|---|---|
+| **`shape`** | 34 条**全是假阳性**：`ShapeText`、`HarfBuzzTextShaper`、`BuiltinShape`、`MicroComIShapeVisual` | **不在镜像里** —— 复刻件不声明是对的 |
+| **`signifyd`** | `HandleSignifydStepUp` · `SendSignifydStepUpCode` · `GetSignifydCode` · `CompleteSignifydStepUp` · `requiresSignifydStepUp` · `apihub.scheels.com/frontastic/action/cart/{sendSignifydStepUpCode, completeSignifydStepUpCheckout}` | **真厂商且真被处理 → 进 `All`（第 8 家）** |
+| **`riskified`** | `_riskified` / `_riskifiedId` / `_riskifiedToken` / `FNL_RISKIFIED_ID` / `riskified_cookie` · `beacon.riskified.com` · `c.riskified.com/v2/client_infos` · `img.riskified.com` —— **但 `BuildRiskified`/`HandleRiskified`/`GetRiskified` 全是 0** | **被提到但未被处理 → 单列 `NamedButNotHandled`** |
+
+### 四、为什么这个区分必须做
+
+跑测试时 `TheImageKnowsSevenVendors` 红了 —— 我把 Riskified 加进了 `All`，而它把数量钉在 7。
+
+**红得有道理。** `All` 是「反机器人层声称能对付的厂商」；
+**一条主机串只能证明原版知道这个厂商存在，不能证明原版对它做了什么。**
+
+**而 Signifyd 有完整的 step-up 状态机**（发码 → 取码 → 完成），那是处理，不是提及。
+
+**所以**：
+
+- `Signifyd` → `All`，测试改名 `TheImageKnowsEightVendors`
+- `Riskified` → `NamedButNotHandled`，附上「三个 host、四个 cookie，零个 handler」的理由
+
+### 五、`shape` 那次假阳性值得单独记
+
+`shape` 在镜像里 34 条，**每一条都是 Avalonia/WinRT 的文本整形**
+（`ShapeText`、`HarfBuzzTextShaper`、`BuiltinShape`、`MicroComIShapeVisual`）。
+
+**一个 4 字母的英文常用词，在任何 UI 框架里都会命中几十次。**
+**把它当厂商证据，就是把「词出现过」当成「厂商存在」** —— §2.7 那个错的最短形式。
+
+### 六、验证
+
+```
+构建                已成功
+AntiBot 相关用例    36 通过 / 0 失败
+完整套件            1766 通过 / 0 失败 / 0 跳过（回到绿）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 七、仍然 Unknown
+
+- **`Signifyd` 的 step-up 流程要不要实现**：**Unknown** —— 两个端点与三个方法名都在，
+  **但请求体没读**（第五次同一形状）。
+- **`Riskified` 在镜像里到底怎么用**：**Unknown** —— 三个 host 说明它会发信标，
+  **但没有 handler，可能只是某个第三方库带进来的常量。**
+- **其余候选**：`AWS WAF`（2 条，`WarhammerFlow` 已带 `AwsWafTokenHeader`）、
+  `Datadog RUM`（4 条，已知故意未加）。
+
+### 八、教训
+
+**拿「一个字符串列表」当「一个分类清单」之前，先问这个列表是干什么用的。**
+`AntiBotVendors` 里那 9 条字面量长得像清单，**职责却是记录具体的 token 键** ——
+**用它对账厂商，得到的是 18 个不存在的缺口。**

@@ -48970,3 +48970,53 @@ slot 0x146ab0028  '/OnePageCheckout/CheckoutPlugin/SetBillingAddressAsync'  len=
 ### 教训
 
 **判断工具坏了之前，先看它自己印出的校验字段 —— `len=40` 就在同一行。**
+
+
+---
+
+## 第 807 轮：风控清单对账，第一次对错了
+
+### 第一次是错的
+
+我从 `AntiBotVendors` 抽出 9 条字符串字面量当厂商清单，**得出「18 个缺口」。**
+
+**那 9 条是 token 键，不是清单。真实清单是 `Vendor` 记录 —— 7 条。**
+**而且计数可疑：`kasada`/`cloudflare`/`shape`/`recaptcha`/`adyen`/`stripe` 全是 40 —— 那是搜索上限。**
+
+### 真实清单：12 个已声明项全在镜像里，没有虚报
+
+```
+All (7 → 8): DataDome · PerimeterX · Akamai · Kasada · TrustDecision · Cloudflare · Forter · Signifyd
+AntiBotProtocol: 四个 cookie 表 + QueueIt + TrustDecisionScripts
+CaptchaKind (5): ReCaptcha · HCaptcha · Turnstile · Geetest · Question
+```
+
+### 三个候选，三种结论
+
+| 厂商 | 镜像里的样子 | 结论 |
+|---|---|---|
+| **`shape`** | 34 条**全是假阳性**（`ShapeText`/`HarfBuzzTextShaper`/`BuiltinShape`） | **不在镜像里** |
+| **`signifyd`** | 完整 step-up 状态机 + `apihub.scheels.com` 两个动作 | **真被处理 → 进 `All`** |
+| **`riskified`** | 三个 host、四个 cookie，**零个 handler** | **单列 `NamedButNotHandled`** |
+
+### 测试红了，红得有道理
+
+它把数量钉在 7，我加了 Riskified。
+
+> **`All` 是「声称能对付的厂商」。一条主机串只证明原版知道它存在，不证明原版做了什么。**
+> **而 Signifyd 有发码→取码→完成的状态机 —— 那是处理。**
+
+### `shape` 的假阳性值得单独记
+
+**一个 4 字母常用词，在任何 UI 框架里都会命中几十次。**
+**把它当厂商证据，就是把「词出现过」当成「厂商存在」—— §2.7 那个错的最短形式。**
+
+### 验证
+
+```
+构建绿 · AntiBot 36/36 · 整套 1766 / 0 · 度量未变
+```
+
+### 教训
+
+**拿「一个字符串列表」当「一个分类清单」之前，先问它原本是干什么用的。**

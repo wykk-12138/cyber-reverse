@@ -1538,3 +1538,33 @@ JapaneseName · FuriganaName · JapaneseSurname · FuriganaSurname
 
 **纪律**：**判断工具坏了之前，先看它自己印出的校验字段（`len=40` 就在同一行）。**
 显示截断会伪装成读取错误，而「工具坏了」比「我没看长度」更容易被接受。
+
+
+## 风控 — 清单对账（R807）
+
+**已声明 12 项全部在镜像里，没有虚报。**
+
+```
+AntiBotVendors.All (7 -> 8)   DataDome · PerimeterX · Akamai · Kasada · TrustDecision
+                             · Cloudflare · Forter · **Signifyd**
+AntiBotProtocol               四个 vendor cookie 表 + QueueIt + TrustDecisionScripts
+CaptchaKind (5)               ReCaptcha · HCaptcha · Turnstile · Geetest · Question
+```
+
+| 候选 | 结论 |
+|---|---|
+| `shape` | **不在镜像里** —— 34 条命中全是 Avalonia 文本整形（假阳性） |
+| `signifyd` | **进 `All`**：`HandleSignifydStepUp` / `SendSignifydStepUpCode` / `GetSignifydCode` / `CompleteSignifydStepUp` + `apihub.scheels.com/frontastic/action/cart/*` |
+| `riskified` | **`NamedButNotHandled`**：三 host + 四 cookie，**`Build/Handle/GetRiskified` 全 0** |
+
+**`All` 的含义是「声称能对付」，不是「提到过」。**
+**一条主机串只证明原版知道厂商存在；Signifyd 有发码→取码→完成的状态机，那才是处理。**
+
+| 仍 Unknown | |
+|---|---|
+| Signifyd step-up 的请求体 | 端点与方法名都在，**请求体没读**（第五次同一形状） |
+| Riskified 在镜像里怎么用 | 无 handler，可能是第三方库带入的常量 |
+| `AWS WAF`（2 条）/ `Datadog RUM`（4 条） | WAF 已由 `WarhammerFlow` 处理；Datadog 已知故意未加 |
+
+**纪律**：**拿「一个字符串列表」当「一个分类清单」之前，先问它原本是干什么用的。**
+`AntiBotVendors` 里那 9 条字面量长得像清单，职责却是记录 token 键 —— 用它对账得到 18 个不存在的缺口。

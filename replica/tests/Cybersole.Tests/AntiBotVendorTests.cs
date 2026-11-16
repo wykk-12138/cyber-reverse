@@ -27,24 +27,25 @@ public sealed class AntiBotVendorTests
 
     public AntiBotVendorTests(ITestOutputHelper output) => _out = output;
 
-    /// <summary>Seven vendors, each with evidence, none empty.</summary>
+    /// <summary>Eight vendors, each with evidence, none empty.</summary>
     /// <remarks>
-    /// R762 raised the count from six to seven. This is a shape change that follows the evidence, not a behaviour
-    /// change: Forter was always in the image and R105's read simply missed it. The literals are cdn3.forter.com/events,
-    /// the cdn123 and cdn6 hosts, .cdn.forter.com/prop.json, forter.cybersole.workers.dev, the token fields and the
-    /// envelope/encoder types.
+    /// R762 raised the count from six to seven. R807 raised it to eight after Signifyd turned up with a full step-up
+    /// state machine -- HandleSignifydStepUp, SendSignifydStepUpCode, GetSignifydCode, CompleteSignifydStepUp and two
+    /// frontastic cart actions on apihub.scheels.com -- which is handling, not merely naming. Riskified was checked at
+    /// the same time and deliberately left out: it has three hosts and four cookie names and no handler at all, so it
+    /// lives in NamedButNotHandled instead.
     /// </remarks>
     [Fact]
-    public void TheImageKnowsSevenVendors()
+    public void TheImageKnowsEightVendors()
     {
         foreach (var vendor in AntiBotVendors.All)
             _out.WriteLine($"{vendor.Name}: {string.Join(", ", vendor.Evidence)}");
 
-        Assert.Equal(7, AntiBotVendors.All.Count);
-        Assert.Equal(7, AntiBotVendors.All.Select(v => v.Name).Distinct().Count());
+        Assert.Equal(8, AntiBotVendors.All.Count);
+        Assert.Equal(8, AntiBotVendors.All.Select(v => v.Name).Distinct().Count());
         Assert.All(AntiBotVendors.All, v => Assert.NotEmpty(v.Evidence));
 
-        foreach (var name in new[] { "DataDome", "PerimeterX", "Akamai", "Kasada", "TrustDecision", "Cloudflare" })
+        foreach (var name in new[] { "DataDome", "PerimeterX", "Akamai", "Kasada", "TrustDecision", "Cloudflare", "Signifyd" })
             Assert.True(AntiBotVendors.Knows(name), name);
 
         Assert.False(AntiBotVendors.Knows("hCaptcha"));

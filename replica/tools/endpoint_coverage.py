@@ -131,10 +131,32 @@ def main():
     text = replica_text()
 
     buckets = {
-        "store": {"total": 0, "have": 0},
-        "vendor": {"total": 0, "have": 0},
-        "hostless": {"total": 0, "have": 0},
+        "store": {"total": 0, "have": 0, "tail": 0},
+        "vendor": {"total": 0, "have": 0, "tail": 0},
+        "hostless": {"total": 0, "have": 0, "tail": 0},
     }
+
+    # R904: a third state, reported separately rather than folded into either side.
+    #
+    # The matching rule above is verbatim only, and R894 showed why that is the honest default -- widening it was one
+    # of the reasons the earlier figures were not comparable. But strictness has a cost that must be visible: a class
+    # that stores Base plus a relative tail, as JohnLewisBff does, holds eleven BFF paths and matches none of them.
+    #
+    # So a path whose tail after the family segment appears as a literal is counted as "tail" and printed as its own
+    # column. It is neither covered nor missing: the replica knows the endpoint, in a form this test cannot confirm.
+    # Counting it as covered would overstate and counting it as missing would understate, and both were what earlier
+    # rounds did in turn.
+
+    def tail_known(path):
+        segs = path.split("/")
+        # the family is the /segment/vN/ run; the tail is whatever follows it
+        for i in range(len(segs) - 1):
+            if segs[i + 1].startswith("v") and segs[i + 1][1:].isdigit():
+                tail = "/" + "/".join(segs[i + 2:])
+                if len(tail) > 4 and ('"' + tail + '"') in text:
+                    return tail
+                return ""
+        return ""
 
     missing = []
     for host, path in rows:
@@ -147,6 +169,8 @@ def main():
         buckets[key]["total"] += 1
         if ('"' + path + '"') in text:
             buckets[key]["have"] += 1
+        elif tail_known(path):
+            buckets[key]["tail"] += 1
         else:
             missing.append((key, host, path))
 
@@ -155,7 +179,8 @@ def main():
         b = buckets[key]
         pct = (100.0 * b["have"] / b["total"]) if b["total"] else 0.0
         print("coverage: %s paths %d" % (key, b["total"]))
-        print("coverage: %s covered %d" % (key, b["have"]))
+        print("coverage: %s verbatim %d" % (key, b["have"]))
+        print("coverage: %s base-tail %d" % (key, b["tail"]))
         print("coverage: %s percent %.1f" % (key, pct))
 
     print("coverage: missing %d" % len(missing))

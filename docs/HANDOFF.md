@@ -653,3 +653,15 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 AntiBotRelated 子集让优先级 ② 可直接数。
 
 下一轮：store 那 52 条缺失清单（-v）+ /shield/v1/verify_otp 单独查。
+
+## R904 补充 — 加第三态 base-tail，浮出 13 条假阴性（改工具）
+
+起因：store 缺失清单里 checkout.johnlewis.com 占 11 条，而 JohnLewisBff 用 Base + 相对路径存，逐字匹配看不到。与 R894 同一个坑，同一个工具里第二次。
+
+三态：verbatim（整条字面量）· base-tail（去族前缀的尾部字面量）· missing。
+
+数字：store 3+8 = 11/55（20%，原报 5.5%）· vendor 0+5 · hostless 67/67（100%）· missing 84 → 71。
+
+不并入的理由：算 covered 会高报、算 missing 会低报，两种前面都犯过；第三种状态是代价该待的地方。
+
+下一轮：/shield/v1/verify_otp（优先级 ②）；store 那 44 条真缺失清单。

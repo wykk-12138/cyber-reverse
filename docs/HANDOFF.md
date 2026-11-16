@@ -1407,3 +1407,18 @@ VippsNo 按措辞记不按地区记（No 可作 Norway 或「否」）。
 纪律：一个估算的第一次具体查看，往往不是把它细化，是把它否掉。
 
 下一轮：逐个查 93 个可疑文件里哪些是重复品（先删重复，再谈接线）。
+
+## R954 补充 — 93 个分完：7 重复品 + 5 个我写的死代码（未改产品代码，套件 2097）
+
+对的判据：`XxxModule` 有同名 `XxxFlow` → 重复品 7 个（Fanatics/Casio/EndClothing/Sns/Kith/Nike/Supreme）。
+前两次判据错在「我以为 id 只有一种写法」（Id => 撞 catalog 得 1；Store => 收集得 0）。
+
+而剩下 86 个里有五个是我 R920–R925 写的支付类，全部无人引用：
+PurpleDot · GlobalECheckout · EshopWorldPanel · DisneyPaymentSheet · VivaPayments
+→ 那五轮函数贡献 0；功能前进了，函数数没动。
+
+数字：套件 2097（未变）· 陈旧度 0/0 · 函数数 173,781 · 重复品 7 · 死代码 5。
+
+纪律：判据错在「我以为写法只有一种」时，换成问结构。
+
+下一轮：给一个支付步骤（StoreFlow 的虚步骤里）接上五个支付类之一，测函数增量。

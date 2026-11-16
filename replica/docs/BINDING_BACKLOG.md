@@ -6467,3 +6467,32 @@ Vipps（三条路径 + `checkout.vipps.no`）· BigCommerce（一条 `/api/publi
 | 删重复品是否动函数数 | 应该不动（它们本来不在产物） |
 
 **纪律**：一个估算的第一次具体查看，往往不是把它细化，是把它否掉。
+
+
+## 判据 (c) — 93 个分完：7 重复品 + 5 个我写的死代码（R954，**未改产品代码**）
+
+### 对的判据
+
+**`XxxModule` 有同名 `XxxFlow` → 重复品。7 个：Fanatics/Casio/EndClothing/Sns/Kith/Nike/Supreme**
+
+### 而 R920–R925 五个支付类全部无人引用
+
+**`PurpleDot` · `GlobalECheckout` · `EshopWorldPanel` · `DisneyPaymentSheet` · `VivaPayments`**
+
+**→ 那五轮函数贡献 0；功能前进了，函数数没动。**
+
+### 三次判据（前两次错）
+
+**`Id =>` 撞 catalog（1）· `Store =>` 收集（0）· 同名 flow（7 ✅）**
+
+### 数字
+
+**套件 2097（未变）· 陈旧度 0/0 · 函数数 173,781 · 重复品 7 · 死代码 5**
+
+| 仍 Unknown | |
+|---|---|
+| 86 个里还有几个是重复品 | 只按 Module↔Flow 配过 |
+| 五个支付类该由哪一步调用 | 需要一个支付步骤 |
+| 接上一个支付类能加多少函数 | 未测 |
+
+**纪律**：一个判据错在「我以为写法只有一种」时，换成问结构。

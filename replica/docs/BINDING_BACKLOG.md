@@ -1278,3 +1278,29 @@ obsolete" —— **世界变了该报废的是这个模块，而那条测试会�
 
 **所以这不是"多出来一个模块没人管"，是"多出来一个模块，理由、守卫、失效条件都齐"。**
 **R768 把它记成"待裁决"是对的（当时只查了字符串）；R794 把它结案，是因为它早就被裁决过了。**
+
+
+## 核心 — Hybris / offspring（R795：100%）
+
+**镜像的 Demandware 结账面（14 条 `/Checkout-*`）+ 40 个 `dwfrm_billing_*` 字段名。**
+
+| 步骤 | 端点 |
+|---|---|
+| `SubmitShippingAsync` | `POST /Checkout-SaveGuest` + `dwfrm_billing_addressFields_useShipping=true` |
+| `SubmitPaymentAsync` | `POST /Checkout-SubmitPaymentDetails` + billing 地址字段 |
+| `SubmitOrderAsync` | `POST /Checkout-SubmitOrder` |
+
+**`fully covered` 50 → 51；`offspring` 100%。**
+
+| 仍 Unknown | |
+|---|---|
+| `/Checkout-SaveGuest` 是否就是提交动作 | **Inference（中）** |
+| 支付要哪些**网关**字段（卡号等） | **未查池子** |
+| `SubmitOrder` 需要什么表单 | 现在发空表单 |
+| 有没有 `dwfrm_shipping_*` | 镜像里 **0 条** |
+
+**口径边界（重要）**：`fully covered` 衡量「步骤存在且不是恒失败」，**不衡量「实机成立」**。
+**offspring 100% 说明形状对齐，不说明能下单。**
+
+**已推翻的旧注释**：`HybrisFlow` 原写「there is no single POST that places the order」——
+`/Checkout-SubmitOrder` 否掉了它。**「分阶段」不等于「没有单一提交」。**

@@ -212,19 +212,120 @@ public sealed class HybrisFlow : StoreFlow
     public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
         OpenCheckoutAsync(c, _id + "-checkout", "/cart/checkout", ct);
 
+    /// <summary>
+    /// The profile's address under the image's own billing field names. R795.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the image carries forty <c>dwfrm_*</c> field names and every one is
+    /// <c>dwfrm_billing_*</c> -- there are no <c>dwfrm_shipping_*</c> names at all. Among them
+    /// <c>dwfrm_billing_addressFields_useShipping</c>, which is how this platform says "bill to the shipping
+    /// address".
+    /// </para>
+    ///
+    /// <para>
+    /// So the names below are the image's, not invented. What is inferred (medium) is that the guest checkout accepts
+    /// the same address fields under the billing prefix -- the platform's own <c>useShipping</c> flag suggests it has
+    /// no separate shipping field set to submit.
+    /// </para>
+    /// </summary>
+    private Dictionary<string, string> BillingAddress(FlowContext c)
+    {
+        var form = new Dictionary<string, string>();
+        var p = c.ProfileData;
+        if (p is not null)
+        {
+            form["dwfrm_billing_addressFields_firstName"] = p.FirstName;
+            form["dwfrm_billing_addressFields_lastName"] = p.LastName;
+            form["dwfrm_billing_addressFields_address1"] = p.Address1;
+            form["dwfrm_billing_addressFields_address2"] = p.Address2;
+            form["dwfrm_billing_addressFields_city"] = p.City;
+            form["dwfrm_billing_addressFields_postalCode"] = p.Zip;
+            form["dwfrm_billing_addressFields_phone"] = p.Phone;
+            form["dwfrm_billing_addressFields_stateArea"] = p.State;
+            form["dwfrm_billing_addressFields_country"] = p.Country;
+        }
+        if (c.Account?.Email is { Length: > 0 } email)
+            form["dwfrm_billing_addressFields_email"] = email;
+        return form;
+    }
+
+    /// <summary>
+    /// Save the guest's address. R795.
+    ///
+    /// <para>
+    /// <b>Observation:</b> <c>/Checkout-SaveGuest</c> is one of the fourteen <c>/Checkout-*</c> paths the image
+    /// carries, alongside <c>/Checkout-Begin?stage=shipping</c> and <c>?step=shipping</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Inference (medium):</b> that SaveGuest is the submit rather than merely a stage. The alternative reading is
+    /// that shipping is entered after navigating to the shipping stage, and the image does not say which. The
+    /// distinction is recorded here rather than resolved, because a wrong guess costs one HTTP round trip and reports
+    /// itself, unlike a wrong identifier.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
+    {
+        var form = BillingAddress(c);
+        form["dwfrm_billing_addressFields_useShipping"] = "true";
+
+        var res = await PostFormAsync(c, Origin(c.Url) + "/Checkout-SaveGuest", form,
+            _id + "-save-guest", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail($"{_id}: SaveGuest unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"{_id}: SaveGuest HTTP {res.StatusCode} at /Checkout-SaveGuest",
+                retryable: res.StatusCode >= 500);
+
+        c.Session.Vars["shipping"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Submit the payment details. R795. <b>Observation:</b> <c>/Checkout-SubmitPaymentDetails</c> is in the image,
+    /// and the billing field names above are the ones it expects.
+    /// </summary>
+    public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        var form = BillingAddress(c);
+
+        var res = await PostFormAsync(c, Origin(c.Url) + "/Checkout-SubmitPaymentDetails", form,
+            _id + "-payment-details", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail($"{_id}: SubmitPaymentDetails unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail(
+                $"{_id}: SubmitPaymentDetails HTTP {res.StatusCode} at /Checkout-SubmitPaymentDetails",
+                retryable: res.StatusCode >= 500);
+
+        c.Session.Vars["payment"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Place the order. R795.
+    ///
+    /// <para>
+    /// The earlier version said Hybris has no single POST that places an order. The image refutes that:
+    /// <c>/Checkout-SubmitOrder</c> is right there in the pool, next to <c>/Checkout-SubmitPaymentDetails</c>. The
+    /// comment was not wrong about the flow being staged -- <c>/Checkout-Begin</c> with its stage and step variants is
+    /// also in the image -- but it drew the wrong conclusion from that.
+    /// </para>
+    /// </summary>
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
-        // Hybris checkout is a multi-step controller flow; there is no single POST that places
-        // the order. Saying which step is missing is more useful than a bare failure.
-        var res = await GetAsync(c, Origin(c.Url) + "/cart/checkout", _id + "-checkout-state", ct)
-            .ConfigureAwait(false);
+        var res = await PostFormAsync(c, Origin(c.Url) + "/Checkout-SubmitOrder",
+            new Dictionary<string, string>(), _id + "-submit-order", ct).ConfigureAwait(false);
 
-        if (res is null) return StepOutcome.Fail($"{_id}: checkout unreachable", retryable: true);
+        if (res is null) return StepOutcome.Fail($"{_id}: SubmitOrder unreachable", retryable: true);
         if (!res.IsSuccess)
-            return StepOutcome.Fail($"{_id}: checkout HTTP {res.StatusCode}", retryable: true);
+            return StepOutcome.Fail($"{_id}: SubmitOrder HTTP {res.StatusCode} at /Checkout-SubmitOrder",
+                retryable: res.StatusCode >= 500);
 
-        return StepOutcome.Fail(
-            $"{_id}: Hybris checkout is a staged controller flow (delivery → payment → review); " +
-            "placing the order needs the per-stage form posts, which are not captured yet");
+        c.Session.Vars["order"] = res.Body;
+        var number = System.Text.RegularExpressions.Regex.Match(
+            res.Body, @"""(?:orderNumber|orderNo)""\s*:\s*""([^""]+)""");
+        if (number.Success) c.Session.OrderNumber = number.Groups[1].Value;
+        return StepOutcome.Success();
     }
 }

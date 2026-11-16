@@ -48478,3 +48478,60 @@ resolved 63/63 · fully covered 50 · exempt 5 · 整套 1766 / 0 · 度量 4 / 
 ```
 产品代码未改 · 整套 1766 / 0 · 度量未变 · backlog 的「待裁决」不再指向 bstn
 ```
+
+
+---
+
+## 第 795 轮：Hybris 补上三步，offspring 到 100%
+
+### 镜像里有整个 Demandware 结账面
+
+```
+^/Checkout- 共 14 条：/Checkout-Begin(+stage/step 变体) · ContinueToBilling · SaveGuest
+                     SubmitOrder · SubmitPaymentDetails · /checkout-login
+```
+
+### 字段名也有，但只有 billing 这一族
+
+`^dwfrm` 40 条，**全是 `dwfrm_billing_*`，没有一条 `dwfrm_shipping_*`。**
+关键：`dwfrm_billing_addressFields_useShipping` —— **平台用「账单地址复用收货地址」，不是另设一套。**
+
+复刻件用它映射 Profile，**名字全是镜像的。**
+
+### 三步
+
+| 步骤 | 端点 | 依据 |
+|---|---|---|
+| SubmitShipping | `POST /Checkout-SaveGuest` + `useShipping=true` | 端点 Observation；**动作 Inference（中）** |
+| SubmitPayment | `POST /Checkout-SubmitPaymentDetails` + billing 字段 | 都是 Observation |
+| SubmitOrder | `POST /Checkout-SubmitOrder` | Observation |
+
+**歧义写进注释**：另一种读法是「先导航到 `?stage=shipping` 再填」，镜像没说。
+**猜错只花一个来回就自己报出来，不像猜错的标识符那样静默。**
+
+### 推翻一句旧注释
+
+原来写「there is no single POST that places the order」。**`/Checkout-SubmitOrder` 直接否掉了它。**
+
+> **它没说错「流程分阶段」，但从「分阶段」推出「没有单一提交」—— 这一步推错了。**
+> **这是「Unknown 被当成 Not-exist」的又一次。**
+
+### 覆盖率
+
+```
+offspring   + + + + + + +   100%
+fully covered 50 -> 51
+```
+
+### 验证
+
+```
+构建绿 · offspring 100% · 整套 1766 / 0 · 度量未变
+```
+
+### 一条必须写明的边界
+
+**七步都实现 ≠ 七步都验证过。** 没有任何一步在实机跑过。
+
+> **`fully covered` 衡量「这一步存在且不是恒失败」，不衡量「它在真站上成立」。**
+> **offspring 到 100% 说明形状与镜像对齐，不说明它能买到东西。**

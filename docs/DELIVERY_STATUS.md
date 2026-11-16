@@ -9672,3 +9672,89 @@ BINDING_BACKLOG.md 中「待裁决」不再指向 bstn
   但**这不影响保留的决定**：保留的依据是抓包，不是镜像。
 - **`BstnFlow` 缺的三步**（变体、加购、结账）：**Unknown** —— 商品卡是 CSS 背景图，R124 已停手，
   **停手理由记录在案**（不是"再试一次就好"）。
+
+
+---
+
+## 221. Hybris 补上三步，`offspring` 到 **100%**；顺带推翻一句旧注释
+
+> R795。`HybrisFlow.cs`：新增 `SubmitShippingAsync` / `SubmitPaymentAsync`，重写 `SubmitOrderAsync`。
+
+### 一、镜像里有整个 Demandware 结账面（Observation）
+
+`^/Checkout-` 一共 14 条：
+
+```
+/Checkout-Begin  (+ ?stage=payment|placeOrder|shipping)  (+ ?step=billing|payment|shipping|summary)
+/Checkout-ContinueToBilling
+/Checkout-SaveGuest
+/Checkout-SubmitOrder
+/Checkout-SubmitPaymentDetails
+/checkout-login  (+ ?csrf_token=)
+```
+
+### 二、字段名也有 —— 但只有 billing 那一族
+
+`^dwfrm` 40 条，**全部是 `dwfrm_billing_*`，一条 `dwfrm_shipping_*` 都没有。**
+其中关键是 `dwfrm_billing_addressFields_useShipping` ——
+**这个平台用「账单地址复用收货地址」这个标志，而不是另一套 shipping 字段。**
+
+复刻件用它映射 Profile：
+
+```
+dwfrm_billing_addressFields_firstName · lastName · address1 · address2 · city
+                                    · postalCode · phone · stateArea · country · email
+```
+
+**名字全是镜像的，不是我起的。**
+
+### 三、三步
+
+| 步骤 | 端点 | 依据 |
+|---|---|---|
+| `SubmitShippingAsync` | `POST /Checkout-SaveGuest` + `useShipping=true` | 端点 Observation；**「SaveGuest 就是提交」是 Inference（中）** |
+| `SubmitPaymentAsync` | `POST /Checkout-SubmitPaymentDetails` + billing 字段 | 端点与字段都是 Observation |
+| `SubmitOrderAsync` | `POST /Checkout-SubmitOrder` | 端点 Observation |
+
+**`SubmitShippingAsync` 的歧义我写进了注释**：另一种读法是「先导航到 `?stage=shipping` 再填」，
+镜像没说哪种。**区别记着而不强行裁定** —— 猜错只花一个来回就自己报出来，不像猜错的标识符那样静默。
+
+### 四、推翻一句旧注释
+
+`SubmitOrderAsync` 原来写着：
+
+> Hybris checkout is a multi-step controller flow; **there is no single POST that places the order.**
+
+**这句话被 `/Checkout-SubmitOrder` 直接否掉了。**
+它没说错「流程是分阶段的」（`/Checkout-Begin` 的 stage/step 变体确实在），
+**但它从"分阶段"推出了"没有单一提交" —— 那一步推错了。**
+
+**这是「Unknown 被当成 Not-exist」的又一次**：没找到端点的那一版写法，读起来像"端点不存在"。
+
+### 五、覆盖率
+
+```
+offspring    +  +  +  +  +  +  +   100%
+resolved 63/63 flows; fully covered 50 -> 51; exempt 5
+```
+
+### 六、验证
+
+```
+构建                已成功
+ModuleCoverageTests offspring 100%，fully covered 51
+完整套件            1766 通过 / 0 失败 / 0 跳过（未变）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 七、仍然 Unknown
+
+- **`/Checkout-SaveGuest` 是不是提交动作**：**Inference（中）** —— 见第三节。
+- **支付要哪些网关字段**（卡号、`dwfrm_billing_creditCardFields_*`）：**Unknown** ——
+  这次只发了地址字段，**支付详情那一步大概率还需要卡字段名，而池子里没查**。
+- **`SubmitOrder` 需要什么表单**：**Unknown** —— 现在发空表单。
+- **`offspring` 的 100% 的含义**：**七步都实现，不等于七步都验证过** ——
+  **没有任何一步在实机上跑过。**
+
+**第八条要单独看重**：`fully covered` 衡量「这一步存在且不是恒失败」，**不衡量「这一步在真站上成立」**。
+`offspring` 到 100% 说明它的形状与镜像对齐，**不说明它能买到东西。**

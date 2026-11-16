@@ -1407,3 +1407,27 @@ settings                sub_140CC7E90 (373 B)
 
 **工具教训（R800）**：块替换的 `END` 锚点若可能出现在新内容里，**必须换成区间之外且不会移动的锚**，
 并在写盘前做后置检查。R799 的 `END = "/// <summary>"` 就因为出现在替换文本里而把文件改坏了。
+
+
+## 覆盖 — 两套尺子的区别（R801/R802）
+
+**仓库有两套矩阵：`Required`（七步）与 `NonCommerce`（每模块自带步骤）。**
+
+- 七步得分低 ≠ 缺口，**先看它在不在 `NonCommerce`**
+- **已在 `NonCommerce` 且满分的，不要再加豁免**（R801 我犯过）
+
+**本轮结果**：
+
+```
+exempt 6 -> 5
+hypecommerce  -> NonCommerce，2/2（ValidateEntryAsync + CreateEntryAsync）
+raffle 4/4 · pocketgames 6/6 · riotgames 7/7（都在非结账尺子上满分）
+```
+
+| 待查 | |
+|---|---|
+| `raffle`/`pocketgames`/`riotgames` 的步骤名是否逐条取证过 | **没查** —— 它们在表里，但来源未核 |
+| `hypecommerce` 的 entries 请求体 | Unknown |
+| `NonCommerce` 里其余模块是否也该这样核一遍 | Unknown |
+
+**判据**：**豁免 = 信息真空；另一套尺子 = 信息。** 能后者就不前者。

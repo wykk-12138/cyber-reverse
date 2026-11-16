@@ -1146,35 +1146,62 @@ public sealed class HypeCommerceFlow : StoreFlow
     private const string HypeApi = "https://admin.hypecommerce.io";
 
     /// <summary>
-    /// Create an entry the way the image does: validate, then create. The only step this module can evidence.
+    /// Validate an entry before creating it. R802.
     ///
     /// <para>
-    /// The body carries only what the replica knows, and a rejection is the honest outcome until the payload is
-    /// recovered. An invented body would look like progress and would not be one.
+    /// The two admin endpoints the image names are validate and create, in that order, so this class exposes them as
+    /// two named steps and lets the non-commerce yardstick measure both. One <c>SubmitOrderAsync</c> doing both
+    /// internally cannot be measured that way, and an exemption cannot be measured at all.
     /// </para>
     /// </summary>
-    public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
+    public async Task<StepOutcome> ValidateEntryAsync(FlowContext c, CancellationToken ct)
     {
         var entryId = c.Session.VariantId;
         if (string.IsNullOrEmpty(entryId))
-            return StepOutcome.Fail("hypecommerce: no entry id to submit");
+            return StepOutcome.Fail("hypecommerce: no entry id to validate");
 
         var payload = Newtonsoft.Json.JsonConvert.SerializeObject(new { entryId });
 
-        var validate = await PostJsonAsync(c, HypeApi + "/api/entries/validate", payload,
+        var res = await PostJsonAsync(c, HypeApi + "/api/entries/validate", payload,
             "hype-validate", ct).ConfigureAwait(false);
-        if (validate is null) return StepOutcome.Fail("hypecommerce: validate unreachable", retryable: true);
-        if (!validate.IsSuccess)
-            return StepOutcome.Fail($"hypecommerce: validate HTTP {validate.StatusCode}", retryable: true);
 
-        var create = await PostJsonAsync(c, HypeApi + "/api/entries/create", payload,
-            "hype-create", ct).ConfigureAwait(false);
-        if (create is null) return StepOutcome.Fail("hypecommerce: create unreachable", retryable: true);
-        if (!create.IsSuccess)
-            return StepOutcome.Fail($"hypecommerce: create HTTP {create.StatusCode}", retryable: true);
+        if (res is null) return StepOutcome.Fail("hypecommerce: validate unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"hypecommerce: validate HTTP {res.StatusCode}", retryable: true);
 
-        c.Session.Vars["entry"] = create.Body;
+        c.Session.Vars["validated"] = res.Body;
         return StepOutcome.Success();
+    }
+
+    /// <summary>Create the validated entry. R802. <b>Observation:</b> the second of the two admin endpoints.</summary>
+    public async Task<StepOutcome> CreateEntryAsync(FlowContext c, CancellationToken ct)
+    {
+        var entryId = c.Session.VariantId;
+        if (string.IsNullOrEmpty(entryId))
+            return StepOutcome.Fail("hypecommerce: no entry id to create");
+
+        var payload = Newtonsoft.Json.JsonConvert.SerializeObject(new { entryId });
+
+        var res = await PostJsonAsync(c, HypeApi + "/api/entries/create", payload,
+            "hype-create", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("hypecommerce: create unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"hypecommerce: create HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["entry"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// The commerce-facing name for the same two calls, in order. Kept so the seven-step matrix still shows this module
+    /// can reach an order-shaped endpoint; the two named steps above are what the non-commerce yardstick measures.
+    /// </summary>
+    public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        var validate = await ValidateEntryAsync(c, ct).ConfigureAwait(false);
+        if (!validate.Ok) return validate;
+        return await CreateEntryAsync(c, ct).ConfigureAwait(false);
     }
 }
 

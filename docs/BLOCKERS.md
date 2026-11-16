@@ -15809,3 +15809,90 @@ ModuleCoverageTests hypecommerce 14%（此前 71%）
 R799 把五个编的路径换成五个诚实失败，**71% 一分未变** —— 因为矩阵不看内容。
 
 **所以要让数字跟着诚实走，必须改变"声明"本身，而不是声明的内容。**
+
+
+---
+
+## 226. 仓库里**一直有两套尺子**；我把两家不该豁免的塞进了豁免，然后撤回
+
+> R801/R802。`ModuleCoverageTests.cs`：撤两条豁免；`hypecommerce` 从豁免移到 `NonCommerce`；
+> `RetailFlows.cs`：`SubmitOrderAsync` 拆成 `ValidateEntryAsync` + `CreateEntryAsync`。
+
+### 一、我先做错了一件事
+
+查 `raffle` / `pocketgames` / `riotgames` 的镜像面，看到三家都不是七步结账，
+**于是给 `raffle` 与 `pocketgames` 补了豁免条目。**
+
+**跑完测试，输出里露出了一段我从没看过的东西**：
+
+```
+resolved 63/63 flows; fully covered 51; exempt 8
+   raffle                  4/4  + + + +
+   pocketgames             6/6  + + + + + +
+   riotgames               7/7  + + + + + + +
+```
+
+**仓库早就有第二套尺子**：`NonCommerce` 字典，每个非结账模块**自带一组步骤名**，
+另有一张表按那组步骤单独评。
+
+**而这三家在那套尺子上全是满分。**
+
+**所以我的两条豁免是多余的** —— 我把「已经在正确尺子上满分」的模块，
+塞进了「尺子不适用」的名单。**撤回了，`exempt` 回到 6。**
+
+**这是 §2.7 的又一次，而且是我自己踩的**：**假设只有一套矩阵，看到七步得分低就当成缺口。**
+
+### 二、那 `hypecommerce` 呢 —— 它该被**测量**，不该被豁免
+
+镜像给它两个端点：`entries/validate` 与 `entries/create`。**两个都有 builder，形状明确。**
+**豁免是「没法量」，而它是「能量的」。**
+
+所以：
+
+1. `SubmitOrderAsync` 拆成 **`ValidateEntryAsync`** + **`CreateEntryAsync`**（两个具名步骤，对应两个端点）
+2. `NonCommerce["hypecommerce"] = [ValidateEntryAsync, CreateEntryAsync]`
+3. **从 `YardstickDoesNotApply` 里撤掉**
+
+### 三、结果
+
+```
+resolved 63/63 flows; fully covered 51; exempt 6 -> 5
+hypecommerce   - - - - - - +   14%   (non-commerce — see below)
+   hypecommerce            2/2  + +
+```
+
+**一条豁免被换成了 2/2 的实测。**
+
+**七步表里它仍是 14%（只有 `SubmitOrderAsync` 那一步），但那个数字现在带 `(non-commerce)` 标注**，
+**而它真正的分数在下面那张表里 —— 满分。**
+
+### 四、为什么这是进步
+
+| 状态 | 读者看到的 |
+|---|---|
+| R797 的豁免 | 「这个模块不用看」 |
+| R802 的 NonCommerce | **「这个模块有 2 步，两步都实现了」** |
+
+**豁免是信息真空；测量是信息。** 同样一个模块，后者能被核。
+
+### 五、验证
+
+```
+构建                已成功
+ModuleCoverageTests exempt 5；hypecommerce 2/2（非结账表）
+完整套件            1766 通过 / 0 失败 / 0 跳过
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 六、仍然 Unknown
+
+- **`raffle` / `pocketgames` / `riotgames` 的步骤名是谁定的**：**Unknown** —— 它们在那张表里，
+  但**是不是逐条从镜像取证过，我没查**（这是下一步该查的）。
+- **`hypecommerce` 的 `entries` 请求体**：**Unknown**。
+- **`NonCommerce` 里还有没有别的模块该被这样核一遍**：**Unknown**。
+
+### 七、这一轮的教训
+
+**在加一条豁免之前，先确认没有别的尺子。**
+**「豁免」和「另一套标准」看起来都是在处理同一件事，但一个抹掉信息、一个产生信息。**
+**我这轮先选了抹掉，是被测试输出里一张自己没看过的表纠正的。**

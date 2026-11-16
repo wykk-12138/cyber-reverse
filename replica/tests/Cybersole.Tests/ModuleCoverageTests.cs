@@ -66,6 +66,13 @@ public class ModuleCoverageTests
             "LoginAsync",
             "EnterRaffleAsync",
         },
+        // R802: the image names exactly two admin endpoints for this platform, validate then create, so it is measured
+        // against those two rather than exempted. An exemption cannot be measured; this can.
+        ["hypecommerce"] = new[]
+        {
+            "ValidateEntryAsync",
+            "CreateEntryAsync",
+        },
     };
 
     /// <summary>
@@ -115,10 +122,6 @@ public class ModuleCoverageTests
         ["superswipe"] =
             "R793: enter.superswipe.com/enter, data-superswipe-launch-id and _superswipe_launch_id_, with its own "
             + "captcha at captcha.superswipe.com -- a launch entry, which has no cart, shipping or payment steps",
-        ["hypecommerce"] =
-            "R797: the image carries six strings for hypecommerce and every one is admin.hypecommerce.io/api/* -- "
-            + "entries/create, entries/validate, payment/methods/store and settings. Entries are raffle or drop "
-            + "entries, so this is an admin entry API rather than a seven-step storefront checkout",
     };
 
     [Fact]

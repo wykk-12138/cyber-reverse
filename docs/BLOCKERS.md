@@ -15356,3 +15356,62 @@ ModuleCoverageTests resolved 63/63 · fully covered 50 · exempt 5
   popmart 的 `/web/v2` RPC 协议、superswipe 的 enter 流程，**都还没读**。
 - **`shape_audit.py` 那次失败的成因**：**Unknown**（第五节）。
 - **`bstn`**：镜像里 0 字符串，仍是"复刻件多出来的模块"，未裁决。
+
+
+---
+
+## 220. `bstn` 结案：**保留**（不是新决定，是把早就定下的写清）
+
+> R794。只改 `BINDING_BACKLOG.md` 的三行 + 补一段裁决说明。未改产品代码。
+
+### 一、这一轮实际查到了什么
+
+`bstn` 在镜像里 `bstn` / `BSTN` 都是 0 匹配 —— 这是 R768 的发现，也是它被记成"待裁决"的原因。
+
+**但复刻件这一侧早就裁决过了，而且有三重守卫：**
+
+| 守卫 | 钉住什么 |
+|---|---|
+| `ArrowAndBeastTests.BstnStaysAndTheDifferenceIsRecorded` | **两条事实同时**：镜像有 `arrowandbeast`、没有 `bstn`；`bstn` 保留 |
+| `LiveContractTests.BstnServesItsBeastApiAndNotAShopifyOne` | `bstn.com/api/beast/geoIP` 通；`/cart.js` **必须不**像 Shopify 购物车 |
+| `PlatformAssignmentTests.BstnHasItsOwnFlowBecauseItIsNotShopify` | 它是 `BstnFlow` 而非 `ShopifyFlow` |
+
+**所以"删不删"这个问题，R91 就答了：保留，因为证据是抓包而不是镜像。**
+
+### 二、那为什么还挂着"待裁决"
+
+**因为 backlog 有三行还写着它。** 一个已经定下、且有测试守着的问题被记成未决 ——
+**下一轮读到这三行的人会重新审一遍**，这正是工作重复产生的方式。
+
+**所以这一轮改的不是产品，是记录。**
+
+### 三、溯源分级支持这个结论
+
+项目自己的分级里，`live`（镜像里没有字面量、但真实响应过）是**合法的一档**，
+`/api/beast` 从 R91 起就归在这一档。**"镜像里没有"不等于"不该有"** ——
+**只是"证据不来自镜像"**，那要写清楚来源，而它写了。
+
+### 四、失效条件也写着了
+
+`LiveContractTests` 的失败消息：
+
+> `if bstn starts serving Shopify carts, it became a Shopify store and BstnFlow is obsolete`
+
+**世界变了该报废的是这个模块，而那条测试会说。**
+**一个模块带着"什么时候该扔掉它"的判据，比一个没有模块更健康。**
+
+### 五、验证
+
+```
+本轮未改产品代码
+完整套件保持 1766 通过 / 0 失败
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+BINDING_BACKLOG.md 中「待裁决」不再指向 bstn
+```
+
+### 六、仍然 Unknown
+
+- **镜像里到底有没有一个对应 bstn 的店**：**Unknown** —— 0 匹配是"没找到"，不是"确认没有"。
+  但**这不影响保留的决定**：保留的依据是抓包，不是镜像。
+- **`BstnFlow` 缺的三步**（变体、加购、结账）：**Unknown** —— 商品卡是 CSS 背景图，R124 已停手，
+  **停手理由记录在案**（不是"再试一次就好"）。

@@ -680,7 +680,7 @@ R685：这个「类型」在源码里找不到      → 1 条真缺 + 3 条判�
 
 | 项 | 内容 | 性质 |
 |---|---|---|
-| **bstn 是否存在** | 原版 `bstn` / `BSTN` 都是 0 匹配 —— **复刻件多出来的模块** | **待裁决**（删=更忠实，牵动多处守卫） |
+| **bstn 是否存在** | 原版 `bstn` / `BSTN` 都是 0 匹配 —— **复刻件多出来的模块** | **已裁决：保留**（R91 决定，R794 结案）。理由见下 |
 | **offspring 的 API 家族选错** | 注册为 `HybrisFlow`，原版走 Poq（`platform.poq.io/clients/offspring/{cart/items,checkout/start,account/guest-token}`） | **新立**，补两步修不了 |
 | **Poq 家族** | 多 client 平台（`offspring` / `office`），含 `AtaVerifyCaptcha` | 新立，需先定形状 |
 | fanatics / warhammer / yeezysupply | 只有账号面（oauth/login）或一条 GraphQL | **先判"原版有没有结账面"，再决定算不算缺口** |
@@ -725,7 +725,7 @@ resolved 62/62 · fully covered 49 · exempt 2
 | `offspring` 的 API 家族（Hybris ↔ Poq） | 新立，补步骤修不了 |
 | `warhammer` 的 GraphQL mutation | Unknown，需读调用方 |
 | `goat` / `popmart` / `superswipe` 的尺子 | 待判定 |
-| `bstn` 删不删 | 待裁决 |
+| `bstn` 删不删 | **已裁决：保留**（R794）。抓包证据 + 实机契约 + 两条事实都有测试钉住 |
 | `casio` / `hypecommerce` 的收尾形态 | 线索弱 |
 
 
@@ -928,7 +928,7 @@ poq-slot-conditions   名字确认，取值未定位
 | **hypecommerce** | **抽奖面**（`entries/validate` + `entries/create`） | 尺子待定 |
 | warhammer | Unknown（GraphQL mutation） | 需读调用方 |
 | goat · popmart · superswipe | 抽奖面 | 尺子待定 |
-| bstn | **原版 0 字符串** | 待裁决 |
+| bstn | **原版 0 字符串** | **已裁决：保留**（R794） |
 
 **方法论提醒**：R767 把「字段名 + 共用支付层字符串」数成了「该站有 2 个结账 URL」。
 **数 URL 之前先看它是不是那个站自己的端点** —— 这是 §2.7 的又一次。
@@ -1255,3 +1255,26 @@ resolved 63/63 · fully covered 50 · exempt 5
 
 **标签纪律**：豁免行原来写 `(not in the image …)`，对「没有结账面」属实、对「形状不同」是撒谎。
 **已改成 `(yardstick does not apply …)`。**
+
+
+### `bstn` 的裁决（R794 结案）
+
+**结论：保留。**
+
+**为什么不是"删了更忠实"**：`bstn` 的证据不是来自镜像，是来自**实机抓包** ——
+`https://www.bstn.com/api/beast/geoIP` 返回 200、`/cart.js` 返回 404（不是 Shopify）。
+项目自己的溯源分级里，`live`（无字面量但真实响应过）是合法的一档。
+
+**而且这件事已经有三重守卫，不是靠记忆维持**：
+
+| 守卫 | 钉住什么 |
+|---|---|
+| `ArrowAndBeastTests.BstnStaysAndTheDifferenceIsRecorded` | **两条事实同时**：镜像有 `arrowandbeast`、没有 `bstn`；`bstn` 保留 |
+| `LiveContractTests.BstnServesItsBeastApiAndNotAShopifyOne` | `/api/beast/geoIP` 通；`/cart.js` **必须不**像 Shopify 购物车 |
+| `PlatformAssignmentTests.BstnHasItsOwnFlowBecauseItIsNotShopify` | 它是 `BstnFlow` 而非 `ShopifyFlow` |
+
+**契约失败消息里写着判据**："if bstn starts serving Shopify carts, it became a Shopify store and BstnFlow is
+obsolete" —— **世界变了该报废的是这个模块，而那条测试会说。**
+
+**所以这不是"多出来一个模块没人管"，是"多出来一个模块，理由、守卫、失效条件都齐"。**
+**R768 把它记成"待裁决"是对的（当时只查了字符串）；R794 把它结案，是因为它早就被裁决过了。**

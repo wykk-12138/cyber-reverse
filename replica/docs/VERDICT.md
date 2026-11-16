@@ -48437,3 +48437,44 @@ fully covered  49 -> 50
 ```
 resolved 63/63 · fully covered 50 · exempt 5 · 整套 1766 / 0 · 度量 4 / 0 / 17 / 78 / 0
 ```
+
+
+---
+
+## 第 794 轮：`bstn` 结案 —— 保留，而这个决定早就做过了
+
+### 查到的事实
+
+`bstn` / `BSTN` 在镜像里都是 0 匹配（R768）。**但复刻件这一侧早在 R91 就裁决过：保留。**
+
+**三重守卫**：
+
+| 守卫 | 钉住什么 |
+|---|---|
+| `ArrowAndBeastTests.BstnStaysAndTheDifferenceIsRecorded` | 两条事实同时：镜像有 `arrowandbeast`、没有 `bstn`；`bstn` 保留 |
+| `LiveContractTests.BstnServesItsBeastApiAndNotAShopifyOne` | `/api/beast/geoIP` 通；`/cart.js` 必须不像 Shopify |
+| `PlatformAssignmentTests.BstnHasItsOwnFlowBecauseItIsNotShopify` | `BstnFlow` 而非 `ShopifyFlow` |
+
+### 那这一轮做了什么
+
+**只改记录。** backlog 三行还写着「待裁决」——
+**一个已定且被测试守着的问题被记成未决，下一轮读到的人会重审一遍。**
+
+**这就是工作重复产生的方式，所以把这三行结掉。**
+
+### 溯源分级支持这个结论
+
+`live`（无字面量但真实响应过）是**合法的一档**。
+**「镜像里没有」不等于「不该有」，只是「证据不来自镜像」—— 而它写清了来源。**
+
+### 失效条件也写着
+
+> `if bstn starts serving Shopify carts, it became a Shopify store and BstnFlow is obsolete`
+
+**一个模块带着「什么时候该扔掉它」的判据，比一个没有模块更健康。**
+
+### 验证
+
+```
+产品代码未改 · 整套 1766 / 0 · 度量未变 · backlog 的「待裁决」不再指向 bstn
+```

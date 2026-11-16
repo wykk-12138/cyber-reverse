@@ -280,6 +280,41 @@ public sealed class CasioFlow : StoreFlow
     /// wrong. Between two unbacked orderings, prefer the one the image evidences.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// The setting that carries Casio's region. R786.
+    ///
+    /// <para>
+    /// <b>Observation:</b> <c>CasioRegion</c> has no cross-references anywhere in the image, and the four region
+    /// strings -- Casio, Casio Login, Casio SG, Casio US -- sit in the alphabetically sorted global pool among
+    /// Cash On Delivery, Cast and Catalan. That is the UI's store list, not a record: there is no <c>au</c>, <c>sg</c>
+    /// or <c>us</c> token beside them, and <c>CasioAU</c> is a type name rather than a display string.
+    /// </para>
+    ///
+    /// <para>
+    /// So the region token is not a literal in the binary. It is either assembled at run time or supplied by
+    /// configuration -- which matches a setting read by name. This class therefore takes it from the session and does
+    /// not invent one: a guessed token would put every Casio request under a prefix nobody asked for.
+    /// </para>
+    /// </summary>
+    public const string RegionVar = "CasioRegion";
+
+    /// <summary>
+    /// A path under the region prefix when the session carries one, otherwise the bare path.
+    ///
+    /// <para>
+    /// The prefix is what the image needs: <c>AddToCartAsync</c> already records that every root-relative cart path
+    /// returns the SPA 404 and the real one lives under <c>/{region}/</c>. With no region set this returns exactly
+    /// what it returned before, so nothing regresses while the token stays unknown.
+    /// </para>
+    /// </summary>
+    protected static string RegionPath(FlowContext c, string rest)
+    {
+        var trimmed = rest.TrimStart('/');
+        if (c.Session.Vars.TryGetValue(RegionVar, out var region) && region.Length > 0)
+            return "/" + region.Trim('/') + "/" + trimmed;
+        return "/" + trimmed;
+    }
+
     public override Task<StepOutcome> FindVariantAsync(FlowContext c, CancellationToken ct)
     {
         var body = c.Session.Vars.TryGetValue("raw", out var r) ? r : string.Empty;

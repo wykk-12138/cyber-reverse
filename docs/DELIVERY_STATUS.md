@@ -8942,3 +8942,90 @@ casioid              2  sub_14094AF90 (0xbb) · sub_140952790 (0x37d)
 - `sub_140948FA0`（713 B）除 `dob`/`gender` 外还读什么：**Unknown**。
 - `casioid` 是商品 id 还是变体 id：**Unknown**（R783，仍未解）。
 - Casio 登录端点的形状：**Unknown**。
+
+
+---
+
+## 212. 区域 token **不是字面量**；所以按设置取，不猜
+
+> R786。改 `RetailFlows.cs`（`CasioFlow.RegionVar` + `RegionPath`）；新增 `analysis/casio_record_dump.py`。
+
+### 一、先看两片字符串区，答案是否定的
+
+**第一片**（`0x146fc1d40` 起，512 B）—— 我以为 `casio_*` 是 R761 那种 `Key<value` 打包记录：
+
+```
++0x0006 'case'      +0x0016 'caseFirst'   +0x002a 'casio.com'
++0x003e 'casio_can_purchase'   +0x005e 'casio_dob'   +0x0072 'casio_gender'
++0x008a 'casio_image_url'      +0x00a6 'casioid'     +0x00ba 'casiostore.bhawar.com'
++0x00da 'castle.js' +0x00ee 'cat'
+```
+
+**按字母序排列、每个都是独立字符串 —— 这是全局字符串表的切片，不是键值记录。**
+**R761 那个「打包 FieldName + 分隔符 + 值」的模型，在这五个字段上不成立。**
+
+**第二片**（`0x146b7d800` 起，8,704 B）—— 找 `Casio` 那族：
+
+```
++0x07ee 'Casio'      +0x07fe 'Casio Login'
++0x0816 'Casio SG'   +0x082a 'Casio US'
+```
+
+**它们夹在 `Cash On Delivery` / `Cast` / `Catalan` / `Cebu` / `Central…` 之间** ——
+**同样是字母序全局池，这些是 UI 商店列表的显示名。**
+
+**旁边没有 `au` / `sg` / `us`，也没有 `Casio AU`**（`CasioAU` 在 `0x1433…`，那是**类型名区**）。
+
+### 二、结论
+
+> **区域 token 在二进制里不是独立字面量。**
+
+它要么运行时拼（例如把显示名小写），要么来自配置。
+**这与 `CasioRegion` 零 xref 完全吻合：它是设置项，按名字读，值由用户设置提供。**
+
+**所以我不猜 token。** 猜出来的 token 会把每一个 Casio 请求都塞到一个没人要求的路径前缀下 ——
+**而那种错只会以 404 的形式出现，看起来像"网站变了"。**
+
+### 三、改了什么
+
+```csharp
+public const string RegionVar = "CasioRegion";
+
+protected static string RegionPath(FlowContext c, string rest)
+{
+    if (c.Session.Vars.TryGetValue(RegionVar, out var region) && region.Length > 0)
+        return "/" + region.Trim('/') + "/" + rest.TrimStart('/');
+    return "/" + rest.TrimStart('/');
+}
+```
+
+**没有区域时，返回值与改动前逐字相同** —— 第四次用「最坏情况等于没改」这个模式。
+**它不解锁任何步骤，但把 `/{region}/` 这件事从注释变成了结构：区域一到位，加购/登录/支付直接可用。**
+
+### 四、过程中的两次自伤
+
+1. **数字少一位**：我把 `0x146B7D800` 写成 `0x146B7CC0`（8 位），
+   `VA - imagebase` 得到**负数的 RVA**（`-0x12b948340`），脚本报 "not file-backed"。
+   **已给脚本加守卫**：`START < IMAGE_BASE` 直接报「字面量少了一位」。
+2. **改坏了 `FindVariantAsync`**：我用方法头部的前几行当锚点做替换，
+   **把它们替换掉了**，留下一个悬空的 `if (!m.Success)`。
+   构建立刻报错，我按残块把方法补回去了。
+   **这正是 AGENTS.md「按整块锚点替换，禁按行号手术」的反面 —— 我用的是「半个块」当锚点。**
+
+**两次都是同一类：我对自己写下的字面量不够谨慎。而两次都是构建或守卫先发现。**
+
+### 五、验证
+
+```
+构建                已成功
+Casio 相关测试      9 / 9
+完整套件            1761 通过 / 0 失败（与改动前同数）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 六、仍然 Unknown
+
+- **区域 token 的取值**：**Unknown** —— 现在有结构承接它，但值本身仍未取证。
+- 它是运行时拼的还是配置给的：**Unknown**。
+- `casioid` 商品 id / 变体 id：**Unknown**（R783）。
+- `Casio Login` 的端点：**Unknown**。

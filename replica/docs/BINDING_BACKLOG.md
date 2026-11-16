@@ -1042,3 +1042,27 @@ poq-slot-conditions   名字确认，取值未定位
 
 **纪律提醒**：`casio_dob` / `casio_gender` / `_adyenOrderId` 都是**字段名**。
 **R780 把字段名当端点栽过一次，不要再犯。**
+
+
+## 核心 — Casio 区域（R786 更新）
+
+**结论：区域 token 不是二进制里的独立字面量。**
+
+两片字符串区都查过：
+- `casio_*` 那片是**字母序全局表切片**（不是键值记录 —— 修正 R761 的模型）
+- `Casio` / `Casio SG` / `Casio US` 是 **UI 显示名**，夹在 `Cash On Delivery` / `Catalan` / `Cebu` 之间
+- `CasioAU` 在 `0x1433…`，是**类型名**不是显示串
+
+**所以 `CasioRegion` 零 xref 的意思就是：设置项，值由用户配置给，不是我能从镜像抄的。**
+
+**已做**：`CasioFlow.RegionPath(c, rest)` —— 有区域拼 `/{region}/…`，无区域返回原路径（逐字不变）。
+
+| 项 | 状态 |
+|---|---|
+| 区域 token 取值 | **Unknown**（结构已就位，值仍缺） |
+| 运行时拼 vs 配置给 | Unknown |
+| `casioid` 商品/变体 id | Unknown |
+| `Casio Login` 端点 | Unknown |
+
+**纪律**：`analysis/casio_record_dump.py` 已加守卫 —— `START < IMAGE_BASE` 直接报「字面量少了一位」，
+因为 R786 就犯过这个错（`0x146B7D800` → `0x146B7CC0`，RVA 变负）。

@@ -1226,3 +1226,32 @@ AddItemToCart 2107 · AddToCart 536 · ApproveOnboardPaymentMutation 4022
 
 **Inference（中）记录在案**：「批准支付即下单」是证据最支持的读法，**不是正面观察到的事实**。
 **若日后找到反证，改这里。**
+
+
+## 覆盖 — 豁免从 2 增到 5（R793）
+
+```
+resolved 63/63 · fully covered 50 · exempt 5
+```
+
+**新增三条，理由都是「面是另一种形状」，不是「没找到」**：
+
+| 站 | 形状 | 关键证据 |
+|---|---|---|
+| goat | drop + **订单预留** | `order-reservation/build-reservation` · `get-reservation-status` |
+| popmart | **自有栈 + RPC + 预留** | `PopMartHandler`/`PopMartRpcHandler`/`PopMartBrowser` · `/web/v2?partner=popmart` |
+| superswipe | **launch/enter 平台** | `enter.superswipe.com/enter` · `data-superswipe-launch-id` |
+
+**口径提醒**：分母 61 → 58，`fully covered` 仍 50。
+**这不是覆盖率上升，是分母变化 —— 两个数要分开读。**
+
+| 仍待做 | |
+|---|---|
+| goat 的 `build-reservation` 请求体 | 未读 |
+| popmart 的 `/web/v2` RPC 协议 | 未读 |
+| superswipe 的 enter 流程 | 未读 |
+| `bstn`（镜像 0 字符串） | 未裁决 |
+| `shape_audit.py` 那次失败的成因 | **Unknown**，单列为偶发 |
+
+**标签纪律**：豁免行原来写 `(not in the image …)`，对「没有结账面」属实、对「形状不同」是撒谎。
+**已改成 `(yardstick does not apply …)`。**

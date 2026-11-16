@@ -9528,3 +9528,88 @@ ModuleCoverageTests warhammer 100%
 - **支付响应里订单号的确切字段**：**Unknown** —— 现在找 `orderNumber` / `orderId`，找不到就明说。
 - **`supportedThreeDsExperiences`** 是否必须发：**Unknown** —— 可选，未发。
 - **`shippingRateId` 的选取规则**：仍是 Inference（低）（R791）。
+
+
+---
+
+## 219. 三家带证据进豁免；顺带改掉一个**撒谎的标签**
+
+> R793。`ModuleCoverageTests.cs`：`YardstickDoesNotApply` 从 2 条加到 5 条；改正标签文案。
+
+### 一、三家到底是什么形状（Observation）
+
+| 站 | 证据 |
+|---|---|
+| **goat** | `www.goat.com/api/v1/drops/get-user-drops` · `drops/submit-drop-captcha` · **`order-reservation/build-reservation`** · `order-reservation/get-reservation-status`；UA 是 `GOAT/2.104.1 (iPhone; iOS 26.6; Scale/3.00)` |
+| **popmart** | `PopMartHandler` · `PopMartRpcHandler` · `PopMartBrowser` · `$PopMartProductType` · `/web/v2?partner=popmart&appKey=` · `POPMART-RESERVATION` · `PopMart-Tax-All` |
+| **superswipe** | `enter.superswipe.com/enter` · `captcha.superswipe.com` · `status.superswipe.com` · `data-superswipe-launch-id` · `_superswipe_launch_id_` · `.superswipe.app/youwillnevergetthis/fingerprint` |
+
+**三家都不是"七步结账"**：
+
+- **goat**：drop + **订单预留**（`build-reservation` / `get-reservation-status`）
+- **popmart**：**自有整套栈**（Handler + RpcHandler + Browser）跑 **RPC + 预留**
+- **superswipe**：**launch/enter 平台**，自己一套 captcha，有 launch id
+
+### 二、所以进豁免，但理由与前两家不同
+
+`fanatics` / `yeezysupply` 是**「镜像里没有结账面」**；
+这三家是**「面是另一种形状」** —— **都在镜像里，只是没有购物车/运费/支付这些步。**
+
+**豁免的名字叫 `YardstickDoesNotApply`，两种情况都符合。**
+
+**必须说清代价**：分母从 61 降到 58，`fully covered` **仍是 50** ——
+**这不是覆盖率上升，是分母变化。** 两者要分开看。
+
+### 三、改掉一个撒谎的标签
+
+豁免行的标签原来是 `(not in the image — see the exemption table)`。
+
+**对 fanatics/yeezysupply 是对的，对这三家是错的** —— 它们在镜像里，形状不同而已。
+**改成 `(yardstick does not apply — see the exemption table)`。**
+
+**这是 §2.7 那一类错误的又一次**：标签说「镜像里没有」，读的人就会以为没有。
+**我上一轮（R780）刚因为把字段名当端点栽过一次，这次是标签的措辞问题 —— 同一类，不同面。**
+
+### 四、结果
+
+```
+resolved 63/63 flows; fully covered 50; exempt 5
+goat / popmart / superswipe   71%   (yardstick does not apply — see the exemption table)
+```
+
+### 五、一次**查不出原因**的度量失败，如实记下
+
+第一次跑 `metrics_report.py`：**`成员形状差异 exit 1`**，堆栈：
+
+```
+File "tools\shape_audit.py", line 32, in <module>
+    if text[i] == '{': depth += 1
+TypeError: string indices must be integers, not 're.Match'
+```
+
+**但是**：
+
+- **直接跑 `python tools\shape_audit.py` → 正常，`total mismatches: 78`**
+- **复跑 `metrics_report.py --skip-tests` → `exit 0 / 78`**
+
+**所以是一次性失败，原因未查明。** 我看了那一带的代码（`text` 确实是字符串，`i` 来自 `range`），
+**没有找到能让 `i` 变成 `Match` 的路径。**
+
+**按项目纪律，这种要单列，不混进"通过"也不混进"失败"。** 若再出现，第一件事是
+**把当时的工作树快照与 `shape_audit.py` 的字节一起留下**，否则下次还是查不出。
+
+### 六、验证
+
+```
+构建                未改产品代码
+ModuleCoverageTests resolved 63/63 · fully covered 50 · exempt 5
+完整套件            1766 通过 / 0 失败 / 0 跳过
+四项度量            4 / 0 / 17 / 78 / 0（复跑后）
+```
+
+### 七、仍然 Unknown
+
+- **三家各自的真实流程**：**形状已知，步骤未取** —— goat 的 `build-reservation` 请求体、
+  popmart 的 `/web/v2` RPC 协议、superswipe 的 enter 流程，**都还没读**。
+- **`shape_audit.py` 那次失败的成因**：**Unknown**（第五节）。
+- **`bstn`**：镜像里 0 字符串，仍是"复刻件多出来的模块"，未裁决。

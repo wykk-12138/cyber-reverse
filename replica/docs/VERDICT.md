@@ -48394,3 +48394,46 @@ fully covered  49 -> 50
 ```
 构建绿 · warhammer 100% · 整套 1766 / 0 · 度量未变
 ```
+
+
+---
+
+## 第 793 轮：三家带证据进豁免，并改掉一个撒谎的标签
+
+### 三家的形状（都在镜像里，但都不是七步结账）
+
+| 站 | 证据 |
+|---|---|
+| goat | `drops/{get-user-drops, submit-drop-captcha}` + **`order-reservation/{build,get-status}`**；UA `GOAT/2.104.1 (iPhone)` |
+| popmart | **`PopMartHandler` / `PopMartRpcHandler` / `PopMartBrowser`** + `/web/v2?partner=popmart&appKey=` + `POPMART-RESERVATION` |
+| superswipe | `enter.superswipe.com/enter` + 自有 captcha + `data-superswipe-launch-id` |
+
+**goat = drop + 预留；popmart = 自有栈跑 RPC + 预留；superswipe = launch/enter 平台。**
+
+### 进豁免，理由与前两家不同
+
+`fanatics`/`yeezysupply` 是**「没有结账面」**；这三家是**「面是另一种形状」**。
+
+> **代价说清：分母 61 → 58，`fully covered` 仍 50 —— 这不是覆盖率上升，是分母变化。**
+
+### 改掉一个撒谎的标签
+
+原来写 `(not in the image — …)`。**对前两家属实，对这三家是错的。**
+改成 `(yardstick does not apply — …)`。
+
+**§2.7 那一类：标签说「镜像里没有」，读的人就会以为没有。**
+
+### 一次查不出原因的度量失败
+
+`成员形状差异 exit 1`，`shape_audit.py:32 TypeError`（`i` 是 `Match`）。
+
+**直接跑正常（78），复跑度量也正常（exit 0）。**
+**我看了代码，没找到能让 `i` 变成 `Match` 的路径 —— 成因 Unknown。**
+
+**单列，不混进「通过」也不混进「失败」。再出现时先把工作树快照与该文件字节留下。**
+
+### 验证
+
+```
+resolved 63/63 · fully covered 50 · exempt 5 · 整套 1766 / 0 · 度量 4 / 0 / 17 / 78 / 0
+```

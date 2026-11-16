@@ -104,6 +104,17 @@ public class ModuleCoverageTests
             + "{oauth2/auth, oauth2/login, oauth2/login-factor, login/factor-request}; zero checkout words",
         ["yeezysupply"] =
             "R769: the image carries exactly one string for this store, the bare domain https://www.yeezysupply.com",
+        ["goat"] =
+            "R793: goat.com/api/v1/drops/{get-user-drops, submit-drop-captcha} and "
+            + "order-reservation/{build-reservation, get-reservation-status}, carrying an iOS user agent "
+            + "GOAT/2.104.1 -- a drop with a held reservation, not a seven-step cart-to-order checkout",
+        ["popmart"] =
+            "R793: the image carries PopMartHandler, PopMartRpcHandler and PopMartBrowser, an RPC endpoint at "
+            + "/web/v2?partner=popmart&appKey=, and POPMART-RESERVATION -- its own stack over RPC with a "
+            + "reservation, not a seven-step checkout",
+        ["superswipe"] =
+            "R793: enter.superswipe.com/enter, data-superswipe-launch-id and _superswipe_launch_id_, with its own "
+            + "captcha at captcha.superswipe.com -- a launch entry, which has no cart, shipping or payment steps",
     };
 
     [Fact]
@@ -193,7 +204,7 @@ public class ModuleCoverageTests
             var exempt = YardstickDoesNotApply.ContainsKey(id);
             var note = NonCommerce.ContainsKey(id)
                 ? "   (non-commerce — see below)"
-                : (exempt ? "   (not in the image — see the exemption table)" : "");
+                : (exempt ? "   (yardstick does not apply — see the exemption table)" : "");
 
             if (exempt) exempted++;
             else if (done == Required.Length) full++;

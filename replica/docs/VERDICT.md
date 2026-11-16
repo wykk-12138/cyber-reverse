@@ -48868,3 +48868,58 @@ casio.*(cart|order|checkout|payment|…)   0 条
 ### 仍然 Unknown
 
 **「动作词 × bhawar」这个组合我没搜** —— 这是下一个该试的写法（§2.7：先问有几种写法）。
+
+
+---
+
+## 第 805 轮：两个天花板补齐，池子里还有第三套结账面
+
+### `casio`：22 个组合都是 0
+
+11 个动作词 × 两个方向，**命中 0 条新串**。**天花板完整了 —— 5/7 是镜像给的全部。**
+
+### `poq-app`：`/clients/` 一共 7 条，5 条真的
+
+```
+clients/office/AtaVerifyCaptcha · clients/office/recaptcha?trackingId=
+clients/offspring/{account/guest-token, cart/items, checkout/start, products?ids=}
+```
+
+**`checkout/` 下面只有 `start`，没有提交 → 4/7 也是天花板。**
+
+### 但 `/checkout/` 家族还有 40 条 —— 第三套结账面
+
+```
+/Checkout/PlaceOrder/(\d+)
+/OnePageCheckout/{Cart, Cart/MiniCartContent, Confirmation}
+/OnePageCheckout/CheckoutPlugin/{SetBillingAddressAsync, SetShippingAddressAsync,
+                                 SetGuestEmailAsync, SetGiftWrappingAsync}
+```
+
+**`SetShippingAddress` / `SetBillingAddress` / `PlaceOrder` —— 正是缺的那三步的名字。**
+**而且与 Demandware 的 `/Checkout-Submit*` 在池子里地址相邻，同一字符串簇。**
+
+### 但它们**不是 URL**
+
+两个调用者找到了（`sub_140D6C4E0` / `sub_140D6AAA0`），**而 `CheckoutPlugin/Set*Async` 是 SFCC 的插件方法名。**
+
+> **把它们当 URL 用，就是 R773「把字段名当端点」的翻版。**
+> **如果我把 `SetShippingAddressAsync` 当路径去 POST，那会是这几十轮里最像成功的一次失败。**
+
+### 所以没改代码
+
+**而且第三条恰好说明现在不该动 `poq-app`** —— 它现有的四个动作基于 Poq 的实机 API，
+**上面这套是另一个平台的形状。混在一起才是错。**
+
+### 对判据 (f) 的意义
+
+| 模块 | 缺口 | 理由 |
+|---|---|---|
+| `casio` | shipping / payment | **22 个正则组合全空** |
+| `poq-app` | shipping / payment / order | **`/clients/` 全部 5 个端点里没有** |
+
+**不是「还没查」，是「查到了全部」。**
+
+### 教训
+
+**「找到名字」和「找到端点」是两步。**

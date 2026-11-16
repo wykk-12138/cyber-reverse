@@ -1483,3 +1483,35 @@ casio.*(cart|order|checkout|payment|…)   0 条
 |---|---|
 | `动作词 × bhawar` 组合 | **没搜过**（§2.7：先问有几种写法） |
 | 其余 11 个模块的端点可得性 | 每个都要单独探 |
+
+
+## 核心 — 两个天花板 + 第三套结账面（R805）
+
+**两个天花板补齐**：
+
+| 模块 | 缺口 | 已排除的写法 |
+|---|---|---|
+| `casio` | shipping / payment | **22 个「动作词 × bhawar」正则，0 条新串** |
+| `poq-app` | shipping / payment / order | **`/clients/` 全部 7 条（5 条真），没有提交端点** |
+
+**第三套结账面（新发现，未使用）**：
+
+```
+/Checkout/PlaceOrder/(\d+)
+/OnePageCheckout/{Cart, Cart/MiniCartContent, Confirmation}
+/OnePageCheckout/CheckoutPlugin/{SetBillingAddressAsync, SetShippingAddressAsync,
+                                 SetGuestEmailAsync, SetGiftWrappingAsync}
+/checkout/?stage=payment|placeOrder|shipping
+调用者：sub_140D6C4E0(1387 B) · sub_140D6AAA0(1539 B)
+```
+
+**关键警告：`CheckoutPlugin/Set*Async` 是 SFCC 的插件方法名，不是 URL。**
+**当 URL 用 = R773「字段名当端点」的翻版。**
+
+| Unknown | |
+|---|---|
+| 这套属于哪个模块 | 两个调用者没暴露站点 id |
+| 是否真是 SFCC | Inference（中）；池子里未确认 `sfcc`/`salesforce` |
+| `/Checkout/PlaceOrder/(\d+)` 调用点 | 未查 |
+
+**纪律**：**「找到名字」和「找到端点」是两步。** 40 条看着把缺的三步全给了，**但一条都不是可调的路径。**

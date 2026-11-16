@@ -22,6 +22,8 @@ namespace Cybersole.Stores.Flows;
 /// TrustDecision static.trustdecision.com/{fra,sg}/botd.js   …/tdfp
 /// Cloudflare    Turnstile  .cf-turnstile  __cf_chl_tk  LoopTurnstile
 /// captcha tasks AntiTurnstileTaskProxyLess          (a solver-service task name)
+/// Forter        cdn3.forter.com/events  cdn123.forter.com/?u=  .cdn.forter.com/prop.json
+///               forter.cybersole.workers.dev/   forterToken  ForterEnvelope  ForterEventsEncoder
 /// </code>
 ///
 /// <para>
@@ -43,6 +45,16 @@ public static class AntiBotVendors
 
     /// <summary>DataDome's own SDK host, which the image also names.</summary>
     public const string DataDomeSdk = "api-sdk.datadome.co/sdk/";
+
+    /// <summary>
+    /// The Forter relay host. R762: Forter gets the same treatment as DataDome -- the image names
+    /// <c>forter.cybersole.workers.dev/</c> alongside Forter's own <c>cdn0/3/6.forter.com</c> hosts, so the tool
+    /// fronts the vendor from its own Worker rather than posting to the vendor directly.
+    /// </summary>
+    public const string ForterRelay = "forter.cybersole.workers.dev/";
+
+    /// <summary>Forter's event upload endpoint, the one the sensor is posted to.</summary>
+    public const string ForterEvents = "https://cdn3.forter.com/events";
 
     public static readonly IReadOnlyList<Vendor> All = new[]
     {
@@ -72,6 +84,12 @@ public static class AntiBotVendors
         new Vendor("Cloudflare", new[]
         {
             "Turnstile", ".cf-turnstile", "__cf_chl_tk", "LoopTurnstile",
+        }),
+        new Vendor("Forter", new[]
+        {
+            ForterEvents, "https://cdn123.forter.com/?u=", ".cdn.forter.com/prop.json", ForterRelay,
+            "forterToken", "forterCookieToken", "CheckoutData.ForterToken", "BuildForterSessionId",
+            "ForterEnvelope", "ForterEventsEncoder",
         }),
     };
 

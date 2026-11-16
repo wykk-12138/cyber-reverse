@@ -27,15 +27,21 @@ public sealed class AntiBotVendorTests
 
     public AntiBotVendorTests(ITestOutputHelper output) => _out = output;
 
-    /// <summary>Six vendors, each with evidence, none empty.</summary>
+    /// <summary>Seven vendors, each with evidence, none empty.</summary>
+    /// <remarks>
+    /// R762 raised the count from six to seven. This is a shape change that follows the evidence, not a behaviour
+    /// change: Forter was always in the image and R105's read simply missed it. The literals are cdn3.forter.com/events,
+    /// the cdn123 and cdn6 hosts, .cdn.forter.com/prop.json, forter.cybersole.workers.dev, the token fields and the
+    /// envelope/encoder types.
+    /// </remarks>
     [Fact]
-    public void TheImageKnowsSixVendors()
+    public void TheImageKnowsSevenVendors()
     {
         foreach (var vendor in AntiBotVendors.All)
             _out.WriteLine($"{vendor.Name}: {string.Join(", ", vendor.Evidence)}");
 
-        Assert.Equal(6, AntiBotVendors.All.Count);
-        Assert.Equal(6, AntiBotVendors.All.Select(v => v.Name).Distinct().Count());
+        Assert.Equal(7, AntiBotVendors.All.Count);
+        Assert.Equal(7, AntiBotVendors.All.Select(v => v.Name).Distinct().Count());
         Assert.All(AntiBotVendors.All, v => Assert.NotEmpty(v.Evidence));
 
         foreach (var name in new[] { "DataDome", "PerimeterX", "Akamai", "Kasada", "TrustDecision", "Cloudflare" })
@@ -101,5 +107,21 @@ public sealed class AntiBotVendorTests
         Assert.Contains("static.trustdecision.com/tdfp", evidence);
 
         _out.WriteLine("fra = Frankfurt, sg = Singapore");
+    }
+
+    [Fact]
+    // Forter gets the same relay treatment DataDome does: the image names the vendor's own hosts and also
+    // forter.cybersole.workers.dev, its own Worker. Recording both is the point -- posting sensor traffic to the
+    // vendor's domain and posting it through a first-party host are different requests.
+    public void ForterIsFrontedByItsOwnWorkerLikeDataDomeIs()
+    {
+        var forter = AntiBotVendors.All.Single(v => v.Name == "Forter");
+        Assert.Contains(AntiBotVendors.ForterEvents, forter.Evidence);
+        Assert.Contains(AntiBotVendors.ForterRelay, forter.Evidence);
+        Assert.Contains("ForterEnvelope", forter.Evidence);
+        Assert.Contains("forterToken", forter.Evidence);
+
+        Assert.True(AntiBotVendors.Knows("forter"), "vendor lookup is case-insensitive");
+        Assert.Contains(AntiBotVendors.ForterRelay, AntiBotVendors.Evidence());
     }
 }

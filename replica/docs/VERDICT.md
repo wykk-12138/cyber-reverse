@@ -46921,13 +46921,13 @@ grecaptcha.enterprise.execute(document.Solver.Captcha.Sitekey,
 
 **这不是"原版没有"的证明**。**但它提出了一个必须回答的问题**：
 
-> **复刻件的 22 个 store，有多少是从原版取证来的，有多少是照名字猜的？**
+> **复刻件的 store 目录，有多少是从原版取证来的，有多少是照名字猜的？**
 
 **判据 f 要的正是这件事 —— 而它给出的第一个结果是不舒服的。**
 
 ### 复刻件侧清单也有一处自伤
 
-`store_catalog.py` 输出 22 modules、域名零重复，但 `ShopifyModule` 显示 `?` ——
+`store_catalog.py` 输出 the module catalogue、域名零重复，但 `ShopifyModule` 显示 `?` ——
 因为它的字段在**构造函数链**里赋，脚本只认 `=>`。
 
 **这与 R753 那次「`(i)  Startup Page` 报假缺席」是同一类错误：扫描器假设了声明形式。**
@@ -46980,7 +46980,7 @@ jbhifi        7 条   endclothing 10 条  notre       6 条
 
 `clicks.superswipe.com/c` · `SubdomainAlphabet` · `data-superswipe-*` 选择器 · 指纹端点路径
 
-**所以 22 个 store 既不是编的，也不是桩。判据 f 的第一行是正面的。**
+**所以 这些 store 既不是编的，也不是桩。判据 f 的第一行是正面的。**
 
 ### 验证
 
@@ -47041,3 +47041,59 @@ ForterEnvelope · ForterEventsEncoder · get_ForterEnvelope · Create_ForterEnve
 ### 下一轮
 
 反编译 `ForterEnvelope` / `ForterEventsEncoder`，按形状在复刻件里建对应物 —— **这是第一个有明确名字的风控缺口**。
+
+
+---
+
+## 第 762 轮：Forter 接上了，而守卫抓到了我写错的数字
+
+### Forter 的图景
+
+```
+cdn3.forter.com/events · cdn123.forter.com/?u= · cdn0/6.forter.com · .cdn.forter.com/prop.json
+forter.cybersole.workers.dev/          ← 自家 CF Worker 代理
+forterToken · forterCookieToken · CheckoutData.ForterToken · BuildForterSessionId
+ForterEnvelope · ForterEventsEncoder
+```
+
+**`forter.cybersole.workers.dev/` 与 DataDome 的 `datadome.cybersole.io/` 是同一架构**：
+**第一方主机转发厂商流量。** 所以写成具名常量 `ForterRelay`，不散在证据列表里。
+
+### 而仓库的守卫抓到了我一个错数字
+
+```
+DocsConsistencyTests: catalogue 62 modules / claims in VERDICT: 62, 22
+```
+
+**那个 22 是我写的** —— R759/R760/R761 三次说「22 个 module」，来源是我 `store_catalog.py` 的输出，
+**真实 62，脚本少算 40 个。**
+
+**本会话第四次仪器错误，第一次由仓库的守卫抓到：**
+
+| 轮 | 仪器假设 | 谁抓到 |
+|---|---|---|
+| R753 | 标签形如 `"Startup Page"` | 我自己 |
+| R759 | 字段形如 `=>` | 我自己 |
+| R760 | 店名以显示名出现 | 我自己 |
+| **R762** | **只扫一类子类** | **`DocsConsistencyTests`** |
+
+**修法不是把 22 改成 62，而是把数字删掉** —— 数字只有一个来源，文档不该有会过期的计数。
+
+### 一个方法教训
+
+那个测试的模式是 prose 里 `(\d+)\s*(?:个模块|modules)` 且 `n >= 20`，围栏内输出剥掉。
+**我第一次盲改「22 个」只中 2 处，剩 17 处「22」全是别的意思** ——
+**盲改数字是错的方法，先读匹配模式才对。**
+
+### Datadog：新发现，未落地
+
+`Create_DdBrowser` / `Create_DdMobileEvent` / `Create_DdMobileTouchEvent` → 原版还集成 Datadog RUM。
+**复刻件零。** 它不是反爬厂商，**所以没硬塞进 `AntiBotVendors`**。
+
+### 验证
+
+```
+AntiBotVendorTests 6/6 · DocsConsistencyTests 7/7
+完整套件 1751 通过 / 0 失败
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+```

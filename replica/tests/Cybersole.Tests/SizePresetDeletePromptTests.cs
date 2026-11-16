@@ -25,6 +25,9 @@ public class SizePresetDeletePromptTests
         ["Settings.Sizes.DeleteConfirm.TitleFormat"] = "Delete {0} presets?",
         ["Settings.Sizes.DeleteConfirm.MessageFormat"] =
             "Are you sure you want to delete {0} sizes?\nYou cannot undo this action.",
+        ["Settings.Stores.DeleteConfirm.TitleFormat"] = "Delete {0} presets?",
+        ["Settings.Stores.DeleteConfirm.MessageFormat"] =
+            "Are you sure you want to delete {0} presets?\nYou cannot undo this action.",
     };
 
     private static (string Title, string Message)? For(int count)
@@ -71,5 +74,23 @@ public class SizePresetDeletePromptTests
         var pair = For(7);
         Assert.Contains("7", pair!.Value.Title, StringComparison.Ordinal);
         Assert.Contains("7", pair.Value.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheStoresScreenSharesTheSameGuard()
+    {
+        Assert.Null(SizePresetDeletePrompt.Stores(0, k => Copy[k]));
+        Assert.Equal("Delete 2 presets?", SizePresetDeletePrompt.Stores(2, k => Copy[k])!.Value.Title);
+    }
+
+    [Fact]
+    // A shipped bug kept as shipped: the stores screen's own texts both say "presets". The size screen at least
+    // manages "presets" in the title and "sizes" in the message; this one is consistently wrong.
+    public void TheStoresScreenSaysPresetsInBothTexts()
+    {
+        var pair = SizePresetDeletePrompt.Stores(3, k => Copy[k]);
+        Assert.Contains("presets", pair!.Value.Title, StringComparison.Ordinal);
+        Assert.Contains("presets", pair.Value.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("stores", pair.Value.Title, StringComparison.OrdinalIgnoreCase);
     }
 }

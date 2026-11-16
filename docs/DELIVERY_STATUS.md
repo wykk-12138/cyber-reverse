@@ -5601,3 +5601,60 @@ TaskGroupPinLabelTests   6 / 6 通过
 - 类型标签不对时原版的完整行为（不只是"当作未钉"）：**Observation 到此为止**，
   后面还有没有别的降级没读。
 - `read_property(1)` 是组名：**Inference（高）**，依据文案里的 `{0}` 与上下文菜单。
+
+
+---
+
+## 170. Stores 屏与 sizes 屏同形；而**出厂文案有两处 bug**，都不是我的错
+
+> R741。`SizePresetDeletePrompt.Stores` 新增；对应 +2 条探针。
+
+### 一、结构相同，一行参数化就够
+
+`sub_1406458F0`（50 行）与 R734 的 `sub_140641190` 完全同形：
+
+```c
+if (*(DWORD*)(*(a1 + 528)[8] + 16))     // count != 0
+{
+    count   = 同一个计数
+    title   = format(&off_146E892D0, count)   // int32
+    message = format(&off_146E89260, count)
+    show(...)
+}
+return;                                  // count == 0：什么都不做
+```
+
+**同一个零值闸门、同一个 int32、两条文案。** 所以把 builder 参数化成前缀，两个屏共用一个。
+
+### 二、出厂文案的两处 bug（照抄，不修）
+
+| 屏 | 标题 | 消息 | 问题 |
+|---|---|---|---|
+| `Settings.Sizes` | `Delete {0} presets?` | `…delete {0} **sizes**?…` | **标题说 presets、消息说 sizes** |
+| `Settings.Stores` | `Delete {0} presets?` | `…delete {0} **presets**?…` | **这是 stores 屏，两处都说 presets** |
+
+**R734 我记了第一处。这一轮发现第二处，而且更彻底：stores 屏的两条文案都跟屏幕无关。**
+
+**这是原版自己的问题，不是我的读法。** 一个"顺手改对"的复刻件会在用户读到的文字上与原文不同 ——
+而这两处文字正是用户点删除时看到的那两行。
+
+### 三、探针
+
+- `TheStoresScreenSharesTheSameGuard`：零计数返回 null，与 sizes 一致
+- `TheStoresScreenSaysPresetsInBothTexts`：**断言它说 presets，且不说 stores** ——
+  钉住这个 bug，防止将来"修正"
+
+### 四、验证
+
+```
+SizePresetDeletePromptTests   8 / 8 通过（6 + 2）
+完整套件                      1705 通过 / 0 失败（1703 + 2）
+四项度量                      4 / 0 / 17 / 78 / 0（未变）
+已审候选                      17 / 129（12 实现 + 3 不可探 + 2 合并/待读）
+```
+
+### 五、仍然 Unknown
+
+- 两处文案是**发布时的笔误**还是**故意的历史遗留**：**Unknown**（无法从二进制判断意图）。
+- 其余屏是否也有同类错误：**Unknown** —— **这一轮的经验是"该逐屏检查文案与屏名是否相符"**，
+  而四度量只查「键是否存在」，不查「文案是否说对了屏幕」。

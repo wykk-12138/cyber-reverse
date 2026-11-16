@@ -46072,3 +46072,42 @@ TaskGroupPinLabelTests   6 / 6
 四项度量                 4 / 0 / 17 / 78 / 0（未变）
 已审候选                 16 / 129
 ```
+
+
+---
+
+## 第 741 轮：Stores 屏 + 第二处出厂文案 bug
+
+### 结构同形
+
+`sub_1406458F0` 与 R734 的 sizes 完全同形：零值闸门 + int32 + 两条文案。
+**参数化成前缀，两个屏共用一个 builder。**
+
+### 两处出厂 bug
+
+| 屏 | 标题 | 消息 |
+|---|---|---|
+| `Settings.Sizes` | `Delete {0} presets?` | `…delete {0} **sizes**?…` |
+| `Settings.Stores` | `Delete {0} presets?` | `…delete {0} **presets**?…` |
+
+**第二处更彻底：stores 屏的两条文案都跟屏幕无关。**
+
+**这是原版自己的问题。** 一个"顺手改对"的复刻件会在**用户点删除时看到的那两行**上与原文不同。
+
+### 探针
+
+`TheStoresScreenSaysPresetsInBothTexts` —— **断言它说 presets 且不说 stores**，防止将来被"修正"。
+
+### 一句话
+
+> 四度量只查「键是否存在」，**不查「文案说对了屏幕没有」**。
+> 所以这类错误只能靠人一屏一屏地读 —— 而它们恰好是用户真的会看到的字。
+
+### 验证
+
+```
+SizePresetDeletePromptTests   8 / 8
+完整套件                      1705 通过 / 0 失败
+四项度量                      4 / 0 / 17 / 78 / 0（未变）
+已审候选                      17 / 129
+```

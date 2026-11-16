@@ -46,6 +46,17 @@ public static class SizePresetDeletePrompt
     /// <param name="count">How many presets are selected.</param>
     /// <param name="copy">Resolves a locale key to its text.</param>
     public static (string Title, string Message)? For(int count, Func<string, string> copy)
+        => ForPrefix("Settings.Sizes.DeleteConfirm", count, copy);
+
+    /// <summary>
+    /// The stores grid's confirmation. <c>sub_1406458F0</c> has the identical shape to the size presets one — a zero
+    /// guard, an int32 boxed into two texts — so it shares the builder. Its catalogue copy, however, is a shipped bug
+    /// worth keeping: this is the <b>stores</b> screen and both of its texts say "presets".
+    /// </summary>
+    public static (string Title, string Message)? Stores(int count, Func<string, string> copy)
+        => ForPrefix("Settings.Stores.DeleteConfirm", count, copy);
+
+    private static (string Title, string Message)? ForPrefix(string prefix, int count, Func<string, string> copy)
     {
         if (copy is null)
         {
@@ -58,8 +69,8 @@ public static class SizePresetDeletePrompt
             return null;
         }
 
-        string title = Format(copy("Settings.Sizes.DeleteConfirm.TitleFormat"), count);
-        string message = Format(copy("Settings.Sizes.DeleteConfirm.MessageFormat"), count);
+        string title = Format(copy(prefix + ".TitleFormat"), count);
+        string message = Format(copy(prefix + ".MessageFormat"), count);
         return (title, message);
     }
 

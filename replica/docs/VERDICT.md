@@ -50967,3 +50967,62 @@ NikeFlow 17 重写 ∩ 镜像 16 步 = 2 · Pop Mart 24 步中抽签/展览/预�
 > **`the step list is the client's phases and the endpoints are the server's resources.`**
 > **我前面五轮一直在数的「步骤名对不对得上」，在这句话面前是个错问题 —— 用名字对齐去量它，量出来的差异有一半是层级差。**
 > **所以 R844 那个 16.9% 的真实问题是：它在用一个跨层级的量当覆盖率。**
+
+
+---
+
+## 第 848 轮：最后 4 条不是 Unknown，是「仓里已登记为未证」
+
+### 端点族一直在这里
+
+```
+/component/singlepagecheckout/getClickAndCollectOrCollectPlusPoiStores   <- GetCollectPlusLocations
+/component/singlepagecheckout/cac/submit                                 <- SubmitCollectPlus
+```
+
+**`GetCollectPlusLocations` 那一行把 CollectPlus 写进了路径 —— 而我的探针找的是「名字含 CollectPlus 的标识符」，
+所以 0 命中，而端点一直在。**
+
+### 而流程本身早登记为未证
+
+```csharp
+/// Flows with no ownership witness — their gaps stay unresolved.
+Unwitnessed = { "popmart", "demandware-classic", "demandware-dual", "collectplus-app",
+                "structure-token-multi", "structure-token-single" };
+```
+
+**所以它不是「最后一个待办」，是一个已登记状态。**
+
+### 整条线索收尾
+
+| 阶段 | 数 |
+|---|---|
+| 名字清单（元数据） | 115 |
+| 探针三轮后仍不同名 | 71 |
+| 8 个流程 130 步 · 22 同名 | — |
+| 减基类已有 | 108 → **59** |
+| 减 R124 已答 | → **50** |
+| 减两份 StepMap 已答 | → **4** |
+| 最后 4 条 | **端点族已知 + 已登记未证** |
+
+### 七轮五次建清单，五次都低估
+
+| 轮 | 我以为 | 实际 |
+|---|---|---|
+| R838 | 抽签是「一块」 | 九方法子系统 + 三个同族 flow |
+| R844 | 108 条不同名 | 49 条基类已有 |
+| R846 | dual 9 条待判 | R124 已答完 |
+| R847 | johnlewis 8 + classic 5 | 两份 StepMap 已答完 |
+| R848 | collectplus 4 条待办 | 端点族已知 + 已登记未证 |
+
+> **我总在**名字层**建清单，而答案在**语义层**（StepMap / Controllers / ApiFamilies / LambdaWitness）。**
+> **判据 (f) 的正确做法不是「先建清单再裁决」，是「先读 `Flows` 目录里那些分析文件，它们就是清单」。**
+
+### 仍然 Unknown
+
+**`collectplus-app` 的 ownership witness**（这正是它被登记的原因）· **`CreateCheckoutApp`/`GetDelivery` 在族内的具体端点** ·
+**`popmart`/`structure-token-*` 也在 `Unwitnessed` 里 —— 而 R835–R838 说的是「没有」，两者是不同的话**
+
+### 教训
+
+**「我不知道它已经存在」和「它不存在」在我脑子里长得一样 —— 这是第四次写这句，说明它不是感慨，是一个需要工具化的检查。**

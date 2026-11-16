@@ -2779,3 +2779,48 @@ Nike 16 · **Pop Mart 24** · John Lewis 17 · Demandware 经典 12 / 双路 15 
 | 8 流程 ↔ `Registry.cs` 63 模块 | 仍未建 |
 
 **纪律**：**R844 的 16.9% 的真实问题是「用一个跨层级的量当覆盖率」。**
+
+
+## 判据 (f) — 线索收尾（R848）
+
+| 阶段 | 数 | 依据 |
+|---|---|---|
+| 名字清单 | 115 | 元数据 `<Name>d__N` |
+| 探针三轮后 | 71 | |
+| 8 流程 130 步 · 22 同名 | — | `StoreFlowSteps` |
+| 减基类已有 | → **59** | `StoreFlow` 165 虚步骤 |
+| 减 R124 | → **50** | `ScapiAppPath.cs` |
+| 减两份 StepMap | → **4** | `JohnLewisStepMap` · `DemandwareStepMap` |
+| 最后 4 条 | **已登记未证** | `LambdaWitness.Unwitnessed` |
+
+### 端点族一直在
+
+```
+/component/singlepagecheckout/getClickAndCollectOrCollectPlusPoiStores   <- GetCollectPlusLocations
+/component/singlepagecheckout/cac/submit                                 <- SubmitCollectPlus
+```
+
+**探针找的是「标识符含 CollectPlus」，而它写在路径里 → 0 命中。**
+
+### `LambdaWitness.Unwitnessed`
+
+```csharp
+{ "popmart", "demandware-classic", "demandware-dual", "collectplus-app",
+  "structure-token-multi", "structure-token-single" }
+```
+
+**注释：Flows with no ownership witness — their gaps stay unresolved.**
+
+**→ 注意：`popmart` 也在里面。R835–R838 说它「没有」实现，而这里说的是「没有 ownership witness」——
+两句话不同，不宜混用。**
+
+| 仍 Unknown | |
+|---|---|
+| `collectplus-app` 的 ownership witness | 这正是登记原因 |
+| `CreateCheckoutApp`/`GetDelivery` 族内具体端点 | 族已定位，未一一对上 |
+| `popmart`/`structure-token-*` 的「没有」vs「未证」 | 两种说法要分开 |
+
+### 纪律
+
+**判据 (f) 的正确做法不是「先建清单再裁决」，是「先读 `Flows` 目录里的分析文件，它们就是清单」。**
+**七轮五次建清单，五次都低估 —— 这不是疏忽，是方法缺一步。**

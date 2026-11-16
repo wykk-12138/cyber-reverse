@@ -357,3 +357,32 @@ R844 里我对这两行的映射（指向共用文件）导致的「不同名」
 
 `CreateCheckoutApp` `GetDelivery` `GetCollectPlusLocations` `SubmitCollectPlus` ——
 **`Flows` 目录里没有任何 CollectPlus 专属文件**（`RetailApiFamilies.cs` / `ServiceHosts.cs` / `ScapiEndpoints.cs` 是通用件）。
+
+
+### collectplus-app 4 条：端点族已定位，而流程本身已登记为「未证」（R848）
+
+**`StoreApiFamilies.cs` 里有这个族的端点，只是名字不含 CollectPlus：**
+
+```
+/component/singlepagecheckout/getClickAndCollectOrCollectPlusPoiStores   <- GetCollectPlusLocations
+/component/singlepagecheckout/cac/submit                                 <- SubmitCollectPlus
+/component/singlepagecheckout/continueToPaymentDetails
+/component/singlepagecheckout/setDeliveryCountry
+/component/singlepagecheckout/setDeliveryMode
+```
+
+**而 `LambdaWitness.cs` 已经把 `collectplus-app` 登记在 `Unwitnessed` 里：**
+
+> Flows with no ownership witness — their gaps stay unresolved.
+> `"popmart", "demandware-classic", "demandware-dual", "collectplus-app", "structure-token-multi", "structure-token-single"`
+
+**所以这 4 条的正确状态不是「Unknown」，是「端点族已知、归属未证、仓里已登记」。**
+
+| 步骤 | 端点 | 状态 |
+|---|---|---|
+| `GetCollectPlusLocations` | `getClickAndCollectOrCollectPlusPoiStores` | **端点已定位** |
+| `SubmitCollectPlus` | `cac/submit` | **端点已定位（族内）** |
+| `CreateCheckoutApp` | `singlepagecheckout` 族 | **族内，未一一定位** |
+| `GetDelivery` | 同上 | **族内，未一一定位** |
+
+**而未证的原因是流程级：没有 ownership witness。**

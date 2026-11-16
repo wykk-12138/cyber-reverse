@@ -220,3 +220,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **只剩 `collectplus-app` 4 条**（`Flows` 里无任何 CollectPlus 专属文件）—— 这次是真待判。
 **关键引文**：「the step list is the client's phases and the endpoints are the server's resources」——
 **步骤与端点不是同一层，用名字对齐去量，量出来的差异有一半是层级差。R844 的 16.9% 就是跨层级量当覆盖率。**
+
+## R848 补充 — 线索收尾
+
+**最后 4 条不是 Unknown，是已登记未证**：`LambdaWitness.Unwitnessed` 里就列着 `collectplus-app`。
+**端点族一直在**：`StoreApiFamilies.cs` 的 `/component/singlepagecheckout/getClickAndCollectOrCollectPlusPoiStores`—— 探针找「标识符含 CollectPlus」，它写在路径里，所以 0 命中。
+**注意**：`popmart` / `structure-token-*` 也在 `Unwitnessed` 里 —— R835–R838 说「没有」，这里说「未证」，**两句话不同**。
+**判据 (f) 的正确做法：先读 `Flows` 目录里的分析文件，它们就是清单。**

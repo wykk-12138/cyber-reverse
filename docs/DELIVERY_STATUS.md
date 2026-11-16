@@ -14245,3 +14245,104 @@ Get-ChildItem replica\src\Cybersole.Stores\Flows -Filter *.cs
 步骤和端点不是同一层的东西，用名字对齐去量它，量出来的差异有一半是层级差。**
 
 **所以 R844 那个 16.9% 的真实问题是：它在用一个跨层级的量当覆盖率。**
+
+
+---
+
+## 272. 最后 4 条：**不是 Unknown，是「仓里已登记为未证」**
+
+> R848。未改产品代码。**这条线索收尾。**
+
+### 一、端点族找到了，只是名字不含 CollectPlus
+
+**`StoreApiFamilies.cs`：**
+
+```
+/component/singlepagecheckout/getClickAndCollectOrCollectPlusPoiStores   <- GetCollectPlusLocations
+/component/singlepagecheckout/cac/submit                                 <- SubmitCollectPlus
+/component/singlepagecheckout/continueToPaymentDetails
+/component/singlepagecheckout/setDeliveryCountry
+/component/singlepagecheckout/setDeliveryMode
+```
+
+**`GetCollectPlusLocations` 那一行甚至把 CollectPlus 写进了路径** —— 而我的探针找的是「名字含 CollectPlus 的标识符」，
+**所以探针 0 命中，而端点一直在。**
+
+**这是 R838 那条教训的第四次：探针找的是标识符，真东西可能是路径。**
+
+### 二、而流程本身早就登记为「未证」
+
+**`LambdaWitness.cs`：**
+
+```csharp
+/// <summary>Flows with no ownership witness — their gaps stay unresolved.</summary>
+public static readonly IReadOnlyList<string> Unwitnessed = new[]
+{
+    "popmart", "demandware-classic", "demandware-dual", "collectplus-app",
+    "structure-token-multi", "structure-token-single",
+};
+```
+
+**所以 `collectplus-app` 的状态一直是「端点族已知、归属未证」，仓里写着。**
+
+**我把它当成「最后一个未结案项」是错的 —— 它是一个已登记状态，不是一个待办。**
+
+### 三、整条线索的收尾
+
+| 阶段 | 数 | 依据 |
+|---|---|---|
+| R839 起的名字清单 | 115 | 元数据 `<Name>d__N` |
+| 判过一轮后仍不同名 | 71 | 探针三轮 |
+| `StoreFlowSteps` 的 8 个流程 | 130 步 · 22 同名 | R844 |
+| 减去 `StoreFlow` 基类已有的 | 108 → **59** | R845 |
+| 减去 R124 已答的 dual | 59 → **50** | R846 |
+| 减去两份 StepMap 已答的 | 50 → **4** | R847 |
+| 最后 4 条 | **端点族已知、流程登记为未证** | R848 |
+
+**71 → 0 待办，但「0」不是在 R848 才成立的 —— 它在 R847 就已经是 4，
+而这 4 条在 `LambdaWitness` 写下那天就不是待办了。**
+
+### 四、这条线索真正教了什么
+
+**七轮里我做了五次「建清单」，每次都低估或误估：**
+
+| 轮 | 我以为 | 实际 |
+|---|---|---|
+| R838 | PopMart 抽签是「一块未建模」 | 九方法子系统 + 三个同族 flow |
+| R844 | 108 条不同名 | 其中 49 条基类已有 |
+| R846 | dual 9 条待判 | R124 已答完 |
+| R847 | johnlewis 8 + classic 5 待判 | 两份 StepMap 已答完 |
+| R848 | collectplus 4 条最后待办 | 端点族已知 + 已登记未证 |
+
+**共同形态：我总是在**名字层**建清单，而仓里的答案在**语义层**（StepMap / Controllers / ApiFamilies / LambdaWitness）。**
+
+**所以判据 (f) 的正确做法不是「先建清单再裁决」，是「先读 `Flows` 目录里那些分析文件，它们就是清单」。**
+
+### 五、验证
+
+```
+Get-ChildItem replica\src\Cybersole.Stores\Flows -Filter *.cs      -> 47 个文件
+StoreApiFamilies.cs: getClickAndCollectOrCollectPlusPoiStores · cac/submit
+LambdaWitness.cs: Unwitnessed = { popmart, demandware-classic, demandware-dual, collectplus-app, structure-token-*, ... }
+grep CollectPlus 全 src -> 13 处，其中 11 处在 StoreFlowSteps（步骤表本身）
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **`collectplus-app` 的 ownership witness**：**Unknown，且这是它被登记为 `Unwitnessed` 的原因。**
+- **`CreateCheckoutApp` / `GetDelivery` 在 `singlepagecheckout` 族里的具体端点**：**Unknown** ——
+  族已定位，**但没一一对上。**
+- **`popmart` / `structure-token-*` 也在 `Unwitnessed` 里**：**这条我上一轮没注意** ——
+  **它们在 R835–R838 被判为「没有」，而 `LambdaWitness` 说的是「没有 ownership witness」，两者是不同的话。**
+
+### 七、教训
+
+**最后这 4 条不是待办，是一个已登记的状态。**
+
+**而我在第七轮才读到 `LambdaWitness.cs` —— 它一行就说明了哪些流程「gaps stay unresolved」。
+如果我从 R838 就先读它，前面六轮的很多「待判」根本不会进清单。**
+
+**「我不知道它已经存在」和「它不存在」在我脑子里长得一样 —— 这已经是我这个会话里第四次写这句话了。
+第四次说明它不是一句感慨，是一个需要工具化的检查。**

@@ -6216,3 +6216,35 @@ d__45 GetProduct · d__46 AddToCartDummy · d__47 AddToCartMulti · d__48 Remove
 | PerimeterX 求解流程 | 只有名字与措辞 |
 
 **纪律**：「对」和「可复算」是两件事，只有后者能在改动之后还成立。
+
+
+## 判据 (a)/③ — 否定断言三分类：772 → 118 → 8（R946，**+4 用例**）
+
+### 三分类
+
+| 类 | 判据 | 处理 |
+|---|---|---|
+| 自证 | 测试自己给输入看输出 | 已完成 |
+| 需镜像 | 只有二进制能证 | **要命令** |
+| — | — | — |
+
+### 8 条需镜像（1 settled，7 开）
+
+**Nike 两条路径 · OrderV5/scheels · DataDomeRelay · PopMart CheckResult · JohnLewis Stripe · StoreFlowSteps GetMerchantCode ·
+ScrapeProductBox（R938 已跑）**
+
+### `NegativeClaimClassTests`（4 例）
+
+**两类被区分 · 每条需镜像的都点名需要什么 · 一条已 settled · 扫描数字带 caveat**
+
+### 数字
+
+**套件 2048 → 2052 · 陈旧度不变 · 需镜像否定 未分 → 8**
+
+| 仍 Unknown | |
+|---|---|
+| 7 条未验的里几条是假的 | 按 R944 比例约 2 条 |
+| 其余「需镜像」是否有第 9 条 | 只扫了带引号名字的 |
+| 自证类是否真都自证 | 抽样未逐个核 |
+
+**纪律**：分类不是筛选的礼貌说法，它是把「哪些需要做」和「哪些已经做完」分开的唯一动作。

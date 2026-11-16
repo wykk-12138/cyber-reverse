@@ -21780,3 +21780,71 @@ metrics_report.py                 -> 2048 通过 / 0 失败
 因为一个碰巧为真的猜测，下一次改代码时仍然不可信。**
 
 **「对」和「可复算」是两件事。而只有后者能在改动之后还成立。**
+
+
+---
+
+## 370. 否定断言三分类：772 → 118 → 8
+
+> R946。**+4 用例，未改产品代码。** 套件 **2052 通过 / 0 失败 / 0 跳过**。
+
+### 一、第一次扫描的数没有意义
+
+**772 条否定断言，764 条「没有证据」—— 而那几乎等于全部。**
+
+**原因：它把两类算成一类。**
+
+| 类 | 例子 | 谁证明 |
+|---|---|---|
+| **自证** | `Assert.Null(CookiesFor("NoSuchVendor"))` | **测试自己** |
+| **需镜像** | 「`NikeEndpoints` 无 `buy/carts/`」 | **只有二进制** |
+
+**第一类不是断言，是算术。**
+
+### 二、窄化到带名字：118 —— 绝大多数仍自证
+
+### 三、真正需镜像的 8 条
+
+```
+NikeEndpoints 无 buy/carts/ · 无 buy/orders/
+NikeEndpoints.OrderV5 不含 scheels
+AntiBotVendors.DataDomeRelay 不含 datadome.co
+PopMartStepMap 无 CheckResult 端点
+JohnLewisStepMap 无 GetStripePaymentIntent
+StoreFlowSteps 的 shared/single 无 GetMerchantCode
+无 ScrapeProductBox（R938 已跑）
+```
+
+**1 settled · 7 开。按 R944 比例约 2 条是假的。**
+
+### 四、数字
+
+| 度量 | R945 | R946 |
+|---|---|---|
+| 套件 | 2048 | **2052** |
+| 产物陈旧度 | 10 / 1044 | **10 / 1044** |
+| **需镜像否定** | 未分 | **8（1 settled，7 开）** |
+
+### 五、验证
+
+```
+grep Assert.{Null,DoesNotContain,Empty,False} tests/ -> 772
+带引号名字的                                     -> 118
+排除自证类后                                      -> 8
+test --filter NegativeClaimClassTests             -> 4 通过
+metrics_report.py                                 -> 2052 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **7 条未验的里几条是假的**：**Unknown** —— 按 R944 比例约 2 条。
+- **是否还有第 9 条需镜像**：**Unknown** —— 只扫了带引号名字的。
+- **自证类是否真都自证**：**Unknown** —— 抽样未逐个核。
+
+### 七、教训
+
+**一个扫描报「764 条没有证据」，而它的意思是「764 条不需要证据」。**
+
+**同一个数两种读法，而第一种会让我去补 764 条命令 —— 一场没有产出的劳动。**
+
+**分类不是筛选的礼貌说法；它是把「哪些需要做」和「哪些已经做完」分开的唯一动作。**

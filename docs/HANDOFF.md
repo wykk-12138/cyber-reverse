@@ -1280,3 +1280,19 @@ Imperva 只作为反例（AntiBotVendors.Knows = false）→ 不是忘掉的厂�
 纪律：「对」和「可复算」是两件事，只有后者能在改动之后还成立。
 
 下一轮：扫其余否定断言有多少没带命令；或 ③ 请求与指纹层。
+
+## R946 补充 — 否定断言三分类：772 → 118 → 8（+4 用例，未改产品代码，套件 2052）
+
+772 条否定断言，764 条「没有证据」—— 而那个数几乎等于全部，因为它把两类算成一类：
+自证（Assert.Null(CookiesFor("NoSuchVendor")) 由测试自己证明）· 需镜像（只有二进制能证）。
+
+窄化到带名字 118 条 —— 绝大多数仍自证。真正需镜像的 8 条（1 settled，7 开）：
+Nike 两条路径 · OrderV5/scheels · DataDomeRelay · PopMart CheckResult · JohnLewis Stripe · StoreFlowSteps GetMerchantCode · ScrapeProductBox（R938 已跑）。
+
+按 R944 比例（3 条里 1 条假），那七条里约 2 条是错的 —— 而每条都长着「事实」的样子。
+
+数字：套件 2048 → 2052 · 陈旧度不变 · 需镜像否定 未分 → 8。
+
+纪律：分类不是筛选的礼貌说法，它是把「哪些需要做」和「哪些已经做完」分开的唯一动作。
+
+下一轮：验那 7 条里最可能错的一条（DataDomeRelay 或 Nike 路径）。

@@ -3979,3 +3979,35 @@ Cybersole.Models.CreateModel 8 props  AccountGroup … StartTime（无 Type）
 | 流程类为何不在清单 | Inference（反推） |
 
 **纪律**：**发现一个形态 ≠ 把它枚举完。R859 到 R883 隔了六十轮，成本十分钟。**
+
+
+## 方法 — `where_is` 默认改整词（R884）
+
+### 因为它这一轮给了两次假答案
+
+1. **`where_is Drop` 子串 → 55 文件，实现组 15 个全是 `DropDown`/`ProxyDrop`；真正的 `Drop` 在 `Checkout.cs:44` 不在其中**
+2. **写了新 `Drop.cs` → CS0101「已包含 Drop 的定义」**
+
+```
+before: 默认子串, --word 才整词
+after : 默认整词, --sub  才子串
+```
+
+**实测：默认 16 文件（含 `Checkout.cs`）· `--sub` 55 文件。理由写进 `--sub` 的 help。**
+
+### 两条测量
+
+| 类型 | 镜像 | 复刻 | 结论 |
+|---|---|---|---|
+| `CreateModel` | 8 | 20，8 个全含 | **缺 0；多 12** |
+| `Drop` | `Time` `Type` | `Time` `Stores` `Type` | `Stores` 未见于基线（**弱证据**：基线只覆盖参与绑定的成员） |
+
+**套件 1780 通过 / 0 失败。**
+
+| 仍 Unknown | |
+|---|---|
+| `Drop.Stores` 该不该在 | 基线覆盖不到 |
+| `CreateModel` 多出的 12 个属性来源 | **XAML 需要 vs 我早先编的 —— 处理完全不同** |
+| `where_is` 还有别的错默认吗 | 如是否该排除 `docs/baseline/` |
+
+**纪律**：**§2.7c 只规定「跑」，没规定「怎么用」。命令也有默认值，而默认值本身可能是陷阱。**

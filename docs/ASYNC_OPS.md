@@ -1850,3 +1850,47 @@ ProxyGroup · RetryDelay · StartTime
 | `Cybersole.Global.Settings` | 21 个，含 `BrowserLimit` `MonitorConcurrency` `QueuePresentation` `SmartActions` `TaskGroupOrder` |
 | `Cybersole.Models.TaskGroup` | 9 个，含 `CaptchaSource` `CheckoutLimit` `CloudflareSolverId` `ProfileLimit` `TotalCheckouts` `TotalDeclines` `UsageExpiry` |
 | `Cybersole.Models.BaseCheckout` | `Properties` · `Timestamp` |
+
+
+### `where_is` 这一轮失败两次 —— 于是把它的默认改了（R884）
+
+**目标：把 R883 解出来的 `Task.Type` 落地。**
+
+**第一次失败：`where_is Drop` 用的是**子串**匹配 —— 55 个文件，实现组 15 个全是
+`DropDown` / `ProxyDrop` 之类的假命中。而**真正的 `Drop` 类型在 `Checkout.cs:44`，不在那 15 个里**。**
+
+**第二次失败：我写了新的 `Drop.cs` 和 `DropTests.cs`，编译报 CS0101「命名空间已包含 Drop 的定义」。**
+
+**§2.7c 那条规则我执行的是一次 `where_is`，而它给的是假答案。**
+
+### 所以修的默认，不是习惯
+
+```
+before:  默认子串，--word 才整词
+after :  默认整词，--sub  才子串
+```
+
+**修后实测：**
+
+| 调用 | 文件数 | 含 `Checkout.cs` 吗 |
+|---|---|---|
+| `where_is Drop`（默认，整词） | **16** | **是（实现组 3 个之一）** |
+| `where_is Drop --sub` | 55 | 是，但混在假命中里 |
+
+**R884 的理由写进了 `--sub` 的 help 文本：**
+**「查 `Drop` 时子串形式返回十五个文件，全是 `DropDown` 和 `ProxyDrop` 命中，
+而名字正好是 `Drop` 的类坐在 `Checkout.cs` 里、不在其中。」**
+
+**这正是 R881 的原则：改数字撑到下一次，改机制才不重复。**
+
+### 落到产品上的两件测量
+
+| 类型 | 镜像（基线） | 复刻件 | 结论 |
+|---|---|---|---|
+| `Drop` | `Time` · `Type`（2） | `Time` · `Stores` · `Type`（3） | **`Stores` 在基线里没出现** |
+| `CreateModel` | 8 个属性 | 20 个，**8 个全含** | **镜像有、复刻缺 = 0；复刻多 12 个** |
+
+**而 `Stores` 的缺席是**弱证据** —— R883 的边界刚说过：清单只收「参与绑定」的成员。
+所以「镜像的 `Drop` 没有 `Stores`」这句话不能说。**
+
+**`CreateModel` 那条是判据 (a) 的正面证据：镜像的 8 个属性复刻件一个不缺。**

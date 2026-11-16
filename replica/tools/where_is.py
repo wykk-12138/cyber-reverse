@@ -75,15 +75,20 @@ def walk():
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Show where a name already exists, grouped by what kind of file holds it.")
-    ap.add_argument("name", help="identifier or substring to look for")
+    ap.add_argument("name", help="identifier to look for")
     ap.add_argument("--kind", choices=ORDER, help="show only one kind")
     ap.add_argument("--all", action="store_true", dest="all_kinds",
                     help="show every hit; by default at most six per kind")
-    ap.add_argument("--word", action="store_true",
-                    help="match the whole word only; default is a case-sensitive substring")
+    ap.add_argument("--sub", action="store_true",
+                    help="substring match instead of whole-word. Off by default because R884 asked for 'Drop' and "
+                         "the substring form returned fifteen files, all of them DropDown and ProxyDrop hits, while "
+                         "the type named exactly Drop sat in Checkout.cs and was not among them")
     a = ap.parse_args(argv)
 
-    pat = re.compile(r"\b" + re.escape(a.name) + r"\b") if a.word else re.compile(re.escape(a.name))
+    # Whole-word by default. R884: a substring search for a short type name is dominated by longer names that
+    # contain it, so the exact hit is the one most likely to be missed -- the opposite of what a lookup tool is for.
+    pat = (re.compile(re.escape(a.name)) if a.sub
+           else re.compile(r"\b" + re.escape(a.name) + r"\b"))
 
     found = {k: [] for k in ORDER}
     for rel, full in walk():

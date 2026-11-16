@@ -816,3 +816,26 @@ platform.poq.io/clients/office/{AtaVerifyCaptcha, recaptcha?trackingId=}
 
 **注意**：这与 `offspring` 的**网页面**（Hybris，实机证据，`PlatformAssignmentTests`）是**两种表面**，
 **不要互相替换**（R772 的教训）。
+
+
+## 工具债 — `off_` 槽位读取器（R776，优先于 App flow）
+
+**问题**：Hex-Rays 里 `&off_XXXX` 是**静态槽位的地址**，槽里存着指向字符串对象的指针，**且受重定位**。
+直接读到的是槽内容，不是字符串。
+
+**已证据的错误路径**：① 当对象头读 +12 → 乱码；② `pe_strings.txt` 是文件偏移；
+③ 自己换算 VA→文件偏移（`.data` RVA 0x6a47000 / raw 0x6a45c00）→ 仍乱码。
+
+**要做**：读槽 8 字节 → 判断 VA 还是 RVA → 加 imagebase → +12 → 读 UTF-16LE。
+
+**为什么优先**：`off_` 家族在原版里到处都是；这次挡住的是 Poq 六个头名，
+**下一次会挡别的东西**。**本会话已经撞过三次。**
+
+**在此之前**，Poq App 身份的进度冻结在：
+
+```
+已知：User-Agent + 6 个头名 + 4 个 offspring action + 2 个 office action
+Unknown：另外 6 个头名、全部头的取值、触发它的任务类型
+```
+
+**构建单位不变**：App 面一个 flow（身份 + 四步 + 注册项），**不要只建身份常量**（R772 的教训）。

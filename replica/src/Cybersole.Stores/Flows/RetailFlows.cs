@@ -650,6 +650,65 @@ public sealed class WarhammerFlow : StoreFlow
         "    storeId: $storeId\n    algoliaQueryId: $algoliaQueryId\n    objectId: $objectId\n" +
         "  ) {\n    ctCartJWT\n    __typename\n  }\n}";
 
+    /// <summary>
+    /// Submit the shipping address through the image's own mutation. R791.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the recovered text declares thirteen optional variables and maps each to a camelCase
+    /// attribute inside <c>updateShippingAddress(attributes:)</c>. Its selection set returns the order plus
+    /// <c>shippingRates</c>, which is where the rate id for the next step comes from.
+    /// </para>
+    ///
+    /// <para>
+    /// Seven of those map straight onto the profile. <c>state_id</c> and <c>country_id</c> are Ints while the profile
+    /// holds state and country as names, so they are sent only when a caller has resolved the numeric ids into the
+    /// session: sending a name where an Int is expected would be rejected, and guessing an id would attach the order to
+    /// the wrong region with no error. Everything unsent is optional in the mutation, so the request stays valid.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
+    {
+        ApplyWaf(c);
+
+        var p = c.ProfileData;
+        if (p is null) return StepOutcome.Fail("warhammer: no profile to take an address from");
+
+        var variables = new JObject
+        {
+            ["firstname"] = p.FirstName,
+            ["lastname"] = p.LastName,
+            ["address1"] = p.Address1,
+            ["address2"] = p.Address2,
+            ["zipcode"] = p.Zip,
+            ["city"] = p.City,
+            ["phone"] = p.Phone,
+        };
+
+        foreach (var numeric in new[] { "state_id", "country_id" })
+            if (c.Session.Vars.TryGetValue(numeric, out var id) && int.TryParse(id, out var parsed))
+                variables[numeric] = parsed;
+
+        var body = new JObject
+        {
+            // anonymous in the image, so no operationName travels with it
+            ["query"] = WarhammerQueries.UpdateShippingAddress,
+            ["variables"] = variables,
+        };
+
+        var res = await PostJsonAsync(c, ApiHost + "/graphql",
+            body.ToString(Newtonsoft.Json.Formatting.None), "wh-shipping", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("warhammer shipping failed", retryable: true);
+        if (res.IsSuccess && res.Body.Contains("\"errors\"", StringComparison.Ordinal))
+            return StepOutcome.Fail("warhammer shipping: graphql returned errors");
+        if (!res.IsSuccess) return StepOutcome.Fail($"warhammer shipping HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["shipping"] = res.Body;
+        var rate = Regex.Match(res.Body, @"""id""\s*:\s*(\d+)");
+        if (rate.Success) c.Session.Vars["shippingRateId"] = rate.Groups[1].Value;
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
         var res = await PostJsonAsync(c, $"{ApiHost}/api/orders", "{}", "wh-order", ct)

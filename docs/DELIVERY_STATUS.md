@@ -5208,3 +5208,68 @@ SizePresetDeletePromptTests   6 / 6 通过
   而该顺序由 R732 的 store-group 案例确立。
 - 同一个函数是否同时服务「sizes」和「presets」两个栅格：**Unknown**；文案不一致说明源码里有一条是旧的。
 - `0x1407b8ac0` 之外的百分比更新函数在哪：**Unknown**（未找）。
+
+
+---
+
+## 164. `DeleteConfirm` 家族：**只接了我读过的那一屏**，其余五屏记为待读
+
+> R735。新增 `replica/src/Cybersole.Core/Reporting/DeleteConfirmPrompts.cs`、对应 6 条探针。
+
+### 一、先纠正我自己的旧判断
+
+R721 我把 `0x1405aaa60` 读成「UI 接线」——那是 **55 行的草率一瞥**，而且当时那个分类器是坏的（R730 已证）。
+**正经读一遍，它是同族里信息最多的一条**：三条文案全部代入计数，且整段有闸门。
+
+```
+if (predicate(...))                       // 不成立 → 整段跳过
+{
+    count   = model[8][16]
+    title   = format(&off_146EBA8A0, count)   // "Delete {0} tasks?"
+    message = format(&off_146EBA848, count)   // "Are you sure… {0} tasks?\nYou cannot undo…"
+    dialog(title, message, 1)
+    dlg[528]= format(&off_146EBA7F0, count)   // "Delete ({0}) tasks"
+}
+```
+
+### 二、一个与 R732/R734 的**真实差别**，写清而不是抹平
+
+R732（store groups）的闸门是 `if (count)`、R734（size presets）是 `if (count != 0)` —— **都是显式的零测试**。
+**这里是一个 helper 调用**（`sub_142E73610`），**它的语义我没解出来**。
+
+所以：
+
+- **Observation**：三个槽位、同一计数、闸门不成立时整段跳过
+- **Inference（中）**：那个闸门是零测试 —— **由同族推来的，不是这一条读出来的**
+
+**这条差别很重要**：如果我把它写成"Observation: 零值不弹框"，就是把推断记成了观测。
+
+### 三、只接一屏
+
+家族有 7 个成员（Tasks / Accounts ×2 / Proxies / Profiles / Groups / store-groups）。
+**只有 Tasks 的 body 读过**，所以 `Tasks()` 是唯一接上的入口。
+其余五屏的键存在、文案形状一致（都是三条），**但 body 没读** —— 记为待读，不冒充已读。
+
+`Build(prefix, count, copy)` 是内部通用实现，**留着给下一轮读一屏接一屏**。
+
+### 四、两条探针值得单说
+
+- `TheActionLabelParenthesisesTheCount`：动作按钮是 `Delete (9) tasks` —— **计数在括号里**，
+  而标题与消息里没有括号。一个"顺手统一三种措辞"的改写会改掉按钮上的字。
+- `ASingleTaskIsStillPhrasedInThePlural`：`count=1` 给出 **"Delete 1 tasks?"** ——
+  **目录里每屏只有一种形式，不做单复数**。丑但忠实；与 R731 那个**有**单复数规则的功能形成对照。
+
+### 五、验证
+
+```
+DeleteConfirmPromptsTests   6 / 6 通过
+完整套件                    1690 通过 / 0 失败（1684 + 6）
+四项度量                    4 / 0 / 17 / 78 / 0（未变）
+已审候选                    8 / 129（6 实现 + 2 不可探）
+```
+
+### 六、仍然 Unknown
+
+- `sub_142E73610`（Tasks 的闸门）的语义：**Unknown**；零值规则是推断。
+- 其余五屏的闸门与文案条数：**Unknown**（body 未读）。
+- 三个槽位的实际内容：**Inference（高）**，依据 `sub_140740120` 的实参顺序（R732 确立）。

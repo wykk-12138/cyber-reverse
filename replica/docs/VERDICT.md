@@ -46942,3 +46942,53 @@ grecaptcha.enterprise.execute(document.Solver.Captcha.Sitekey,
 
 换锚点找原版注册表（候选：module id 字符串 / 数组初始化模式）；
 并修 `store_catalog.py` 的构造函数形式。
+
+
+---
+
+## 第 760 轮：警报是错的
+
+### R759 我说"7 个店名在原版里找不到"，并怀疑复刻件在猜
+
+**查 slug 与域名之后，7/7 全在：**
+
+```
+superswipe   22 条（8 个端点槽）
+yeezysupply   1 条   offspring  9 条   pocketgames 5 条
+jbhifi        7 条   endclothing 10 条  notre       6 条
+```
+
+**错误原因：我搜的是显示名，而原版根本不把显示名当字面量存 —— 域名和端点字段名才是。**
+
+### 这是同一类错误的第三次
+
+| 轮 | 扫描器假设 | 后果 |
+|---|---|---|
+| R753 | 标签形如 `"Startup Page"` | 报假缺席 |
+| R759 | 字段形如 `=>` | `?` |
+| **R760** | **店名以显示名出现** | **7 个站误判可疑** |
+
+> **共同点：我假设了"东西长什么样"，而没先问"哪种形式才会被这个工具看到"。**
+
+### 而原版的 Superswipe 契约相当完整
+
+8 个端点槽 + 4 个 DOM 选择器 + 一条反指纹路径；
+其中 **`SubdomainAlphabet` 说明它按 launch 生成子域**，
+**`/youwillnevergetthis/fingerprint`** 是它自己的指纹探测端点。
+
+### 复刻件缺的只有 4 项
+
+`clicks.superswipe.com/c` · `SubdomainAlphabet` · `data-superswipe-*` 选择器 · 指纹端点路径
+
+**所以 22 个 store 既不是编的，也不是桩。判据 f 的第一行是正面的。**
+
+### 验证
+
+```
+产品代码未改；套件 1745 / 0
+```
+
+### 下一轮
+
+补那 4 项（先 `snapshot.py`，整块锚点替换，读 `RetailFlows.cs` 的 Superswipe 段）；
+并把 Superswipe 这个方法套到另外 21 个 store 上，逐条填判据 f。

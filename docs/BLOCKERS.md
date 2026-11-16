@@ -12743,3 +12743,99 @@ modules: 22      域名重复: 0      无域名: 1（ShopifyModule，见下）
 - 那 7 个店名在原版里是否存在：**Unknown** —— 无字面量既不证明有也不证明没有。
 - `sub_14117C4E0` 那片 687 KB 是什么：**Unknown**（IDA 未建立边界）。
 - `document.Solver.Captcha` 其余成员：**Unknown** —— 只读到一个页面，未系统枚举。
+
+
+---
+
+## 188. **上一轮那个警报是错的**：7 个站全在原版里；而 Superswipe 的缺口只有 4 项
+
+> R760。新增 `analysis/store_slug_probe.py`。本轮未改产品代码（证据轮）。
+
+### 一、R759 的警报与它的错误原因
+
+R759 我写：「10 个店名里 7 个在原版里 `literals=0`」，并因此怀疑复刻件的 store 清单有猜的成分。
+
+**错的。** 查 **slug 与域名**（而不是显示名）：
+
+```
+superswipe   22 条   https://captcha.superswipe.com · https://status.superswipe.com
+                     https://enter.superswipe.com/enter · CaptchaOrigin · ProgressApi
+yeezysupply   1 条   https://www.yeezysupply.com
+offspring     9 条   blocked_page_offspring · collectplusoffspring · platform.poq.io/clients/offspring/
+pocketgames   5 条   https://api.pocketgames.nl · /v1/reservations
+jbhifi        7 条   https://auth.jbhifi.com.au/Account/Login
+endclothing  10 条   ApiHost8:https://api2.endclothing.com · CatalogHost6:https://api.endclothing.com
+notre         6 条   （多为 HTML/base64 噪声，需换 token 复检）
+```
+
+**结论：7/7 都在，`exact` 全 0 而 `embedded` 全非 0。**
+
+**错误原因**：我搜的是**显示名**（`Footpatrol`、`Yeezy Supply`），而原版**根本不把显示名当字面量存**
+—— 名字是拼出来的或来自资源，**域名和端点字段名才是字面量**。
+
+**这是同一类错误的第三次**：
+
+| 轮 | 扫描器假设 | 后果 |
+|---|---|---|
+| R753 | 标签形如 `"Startup Page"` | 报假缺席（实际 `"(i)  Startup Page"`） |
+| R759 | module 字段形如 `=>` | `ShopifyModule` 抽出 `?`（实际在构造函数链里） |
+| **R760** | **店名以显示名出现** | **7 个站被误判为可疑** |
+
+**共同点：我假设了"东西长什么样"，而没先问"哪种形式才会被这个工具看到"。**
+
+### 二、原版 Superswipe 的完整契约（Observation）
+
+那 22 条里有 **8 个端点槽 + 4 个 DOM 选择器 + 1 个反指纹路径**：
+
+```
+CaptchaOrigin      https://captcha.superswipe.com
+ProgressApi        https://status.superswipe.com
+EntryUrl           https://enter.superswipe.com/enter
+CountryDataUrl     https://cdn.superswipe.com/superswipe-country-data.js
+LogoUrl            https://cdn.superswipe.com/superswipe-logo.png
+ClickTrackerUrl    https://clicks.superswipe.com/c
+SubdomainAlphabet  abcdefghijklmnopqrstuvwxyz0123…
+LaunchAttributeKey _superSwipe / _superswipe_launch_id_
+
+DOM   [data-superswipe-block] · [data-superswipe-launch-id] · data-superswipe-music-launch-id
+      script[data-superswipe-selling-plans] · script[data-superswipe-variants]
+反指纹 .superswipe.app/youwillnevergetthis/fingerprint
+```
+
+**`SubdomainAlphabet` 说明它是按 launch 生成子域的**（不是固定 host）；**那条 `youwillnevergetthis/fingerprint`
+是原版自己的指纹探测端点。**
+
+### 三、复刻件这一侧：已实现大部分，缺口只有 4 项
+
+`Cybersole.Stores\Flows\RetailFlows.cs` 里已有：
+
+```
+captcha.superswipe ✓  status.superswipe ✓  enter.superswipe ✓  country-data ✓  launch-id ✓
+CaptchaOrigin ✓  EntryUrl ✓  CountryDataUrl ✓
+```
+
+**缺**：
+
+```
+clicks.superswipe.com/c        点击追踪端点
+SubdomainAlphabet              按 launch 生成子域的能力
+data-superswipe-*              DOM 选择器（4 个）
+youwillnevergetthis/fingerprint 反指纹探测路径
+```
+
+**所以 22 个 store 既不是编的，也不是桩。** 判据 f 的第一行因此是**正面的**，缺口**具体且可做**。
+
+### 四、验证
+
+```
+本轮未改产品代码
+完整套件保持 1745 通过 / 0 失败
+新增 analysis/store_slug_probe.py
+```
+
+### 五、仍然 Unknown
+
+- `notre` 那 6 条是 HTML 噪声还是真端点：**Unknown** —— 需换 token（`notre-shop.com`）复检。
+- `SubdomainAlphabet` 的完整串与用法：**Unknown** —— 只看到前缀，未读使用它的函数。
+- 其余 21 个 store 是否也是「大部分已实现、缺几项」：**Unknown** —— 只做了 Superswipe 一个。
+- `store_catalog.py` 的构造函数形式缺陷：**未修**（补丁写坏一次，见 R759）。

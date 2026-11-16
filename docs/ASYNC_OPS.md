@@ -2835,3 +2835,59 @@ shield.paynamics.net
 
 **第三个用例 `TheRecoveredSurfaceIsNotYetCalled` 断言宿主在源码里只出现一次 ——
 **将来谁把它接上，这条会红，而红的时候说明「这条常量变成调用了」，需要连同测试意图一起改。****
+
+
+### 异步方法覆盖 **20.0%** —— 这才是函数对等的直尺度（R906）
+
+**R905 发现 `RunShield` 存在。于是把它放大：镜像的 1,547 个异步方法名，复刻件里有没有。**
+
+### 结果
+
+| | |
+|---|---|
+| 镜像异步方法名 | **1,547** |
+| 复刻件有 | **310（20.0%）** |
+| 复刻件无 | **1,237** |
+
+**新工具 `tools/async_method_coverage.py`，整词匹配、扫全 `src`。**
+
+### 而 20% 与端点侧那个 100% 差得远
+
+| 度量 | 值 | 量的是什么 |
+|---|---|---|
+| 端点覆盖（无宿主桶） | **100%** | URL 有没有被写下来 |
+| **异步方法覆盖** | **20.0%** | **步骤有没有存在** |
+
+**这两个不矛盾：一个 URL 写下常量算「有」，而**用它的方法**可能不存在。
+R903 那 67 条 hostless 路径现在都有常量，而调用它们的方法多数还没有。**
+
+**所以前几轮补常量是对的，但它补的是「路名」，不是「路」。**
+
+### 而这是**上界**，不是缺口本身
+
+**goal 允许改名。所以「名字不在」可能是：**
+1. 功能真的没有
+2. 功能在，但叫另一个名字
+
+**这一条判别不了。要分辨得读每个缺失名字的语义 —— 那是 1,237 次判断。**
+
+**所以这个数的正确读法是：**最多缺 1,237 个步骤**。**
+
+### 而清单第一段就有一族很说明问题
+
+```
+AddToCart2 · AddToCartAstro · AddToCartBox · AddToCartDummy
+AddToCartFrontend · AddToCartNext · AddToCartSvelte
+```
+
+**7 个 `AddToCart` 变体，按平台/框型/前端框架分。复刻件只有一个 `AddToCart`。**
+
+**这是「一家店一个加车实现」的直接证据 —— 而不是一个可以参数化的通用步骤。**
+
+### 前 80 个里的其他族
+
+**`AcceptCallbacksAsync` · `AcceptLoopAsync`（服务端）· `AcquireAsync` · `AcquireLockAsync` · `AcquireUpdateLock`（并发）·
+`AddAddress` · `AddPaymentMethod` · `AddPaymentToCart`（结账）· `AddImageAsync` · `AddHintImageAsync`（captcha 图）·
+`Animate` · `AnimateViewportOffsetAsync`（UI）**
+
+**所以 1,237 个缺失方法横跨服务端、并发、结账、captcha、UI —— 这就解释了为什么 20%。**

@@ -14346,3 +14346,105 @@ grep CollectPlus 全 src -> 13 处，其中 11 处在 StoreFlowSteps（步骤表
 
 **「我不知道它已经存在」和「它不存在」在我脑子里长得一样 —— 这已经是我这个会话里第四次写这句话了。
 第四次说明它不是一句感慨，是一个需要工具化的检查。**
+
+
+---
+
+## 273. **修正 R835–R838**：PopMart 的抽签端点**全在**，缺的只是驱动它的步骤
+
+> R849。未改产品代码。**这轮推翻本会话自己六轮前的一个结论。**
+
+### 一、`PopMartStepMap.cs`（R116）一直存在
+
+**R835–R838 六轮里我没读过它。它把 24 步里 14 步对到了 `/shop/v1/*` 端点：**
+
+```
+EnterDraw        → DrawScratchDraw          /shop/v1/drawScratch/draw
+ChooseGoods      → DrawScratchChooseGoods   /shop/v1/drawScratch/chooseGoods
+FindMegaDraw     → MegaDrawHit              /shop/v1/drawScratch/megaDraw/hit
+RedeemLuckPoints → LuckyPointsDraw          /shop/v1/redeem/lucky_points_redeem_draw
+FindExhibit      → StoreOfflineDrawInfo     /shop/v1/storeOfflineDraw/info?alias=
+EnterReservation → StoreOfflineDrawJoin     /shop/v1/storeOfflineDraw/join
+FindDates        → StoreTicketDates         /shop/v1/store_ticket/dateList
+...
+```
+
+### 二、而那些端点在复刻件里**全都在**
+
+**`PopMartEndpoints.cs` 有 39 个端点常量（与 R116 记的「39 endpoints」一致），上面 14 个配对用的常量逐一核对，全部存在：**
+
+```
+DrawScratchDetail      YES  /shop/v1/drawScratch/detail?uniqCode=
+DrawScratchDraw        YES  /shop/v1/drawScratch/draw
+DrawScratchChooseGoods YES  /shop/v1/drawScratch/chooseGoods
+MegaDrawHit            YES  /shop/v1/drawScratch/megaDraw/hit
+PointsRedeemDraw       YES  /shop/v1/redeem/points_redeem_draw
+LuckyPointsDraw        YES  /shop/v1/redeem/lucky_points_redeem_draw
+StoreOfflineDrawInfo   YES  /shop/v1/storeOfflineDraw/info?alias=
+StoreOfflineDrawJoin   YES  /shop/v1/storeOfflineDraw/join
+StoreTicketDates       YES  /shop/v1/store_ticket/dateList
+StoreTicketMainPage    YES  /shop/v1/store_ticket/mainPage?uniqID=
+OrderList              YES  /shop/v1/order/list?currentPage=1&pageSize=20
+```
+
+### 三、所以要改的是结论，不是代码
+
+**R835 写的是「PopMart 抽签面：没有任何流程覆盖它」。R836 写「七块未建模」。R838 写「九方法子系统，十二个名字全为 0」。**
+
+**按现在的证据，准确的说法是：**
+
+> **端点层完整（39 个端点，含全部抽签/展览/预约端点）。
+> 映射表完整（R116 的 14 对）。
+> 缺的只是 `PopMartFlow` 里那 14 个驱动步骤的方法 —— `PopMartFlow` 的 11 个重写里一个都不是。**
+
+**「没有抽签面」在端点层是错的，只在步骤层成立。**
+
+**这是好消息也是坏消息：坏在步骤确实没写；好在要写的时候不用去查端点 —— R116 已经对好了。**
+
+### 四、为什么六轮都没发现
+
+**R835 我从「`PopMartBrowser` 这个类型名」出发，搜 `activity/v1/exhibit_draw` —— 那确实是个真端点，也确实没被复刻件用。
+于是我判「无覆盖」。**
+
+**而 `exhibit_draw` 是 **actapi** 上的一条路；`/shop/v1/storeOfflineDraw/join` 是**另一条路** ——
+镜像同时有两条，而我只顺着第一条查。**
+
+**`PopMartStepMap` 里那句注释正好说明了这个：**
+
+> Where the match is exact the pair is obvious: `EnterDraw` ↔ `DrawScratchDraw`, `ChooseGoods` ↔ `DrawScratchChooseGoods` …
+> Where it is a guess the step is left unmapped: `CheckResult` could be `DrawScratchDetail` or a poll of the same call,
+> and nothing in the image says which.
+
+**所以 R116 已经做完了「哪条路对哪一步」的配对，并且诚实标注了哪些是猜的、哪些留空。**
+
+### 五、这条修正对 (f) 的意义
+
+**判据 (f) 要求「未覆盖的每条写为什么」。这一轮给出的「为什么」是：**
+
+> **Pop Mart 的 24 步里 14 步的端点在复刻件里都有；未覆盖的原因不是缺端点，是 `PopMartFlow` 没写那 14 个步骤方法。**
+
+**这比「未建模」精确得多，而且指出了工作量在哪。**
+
+### 六、验证
+
+```
+replica\src\Cybersole.Stores\Flows\PopMartStepMap.cs   70 行，R116，14 对
+replica\src\Cybersole.Stores\Flows\PopMartEndpoints.cs  39 个端点常量，14 个配对常量逐一核对全在
+PopMartFlow.cs: 11 个重写，无一个 draw/exhibit/reservation 步骤
+本轮未改产品代码
+七项度量沿用
+```
+
+### 七、仍然 Unknown
+
+- **`CheckResult` 对哪个端点**：**Unknown，且 R116 已诚实留空** —— 「可能是 `DrawScratchDetail` 或对同一调用的轮询，镜像里没说」。
+- **剩下 10 步（24 − 14）的端点**：**Unknown** —— `UnmappedSteps` 是数据，不是遗漏。
+- **`activity/v1/exhibit_draw` 那条路与 `/shop/v1/storeOfflineDraw/join` 的关系**：**Unknown** ——
+  **镜像有两条路，R116 对的是后者，前者（我在 R835 查的）没有配对。**
+
+### 八、教训
+
+**我六轮前判「没有」，依据是「我查的那条路没有」。而镜像有两条路。**
+
+**这次挡住我的东西和前面几次不同：不是「没读仓里的文件」，是「查了一条路就当成全部路」。**
+**而 R116 的文件名摆在那里（`PopMartStepMap`），我六轮里没点开过。**

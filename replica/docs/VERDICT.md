@@ -51026,3 +51026,52 @@ Unwitnessed = { "popmart", "demandware-classic", "demandware-dual", "collectplus
 ### 教训
 
 **「我不知道它已经存在」和「它不存在」在我脑子里长得一样 —— 这是第四次写这句，说明它不是感慨，是一个需要工具化的检查。**
+
+
+---
+
+## 第 849 轮：修正 R835–R838 —— PopMart 抽签端点全在，缺的只是驱动步骤
+
+### `PopMartStepMap.cs`（R116）一直存在，六轮里没读
+
+24 步里 14 步已对到 `/shop/v1/*`：`EnterDraw→DrawScratchDraw` · `ChooseGoods→DrawScratchChooseGoods` ·
+`FindMegaDraw→MegaDrawHit` · `RedeemLuckPoints→LuckyPointsDraw` · `FindDates→StoreTicketDates` …
+
+### 而那些端点在复刻件里全在
+
+`PopMartEndpoints.cs` **39 个端点常量**，14 个配对常量**逐一核对全部存在**：
+
+```
+DrawScratchDetail YES · DrawScratchDraw YES · DrawScratchChooseGoods YES · MegaDrawHit YES
+PointsRedeemDraw YES · LuckyPointsDraw YES · StoreOfflineDrawInfo YES · StoreOfflineDrawJoin YES
+StoreTicketDates YES · StoreTicketMainPage YES · OrderList YES
+```
+
+### 所以要改的是结论
+
+> **端点层完整 · 映射表完整（R116）· 缺的只是 `PopMartFlow` 里那 14 个驱动方法** ——
+> **它的 11 个重写里一个都不是 draw/exhibit/reservation 步骤。**
+
+**「没有抽签面」在端点层是错的，只在步骤层成立。**
+
+### 为什么六轮没发现
+
+**R835 我从 `PopMartBrowser` 出发，搜 `activity/v1/exhibit_draw` —— 那是 actapi 上的一条真路，也确实没被用。于是我判「无覆盖」。**
+**而 `/shop/v1/storeOfflineDraw/join` 是**另一条路**。镜像同时有两条，我只顺着第一条查。**
+
+**`PopMartStepMap` 的注释正是这件事的说明，而且标注了哪些配对是猜的（`CheckResult` 留空）。**
+
+### 对 (f) 的意义
+
+**(f) 要「未覆盖的每条写为什么」。这轮给出的「为什么」是：端点都有，`PopMartFlow` 没写那 14 个步骤方法。**
+**比「未建模」精确得多，而且指出了工作量在哪。**
+
+### 仍然 Unknown
+
+**`CheckResult` 对哪个端点**（R116 已诚实留空）· **剩下 10 步的端点**（`UnmappedSteps` 是数据）·
+**`exhibit_draw` 与 `/shop/v1/storeOfflineDraw/join` 两条路的关系**
+
+### 教训
+
+**我六轮前判「没有」，依据是「我查的那条路没有」。而镜像有两条路。**
+**这次挡住我的不是「没读仓里的文件」，是「查了一条路就当成全部路」—— 而文件名 `PopMartStepMap` 摆在那里，六轮没点开。**

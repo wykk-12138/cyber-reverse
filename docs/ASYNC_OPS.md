@@ -386,3 +386,34 @@ R844 里我对这两行的映射（指向共用文件）导致的「不同名」
 | `GetDelivery` | 同上 | **族内，未一一定位** |
 
 **而未证的原因是流程级：没有 ownership witness。**
+
+
+### PopMart：端点层完整，缺的是驱动它的步骤（R849）
+
+**R116 的 `PopMartStepMap.cs` 已把 24 步里 14 步对到 `/shop/v1/*` 端点；而 `PopMartEndpoints.cs` 有 39 个端点，
+那 14 个配对用的常量全在：**
+
+| 步骤 | 端点常量 | 路径 |
+|---|---|---|
+| `StartDrawFlow` · `FindDraw` | `DrawScratchDetail` | `/shop/v1/drawScratch/detail?uniqCode=` |
+| `EnterDraw` | `DrawScratchDraw` | `/shop/v1/drawScratch/draw` |
+| `ChooseGoods` | `DrawScratchChooseGoods` | `/shop/v1/drawScratch/chooseGoods` |
+| `FindMegaDraw` · `EnterDrawEvent` | `MegaDrawHit` | `/shop/v1/drawScratch/megaDraw/hit` |
+| `RedeemMemberPoints` | `PointsRedeemDraw` | `/shop/v1/redeem/points_redeem_draw` |
+| `RedeemLuckPoints` | `LuckyPointsDraw` | `/shop/v1/redeem/lucky_points_redeem_draw` |
+| `FindExhibit` | `StoreOfflineDrawInfo` | `/shop/v1/storeOfflineDraw/info?alias=` |
+| `EnterExhibit` · `EnterReservation` | `StoreOfflineDrawJoin` | `/shop/v1/storeOfflineDraw/join` |
+| `FindDates` | `StoreTicketDates` | `/shop/v1/store_ticket/dateList` |
+| `FindTimeSlots` | `StoreTicketMainPage` | `/shop/v1/store_ticket/mainPage?uniqID=` |
+| `GetOrders` | `OrderList` | `/shop/v1/order/list?...` |
+
+**`PopMartFlow` 的 11 个重写里没有一个是上面这些步骤。**
+
+### 修正 R835–R838
+
+**那几轮说「复刻件没有抽签面」。按证据，准确说法是：**
+
+> **端点层完整（39 个端点，含全部 14 个抽签/展览/预约端点）；映射表完整（R116）；
+> 缺的只是 `PopMartFlow` 里那 14 个驱动步骤的方法。**
+
+**「没有抽签面」在端点层是错的，只在步骤层成立。**

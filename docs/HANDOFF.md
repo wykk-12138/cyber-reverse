@@ -227,3 +227,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **端点族一直在**：`StoreApiFamilies.cs` 的 `/component/singlepagecheckout/getClickAndCollectOrCollectPlusPoiStores`—— 探针找「标识符含 CollectPlus」，它写在路径里，所以 0 命中。
 **注意**：`popmart` / `structure-token-*` 也在 `Unwitnessed` 里 —— R835–R838 说「没有」，这里说「未证」，**两句话不同**。
 **判据 (f) 的正确做法：先读 `Flows` 目录里的分析文件，它们就是清单。**
+
+## R849 补充 — 修正 PopMart 结论
+
+**`PopMartEndpoints.cs` 有 39 个端点，14 个抽签/展览/预约端点全部存在；`PopMartStepMap.cs`（R116）已有 14 对映射。**
+**缺的只是 `PopMartFlow` 里那 14 个驱动步骤**（11 个重写里一个都不是）。
+**R835–R838 的「没有抽签面」在端点层是错的，只在步骤层成立。**
+为什么没发现：R835 只查了 `activity/v1/exhibit_draw`（actapi 那条路），**而 `/shop/v1/storeOfflineDraw/join` 是另一条路。**

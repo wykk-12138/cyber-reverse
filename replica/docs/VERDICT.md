@@ -50001,3 +50001,49 @@ health ok · str RefreshSession = 0 · str HandleBlock = 2 · 复刻件 HandleBl
 ### 仍然 Unknown
 
 **`SetRequest`/`HandleResponse` 在镜像里被谁调用**（需反编译调用点）· **`HandleBlock` 做什么**（名字暗示「处理封锁」，与优先级 ② 直接相关）· **UI 里那 6 处 `RefreshSession` 引用是什么**（可能是刷新任务列表，同名不同物 —— 删声明前要分清）
+
+
+---
+
+## 第 828 轮：`0 xrefs` 不是证据 —— `GetHome` 也是 0
+
+### 我想做的
+
+R827 确认元数据里有 `HandleBlock`。这一轮想顺字符串 → xrefs → 函数 → 反编译。
+
+### 走不通
+
+```
+HandleBlock → 0    SetRequest → 0    HandleResponse → 0
+GetHome → 0        VerifySession → 0
+```
+
+**全是 0，而 `GetHome` 是肯定实现了的。**
+
+> **所以「0 xrefs」不是「没有代码」，是「这些名字不被代码引用」——它们是 NativeAOT 保留的方法名元数据，反射与栈回溯用。**
+
+**判据用错得很干净：我拿一个恒为 0 的量当证据。**
+**如果没查 `GetHome` 这个校准项，我会写下「`HandleBlock` 没有代码引用，所以可能只是残留名字」—— 那是错的。**
+
+### 要拿代码，路线不是 xrefs
+
+**走类型图**：`<HandleBlock>d__54` 是父类的嵌套状态机类型 → 父类型 `MethodTable` → 方法表 → `MethodDesc` → entry point。
+**这是一整轮的活，不是顺手一步。** 更省的替代：从「被谁调用」反向定位。
+
+### 对 R827 的影响
+
+**三条名字级事实不变**，但要分清证据等级：
+
+> **「镜像元数据里有这个方法名」= Observation。**
+> **「它被实现成代码并被调用」= Inference（高），本轮没看到那段代码。**
+
+### 仍然 Unknown
+
+**`HandleBlock` 的实现与调用点**（需走 MethodTable）· **`RefreshSession` 是缺名还是缺实现** ——
+**trimming 可能裁掉未使用的 `async` 方法名，若会，则「元数据无名字」推不出「镜像没这个步骤」，R827 要降为 Inference。**
+
+### 教训
+
+**这一轮打掉的是我自己十分钟前想出来的判据，而方式很便宜：拿一个已知答案的样本去试它。**
+
+**「这个量对所有样本取同一个值」已在 §2.7 记过三次。这是第四次，形态是「恒为 0」。**

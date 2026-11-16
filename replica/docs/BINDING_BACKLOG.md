@@ -2144,3 +2144,39 @@ c.Session.Vars["available"] = !soldOut && body.Length > 200 ? "true" : "false";
 
 `unpacked` 警告 → **Proceed with unpacked base** · `id0 not closed` → **是(Y)** · 「请稍候」→ **等，不点**。
 **判据：再读一次没有框。** `doctor` 报 `PROXY: MISSING` 正常（走 `ida.py` 直连）。
+
+
+## 纪律 — `0 xrefs` 不是证据（R828）
+
+**R827 想顺着 `HandleBlock` 的字符串走 xrefs 找代码。走不通，理由是校准项：**
+
+```
+HandleBlock 0 · SetRequest 0 · HandleResponse 0 · GetHome 0 · VerifySession 0
+```
+
+**`GetHome` 是肯定实现的步骤，它也是 0。**
+
+> **这些名字是 NativeAOT 保留的方法名元数据（反射/栈回溯），代码从不引用它们。**
+> **所以「0 xrefs」与「步骤是否存在」无关。**
+
+### 对 R827 的证据分级
+
+| 陈述 | 等级 |
+|---|---|
+| 镜像元数据里有 `HandleBlock` 这个方法名 | **Observation** |
+| 它在镜像里被实现成代码并被某处调用 | **Inference（高）—— 本轮没看到那段代码** |
+| 镜像元数据里没有 `RefreshSession` | **Observation** |
+| 因此镜像没有这个步骤 | **Inference** —— **trimming 可能裁掉未使用的 `async` 方法名** |
+
+### 拿代码的正确路线（下一轮）
+
+**走类型图**：`<HandleBlock>d__54` 是父类的嵌套状态机类型 → 父类型 `MethodTable` → 方法表 → `MethodDesc` → entry point。
+**替代**：从「被谁调用」反向定位（`GetHome` 那批函数有相同的调用形状）。
+
+| 仍 Unknown | |
+|---|---|
+| `HandleBlock` 的实现与调用点 | 需走 MethodTable |
+| `RefreshSession` 缺名还是缺实现 | **trimming 可能性未排除** |
+
+**纪律**：**「这个量对所有样本取同一个值」§2.7 已记三次，这是第四次，形态是「恒为 0」。**
+**打掉它的方式：拿一个已知答案的样本去试同一判据。**

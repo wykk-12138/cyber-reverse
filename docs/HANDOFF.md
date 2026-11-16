@@ -22,7 +22,7 @@
 
 ## 未结案项（按价值排序）
 
-1. **`RefreshSession` 在镜像里零匹配（R827 已证实）** → **镜像没这个步骤，该删声明而不是补调用**。
+1. **`RefreshSession` 在镜像元数据里零匹配（R827）** → 方向看起来是删声明。**但 R828 补了一个限定：trimming 可能裁掉未使用的 `async` 方法名，所以这是 Inference 不是 Observation。**
    `HandleBlock` 反过来：**镜像有、复刻件 0 匹配** —— 名字级缺口，且名字暗示「处理封锁」，**与优先级 ② 直接相关，值得单独一轮**。
    `SetRequest` / `HandleResponse` 在镜像里有，调用点待反编译。
 2. **长度守卫（R826）**：`ScheelsFlow`（`body.Length > 200`）与 `BstnFlow`（`> 2000`）把「响应体短/空」也判成

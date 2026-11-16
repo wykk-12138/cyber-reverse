@@ -44,7 +44,7 @@ Ghidra 留作后手，只有当某条 claim 必须伪代码级证据时才装，
 | C2 | 节布局相同 | **fail** | manual-from-command | `pe_diff.py --summary`（6 节 ↔ 9 节）；`pe_triage.py` 节表 | — |
 | C3 | 导出面相同 | **fail** | manual-from-command | 同上（39 ↔ 1） | — |
 | C4 | 导入面相同 | **unknown** | unknown | — | 缺**原版 imphash 与完整导入集合**：`inspect_pe_imports` 对 129 MB 要求 `max_functions≥438` 且完整转储；本轮只算了复刻件（`ev_7d9cab…`）。补法：对原版跑一次并重定向到文件 |
-| C5 | 资源面相同 | **pass（R447 修复后）** | tool-evidence | `python analysis\pe_resources.py` → 原版 **12** ↔ 复刻件 **12**，逐叶子同路径同类型（GROUP_ICON 1 / ICON 9 / MANIFEST 1 / VERSION 1），**双向差集 0** | 修复前是 12 ↔ 2（只有 MANIFEST + VERSION）；图标由 `analysis\extract_icons.py` 从原版自己的 ICON 块重建，未经重绘 |
+| C5 | 资源面相同 | **pass** | tool-evidence | `python analysis\pe_resources.py` → 原版 **12** ↔ 复刻件 **12**，逐叶子同路径同类型。**R706 在 11:49 重建的新产物（55,349,248 B）上重算，结论不变** | — |
 
 > C2/C3/C5 判 `fail` 但**每条都可解释**（AOT 版本差 / Brotli 静态库导出 / 复刻件不随附图标，见 `DEVIATIONS.md`）。
 
@@ -52,7 +52,7 @@ Ghidra 留作后手，只有当某条 claim 必须伪代码级证据时才装，
 
 | id | claim | status | authority | command | gap_reason |
 |---|---|---|---|---|---|
-| C6 | 函数数量与符号可见性对照成立 | **pass（Observation 层）** | manual-from-command | `python analysis\func_compare.py` → 原版 321,244（命名 10,041）/ 复刻件 187,328（命名 175,104）；**三个复刻件数各有条件，不是三份矛盾的测量**：187,328（R433，带 PDB）、187,698（R613，带 PDB）、**186,732（R613，不带 PDB，即同口径基准）**、187,732（R694，带 PDB + 当前源码产物）。带 PDB 的三个数差 370 是**三版产物**，不是误差；186,732 与它们的差是 **PDB 口径**（R613 实测 PDB 影响 +966 = 0.5%）；`python analysis\function_breakdown.py` → 复刻件业务代码 **2,485** 个 / 0.92 MB，其余 98.7% 是 BCL/Avalonia/Jint/加密库 | — |
+| C6 | 函数数量与符号可见性对照成立 | **pass（Observation 层）** | manual-from-command | `python analysis\func_compare.py` → 原版 321,244（命名 10,041）/ 复刻件 187,328（命名 175,104）；**三个复刻件数各有条件，不是三份矛盾的测量**：187,328（R433，带 PDB）、187,698（R613，带 PDB）、**186,732（R613，不带 PDB，即同口径基准）**、187,732（R694，带 PDB + 当前源码产物）。带 PDB 的三个数差 370 是**三版产物**，不是误差；186,732 与它们的差是 **PDB 口径**（R613 实测 PDB 影响 +966 = 0.5%）；`python analysis\function_breakdown.py` → 复刻件业务代码 **2,485** 个 / 0.92 MB，其余 98.7% 是 BCL/Avalonia/Jint/加密库 | —  **[R706] 本行数字取自 2026-11-16 11:49 之前重建的产物（55,080,448 B）；11:49 的产物为 55,349,248 B，本行未在新产物上重测**，重测需把新 EXE+PDB 重新载入 IDA（13338）。 |
 | C7a | 绑定成员能否在原版定位到**绑定声明** | **pass** | tool-evidence | `python analysis\binding_descriptors.py` → 原版描述符表 951 条 / 215 类型；**51 个 ABSENT 类型全部在表里、成员全覆盖**（R464） | — |
 | C7b | 成员**形状**（getter / setter）两侧一致 | **fail**（当前条数见 `METRICS.md` 的"成员形状差异"） | tool-evidence | `python tools\shape_audit.py`；**用描述符表交叉验证：报出的每一条在原版描述符表里都有 Setter（0 反例）**（R467） | 构成（**R468 当时的实测，非当前值**；当前条数见 `METRICS.md`）：175 条是"原版要可写属性、复刻件实现成 `method`"；61 条是"复刻件根本找不到该成员"；29 条是"数据属性缺 setter"。运行时不受影响（复刻件代码构造 UI，不走 XAML 绑定），但**结构偏离明确**。R468 同时修掉 10 条误报（`ICommand Foo { get; }` 本来就该只读，不算缺 setter） |
 | C7c | 任意两函数的**伪代码等价** | **unknown** | unknown | — | 缺原版符号（PDB / 调试信息）。**Ghidra 不能提供**（它只会把 `sub_` 改名成 `FUN_`），故不再作为选项。若将来要证行为等价，优先做**行为探针**（同输入 → 两侧输出/副作用对照），而不是伪代码 diff |
@@ -65,7 +65,7 @@ Ghidra 留作后手，只有当某条 claim 必须伪代码级证据时才装，
 
 | id | claim | status | authority | command | gap_reason |
 |---|---|---|---|---|---|
-| C10 | 819 个绑定成员在产物中各自有可见实现 | **unknown** | unknown | `python tools\aot_member_coverage.py` → **12/819 = 1.5%**（R694：当前源码产物 55,080,448 B + 该产物自身导出的 187,732 个符号，`auto_analysis_ready=true` 之后才导出）。**旧值 21/819 已作废**：它的符号表比产物旧 20 小时（R693）
+| C10 | 819 个绑定成员在产物中各自有可见实现 | **unknown** | unknown | `python tools\aot_member_coverage.py` → **12/819 = 1.5%**（R694：当前源码产物 55,080,448 B + 该产物自身导出的 187,732 个符号，`auto_analysis_ready=true` 之后才导出）。**旧值 21/819 已作废**：它的符号表比产物旧 20 小时（R693） **[R706] 本行数字取自 2026-11-16 11:49 之前重建的产物（55,080,448 B）；11:49 的产物为 55,349,248 B，本行未在新产物上重测**，重测需把新 EXE+PDB 重新载入 IDA（13338）。
 | C11 | 111 个绑定类型名在产物里不可见，是命名差异还是未实现 | **unknown** | unknown | — | 缺**人工类型名映射表**（此处 111 是 R433 的口径；**当前的类型缺失计数见 `METRICS.md`**，逐条定性见 `docs/TYPE_PRESENCE_TRIAGE.md`）：AGENTS 允许命名不同（`SettingsView` → `Settings_SettingsShell`），类型名不匹配**不算缺口**，但要区分"改名"与"没有"，需要逐类型核对源码 |
 
 ## 3.5 MonitorView 五条命令（R434）
@@ -92,7 +92,7 @@ Ghidra 留作后手，只有当某条 claim 必须伪代码级证据时才装，
 |---|---|---|---|---|---|
 | C12 | 全量测试套件绿 | **pass** | tool-evidence | `python tools\metrics_report.py`（内含 `dotnet test --filter "Speed!=Slow" -m:1`）→ 见 `docs/METRICS.md` | — |
 | C13 | 落盘格式对齐（settings / tasks / solvers / checkoutHistory / .cyb） | **pass** | tool-evidence | settings/tasks/solvers/accounts/proxies + `.cyb` 由 `LiveSchemaPinsTests`（10 条）按原版 key 钉住；**`checkoutHistory` 此前没有任何格式守卫**，R445 补上 `CheckoutHistoryShapeTests`（2 条）—— 见右列 | **R445 复核时发现 evidence 不全**：原版数据目录里 `checkoutHistory.json` 是**唯一 PascalCase** 的文件（`Store/Product/Size/Price/Success/OrderNumber/Profile/At/TrackingUrl`），其余全是 camelCase；复刻件恰好因为 `CheckoutStats` 用了无 settings 的 `JsonConvert.SerializeObject` 而对上。守卫已补并实测会红（把写入改成 `Json.Serialize` 即失败） |
-| C14 | 文案 19 区无缺 | **pass（R446 已用独立路径复核）** | tool-evidence | `python tools\copy_audit_report.py`（当前缺失条数见 `METRICS.md`）。**第三方复核**：`python analysis\locale_from_binary.py` 直接扫 `target\Cybersole.exe` 字节（不经 `pe_strings.txt`、不经 IDA）→ **原版 1142 键 ↔ 复刻件 1142 键；"二进制有复刻件没有" = 0、"复刻件有二进制没有" = 0** | **R692 更正**：这里原写"5 条池中截断"（ProfileCsv 2 / Settings 1 / Utilities 2），**两处都已不成立** —— 条数由 `METRICS.md` 给出；且 **R668 否证了"截断"**：剩下的两条（`ProfileCsv.Error.UnknownCountry` / `UnknownState`）在字符串池里**完整存在**、占位符齐全，缺的是**校验行为**而不是文案（R688 进一步证明校验所需名单也在：英语 `state` 50 条 + `state_abbr` 50 条）。**另记**：复核发现 `pe_strings.txt` 比二进制少 1 条 `TaskGroups.Order.A-Z` —— 转储器的键正则不含连字符（把 `A-Z` 截成 `A`），而三个文案工具都读这份池，所以共同少看这一条；复刻件侧有这个键，实际无缺口。**R460 追加**：原版 %APPDATA%\Cybersole\settings.json 落盘的 **44 个键，复刻件 GlobalSettings 全部有对应属性（44/44）** —— 逐键比对，唯一「缺」的 smartactions 是比对脚本的大小写假阴性（属性名是 SmartActions，R449 已用 [JsonProperty] 钉住落盘名） |
+| C14 | 文案 19 区无缺 | **pass** | tool-evidence | `python tools\copy_audit_report.py` → **0 missing / 0 near**（条数见 `METRICS.md`）。**R704/R705 把最后两条从「有文案无发出路径」变成「有实现」**：`ProfileCsvEditorView.ValidateAddress` 按 R702 解出、R703 复验的四维规则校验 Country/State，名单由 `analysis/export_profile_lists.py` 从原版导出（244 国 / 50 州，对齐异常 0）。**不是把判据读宽** —— `_satisfied` 的「键出现在代码」这一支现在真的有代码 | — |
 | C15 | **零直接调用点的函数比例**（"效率相近"的代理指标，**不是**效率对照） | **pass（Observation 层，R458 实测）** | tool-evidence | 两侧 IDA `py_eval` + `idautils.XrefsTo(ea, 0)`：原版 13337 → `total=321244 noref=3603 pct=1.1`；复刻件 13338 → `total=187328 noref=6669 pct=3.6` | **它证明什么**：复刻件"无直接调用点"比例是原版的 3.3 倍（可复算）。**它不证明什么**：① 不是运行时耗时对照（那需要两边跑同一条业务路径，卡在登录凭据）；② 零直接 xref ≠ 死代码 —— 主因是间接分派（绑定/委托/虚方法），且 `src/` 侧真正零引用的类型只有 27 个，量级远小于 6,669 |
 
 > C12/C13 的数字**不再写死在本文件**：引用 `docs/METRICS.md`（生成文件）。这是 R433 裁决 1 的落地。
@@ -138,7 +138,7 @@ R433 当初就是这么在六个文件里抓到八个失效数字的，同一类
 |---|---|---|
 | C7b | `275 条形状差异` | 改为指针；R467 当时的 275/275 交叉确认保留并标注为历史 |
 | C7b | 构成 `175 / 61 / 29` | 标注为 **R468 当时实测、非当前值** |
-| C14 | `5 条缺失，全为"池中截断"` | 条数改为指针 |
+| C14 | `5 条缺失，全为"池中截断"`（当时的记录） | 条数改为指针；R668 证明不是截断，R704/R705 补实现后现值为 0 |
 | C14 | gap_reason 称"5 条池中截断" | **更正为 R668 的结论**：剩下 2 条在池里完整，缺的是**校验行为**；R688 又证明校验名单也在 |
 | C6 | 复刻件 `187,328` | 补上 **R613 同口径 186,732** |
 | C10 | `21/819` | 标注为 **R433 时的一次性测量，未随度量重算** |

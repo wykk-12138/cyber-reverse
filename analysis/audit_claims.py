@@ -65,8 +65,11 @@ def main():
     if "**175** 条" in body:
         checks.append(("C7b", "composition 175/61/29 hard-coded", "composition is not regenerated anywhere"))
 
-    # C14 quotes 5 copy gaps and calls them truncated
-    if "5 条缺失，全为\"池中截断\"" in body:
+    # C14 quotes 5 copy gaps and calls them truncated. (R706c)
+    # This used to be a bare presence test, unlike the 275 check above, which honours `annotated()`. The result was
+    # that the *corrections* table -- which has to quote the old wording to say what was wrong with it -- could never
+    # pass. A marker-aware check is the right rule; rewording the history to dodge a substring would not be.
+    if "5 条缺失，全为\"池中截断\"" in body and not annotated(body, "5 条缺失"):
         checks.append(("C14", "says 5 copy gaps, all truncated", "current value is %s" % copy_row))
     if "5 条池中截断（ProfileCsv 2 / Settings 1 / Utilities 2）" in body:
         checks.append(("C14", "gap_reason still calls them truncated",

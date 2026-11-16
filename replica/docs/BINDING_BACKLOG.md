@@ -704,3 +704,26 @@ R685：这个「类型」在源码里找不到      → 1 条真缺 + 3 条判�
 
 **下一步（单独一轮）**：把已判定为"不是缺口"的加入 `NonCommerce` 式豁免，**并写清每条的依据**；
 `warhammer` 与 `goat` 这类 Unknown 不豁免。
+
+
+## 核心 — 覆盖率口径（R770 更新）
+
+`ModuleCoverageTests` 现在把三类分开：**fully covered / 部分 / exempt（原版没有）**。
+
+```
+resolved 62/62 · fully covered 49 · exempt 2
+```
+
+**豁免条目（每条必须带 R 号证据）**：`fanatics`、`yeezysupply`。
+
+**不许进豁免的**：`warhammer`（Unknown）、`goat`（尺子未定）、`bstn`（复刻件多出来的，另立裁决）。
+
+**余下待办**：
+
+| 项 | 性质 |
+|---|---|
+| `offspring` 的 API 家族（Hybris ↔ Poq） | 新立，补步骤修不了 |
+| `warhammer` 的 GraphQL mutation | Unknown，需读调用方 |
+| `goat` / `popmart` / `superswipe` 的尺子 | 待判定 |
+| `bstn` 删不删 | 待裁决 |
+| `casio` / `hypecommerce` 的收尾形态 | 线索弱 |

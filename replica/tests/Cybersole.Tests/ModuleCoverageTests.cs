@@ -68,6 +68,58 @@ public class ModuleCoverageTests
         },
     };
 
+    /// <summary>
+    /// Modules where the seven-step score must not be read as a gap, each with the evidence for why. R770.
+    ///
+    /// <para>
+    /// The matrix counts every module against the same seven steps, so <c>yeezysupply</c> scoring 71% read as
+    /// unfinished work, and R765 recorded twelve modules as "cannot place an order" on that basis. Probing the image
+    /// per store shows that for some of them the original has no checkout to replicate either:
+    /// </para>
+    ///
+    /// <code>
+    /// fanatics    9 strings, 7 URLs, all id.fanatics.com/api-internal/{oauth2/*, login/factor-request}
+    ///             0 checkout words, 0 platform names
+    /// yeezysupply 1 string in the whole pool: https://www.yeezysupply.com
+    /// </code>
+    ///
+    /// <para>
+    /// So the two steps the matrix calls missing are steps the image does not have, which makes the replica faithful
+    /// rather than incomplete. <b>Every entry must carry its evidence</b> --
+    /// <see cref="EveryExemptionCarriesItsEvidence"/> enforces that, because an exemption without a reason is
+    /// exactly the kind of thing that quietly grows.
+    /// </para>
+    ///
+    /// <para>
+    /// Deliberately absent: <c>warhammer</c>, which exposes api.prod.warhammer.com/graphql and may well carry a
+    /// checkout mutation, so it is unresolved rather than excluded; <c>goat</c>, whose surface is drops and captcha
+    /// submission and whose yardstick has not been decided; and <c>bstn</c>, which is the opposite case — a module
+    /// the replica has and the image does not, filed for a separate decision.
+    /// </para>
+    /// </summary>
+    private static readonly Dictionary<string, string> YardstickDoesNotApply = new()
+    {
+        ["fanatics"] =
+            "R769: the image carries 9 strings for fanatics, 7 of them URLs, all id.fanatics.com/api-internal/"
+            + "{oauth2/auth, oauth2/login, oauth2/login-factor, login/factor-request}; zero checkout words",
+        ["yeezysupply"] =
+            "R769: the image carries exactly one string for this store, the bare domain https://www.yeezysupply.com",
+    };
+
+    [Fact]
+    public void EveryExemptionCarriesItsEvidence()
+    {
+        // An exemption is a claim that a number should not be read as a gap. A claim needs a reason, and a reason
+        // needs to say where it came from -- otherwise this dictionary becomes the place gaps go to be forgotten.
+        foreach (var (id, why) in YardstickDoesNotApply)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(why), $"{id} is exempted without a reason");
+            Assert.Matches(@"R\d{3}:", why);          // names the round the evidence came from
+            Assert.True(why.Length > 60, $"{id}'s reason is too short to be evidence: {why}");
+            Assert.NotNull(StoreModuleCatalog.CreateAll().FirstOrDefault(m => m.Id == id));
+        }
+    }
+
     /// <summary>True when the method is implemented somewhere below StoreFlow.</summary>
     private static bool IsImplemented(Type flow, string method)
     {
@@ -106,6 +158,7 @@ public class ModuleCoverageTests
         var totals = Required.ToDictionary(r => r, _ => 0);
         var resolved = 0;
         var full = 0;
+        var exempted = 0;
         var unresolved = new List<string>();
 
         foreach (var id in modules)
@@ -129,20 +182,28 @@ public class ModuleCoverageTests
                 if (ok) { done++; totals[step]++; }
             }
 
-            if (done == Required.Length) full++;
-
             // A raffle flow measured against the seven commerce steps scores low by construction:
             // it has no cart and no checkout to implement. Printing "29%" next to "100%" for the
             // same module — which the non-commerce table below does — invites the reader to treat
             // the low number as a gap. Mark it instead.
-            var note = NonCommerce.ContainsKey(id) ? "   (non-commerce — see below)" : "";
+            //
+            // R770: same reasoning one step further out. YardstickDoesNotApply covers modules where the image has no
+            // checkout to replicate, so their percentage is not a gap either. Those rows are counted separately
+            // rather than as "not fully covered", which is what R765 mistook them for.
+            var exempt = YardstickDoesNotApply.ContainsKey(id);
+            var note = NonCommerce.ContainsKey(id)
+                ? "   (non-commerce — see below)"
+                : (exempt ? "   (not in the image — see the exemption table)" : "");
+
+            if (exempt) exempted++;
+            else if (done == Required.Length) full++;
 
             _out.WriteLine($"{id,-22} " + string.Join("      ", cells) +
                            $"   {100.0 * done / Required.Length:0}%{note}");
         }
 
         _out.WriteLine("");
-        _out.WriteLine($"resolved {resolved}/{modules.Count} flows; fully covered {full}");
+        _out.WriteLine($"resolved {resolved}/{modules.Count} flows; fully covered {full}; exempt {exempted}");
 
         // report non-commerce modules on their own yardstick so their 0/7 does not read as a gap
         _out.WriteLine(string.Empty);

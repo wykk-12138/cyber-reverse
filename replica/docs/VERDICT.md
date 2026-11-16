@@ -47391,3 +47391,49 @@ yeezysupply  1 串 / 1 URL / checkout 0                            → 一条裸
 - `warhammer` 的 GraphQL 里有没有 checkout mutation（字符串层看不到）
 - 复刻件 `WarhammerFlow` 是 REST，**原版是 GraphQL —— 与 offspring 同一类形态错配**
 - `fanatics` 的账号面复刻件有没有对应（未查）
+
+
+---
+
+## 第 770 轮：「没建」与「原版没有」从此分开
+
+### 为什么改
+
+R765 说「12 个 module 下不了单」。R769 逐站取证后发现**两个原版也没有结账面**：
+`fanatics`（7 URL 全 oauth2 登录，0 结账词）、`yeezysupply`（整池 1 条裸域名）。
+
+**它们的 71% 不是缺口，是尺子用错了对象。** 而矩阵原本对此无话可说。
+
+### 改法：带证据的豁免
+
+```csharp
+YardstickDoesNotApply = { ["fanatics"] = "R769: …", ["yeezysupply"] = "R769: …" }
+```
+
+- 行加标注 `(not in the image — see the exemption table)`
+- **计数分开**：`resolved 62/62 flows; fully covered 49; exempt 2`
+- **新守卫 `EveryExemptionCarriesItsEvidence`**：非空、**必须写轮号**、> 60 字符、module 必须存在
+
+> **豁免是「这个数字不该读成缺口」的断言。断言要理由，理由要说出处 ——
+> 否则这个字典会变成缺口被遗忘的地方。**
+
+### 刻意没有豁免的
+
+`warhammer`（有 GraphQL，**Unknown ≠ 不存在**）、`goat`（尺子未定）、`bstn`（**复刻件有、原版没有**，另立裁决）。
+
+**「不知道」不许进豁免。**
+
+### 验证
+
+```
+ModuleCoverageTests 5/5 · 完整套件 1752 / 0 · 四项度量未变
+```
+
+### 过程自伤
+
+在这文件上**又用内联 heredoc 写带 `$"` 的 C#**，转义失败两次，最后靠 `edit` 才成。
+**项目规矩早写着别这么干，我又犯了。**
+
+### 仍然 Unknown
+
+`warhammer` 的 mutation · `goat`/`popmart`/`superswipe` 的尺子 · `bstn` 删不删

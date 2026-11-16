@@ -7728,3 +7728,73 @@ yeezysupply  strings=1   urls=1   checkout=0   graphql=0   platform=0
 - 复刻件的 `WarhammerFlow` 是 REST 形态，**而原版是 GraphQL** —— 这与 `offspring`（Hybris vs Poq）
   是同一类形态错配，**未取证到 ops 名，故未动手。**
 - `fanatics` 的账号面复刻件有没有对应：**未查。**
+
+
+---
+
+## 197. 覆盖率口径修正：**"没建" 与 "原版没有" 从此分开**
+
+> R770。改 `replica/tests/Cybersole.Tests/ModuleCoverageTests.cs`（新增 `YardstickDoesNotApply`
+> + 计数分开 + 新测试）；改的是**数字来源**，所以单独一轮并跑了全量。
+
+### 一、为什么要改
+
+R765 读覆盖率矩阵，得出「12 个 module 下不了单」。R769 逐站取证后发现其中两个**原版也没有结账面**：
+
+```
+fanatics     9 串 / 7 URL，全是 id.fanatics.com/api-internal/{oauth2/*,login/factor-request}，0 结账词
+yeezysupply  整池 1 条字符串：https://www.yeezysupply.com
+```
+
+**它们的 71% 不是缺口，是尺子用错了对象。** 而矩阵原本对此**无话可说** —— 它只会印一个百分数。
+
+### 二、改法：带证据的豁免，并让守卫更严而不是更松
+
+```csharp
+private static readonly Dictionary<string, string> YardstickDoesNotApply = new()
+{
+    ["fanatics"]    = "R769: … 7 URLs all oauth2/login … zero checkout words",
+    ["yeezysupply"] = "R769: … exactly one string … the bare domain",
+};
+```
+
+- 行里加标注 `(not in the image — see the exemption table)`
+- **计数分开**：豁免的不算进 "fully covered"，也不算作"没覆盖"，单独计 `exempt`
+- 汇总行改为 `resolved 62/62 flows; fully covered 49; exempt 2`
+
+**新增守卫 `EveryExemptionCarriesItsEvidence`**：每条豁免必须
+① 非空 ② **写明轮号 `R\d{3}:`** ③ 长度 > 60 ④ 对应的 module 真的存在于目录里。
+
+> **豁免是一个"这个数字不该读成缺口"的断言。断言要理由，理由要说出处 ——
+> 否则这个字典就会变成"缺口们被遗忘的地方"。**
+
+### 三、**刻意没有豁免的**
+
+| 模块 | 为什么不豁免 |
+|---|---|
+| `warhammer` | 有 `api.prod.warhammer.com/graphql`，**可能真有 checkout mutation** —— 它是 Unknown，不是"不存在" |
+| `goat` | drops + captcha 面，尺子本身还没判定 |
+| `bstn` | 反过来的情况：**复刻件有、原版没有**，另立裁决 |
+
+**这一条比代码本身重要**：豁免机制最大的风险是变成垃圾桶，所以**"不知道"不许进豁免**。
+
+### 四、验证
+
+```
+ModuleCoverageTests   5 / 5 通过（新增 1 条）
+                      resolved 62/62 · fully covered 49 · exempt 2
+完整套件              1752 通过 / 0 失败 / 0 跳过（+1）
+四项度量              4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 五、过程中的两次自伤（记下来）
+
+改这个文件时**又用内联 PowerShell heredoc 写带 `$"` 的 C#**，转义失败两次，
+最后改用 `edit` 工具才成。**这正是项目既有规矩里那条「代码从文件或 `edit` 写，不要内联 heredoc」** ——
+我已经因此失败过多次，这轮又两次。
+
+### 六、仍然 Unknown
+
+- `warhammer` 的 GraphQL 有没有 checkout mutation：**Unknown**（字符串层看不到）
+- `goat` / `popmart` / `superswipe` 该用什么尺子：**Unknown**
+- `bstn` 删不删：**待裁决**

@@ -21731,3 +21731,97 @@ replica\src\Cybersole.Stores\Flows\StoreFlowSteps.cs
 
 **「影响面」不该是一个总数，该是一张分项表。**
 **而分项之后才能看出：真正挡住这件事的不是那 165 个声明，是**一个 AOT 设置**。**
+
+
+---
+
+## 292. **序列机制建成**；它量出的第一个数是 **0 / 24**
+
+> R868。**改了产品代码。** 套件 **1773 通过 / 0 失败 / 0 跳过**（原 1766 + 新 7）。
+
+### 一、改了三处
+
+| 文件 | 改了什么 |
+|---|---|
+| `StoreFlow.cs` | `StepSequence` 虚属性（默认 `Array.Empty`）+ `StepDispatch` 派发表 + `RunStepNamedAsync` |
+| `PopMartFlow.cs` | `override StepSequence => StoreFlowSteps.PopMart.Names` |
+| `tests/.../FlowSequenceTests.cs` | 新建，7 个用例 |
+
+**`StepSequence` 默认空 → runner 与其余 25 个流程行为不变。**
+
+### 二、第一版错了，错误值得记
+
+**按**具体流程类型**绑定（`flowType.GetMethods()`）→ 3 个测试失败：**
+
+```
+ArgumentException : Cannot bind to the target method because its signature is not compatible
+                    with that of the delegate type.
+```
+
+**原因：`Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>` 的第一参数是**基类**，
+而 `PopMartFlow` 上的重写方法声明在**派生类**上 —— 运行时拒绝把基类参数绑到派生声明。**
+
+**改法：按 `typeof(StoreFlow)` + `DeclaredOnly` 绑定基类声明，**靠虚分派到达重写**。**
+
+**副作用是正向的：派发表对所有流程是**同一张**，`Lazy` 一次构建。第一版按类型缓存反而是多余的设计。**
+
+### 三、机制量出的数
+
+```
+map.Count      = 165
+sequence.Count =  24
+implementable  =   0
+```
+
+**那 24 个镜像步骤名与 165 个方法名**零交集**。Pop Mart 的抽签/展览/预约一个都没实现 —— 这与 R849/R850 一致
+（端点全在、3 个证据够、11 个缺请求形状），而现在是**一个可复算的数**，不是一句描述。**
+
+**与 R844 的「22/130」的关系：同一件事的两种量法。R844 那个是跨层的（步骤名 vs 通用序列名），
+需要三条免责声明；这一个是同层的（步骤名 ↔ 真能调的方法），不需要。**
+
+### 四、7 个测试里最要紧的两个
+
+| 用例 | 钉住什么 |
+|---|---|
+| `NoPopMartImageStepIsDispatchableYet` | **`165 / 24 / 0` 三个数一起断言** |
+| `TheTableIsNotEmptyWhichIsWhyTheZeroAboveMeansDisjoint` | **表非空 → 上面的 0 意味着「不相交」而不是「表坏了」** |
+
+**这两个是一对：一个量缺口，一个证明前一个的 0 不是假象。**
+**单看第一个，表坏了也会得到 0；加上第二个，0 才有意义。**
+
+### 五、还没做的
+
+- **其余 7 个流程的 `StepSequence` 重写** —— 8 处机械，本轮只做了 PopMart（先证明机制）
+- **runner 按 `StepSequence` 跑的分支** —— R867 的第 3 项，本轮没动
+- **写任何抽签步骤** —— 现在有了位置，但那 11 个仍缺请求形状（R850）
+
+**所以「Pop Mart 的抽签能跑」还没成立。成立的是：位置有了，缺口被量成了 0/24，且这个数会随实现上升。**
+
+### 六、验证
+
+```
+cd replica && python tools\snapshot.py            -> 20261116-214544, 292 files
+D:\tools\dotnet8\dotnet.exe build src\Cybersole.Stores\...   -> 0 错误
+D:\tools\dotnet8\dotnet.exe test ... --filter FlowSequenceTests -> 7 通过 / 0 失败
+python tools\metrics_report.py                     -> 完整套件 exit 0  1773 通过 / 0 失败 / 0 跳过
+    wrote docs\METRICS.md
+新用例实测: map=165  sequence=24  implementable=0
+```
+
+### 七、仍然 Unknown
+
+- **那 11 个缺请求形状的抽签步骤**：**Unknown**（R850 的边界没变）——
+  **但现在它们有位置了，写一个就能把 `implementable` 从 0 变成 1，可复算。**
+- **runner 该怎么按序列跑**：**Unknown** ——
+  **第 3 项没做。而做的时候要决定：序列里某步失败，是继续还是中止？镜像的行为没查。**
+- **其余 7 个流程的 `Flow.Store` 是否都等于流程类的 `Id`**：**只核了 popmart**（是）。
+
+### 八、教训
+
+**R866/R867 我把这件事描述成「结构改造」，听起来像动大手术。实际动手是：
+一处虚属性、一张反射表、一个 `override`、七个测试。**
+
+**而其中唯一真正难的地方，是一个我事先没想到的运行时约束（开放实例委托绑不上派生声明）。
+那类约束在纸上永远看不出来 —— 只能撞。**
+
+**所以「先估影响面」是对的，但估完就该动手；再估一轮也估不出那个 `ArgumentException`。**

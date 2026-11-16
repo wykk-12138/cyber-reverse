@@ -1021,3 +1021,55 @@ protected Dictionary<string, Func<FlowContext, CancellationToken, Task<StepOutco
 「让 runner 按名字调那 165 个方法」是一张 165 条的表 + 一个 AOT 下的实现选择。**
 
 **R866 说「动的是 1897 行与 294 行」——现在更准：动的是 1897 行里的一张派发表，与 294 行里的一个分支。**
+
+
+### 序列机制已建成，而它量出的第一个数是 **0 / 24**（R868）
+
+**改了产品代码（R866 之后第一次）。三处：**
+
+| 文件 | 改了什么 |
+|---|---|
+| `StoreFlow.cs` | `StepSequence` 虚属性（默认空）+ `StepDispatch` 派发表（反射，165 条）+ `RunStepNamedAsync` |
+| `PopMartFlow.cs` | `override StepSequence => StoreFlowSteps.PopMart.Names` |
+| `tests/.../FlowSequenceTests.cs` | 新建，7 个用例 |
+
+**`StepSequence` 默认空 → 其余 25 个流程行为不变（有测试钉住）。**
+
+### 派发表怎么建的：一个踩坑和一个更正
+
+**第一版按**具体流程类型**绑定（`flowType.GetMethods()`），测试 3 失败：**
+
+> `ArgumentException: Cannot bind to the target method because its signature is not compatible with that of the delegate type.`
+
+**原因：`Func<StoreFlow, …>` 的第一参数是基类，而重写在 `PopMartFlow` 上声明 —— 运行时拒绝。**
+
+**改法：按 `typeof(StoreFlow)` 的声明绑定（`DeclaredOnly`），**虚分派自然走到重写**。
+**副作用是正向的：派发表对所有流程**是同一张**，`Lazy` 一次构建，不需要按类型缓存。**
+
+### 机制量出的第一个数
+
+```
+map.Count      = 165
+sequence.Count =  24
+implementable  =   0
+```
+
+**Pop Mart 那 24 个镜像步骤名与 `StoreFlow` 的 165 个方法名**零交集**。**
+
+**这个数和 R844 的「22/130」是同一件事的两种量法，而这一次是同一层里的比较：
+镜像列出的步骤 ↔ 复刻件真能调的方法。R844 那个是跨层的（步骤名 vs 通用序列名），所以它需要三条免责声明；
+这一个不需要。**
+
+### 测试（7 个，全过）
+
+| 用例 | 钉住什么 |
+|---|---|
+| `AFlowWithoutItsOwnSequenceReportsNone` | 不重写的流程序列为空 → 其余 25 个流程行为不变 |
+| `PopMartDeclaresTheImagesTwentyFourSteps` | **断言 24 而非前缀** —— 删条目不能悄悄通过 |
+| `PopMartSequenceFollowsTheImagesOrdinals` | `GetOrders`(104) 在 `EnterReservation`(153) 之前 |
+| `DispatchReachesBothOverriddenAndInheritedSteps` | 重写（`GetHome`）与继承（`SubmitBillingAddress`/`Init`）都能派发 |
+| `DispatchIsNotSilentlyEmpty` | `Count >= 150` —— 反射查询崩了会被抓住 |
+| `NoPopMartImageStepIsDispatchableYet` | **`map=165` · `sequence=24` · `implementable=0`** |
+| `TheTableIsNotEmptyWhichIsWhyTheZeroAboveMeansDisjoint` | 表非空，所以上面的 0 意味着「两个名字集不相交」而不是「表坏了」 |
+
+**最后两个是一对：一个量缺口，一个证明前一个的 0 不是因为表空。**

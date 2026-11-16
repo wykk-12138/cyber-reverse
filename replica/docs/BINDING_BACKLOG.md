@@ -3414,3 +3414,46 @@ R857 顶层是种类 → R858 `Task.Type` 死字段 → R859 创建表单无 Typ
 | `Flow.Store` 与流程类 `Id` 是否一致 | 未核 |
 
 **纪律**：**「影响面」该是分项表，不是总数 —— 分项后才看出真拦路的是一个 AOT 设置，不是 165 个声明。**
+
+
+## 优先级 ① — 序列机制建成（R868，**已改产品代码**）
+
+| 文件 | 改了什么 |
+|---|---|
+| `StoreFlow.cs` | `StepSequence` 虚属性（默认空）+ `StepDispatch`（反射 165 条）+ `RunStepNamedAsync` |
+| `PopMartFlow.cs` | `override StepSequence => StoreFlowSteps.PopMart.Names` |
+| `FlowSequenceTests.cs` | 新建 7 用例 |
+
+**套件 1773 通过 / 0 失败 / 0 跳过**（1766 + 7）。
+
+### 踩坑：开放实例委托绑不上派生声明
+
+**第一版按 `flowType.GetMethods()` 绑 → `ArgumentException: Cannot bind … signature is not compatible`。
+原因：`Func<StoreFlow,…>` 第一参数是基类，重写声明在派生类。
+改法：按 `typeof(StoreFlow)` + `DeclaredOnly` 绑基类声明，靠虚分派到达重写。副作用正向：一张表服务所有流程。**
+
+### 量出的数
+
+```
+map = 165   sequence = 24   implementable = 0
+```
+
+**24 个镜像步骤名与 165 个方法名零交集。与 R844 的 22/130 是同一件事，但这一次是同层比较，不需要免责声明。**
+
+### 一对测试
+
+`NoPopMartImageStepIsDispatchableYet`（165/24/0）+ `TheTableIsNotEmptyWhichIsWhyTheZeroAboveMeansDisjoint`（表非空）
+**→ 单看前者，表坏了也是 0；加上后者，0 才有意义。**
+
+### 还没做
+
+**其余 7 流程的 override** · **runner 按序列跑的分支** · **写抽签步骤**（11 个仍缺请求形状）
+**→「Pop Mart 抽签能跑」尚未成立；成立的是位置有了、缺口量成 0/24。**
+
+| 仍 Unknown | |
+|---|---|
+| 11 个的请求形状 | **写一个即可把 implementable 从 0 变 1** |
+| 序列某步失败该继续还是中止 | 镜像行为未查 |
+| 其余 7 流程 `Flow.Store` 是否等于 `Id` | 只核 popmart |
+
+**纪律**：**纸上估不出运行时约束 —— 估完就该动手。**

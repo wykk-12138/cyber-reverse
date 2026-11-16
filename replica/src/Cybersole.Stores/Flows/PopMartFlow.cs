@@ -15,6 +15,26 @@ public sealed class PopMartFlow : StoreFlow
     public override IReadOnlyList<string> Domains =>
         new[] { "popmart.com", "popmart.co.uk", "popmart.eu", "popmart.sg" };
 
+    /// <summary>
+    /// Pop Mart's own order — the image's twenty-four steps, which R112 recovered from one adjacent run of
+    /// compiler ordinals and <see cref="StoreFlowSteps"/> records verbatim.
+    ///
+    /// <para>
+    /// R868. This is the first flow to declare its sequence, and it is what makes the draw, exhibit and
+    /// reservation steps reachable at all: R851 established that with only the runner's generic twenty-one there was
+    /// nowhere for them to sit, and R866 that adding them to the generic list would leak them into every other store.
+    /// Declaring the order here gives them a place that belongs to Pop Mart alone.
+    /// </para>
+    ///
+    /// <para>
+    /// Most of these steps are not implemented yet. That is deliberate and visible: a name this flow cannot run
+    /// fails with <c>step not implemented by popmart</c>, so the gap reads as a named gap rather than a silent skip.
+    /// R849 established the endpoints for the draw surface all exist, and R850 that three of the steps have enough
+    /// evidence to be written — the remaining work is code, not investigation.
+    /// </para>
+    /// </summary>
+    public override IReadOnlyList<string> StepSequence => StoreFlowSteps.PopMart.Names;
+
     public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
     {
         var res = await GetAsync(c, Origin(c.Url) + "/", "popmart-home", ct).ConfigureAwait(false);

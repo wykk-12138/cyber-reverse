@@ -365,3 +365,12 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **四项：① 加 `StepSequence` 虚属性（一行）② 8 流程 override（8 处）③ runner 按它跑否则回落（一个分支）④ **「名字 → 委托」表 165 条 = 真活**。**
 **卡点：第 4 项写法取决于 `csproj` 里 `PublishAot` / `TrimMode` —— 未查，下一轮第一件事。**
 **教训：「影响面」该是分项表 —— 分项后才看出拦路的是一个 AOT 设置，不是 165 个声明。**
+
+## R868 补充 — 序列机制建成（**已改产品代码**）
+
+**三处改动**：`StoreFlow` 加 `StepSequence` 虚属性 + `StepDispatch` 反射表（165 条）+ `RunStepNamedAsync`；`PopMartFlow` override 序列；新建 `FlowSequenceTests`（7 用例）。
+**套件 1773 通过 / 0 失败 / 0 跳过**（1766 + 7）。
+**踩坑**：开放实例委托 `Func<StoreFlow,…>` 绑不上派生类声明 → 改按 `typeof(StoreFlow)` + `DeclaredOnly` 绑基类，靠虚分派。
+**量出：map=165 · sequence=24 · implementable=0** —— 24 个镜像步骤名与 165 个方法名**零交集**。
+**还没做**：其余 7 流程 override · runner 按序列跑的分支 · 写抽签步骤。**「抽签能跑」尚未成立。**
+**教训：纸上估不出运行时约束 —— 估完就该动手。**

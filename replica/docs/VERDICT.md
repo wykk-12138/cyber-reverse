@@ -51985,3 +51985,70 @@ C7c | 任意两函数的伪代码等价 | unknown | 缺原版符号（PDB / 调�
 
 > **「影响面」不该是一个总数，该是一张分项表。**
 > **分项之后才看出：真正挡住这件事的不是那 165 个声明，是**一个 AOT 设置**。**
+
+
+---
+
+## 第 868 轮：序列机制建成，它量出的第一个数是 0 / 24
+
+### 改了产品代码（R866 之后第一次）
+
+| 文件 | 改了什么 |
+|---|---|
+| `StoreFlow.cs` | `StepSequence` 虚属性（默认空）+ `StepDispatch` 派发表（165 条）+ `RunStepNamedAsync` |
+| `PopMartFlow.cs` | `override StepSequence => StoreFlowSteps.PopMart.Names` |
+| `FlowSequenceTests.cs` | 新建，7 用例 |
+
+**套件 1773 通过 / 0 失败 / 0 跳过**（原 1766 + 新 7）。
+
+### 第一版错了 —— 而错值得记
+
+**按**具体流程类型**绑定 → 3 个测试失败：**
+
+```
+ArgumentException : Cannot bind to the target method because its signature is not compatible
+                    with that of the delegate type.
+```
+
+**`Func<StoreFlow, …>` 第一参数是基类，而重写声明在派生类上 —— 运行时拒绝。**
+
+**改法：按 `typeof(StoreFlow)` + `DeclaredOnly` 绑基类声明，靠**虚分派**到达重写。**
+**副作用正向：派发表对所有流程是同一张，`Lazy` 一次构建 —— 第一版按类型缓存是多余设计。**
+
+### 机制量出的数
+
+```
+map = 165   sequence = 24   implementable = 0
+```
+
+**那 24 个镜像步骤名与 165 个方法名零交集 —— Pop Mart 的抽签/展览/预约一个都没实现，
+而现在是**一个可复算的数**，不是一句描述。**
+
+**与 R844 的「22/130」是同一件事的两种量法：R844 是跨层的（要三条免责声明），这一个是同层的（不需要）。**
+
+### 7 个测试里最要紧的一对
+
+| 用例 | 钉住什么 |
+|---|---|
+| `NoPopMartImageStepIsDispatchableYet` | **165 / 24 / 0 三个数一起断言** |
+| `TheTableIsNotEmptyWhichIsWhyTheZeroAboveMeansDisjoint` | **表非空 → 0 意味着「不相交」而非「表坏了」** |
+
+> **单看第一个，表坏了也会得到 0；加上第二个，0 才有意义。**
+
+### 还没做的
+
+**其余 7 个流程的 `StepSequence`**（8 处机械，只做了 PopMart 以先证机制）·
+**runner 按序列跑的分支**（R867 第 3 项）· **写任何抽签步骤**（位置有了，11 个仍缺请求形状）
+
+> **「Pop Mart 的抽签能跑」还没成立。成立的是：位置有了，缺口被量成 0/24，且这个数会随实现上升。**
+
+### 仍然 Unknown
+
+**那 11 个的请求形状**（**但写一个就能把 `implementable` 从 0 变 1，可复算**）·
+**序列里某步失败该继续还是中止**（镜像行为没查）· **其余 7 个流程的 `Flow.Store` 是否都等于 `Id`**（只核了 popmart）
+
+### 教训
+
+> **R866/R867 我把这件事描述成「结构改造」，听起来像动大手术。实际是一处虚属性、一张反射表、一个 override、七个测试。**
+> **而唯一真正难的地方，是一个事先没想到的运行时约束。那类约束在纸上永远看不出来 —— 只能撞。**
+> **所以「先估影响面」是对的，但估完就该动手；再估一轮也估不出那个 `ArgumentException`。**

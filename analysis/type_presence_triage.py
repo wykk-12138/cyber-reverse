@@ -27,6 +27,9 @@ import re
 SRC = r"D:\projects\cyber-reverse\replica\src"
 OUT = r"D:\projects\cyber-reverse\docs\TYPE_PRESENCE_TRIAGE.md"
 
+# R702: types the YG ruling removed from scope (docs/DECISION_LICENSE_OUT_OF_SCOPE.md).
+OUT_OF_SCOPE = {"AuthWindow", "LicenseControl"}
+
 # name -> full member list, copied from `bind_diff.py --type-presence`
 ABSENT = {
     "CloudflareSolver": "ApiKey, Balance, BalanceSupported, Concurrency, Count, Id, IsFetchingBalance, Name, Type",
@@ -46,6 +49,9 @@ ABSENT = {
     "LocalizeFormatExtension": "Value, Value2",
     "LocalizeSwitchExtension": "Condition",
     "AccountsCreatorView": "Add, Close",
+    # R702 YG ruling (docs/DECISION_LICENSE_OUT_OF_SCOPE.md): the auth/licence family is user
+    # management, out of the replica's scope. LicenseControl and AuthWindow therefore classify
+    # as OUT_OF_SCOPE (not UNIMPLEMENTED): "not built" is now a decision, not a gap.
     "AuthWindow": "Exit, Logout, Minimise",
     "LicenseControl": "Authenticate, Dashboard, Refresh",
     "SettingsView": "AppearanceView, CaptchaProvidersView, CloudflareSolversView, CustomSizesView, CustomStoresView, "
@@ -108,6 +114,12 @@ def main():
     rows = []
     for simple, member_text in ABSENT.items():
         members = [m.strip() for m in member_text.split(",") if m.strip()]
+        # R702: the YG ruling (docs/DECISION_LICENSE_OUT_OF_SCOPE.md) takes precedence over any
+        # textual scoring for the auth/licence family -- it is user management, out of scope.
+        if simple in OUT_OF_SCOPE:
+            rows.append((simple, "OUT_OF_SCOPE", "YG ruling R702: auth/licence is user management, "
+                         "not part of the replica's function set", 0, len(members)))
+            continue
         # R659: declarations only. Searching the body for the bare name counted calls to OTHER objects' methods
         # (`_group.Accounts.Add(...)` satisfied `Add`) and names mentioned in comments, which inflated coverage --
         # `Settings` scored 34/34 that way while only 33 members are actually declared.

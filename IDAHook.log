@@ -136869,3 +136869,406 @@
 [QString::FromUtf8] 原始字符串: .text
 [QString::FromUtf8] 原始字符串: Function name
 [QString::FromUtf8] 原始字符串: Segment
+[QString::FromUtf8] 原始字符串: (1012,293)
+[QString::FromUtf8] 原始字符串: (1000,293)
+[QString::FromUtf8] 原始字符串: (997,293)
+[QString::FromUtf8] 原始字符串: (996,293)
+[QString::FromUtf8] 原始字符串: (993,293)
+[QString::FromUtf8] 原始字符串: (992,293)
+[QString::FromUtf8] 原始字符串: (989,293)
+[QString::FromUtf8] 原始字符串: (988,293)
+[QString::FromUtf8] 原始字符串: (986,294)
+[QString::FromUtf8] 原始字符串: (985,294)
+[QString::FromUtf8] 原始字符串: (982,294)
+[QString::FromUtf8] 原始字符串: (981,294)
+[QString::FromUtf8] 原始字符串: (980,294)
+[QString::FromUtf8] 原始字符串: (978,294)
+[QString::FromUtf8] 原始字符串: (977,294)
+[QString::FromUtf8] 原始字符串: (976,295)
+[QString::FromUtf8] 原始字符串: (973,295)
+[QString::FromUtf8] 原始字符串: (973,295)
+[QString::FromUtf8] 原始字符串: (972,295)
+[QString::FromUtf8] 原始字符串: (969,295)
+[QString::FromUtf8] 原始字符串: (969,295)
+[QString::FromUtf8] 原始字符串: (966,295)
+[QString::FromUtf8] 原始字符串: (965,295)
+[QString::FromUtf8] 原始字符串: (965,295)
+[QString::FromUtf8] 原始字符串: (962,295)
+[QString::FromUtf8] 原始字符串: (961,295)
+[QString::FromUtf8] 原始字符串: (960,295)
+[QString::FromUtf8] 原始字符串: (957,297)
+[QString::FromUtf8] 原始字符串: (957,297)
+[QString::FromUtf8] 原始字符串: (956,297)
+[QString::FromUtf8] 原始字符串: (953,297)
+[QString::FromUtf8] 原始字符串: (953,297)
+[QString::FromUtf8] 原始字符串: (949,297)
+[QString::FromUtf8] 原始字符串: (949,297)
+[QString::FromUtf8] 原始字符串: (946,297)
+[QString::FromUtf8] 原始字符串: (945,297)
+[QString::FromUtf8] 原始字符串: (944,297)
+[QString::FromUtf8] 原始字符串: (941,297)
+[QString::FromUtf8] 原始字符串: (940,297)
+[QString::FromUtf8] 原始字符串: (938,297)
+[QString::FromUtf8] 原始字符串: (937,297)
+[QString::FromUtf8] 原始字符串: (932,297)
+[QString::FromUtf8] 原始字符串: (930,297)
+[QString::FromUtf8] 原始字符串: (929,297)
+[QString::FromUtf8] 原始字符串: (928,297)
+[QString::FromUtf8] 原始字符串: (926,297)
+[QString::FromUtf8] 原始字符串: (925,297)
+[QString::FromUtf8] 原始字符串: (924,297)
+[QString::FromUtf8] 原始字符串: (922,298)
+[QString::FromUtf8] 原始字符串: (921,298)
+[QString::FromUtf8] 原始字符串: (920,298)
+[QString::FromUtf8] 原始字符串: (917,298)
+[QString::FromUtf8] 原始字符串: (917,298)
+[QString::FromUtf8] 原始字符串: (916,298)
+[QString::FromUtf8] 原始字符串: (914,299)
+[QString::FromUtf8] 原始字符串: (913,299)
+[QString::FromUtf8] 原始字符串: (912,299)
+[QString::FromUtf8] 原始字符串: (910,301)
+[QString::FromUtf8] 原始字符串: (909,301)
+[QString::FromUtf8] 原始字符串: (908,301)
+[QString::FromUtf8] 原始字符串: (905,302)
+[QString::FromUtf8] 原始字符串: (905,303)
+[QString::FromUtf8] 原始字符串: (904,303)
+[QString::FromUtf8] 原始字符串: (902,305)
+[QString::FromUtf8] 原始字符串: (902,305)
+[QString::FromUtf8] 原始字符串: (901,306)
+[QString::FromUtf8] 原始字符串: (901,307)
+[QString::FromUtf8] 原始字符串: (900,309)
+[QString::FromUtf8] 原始字符串: (900,310)
+[QString::FromUtf8] 原始字符串: (898,313)
+[QString::FromUtf8] 原始字符串: (898,313)
+[QString::FromUtf8] 原始字符串: (898,315)
+[QString::FromUtf8] 原始字符串: (898,317)
+[QString::FromUtf8] 原始字符串: (898,318)
+[QString::FromUtf8] 原始字符串: (898,319)
+[QString::FromUtf8] 原始字符串: (898,321)
+[QString::FromUtf8] 原始字符串: (898,322)
+[QString::FromUtf8] 原始字符串: (898,323)
+[QString::FromUtf8] 原始字符串: (899,325)
+[QString::FromUtf8] 原始字符串: (899,326)
+[QString::FromUtf8] 原始字符串: (900,329)
+[QString::FromUtf8] 原始字符串: (901,329)
+[QString::FromUtf8] 原始字符串: (902,331)
+[QString::FromUtf8] 原始字符串: (902,333)
+[QString::FromUtf8] 原始字符串: (903,334)
+[QString::FromUtf8] 原始字符串: (904,335)
+[QString::FromUtf8] 原始字符串: (905,337)
+[QString::FromUtf8] 原始字符串: (906,338)
+[QString::FromUtf8] 原始字符串: (908,341)
+[QString::FromUtf8] 原始字符串: (909,342)
+[QString::FromUtf8] 原始字符串: (910,345)
+[QString::FromUtf8] 原始字符串: (912,345)
+[QString::FromUtf8] 原始字符串: (913,347)
+[QString::FromUtf8] 原始字符串: (915,349)
+[QString::FromUtf8] 原始字符串: (919,353)
+[QString::FromUtf8] 原始字符串: (921,355)
+[QString::FromUtf8] 原始字符串: (922,357)
+[QString::FromUtf8] 原始字符串: (925,359)
+[QString::FromUtf8] 原始字符串: (927,361)
+[QString::FromUtf8] 原始字符串: (928,362)
+[QString::FromUtf8] 原始字符串: (930,363)
+[QString::FromUtf8] 原始字符串: (933,365)
+[QString::FromUtf8] 原始字符串: (934,367)
+[QString::FromUtf8] 原始字符串: (936,369)
+[QString::FromUtf8] 原始字符串: (938,370)
+[QString::FromUtf8] 原始字符串: (940,373)
+[QString::FromUtf8] 原始字符串: (940,372)
+[QString::FromUtf8] 原始字符串: (940,371)
+[QString::FromUtf8] 原始字符串: (940,370)
+[QString::FromUtf8] 原始字符串: (940,369)
+[QString::FromUtf8] 原始字符串: (938,369)
+[QString::FromUtf8] 原始字符串: (937,370)
+[QString::FromUtf8] 原始字符串: (937,371)
+[QString::FromUtf8] 原始字符串: (936,373)
+[QString::FromUtf8] 原始字符串: (934,373)
+[QString::FromUtf8] 原始字符串: (933,373)
+[QString::FromUtf8] 原始字符串: (933,373)
+[QString::FromUtf8] 原始字符串: (932,374)
+[QString::FromUtf8] 原始字符串: (930,375)
+[QString::FromUtf8] 原始字符串: (929,375)
+[QString::FromUtf8] 原始字符串: (929,377)
+[QString::FromUtf8] 原始字符串: (928,377)
+[QString::FromUtf8] 原始字符串: (926,378)
+[QString::FromUtf8] 原始字符串: (925,379)
+[QString::FromUtf8] 原始字符串: (924,379)
+[QString::FromUtf8] 原始字符串: (922,381)
+[QString::FromUtf8] 原始字符串: (921,381)
+[QString::FromUtf8] 原始字符串: (920,382)
+[QString::FromUtf8] 原始字符串: (918,383)
+[QString::FromUtf8] 原始字符串: (917,385)
+[QString::FromUtf8] 原始字符串: (916,386)
+[QString::FromUtf8] 原始字符串: (913,387)
+[QString::FromUtf8] 原始字符串: (912,389)
+[QString::FromUtf8] 原始字符串: (909,389)
+[QString::FromUtf8] 原始字符串: (908,391)
+[QString::FromUtf8] 原始字符串: (905,393)
+[QString::FromUtf8] 原始字符串: (904,393)
+[QString::FromUtf8] 原始字符串: (901,395)
+[QString::FromUtf8] 原始字符串: (898,397)
+[QString::FromUtf8] 原始字符串: (896,398)
+[QString::FromUtf8] 原始字符串: (893,399)
+[QString::FromUtf8] 原始字符串: (889,402)
+[QString::FromUtf8] 原始字符串: (886,403)
+[QString::FromUtf8] 原始字符串: (884,405)
+[QString::FromUtf8] 原始字符串: (881,406)
+[QString::FromUtf8] 原始字符串: (877,409)
+[QString::FromUtf8] 原始字符串: (874,410)
+[QString::FromUtf8] 原始字符串: (872,411)
+[QString::FromUtf8] 原始字符串: (869,413)
+[QString::FromUtf8] 原始字符串: (865,415)
+[QString::FromUtf8] 原始字符串: (861,417)
+[QString::FromUtf8] 原始字符串: (858,418)
+[QString::FromUtf8] 原始字符串: (854,421)
+[QString::FromUtf8] 原始字符串: (852,422)
+[QString::FromUtf8] 原始字符串: (848,425)
+[QString::FromUtf8] 原始字符串: (845,425)
+[QString::FromUtf8] 原始字符串: (829,433)
+[QString::FromUtf8] 原始字符串: (825,435)
+[QString::FromUtf8] 原始字符串: (821,437)
+[QString::FromUtf8] 原始字符串: (817,439)
+[QString::FromUtf8] 原始字符串: (813,441)
+[QString::FromUtf8] 原始字符串: (809,443)
+[QString::FromUtf8] 原始字符串: (805,445)
+[QString::FromUtf8] 原始字符串: (801,447)
+[QString::FromUtf8] 原始字符串: (797,449)
+[QString::FromUtf8] 原始字符串: (793,451)
+[QString::FromUtf8] 原始字符串: (789,454)
+[QString::FromUtf8] 原始字符串: (784,457)
+[QString::FromUtf8] 原始字符串: (780,459)
+[QString::FromUtf8] 原始字符串: (776,461)
+[QString::FromUtf8] 原始字符串: (772,463)
+[QString::FromUtf8] 原始字符串: (768,466)
+[QString::FromUtf8] 原始字符串: (764,469)
+[QString::FromUtf8] 原始字符串: (760,471)
+[QString::FromUtf8] 原始字符串: (744,482)
+[QString::FromUtf8] 原始字符串: (724,497)
+[QString::FromUtf8] 原始字符串: (694,521)
+[QString::FromUtf8] 原始字符串: (684,530)
+[QString::FromUtf8] 原始字符串: (681,534)
+[QString::FromUtf8] 原始字符串: (677,537)
+[QString::FromUtf8] 原始字符串: (673,541)
+[QString::FromUtf8] 原始字符串: (670,545)
+[QString::FromUtf8] 原始字符串: (668,547)
+[QString::FromUtf8] 原始字符串: (664,550)
+[QString::FromUtf8] 原始字符串: (661,554)
+[QString::FromUtf8] 原始字符串: (657,557)
+[QString::FromUtf8] 原始字符串: (654,561)
+[QString::FromUtf8] 原始字符串: (652,565)
+[QString::FromUtf8] 原始字符串: (648,569)
+[QString::FromUtf8] 原始字符串: (645,571)
+[QString::FromUtf8] 原始字符串: (641,575)
+[QString::FromUtf8] 原始字符串: (638,578)
+[QString::FromUtf8] 原始字符串: (634,582)
+[QString::FromUtf8] 原始字符串: (632,585)
+[QString::FromUtf8] 原始字符串: (629,589)
+[QString::FromUtf8] 原始字符串: (625,593)
+[QString::FromUtf8] 原始字符串: (621,597)
+[QString::FromUtf8] 原始字符串: (618,601)
+[QString::FromUtf8] 原始字符串: (616,605)
+[QString::FromUtf8] 原始字符串: (609,611)
+[QString::FromUtf8] 原始字符串: (605,615)
+[QString::FromUtf8] 原始字符串: (601,618)
+[QString::FromUtf8] 原始字符串: (598,622)
+[QString::FromUtf8] 原始字符串: (594,626)
+[QString::FromUtf8] 原始字符串: (592,629)
+[QString::FromUtf8] 原始字符串: (588,633)
+[QString::FromUtf8] 原始字符串: (585,637)
+[QString::FromUtf8] 原始字符串: (581,641)
+[QString::FromUtf8] 原始字符串: (577,645)
+[QString::FromUtf8] 原始字符串: (573,649)
+[QString::FromUtf8] 原始字符串: (569,653)
+[QString::FromUtf8] 原始字符串: (565,657)
+[QString::FromUtf8] 原始字符串: (562,661)
+[QString::FromUtf8] 原始字符串: (558,663)
+[QString::FromUtf8] 原始字符串: (554,667)
+[QString::FromUtf8] 原始字符串: (550,671)
+[QString::FromUtf8] 原始字符串: (546,675)
+[QString::FromUtf8] 原始字符串: (542,679)
+[QString::FromUtf8] 原始字符串: (538,682)
+[QString::FromUtf8] 原始字符串: (534,686)
+[QString::FromUtf8] 原始字符串: (530,690)
+[QString::FromUtf8] 原始字符串: (526,694)
+[QString::FromUtf8] 原始字符串: (521,697)
+[QString::FromUtf8] 原始字符串: (517,701)
+[QString::FromUtf8] 原始字符串: (513,705)
+[QString::FromUtf8] 原始字符串: (509,709)
+[QString::FromUtf8] 原始字符串: (505,713)
+[QString::FromUtf8] 原始字符串: (501,717)
+[QString::FromUtf8] 原始字符串: (497,721)
+[QString::FromUtf8] 原始字符串: (493,723)
+[QString::FromUtf8] 原始字符串: (489,727)
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Acornima_System_StringExtensions
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Acornima_Acornima_UnicodeProperties
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Acornima_Acornima_Tokenizer_RegExpParser
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_AvaloniaLocator
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_StyledElement
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Visual
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Utilities_StopwatchHelper
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Threading_DispatcherPriority
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Rendering_Composition_Transport_CompositionBatch
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Rendering_Composition_Server_CompositionProperty
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Rendering_Composition_Server_ServerCompositionTarget
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Layout_Layoutable
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Input_FocusManager
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Input_PullGestureRecognizer
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Input_Gestures
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Input_InputElement
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Input_XYFocus
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Input_GestureRecognizers_ScrollGestureRecognizer
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Diagnostics_Diagnostic
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_DashStyle
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_Effect
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_ImmutableBlurEffect
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_ImmutableDropShadowEffect
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_EllipseGeometry
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_FontFamily
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_Geometry
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_GlyphRun
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_KnownColors
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_RectangleGeometry
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_TextDecorations
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: __GetNonGCStaticBase_Avalonia_Base_Avalonia_Media_TextFormatting_Unicode_LineBreakEnumerator
+[QString::FromUtf8] 长度超过50字符，跳过替换
+[QString::FromUtf8] 原始字符串: .text
+[QString::FromUtf8] 原始字符串: Function name
+[QString::FromUtf8] 原始字符串: Segment
+[QString::FromUtf8] 原始字符串: Copy pseudocode to disassembly
+[QString::FromUtf8] 原始字符串: Open picture
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: Start process
+[QString::FromUtf8] 原始字符串: Disassembly
+[QString::FromUtf8] 原始字符串: Set t&ype...
+[QString::FromUtf8] 原始字符串: Undo 
+[QString::FromUtf8] 原始字符串: Redo 
+[QString::FromUtf8] 原始字符串: Disable undo
+[QString::FromUtf8] 原始字符串: Pull function main
+[QString::FromUtf8] 原始字符串: Push function main
+[QString::FromUtf8] 原始字符串: Revert function main
+[QString::FromUtf8] 原始字符串: Delete function main
+[QString::FromUtf8] 原始字符串: View function main
+[QString::FromUtf8] 原始字符串: Metadata History
+[QString::FromUtf8] 原始字符串: Copy pseudocode to disassembly
+[QString::FromUtf8] 原始字符串: Open picture
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: ...     (unassigned)
+[QString::FromUtf8] 原始字符串: Start process
+[QString::FromUtf8] 原始字符串: Disassembly
+[QString::FromUtf8] 原始字符串: Set t&ype...
+[QString::FromUtf8] 原始字符串: Undo 
+[QString::FromUtf8] 原始字符串: Redo 
+[QString::FromUtf8] 原始字符串: Disable undo
+[QString::FromUtf8] 原始字符串: Pull function main
+[QString::FromUtf8] 原始字符串: Push function main
+[QString::FromUtf8] 原始字符串: Revert function main
+[QString::FromUtf8] 原始字符串: Delete function main
+[QString::FromUtf8] 原始字符串: View function main
+[QString::FromUtf8] 原始字符串: Metadata History
+[QString::FromUtf8] 原始字符串: Function name
+[QString::FromUtf8] 原始字符串: Segment
+[QString::FromUtf8] 原始字符串: Start
+[QString::FromUtf8] 原始字符串: Length
+[QString::FromUtf8] 原始字符串: Locals
+[QString::FromUtf8] 原始字符串: Arguments
+[QString::FromUtf8] 原始字符串: R
+[QString::FromUtf8] 原始字符串: F
+[QString::FromUtf8] 原始字符串: L
+[QString::FromUtf8] 原始字符串: M
+[QString::FromUtf8] 原始字符串: O
+[QString::FromUtf8] 原始字符串: S
+[QString::FromUtf8] 原始字符串: B
+[QString::FromUtf8] 原始字符串: T
+[QString::FromUtf8] 原始字符串: =
+[QString::FromUtf8] 原始字符串: X
+[QString::FromUtf8] 原始字符串: 0000000140030E60: main
+[QString::FromUtf8] 原始字符串: 00030260
+[QString::FromUtf8] 原始字符串: Function name
+[QString::FromUtf8] 原始字符串: Segment
+[QString::FromUtf8] 原始字符串: Start
+[QString::FromUtf8] 原始字符串: Length
+[QString::FromUtf8] 原始字符串: Locals
+[QString::FromUtf8] 原始字符串: Arguments
+[QString::FromUtf8] 原始字符串: R
+[QString::FromUtf8] 原始字符串: F
+[QString::FromUtf8] 原始字符串: L
+[QString::FromUtf8] 原始字符串: M
+[QString::FromUtf8] 原始字符串: O
+[QString::FromUtf8] 原始字符串: S
+[QString::FromUtf8] 原始字符串: B
+[QString::FromUtf8] 原始字符串: T
+[QString::FromUtf8] 原始字符串: =
+[QString::FromUtf8] 原始字符串: X

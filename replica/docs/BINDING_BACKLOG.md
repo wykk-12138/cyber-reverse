@@ -1592,3 +1592,29 @@ ScheelsFrontastic: account/* · product/getProduct
 | 触发观察点 | `requiresSignifydStepUp` 由谁置位，未读 |
 
 **纪律**：**往类里加常量前先搜字面值。取证和落实现是两个方向，都要搜。**
+
+
+## 全局 — 指纹层状态 + 类型缺失分类（R809）
+
+**优先级 ③ 是实实现**：`Ja3` 214 行（含 `IsGrease`）· `Tls12Client` 581 + 四个部件 ·
+`Http2` 297 + `HpackHuffman` 314 · `Ja3Tests` 6 + `GreaseTests` 8。
+
+**17 条类型缺失已分类**：
+
+```
+OUT_OF_SCOPE 2   AuthWindow · LicenseControl        （YG R702：用户管理，不在功能集）
+RENAMED      7   Settings→GlobalSettings 等
+STRUCTURAL   1   SettingsView 18/19
+UNKNOWN      7   ObservableDictionary · Localize*Extension ×4 · AccountsCreatorView · TaskCreatorCartView
+```
+
+**判据 (a) 的形态：已分类完毕（含 Unknown+缺什么），不是已归零。**
+
+| 仍 Unknown | |
+|---|---|
+| `SettingsView` 第 19 个成员 | **我的方法量不出**，需读 `bodies()` 而非改正则 |
+| 7 个 `Localize*Extension` 是否各自独立 | 1–2 成员，判别力规则一律 UNKNOWN（规则设计，非遗漏） |
+| `TrafficCountingStream` 里的 `TODO` | 未看 |
+
+**纪律**：**临时脚本与项目工具冲突时，先假定脚本量的是别的东西。**
+三次实例（R806 显示截断、R807 token 键当清单、R809 类体口径）**都是脚本错。**

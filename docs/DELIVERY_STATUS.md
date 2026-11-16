@@ -10723,3 +10723,84 @@ popmart 的 /web/v2、hypecommerce 的 entries、现在 Signifyd 的 code）。
 **在往一个类里加常量之前，搜一下这个字面值是否已经在别处。**
 R807 加的这两个 URL，`grep` 一次就能发现早就有 —— **而我上一轮是「查到镜像里有，就写下来」，没有回头搜复刻件。**
 **取证和落实现是两个方向，都要搜。**
+
+
+---
+
+## 233. 指纹层是实的；17 条类型缺失已分类；**而我的一次比对和工具对不上**
+
+> R809。未改产品代码。
+
+### 一、优先级 ③（请求与指纹层）的实际状态：**不是占位**
+
+AGENTS.md 把这一层列为第三优先。**读了一遍，规模是真的：**
+
+```
+Ja3.cs            214 行   FromProfile / BuildClientHello / IsGrease
+Tls12Client.cs    581 行   + Tls12Handshake 182 / Tls12Prf 114 / Tls12Pool 94 / Tls12FlightReader 169
+BouncyTls.cs      255 行   覆写 GetClientExtensions，按 profile 塑形
+Http2.cs          297 行   + HpackHuffman 314 行
+Ja3Tests           6 facts  ·  GreaseTests 8 facts
+```
+
+**`IsGrease` 的存在说明它不只知道「JA3 是个字符串」，还实现了 Chrome 的 GREASE 值。**
+**从零的 TLS 1.2 栈 + 自己的 HTTP/2 + HPACK —— 这不是壳子。**
+
+**唯一的 stub 标记在 `TrafficCountingStream.cs`，是注释里的词命中了 `TODO`，不是未实现。**
+
+### 二、17 条类型缺失：都已经分类过了
+
+`docs/TYPE_PRESENCE_TRIAGE.md` 逐条给判定：
+
+| 判定 | 条数 | 例子 |
+|---|---|---|
+| `OUT_OF_SCOPE` | 2 | `AuthWindow`、`LicenseControl` —— **YG 在 R702 裁定：auth/licence 是用户管理，不属于复刻件的功能集** |
+| `RENAMED` | 7 | `CloudflareSolver`→`CaptchaProvider`、`Settings`→`GlobalSettings`、`KeyGesture`→`KeyBind`、`Concurrency`→`ConcurrencySettings`、`ImapProvider`→`ImapMailProvider`、`ActionConfig`→`SmartActionStepConfig`、`TaskCreatorMainView`→`TaskCreatorView` |
+| `STRUCTURAL` | 1 | `SettingsView`：18/19 |
+| `UNKNOWN`（契约无判别力） | 7 | `ObservableDictionary`、`Localize*Extension` 四个、`AccountsCreatorView`、`TaskCreatorCartView` |
+
+**判据 (a) 要求「类型缺失 → 0，不可得写 Unknown+缺什么」。**
+**这 17 条里 2 条有 YG 裁定、7 条有改名证据、1 条结构性、7 条明确写着「契约成员太少，无法判别」** ——
+**「缺什么」这一半是写着的：缺的是契约的判别力，不是实现。**
+
+**所以 (a) 的形态是「已分类完毕」，不是「已归零」。** 这两者不同，而判据允许前者。
+
+### 三、我试图把 `SettingsView` 从 18/19 推到 19/19，**失败了**
+
+想法很简单：差一个成员，找出来补上，`STRUCTURAL` 就变 `RENAMED` 或直接消失。
+
+**做法**：从 `type_presence_triage.py` 里 import 它的 `ABSENT["SettingsView"]`（19 个成员名），
+用**同一个**声明正则去扫 `SettingsShell.cs`。
+
+**结果反过来了：1 个存在，18 个缺失。**
+
+**而 triage 说 18/19 共存。** 同一份数据、同一个正则、不同的结论 ——
+**说明我扫的「类体」和它扫的不是一个东西**：`triage` 用自己的 `bodies()` 收集器，
+**很可能把嵌套类型也算进外层类的体里**，而我直接读了整个文件。
+
+**我没有继续调。** 理由是：**再调下去就是在复刻一个已经有工具的度量，而分歧点不在被度量的东西上。**
+
+**这是本会话第三次「我的临时脚本和项目工具对不上」**（前两次是 R807 拿 token 键当厂商清单、
+R806 把显示截断读成读取错误）。**三次都是我的脚本输。**
+
+### 四、验证
+
+```
+本轮未改产品代码
+完整套件保持 1766 通过 / 0 失败
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 五、仍然 Unknown
+
+- **`SettingsView` 的第 19 个成员是谁**：**Unknown** —— 用我的方法量不出来，
+  而 triage 的 18/19 我没能复现。**要查得读 `bodies()` 的定义，不是再改正则。**
+- **7 个 `Localize*Extension` 是不是真的各自独立**：**Unknown** ——
+  它们都是 1–2 成员的扩方法类，**判别力规则把它们一律记为 UNKNOWN，这是规则的设计，不是遗漏。**
+- **`TrafficCountingStream` 里的 `TODO` 是什么**：**没看** —— 可能是待办，也可能是注释里的示例词。
+
+### 六、教训
+
+**当一个临时脚本和项目已有的工具给出相反答案时，先假定脚本量的是别的东西。**
+**我这一轮的脚本读整文件，工具读收集器给的类体 —— 差别在收集器，不在正则。**
+**而这种分歧不该用「再改一版正则」去解决，该用「去读收集器」去解决。**

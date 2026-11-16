@@ -47097,3 +47097,48 @@ AntiBotVendorTests 6/6 · DocsConsistencyTests 7/7
 完整套件 1751 通过 / 0 失败
 四项度量 4 / 0 / 17 / 78 / 0（未变）
 ```
+
+
+---
+
+## 第 763 轮：仪器修好了，而修的过程里我又犯两次
+
+### 22 vs 62 的根因
+
+`CreateAll()` 里多数是 **`FlowStoreModule(new XxxFlow(...))`** —— flow 被包成 module，
+而 flow 不是 `StoreModuleBase` 子类，所以 40 个不可见。
+
+**而 `DocsConsistencyTests` 的注释早写着「the script now reads only CreateAll()」。**
+
+### 现在
+
+```
+entries in CreateAll(): 62      ← 与 DocsConsistencyTests 一致
+distinct flow types: 32         ← 与 ParityDocTests 一致
+domains claimed by >1 entry: 0
+```
+
+### 而修的过程里又犯两次
+
+| # | 假设 | 实际 |
+|---|---|---|
+| 1 | 字段只在 `: this(...)` 链 | 也有 `base(...)` |
+| 2 | 花括号按字符数 | 字符串里的 `{` 打乱深度 → 报「class not found」 |
+
+**第 2 条最坏：诊断文案报错了因，而它只在无参条目上触发，所以活过了一轮。**
+
+### 立了规
+
+`AGENTS.md` §2.7：**扫之前先问：这个东西有几种写法？**
+外加**诊断文案要写对因**、**总数对了不等于每行都对**、**交叉验证**、**改文档也用锚点**。
+
+### 而写这条规则的同一轮，我用坏锚点把规则文件改坏了
+
+`find('---')` 撞上表头分隔线 → 孤儿表格 + 断开的表头。**已修**，
+并把这件事故意写进那张表当第七条。
+
+### 验证
+
+```
+产品代码未改；套件 1751 / 0
+```

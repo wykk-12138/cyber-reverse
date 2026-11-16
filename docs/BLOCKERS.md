@@ -13027,3 +13027,77 @@ DocsConsistencyTests   7 / 7 通过
 - `prop.json` 的用途与刷新时机：**Unknown**。
 - Datadog 在复刻件的落点：**Unknown**（待办）。
 - 我 `store_catalog.py` 为何少算 40 个：**Unknown** —— 未查（下轮）。
+
+
+---
+
+## 191. 目录清单仪器的三次修正；以及**给扫描器立了一条前置问题**
+
+> R763/R764。改 `analysis/store_catalog.py`（两次）、`AGENTS.md`（新增 §2.7）。未改产品代码。
+
+### 一、22 vs 62 的根因
+
+`StoreModuleCatalog.CreateAll()` **多数条目是 `new FlowStoreModule(new XxxFlow(...))`** ——
+**flow 被包成 module**。`store_catalog.py` 只数 `: StoreModuleBase` 子类，**flow 不是 module 子类，40 个不可见**。
+
+**而 `DocsConsistencyTests` 的注释里早就写着「the script now reads only CreateAll()」** —— **仓库指明了做法，我没读。**
+
+### 二、改成解析 `CreateAll()`
+
+```
+entries in CreateAll(): 62      ← 与 DocsConsistencyTests 的 catalogue 一致
+distinct flow types: 32         ← 与 ParityDocTests 引用的 32 一致
+domains claimed by more than one entry: 0
+```
+
+**两个交叉数字都对上，这是「可复算」的实际含义。**
+
+### 三、修的过程中又犯两次同类错
+
+| # | 我假设 | 实际 | 症状 |
+|---|---|---|---|
+| 1 | 字段只在 `: this(...)` 链里 | 也有 `base(...)` | 十几个条目 id 是 `?` |
+| 2 | 花括号可按字符计数 | 字符串里的 `{`（JSON 模板/正则）打乱深度 | `ShopifyFlow` 报「class not found」 |
+
+**第 2 条尤其坏**：`class_body` 走飞后返回 `None`，调用方把它翻译成「**class not found**」——
+**那个诊断文案报错了因**，而这类类**只有无参条目才会走到**，十几个有内联参数的兄弟条目从不触发，于是活过了一轮。
+
+现在 `class_body` 跳过字符串/字符/注释区域再来数括号。
+
+### 四、给扫描器立了前置问题（`AGENTS.md` §2.7）
+
+> **扫之前先问：这个东西在二进制/源码里有几种写法？**
+
+六次都是同一件事 —— **先假设形状，再把「不符合假设」读成「不存在」**：
+
+| 轮 | 假设 | 后果 |
+|---|---|---|
+| R753 | 标签形如 `"Startup Page"` | 假缺席 |
+| R759 | module 字段形如 `=>` | `?` |
+| R760 | 店名以显示名出现 | 7 个站误判可疑 |
+| R762 | 只扫一类子类 | 22 vs 62 |
+| R763 | 只认 `this(...)` | 十几个 `?` |
+| R764 | 花括号按字符数 | 「class not found」 |
+
+配套：**诊断文案要写对因**、**总数对了不等于每行都对**、**交叉验证**、**改文档也用锚点**。
+
+### 五、而写这条规则的同一轮里，我用坏锚点把规则文件改坏了
+
+搬动 §2.7 时用 `find('---')` 定区块边界，**撞上表头分隔线**，
+结果：一段孤儿表格留在 §2 里、§2.7 的表头断成两行。**已修**（分两处精确 `edit`），
+并把这件事本身作为第七条写进那张表 —— **不是我谦虚，是它最能说明问题。**
+
+结构已核：标题序 0 → 1 → 2 → 2.5 → 2.7 → 3 → 4 → 5，无残留表格碎片，2.7 表体与四条配套都在。
+
+### 六、验证
+
+```
+本轮未改产品代码
+完整套件保持 1751 通过 / 0 失败（R762 时的值）
+store_catalog.py 输出 62 / 32 / 0 冲突
+```
+
+### 七、仍然 Unknown
+
+- `shopify` 那条的 `(none)` 域名是否就是原版行为：**Unknown** —— 猜是「按 host 识别、不绑固定域名」，未取证。
+- 62 个条目里还有多少是「有 module 无实际 step 实现」：**Unknown** —— 那是判据 f 的下一层。

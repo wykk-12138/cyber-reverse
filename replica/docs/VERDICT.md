@@ -50544,3 +50544,52 @@ ChromiumBridge.cs:13  /// original gets away with "local generation" because it 
 str PopNow → 29（13 方法名 + 1 裸 PopNow）· str NikeFlow/ShopifyFlow/FlowBase → 全 0
 复刻件 12 个名字 → 全 0 · 产品代码未改
 ```
+
+
+---
+
+## 第 839 轮：镜像 115 个具名 async 操作，复刻件按名字命中 44，缺 71
+
+### 换做法：不搜词，提名字
+
+`<Name>d__N` 是编译器给每个 `async` 方法生成的状态机类型名 —— **一个对应一个方法**。
+按八个关键词各取一轮，合并去重：**115 个。**
+
+### 最刺眼的一组：`AddToCart` 有 15 个具名变体
+
+```
+AddToCart · AddToCart2 · AddToCartApp · AddToCartAppDw · AddToCartAstro · AddToCartBox
+AddToCartDummy · AddToCartFrontend · AddToCartGraphQL · AddToCartMulti · AddToCartNext
+AddToCartPreload · AddToCartPreloadGraphQL · AddToCartStoreFront · AddToCartSvelte
+```
+
+**复刻件只有一个 `AddToCartAsync` + 14 个 override。**
+
+> **这不是命名差异，是两种架构：镜像「一个方法一个平台口味」（Astro/Next/Svelte/GraphQL/StoreFront/App/Dw），复刻件「一个虚方法按站重写」。**
+> **goal 允许命名不同，所以不必然是缺陷 —— 但复刻件按站组织时，可能把两条不同平台的路径合并成了一条。**
+
+### 71 条未命中的分布
+
+加车变体 7 · 会话/令牌 11 · 结账面 16 · 支付渠道 8 · 购物车读 11 · 抽签/签到 4 · 任务框架 7 · 订单结果 3 · 其他 4
+
+**清单存进 `docs/ASYNC_OPS.md`，每条留「待判」——终将得到三种裁决之一：改名实现了 / 本就不需要（哪条证据）/ 真缺。**
+
+### 边界（必须写明）
+
+**不是全量**：`>d__` 全量 1304 条，插件响应上限在 300–3000 之间 → **115 只是含这八个词的子集。**
+**名字级 ≠ 功能级。** **`d__` 名字表可能被裁剪。**
+
+### 这一轮踩的三处坑
+
+| 坑 | 后果 / 修法 |
+|---|---|
+| **逐字节遍历 7 MB 调 COM** | **把 IDA 弄崩、数据库写坏**；重开要点三次框（新增「Database still contains inconsistencies」） |
+| `py_eval` 用**持久 globals** | 上次的 `pat` 残留 → `not re.Pattern` |
+| 内联 py 的反斜杠被 shell 吃掉 | 改用 `[0-9]` 或不做正则 |
+
+> **崩溃的根因是老问题换了形状：想「遍历一大片」就写了每字节调一次 COM。该先问：有没有索引化接口？有 —— `idautils.Strings()`。**
+
+### 仍然 Unknown
+
+**1304 里 115 之外的那 1189 条**（多为 Avalonia/BCL/DotNetBrowser，比例未验）·
+**71 条里哪些是改名实现**（逐条 grep 别名未做）· **`AddToCart*` 各变体对应哪些站**（名字是前端框架，暗示按框架分）

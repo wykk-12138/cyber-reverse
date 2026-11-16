@@ -2476,3 +2476,43 @@ functions: ratio           | 61.96%
 | `StartInStoreFlow` | 门店自提？ |
 | `StartDailyCheckInTask` 是否通用 | 名字通用，可能所有站都用 |
 | **镜像的类清单** | **最关键 —— 缺它 (f) 只能靠搜词拼** |
+
+
+## 判据 (f) 的骨架 — 镜像 115 个具名 async 操作（R839）
+
+**清单在 `docs/ASYNC_OPS.md`（生成物）。复刻件按名字命中 44，未命中 71。**
+
+### `AddToCart` 有 15 个具名变体
+
+```
+AddToCart · AddToCart2 · AddToCartApp · AddToCartAppDw · AddToCartAstro · AddToCartBox
+AddToCartDummy · AddToCartFrontend · AddToCartGraphQL · AddToCartMulti · AddToCartNext
+AddToCartPreload · AddToCartPreloadGraphQL · AddToCartStoreFront · AddToCartSvelte
+```
+
+**复刻件一个 `AddToCartAsync` + 14 override。**
+**架构差异：镜像按平台口味分方法（Astro/Next/Svelte/GraphQL/StoreFront/App/Dw），复刻件按站重写虚方法。**
+
+### 71 条的裁决进度
+
+**每条需三选一：改名实现了 / 本就不需要（附证据）/ 真缺。目前全是「待判」。**
+
+### 复算
+
+```
+python analysis/ida.py str <Flow|Task|Pop|Cart|Checkout|Order|Session|Signup> --limit 300
+提取 <Name>d__N 的 Name → 115 ； grep 复刻件 → 44
+```
+
+**边界**：`>d__` 全量 1304 条，插件响应上限 300–3000 → **115 是子集**；名字级 ≠ 功能级；`d__` 表可能被裁剪。
+
+| 仍 Unknown | |
+|---|---|
+| 1304 里另 1189 条 | 多为 Avalonia/BCL/DotNetBrowser，比例未验 |
+| 71 条里哪些是改名 | 逐条 grep 别名未做 |
+| `AddToCart*` 变体 ↔ 站点 | 名字是前端框架，暗示按框架分 |
+
+### 工具坑（已记）
+
+**逐字节遍历 7 MB 会把 IDA 弄崩、数据库写坏**（重开要点「Database still contains inconsistencies」）。
+**用 `idautils.Strings()`。** `py_eval` 是**持久 globals**，变量名会残留。内联 py 里的反斜杠会被 shell 吃掉。

@@ -13481,3 +13481,96 @@ ida.py str NikeFlow/ShopifyFlow/FlowBase -> 全 0（镜像没有按站命名的 
 
 **而我在三轮里，三次把「含某个词的串」当成「完整的清单」，每次被下一轮推翻。**
 **这次不改判据，下一轮还会犯。**
+
+
+---
+
+## 263. **镜像的具名 async 操作：115 个，复刻件按名字命中 44，缺 71**
+
+> R839。新增 `docs/ASYNC_OPS.md`（生成物）。未改产品代码。
+
+### 一、这一轮要解决的是方法问题
+
+R838 记的是：**「按词搜索给的是『含这个词的那些』，不是完整清单」**，三轮三次低估。
+
+**所以这一轮换做法：不问「PopMart 有什么」，而是把元数据里所有 `<Name>d__N` 的**名字**提取出来 ——
+那是编译器给每个 `async` 方法生成的状态机类型名，一个不多一个不少地对应一个 async 方法。**
+
+**结果：115 个具名操作。**
+
+### 二、最刺眼的一组
+
+**`AddToCart` 一个操作，镜像里有 15 个具名变体：**
+
+```
+AddToCart · AddToCart2 · AddToCartApp · AddToCartAppDw · AddToCartAstro · AddToCartBox
+AddToCartDummy · AddToCartFrontend · AddToCartGraphQL · AddToCartMulti · AddToCartNext
+AddToCartPreload · AddToCartPreloadGraphQL · AddToCartStoreFront · AddToCartSvelte
+```
+
+**而复刻件只有一个 `AddToCartAsync`，由各流程 `override`。**
+
+**这不是命名差异 —— 是「按平台分方法」与「按站点分重写」两种架构。**
+**镜像走的是「一个方法一个平台口味」（Astro / Next / Svelte / GraphQL / StoreFront / App / Dw …），
+复刻件走的是「一个虚方法 14 个重写」。**
+
+**goal 允许命名不同，所以这不必然是缺陷；但它意味着：镜像里某个站的加车逻辑**不是**在某站的
+`override` 里，而是在一个以平台命名的方法里 —— 复刻件按站点组织时，可能把两条不同平台的路径合并成了一条。**
+
+### 三、71 条未命中的分布
+
+**按性质粗分（未逐条判）：**
+
+| 组 | 例 |
+|---|---|
+| **加车变体** | `AddToCart2` `AddToCartAstro` `AddToCartBox` `AddToCartDummy` `AddToCartFrontend` `AddToCartNext` `AddToCartSvelte` |
+| **会话/令牌** | `CheckSession` `ExitSessionAsync` `GetSessionData` `GetSessionToken` `RequestSessionToken` `RestartSession` `SubmitSession` `SessionAsync` `SetupProxySession` `GetAtlasSessionToken` `GetAppCartToken` |
+| **结账面** | `CreateCheckout` `CreateCustomCheckout` `CreateRaffleCheckout` `FinalizeCheckout` `GenerateCheckout` `LoadCheckout` `LoadCheckoutPage` `PreloadCheckout` `StartCheckout` `StartCheckoutAstro` `StartInvoiceCheckout` `ValidateCheckout` `VerifyCheckout` `GetCheckoutHtml` `GetCheckoutPage` `GetSweepStakeCheckout` |
+| **支付渠道** | `ProcessOrderStripe` `ProcessOrderPaypalCreditCard` `ProcessOrderCommerce` `SubmitStripeOrder` `SubmitAdyenOrder` `SubmitUnzerOrder` `SubmitCheckoutPayment` `GetPaymentSession` |
+| **购物车读** | `CheckCart` `VerifyCart` `GetCartCookie` `GetCartCsrf` `GetCartId` `GetCartItemId` `GetCartLines` `GetCartPage` `GetCartValue` `GetCartValueApp` `ShopAddToCart` |
+| **抽签/签到** | `RaffleOrder` `StartPopNowViewTask` `StartDailyCheckInTask` `CreateRaffleCheckout` |
+| **任务框架** | `FetchTasks` `SetupTask` `StartTasksFlow` `Login_EnsureTaskAlive` `StartSignupFlow` `LoadGuestSignup` `GetRegisterSession` |
+| **订单结果** | `HandleOrderResult` `CompleteOrder` `RpcCreateOrder` |
+| 其他 | `CheckPreOrderState` `DetectByteOrderMarkAsync` `StepByteOrderMarkAsync` `_TryReturnTask` |
+
+**71 条里多数像「同一件事的平台变体或拆得更细的子步骤」，但要逐条给理由。**
+
+### 四、这一轮的可复算性，以及它的边界
+
+```
+python analysis/ida.py str <Flow|Task|Pop|Cart|Checkout|Order|Session|Signup> --limit 300
+提取 <Name>d__N 的 Name，合并去重 -> 115
+grep 复刻件 src -> 命中 44
+```
+
+**边界（必须写明）：**
+
+- **不是全量**：`>d__` 全量在 `Strings()` 里是 **1304** 条，而插件的响应上限在 300 与 3000 之间 ——
+  **所以 115 只是含这八个词的子集。**
+- **名字级 ≠ 功能级**：复刻件可能用别的名字做了同一件事。
+- **`d__` 这个名字表本身可能被裁剪**：未使用的 async 方法可能整个消失（R828 已记）。
+
+### 五、这一轮踩的坑（三处，都记下来）
+
+1. **逐字节遍历 0x143000000–0x143700000（7 MB）把 IDA 插件拖死了** —— 端口拒绝连接，
+   重开时要点三次框（unpacked → 是(Y) → **新增的「警告：Database still contains inconsistencies」→ 确定**）。
+   **7 MB 逐字节调 COM 是错的：应该用 `idautils.Strings()`。**
+2. **`idautils.Strings()` 可以用**（返回 254,111 条串），但**插件的 `py_eval` 用持久 globals 做 `exec`** ——
+   上一次编译的 `pat` 会留到下一次，导致 `'in <string>' requires string as left operand, not re.Pattern`。
+3. **内联 py 里的反斜杠会被 shell 吃掉**：`r'...\d...'` 到插件那边变形。**改用 `[0-9]` 或不做正则。**
+
+### 六、仍然 Unknown
+
+- **`>d__` 的 1304 条里，115 之外还有 1189 条** —— 大部分应是库（Avalonia / BCL / DotNetBrowser），
+  **但没验证过这个比例。**
+- **71 条里哪些是「改名实现」**：**逐条 grep 别名成本不低，而未做。**
+- **`AddToCartSvelte` / `AddToCartAstro` / `AddToCartNext` 对应哪些站**：**Unknown** ——
+  名字是前端框架，**暗示镜像按框架而不是按站分路径。**
+
+### 七、教训
+
+**这一轮的产出是一个清单，而这个清单第一次让「未覆盖的每条写为什么」这件事有了骨架。**
+**代价是三次工具层面的失败，其中一次把 IDA 弄崩、数据库写坏。**
+
+**而崩溃的根因是本会话的老问题换了形状：我想「遍历一大片」，于是写了个每字节调一次 COM 的循环。**
+**在那之前该问的是：这个插件有没有索引化的接口？有 —— `idautils.Strings()`。**

@@ -160,3 +160,11 @@
 **复刻件十二个名字全为 0。** 另：`NikeFlow`/`ShopifyFlow`/`FlowBase` 镜像全 0（复刻件命名自起）。
 **三轮三次低估（四→七→九方法子系统）** —— 按词搜索给的是「含这个词的那些」，不是完整清单。
 **判据 (f) 要完整清单：得遍历元数据后归类，或走类型图枚举某类全部方法。**
+
+## R839 补充 — 115 个具名 async 操作
+
+**`docs/ASYNC_OPS.md` 是判据 (f) 的骨架**：镜像 115 个具名 async 操作，复刻件按名字命中 44，未命中 71（全标「待判」）。
+**`AddToCart` 有 15 个具名变体**（Astro/Next/Svelte/GraphQL/StoreFront/App/Dw…），复刻件一个虚方法 + 14 override。
+**工具坑**：逐字节遍历 7 MB 会把 IDA 弄崩并写坏数据库 —— **用 `idautils.Strings()`**；
+`py_eval` 用持久 globals（变量会残留）；内联 py 的反斜杠会被 shell 吃掉。
+**重开 IDA 多了一个框**：「警告：Database still contains inconsistencies」→ 点「确定」。

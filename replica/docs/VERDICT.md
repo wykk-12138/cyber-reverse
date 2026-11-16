@@ -44532,3 +44532,45 @@ UiKit.Button("Close", () => Status("Closed."))     // CheckoutView : UserControl
 
 做那 32 条：按 `AGENTS.md` §3 清单把 View 上的命令改成 `ICommand` 绑定属性，先拿 `CheckoutView.Close` /
 `ReleaseView.Close` 两个做样板（有明确证据），跑全量，看 `declared-absent` / C10 怎么动。
+
+
+---
+
+## 第 710 轮：撤回上一轮的一个判断
+
+### 原文证据
+
+```
+Cybersole.Models.EditValue`1,Cybersole.Core.HasMultiple_87!Getter
+Cybersole.Models.EditValue`1,Cybersole.Core.HasMultiple_87!Setter
+```
+
+**`_87` 是原版真实属性名。** 提取器只做 `split('.')[-1]`，没有任何追加机制。
+
+### 连带更正
+
+| R709 说 | 现在 |
+|---|---|
+| 12 条是假成员 | **真缺口** |
+| 819 虚高，真实 807 | **819 准** |
+| C10 1.487% | **12/819 = 1.465%** |
+
+### 46 条的真实构成
+
+```
+12  EditValue`1 的 _87..（名字古怪但真实）
+ 2  Notification.Message / .Type
+32  命令做成了 lambda
+```
+
+### 为什么错
+
+**我判断「这不像真成员」，然后停在那儿了。** 字符串池离我一条命令，我没跑。
+
+> **plausibility 不是 evidence。名字古怪只说明它古怪，不说明它不存在。**
+
+本轮早先四次是我把规则简化错了；这一次是我把"看起来不合理"当成了"不存在"。
+
+### 下一轮
+
+按证据处理那 32 条 lambda 命令（描述符是真的，实现成 `ICommand` 属性有据）。

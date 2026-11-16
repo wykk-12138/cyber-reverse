@@ -9162,3 +9162,52 @@ UiKit.Button("Close", () => Status("Closed."))
   而不是只看绑定表里出现过名字。
 - `EditValue\`1` 的后缀到底是行号还是别的：**Inference（中）**，裸名并存是硬证据，但编号来源未核。
 - 修 `xaml_bindings.json` 会不会影响别的度量：**未评估**（`bind_diff` / `bind_scope` / `shape_audit` 都可能读它）。
+
+
+---
+
+## 139. **撤回 §138 的一条**：那 12 个带后缀的成员是**真的**，我判"假成员"判错了
+
+> R710。证据：`analysis/pe_strings.txt` 原文。
+
+### 一、原文是这么写的
+
+```
+0x0321ffbd  Cybersole.Models.EditValue`1,Cybersole.Core.HasMultiple_87!Getter
+0x0321ffff  Cybersole.Models.EditValue`1,Cybersole.Core.HasMultiple_87!Setterz...
+0x03220297  Cybersole.Models.EditValue`1,Cybersole.Core.HasMultiple_88!Getter
+0x032202d9  Cybersole.Models.EditValue`1,Cybersole.Core.HasMultiple_88!Setter
+```
+
+**`_87` 是原版真实的属性名。** 提取器 `analysis/_xaml_bindings.py` 只做 `member.split('.')[-1]`，
+**它没有任何追加后缀的机制** —— 我 §138 说"提取器加的"是凭空推断。
+
+### 二、连带更正
+
+| §138 的说法 | 现在 |
+|---|---|
+| 「12 条是绑定表自己造的假成员」 | **错** —— 12 条是真缺口 |
+| 「819 虚高 12，真实 807」 | **错** —— 819 一直是准的 |
+| 「C10 = 12/807 = 1.487%」 | **撤回** —— 仍是 **12/819 = 1.465%** |
+
+### 三、46 条的真实构成（全部是真缺口候选）
+
+```
+46 = 12  EditValue`1 的 _87/_88/_91/_93.._101/_92/_100（名字古怪但真实）
+   +  2  Notification.Message / .Type（源码叫 Body / Kind）
+   + 32  命令做成了 lambda（CheckoutView.Close 等）
+```
+
+### 四、为什么错
+
+**我判断"这不像真成员"，然后就停在那儿了。** 字符串池离我一条命令的距离，我没跑。
+
+> **plausibility 不是 evidence。名字古怪只说明它古怪，不说明它不存在。**
+
+这与本轮早先那四次「旧工具对、我错」是同一个毛病的不同面向：
+**那四次是我把规则简化错了，这一次是我把"看起来不合理"当成了"不存在"。**
+
+### 五、仍然 Unknown
+
+- 那 12 个名字（`HasMultiple_87` 等）在原版里承担什么语义：**Unknown** —— 只知道它们是真实绑定属性。
+- 为什么原版会有一族带数字后缀的属性：**Unknown**（可能是混淆、可能是代码生成、可能是历史残留）。

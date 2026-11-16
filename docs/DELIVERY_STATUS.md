@@ -18602,3 +18602,67 @@ python tools\metrics_report.py         -> 1789 通过 / 0 失败（原 1783 + 6�
 
 **R895 我学了「上界/下界/精确」；这一轮是它的另一个轴：**Observation 还是 Inference**。
 而这两件事在文档里长得一模一样，只有标注能分开。**
+
+
+---
+
+## 323. R898 的 Vans 常量少了 `/api`；归属升为 Observation
+
+> R899。**改产品代码 +1 用例。** 套件 **1790 通过 / 0 失败 / 0 跳过**。
+
+### 一、根因
+
+**R898 的扫描模式是 `/(cart|products)/vN/` —— 它从 `/api` **之后**那一段开始匹配。
+所以既看不到前面的宿主，也丢掉了 `/api`。**
+
+**两个后果，同一个原因：路径错了，而「没有宿主」这个观察也是假的。**
+
+### 二、5 条完整 URL
+
+```
+https://www.vans.com/api/cart/v1/cartWithItem?locale=
+https://www.vans.com/api/cart/v2/cart/
+https://www.vans.com/api/cart/v2/checkout/order/
+https://www.vans.com/api/cart/v2/checkout/order?locale=
+https://www.vans.com/api/products/v2/products/
+```
+
+### 三、修正
+
+| 项 | R898 | R899 |
+|---|---|---|
+| 前缀 | `/cart/v1/cart/` | **`/api/cart/v1/cart/`** |
+| `OwnershipIsInference` | `true` | **`false`** |
+
+**少了 `/api` 的常量指的是一个 Vans 服务器不会应答的路径。**
+
+### 四、而 R898 的「谨慎」是假的
+
+**R898 说「这 6 条没有自带宿主，所以归属是 Inference」。听起来很谨慎。**
+
+**而它谨慎记录的是一个**我自己的匹配模式造成的假象**。
+「证据不足」和「我的搜索看不到」是两件事，R898 把后者写成了前者。**
+
+### 五、验证
+
+```
+搜 vans.com.../(cart|products)/vN/     -> 5 条完整 URL（宿主与路径同处一条字面量）
+VansEndpoints.cs                       -> 5 常量补 /api + CartV1 单列 + OwnershipIsInference=false
+test --filter VansEndpointTests        -> 7 通过 / 0 失败
+python tools\metrics_report.py          -> 1790 通过 / 0 失败（原 1789 + 1）
+```
+
+### 六、仍然 Unknown
+
+- **请求体与响应形状**：**Unknown** —— 无步骤调用。
+- **v1 与 v2 哪个是当前的**：**Unknown** —— 镜像里都有。
+- **`/api` 这一层是不是所有站都这样**：**Unknown** ——
+  **如果别的站的扫描也没看 `/api`，那 R892–R896 的覆盖数都可能低报。**
+
+### 七、教训
+
+**R895 我学了「上界/下界/精确」，R898 学了「Observation/Inference」。这一轮把两者连起来：
+**一个 Inference 标注可能是扫描模式的假象，而不是证据的真实状态。**
+
+**所以顺序该反过来：先问「我的模式能不能看见它」，再决定标 Observation 还是 Inference。
+R898 反了 —— 它先标了 Inference，然后这个标注本身成了错误信息。**

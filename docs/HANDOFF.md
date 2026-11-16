@@ -608,3 +608,12 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **一个恒真测试被换掉**（读自己的文件再查自己的字面量）。
 **纪律：Observation 与 Inference 在文档里长得一样，只有标注能分开。**
 **下一轮**：判这 6 条到底属不属 Vans（找路径级共现证据，扫描说没有）。
+
+## R899 补充 — Vans 常量补 `/api`，归属升为 Observation（**改产品代码**，套件 1789→**1790**）
+
+**根因**：R898 的扫描模式 `/(cart|products)/vN/` 从 `/api` **之后**开始匹配 → **路径少了 `/api`，而「没有宿主」这个观察也是假的**。
+**5 条完整 URL**：`https://www.vans.com/api/cart/v1/cartWithItem?locale=` · `.../api/cart/v2/cart/` · `.../api/cart/v2/checkout/order/` · `.../api/cart/v2/checkout/order?locale=` · `.../api/products/v2/products/`。
+**修正**：前缀补 `/api`；**`OwnershipIsInference` `true` → `false`**（宿主与路径同处一条字面量）。
+**7 用例**（新增 `EveryPathCarriesTheApiPrefix` · `OwnershipIsNoLongerInference`）。
+**纪律：一个 Inference 标注可能是扫描模式的假象 —— 先问「我的模式能不能看见它」，再决定标注。**
+**下一轮**：查别的站的扫描是否也漏了 `/api` —— 若是，R892–R896 的覆盖数都低报。

@@ -53679,3 +53679,45 @@ after :  默认不分，--case 才严格
 > 如果没看 `HOST` 行为空，我会把「Vans 的端点」当观察写下去 —— 而它是推断。**
 > **R895 我学了「上界/下界/精确」；这一轮是另一个轴：**Observation 还是 Inference**。
 > 两者在文档里长得一模一样，只有标注能分开。**
+
+
+---
+
+## 第 899 轮：R898 的 Vans 常量少了 `/api` —— 归属从 Inference 升为 Observation
+
+### 做法：搜「宿主与路径同处一条字面量」
+
+**R898 的扫描模式 `/(cart|products)/vN/` 从 `/api` **之后**开始匹配 —— 既看不到宿主，也丢掉了 `/api`。
+两个后果，同一个原因。**
+
+**改成搜 `vans.com.../(cart|products)/vN/`，得到 5 条完整 URL：**
+
+```
+https://www.vans.com/api/cart/v1/cartWithItem?locale=
+https://www.vans.com/api/cart/v2/cart/
+https://www.vans.com/api/cart/v2/checkout/order/
+https://www.vans.com/api/cart/v2/checkout/order?locale=
+https://www.vans.com/api/products/v2/products/
+```
+
+### 两个后果，一次修掉
+
+| 项 | R898 | R899 |
+|---|---|---|
+| 路径前缀 | `/cart/v1/cart/` | **`/api/cart/v1/cart/`** |
+| `OwnershipIsInference` | `true` | **`false`** |
+
+**少了 `/api` 的常量指的是一个 Vans 服务器不会应答的路径。**
+
+### 而 R898 那两个「保守的判断」都是同一个扫描模式的副产品
+
+> **R898 说「这 6 条没有自带宿主，所以归属是 Inference」—— 听起来很谨慎。
+> 而它谨慎地记录的是一个**我自己的匹配模式造成的假象**。**
+> **「证据不足」和「我的搜索看不到」是两件事，而 R898 把后者写成了前者。**
+
+### 改了哪些
+
+**`VansEndpoints.cs`**：5 常量补 `/api` + 第 6 个 `CartV1` 单列 + `OwnershipIsInference = false`
+**`VansEndpointTests.cs`**：7 用例，新增 `EveryPathCarriesTheApiPrefix` 与 `OwnershipIsNoLongerInference`
+
+**套件 1789 → 1790 通过 / 0 失败。**

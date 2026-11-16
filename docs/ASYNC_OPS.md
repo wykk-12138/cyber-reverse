@@ -2534,3 +2534,49 @@ METRICS.md L24  成员形状差异 — core mismatches  |  17
 
 **换成 `EveryPathStartsWithOneOfTheThreeFamilies`：每条路径必须以那三个族之一开头。
 族段打错一个字仍会编译、仍看起来合理，所以这个检查有实际效力。**
+
+
+### R898 的 Vans 常量少了 `/api` —— 而归属从 Inference 升为 Observation（R899）
+
+**R898 留下的问题：那 6 条路径到底属不属 Vans。**
+
+### 做法：搜「宿主与路径同处一条字面量」
+
+**R898 的扫描模式是 `/(cart|products)/vN/` —— 它从 `/api` **之后**那一段开始匹配，
+所以既看不到前面的宿主，也丢掉了前面的 `/api`。这两个后果是同一个原因。**
+
+**改成搜 `vans.com.../(cart|products)/vN/`，一次得到 5 条完整 URL：**
+
+```
+https://www.vans.com/api/cart/v1/cartWithItem?locale=
+https://www.vans.com/api/cart/v2/cart/
+https://www.vans.com/api/cart/v2/checkout/order/
+https://www.vans.com/api/cart/v2/checkout/order?locale=
+https://www.vans.com/api/products/v2/products/
+```
+
+**（第 6 条 `.../api/cart/v1/cart/` 在 `0x14709bf5c`，同一族。）**
+
+### 两个后果，一次修掉
+
+| 项 | R898 | R899 |
+|---|---|---|
+| 路径前缀 | `/cart/v1/cart/` | **`/api/cart/v1/cart/`** |
+| `OwnershipIsInference` | `true` | **`false`** |
+
+**少了 `/api` 的常量指的是一个 Vans 服务器不会应答的路径。而归属现在是 Observation ——
+宿主与路径在**同一条字面量**里，这正是 R893 用的判据。**
+
+### 所以 R898 那两个「保守的判断」都是同一个扫描模式的副产品
+
+**R898 说「这 6 条没有自带宿主，所以归属是 Inference」——听上去很谨慎。
+而它谨慎地记录的是一个**我自己的匹配模式造成的假象**。**
+
+**「证据不足」和「我的搜索看不到」是两件事，而 R898 把后者写成了前者。**
+
+### 改了哪些
+
+| 文件 | 改动 |
+|---|---|
+| `VansEndpoints.cs` | 5 个常量补齐 `/api` + 第 6 个 `CartV1` 单列 + `OwnershipIsInference = false` + 注释写明 R898 错在哪 |
+| `VansEndpointTests.cs` | 7 用例；新增 `EveryPathCarriesTheApiPrefix` 与 `OwnershipIsNoLongerInference` |

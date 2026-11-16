@@ -4536,3 +4536,39 @@ after : 默认不分, --case 才严格
 | 多少泛用段路径属别的站 | `cart/v1`、`products/v2` 可能多站共用 |
 
 **纪律**：**Observation 与 Inference 在文档里长得一样，只有标注能分开；不看「HOST 行为空」就会把推断写成观察。**
+
+
+## 优先级 ① — Vans 路径修正：补 `/api`，归属升为 Observation（R899）
+
+### 根因：R898 的扫描模式从 `/api` 之后开始
+
+**`/(cart|products)/vN/` → 看不到前面的宿主，也丢掉 `/api`。两个后果同一个原因。**
+
+### 5 条完整 URL
+
+```
+https://www.vans.com/api/cart/v1/cartWithItem?locale=
+https://www.vans.com/api/cart/v2/cart/
+https://www.vans.com/api/cart/v2/checkout/order/
+https://www.vans.com/api/cart/v2/checkout/order?locale=
+https://www.vans.com/api/products/v2/products/
+```
+
+### 修正
+
+| 项 | R898 | R899 |
+|---|---|---|
+| 前缀 | `/cart/v1/cart/` | **`/api/cart/v1/cart/`** |
+| `OwnershipIsInference` | `true` | **`false`** |
+
+**R898 的两个「保守判断」都是扫描模式的副产品 —— 「证据不足」≠「我的搜索看不到」。**
+
+**7 用例（新增 `EveryPathCarriesTheApiPrefix` · `OwnershipIsNoLongerInference`）；套件 1790 通过。**
+
+| 仍 Unknown | |
+|---|---|
+| 请求体/响应形状 | 故无步骤调用 |
+| v1 与 v2 哪个当前用 | 镜像里都有 |
+| `/api` 这层是否所有站相同 | 未查 |
+
+**纪律**：**扫描模式决定了你能看见什么。看不到时先问「是不是我的模式截掉了它」，再写「证据不足」。**

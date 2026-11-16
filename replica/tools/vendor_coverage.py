@@ -19,8 +19,13 @@ import os
 import re
 from collections import Counter
 
+
 ROOT = r"D:\projects\cyber-reverse"
 INVENTORY = os.path.join(ROOT, "analysis", ".coverage-paths.txt")
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location("comment_split", os.path.join(ROOT, "replica", "tools", "comment_split.py"))
+comment_split = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(comment_split)
 
 VENDOR_HINTS = (
     "cloudflare", "kasada", "datadome", "perimeterx", "queue-it", "queueit", "recaptcha", "hcaptcha",
@@ -66,9 +71,14 @@ def sources():
                 continue
             p = os.path.join(dp, fn)
             try:
-                yield os.path.relpath(p, os.path.join(ROOT, "replica")), io.open(p, encoding="utf-8", errors="replace").read()
+                text = io.open(p, encoding="utf-8", errors="replace").read()
             except OSError:
-                pass
+                continue
+            # R925: strip comments before searching. R915 fixed this in the two method-coverage tools after a doc
+            # comment made SubmitWebRtc look implemented; the same fault appeared here, where a comment in VivaPayments
+            # mentioning Disney made Disney's hosts look named in a file about a different vendor. A name in prose is
+            # not a name in code.
+            yield os.path.relpath(p, os.path.join(ROOT, "replica")), comment_split.strip_comments(text)
 
 
 def main():

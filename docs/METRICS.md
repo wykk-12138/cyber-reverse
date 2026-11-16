@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 03:05:35 +0800 |
+| 生成时间 | 2026-11-17 03:13:46 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **1888 通过 / 0 失败 / 0 跳过 / 1888 总计** |
+| 完整套件 | **1896 通过 / 0 失败 / 0 跳过 / 1896 总计** |
 
 ## 摘要素值
 
@@ -40,8 +40,8 @@
 | 核心覆盖：store 宿主 — store hosts unmatched | 3 |
 | 核心覆盖：store 宿主 — vendor hosts | 12 |
 | 核心覆盖：vendor 宿主 — vendor hosts carrying a path | 12 |
-| 核心覆盖：vendor 宿主 — vendors named somewhere in src | 11 |
-| 核心覆盖：vendor 宿主 — vendors absent from src | 1 |
+| 核心覆盖：vendor 宿主 — vendors named somewhere in src | 12 |
+| 核心覆盖：vendor 宿主 — vendors absent from src | 0 |
 
 ## 逐条命令与原始输出
 
@@ -361,7 +361,7 @@ registry identifiers: 82   flow types: 35
 store hosts
   matched api-search.dickssportinggoods.com         1 paths  dickssportinggoods
   unmatched api.braintreegateway.com                  2 paths  
-  matched api.nike.com                              4 paths  nikegs, nike
+  matched api.nike.com                              4 paths  nike, nikegs
   matched api.sibspayments.com                      1 paths  in src
   matched api.tobe-official.jp                      1 paths  in src
   unmatched api.vipps.no                              1 paths  
@@ -384,7 +384,7 @@ store hosts
   matched threeds.airwallex.com                     1 paths  in src
   matched www.goat.com                              9 paths  goat
   matched www.ibm.com                               1 paths  in src
-  matched www.nike.com                              1 paths  nikegs, nike
+  matched www.nike.com                              1 paths  nike, nikegs
   matched www.vans.com                              6 paths  in src
 
 vendor hosts
@@ -424,7 +424,7 @@ C:\Python312\python.exe tools/vendor_coverage.py
 vendor hosts carrying a path: 12
 
 host                                                        pt  service      named in
-challenges.cloudflare.com                                    1  Cloudflare   yes  AntiBotProtocol.cs, AntiBotVendors.cs, BouncyH2Client.cs
+challenges.cloudflare.com                                    1  Cloudflare   yes  AntiBotProtocol.cs, AntiBotVendors.cs, CloudflareClearance.cs
 checkoutshopper-live.adyen.com                               2  Adyen        yes  AdyenGateway.cs, AdyenPayPalFlow.cs, BstnFlow.cs
 inbox-api.aycd.io                                            3  AYCD         yes  Accounts.cs, AycdInboxAccount.cs, AycdInboxClient.cs
 payments-panel.production.eshopworld.com                     3  eShopWorld   yes  EshopWorldPanel.cs
@@ -435,11 +435,11 @@ web-dsy.global-e.com                                         1  Global-e     yes
 webservices.global-e.com                                     3  Global-e     yes  GlobalECheckout.cs
 www.paypal.com                                               4  PayPal       yes  Accounts.cs, AdyenPayPalFlow.cs, CandidateSteps.cs
 www.purpledotprice.com                                       1  PurpleDot    yes  PurpleDot.cs
-www.vivapayments.com                                         3  Viva         NO   -
+www.vivapayments.com                                         3  Viva         yes  VivaPayments.cs
 
 vendor hosts carrying a path: 12
-vendors named somewhere in src: 11
-vendors absent from src: 1
+vendors named somewhere in src: 12
+vendors absent from src: 0
 NOTE: 'yes' means some source file contains the service's name. It does not mean the integration is complete
       or correct -- a constant naming a host and a working flow are different things.
 ```
@@ -451,7 +451,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 1888 通过 / 0 失败 / 0 跳过 / 1888 总计
+`exit 0` · 1896 通过 / 0 失败 / 0 跳过 / 1896 总计
 
 ```text
   正在确定要还原的项目…
@@ -468,7 +468,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  1888，已跳过:     0，总计:  1888，持续时间: 1 m 44 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  1896，已跳过:     0，总计:  1896，持续时间: 1 m 23 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

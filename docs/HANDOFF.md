@@ -941,3 +941,19 @@ v1 与 v3 分开记（统一会静默改掉两次调用中的一次）；jgc/v8/
 而四轮 vendor 的形状都不同：Global-e 核参数顺序与空值 · eShopWorld 给带第三结果的等待 · Disney 给安全性属性。如果都做成「一组常量」，7 会降到 1，而三家值钱的东西都不会出现。
 
 下一轮：Viva（最后一家，3 条）。
+
+## R925 补充 — Viva 收尾：vendor 12/12，(f) 两列闭合（改产品代码 +8 用例 + 修工具）
+
+Viva 三条：chargetokens → paymentdetails?ref= → transactions。四家里唯一完整周期（token 的答案带引用、状态读取用引用寻址）。卡只到 ChargeTokenAsync（签名强制）。找不到引用 = 失败，不编（编了会产生「查询一笔不存在的支付」）。
+
+而工具还带着 R915 的旧毛病：vendor_coverage.py 没 strip_comments，于是 VivaPayments.cs 里一句提到 Disney 的注释让 Disney 宿主看起来在两个文件里。修完每家恰好一个文件。
+
+(f) 最终：store 宿主 24/27（未匹配 3 全是支付商）· vendor 12/12 —— 两列都在 METRICS.md 可复算（8 行）。
+
+数字：套件 1888 → 1896 · vendor 命名 11/12 → 12/12 · 缺失 1 → 0。
+
+而 12/12 不是「都做完了」：named ≠ complete ≠ correct；深做的是 R920–R925 六家。
+
+纪律：修一处不等于修一类。判断「修完了吗」的办法是问 —— 还有谁在做同样的事？
+
+下一轮：(f) 已闭合，转向其他判据 —— (a) 类型级缺口 / (b) 字符串池截断文案 / (c) 产物级对照。

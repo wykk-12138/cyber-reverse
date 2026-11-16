@@ -5480,3 +5480,39 @@ retailer-shopifypayments-api…/api/v1/payment/apm/session/{status, post_pay_sta
 | Viva 三条的顺序 | 名字暗示 token→details→transactions |
 
 **纪律**：「补 vendor」不是同一件事做四遍 —— 每家给的证据形状不同，实现的东西也就不同。
+
+
+## 判据 (f) 闭合 — vendor **12 / 12**（R925，**改产品代码 +8 用例 + 修工具**）
+
+### Viva（三家路径，唯一完整周期）
+
+```
+chargetokens → paymentdetails?ref= → transactions
+```
+
+**`ChargeTokenAsync` 收卡（签名强制）；`PaymentDetailsAsync` 按 ref 寻址；`TransactionsAsync` 记录可调。
+**找不到引用 = 失败**，不编引用（编了会产生「查询一笔不存在的支付」）。**
+
+### 工具修正
+
+**`vendor_coverage.py` 也 `strip_comments` —— R915 修了两个方法覆盖工具而漏了它，
+于是 `VivaPayments.cs` 里一句提到 Disney 的注释让 Disney 的宿主看起来在两个文件里。**
+
+### (f) 最终状态
+
+| 列 | 结果 | 在 METRICS.md |
+|---|---|---|
+| store 宿主 | **24 / 27**（未匹配 3 全是支付商） | ✅ |
+| vendor 宿主 | **12 / 12** | ✅ |
+
+### 数字
+
+**套件 1888 → 1896 · vendor 命名 11/12 → **12/12** · 缺失 1 → **0****
+
+| 仍 Unknown | |
+|---|---|
+| 12 个里深做了几家 | 深做 = R920–R925 六家；另四家之前就在 |
+| 每家集成的正确性 | named ≠ complete ≠ correct |
+| Viva 的响应体 | 无证据 |
+
+**纪律**：**修一处不等于修一类。判断「修完了吗」的办法是问：还有谁在做同样的事？**

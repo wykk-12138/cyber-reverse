@@ -170,6 +170,26 @@ public abstract class StoreFlow
 
 
     // ── session ───────────────────────────────────────────────────────────────
+    /// <summary>
+    /// The shield step: build the query a payment shield wants, send it, and hand its answer on for processing.
+    ///
+    /// <para>
+    /// R916. The image names <c>RunShield</c> and its state machine carries ordinal eighteen, with three locals —
+    /// <c>data</c>, <c>data2</c> and <c>shieldQuery</c>. Two neighbours give the shape: <c>OpenSecurePage</c> at
+    /// fifteen and <c>Navigate</c> at seventeen, so this runs after a secure page is open and around a navigation
+    /// rather than in isolation. <c>ProcessResult</c> at fourteen is what its answer is handed to.
+    /// </para>
+    ///
+    /// <para>
+    /// That makes it a step in a payment flow, not the OTP-only call R905 first took it for. The evidence is the
+    /// ordinal sequence and the local names; what is inference is what goes in the query and what the answer means,
+    /// neither of which any literal records. So the default fails explicitly and a store that has evidence overrides.
+    /// </para>
+    /// </summary>
+    public virtual Task<StepOutcome> RunShieldAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("RunShield is not implemented by " + Id));
+
+    // ── session ───────────────────────────────────────────────────────────────
     public virtual async Task<StepOutcome> InitAsync(FlowContext c, CancellationToken ct)
     {
         // Seed the session with the browser identity every store expects to see.

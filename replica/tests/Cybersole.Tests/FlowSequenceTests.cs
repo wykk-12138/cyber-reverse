@@ -115,7 +115,12 @@ public class FlowSequenceTests
         // R908 added AddToCartBoxAsync, taking the map from 174 to 175. It is not one of Pop Mart's twenty-four
         // names either, so the sequence's coverage stays at eight: the image has the method and the flow does not
         // list it, the same split as FindProductInstore.
-        Assert.Equal(175, map.Count);
+        //
+        // R916 added RunShieldAsync, taking it to 176. Same split again: the image names RunShield at ordinal
+        // eighteen in the payment class, and Pop Mart's twenty-four names do not include it, so implementable stays
+        // at eight for the third time in a row. Three additions that raise the map and not the coverage is the
+        // finding, not an accident of counting -- the image's step vocabulary is wider than any one flow's sequence.
+        Assert.Equal(176, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
         Assert.Equal(8, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");

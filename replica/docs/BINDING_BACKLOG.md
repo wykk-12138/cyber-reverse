@@ -5133,3 +5133,47 @@ python tools/snapshot.py --restore <stamp> [relpath]
 | 注释假阳性还会不会再产生 | 工具已修，但**新注释仍会增**（现在会被正确分类） |
 
 **纪律**：**一个数被自己的注释抬高 —— 这是最难发现的一种，因为注释读起来像证据。**
+
+
+## 优先级 ① — `RunShield` 实现（R916，**改产品代码 +6 用例**）
+
+### 证据：序号序列
+
+```
+ProcessResult 14 · OpenSecurePage 15 · Navigate 17 · RunShield 18 · CardHolderName 21
+```
+**局部变量 `data2`/`shieldQuery` → 它是**支付流程里的步骤**，不是孤立 OTP 调用（R905 判对了方向、错了位置）。**
+
+### 改动
+
+| 文件 | |
+|---|---|
+| `StoreFlow.cs` | `+ RunShieldAsync`（**176** 虚步骤） |
+| `Payments/PaynamicsShield.cs` | 新建：`RunAsync(FlowSession, ct, post)` |
+| `tests/PaynamicsShieldStepTests.cs` | 6 用例 |
+
+**调用 R905 恢复但没人用的 `shield.paynamics.net` + `/shield/v1/verify_otp`。**
+
+### 三个选择
+
+**收 `FlowSession` 而非 `FlowContext`**（只读会话变量，避免测试造 `NetClient` 也避免暗示用了商品/卡/代理）·
+**无 token 明确失败且可重试**（空 token 会「成功」而什么都没挡）· **不认识的响应仍记录**（含义不明，丢掉丢证据）。
+
+### 数字
+
+**套件 1830 → 1836 · 虚步骤 175 → 176 · 覆盖 362 → **363（23.5%）** · 只在注释里 10 → 11**
+
+**而 11 拆开看：`RunShield` 移出，`OpenSecurePage`/`ProcessResult` 移入 —— 一减两加。**
+
+### 一个红了的测试（红得正确）
+
+**`OnePopMartImageStepIsDispatchable`：`map.Count` 175 → 176。连续第三次「map 涨、coverage 不涨」**
+（`FindProductInstore` R891 · `AddToCartBox` R908 · `RunShield` R916）。
+
+| 仍 Unknown | |
+|---|---|
+| `shieldQuery` 里到底有什么字段 | 名字不记内容 |
+| `ProcessResult` 如何处理这个答案 | 只有序号 |
+| 剩下 9 个「只在注释里」哪些该实现 | 逐个判 |
+
+**纪律**：**净数会掩盖两个反向动作 —— 任何一格的净值都该拆成进出两项。**

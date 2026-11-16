@@ -807,3 +807,16 @@ strip_comments 是字符扫描器不是正则（正则 // 会撞字符串里的 
 测试自身两次坑：python -c 参数按空格拆开（全红）· Where(char.IsDigit) 抓进百分比（362234）。
 
 下一轮：从「只在注释里」那 10 个里挑真该实现的（RunShield 已知）。
+
+## R916 补充 — RunShield 实现（改产品代码 +6 用例，套件 1830→1836）
+
+证据是序号：ProcessResult 14 · OpenSecurePage 15 · Navigate 17 · RunShield 18 · CardHolderName 21 · TrimStrings 25；局部变量 data2/shieldQuery。→ 它是支付流程里的步骤，不是孤立 OTP 调用（R905 方向对、位置错）。
+
+改动：StoreFlow +RunShieldAsync（虚步骤 175→176）· Payments/PaynamicsShield.cs 新建 RunAsync(FlowSession, ct, post) · 6 用例。调 shield.paynamics.net + /shield/v1/verify_otp。
+
+三个选择：收 FlowSession 而非 FlowContext（只读会话变量）· 无 token 明确失败且可重试 · 不认识的响应仍记录。
+
+数字：套件 1836 · 虚步骤 176 · 覆盖 362 → 363（23.5%）· 只在注释里 10 → 11。
+而 11 要拆开：RunShield 移出、OpenSecurePage/ProcessResult 移入 —— 一减两加，净 +1 掩盖了两件事。
+
+一个红得正确的测试：FlowSequenceTests map.Count 175→176。连续第三次「map 涨、coverage 不涨」→ 镜像的步骤词汇比任何单个 flow 的序列都宽；用 coverage 衡量 map 会说谎。

@@ -3381,3 +3381,70 @@ var u = "https://example.test/a"; var after = 1;
 
 **而代价：那 9 个用例跑了 **1 分 16 秒**，因为每个 `Strip` 起一个 python 进程。
 **套件从 4 分钟涨到 6 分钟。这是可接受但我该写在案的成本。****
+
+
+### `RunShield` 实现了，而证据是**序号**而不是字面量（R916）
+
+**R915 说从「只在注释里」那 10 个里挑真该实现的。挑了 `RunShield`，因为它的证据最多。**
+
+### 查到的证据：一个序号序列
+
+```
+ProcessResult 14 · OpenSecurePage 15 · Navigate 17 · RunShield 18 · CardHolderName 21 · TrimStrings 25
+```
+
+**而 `RunShield` 的局部变量是 `<data2>5__3` 与 `<shieldQuery>5__4`。**
+
+**所以它**不是** R905 一开始判的那个孤立的 OTP 调用，而是**支付流程里的一个步骤**：
+**打开安全页 → 导航 → 运行 shield → 处理结果**，而 `CardHolderName` 在后面。**
+
+> **这个判断来自**序号相邻**与**局部变量名**，不来自任何字面量。
+> 而 R905 我当时只看到 `/shield/v1/verify_otp` 一条路径，就把它归成「支付 OTP」——
+> 方向对了，但**位置**搞错了：它在流程里，不在流程外。**
+
+### 实现了什么
+
+| 文件 | 改动 |
+|---|---|
+| `Flows/StoreFlow.cs` | `+ RunShieldAsync` 虚方法（**176** 个虚步骤） |
+| `Payments/PaynamicsShield.cs` | **新建**：收 `FlowSession` + 一个 post 委托，不绑死 HTTP 客户端 |
+| `tests/PaynamicsShieldStepTests.cs` | **6 用例** |
+
+**而它调的正是 R905 恢复、却从没人用的那一对：`shield.paynamics.net` + `/shield/v1/verify_otp`。**
+
+### 三个刻意的选择
+
+**① 收 `FlowSession` 而不是 `FlowContext`。**
+**它只读会话变量；收整个 context 会让每个测试都要造一个活 `NetClient`，
+还会暗示它用了 context 里带的商品/卡/代理 —— 而它没用。**
+
+**② 无 device token 时**明确失败且可重试**。**
+**空 token 发出去会「成功」而什么都没挡。**
+
+**③ 不认识的响应**仍然记录**。**
+**答案的含义不明，丢掉就丢了唯一能被下一轮读的证据。**
+
+### 数字
+
+| 度量 | R915 | **R916** |
+|---|---|---|
+| 套件 | 1830 | **1836** |
+| `StoreFlow` 虚步骤 | 175 | **176** |
+| **异步覆盖（代码里）** | 362（23.4%） | **363（23.5%）** |
+| **只在注释里** | **10** | **11** |
+
+**而那个 11 要看仔细：`RunShield` **移出**了那一格（真实现了），
+但 `OpenSecurePage` 与 `ProcessResult` **移入**了（我在新注释里点了它们）。**
+
+> **所以这一轮在同一格上同时做了减法和加法 —— 净 +1，而净数掩盖了两件事都发生。**
+
+### 一个测试红了，而它是**对的**
+
+**`OnePopMartImageStepIsDispatchable` 报 `map.Count` 从 175 变 176。
+它红得正确：我又加了一个不在 Pop Mart 24 个名字里的步骤。**
+
+**这已经是连续第三次（`FindProductInstore` R891 · `AddToCartBox` R908 · `RunShield` R916）——
+**三次都是「map 涨、coverage 不涨」。**
+
+**所以那句话该写成结论而不是感慨：**镜像的步骤词汇比任何单个 flow 的序列都宽。**
+**一个 flow 的序列是子集，而 map 是全集 —— 用 coverage 衡量 map 会说谎。****

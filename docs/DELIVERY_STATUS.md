@@ -19736,3 +19736,72 @@ var u = "https://example.test/a"; var after = 1;
 **R914 我只发现了一个（`SubmitWebRtc`）。这一轮量出是 10 个，而它们全部来自我讲过的名字。**
 
 **所以「我提到过它」和「它存在」之间的差，是 10 个名字。而工具之前把两者当同一件事。**
+
+
+---
+
+## 340. `RunShield` 实现；覆盖 23.5%；而「只在注释里」一减两加
+
+> R916。**改产品代码 +6 用例。** 套件 **1836 通过 / 0 失败 / 0 跳过**。
+
+### 一、证据是序号
+
+```
+ProcessResult 14 · OpenSecurePage 15 · Navigate 17 · RunShield 18 · CardHolderName 21 · TrimStrings 25
+```
+
+**局部变量 `<data2>5__3` · `<shieldQuery>5__4`。**
+
+**→ 它是**支付流程里的一个步骤**（打开安全页 → 导航 → 运行 shield → 处理结果），
+不是 R905 判的孤立 OTP 调用。方向对了，**位置**搞错了。**
+
+### 二、改动
+
+| 文件 | |
+|---|---|
+| `StoreFlow.cs` | `+ RunShieldAsync`（虚步骤 **175 → 176**） |
+| `Payments/PaynamicsShield.cs` | 新建 `RunAsync(FlowSession, ct, post)` |
+| `tests/PaynamicsShieldStepTests.cs` | **6 用例** |
+
+**调的是 R905 恢复、没人用的 `shield.paynamics.net` + `/shield/v1/verify_otp`。**
+
+### 三、三个选择
+
+1. **收 `FlowSession` 而非 `FlowContext`** —— 只读会话变量；避免测试造活 `NetClient`，也避免暗示用了商品/卡/代理。
+2. **无 device token 时明确失败且可重试** —— 空 token 发出去会「成功」而什么都没挡。
+3. **不认识的响应仍记录到 `shieldBody`** —— 含义不明，丢掉就丢了唯一证据。
+
+### 四、数字
+
+| 度量 | R915 | R916 |
+|---|---|---|
+| 套件 | 1830 | **1836** |
+| 虚步骤 | 175 | **176** |
+| 异步覆盖（代码里） | 362（23.4%） | **363（23.5%）** |
+| 只在注释里 | **10** | **11** |
+
+**11 要拆开：`RunShield` **移出**（真实现），`OpenSecurePage` 与 `ProcessResult` **移入**（我在新注释里点了名）。**
+**→ 同一格上同时做了一减两加；净 +1 掩盖了两件事都发生。**
+
+### 五、一个红了的测试，而它红得正确
+
+**`OnePopMartImageStepIsDispatchable` 报 `map.Count` 175 → 176。**
+
+**连续第三次「map 涨、coverage 不涨」**（R891 `FindProductInstore` · R908 `AddToCartBox` · R916 `RunShield`）。
+
+**→ 结论该写成：镜像的步骤词汇比任何单个 flow 的序列都宽。**
+**一个 flow 的序列是子集，map 是全集 —— 用 coverage 衡量 map 会说谎。**
+
+### 六、仍然 Unknown
+
+- **`shieldQuery` 里到底有哪些字段**：**Unknown** —— 变量名不记内容，所以发的是 token + amount + orderId。
+- **`ProcessResult` 如何处理这个答案**：**Unknown** —— 只有序号十四。
+- **剩下的 9 个「只在注释里」哪些该实现**：**Unknown** —— 逐个判。
+
+### 七、教训
+
+**一个净数会掩盖两个反向的动作。10 → 11 看起来像「又多了一个假名字」，
+而实际是一个变真、两个变假。**
+
+**所以任何一格的净值都该拆成进出两项。而这一轮如果我只报「11，比上次多 1」，
+就会把自己实现了一个步骤这件事报成退步。**

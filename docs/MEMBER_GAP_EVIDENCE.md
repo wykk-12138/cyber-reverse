@@ -25,62 +25,67 @@ pe_strings.txt 里的 Cybersole 描述符 : 1457 条
 ## 结论
 
 ```
-源码未声明、且原版确有描述符 : 44
+源码未声明、且原版确有描述符 : 42
 源码未声明、原版无描述符     : 0
 ```
 
 ## 逐条证据
 
-| 类型 | 成员 | 原版描述符方向 | 该做成什么 |
-|---|---|---|---|
-| `BotTask` | `Running` | Getter/Setter | 可读写属性 |
-| `CreateModel` | `Input` | Getter | 只读属性（或 ICommand） |
-| `CreateModel` | `Inputs` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_101` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_87` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_88` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_91` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_93` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_94` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_95` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_97` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_98` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `HasMultiple_99` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `Value_100` | Getter/Setter | 可读写属性 |
-| `EditValue`1` | `Value_92` | Getter/Setter | 可读写属性 |
-| `Notification` | `Message` | Getter/Setter | 可读写属性 |
-| `Notification` | `Type` | Getter/Setter | 可读写属性 |
-| `State` | `Name` | Getter/Setter | 可读写属性 |
-| `AccountGrid` | `Accounts` | Getter | 只读属性（或 ICommand） |
-| `AccountGroupView` | `Save` | Getter/Setter | 可读写属性 |
-| `CreateGroupModal` | `Create` | Getter/Setter | 可读写属性 |
-| `CheckoutView` | `Checkout` | Getter | 只读属性（或 ICommand） |
-| `CheckoutView` | `Properties` | Getter | 只读属性（或 ICommand） |
-| `YoutubeWindow` | `Account` | Getter | 只读属性（或 ICommand） |
-| `NotificationView` | `Clock` | Getter | 只读属性（或 ICommand） |
-| `ExpressionView` | `Expressions` | Getter | 只读属性（或 ICommand） |
-| `ProfileCreatorView` | `BillingView` | Getter | 只读属性（或 ICommand） |
-| `ProxyGroupView` | `Reset` | Getter/Setter | 可读写属性 |
-| `ProxyGroupView` | `Save` | Getter/Setter | 可读写属性 |
-| `ProxyGroupView` | `TimeSpans` | Getter | 只读属性（或 ICommand） |
-| `CustomSizesView` | `View` | Getter | 只读属性（或 ICommand） |
-| `CustomStoresView` | `View` | Getter | 只读属性（或 ICommand） |
-| `CaptchaProviderCreatorView` | `Delete` | Getter | 只读属性（或 ICommand） |
-| `CaptchaProviderCreatorView` | `Properties` | Getter | 只读属性（或 ICommand） |
-| `GoogleAccountEditView` | `Account` | Getter | 只读属性（或 ICommand） |
-| `PayPalAccountCreatorView` | `Model` | Getter | 只读属性（或 ICommand） |
-| `SizeCreatorView` | `Search` | Getter | 只读属性（或 ICommand） |
-| `WebhookView` | `Test` | Getter | 只读属性（或 ICommand） |
-| `SmartActionsView` | `Export` | Getter/Setter | 可读写属性 |
-| `SmartActionsView` | `View` | Getter | 只读属性（或 ICommand） |
-| `TaskDetailsView` | `Task` | Getter | 只读属性（或 ICommand） |
-| `TaskGroupView` | `Link` | Getter/Setter | 可读写属性 |
-| `TaskView` | `Edit` | Getter/Setter | 可读写属性 |
-| `StoreGroupModal` | `Stores` | Getter | 只读属性（或 ICommand） |
+| 类型 | 成员 | 原版描述符方向 |
+|---|---|---|
+| `BotTask` | `Running` | Getter/Setter |
+| `CreateModel` | `Input` | Getter |
+| `CreateModel` | `Inputs` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_101` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_87` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_88` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_91` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_93` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_94` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_95` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_97` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_98` | Getter/Setter |
+| `EditValue`1` | `HasMultiple_99` | Getter/Setter |
+| `EditValue`1` | `Value_100` | Getter/Setter |
+| `EditValue`1` | `Value_92` | Getter/Setter |
+| `State` | `Name` | Getter/Setter |
+| `AccountGrid` | `Accounts` | Getter |
+| `AccountGroupView` | `Save` | Getter/Setter |
+| `CreateGroupModal` | `Create` | Getter/Setter |
+| `CheckoutView` | `Checkout` | Getter |
+| `CheckoutView` | `Properties` | Getter |
+| `YoutubeWindow` | `Account` | Getter |
+| `NotificationView` | `Clock` | Getter |
+| `ExpressionView` | `Expressions` | Getter |
+| `ProfileCreatorView` | `BillingView` | Getter |
+| `ProxyGroupView` | `Reset` | Getter/Setter |
+| `ProxyGroupView` | `Save` | Getter/Setter |
+| `ProxyGroupView` | `TimeSpans` | Getter |
+| `CustomSizesView` | `View` | Getter |
+| `CustomStoresView` | `View` | Getter |
+| `CaptchaProviderCreatorView` | `Delete` | Getter |
+| `CaptchaProviderCreatorView` | `Properties` | Getter |
+| `GoogleAccountEditView` | `Account` | Getter |
+| `PayPalAccountCreatorView` | `Model` | Getter |
+| `SizeCreatorView` | `Search` | Getter |
+| `WebhookView` | `Test` | Getter |
+| `SmartActionsView` | `Export` | Getter/Setter |
+| `SmartActionsView` | `View` | Getter |
+| `TaskDetailsView` | `Task` | Getter |
+| `TaskGroupView` | `Link` | Getter/Setter |
+| `TaskView` | `Edit` | Getter/Setter |
+| `StoreGroupModal` | `Stores` | Getter |
 
 ## 说明
 
-- **`Getter` 不等于「必须是属性」**：Avalonia 的 `ICommand` 也走 Getter。
-  已有先例（`CheckoutView.Previous`/`Next`/`OpenTracking`）就是 `ICommand` 属性。
+- **方向字段不能用来判类型。** 全表实测分布：Getter-only **181** / Setter-only **0** /
+  Getter+Setter **638**。78% 的成员都是 G/S，包括 `Product.Name`、`TaskGroup.Name`
+  这类显然是数据的成员，所以「有 Setter」推不出「该做成可写属性」。
+  **R712 本表曾有一列「该做成什么」，那是过度解读，R714 删除。**
+
+- **能判类型的只有两种证据**：
+  ① **基数/排除法** —— `Notification` 原版绑定四个名字、record 四个参数，两两对齐；
+  ② **描述符 + 源码形态互证** —— `Close` 是 `Getter` 单方向，且源码里已是 lambda 按钮。
+  只有一条证据时，本表不给实现建议。
 - 本表只证明**原版绑定过这个名字**，不证明**行为**。行为一律 Unknown。
 - `declared-absent` 那 693 条不在此表 —— 它们的源码声明是有的，只是产物里没有独立符号。

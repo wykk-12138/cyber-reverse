@@ -85,18 +85,12 @@ def main():
         lines.append("")
     lines.append("## 逐条证据")
     lines.append("")
-    lines.append("| 类型 | 成员 | 原版描述符方向 | 该做成什么 |")
-    lines.append("|---|---|---|---|")
+    lines.append("| 类型 | 成员 | 原版描述符方向 |")
+    lines.append("|---|---|---|")
     for full_type, member, kinds in bound:
         simple = full_type.split(".")[-1]
         kind = "/".join(kinds)
-        if kind == "Getter":
-            shape = "只读属性（或 ICommand）"
-        elif "Setter" in kinds:
-            shape = "可读写属性"
-        else:
-            shape = "（无方向）"
-        lines.append("| `%s` | `%s` | %s | %s |" % (simple, member, kind, shape))
+        lines.append("| `%s` | `%s` | %s |" % (simple, member, kind))
     if unbound:
         lines.append("")
         lines.append("## 无描述符（不下结论）")
@@ -106,8 +100,15 @@ def main():
     lines.append("")
     lines.append("## 说明")
     lines.append("")
-    lines.append("- **`Getter` 不等于「必须是属性」**：Avalonia 的 `ICommand` 也走 Getter。")
-    lines.append("  已有先例（`CheckoutView.Previous`/`Next`/`OpenTracking`）就是 `ICommand` 属性。")
+    lines.append("- **方向字段不能用来判类型。** 全表实测分布：Getter-only **181** / Setter-only **0** /")
+    lines.append("  Getter+Setter **638**。78% 的成员都是 G/S，包括 `Product.Name`、`TaskGroup.Name`")
+    lines.append("  这类显然是数据的成员，所以「有 Setter」推不出「该做成可写属性」。")
+    lines.append("  **R712 本表曾有一列「该做成什么」，那是过度解读，R714 删除。**")
+    lines.append("")
+    lines.append("- **能判类型的只有两种证据**：")
+    lines.append("  ① **基数/排除法** —— `Notification` 原版绑定四个名字、record 四个参数，两两对齐；")
+    lines.append("  ② **描述符 + 源码形态互证** —— `Close` 是 `Getter` 单方向，且源码里已是 lambda 按钮。")
+    lines.append("  只有一条证据时，本表不给实现建议。")
     lines.append("- 本表只证明**原版绑定过这个名字**，不证明**行为**。行为一律 Unknown。")
     lines.append("- `declared-absent` 那 693 条不在此表 —— 它们的源码声明是有的，只是产物里没有独立符号。")
     io.open(OUT, "w", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")

@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 03:13:46 +0800 |
+| 生成时间 | 2026-11-17 03:37:14 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **1896 通过 / 0 失败 / 0 跳过 / 1896 总计** |
+| 完整套件 | **1911 通过 / 0 失败 / 0 跳过 / 1911 总计** |
 
 ## 摘要素值
 
@@ -19,7 +19,7 @@
 | 名字级绑定缺口 — real gap | 4 |
 | 名字级绑定缺口 — missing | 16 |
 | 类型级绑定缺口 — types with scope misses | 0 |
-| 类型缺失（type presence） — types absent from source | 17 |
+| 类型缺失（type presence） — types absent from source | 16 |
 | 成员形状差异 — total mismatches | 94 |
 | 成员形状差异 — core mismatches | 17 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
@@ -79,7 +79,7 @@ C:\Python312\python.exe tools/bind_scope.py
 ```text
 type-scoped check: types present, members missing on THAT type
 types with scope misses: 0
-types examined: 152
+types examined: 153
 types skipped for generic arity: 2
 note: base-class inheritance is counted (by design since R343)
 ```
@@ -94,11 +94,10 @@ C:\Python312\python.exe tools/bind_diff.py --type-presence
 `exit 0`
 
 ```text
-type presence: 174 declared in bindings, 157 present in source, 17 absent
+type presence: 174 declared in bindings, 158 present in source, 16 absent
   ABSENT  Cybersole.CloudflareSolvers.CloudflareSolver (members: ApiKey, Balance, BalanceSupported, Concurrency, Count, Id, IsFetchingBalance, Name, Type)
   ABSENT  Cybersole.Global.Settings                  (members: AutoOpen3DS, AutoOpen3DSLimit, BackupInterval, BetaUpdates, BrowserLimit, BrowserPath, BrowserProfileAssignment, BrowserWindowMode, Clock, Currency, Keybinds, Language, MaxBackups, MaxLogRetention, MaxLogSize, MonitorConcurrency, MonitorDelay, MonitorFilters, Notifications, PinGroups, ProfileGroupOrder, ProxyGroupOrder, QueuePresentation, QuickTaskProfiles, QuickTaskProxies, RetryDelay, ScrollbarColor, ScrollbarCornerRadius, ScrollbarWidth, ShopifyBrowserProxy, SmartActions, StartupPage, TaskGroupOrder, Timeout)
   ABSENT  Cybersole.Helpers.ObservableDictionary`2   (members: Count)
-  ABSENT  Cybersole.KeyInput.KeyGesture              (members: Key, Modifiers)
   ABSENT  Cybersole.Models.Concurrency               (members: Maximum, Mode, Ratio)
   ABSENT  Cybersole.Services.ImapProvider            (members: Host, MessageCount, Status, Username)
   ABSENT  Cybersole.SmartActions.ActionConfig        (members: Name, Required)
@@ -361,7 +360,7 @@ registry identifiers: 82   flow types: 35
 store hosts
   matched api-search.dickssportinggoods.com         1 paths  dickssportinggoods
   unmatched api.braintreegateway.com                  2 paths  
-  matched api.nike.com                              4 paths  nike, nikegs
+  matched api.nike.com                              4 paths  nikegs, nike
   matched api.sibspayments.com                      1 paths  in src
   matched api.tobe-official.jp                      1 paths  in src
   unmatched api.vipps.no                              1 paths  
@@ -384,7 +383,7 @@ store hosts
   matched threeds.airwallex.com                     1 paths  in src
   matched www.goat.com                              9 paths  goat
   matched www.ibm.com                               1 paths  in src
-  matched www.nike.com                              1 paths  nike, nikegs
+  matched www.nike.com                              1 paths  nikegs, nike
   matched www.vans.com                              6 paths  in src
 
 vendor hosts
@@ -451,7 +450,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 1896 通过 / 0 失败 / 0 跳过 / 1896 总计
+`exit 0` · 1911 通过 / 0 失败 / 0 跳过 / 1911 总计
 
 ```text
   正在确定要还原的项目…
@@ -468,7 +467,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  1896，已跳过:     0，总计:  1896，持续时间: 1 m 23 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  1911，已跳过:     0，总计:  1911，持续时间: 1 m 22 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

@@ -957,3 +957,20 @@ Viva 三条：chargetokens → paymentdetails?ref= → transactions。四家里�
 纪律：修一处不等于修一类。判断「修完了吗」的办法是问 —— 还有谁在做同样的事？
 
 下一轮：(f) 已闭合，转向其他判据 —— (a) 类型级缺口 / (b) 字符串池截断文案 / (c) 产物级对照。
+
+## R926 补充 — 类型缺失 17→16，16 行分类结案（改产品代码 + 改 analysis 工具 +15 用例，套件 1911）
+
+17 个里 10 个是 UI（优先级 ④ 延后）。剩余 7 个查了。
+
+而我先犯了一个错：写了 100 行分类工具放 replica/tools/，而 analysis/type_presence_triage.py 早就存在（R619 的 298 行，会数成员覆盖率，且有 TypePresenceTriageTests 在守）→ §2.7c 又一次，删掉重复品。
+
+真的那个红的原因：ABSENT 表是硬编码快照 17 个名字，补了 KeyGesture 后 bind_diff 报 16 → 自检失败。修：加 RESOLVED 分支，已实现的类型退出缺失计数。
+
+分类：OUT_OF_SCOPE 2 · RENAMED 6 · STRUCTURAL 1 · UNKNOWN 7 —— 16 行 = 快照 17 − 1 RESOLVED。
+
+新增 Cybersole.Core/KeyInput/KeyGesture.cs：Key · Modifiers（flags）· IsEmpty · Equals（忽略大小写）· ToString/TryParse（往返）。
+测试抓到：单字符键未规范化 → shift+ctrl+d 出 Ctrl+Shift+d → 修在构造函数里让值与其文本一致。
+
+数字：套件 1896 → 1911 · 类型缺失 17 → 16。
+
+下一轮：剩 7 个 UNKNOWN 判定里的非区分匹配那一个；或 6 个 RENAMED 的成员补齐（覆盖率是下界）。

@@ -5516,3 +5516,42 @@ chargetokens → paymentdetails?ref= → transactions
 | Viva 的响应体 | 无证据 |
 
 **纪律**：**修一处不等于修一类。判断「修完了吗」的办法是问：还有谁在做同样的事？**
+
+
+## 判据 (a) — 类型缺失 **17 → 16**，16 行分类结案（R926，**改产品代码 + 改 analysis 工具 +15 用例**）
+
+### 分类
+
+| 判定 | 数 | 含义 |
+|---|---|---|
+| OUT_OF_SCOPE | 2 | 授权/许可，见 `DECISION_LICENSE_OUT_OF_SCOPE.md` |
+| **RENAMED** | **6** | 改名，映射已记 |
+| STRUCTURAL | 1 | 结构不同 |
+| UNKNOWN | 7 | 非区分匹配 1 + 非区分 6 |
+
+**10 个 UI 类型（4 Localize + 6 View/Window）按优先级 ④ 延后。**
+
+### `Cybersole.Core/KeyInput/KeyGesture.cs`
+
+**`Key` · `Modifiers` · `IsEmpty` · `Equals`（忽略大小写）· `ToString`/`TryParse`（往返）**
+
+### 两个修
+
+**① 删掉我写的重复工具（`replica/tools/type_presence_triage.py`）—— `analysis/` 下 R619 的 298 行版本早就存在。**
+**② `analysis/type_presence_triage.py` 加 `RESOLVED` 分支 —— 快照里已实现的类型退出缺失计数。**
+
+### 一次真发现
+
+**`shift+ctrl+d` 的 `ToString` 出 `Ctrl+Shift+d` → 单字符键未规范化 → 修在构造函数里，让值与其文本一致。**
+
+### 数字
+
+**套件 1896 → 1911 · 类型缺失 17 → **16** · 分类结案 16 行**
+
+| 仍 Unknown | |
+|---|---|
+| 7 个 UNKNOWN 判定 | 非区分匹配 / 候选分不开 |
+| 2 个 OUT_OF_SCOPE | 已有裁决文件 |
+| 剩 6 个 RENAMED 的成员是否齐 | 覆盖率是下界 |
+
+**纪律**：**§2.7c 我犯到第六次，唯一不同的是这次有一道防线（一个我没读的测试）把它抓住了。**

@@ -26174,3 +26174,80 @@ docs/METRICS.md                  -> 核心覆盖 8 行（store 5 + vendor 3）�
 而同一类扫描还有第三个 —— 它就在我下一轮要用的那个工具里。**
 
 **修一处不等于修一类。而判断「修完了吗」的办法是问：还有谁在做同样的事？**
+
+
+---
+
+## 350. 类型缺失 17 → 16；16 行分类结案；而我写了一个早已存在的工具的重复品
+
+> R926。**改产品代码 + 改 analysis 工具 +15 用例。** 套件 **1911 通过 / 0 失败 / 0 跳过**。
+
+### 一、17 个里 10 个是 UI
+
+**4 个 `Localize*Extension` + 6 个 View/Window → 优先级 ④ 延后。真正要查的是另外 7 个。**
+
+### 二、而我先犯了一个错
+
+**我写了 100 行的分类工具放 `replica/tools/`。而 `analysis/type_presence_triage.py` **早就存在** ——
+R619 的 298 行版本，会数成员覆盖率，**而且有测试 `TypePresenceTriageTests` 一直在守它。**
+
+**→ §2.7c 又一次。删掉重复品。**
+
+### 三、真的那个为什么红了
+
+**`ABSENT` 表是从 bind_diff 拷的快照，硬编码 17 个名字。补了 `KeyGesture` 后 bind_diff 报 16 → 自检失败 exit 1。**
+
+**修：加 `RESOLVED` 分支 —— 已有同名声明的类型退出缺失计数并单独报出。**
+
+### 四、分类结果
+
+| 判定 | 数 |
+|---|---|
+| OUT_OF_SCOPE | 2 |
+| **RENAMED** | **6** |
+| STRUCTURAL | 1 |
+| UNKNOWN（非区分匹配 / 非区分） | 1 + 6 |
+
+**16 行 = bind_diff 的 16 = 快照 17 − 1 个 RESOLVED。**
+
+### 五、`Cybersole.Core/KeyInput/KeyGesture.cs`
+
+**`Key` · `Modifiers`（bindings 的两个名字）· `IsEmpty` · `Equals`（忽略大小写）· `ToString`/`TryParse`（往返）**
+
+**`Modifiers` 用 flags：文本要在读取时解析、显示时格式化，两边会分歧；一次大小写滑动就把能用的绑定变成死的。**
+
+### 六、一次真发现
+
+**`shift+ctrl+d` 第一次 `ToString` 出 `Ctrl+Shift+d` —— 单字符键未规范化。
+修在构造函数里而不是 `ToString` 里：**让值与其文本一致**。**
+
+### 七、数字
+
+| 度量 | R925 | R926 |
+|---|---|---|
+| 套件 | 1896 | **1911** |
+| **类型缺失** | 17 | **16** |
+| 分类结案 | 无 | **16 行** |
+
+### 八、验证
+
+```
+analysis/type_presence_triage.py -> resolved: KeyGesture · triage rows: 16 · exit 0
+test --filter KeyGestureTests    -> 15 通过
+test --filter TypePresenceTriageTests -> 通过
+metrics_report.py                -> 1911 通过 / 0 失败；类型缺失 16
+```
+
+### 九、仍然 Unknown
+
+- **7 个 UNKNOWN 判定**：**Unknown** —— 非区分匹配或候选分不开。
+- **2 个 OUT_OF_SCOPE**：**已有裁决文件**，非本轮判断。
+- **剩 6 个 RENAMED 的成员是否齐**：**Unknown** —— 覆盖率是下界。
+
+### 十、教训
+
+**这一轮我做了两件相反的事：补了 `KeyGesture`（真进展），同时写了一个早已存在的工具的重复品（真退步）。**
+
+**而发现重复品的方式是**一个测试红了** —— 不是因为我查了。**
+
+**§2.7c 写在那里，而我在它存在的第六次上又犯了一次，唯一不同的是这次它有一道防线。**

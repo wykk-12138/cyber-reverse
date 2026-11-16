@@ -112,7 +112,15 @@ def main():
     # absent, and a renamed type by definition has a different simple name (`Settings` -> `GlobalSettings`). So score
     # every declared type by how many of the contract's members its body contains and take the best.
     rows = []
+    resolved = []
     for simple, member_text in ABSENT.items():
+        # R926: the table above is a snapshot copied from bind_diff, so a type implemented since it was taken stays in
+        # it. KeyGesture acquired a same-name declaration this round and the row count then disagreed with bind_diff,
+        # which the guard caught. A name that now has a declaration is RESOLVED: it is reported separately and leaves
+        # the absent count, because otherwise this tool would keep counting a gap that no longer exists.
+        if simple in all_bodies:
+            resolved.append(simple)
+            continue
         members = [m.strip() for m in member_text.split(",") if m.strip()]
         # R702: the YG ruling (docs/DECISION_LICENSE_OUT_OF_SCOPE.md) takes precedence over any
         # textual scoring for the auth/licence family -- it is user management, out of scope.
@@ -262,18 +270,26 @@ def main():
     for _s, v, _e, _h, _t in rows:
         counts[v] = counts.get(v, 0) + 1
     print()
+    if resolved:
+        print("resolved since the snapshot was taken: %s" % ", ".join(resolved))
     print("triage rows: %d" % len(rows))
     print("verdicts: %s" % ", ".join("%s=%d" % (k, v) for k, v in sorted(counts.items())))
 
     # R621: every ABSENT type must carry exactly one verdict. A short row list would silently drop an item and the
     # document would still read as complete -- the same failure the metric-claims guard exists to prevent.
-    if len(rows) != len(ABSENT):
-        raise SystemExit("triage produced %d rows for %d absent types" % (len(rows), len(ABSENT)))
+    # R926: ABSENT is a snapshot, so it may hold names that have since been implemented. Those are reported as
+    # resolved above and are not rows, so the expectation is the snapshot minus the resolved ones rather than the whole
+    # snapshot. Comparing to the whole thing made the tool refuse to run the moment a gap closed, which is the opposite
+    # of what a gap-closing check should do.
+    expected = len(ABSENT) - len(resolved)
+    if len(rows) != expected:
+        raise SystemExit("triage produced %d rows for %d absent types (%d of %d resolved)"
+                         % (len(rows), expected, len(resolved), len(ABSENT)))
     total = 0
     for v in counts.values():
         total += v
-    if total != len(ABSENT):
-        raise SystemExit("verdict counts sum to %d, expected %d" % (total, len(ABSENT)))
+    if total != expected:
+        raise SystemExit("verdict counts sum to %d, expected %d" % (total, expected))
 
     lines = ["# 类型缺失 17 条的逐条分类（自动生成：`python analysis/type_presence_triage.py`）", "",
              "> 判据见脚本文件头。**成员覆盖率是下界**：只数类体里的成员名，继承来的、表达式体、",

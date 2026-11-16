@@ -20452,3 +20452,83 @@ python - (解析 StoreFlowSteps 的 8 个流程与全部 new Step 的 ordinal)
 
 **「同一个结论，换一个能证伪它的检查」比「补上原来缺的那个证据」更容易做到 ——
 因为原来缺的那个（运行顺序）要动态观察，而能证伪的那个（编号是否重叠）只需读表。**
+
+
+---
+
+## 277. R852 的证据升到镜像原文；**而同一批证据带出第九条序列**
+
+> R853。未改产品代码。
+
+### 一、直接证据
+
+**`<AddToCart>d__32` @ `0x1434acef3`：**
+
+```
+AddToCart(32) · InitiateCheckout(33) · GenerateCSRF(34) · GetCheckout(35) · SubmitBillingAddress(36) …
+```
+
+**这是 `StoreFlowSteps.DemandwareClassic` 逐字。**
+
+**`<AddToCart>d__22` @ `0x14338114f`：**
+
+```
+GetHome(19) · FindProductMulti(20) · FindProduct(21) · AddToCart(22) · SubmitDiscount(23) …
+```
+
+**同一个 `AddToCart`，两条不同 blob，两个不同编号。**
+
+**所以「编号按流程给」这条现在是 Observation，不是 Inference。
+R852 留的那句「那个观察来自转写，不是镜像原文」到此解除。**
+
+### 二、而第二条 blob 不匹配已记录的 8 条
+
+| 流程 | `GetHome` | `FindProductMulti` |
+|---|---|---|
+| CollectPlusApp | 33 | — |
+| StructureTokenMulti | — | 29 |
+| StructureTokenSingle | — | — |
+| **这条未命名序列** | **19** | **20** |
+
+**`FindProductMulti` + `FindProduct` 同时出现，且 `GetHome` 在 19 —— 8 条里没有一条是这个形状。**
+
+**所以镜像里至少还有第九条流程序列，而 `StoreFlowSteps` 里没有它。**
+
+### 三、这一条对判据 (f) 的意义
+
+**`StoreFlowSteps` 那 8 条我一直当成「镜像的全部流程序列」。**
+**现在有一条不属于 8 条里的任何一条 —— 所以 8 不是全部。**
+
+**而它的形状（`FindProductMulti` 与 `FindProduct` 并列）很像 `structure-token` 那两条的亲戚，
+但编号不同（`FindProductMulti` 这里 20、struct-token-multi 那里 29）。**
+
+**所以不是「struct-token 那一族被记错」，是**另有一条**。**
+
+### 四、验证
+
+```
+ida.py str "AddToCart>d__32"  -> 1 match @0x1434acef3（DemandwareClassic 逐字）
+ida.py str "AddToCart>d__22"  -> 1 match @0x14338114f（未命名序列）
+ida.py str "d__32"            -> 33 matches（多数是无关类型）
+ida.py str "d__22"            -> 34 matches
+本轮未改产品代码
+七项度量沿用
+```
+
+### 五、仍然 Unknown
+
+- **那第九条序列属于哪个流程**：**Unknown** ——
+  形状像 struct-token 一族但编号不同，**需要读完整 blob 才能判。**
+- **`StoreFlowSteps` 的 8 条是怎么选出来的**：**Unknown** ——
+  R112 的注释说「each flow's steps sit in one adjacent run」，**但没说是怎么确定「哪些流程」的。**
+  **这条现在很关键：如果选法有偏，那 8 条之外可能还有几条。**
+- **总共有多少条序列**：**Unknown** —— **这是判据 (f) 的覆盖率分母，而它现在不可靠。**
+
+### 六、教训
+
+**我在 R844 用 `StoreFlowSteps` 的 8 条算出了 130 步、22 同名、16.9%。**
+
+**而这一轮发现 8 条之外还有一条。**
+**如果分母是错的，那个百分比的分母就是错的 —— 而它已经被写进 `ASYNC_OPS.md` 和三轮记录。**
+
+**「8 条是怎么选出来的」这个问题，我从来没问过。**

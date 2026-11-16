@@ -256,3 +256,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **→ 每流程自己编号 → 各自一个类、各自一套序列 → R851 从 Inference 升为 Observation。**
 **反证**：`AddToCart` 在 JohnLewis 是 22、在 DemandwareClassic 是 32 —— **同名不同号，说明是不同方法**，
 不是共享方法复用。**对「165 虚方法 + 按站重写」是个反证：镜像似乎每流程各写一份。**
+
+## R853 补充 — 第九条序列 + 分母不可靠
+
+**直接证据**：`<AddToCart>d__32` @`0x1434acef3` = DemandwareClassic 逐字；`<AddToCart>d__22` @`0x14338114f` = 未命名序列。**同名字两编号 → 编号按流程给 = Observation。**
+**`GetHome(19)·FindProductMulti(20)·FindProduct(21)·AddToCart(22)·SubmitDiscount(23)` 不匹配 8 条中任何一条 → 镜像至少还有第九条序列。**
+**没问过的问题：`StoreFlowSteps` 那 8 条是怎么选出来的？** R112 注释只说「相邻一段」，没说怎么定「哪些流程」。
+**8 是 R844 那个 16.9% 的分母 —— 分母错了，百分比就错了。**

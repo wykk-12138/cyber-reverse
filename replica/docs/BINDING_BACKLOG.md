@@ -2950,3 +2950,32 @@ SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken 
 | 做法 1 该做多大 | 若序列与类绑定，可能不只是加一个列表 |
 
 **纪律**：**「同一个结论换一个能证伪它的检查」比「补原来缺的那个证据」容易 —— 前者只要读表。**
+
+
+## 判据 (f) — 第九条序列 + 分母不可靠（R853）
+
+**直接证据（镜像原文）：**
+`<AddToCart>d__32` @`0x1434acef3` = DemandwareClassic 逐字 · `<AddToCart>d__22` @`0x14338114f` = 未命名序列
+**→ 同名字两个编号 → 编号按流程给 = Observation（R852 的转写警告解除）。**
+
+### 新发现
+
+`GetHome(19) · FindProductMulti(20) · FindProduct(21) · AddToCart(22) · SubmitDiscount(23)` **不匹配 8 条中任何一条**
+（CollectPlus `GetHome`=33；struct-token-multi `FindProductMulti`=29）。
+
+**→ 镜像至少还有第九条流程序列，`StoreFlowSteps` 里没有它。**
+
+### 没问过的问题（现在很关键）
+
+> **`StoreFlowSteps` 那 8 条是怎么选出来的？**
+> R112 注释说「each flow's steps sit in one adjacent run」，**但没说是怎么确定「哪些流程」的。**
+
+**若选法有偏，8 之外可能还有几条。而 8 是 R844 那个 16.9% 的分母。**
+
+| 仍 Unknown | |
+|---|---|
+| 第九条属于哪个流程 | 需读完整 blob |
+| **8 条怎么选出来的** | **关键** |
+| 总共多少条序列 | **(f) 的分母，现不可靠** |
+
+**纪律**：**分母错了，百分比就错了 —— 而它已经写进三份记录。**

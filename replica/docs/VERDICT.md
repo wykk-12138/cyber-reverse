@@ -51222,3 +51222,46 @@ GetPaymentToken · SubmitOrder · ProcessOrder
 ```
 130 总 · 63 不同 · 67 重复 · 20–153 · 产品代码未改 · 七项度量沿用
 ```
+
+
+---
+
+## 第 853 轮：证据升到镜像原文；而同一批证据带出第九条序列
+
+### 直接证据
+
+**`<AddToCart>d__32` @ `0x1434acef3`** —— `AddToCart(32) · InitiateCheckout(33) · GenerateCSRF(34) · GetCheckout(35) · SubmitBillingAddress(36)`
+**= `StoreFlowSteps.DemandwareClassic` 逐字。**
+
+**`<AddToCart>d__22` @ `0x14338114f`** —— `GetHome(19) · FindProductMulti(20) · FindProduct(21) · AddToCart(22) · SubmitDiscount(23)`
+
+**同一个 `AddToCart`，两条 blob，两个编号 → 「编号按流程给」是 Observation 了。
+R852 的警告（「来自转写不是原文」）解除。**
+
+### 而第二条 blob 不匹配已记录的 8 条
+
+`GetHome 19` + `FindProductMulti 20` + `FindProduct 21` —— **8 条里没有一条是这个形状**
+（CollectPlus 的 `GetHome` 33；struct-token-multi 的 `FindProductMulti` 29）。
+
+> **镜像里至少还有第九条流程序列，而 `StoreFlowSteps` 里没有它。**
+
+### 这条对 (f) 的意义
+
+**我一直把 `StoreFlowSteps` 的 8 条当成「镜像的全部流程序列」。现在有一条不属于它们。**
+
+**而最要紧的是那个没问过的问题：**
+
+> **「这 8 条是怎么选出来的？」** ——
+> **R112 的注释说「each flow's steps sit in one adjacent run」，但没说是怎么确定「哪些流程」的。**
+
+**如果选法有偏，8 条之外可能还有几条；而 8 是 R844 那个 16.9% 的分母。**
+
+### 仍然 Unknown
+
+**第九条属于哪个流程**（形状像 struct-token 一族但编号不同，需读完整 blob）·
+**8 条是怎么选出来的**（**现在很关键**）· **总共有多少条序列**（**判据 (f) 的分母，现在不可靠**）
+
+### 教训
+
+**我在 R844 用 8 条算出 130 步 · 22 同名 · 16.9%，而这一轮发现 8 条之外还有一条。**
+**分母错了，那个百分比的分母就错了 —— 而它已经写进 `ASYNC_OPS.md` 和三份记录。**

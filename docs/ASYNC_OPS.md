@@ -500,3 +500,40 @@ GetPaymentToken · SubmitOrder · ProcessOrder
 
 **结论：R851 说的「镜像八条按流程的序列」成立，而它上一轮只是 Inference（因为「ordinal 递增是否即运行顺序」没证）。
 现在有证了 —— 不是「递增即顺序」，而是「编号空间按流程分开」，这足以支持「序列是每条流程自己的」。**
+
+
+### 镜像原文里的两条 blob（R853）
+
+**`<AddToCart>d__32` @ `0x1434acef3`：**
+
+```
+AddToCart(32) · InitiateCheckout(33) · GenerateCSRF(34) · GetCheckout(35) · SubmitBillingAddress(36) …
+```
+
+**逐字对上 `StoreFlowSteps.DemandwareClassic`（`AddToCart 32 · InitiateCheckout 33 · GenerateCSRF 34 · GetCheckout 35 · SubmitBillingAddress 36`）。**
+
+**`<AddToCart>d__22` @ `0x14338114f`：**
+
+```
+GetHome(19) · FindProductMulti(20) · FindProduct(21) · AddToCart(22) · SubmitDiscount(23) …
+```
+
+### 第一件事：R852 从「转写来的观察」变成「镜像原文」
+
+**同一个 `AddToCart`，在两条不同的 blob 里是 `d__32` 与 `d__22` —— 同一个名字，两个编号，
+分别在两段相邻运行里。所以编号确实是按流程给的，不是全局的。**
+
+**R852 的那条警告（「那个观察来自 `StoreFlowSteps` 的转写，不是镜像原文」）到此解除。**
+
+### 第二件事：还有一条序列没被记录
+
+**`GetHome(19) · FindProductMulti(20) · FindProduct(21) · AddToCart(22) · SubmitDiscount(23)` 不匹配已记录的 8 条：**
+
+| 流程 | `GetHome` | `FindProductMulti` |
+|---|---|---|
+| CollectPlusApp | 33 | — |
+| StructureTokenMulti | — | 29 |
+| StructureTokenSingle | — | — |
+| **这条未命名序列** | **19** | **20** |
+
+**所以镜像里至少还有第九条流程序列，而 `StoreFlowSteps` 里没有它。**

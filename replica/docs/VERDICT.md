@@ -48923,3 +48923,50 @@ clients/offspring/{account/guest-token, cart/items, checkout/start, products?ids
 ### 教训
 
 **「找到名字」和「找到端点」是两步。**
+
+
+---
+
+## 第 806 轮：`OnePageCheckout` 的载荷读出来了；而我误读了自己的工具
+
+### 载荷是 `BillingAddressFormViewModel` 的属性名
+
+```
+JapaneseName · FuriganaName · JapaneseSurname · FuriganaSurname
+{Surname, Name, PostalCode, City, Region, CountryCode, Phone,
+ PhonePrefix, Mobile, MobilePrefix, Email}
+→ /OnePageCheckout/CheckoutPlugin/SetBillingAddressAsync
+```
+
+**四十条里没有一个可 POST 的 URL —— 全是视图模型属性名与插件方法名。**
+**`Furigana`/`JapaneseName` 说明是日本店面；`DemandwareFlow` 已满，这套属于它。**
+
+**但 `DemandwareFlow` 走的是 `/Checkout-Submit*` + `dwfrm_*`，不是这套。**
+**同一平台两条路，复刻件只实现了一条 —— 不构成缺口，但记下来。**
+
+### 我误读了自己的工具
+
+十四个槽都返回 `'BillingAddressFormView'`，**而长度印着 40/43/32** —— 同一串不可能有四种长度。
+**我据此判「读错位置」，写新脚本去分辨槽与串对象。**
+
+**真因是显示截断：第 159 行 `text[:22]`。`BillingAddressFormView` 恰好 21 字符。**
+
+> **读取是对的；长度一直印着正确的 40；我只看到 21 个字符。**
+> **我把「显示被截断」读成了「读取位置错」—— 这是「先假设形状」的又一次，只不过假设的是「我的工具坏了」。**
+
+### 修了什么
+
+**显示到 96 字符，超过就明说「共 N 字符，显示 96」，不再静默截断。**
+
+```
+slot 0x146b5e268  'BillingAddressFormViewModel.JapaneseName'   len=40
+slot 0x146ab0028  '/OnePageCheckout/CheckoutPlugin/SetBillingAddressAsync'  len=54
+```
+
+### 影响范围
+
+**本会话之前用它读的都是短串（`poq-app-id` 10 字符那批），没有既有结论依赖被截断的显示。**
+
+### 教训
+
+**判断工具坏了之前，先看它自己印出的校验字段 —— `len=40` 就在同一行。**

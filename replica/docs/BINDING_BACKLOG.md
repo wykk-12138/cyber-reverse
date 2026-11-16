@@ -1515,3 +1515,26 @@ casio.*(cart|order|checkout|payment|…)   0 条
 | `/Checkout/PlaceOrder/(\d+)` 调用点 | 未查 |
 
 **纪律**：**「找到名字」和「找到端点」是两步。** 40 条看着把缺的三步全给了，**但一条都不是可调的路径。**
+
+
+## 核心 — `OnePageCheckout` 载荷 + 一个工具显示 bug（R806）
+
+**载荷是 `BillingAddressFormViewModel` 的属性名**（不是 URL）：
+
+```
+JapaneseName · FuriganaName · JapaneseSurname · FuriganaSurname
+{Surname, Name, PostalCode, City, Region, CountryCode, Phone, PhonePrefix, Mobile, MobilePrefix, Email}
+→ /OnePageCheckout/CheckoutPlugin/SetBillingAddressAsync   （由 sub_140D6AAA0 构造）
+```
+
+**`Furigana`/`JapaneseName` → 日本店面 → 属 `DemandwareFlow`（已 100%）。**
+**但 `DemandwareFlow` 走 `/Checkout-Submit*` + `dwfrm_*`，不是这套 —— 同平台两条路，实现了一条。**
+
+| 项 | 状态 |
+|---|---|
+| `off_slot_reader.py` 显示截断（`text[:22]`） | **已修**：显示 96，超出明说总长 |
+| 既有结论是否受影响 | **否** —— 之前读的都是短串 |
+| `sub_140D6C4E0`（SetShippingAddress）载荷 | **未读**，大概率同形 |
+
+**纪律**：**判断工具坏了之前，先看它自己印出的校验字段（`len=40` 就在同一行）。**
+显示截断会伪装成读取错误，而「工具坏了」比「我没看长度」更容易被接受。

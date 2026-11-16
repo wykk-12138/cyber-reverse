@@ -156,7 +156,15 @@ def main(argv):
                 text, length = t, n
                 break
         ok = img.printable(text) and (length is None or length == len(text))
-        print("    slot 0x%-10x %-24r len=%-4s%s" % (slot, (text or "")[:22], length, "" if ok else "   (check)"))
+        # R806: this used to print text[:22]. Every slot therefore showed its first 22 characters, and a reader
+        # comparing that against the printed length saw a 40-length string displayed as 21 characters and concluded the
+        # reader was fetching from the wrong place. The length was right all along; only the display was cut. Show the
+        # whole string, and say so when it is longer than a terminal line, rather than truncating silently.
+        shown = text or ""
+        clipped = len(shown) > 96
+        print("    slot 0x%-10x %-52r len=%-4s%s%s" % (
+            slot, shown[:96], length, "" if ok else "   (check)",
+            "   [%d chars, shown 96]" % len(shown) if clipped else ""))
     return 0
 
 

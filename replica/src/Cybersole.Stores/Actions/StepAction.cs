@@ -1,4 +1,4 @@
-﻿using Cybersole.Stores.Flows;
+using Cybersole.Stores.Flows;
 
 namespace Cybersole.Stores.Actions;
 
@@ -194,7 +194,10 @@ public sealed class StepActionRegistry
 /// <summary>Runs a <see cref="StepAction"/> against a flow by reflecting the step names.</summary>
 public static class StepActionRunner
 {
-    private static readonly Dictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>>
+    // R869: internal rather than private, so StoreFlow.StepDispatch can expose this table instead of building a
+    // second one. Two ways to invoke a step by name is one too many, and this is the older and better one — it uses
+    // MethodInfo.Invoke, which is why it never hit the delegate-binding failure R868 ran into.
+    internal static readonly Dictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>>
         Invokers = Build();
 
     private static Dictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>> Build()

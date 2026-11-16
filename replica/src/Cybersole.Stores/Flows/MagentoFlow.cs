@@ -579,6 +579,18 @@ public sealed class JohnLewisFlow : StoreFlow
     public override IReadOnlyList<string> Domains => new[] { "johnlewis.com", "checkout.johnlewis.com" };
 
     /// <summary>
+    /// John Lewis's own order — the image's nineteen steps, from one adjacent run of compiler ordinals (R112).
+    ///
+    /// <para>
+    /// R869. This flow has more steps than its twelve BFF endpoints have names, which R118 recorded as a reading in
+    /// itself: the step list is the client's phases while the endpoints are the server's resources, so
+    /// <c>v2/sessions/web/handover</c> serves both WebHandOver and SessionHandover. Declaring the sequence keeps that
+    /// distinction where it belongs — in the order the client runs, not in how many URLs exist.
+    /// </para>
+    /// </summary>
+    public override IReadOnlyList<string> StepSequence => StoreFlowSteps.JohnLewis.Names;
+
+    /// <summary>
     /// John Lewis runs its own checkout under /checkout/registration rather than Magento's
     /// SPA, and the order summary rides along in the same response.
     /// </summary>

@@ -52052,3 +52052,58 @@ map = 165   sequence = 24   implementable = 0
 > **R866/R867 我把这件事描述成「结构改造」，听起来像动大手术。实际是一处虚属性、一张反射表、一个 override、七个测试。**
 > **而唯一真正难的地方，是一个事先没想到的运行时约束。那类约束在纸上永远看不出来 —— 只能撞。**
 > **所以「先估影响面」是对的，但估完就该动手；再估一轮也估不出那个 `ArgumentException`。**
+
+
+---
+
+## 第 869 轮：R868 那张反射表是我写的重复品 —— 删掉改用现成的
+
+### 撞见现成的实现
+
+**查 `StepOutcome` 形状时读到 `StepActionRunner`（`Actions/StepAction.cs` L195）—— 它早就在做同一件事，且更完整：**
+
+| | `StepActionRunner` | 我 R868 写的 |
+|---|---|---|
+| 调用方式 | **`MethodInfo.Invoke`** | `CreateDelegate` ← **撞上 ArgumentException** |
+| 逐步计时 / `ctx.Step()` / 取消 / 异常 | **全有** | 无 |
+
+**→ R868 那堵墙本来不必撞。**
+
+### 删掉了什么
+
+**删 `BuildDispatch` / `DispatchTable` / `RunStepNamedAsync`；`StepDispatch => StepActionRunner.Invokers`；新增 `CanRunStep`。
+`Invokers` 由 `private` 改 `internal`。**
+
+**净效果：代码更少，能力更多。**
+
+### 三个流程接上，五个没有落点
+
+| 有 | `nike` · `popmart` · `johnlewis`（16 / 24 / 19 步） |
+|---|---|
+| **没有** | **`demandware-classic` · `-dual` · `collectplus-app` · `structure-token-*`** |
+
+**→ R855 那句「它们不是站，是变体」的可核对形态。**
+
+### runner 分支，以及写它时踩出的假成功
+
+**`PopMartFlow` 声明 24、可跑 0 → `StepActionRunner.RunAsync` 空列表返回 `Ok = true` → **报「结账成功」而什么都没做**。**
+
+**修法：`runnable.Count == 0` 直接 `Error`，消息写明「24 declared, 0 implemented」；
+并把 `sequenceDeclared` / `sequenceRunnable` 写进 session，让跳过步数一直可见。**
+
+> **这是本项目反复在删的那个形态的第五种：编造值 → 空壳方法 → 死字段 → **空循环假成功**。**
+
+### 一个刻意的选择（已记在代码里）
+
+**某步失败时中止整个序列 —— 理由是购物车坏了后续无意义。**但这是**选择**不是观察，镜像行为未查。**
+
+### 仍然 Unknown
+
+**`CheckoutResult` 没有「不支持」值**（只有 `Unknown/Declined/PaymentRequired/Success/Cancelled/Error/ThreeDSRequired`）→
+「没实现」与「跑了但失败」同值 · **某步失败该中止还是继续**（本轮选了中止）·
+**那 5 条变体该建五个类还是一套模式**（R855 倾向后者）
+
+### 教训
+
+> **「先查有没有现成的」我理解成「查有没有现成的**分析**」。这次它该是「查有没有现成的**实现**」—— 而查的成本是三分钟。**
+> **两轮里我各写了一个重复品/假成功，两个都能靠「先读再写」避免。所以下一步不是继续写，而是把「写之前读哪里」写清楚。**

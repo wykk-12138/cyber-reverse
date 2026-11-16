@@ -3457,3 +3457,40 @@ map = 165   sequence = 24   implementable = 0
 | 其余 7 流程 `Flow.Store` 是否等于 `Id` | 只核 popmart |
 
 **纪律**：**纸上估不出运行时约束 —— 估完就该动手。**
+
+
+## 优先级 ① — 去重 + runner 接上（R869，**已改产品代码**）
+
+**R868 的反射表是 `StepActionRunner`（`Actions/StepAction.cs` L195）的重复品，且后者更完整（`Invoke` 而非 `CreateDelegate`，含计时/记录/取消/异常）。已删，改指向它。**
+
+| 文件 | 改动 |
+|---|---|
+| `StoreFlow.cs` | 删 `BuildDispatch`/`DispatchTable`/`RunStepNamedAsync`；`StepDispatch => StepActionRunner.Invokers`；加 `CanRunStep` |
+| `StepAction.cs` | `Invokers` private → `internal` |
+| `NikeFlow.cs` · `MagentoFlow.cs`(JohnLewisFlow) | 各加 `override StepSequence` |
+| `StoreFlowRunner.cs` | Init+AntiBot 后分支；新增 `RunDeclaredSequenceAsync` |
+
+**套件 1773 通过 / 0 失败 / 0 跳过。**
+
+### 覆盖
+
+| 有落点 | nike 16 · popmart 24 · johnlewis 19 |
+|---|---|
+| **无落点** | **demandware-classic · demandware-dual · collectplus-app · structure-token-multi · structure-token-single** |
+
+**→ R855「不是站是变体」的可核对形态。**
+
+### 写 runner 时踩出的假成功（第五种形态）
+
+**24 declared / 0 runnable → 空循环返回 Ok → 报「成功」而什么都没做。**
+**已修：`runnable.Count == 0` → `Error("24 declared, 0 implemented")`；并把两个数写进 session 让跳过可见。**
+
+**形态谱：编造值（R823）→ 空壳方法（R850）→ 死字段（R858）→ 空循环假成功（R869）。**
+
+| 仍 Unknown | |
+|---|---|
+| `CheckoutResult` 无「不支持」值 | 「没实现」与「失败」同值 |
+| 某步失败该中止还是继续 | 本轮选中止，镜像未查 |
+| 5 条变体建五类还是一条模式 | R855 倾向后者 |
+
+**纪律**：**「先查有没有现成的」要包括**实现**，不只是分析。**

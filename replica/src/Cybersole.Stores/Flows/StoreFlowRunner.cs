@@ -1,3 +1,5 @@
+using System.Linq;
+using Cybersole.Stores.Actions;
 using Cybersole.Core.Models;
 using Cybersole.Http.Stores;
 
@@ -67,6 +69,12 @@ public static class StoreFlowRunner
 
             var anti = await AntiBotAsync(flow, ctx, ct).ConfigureAwait(false);
             if (!anti.Ok) return Blocked(anti.Error);
+
+            // R869: a flow that declares its own order runs that order rather than the built-in one. Empty means the
+            // flow has no order of its own, in which case everything below is unchanged — which is the case for
+            // twenty-five of the twenty-eight flows.
+            if (flow.StepSequence.Count > 0)
+                return await RunDeclaredSequenceAsync(flow, ctx, ct).ConfigureAwait(false);
 
             foreach (var (name, step) in new (string, Func<FlowContext, CancellationToken, Task<StepOutcome>>)[]
                      {
@@ -291,4 +299,52 @@ public static class StoreFlowRunner
 
     private static CheckoutOutcome Blocked(string? error) =>
         new() { Success = false, Error = error, Result = CheckoutResult.Error };
+
+    /// <summary>
+    /// Runs the order a flow declares through <see cref="StoreFlow.StepSequence"/>, via the same invoker table the
+    /// step actions use.
+    ///
+    /// <para>
+    /// R869. Two decisions are recorded here rather than buried. First, a declared name the flow cannot run is a
+    /// <b>coverage</b> fact and not a failure: the image lists steps this build has not written yet — for Pop Mart,
+    /// all twenty-four — and failing on the first of them would make the flow unusable while saying nothing useful.
+    /// Second, because those names are skipped, the numbers are written into the session so the omission stays
+    /// visible: a run that silently did nine of twenty-four steps would otherwise look like success.
+    /// </para>
+    ///
+    /// <para>
+    /// What is <b>not</b> settled is what the image does when a step it does implement fails halfway. Stopping is
+    /// this code's choice, taken because a broken cart makes later steps meaningless, but it is a choice and not an
+    /// observation — recorded as Unknown in docs/BLOCKERS.md rather than asserted here.
+    /// </para>
+    /// </summary>
+    private static async Task<CheckoutOutcome> RunDeclaredSequenceAsync(StoreFlow flow, FlowContext ctx,
+        CancellationToken ct)
+    {
+        var declared = flow.StepSequence;
+        var runnable = declared.Where(flow.CanRunStep).ToList();
+
+        ctx.Session.Vars["sequenceDeclared"] = declared.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        ctx.Session.Vars["sequenceRunnable"] = runnable.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        // A sequence none of whose steps this build can run must not report success. An empty step list would make
+        // the loop below vacuous and return Ok, so a flow that did nothing at all would look like a completed
+        // checkout -- the exact failure mode this project keeps having to remove. Today this is Pop Mart's whole
+        // state: twenty-four declared, none written.
+        if (runnable.Count == 0)
+            return Error("declared order has no runnable step for " + flow.Id + ": " +
+                         declared.Count + " declared, 0 implemented");
+
+        var action = new StepAction
+        {
+            Id = "declared-" + flow.Id,
+            Category = "flow",
+            Name = flow.Name + " (declared order)",
+            Steps = runnable,
+        };
+
+        var r = await StepActionRunner.RunAsync(flow, ctx, action, ct).ConfigureAwait(false);
+        if (r.Ok) return new CheckoutOutcome { Success = true, Result = CheckoutResult.Success };
+        return Error(r.FailedStep is null ? r.Error : r.FailedStep + ": " + r.Error);
+    }
 }

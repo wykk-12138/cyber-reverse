@@ -1073,3 +1073,52 @@ implementable  =   0
 | `TheTableIsNotEmptyWhichIsWhyTheZeroAboveMeansDisjoint` | 表非空，所以上面的 0 意味着「两个名字集不相交」而不是「表坏了」 |
 
 **最后两个是一对：一个量缺口，一个证明前一个的 0 不是因为表空。**
+
+
+### R868 那张反射表是**重复品** —— 删掉，改用 `StepActionRunner`（R869）
+
+**查 `StepOutcome` 的形状时撞见 `StepActionRunner`（`Actions/StepAction.cs` L195）——
+它早就在做同一件事，而且做得更好：**
+
+| | `StepActionRunner`（已有） | 我的 `StepDispatch`（R868 写的） |
+|---|---|---|
+| 取方法 | `typeof(StoreFlow).GetMethods()` | 同 |
+| 调用方式 | **`MethodInfo.Invoke`** | `Delegate.CreateDelegate` ← **撞上 `ArgumentException`** |
+| 名字查询 | `Knows(step)` | `TryGetValue` |
+| 逐步计时 | **有**（`Stopwatch` + `TaskStepRecord`） | 无 |
+| `ctx.Step()` / `ctx.Finish()` 记录 | **有** | 无 |
+| 取消 / 异常处理 | **有** | 无 |
+
+**所以 R868 那个 `ArgumentException` 本来不必撞 —— 现成的实现用 `Invoke`，绕开了它。**
+
+### 改法
+
+| 文件 | 改动 |
+|---|---|
+| `StoreFlow.cs` | **删** `BuildDispatch` + `DispatchTable` + `RunStepNamedAsync`；`StepDispatch` 改为 `=> StepActionRunner.Invokers`；新增 `CanRunStep(step) => StepActionRunner.Knows(step)` |
+| `StepAction.cs` | `Invokers` 由 `private` 改 **`internal`** |
+| `NikeFlow.cs` / `MagentoFlow.cs`（内含 `JohnLewisFlow`） | 各加 `override StepSequence` |
+
+**现在三个流程声明序列：Nike 16 · PopMart 24 · JohnLewis 19。**
+
+### 而其余 5 个序列没有落点
+
+| `StoreFlowSteps.X.Store` | 有对应流程类吗 |
+|---|---|
+| `nike` · `popmart` · `johnlewis` | **有** |
+| **`demandware-classic` · `demandware-dual` · `collectplus-app` · `structure-token-multi` · `structure-token-single`** | **没有** |
+
+**这正是 R855 说的「它们不是站，是变体」—— 现在是一个可核对的表。**
+
+### runner 分支：写的时候就踩出一个假成功
+
+**`RunCheckoutAsync` 在 Init + AntiBot 之后加分支：有 `StepSequence` 就走它。**
+
+**第一版直接调 `StepActionRunner.RunAsync`。而 `PopMartFlow` 声明 24 步、可跑 0 步 →
+`RunAsync` 的空步列表循环一次也不进 → 返回 `Ok = true` → **报「结账成功」而什么都没做**。**
+
+**这就是本项目反复在删的那个形态。修法：`runnable.Count == 0` 直接 `Error`，
+消息里写明「24 declared, 0 implemented」。**
+
+**顺便：把 `sequenceDeclared` / `sequenceRunnable` 写进 session，让跳过的步数一直可见 ——
+不然「跑了 24 步里的 9 步」和「跑完了」在结果上一样。**

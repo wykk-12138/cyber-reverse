@@ -16,6 +16,19 @@ namespace Cybersole.Stores.Flows;
 public class NikeFlow : StoreFlow
 {
     public override string Id => "nike";
+
+    /// <summary>
+    /// Nike's own order — the image's sixteen steps, recovered from one adjacent run of compiler ordinals (R112).
+    ///
+    /// <para>
+    /// R869. Nine of these sixteen have no same-named method on this flow, and R843 established why: the image
+    /// separates ValidateAddress, CheckInventory, GetShopperIp and GetPaymentMethods into stages that can fail
+    /// independently, while the replica collapses them into SubmitShipping and SubmitPayment. Declaring the sequence is
+    /// what makes that visible as a number rather than as a remark.
+    /// </para>
+    /// </summary>
+    public override IReadOnlyList<string> StepSequence => StoreFlowSteps.Nike.Names;
+
     public override string Name => "Nike";
     public override IReadOnlyList<string> Domains => new[] { "nike.com", "snkrs.nike.com" };
     public override bool UsesKasada => true;

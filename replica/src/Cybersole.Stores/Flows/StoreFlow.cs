@@ -1,3 +1,4 @@
+using Cybersole.Stores.Actions;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Cybersole.Http;
@@ -47,82 +48,29 @@ public abstract class StoreFlow
     public virtual IReadOnlyList<string> StepSequence => Array.Empty<string>();
 
     /// <summary>
-    /// Step name to callable, built once from <see cref="StoreFlow"/>'s own declarations.
+    /// Step name to callable — provided by <see cref="StepActionRunner"/>, not rebuilt here.
     ///
     /// <para>
-    /// R868. <see cref="StoreFlowSteps"/> holds the image's step names, but a name cannot be invoked; the 165 steps on
-    /// this class are methods. Nothing connected the two, which is what made a sequenced flow impossible to add.
-    /// </para>
-    ///
-    /// <para>
-    /// The table is bound against the <b>base</b> declarations rather than each concrete flow's, because an open
-    /// instance delegate whose first parameter is <c>StoreFlow</c> cannot bind a method declared on a derived type —
-    /// the runtime rejects it as an incompatible signature. Binding the base method is also what we want: calling
-    /// through it dispatches virtually, so an override runs without the table having to know about it. One table serves
-    /// every flow.
-    /// </para>
-    ///
-    /// <para>
-    /// Reflection is acceptable here only because the replica builds as ordinary .NET 8 with no <c>PublishAot</c> and
-    /// no <c>PublishTrimmed</c> — checked in R868 across every project file. Should AOT ever be switched on, this is
-    /// the first thing that breaks and a source-generated table replaces it.
+    /// R869. R868 added a reflection table and a <c>RunStepNamedAsync</c> to this class, and both duplicated work that
+    /// already existed: <see cref="StepActionRunner"/> reflects the same methods from <c>typeof(StoreFlow)</c>, exposes
+    /// <c>Knows</c>, and runs a named step with per-step timing, <see cref="FlowContext.Step"/> recording, cancellation
+    /// and exception handling. Its use of <c>MethodInfo.Invoke</c> is also why it never hit the binding failure R868
+    /// ran into. The duplicate is removed rather than left beside it, because two ways to call a step by name is one
+    /// way too many and the older one is the better one.
     /// </para>
     /// </summary>
-    private static readonly Lazy<IReadOnlyDictionary<string,
-        Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>>> DispatchTable =
-        new(BuildDispatch, isThreadSafe: true);
-
-    /// <summary>Every step a flow can run, keyed by the image's name (the method name without <c>Async</c>).</summary>
     public IReadOnlyDictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>>
-        StepDispatch => DispatchTable.Value;
-
-    private static IReadOnlyDictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>>
-        BuildDispatch()
-    {
-        var map = new Dictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>>(
-            StringComparer.Ordinal);
-        foreach (var m in typeof(StoreFlow).GetMethods(
-                     BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-        {
-            if (m.ReturnType != typeof(Task<StepOutcome>)) continue;
-            var ps = m.GetParameters();
-            if (ps.Length != 2 || ps[0].ParameterType != typeof(FlowContext) ||
-                ps[1].ParameterType != typeof(CancellationToken)) continue;
-
-            var name = m.Name.EndsWith("Async", StringComparison.Ordinal)
-                ? m.Name[..^"Async".Length]
-                : m.Name;
-            try
-            {
-                map[name] = (Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>)
-                    Delegate.CreateDelegate(
-                        typeof(Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>), m);
-            }
-            catch (ArgumentException)
-            {
-                // A step whose signature the delegate cannot express stays out of the table; RunStepNamedAsync then
-                // reports it as unimplemented rather than throwing, so the omission is visible instead of fatal.
-            }
-        }
-        return map;
-    }
+        StepDispatch => StepActionRunner.Invokers;
 
     /// <summary>
-    /// Runs one step of <see cref="StepSequence"/> by name, or reports that this flow has no such step.
+    /// True when this flow can run the named step at all. The question a sequence asks of every name it carries.
     ///
     /// <para>
-    /// Returning a failure rather than throwing matters: a sequence read from the image may name a step this flow does
-    /// not implement, and that is information — the flow's coverage — not an exception.
+    /// R869. Delegates to <see cref="StepActionRunner.Knows"/> for the same reason <see cref="StepDispatch"/> does:
+    /// one step-name table, not two.
     /// </para>
     /// </summary>
-    public Task<StepOutcome> RunStepNamedAsync(string step, FlowContext c, CancellationToken ct)
-    {
-        if (string.IsNullOrEmpty(step))
-            return Task.FromResult(StepOutcome.Fail("empty step name"));
-        if (!StepDispatch.TryGetValue(step, out var call))
-            return Task.FromResult(StepOutcome.Fail("step not implemented by " + Id + ": " + step));
-        return call(this, c, ct);
-    }
+    public bool CanRunStep(string step) => StepActionRunner.Knows(step);
 
 
     // ── session ───────────────────────────────────────────────────────────────

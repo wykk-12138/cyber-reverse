@@ -7798,3 +7798,95 @@ ModuleCoverageTests   5 / 5 通过（新增 1 条）
 - `warhammer` 的 GraphQL 有没有 checkout mutation：**Unknown**（字符串层看不到）
 - `goat` / `popmart` / `superswipe` 该用什么尺子：**Unknown**
 - `bstn` 删不删：**待裁决**
+
+
+---
+
+## 198. `offspring` 是**三方错配**；而我没做那个能让数字变好看的改动
+
+> R771。新增 `analysis/flow_wiring_audit.py`。**未改产品代码。**
+
+### 一、先取原版证据：Poq 面比想象的薄
+
+`platform.poq.io` 全池只有 7 条（Observation）：
+
+```
+https://platform.poq.io
+/clients/office/AtaVerifyCaptcha
+/clients/office/recaptcha?trackingId=
+/clients/offspring/account/guest-token
+/clients/offspring/cart/items
+/clients/offspring/checkout/start
+/clients/offspring/products?ids=
+```
+
+**offspring 只有 4 个 action，office 只有 2 个验证码。没有支付端点，没有下单完成端点。**
+
+**所以 `offspring` 缺的两个步骤里，`checkout/start` 有对应物，支付那一半原版也没有。**
+这与 `fanatics` / `yeezysupply` 同类但不同量：**那两个两步全无，这个是一有一无。**
+
+### 二、三方错配
+
+| 侧 | 是什么 |
+|---|---|
+| **注册表** | `new HybrisFlow("offspring", "Offspring", …)` |
+| **已声明但未使用** | `OffspringFlow : MagentoFlow`，身份与注册行**逐字相同** |
+| **原版证据** | **Poq**（`platform.poq.io/clients/offspring/…`） |
+
+**三个都不是同一个东西。**
+
+### 三、审计：有多少「声明了却没接线」的 flow
+
+新脚本 `flow_wiring_audit.py`（60 个声明 / 32 个被构造）：
+
+```
+叶子 flow 类，无任何条目构造（2 个）：
+  GoogleOAuthFlow   不是 StoreFlow，是助手，正常
+  OffspringFlow     ← module 'offspring' 存在，却注册成了 HybrisFlow
+```
+
+`MagentoFlow` 也在"从未构造"里，但它是**基类**（Kith/Size/Sns/… 都继承它），**正常**。
+**所以"从未构造"本身不是问题，"叶子 + 同名 module 存在 + 被别的类顶替"才是。**
+
+### 四、**我没有把注册表改成 `OffspringFlow`**
+
+改了会发生什么：
+
+```
+覆盖率  71% → 100%
+依据    Poq（有据）→ Magento（无据，只是一个类的名字）
+```
+
+**数字变好，证据变差。这类改动我不做。**
+
+`OffspringFlow` 的注释自己写着「Magento 1 style」——**那也是猜的**，与原版的 Poq 冲突。
+**所以正确的一步不是换个类，而是按那 7 条证据建一个 Poq 家族** —— 而那是一个更大的活，且
+**它建成后最多只能到 6/7**（支付端点原版没有），**这个"更低的分数"才是忠实的。**
+
+### 五、过程中的一次自伤（第三次同类）
+
+`flow_wiring_audit.py` 第一版的第二个检查写成
+
+```python
+own = typ[:1].upper() + typ[1:] + "Flow"     # typ 已以 Flow 结尾 → HybrisFlowFlow
+if own in declared and typ != own:           # 永远不成立
+```
+
+**于是它无论数据如何都报「0 处错配」。** 我是**跑出来看输出才发现**这条是空的 ——
+**那个 0 从来不是证据。** 已改为按「叶子 + 同名 module」判定。
+
+**这是本会话第五次仪器失效，且第一次是我"先写结论再算"**（第一版还印了 `(%d)` 而数字在之后才算）。
+
+### 六、验证
+
+```
+本轮未改产品代码
+完整套件保持 1752 通过 / 0 失败
+新增 analysis/flow_wiring_audit.py
+```
+
+### 七、仍然 Unknown
+
+- Poq 家族的形状：**Unknown** —— 7 条证据够建 4 个步骤，不够建 7 个。
+- `office` 是不是该成为独立 module：**Unknown** —— 它现在被 `offspring` 的域名列表顺带覆盖。
+- `checkout/start` 之后由谁收尾（支付）：**Unknown** —— 池子里没有下一步的端点。

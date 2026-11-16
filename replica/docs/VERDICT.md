@@ -47437,3 +47437,56 @@ ModuleCoverageTests 5/5 · 完整套件 1752 / 0 · 四项度量未变
 ### 仍然 Unknown
 
 `warhammer` 的 mutation · `goat`/`popmart`/`superswipe` 的尺子 · `bstn` 删不删
+
+
+---
+
+## 第 771 轮：三方错配，而我拒绝了一个让数字变好看的改动
+
+### 原版的 Poq 面比想象薄
+
+```
+/clients/offspring/products?ids=
+/clients/offspring/cart/items
+/clients/offspring/checkout/start
+/clients/offspring/account/guest-token
+/clients/office/AtaVerifyCaptcha
+/clients/office/recaptcha?trackingId=
+```
+
+**没有支付端点，没有下单完成端点。** 所以 offspring 缺的两步里，`checkout/start` 有对应物，
+**支付那一半原版也没有** —— 与 `fanatics`/`yeezysupply` 同类但不同量。
+
+### 三方错配
+
+| 侧 | 是什么 |
+|---|---|
+| 注册表 | `new HybrisFlow("offspring", …)` |
+| 已声明未使用 | `OffspringFlow : MagentoFlow`，身份逐字相同 |
+| 原版证据 | **Poq** |
+
+### 审计结果
+
+60 个声明 / 32 个被构造。**叶子且无构造的只有两个**：`GoogleOAuthFlow`（助手，正常）、
+**`OffspringFlow`**（module 存在却被顶替）。`MagentoFlow` 也在"从未构造"里，但它是基类，正常。
+
+### 我没改注册表
+
+```
+改 → 覆盖率 71% → 100%，依据 Poq → Magento（猜）
+```
+
+**数字变好、证据变差，这类改动我不做。**
+`OffspringFlow` 自己注释也写着「Magento 1 style」，同样是猜。
+**正确的一步是按那 7 条证据建 Poq 家族 —— 而它建成后最多 6/7，那个更低的分数才是忠实的。**
+
+### 第三次同类自伤
+
+审计脚本第二版的前身写成 `own = typ + "Flow"`（typ 已以 Flow 结尾）→ **永远不成立 → 无论数据如何都报"0 处错配"**。
+**我是跑出来看输出才发现这条是空的。那个 0 从来不是证据。**
+
+### 验证
+
+```
+产品代码未改；套件 1752 / 0；新增 analysis/flow_wiring_audit.py
+```

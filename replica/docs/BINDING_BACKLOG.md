@@ -727,3 +727,28 @@ resolved 62/62 · fully covered 49 · exempt 2
 | `goat` / `popmart` / `superswipe` 的尺子 | 待判定 |
 | `bstn` 删不删 | 待裁决 |
 | `casio` / `hypecommerce` 的收尾形态 | 线索弱 |
+
+
+## 核心 — offspring / Poq（R771）
+
+**三方错配**：注册表 `HybrisFlow` / 已声明未用 `OffspringFlow : MagentoFlow` / 原版 **Poq**。
+
+**原版 Poq 面（7 条字符串，Observation）**：
+
+```
+platform.poq.io/clients/offspring/{products?ids=, cart/items, checkout/start, account/guest-token}
+platform.poq.io/clients/office/{AtaVerifyCaptcha, recaptcha?trackingId=}
+```
+
+**没有支付端点、没有下单完成端点。**
+
+| 项 | 状态 |
+|---|---|
+| 建 Poq 家族（4 个步骤有据） | **新立** —— 建成后最多 6/7，**那个分数是忠实的** |
+| `office` 是否独立 module | Unknown |
+| `checkout/start` 之后的收尾 | Unknown —— 池子里没有下一步 |
+
+**明确否决的改动**：把注册表换成 `OffspringFlow` —— 覆盖率 71%→100%，但依据从 Poq 退成 Magento 的猜测。
+**数字变好、证据变差，不做。**
+
+**另记**：`flow_wiring_audit.py` 可复算「声明了却没接线的叶子 flow」，当前只有 `OffspringFlow` 一个真问题。

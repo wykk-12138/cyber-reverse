@@ -426,3 +426,12 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **`0x146a85000`–`0x146a8C000` 有 335 条字母序串，全是 `&xxx=` 查询片段 —— 是一张**查表**，不是 URL 碎片。`&storeUniqCode=1` 值**恒为 1** → 固定标志位，**不需要来源**。**
 **→ 修正 R850 的四记号并列**：`_uniqCode`(字段) / `currentUniqCode`·`storeUniqCode`(属性名) 需要来源；`&storeUniqCode=1` 不需要。**「uniqCode 从哪来」范围变小：两个运行时属性，不是三个。**
 **同一形态第 N 次：把「一起出现」当成「同一件事」（R830/R836 · R863 · R875）。**
+
+## R876 补充 — 第九条序列有名字：`DrawStores`
+
+**两条探针空手**：12 个 `/shop/v1` 端点 12/12 已在 `PopMartEndpoints`（39 个无缺口）；draw 端点附近全是路径表，**无请求体键**。
+**第三条给东西**（`0x1433803xx`，51 条）：模型字段表（`_drawid` `_uniqCode` `_winner` `_drawGoodsId` `_eventId` `_memberAlias` `_slots` `_startTime` `_turnstileKey` `_rpcAdyen*` `_rpcPayPal*`）**+ 第九条序列**：
+**`DrawStores`: 21 Start · 23 GetHome · 24 CheckVerification · 25 SubmitSaleRegistration · 26 CheckLogin · 27 Register · 28 CompleteRegistration · 30 GetCart · 31 ClearCart · 32 FindProduct · 33 AddToCart · 34 ReplaceProduct**
+**→ 名字误导：这是**发售注册流程**不是抽签；也不是 PopMart 别名（104 vs 21）。**
+**`_turnstileKey` 作为模型字段存在 —— 优先级 ② 的一条线索。**
+**下一轮第一件事：`where_is` 那几个步骤名，看 `DrawStores` 在复刻件里有没有落点。**

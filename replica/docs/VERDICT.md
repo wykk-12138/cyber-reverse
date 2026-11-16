@@ -52453,3 +52453,66 @@ map 168 → 172 · coverage 3 → 7 · sequence 24 不变
 
 > **我在**位置**附近找**类别**。而位置相近只说明它们曾被同一个人写在附近。**
 > **要防住，得在每次「并列」时问一句：它们需要来源吗？会被写吗？还是恒定的？**
+
+
+---
+
+## 第 876 轮：读到第九条序列，而它有名字 —— `DrawStores`
+
+### 两条路排除了，第三条给出东西
+
+| 探针 | 结果 |
+|---|---|
+| 12 个 `/shop/v1` 端点是否都在 `PopMartEndpoints` | **12/12 都在；39 个端点无缺口** |
+| draw 端点附近（`0x146ab82xx`）有没有请求体键 | **没有 —— 全是按字母序的路径表** |
+| **模型字段附近（`0x1433803xx`）** | **51 条：字段表 + 枚举名 + 一条带 ordinal 的序列** |
+
+### 模型字段表
+
+```
+_turnstileKey  _userCouponId  _setNo  _boxes
+_drawid  _uniqCode  _hasDrawEntry  _winner  _drawLogId  _drawGoodsId
+_luckAlias  _memberAlias  _eventId  _dates  _slots  _blockedSlots  _startTime
+_rpcFingerprint  _rpcFreightAmount  _rpcAdyenPayId  _rpcAdyenClientKey  _rpcPayPalPayId
+```
+
+> **`_turnstileKey` 是 Cloudflare Turnstile 的 token，而它作为**模型字段**出现 ——
+> 说明 token 存在模型里而不是临时变量。这是优先级 ② 的一条线索。**
+> **`_rpc*` 一族（Adyen/PayPal/Freight/Warehouse）说明这个模型是**结账上下文**，不是「抽签模型」。**
+
+### 第九条序列，有名字
+
+```
+0x143380392  DrawStores
+21 Start  23 GetHome  24 CheckVerification  25 SubmitSaleRegistration
+26 CheckLogin  27 Register  28 CompleteRegistration
+30 GetCart  31 ClearCart  32 FindProduct  33 AddToCart  34 ReplaceProduct
+```
+
+**R869 说「5 条序列没有落点」，这一条现在有名字了。**
+
+**而名字有误导性：这串步骤是注册/登录/购物车，不是抽签。
+`CheckVerification` / `SubmitSaleRegistration` / `Register` / `CompleteRegistration` = **发售注册流程**。
+它不是 PopMart 的别名（PopMart 从 104 起，这条从 21 起）。**
+
+### 请求体键可能是字段名 —— 但那是 Inference
+
+| 字段 | 可能的键 |
+|---|---|
+| `_drawid` | `drawId`? `DrawId`? |
+| `_drawGoodsId` | `drawGoodsId` |
+| `_eventId` | `eventId` |
+
+> **这是 Inference 不是 Observation。R859 的教训适用：属性名能对上，大小写与形态要另外证。**
+> **所以我没有拿这些去写那七个 POST 步骤 —— 那会把 Inference 当 Observation 用。**
+
+### 仍然 Unknown
+
+**`DrawStores` 在复刻件里对应哪个类**（**它的步骤名在 `StoreFlow` 里有没有？没查 —— 下一轮一条 `where_is` 就有答案**）·
+**请求体键的真实形态**（去下划线是 Inference）· **`_turnstileKey` 谁产生谁清**
+
+### 教训
+
+> **我先猜「请求体键在端点旁」，错了；再猜「在字段旁」，对了一半 —— 对的不是请求体键，是字段表和一条序列。**
+> **而序列是**意外收获**：我去找请求体，找到了 `DrawStores`。**
+> **所以「顺着一个名字读它周围」这个动作，回报不在预期之处是常态。而它这次回报的东西，正好填了 R869 留的一个空洞。**

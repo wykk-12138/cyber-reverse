@@ -16723,3 +16723,93 @@ idautils.Strings() 在 0x146a85000–0x146a8C000 之间 -> 335 条，字母序�
 **共同点：我在**位置**附近找**类别**。而位置相近只说明它们曾被同一个人写在附近。**
 
 **这条要能防住，得在每次「并列」时问一句：它们需要来源吗？会被写吗？还是恒定的？**
+
+
+---
+
+## 300. 读到第九条序列，而它有名字：`DrawStores`
+
+> R876。未改产品代码。
+
+### 一、两条路排除了，第三条给出了东西
+
+| 探针 | 结果 |
+|---|---|
+| 12 个 `/shop/v1` 端点是否都在 `PopMartEndpoints` | **12/12 都在；39 个端点无缺口** |
+| draw 端点附近（`0x146ab82xx`）有没有请求体键 | **没有 —— 全是按字母序的路径表** |
+| **模型字段附近（`0x1433803xx`）** | **51 条：模型字段表 + 枚举名 + 一条带 ordinal 的序列** |
+
+### 二、模型字段表
+
+```
+_turnstileKey  _userCouponId  _mpUserCouponId  _setNo  _boxes
+_drawid  _uniqCode  _hasDrawEntry  _winner  _drawLogId  _drawGoodsId
+_luckAlias  _memberAlias  _eventId  _dates  _slots  _blockedSlots  _startTime
+_rpcFingerprint  _rpcAddressId  _rpcFreightExpressId  _rpcFreightAmount
+_rpcPayAmount  _rpcWarehouse  _rpcAdyenPayId  _rpcAdyenClientKey  _rpcPayPalPayId
+```
+
+**`_turnstileKey` 值得单独看一眼 —— Turnstile 是 Cloudflare 的验证控件（优先级 ② 的东西），
+它作为**模型字段**出现，说明 token 是存在模型里而不是临时变量。**
+
+**`_rpc*` 一族（Adyen / PayPal / Freight / Warehouse）说明这个模型同时承载支付与运费 ——
+它不是「抽签模型」，是一个**结账上下文**。**
+
+### 三、第九条序列，有名字
+
+```
+0x143380392  DrawStores
+21 Start  23 GetHome  24 CheckVerification  25 SubmitSaleRegistration
+26 CheckLogin  27 Register  28 CompleteRegistration
+30 GetCart  31 ClearCart  32 FindProduct  33 AddToCart  34 ReplaceProduct
+```
+
+**R869 说「5 条序列没有落点」。这一条现在有名字了：`DrawStores`。**
+
+**而名字有误导性：**这串步骤是注册/登录/购物车，不是抽签。**
+`CheckVerification` / `SubmitSaleRegistration` / `CheckLogin` / `Register` / `CompleteRegistration` ——
+**这是「发售注册流程」，不是「抽签流程」。**
+
+**它不是 PopMart 的别名：PopMart 的序列从 104 起，这条从 21 起。**
+
+### 四、请求体键可能是字段名，但这是 Inference
+
+| 字段 | 可能的键 |
+|---|---|
+| `_drawid` | `drawId`? `DrawId`? |
+| `_drawGoodsId` | `drawGoodsId` |
+| `_eventId` | `eventId` |
+| `_memberAlias` | `memberAlias` |
+
+**这是 Inference 不是 Observation。**R859 的教训正好适用：属性语法能对上名字，
+**但大小写与形态要另外证。**
+
+**所以我没有拿这些字段去写那七个 POST 步骤 —— 那会把 Inference 当 Observation 用。**
+
+### 五、验证
+
+```
+idautils.Strings() @0x146AB8200–0x146AB8600 -> 13 条，全是 /shop/v1/... 路径表（无请求体键）
+idautils.Strings() @0x143380300–0x143380900 -> 51 条 = 字段表 + 枚举名 + 序列（含 DrawStores 与 21–34）
+PopMartEndpoints 对比 12 个端点          -> 12/12 HAVE，共 39 个端点
+本轮未改产品代码
+```
+
+### 六、仍然 Unknown
+
+- **`DrawStores` 在复刻件里对应哪个类**：**Unknown** ——
+  **它的步骤名（`CheckVerification` / `SubmitSaleRegistration` / `CompleteRegistration`）
+  在 `StoreFlow` 里有没有？没查。这是下一轮第一件事，一条 `where_is` 就有答案。**
+- **请求体键的真实形态**：**Unknown** —— 字段名去掉下划线是 **Inference**。
+- **`_turnstileKey` 属于哪个验证流程**：**Unknown** ——
+  **它作为模型字段出现，说明 token 存进模型；但谁产生、什么时候清，未查。**
+
+### 七、教训
+
+**我先猜「请求体键在端点旁」，错了；再猜「在字段旁」，对了一半 ——
+对的不是请求体键，是模型字段表和一条序列。**
+
+**而这两样里，序列是**意外收获**：我去找请求体，找到了 `DrawStores`。**
+
+**所以「顺着一个名字读它周围」这个动作，回报不在预期之处是常态。
+而它这次回报的东西，正好填了 R869 留的一个空洞 —— 那条洞我以为要专门去找。**

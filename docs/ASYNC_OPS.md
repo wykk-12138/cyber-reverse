@@ -1411,3 +1411,66 @@ sequence.Count  24 不变
 
 **所以「`uniqCode` 从哪来」这个问题，因为这条被排除而变窄了：它不是三个未知里最难的那个，
 它是**两个运行时属性**的问题，而第三个根本不需要来源。**
+
+
+### 顺着 `_uniqCode` 往上读，读到一整个模型和它自己的序列（R876）
+
+**R875 说请求体键不在端点旁。下一处自然是模型字段旁 —— `_uniqCode` 在 `0x1433803a5`。**
+
+**`0x143380300`–`0x143380900` 有 51 条串，分三段：**
+
+**① 一个模型的后备字段表（3 字节对齐，紧凑排布）：**
+
+```
+_turnstileKey  _userCouponId  _mpUserCouponId  _setNo  _boxes
+_drawid  _uniqCode  _hasDrawEntry  _winner  _drawLogId  _drawGoodsId
+_luckAlias  _memberAlias  _eventId  _dates  _slots  _blockedSlots  _startTime
+_uuidRegex  _rpcFingerprint  _rpcAddressId  _rpcFreightExpressId  _rpcFreightAmount
+_rpcPayAmount  _rpcWarehouse  _rpcAdyenPayId  _rpcAdyenClientKey  _rpcPayPalPayId  _tasks
+```
+
+**② 四个枚举/属性名：`AppMode` · `TimeZone` · `DrawLocation` · `DrawIdentityType` · `IsRpc`**
+
+**③ 一条带 ordinal 的步骤序列，前面就是它的归属名：**
+
+```
+0x143380392  DrawStores                      ← 模型名
+0x143380569  <Start>d__21                     21
+0x143380581  <GetHome>d__23                   23
+0x14338059b  <CheckVerification>d__24         24
+0x1433805d0  <SubmitSaleRegistration>d__25    25
+0x14338060a  <CheckLogin>d__26                26
+0x143380676  <Register>d__27                  27
+0x143380753  <CompleteRegistration>d__28      28
+0x143380833  <GetCart>d__30                   30
+0x14338085d  <ClearCart>d__31                 31
+0x1433808c3  <FindProduct>d__32               32
+0x1433808e2  <AddToCart>d__33                 33
+0x1433808ff  <ReplaceProduct>d__34            34
+```
+
+**这是第九条序列，而它有名字：`DrawStores` —— R869 说「5 条序列没有落点」，这一条现在有了。**
+
+### 它回答了两个问题，但都不是完整的
+
+**① 请求体键可能是字段名去掉下划线。**
+`_drawid` → `drawId`? · `_drawGoodsId` → `drawGoodsId` · `_eventId` → `eventId` · `_memberAlias` → `memberAlias`
+
+**这是 Inference，不是 Observation。**字段名叫 `_drawid` 而 JSON 键可能叫 `drawId`、`DrawId` 或别的。
+**就像 R859 那条：属性语法是 `Cybersole.Models.<Type>,Cybersole.Core.<Prop>!Getter`，
+名字能对上但大小写和形态要另外证。**
+
+**② `DrawStores` 是一个独立流程，不是 PopMart 的别名。**
+它的序列从 21 开始（PopMart 的从 104 开始），前几步是 `CheckVerification` / `SubmitSaleRegistration` /
+`CheckLogin` / `Register` / `CompleteRegistration` —— **是注册/登录流程，不是抽签流程。**
+
+**所以 `DrawStores` 这个名字有误导性：它带的序列是「门店/发售注册」，不是「抽签」。**
+
+### 两条排除掉的路
+
+| 探针 | 结果 |
+|---|---|
+| 12 个 `/shop/v1` 端点是否都在 `PopMartEndpoints` | **12/12 都在，39 个端点无缺口** |
+| draw 端点附近有没有请求体键 | **没有 —— 那一段全是按字母序的路径表** |
+
+**所以剩下的工作不是端点发现，而是「键名与形态」。**

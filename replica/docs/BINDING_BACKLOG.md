@@ -3703,3 +3703,39 @@ python tools\where_is.py Sequence --all
 | 端点 `?uniqCode=` 与 `&storeUniqCode=1` 是否同一机制 | 未查 |
 
 **纪律**：**每次「并列」都问一句 —— 需要来源吗？会被写吗？还是恒定的？**
+
+
+## 判据 — 第九条序列有名字：`DrawStores`（R876）
+
+### 三条探针
+
+| 探针 | 结果 |
+|---|---|
+| 12 个 `/shop/v1` 端点 vs `PopMartEndpoints` | **12/12 HAVE，39 个端点无缺口** |
+| draw 端点附近（`0x146ab82xx`） | **13 条全是路径表，无请求体键** |
+| **模型字段附近（`0x1433803xx`）** | **51 条 = 字段表 + 枚举名 + 序列** |
+
+### 字段表要点
+
+**`_turnstileKey`（Cloudflare Turnstile token，**作为模型字段存在**）· `_drawid` `_uniqCode` `_winner`
+`_drawLogId` `_drawGoodsId` `_eventId` `_memberAlias` `_luckAlias` `_dates` `_slots` `_startTime`
+`_rpcFingerprint` `_rpcAdyen*` `_rpcPayPal*` `_rpcFreight*`** → **这是结账上下文模型，不是抽签模型。**
+
+### 第九条序列，有名字
+
+```
+DrawStores: 21 Start · 23 GetHome · 24 CheckVerification · 25 SubmitSaleRegistration
+            26 CheckLogin · 27 Register · 28 CompleteRegistration
+            30 GetCart · 31 ClearCart · 32 FindProduct · 33 AddToCart · 34 ReplaceProduct
+```
+
+**→ R869「5 条序列无落点」里的一条现在有名字。**
+**⚠ 名字误导：这串是**发售注册流程**，不是抽签。也不是 PopMart 的别名（104 vs 21）。**
+
+| 仍 Unknown | |
+|---|---|
+| **`DrawStores` 对应复刻件哪个类** | **下一轮一条 `where_is` 就有答案** |
+| 请求体键真实形态 | 去下划线是 **Inference**（R859 教训） |
+| `_turnstileKey` 谁产生谁清 | 未查（优先级 ② 线索） |
+
+**纪律**：**顺着名字读周围，回报常在预期之外 —— 这次要请求体，拿到了 `DrawStores`。**

@@ -309,6 +309,15 @@ public sealed class AnalyticsView : UserControl
 
     private void MoveTo(int page)
     {
+        // R746: a fresh install has no releases, and R334 measured the live window printing 0 / 0 there, so
+        // ReleasePages == 0 is a documented normal state rather than an edge case. Math.Clamp(page, 0, -1) throws
+        // on that state -- "'0' cannot be greater than -1" -- which would crash the pager the moment anyone
+        // pressed an arrow before any release existed. There is no page to move to, so do nothing.
+        if (ReleasePages <= 0)
+        {
+            return;
+        }
+
         var clamped = Math.Clamp(page, 0, ReleasePages - 1);
         if (clamped == _releasePage) return;
         _releasePage = clamped;

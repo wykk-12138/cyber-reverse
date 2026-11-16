@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-16 13:32:49 +0800 |
+| 生成时间 | 2026-11-16 13:35:57 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **1707 通过 / 1 失败 / 0 跳过 / 1708 总计** |
+| 完整套件 | **1708 通过 / 0 失败 / 0 跳过 / 1708 总计** |
 
 ## 摘要素值
 
@@ -299,30 +299,24 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 1` · 1707 通过 / 1 失败 / 0 跳过 / 1708 总计
+`exit 0` · 1708 通过 / 0 失败 / 0 跳过 / 1708 总计
 
 ```text
+  正在确定要还原的项目…
+D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+  所有项目均是最新的，无法还原。
+  Cybersole.Core -> D:\projects\cyber-reverse\replica\src\Cybersole.Core\bin\Debug\net8.0\Cybersole.Core.dll
+  Cybersole.Http -> D:\projects\cyber-reverse\replica\src\Cybersole.Http\bin\Debug\net8.0\Cybersole.Http.dll
+D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr
+  Cybersole.Services -> D:\projects\cyber-reverse\replica\src\Cybersole.Services\bin\Debug\net8.0\Cybersole.Services.dll
+  Cybersole.Stores -> D:\projects\cyber-reverse\replica\src\Cybersole.Stores\bin\Debug\net8.0\Cybersole.Stores.dll
+  Cybersole.Ui -> D:\projects\cyber-reverse\replica\src\Cybersole.Ui\bin\Debug\net8.0\Cybersole.Ui.dll
+  Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-  失败 Cybersole.Tests.HomePageParityTests.ThePagerBelongsToTheReleasesNotThePeriod [10 ms]
-  错误消息:
-   System.ArgumentException : '0' cannot be greater than -1.
-  堆栈跟踪:
-     at System.Math.ThrowMinMaxException[T](T min, T max)
-   at Cybersole.Ui.Views.Analytics.AnalyticsView.MoveTo(Int32 page) in D:\projects\cyber-reverse\replica\src\Cybersole.Ui\Views\Analytics\AnalyticsViews.cs:line 312
-   at Cybersole.Ui.Views.Analytics.AnalyticsView.MoveNextCore() in D:\projects\cyber-reverse\replica\src\Cybersole.Ui\Views\Analytics\AnalyticsViews.cs:line 308
-   at Cybersole.Core.Models.RelayCommand.Execute(Object parameter) in D:\projects\cyber-reverse\replica\src\Cybersole.Core\Models\Primitives.cs:line 86
-   at Cybersole.Tests.HomePageParityTests.ThePagerBelongsToTheReleasesNotThePeriod() in D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\HomePageParityTests.cs:line 45
-   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
-失败!  - 失败:     1，通过:  1707，已跳过:     0，总计:  1708，持续时间: 41 s - Cybersole.Tests.dll (net8.0)
-```
-
-stderr:
-
-```text
-[xUnit.net 00:00:18.83]     Cybersole.Tests.HomePageParityTests.ThePagerBelongsToTheReleasesNotThePeriod [FAIL]
+已通过! - 失败:     0，通过:  1708，已跳过:     0，总计:  1708，持续时间: 57 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

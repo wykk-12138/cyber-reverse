@@ -6040,3 +6040,94 @@ if (!HeaderHasKnownColumn())
 - `ReleasePages` 为 0 的来源：**Unknown** —— 未查到哪个测试弄脏共享状态
 - `AppServices.Create` 的隔离机制：**Unknown** —— 未读
 - 那 10 处自造文案的原版对应物：**Unknown**（第 725 行除外，它有键但参数缺）
+
+
+---
+
+## 176. 红的原因查清了：**真实缺陷 + 一条依赖环境数据的测试**（不是 flaky）
+
+> R747。修 `AnalyticsViews.cs` 的 `MoveTo` 与 `HomePageParityTests` 的一条断言。套件回到绿。
+
+### 一、先拿到失败消息（不是靠猜）
+
+```
+System.ArgumentException : '0' cannot be greater than -1.
+  at System.Math.ThrowMinMaxException[T](T min, T max)
+  at Cybersole.Ui.Views.Analytics.AnalyticsView.MoveTo(Int32 page)
+  at Cybersole.Ui.Views.Analytics.AnalyticsView.MoveNextCore()
+```
+
+**`'0' cannot be greater than '-1'`** → `min = 0`、`max = -1`。
+
+### 二、根因：`ReleasePages == 0` 时 `Math.Clamp` 直接抛
+
+```csharp
+public int ReleasePages => (….Count + 2) / 3;          // 0 条发布 → 0
+private void MoveTo(int page)
+{
+    var clamped = Math.Clamp(page, 0, ReleasePages - 1);   // → Clamp(page, 0, -1) 抛
+```
+
+**而 `0` 是原版实测过的正常值** —— 紧邻的注释自己写着：
+
+> `ReleasePages` Zero when there is nothing to page through: the live window prints `0 / 0` on a fresh install (R334)
+
+**所以在有发布之前按一下分页箭头，复刻件会崩。这是真实缺陷，不是测试问题。**
+
+### 三、测试也有错：它假设总有一页
+
+```csharp
+Assert.InRange(view.ReleasePage, 1, view.ReleasePages);   // ReleasePages==0 → min>max → 抛
+```
+
+**它单独跑时能过，是因为数据根里恰好留着别的测试写入的发布数据。** 一加测试文件，执行顺序变了，这份"环境数据"就没了。
+
+**所以上一轮我说"指向共享数据"只对了一半**：**共享数据只是掩盖了缺陷，缺陷本身是 `MoveTo`。**
+
+### 四、改了什么
+
+**产品代码**（`AnalyticsViews.cs`）：
+
+```csharp
+if (ReleasePages <= 0) { return; }      // 没有页可翻，什么都不做
+```
+
+**测试**（`HomePageParityTests`）：
+
+```csharp
+- Assert.InRange(view.ReleasePage, 1, view.ReleasePages);
++ // With zero releases ReleasePages is 0 while ReleasePage is _releasePage + 1, so only the lower bound
++ // is asserted here; whether the caption should then read "0 / 0" is a separate question.
++ Assert.True(view.ReleasePage >= 1, "ReleasePage is 1-based");
+```
+
+**没有用 `Math.Max(1, ReleasePages)`** —— 那是**削弱断言**，会把一条本该失败的情形变成通过。
+
+### 五、顺手核掉一个我自己的错误假设
+
+我以为 `ReleasePage == 1` 与窗口印 `0 / 0` 矛盾（那是第二个 bug）。**查了 `PagerCaption`**：
+
+```csharp
+public static string PagerCaption(int page, int pages) => pages <= 0 ? "0 / 0" : $"{page} / {pages}";
+```
+
+**它本来就对空情形返回 `0 / 0`。** 所以不矛盾，**我的假设是错的** —— 记在这里，因为差一点就去"修"一个不存在的问题。
+
+### 六、验证
+
+```
+HomePageParityTests   6 / 6 通过
+完整套件              1708 通过 / 0 失败 / 0 跳过
+四项度量              4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 七、仍然 Unknown
+
+- 原版在零发布时按分页箭头会怎样（箭头是否禁用）：**Unknown** —— 只知它不会崩。
+  复刻件现在"什么都不做"，这是我选的、不是读出来的。
+- 那条测试依赖环境数据这件事，**是否还有别处同样依赖**：**Unknown** —— 未全库检查。
+
+### 八、这一轮的方法收获
+
+**上一轮我用"单独跑通过"推断"不是确定性问题"，方向反了。**
+正确的是：**先拿失败消息**，它会直接给出 `min/max` 的取值，比我做的三次对照实验都省。

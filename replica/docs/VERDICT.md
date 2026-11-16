@@ -46356,3 +46356,58 @@ R745 修了 `Preview()`；**`ApplyCore()` 里有一模一样的一处**，注释
 
 **先修红，再做别的。** 第一步：读 `AppServices.Create` 的隔离机制，
 找出 `ReleasePages` 依赖什么；第二步：定位哪个测试把它弄成 0。
+
+
+---
+
+## 第 747 轮：红的原因 —— 真实缺陷 + 依赖环境数据的测试
+
+### 先拿到失败消息（不靠猜）
+
+```
+ArgumentException : '0' cannot be greater than -1.
+  at AnalyticsView.MoveTo(Int32 page)
+```
+
+**`min = 0`、`max = -1`。**
+
+### 根因：`ReleasePages == 0` 时 `Math.Clamp` 抛
+
+```csharp
+public int ReleasePages => (….Count + 2) / 3;   // 0 条发布 → 0
+Math.Clamp(page, 0, ReleasePages - 1);           // → Clamp(page, 0, -1) 抛
+```
+
+**而 `0` 是原版实测的正常值** —— 紧邻的注释自己写着「the live window prints `0 / 0` on a fresh install (R334)」。
+
+> **在有发布之前按一下分页箭头，复刻件会崩。这是真实缺陷。**
+
+### 测试也有错：它假设总有一页
+
+`InRange(ReleasePage, 1, ReleasePages)` —— `ReleasePages==0` 时 min>max 也抛。
+**它单独跑能过，是因为数据根里恰好留着别的测试写入的发布数据。**
+
+**所以上一轮我说"指向共享数据"只对了一半：共享数据只是掩盖了缺陷。**
+
+### 改了什么
+
+- 产品：`if (ReleasePages <= 0) return;` —— 没有页可翻，什么都不做
+- 测试：只断言 `ReleasePage >= 1`，**没有用 `Math.Max(1, …)`**（那是削弱断言）
+
+### 顺手核掉一个我自己的错误假设
+
+我以为 `ReleasePage == 1` 与窗口印 `0 / 0` 矛盾。**查了 `PagerCaption` —— 它本来就对空情形返回 `0 / 0`。不矛盾，我错了。**
+**差一点就去"修"一个不存在的问题。**
+
+### 方法收获
+
+> 上一轮我用「单独跑通过」推断「不是确定性问题」，**方向反了**。
+> 正确的是：**先拿失败消息** —— 它直接给出 `min/max`，比我做的三次对照实验都省。
+
+### 验证
+
+```
+HomePageParityTests   6 / 6
+完整套件              1708 通过 / 0 失败
+四项度量              4 / 0 / 17 / 78 / 0（未变）
+```

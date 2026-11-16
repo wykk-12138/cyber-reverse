@@ -50,3 +50,8 @@ target/*.id2
 target/*.nam
 target/*.til
 replica/tools/.snapshots/
+
+# R933: the previous artifact is kept on disk for comparison, not in the repository. Renaming .publish-aot to
+# .publish-aot-prev moved it out from under the rule above and 110 MB of binaries went into a commit.
+replica/.publish-aot-prev/
+replica/.publish-aot-new/

@@ -102,3 +102,15 @@
 **误报缺货 = 错过 drop，不可重来**，而它由与商品无关的量决定。
 **通读累计 12/20**（`NikeFlow` 31 行是好的那一类：结构化读取 + 缺输入明确失败）。
 **未修**：两种改法都要镜像证据；IDA 未开（内存 1.63 GB）。
+
+## R829 补充 — 反编译一个流程步骤的四步
+
+```
+1. ida.py str "<endpoint>"        -> string addr
+2. ida.py xrefs <addr - 12>       -> 关键：−12（对象头），+0/+12 都是 0
+3. ida.py dec <enclosing func>    -> async MoveNext
+4. 找 &off_<addr> 那一行          -> 确认该步骤用了这个 endpoint
+```
+
+**首个用例 `/cart.js` 印证复刻件 `ShopifyFlow.cs:181` 已一致 —— 反编译核对这条路是通的。**
+**`HandleBlock` 不走这条路**（不被字符串引用），需 MethodTable。

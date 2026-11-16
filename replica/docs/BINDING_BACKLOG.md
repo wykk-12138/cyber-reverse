@@ -2180,3 +2180,30 @@ HandleBlock 0 · SetRequest 0 · HandleResponse 0 · GetHome 0 · VerifySession 
 
 **纪律**：**「这个量对所有样本取同一个值」§2.7 已记三次，这是第四次，形态是「恒为 0」。**
 **打掉它的方式：拿一个已知答案的样本去试同一判据。**
+
+
+## 方法 — 反编译一个流程步骤的四步（R829）
+
+```
+1. ida.py str "<endpoint>"          -> string addr
+2. ida.py xrefs <addr - 12>         -> <- 关键：−12（字符串对象头），+0 与 +12 都是 0
+3. ida.py dec <enclosing func>      -> async MoveNext
+4. 找 &off_<addr> 那一行            -> 该步骤确实用了这个 endpoint
+```
+
+**首个用例**：`/cart.js` → `0x146ab247c` → `xrefs 0x146ab2470` → `sub_141156D40`（0x216 B）→
+`v7 = sub_141CF6230(..., &off_146AB2470)`。
+
+**校准结果**：复刻件 `ShopifyFlow.cs:181` 已 `GetAsync(... "/cart.js")`，
+且 `:11` 注释写明顺序照二进制走。**吻合，无缺口。**
+
+**`HandleBlock` 不能用这条路** —— 它不是被字符串引用的，得走 MethodTable；
+按名字看是「处理封锁」，可能没有自己的 endpoint。
+
+| 仍 Unknown | |
+|---|---|
+| `sub_141156D40` 属于哪个流程类 | 状态机名未与地址关联，需 MethodTable |
+| 该步骤前后还做什么 | 只读了 80 行；构请求与 await 未展开 |
+| `HandleBlock` 的代码 | **本轮未推进** |
+
+**纪律**：**`xrefs` 的地址要 `−12`。下次先试它，别再试 `+12`。**

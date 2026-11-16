@@ -12616,3 +12616,80 @@ python analysis\ida.py health   status=ok（IDA 仍在）
 
 **「这个量对所有样本都取同一个值」是我在 AGENTS.md §2.7 后面那条「不再写前缀分类器」里已经记过三次的错。
 这次是第四次，形态是「恒为 0」。**
+
+
+---
+
+## 253. **第一个反编译出来的流程步骤**：`/cart.js` —— 而且复刻件早就是这么做的
+
+> R829。未改产品代码。
+
+### 一、路线（记住这四步，含那个 `−12`）
+
+```
+1. python analysis\ida.py str "/cart.js"          -> 0x146ab247c
+2. python analysis\ida.py xrefs 0x146ab2470        -> 0x141156e1d, in sub_141156D40
+3. python analysis\ida.py dec 0x141156d40          -> the async MoveNext
+```
+
+**第 2 步的关键**：**xrefs 打到 `字符串字符地址` 是 0，打到 `地址 − 12`（NativeAOT 的字符串对象头）才有。**
+我试了 `+0` / `+12` / `−12` 三个，**只有 `−12` 命中一次。**
+
+### 二、反编译出来的东西
+
+`sub_141156D40`（0x216 字节）是一个 `async` 状态机的 `MoveNext` —— 特征是
+`if (*((_DWORD *)a1 + 4))` 按状态字段分支、`__ExceptionPtrRethrow`、收尾 `sub_143028EE0(v12)`。
+
+**决定性的一行：**
+
+```c
+v7 = sub_141CF6230(*(_QWORD *)(v1 + 16), (__int64)&off_146AB2470);   // &off_146AB2470 == "/cart.js"
+```
+
+**所以镜像里确有一段代码真的用 `/cart.js`。**
+
+### 三、复刻件那边已经有
+
+```
+ShopifyFlow.cs:181   var res = await GetAsync(c, Origin(c.Url) + "/cart.js", "shopify-cart-get", ct)
+ShopifyFlow.cs:11    /// Walked in the order the binary uses: product JSON → cart/add → cart.js → checkout to
+```
+
+**它不但有，而且注释写明顺序是照二进制走的。**
+
+**所以这次反编译印证了已有实现，没暴露缺口。** 这是本会话第一次用反编译去对一个复刻件流程做交叉验证，
+**结果是吻合的。**
+
+### 四、这一轮真正的产出是两条
+
+1. **一条可复用的路线**（`str` → `xrefs` 到 `−12` → `dec`），**下一轮可以直接用来查 `HandleBlock`**
+2. **一个校准结果**：复刻件的 `ShopifyFlow` 与镜像在 `/cart.js` 这一点上一致
+
+**至于 `HandleBlock`，本轮没查到** —— **它不是被字符串引用的东西，得走上一轮说的 MethodTable 路线。**
+**而这一轮的路线能查的是「有 endpoint 的步骤」，`HandleBlock` 按名字看是「处理封锁」，可能没有自己的 endpoint。**
+
+### 五、验证
+
+```
+python analysis\ida.py str "/cart.js"      -> 1 match @0x146ab247c
+python analysis\ida.py xrefs 0x146ab2470   -> 1 xref, sub_141156D40
+python analysis\ida.py dec 0x141156d40     -> 2747 chars, 含 &off_146AB2470
+复刻件 ShopifyFlow.cs:181 已有 GetAsync(... "/cart.js")
+本轮未改产品代码
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 六、仍然 Unknown
+
+- **`sub_141156D40` 属于哪个流程类**：**Unknown** —— 状态机名在元数据里但没和这个地址关联上，
+  **要关联得走 MethodTable。**
+- **它调用前后还做了什么**：**Unknown** —— 我只读了这一段的 80 行，
+  **`sub_140B61E0` / `sub_142D72040` 是构请求与 await，没展开。**
+- **`HandleBlock` 的代码**：**Unknown，且本轮没推进** —— 需要另一条路线。
+
+### 七、教训
+
+**这一轮没有找到缺陷，但它把「能不能用反编译核对复刻件」这件事验证了：能。**
+**而代价只是一次字符串搜索加一次 xref 尝试。**
+
+**`−12` 这个偏移我试了三个地址才命中。** **下次先试 `−12`，别再试 `+12`。**

@@ -282,12 +282,51 @@ public sealed class HybrisFlow : StoreFlow
     }
 
     /// <summary>
-    /// Submit the payment details. R795. <b>Observation:</b> <c>/Checkout-SubmitPaymentDetails</c> is in the image,
-    /// and the billing field names above are the ones it expects.
+    /// Submit the payment details. R796.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the image carries three families of card fields -- <c>dwfrm_billing_creditCardFields_*</c>
+    /// with fifteen names, <c>dwfrm_billing_paymentMethods_creditCard_*</c> with six, and a GMO set for a Japanese
+    /// gateway -- plus <c>dwfrm_billing_paymentMethod</c> and <c>dwfrm_billing_paymentMethods_selectedPaymentMethodID</c>
+    /// to say which one is in use. Two names in the first family matter:
+    /// <c>creditCardFields_adyenEncryptedData</c> and <c>saveCardAdyen</c>, which say this site can take a card through
+    /// Adyen's client-side encryption rather than in the clear.
+    /// </para>
+    ///
+    /// <para>
+    /// So the fields below are the image's. What is unknown is whether plaintext card fields are accepted at all: if
+    /// the site requires <c>adyenEncryptedData</c>, this submission will be rejected, and it will be rejected visibly.
+    /// The payment-method id is likewise not recovered, so it is taken from the session and left out when absent.
+    /// </para>
     /// </summary>
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
         var form = BillingAddress(c);
+
+        if (c.Session.Vars.TryGetValue("paymentMethodId", out var method) && method.Length > 0)
+        {
+            form["dwfrm_billing_paymentMethod"] = method;
+            form["dwfrm_billing_paymentMethods_selectedPaymentMethodID"] = method;
+        }
+
+        var p = c.ProfileData;
+        if (p is not null)
+        {
+            form["dwfrm_billing_creditCardFields_cardNumber"] = p.CardNumber;
+            form["dwfrm_billing_creditCardFields_cardOwner"] = p.CardName;
+            form["dwfrm_billing_creditCardFields_securityCode"] = p.CardCvv;
+            form["dwfrm_billing_creditCardFields_saveCard"] = "false";
+
+            // the expiry arrives as one string; the form wants the two halves separately
+            var parts = (p.CardExpiry ?? string.Empty).Split('/');
+            if (parts.Length == 2)
+            {
+                form["dwfrm_billing_creditCardFields_expirationMonth"] = parts[0].Trim().PadLeft(2, '0');
+                var year = parts[1].Trim();
+                form["dwfrm_billing_creditCardFields_expirationYear"] =
+                    year.Length == 2 ? "20" + year : year;
+            }
+        }
 
         var res = await PostFormAsync(c, Origin(c.Url) + "/Checkout-SubmitPaymentDetails", form,
             _id + "-payment-details", ct).ConfigureAwait(false);

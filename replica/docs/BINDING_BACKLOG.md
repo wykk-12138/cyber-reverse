@@ -1304,3 +1304,28 @@ obsolete" —— **世界变了该报废的是这个模块，而那条测试会�
 
 **已推翻的旧注释**：`HybrisFlow` 原写「there is no single POST that places the order」——
 `/Checkout-SubmitOrder` 否掉了它。**「分阶段」不等于「没有单一提交」。**
+
+
+## 核心 — Hybris 支付字段（R796）
+
+**三族卡字段名（镜像 Observation）**：
+
+```
+dwfrm_billing_creditCardFields_*          15 个：cardNumber · cardOwner · expirationMonth/Year
+                                                securityCode · cardBin · saveCard · adyenEncryptedData …
+dwfrm_billing_paymentMethods_creditCard_*  6 个：number · owner · cvn · expiration · type · saveCard
+dwfrm_billing_gmoCreditCardFields_*        3 个（日本网关）
++ dwfrm_billing_paymentMethod
+```
+
+**已接**：`HybrisFlow.SubmitPaymentAsync` 发 `creditCardFields_*` 那族 + 地址 + 可选的 `paymentMethodId`。
+
+| 仍 Unknown | |
+|---|---|
+| 明文卡 vs `adyenEncryptedData` | **两种字段都在镜像里，站点用哪种不知道** |
+| `paymentMethodId` 取值 | 有就发、没有就不发 |
+| 两族字段该用哪族 | 现用 `creditCardFields_`（名字更全） |
+| `saveCardAdyen` 与 `saveCard` 的区别 | 未知 |
+
+**纪律**：加密字段是密钥+算法生成的，**猜不了**。
+**发明文让站点自己拒（可见的失败）胜过猜一个加密格式（静默的失败）。**

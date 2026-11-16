@@ -48535,3 +48535,44 @@ fully covered 50 -> 51
 
 > **`fully covered` 衡量「这一步存在且不是恒失败」，不衡量「它在真站上成立」。**
 > **offspring 到 100% 说明形状与镜像对齐，不说明它能买到东西。**
+
+
+---
+
+## 第 796 轮：卡字段取全了，而它们带出一个更要紧的问题
+
+### 三族字段
+
+```
+dwfrm_billing_creditCardFields_*          15 个（含 cardNumber 与 adyenEncryptedData）
+dwfrm_billing_paymentMethods_creditCard_*  6 个
+dwfrm_billing_gmoCreditCardFields_*        3 个（日本网关）
++ dwfrm_billing_paymentMethod（选用哪种）
+```
+
+### `adyenEncryptedData` 是最要紧的一项
+
+**同一族里既有明文 `cardNumber` 又有 `adyenEncryptedData`** —— **平台两种都支持，但没说这个站用哪种。**
+
+- 若这个站要 `adyenEncryptedData`，**明文会被拒**
+- **但那种拒绝是可见的**（表单校验错误），不是静默的
+
+> **所以选择是「发明文，让它自己拒」，不是「猜一个加密字段的格式」—— 加密字段是密钥+算法生成的，猜不了。**
+
+### 实现
+
+卡号/持卡人/CVV/有效期（拆两半）/saveCard=false/email/phone + 可选的 paymentMethod。
+
+**字段名全是镜像的；拆 `CardExpiry` 是复刻件自己的数据形状。**
+
+### 验证
+
+```
+构建绿 · 整套 1766 / 0 · 四项度量未变 · offspring 覆盖率仍 100%
+```
+
+**覆盖率没动是对的** —— 换的是同一步骤里的字段，不是补步骤。
+
+### 仍然 Unknown
+
+明文卡 vs `adyenEncryptedData` · `paymentMethodId` 取值 · 两族字段该用哪族 · `saveCardAdyen` 与 `saveCard` 的区别

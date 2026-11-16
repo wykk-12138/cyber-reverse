@@ -9758,3 +9758,73 @@ ModuleCoverageTests offspring 100%，fully covered 51
 
 **第八条要单独看重**：`fully covered` 衡量「这一步存在且不是恒失败」，**不衡量「这一步在真站上成立」**。
 `offspring` 到 100% 说明它的形状与镜像对齐，**不说明它能买到东西。**
+
+
+---
+
+## 222. 卡字段名取全了 —— 而它们带出一个更要紧的问题
+
+> R796。`HybrisFlow.SubmitPaymentAsync` 补上卡字段。
+
+### 一、三族字段（Observation）
+
+```
+dwfrm_billing_creditCardFields_*           15 个
+  adyenEncryptedData · cardBin · cardNumber · cardOwner · cardType · editNumber
+  email · expirationMonth · expirationYear · phone · phonePrefix
+  saveCard · saveCardAdyen · securityCode · selectedCardID
+
+dwfrm_billing_paymentMethods_creditCard_*   6 个
+  cvn · expiration · number · owner · saveCard · type
+
+dwfrm_billing_gmoCreditCardFields_*         3 个   （日本网关）
+```
+
+**加上 `dwfrm_billing_paymentMethod` 与 `dwfrm_billing_paymentMethods_selectedPaymentMethodID`**
+—— **用来指定用哪一种。**
+
+### 二、`adyenEncryptedData` 是这个发现里最要紧的一项
+
+**同一族里既有 `cardNumber`（明文）又有 `adyenEncryptedData`（Adyen 客户端加密）。**
+**这说明该平台两种都支持，但没说这个站用哪一种。**
+
+- 若这个站要 `adyenEncryptedData`，**复刻件发的明文卡字段会被拒**
+- **而那种拒绝是可见的**（表单校验错误），不是静默的
+
+**所以这里的选择是"发明文，让它自己拒"，而不是"猜一个加密字段的格式"。**
+**加密字段是密钥+算法生成的，猜不了。**
+
+### 三、实现
+
+```
+cardNumber     ← Profile.CardNumber
+cardOwner      ← Profile.CardName
+securityCode   ← Profile.CardCvv
+expirationMonth/Year ← Profile.CardExpiry 拆两半（两位年补 20）
+saveCard       ← "false"
+email / phone  ← Account.Email / Profile.Phone
+paymentMethod  ← Session.Vars["paymentMethodId"]（有才发，取值未取证）
+```
+
+**字段名全是镜像的。** 拆 `CardExpiry` 是复刻件自己的数据形状，不是镜像的。
+
+### 四、验证
+
+```
+构建                已成功
+完整套件            1766 通过 / 0 失败 / 0 跳过（未变）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+offspring 覆盖率     100%（未变 —— 这一步上一轮已经是"已实现"）
+```
+
+**覆盖率没动是对的**：这一轮换的是**同一个步骤里的字段**，不是补步骤。
+**R791 就记过这一条：质量改动不要记成覆盖进展。**
+
+### 五、仍然 Unknown
+
+- **这个站要明文卡还是要 `adyenEncryptedData`**：**Unknown** —— 两种字段都在镜像里。
+- **`paymentMethodId` 的取值**：**Unknown** —— 现在有就发、没有就不发。
+- **`dwfrm_billing_paymentMethods_creditCard_*` 与 `..._creditCardFields_*` 该用哪一族**：
+  **Unknown** —— 两族并存，现在用的是 `creditCardFields_` 那族（名字更全）。
+- **`saveCardAdyen` 与 `saveCard` 的区别**：**Unknown**。
+- **GMO 那一族是否只在日本站用**：**Inference（高）**，未验证。

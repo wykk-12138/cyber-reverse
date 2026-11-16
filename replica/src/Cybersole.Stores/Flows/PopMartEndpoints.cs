@@ -63,6 +63,25 @@ public static class PopMartEndpoints
     public const string StoreTicketDates = "/shop/v1/store_ticket/dateList";
     public const string StoreTicketMainPage = "/shop/v1/store_ticket/mainPage?uniqID=";
 
+    /// <summary>
+    /// Reserving a store ticket slot.
+    ///
+    /// <para>
+    /// R890. Missing until now: enumerating every <c>/shop/v1/</c> literal in the image yields forty-one paths, this
+    /// file held thirty-nine, and none of its constants was absent from the image. These two are the whole of the gap.
+    /// </para>
+    ///
+    /// <para>
+    /// What is <b>not</b> known is the request body a reservation posts, so no step uses these yet — the constant is
+    /// recorded because the path is an observation, and an endpoint with no caller is more honest than a step that
+    /// posts an invented body.
+    /// </para>
+    /// </summary>
+    public const string StoreTicketReserve = "/shop/v1/store_ticket/reserve";
+
+    /// <summary>The session list for a store ticket. Same provenance and same caveat as <see cref="StoreTicketReserve"/>.</summary>
+    public const string StoreTicketSessionList = "/shop/v1/store_ticket/sessionList";
+
     // ---- promotions and missions
     public const string CouponsList = "/shop/v1/coupons/list";
     public const string CouponsVerify = "/shop/v1/coupons/verify";

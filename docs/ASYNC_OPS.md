@@ -2139,3 +2139,53 @@ METRICS.md L24  成员形状差异 — core mismatches  |  17
 | 其余 7 个流程的 `StepSequence` | **只做了 3 个** |
 
 **所以「静态天花板」不是「无事可做」，是「这一条路到头了，旁边还有四条」。**
+
+
+### 端点覆盖补到 **41 / 41**，而且两个方向都钉住了（R890）
+
+**R889 之后转走不需要凭据的那条路。做法不是继续搜 `GetInstoreOrders` 的名字，
+而是把镜像里**全部** `/shop/v1/` 字面量枚举出来，与常量类做全量对比。**
+
+### 结果
+
+| | 条数 |
+|---|---|
+| 镜像 `/shop/v1/` 路径 | **41** |
+| `PopMartEndpoints` 常量（改前） | 39 |
+| **镜像有、复刻缺** | **2** |
+| **复刻有、镜像没有** | **0** |
+
+**缺的两个：**
+
+```
+/shop/v1/store_ticket/reserve
+/shop/v1/store_ticket/sessionList
+```
+
+**多了零个 —— 也就是说 39 个常量每一个都有镜像出处。这个方向为 0 比缺 2 更重要：
+它说明这个常量类没有一处是编的。**
+
+### 而 `GetInstoreOrders` 的答案也出来了
+
+**那 41 条里没有任何 `store/*order` 或 `instore` 路径。**
+
+**所以 `GetInstoreOrders` 的端点**不在 `/shop/v1/` 下** —— 它不是这个族的。
+要找到它得换前缀搜，而「换前缀」这件事本身是一条新的线索：`GetInstoreOrders` 可能与
+`/shop/v1/storeOfflineDraw/*` 同族，也可能走一个完全不同的前缀。**
+
+### 加了什么
+
+| 文件 | 改动 |
+|---|---|
+| `PopMartEndpoints.cs` | **+2 常量**：`StoreTicketReserve` · `StoreTicketSessionList`，注释写明体未知故无步骤使用 |
+| `PopMartEndpointCoverageTests.cs` | **新建 3 用例** |
+
+**三个用例钉住两个方向：**
+
+| 用例 | 钉住 |
+|---|---|
+| `TheImageHasFortyOneShopPaths` | 41 条，且互不重复 |
+| `EveryImagePathAppearsInTheConstants` | **镜像有的，常量里必须有**（缺 = 调不到的端点） |
+| `EveryConstantAppearsInTheImage` | **常量里有的，镜像里必须有**（多 = 我编的） |
+
+**第三个是这两个里更要紧的：一个多出来的常量**看起来像覆盖**，而它是编的。**

@@ -4192,3 +4192,39 @@ R883 的 `Drop.Type` 是「类型挂在哪」，这条是「任务本身是可�
 **`GetInstoreOrders` 端点（R873 只搜了 `order` 一族）· 5 条变体序列 · 其余 7 个流程的 `StepSequence` · `method` 形态 34 条**
 
 **纪律**：**「静态天花板」≠「无事可做」，是「这一条路到头，旁边还有四条」。**
+
+
+## 优先级 ① — 端点覆盖 **41 / 41**（R890，**+2 常量 +3 用例**）
+
+### 全量枚举再对比（不是搜名字）
+
+| | 条数 |
+|---|---|
+| 镜像 `/shop/v1/` | **41** |
+| 复刻（改前） | 39 |
+| **缺** | **2**：`store_ticket/reserve` · `store_ticket/sessionList` |
+| **多** | **0** ← 39 个常量全部有镜像出处，**没有编的** |
+
+### `GetInstoreOrders` 不在 `/shop/v1/` 下
+
+**41 条里无 `store/*order` 或 `instore` → 从「不知道在哪」到「知道不在哪」。下一轮枚举别的前缀。**
+
+### 测试（3 个，双向）
+
+**`TheImageHasFortyOneShopPaths` · `EveryImagePathAppearsInTheConstants` · `EveryConstantAppearsInTheImage`**
+**→ 第三个钉「多出来的常量」= 编造，它比缺失更危险（看起来像覆盖）。**
+
+**套件 1783 通过 / 0 失败（原 1780 + 3）。**
+
+### 我的 grep 错
+
+**`-SimpleMatch "box/|cash/desk|..."` → `|` 不生效 → 返回空 → 像「都没有」。**
+**同一「返回空」形态，R889 刚记过一次（这次在 grep 开关上）。**
+
+| 仍 Unknown | |
+|---|---|
+| `GetInstoreOrders` 端点 | 已缩小到「不在 /shop/v1/ 下」 |
+| 2 个新常量的请求体 | 故无步骤使用（R850 规矩） |
+| `box/*` 6 条 · `cash/desk/*` 7 条的步骤 | **端点全、步骤缺** |
+
+**纪律**：**搜一个名字答的是那个名字；枚举全部再对比答的是整个空间 —— 还能答「有没有编的」。**

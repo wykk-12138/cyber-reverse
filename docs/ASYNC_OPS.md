@@ -1993,3 +1993,55 @@ total review rows: 5
 3. **R886**：重生成基线 + 改调用方 → 指标从 78 修正到 94
 
 **每一层都是上一层没走完的那一步。**
+
+
+### 94 条形状差异分解成 **3 类 × 63 个成员** —— 而最大的一块是 `Close`（R887）
+
+**R886 把数字从 78 修到 94。这一轮把那 94 条分类，因为「94」本身不是可行动的信息。**
+
+### 按复刻件现状分三类
+
+| `replica=` | 条数 | 意思 |
+|---|---|---|
+| **`?`** | **44** | **成员在复刻件里根本不存在** |
+| `method` | **34** | 复刻件有同名**方法**，而镜像是可写属性 |
+| `prop-get` | **16** | 复刻件只有 getter，镜像有 Setter 证据 |
+
+### 按成员名归族：94 条 = 63 个成员
+
+| 成员 | 条数 | 分布 |
+|---|---|---|
+| **`Close`** | **15** | **全 `?`** |
+| `Delete` | 8 | 5 `?` · 3 `method` |
+| `Edit` | 3 | 2 `prop-get` · 1 `?` |
+| `Save` | 3 | 全 `?` |
+| `MoveGroup` | 3 | 全 `method` |
+| `Reset` · `Running` · `Add` · `OpenUrl` | 各 2 | 混合 |
+| 其余 55 个成员 | **各 1** | — |
+
+**Top 6 个成员占 34 条（36%）。**
+
+### 而这些名字说的是同一件事
+
+**`Close` · `Delete` · `Save` · `Edit` · `Reset` · `Add` —— **全是视图上的动作成员**。**
+
+**镜像把它们标成 `Getter,Property,Setter`，也就是**可写的 `ICommand` 属性**；
+复刻件里它们要么不存在（`?`），要么是普通方法（`method`），要么是只读属性（`prop-get`）。**
+
+**所以 94 条不是 94 个独立缺陷，是**一个结构故事**：
+视图的动作成员在镜像里是可写 `ICommand` 属性。**
+
+### 而 `?` 那 44 条里有两条值得单独看
+
+```
+BotTask    Running    evidence=Getter,Property,Setter    replica=?
+BotTask    Task       evidence=Getter,Property,Setter    replica=?
+```
+
+**`BotTask.Task` 就是 R364 那个悬案！**
+
+**而 R883 的结论是「`Type` 属于 `Drop`」。现在看：`BotTask` 缺的成员是 `Running` 和 `Task`，
+两个都是 `Getter,Property,Setter` —— 也就是说它们在镜像里是**可写属性**。**
+
+**所以 R364 那个问题的答案更完整了：`BotTask.Task` 在镜像里是**可写属性**，
+而 R883 说的 `Drop.Type` 是另一件事（任务类型 vs 任务本身）。**

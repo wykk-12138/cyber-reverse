@@ -10653,3 +10653,82 @@ wiring (>= 40%)      :    0
 - 129 个里有多少是接线、多少是逻辑：**Unknown** —— **正是这一轮想量而没有量成的**。
 - `0x14125fc80` 是否确实只是对象初始化：**Inference（中高）**，依据是 40+ 局部变量 + 4 个属性助手 + 22 个键名，
   未逐行确认。
+
+
+---
+
+## 160. 第二个见证实现：任务按钮文案 —— 一个**不对称比较**，和一次没解出来的槽位
+
+> R731。新增 `replica/src/Cybersole.Core/Reporting/TaskButtonLabel.cs`、
+> `replica/tests/Cybersole.Tests/TaskButtonLabelTests.cs`（12 条）、
+> `analysis/resolve_button_slots.py`（保留，作为槽位解析失败的记录）。
+
+### 一、候选与反编译
+
+`0x140594500`，引用 `TaskCreator.Button.CreateTask` / `CreateTasksFormat` / `SaveTask` / `SaveTasksFormat`。
+86 行伪代码，读出两个属性（一个 byte 标志、一个计数）和四个分支：
+
+```c
+if (flag) {                       // save
+    if (count == 1) return &off_146EB85E8;       // 单数
+    // 否则落到共享的复数路径
+}
+else if (count >= 2) {            // create
+    goto plural;
+}
+return &off_146EB8538;            // create 的剩余情形
+
+plural:
+    slot = flag ? &off_146EB8638 : &off_146EB8588;
+    return format(localise(slot), count);
+```
+
+### 二、**两个比较不一样**，这是这一轮的全部价值
+
+- save 走 `count == 1` → **0 落到复数**
+- create 走 `count >= 2` → **0 落到单数**
+
+所以：
+
+```
+save,   count=0  →  "Save 0 Tasks"
+create, count=0  →  "Create Task"
+```
+
+**一个"整理"成 `count > 1` 两处一致的实现，会在所有正常输入上给出正确答案，只在这里错。**
+这正是行为探针该抓的东西，也正好被 `AZeroCountTakesDifferentArmsInEachMode` 钉住。
+
+### 三、槽位没解出来 —— 记下来而不是绕过
+
+四个 `off_` 槽位指向什么，我想从镜像里读出来，把「槽位→键」从 Inference 变成 Observation。
+**失败**：四个槽位读回同一个不合理的长度值（1155229432），说明它们**不是字符串指针**，
+而是某种描述符结构，布局我没掌握。
+
+**没有硬凑。** 结论分层写清：
+
+- **Observation**：分支顺序、两个比较、四个不同槽位、目录里恰好四条语义吻合的键
+- **Inference（高置信）**：哪个槽位是哪条键 —— 依据是分支形状钉死了单/复数与存/建，且没有别的自洽赋值
+- **未建立**：两个属性各自的身份；标志读作"保存"是因为只有在那个读法下四条文案才成对
+
+**关键一点**：**行为由分支结构决定，不由槽位身份决定。** 所以槽位没解出来**不阻碍**忠实实现，
+只让"哪条文案"这一层多了一个推断 —— 而这一层即使错了，错的是文案而非分支逻辑。
+
+### 四、实现与探针
+
+`TaskButtonLabel.Describe(bool saving, int count, Func<string,string> copy)`，分支照抄；
+12 条探针覆盖四象限、零值不对称、无占位符的文案不走 `string.Format`、以及负数按同样比较走
+（**记下来是因为代码就是这么做的，不是因为有意义**）。
+
+### 五、验证
+
+```
+TaskButtonLabelTests   12 / 12 通过
+完整套件               1671 通过 / 0 失败（1659 + 12）
+四项度量               4 / 0 / 17 / 78 / 0（未变 —— 又一处"文案在、行为不在"）
+```
+
+### 六、仍然 Unknown
+
+- 四个槽位指向的对象是什么：**Unknown**（读回值不合理，未深究）。
+- 标志与计数在原版里对应哪两个属性：**Unknown**。
+- `save + 负数` 的真实行为：**Inference**，按 `== 1` 推的，未实测。

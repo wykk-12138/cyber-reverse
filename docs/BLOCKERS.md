@@ -15651,3 +15651,78 @@ ModuleCoverageTests hypecommerce 71%（yardstick does not apply）；exempt 6
 - **镜像有没有 hypecommerce 的店面面**：**Unknown** —— 只搜过 `hypecommerce`，
   **可能店面域名不含这个词**（§2.7：先问有几种写法）。
 - **`HypeCommerceFlow` 现在那 71% 里有没有一步是对的**：**Unknown** —— 没人验过。
+
+
+---
+
+## 224. hypecommerce 的四个 builder 找到了，**请求体不在里面** —— 第五次同一形状
+
+> R798。未改产品代码。
+
+### 一、四个端点各有一个调用者（Observation）
+
+```
+entries/create          sub_140CC63F0  (396 B)
+entries/validate        sub_140CC9110  (393 B)
+payment/methods/store   sub_140CC8DE0  (726 B)
+settings                sub_140CC7E90  (373 B)
+```
+
+**一端点一函数，干净。**
+
+### 二、`entries/create` 的形状
+
+```c
+v4 = new(unk_144BDF900);
+sub_1408C22E0(v4, &off_147051048);            // 填入 entries/create 的 URL
+v5 = new(unk_144FE9240);
+sub_142FA9684(v5, v1);                        // 把 v1 序列化成请求体
+v9[0] = sub_1408B6310(v3, v4, v2, v5, v9[0]); // (客户端, URL, 方法, 内容, …) 发出去
+```
+
+**`sub_1408B6310(client, url, method, content, …)` 是这个站用的发送器** ——
+与 Poq / Hypris 那些构造器同形，只是内容是 JSON。
+
+### 三、请求体为什么拿不到
+
+**`v1` 是被序列化的那个对象，而它来自调用方。** 这个函数只知道"把它序列化并 POST 出去"。
+**要拿字段名，得往上找到 `v1` 的构造点。**
+
+**这是本会话第五次同一形状**：
+
+| 站 | 端点 | 缺的 |
+|---|---|---|
+| casio | `/cart/add` 族 | 区域 token |
+| warhammer | `/graphql`（已解决，靠池子里的原文） | — |
+| goat | `build-reservation` | 请求体 |
+| popmart | `/web/v2` | 请求体 |
+| **hypecommerce** | `entries/create` | **请求体** |
+
+**共同点：端点是字符串字面量（搜就有），请求体是运行时构造的对象（要读调用链）。**
+
+### 四、为什么这一轮不改 `HypeCommerceFlow`
+
+R797 立了项：要么按 entries 重写，要么降级成诚实失败。**这一轮查清了端点的形状，但没有请求体。**
+
+**而重写意味着删掉 8 个 override、换成一个 validate→create 的链。**
+**在一个轮次的后半段开始这种手术，是我这几十轮反复自伤的方式**（R766 拿方法头当锚点、R789 手抄字符串）。
+
+**所以：先把形状查清、写在案上，下一轮整轮做那件事。**
+
+**这不是拖延 —— 上一轮的立项说的是"改 8 个 override 的方向决定"，而方向现在有了（entries），材料还差一半（请求体）。**
+
+### 五、验证
+
+```
+本轮未改产品代码
+完整套件保持 1766 通过 / 0 失败
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 六、仍然 Unknown
+
+- **`entries/create` 的请求体字段**：**Unknown** —— 要往上追 `v1` 的构造点。
+- **`entries/validate` 的请求体**：**Unknown**，同理。
+- **`payment/methods/store` 与 `settings` 的用途**：**Unknown**。
+- **`sub_1408B6310` 的签名**（五个参数各是什么）：**Inference（高）** 从调用处推断为
+  (客户端, URL, 方法, 内容, 结果槽)，**未读函数体**。

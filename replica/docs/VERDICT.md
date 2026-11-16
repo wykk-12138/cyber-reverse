@@ -48625,3 +48625,47 @@ resolved 63/63 · fully covered 51 · exempt 6
 ### 仍然 Unknown
 
 `entries` 的请求体 · `payment/methods/store` 用途 · **镜像有没有店面面（只搜过 `hypecommerce` 这一个写法）** · 那 71% 里有没有一步是对的
+
+
+---
+
+## 第 798 轮：hypecommerce 的 builder 找到了，请求体不在里面
+
+### 四个端点各一个调用者
+
+```
+entries/create 396 B · entries/validate 393 B · payment/methods/store 726 B · settings 373 B
+```
+
+### `entries/create` 的形状
+
+```c
+sub_1408C22E0(v4, &off_147051048);            // 填 URL
+sub_142FA9684(v5, v1);                        // 把 v1 序列化
+sub_1408B6310(v3, v4, v2, v5, v9[0]);         // 发出去
+```
+
+**`v1` 来自调用方 —— 函数只知道「序列化它并 POST」。**
+
+### 这是第五次同一形状
+
+| 站 | 端点 | 缺的 |
+|---|---|---|
+| casio | `/cart/add` 族 | 区域 token |
+| goat | `build-reservation` | 请求体 |
+| popmart | `/web/v2` | 请求体 |
+| **hypecommerce** | `entries/create` | **请求体** |
+
+> **共同点：端点是字符串字面量（搜就有），请求体是运行时构造的对象（要读调用链）。**
+
+### 为什么不在这轮改
+
+R797 立了项。**方向现在有了（entries），材料还差一半（请求体）。**
+
+**重写意味着删 8 个 override —— 在一个轮次的后半段开始这种手术，是我这几十轮反复自伤的方式。**
+
+### 验证
+
+```
+产品代码未改 · 整套 1766 / 0 · 度量未变
+```

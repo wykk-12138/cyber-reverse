@@ -1359,3 +1359,27 @@ resolved 63/63 · fully covered 51 · exempt 6
 | `payment/methods/store` 用途 | 不明 |
 | **镜像有没有 hypecommerce 的店面面** | **只搜过 `hypecommerce` 一种写法**（§2.7） |
 | 那 71% 里有没有一步对 | 没人验过 |
+
+
+## 核心 — hypecommerce（R798：端点形状清、请求体缺）
+
+```
+entries/create          sub_140CC63F0 (396 B)
+entries/validate        sub_140CC9110 (393 B)
+payment/methods/store   sub_140CC8DE0 (726 B)
+settings                sub_140CC7E90 (373 B)
+```
+
+**`entries/create` 内是「填 URL → 序列化 v1 → 发送」，`v1` 来自调用方。**
+
+**第五次「端点已知、请求体未知」**（前四次：casio 区域 token、goat build-reservation、popmart /web/v2）。
+
+| 待做 | 缺什么 |
+|---|---|
+| 重写 `HypeCommerceFlow` 成 validate→create | **请求体字段**（追 `v1` 的构造点） |
+| 或者降级成诚实失败 | — |
+
+**下一轮整轮做这件事** —— 不在轮次后半段开始删 8 个 override 的手术。
+
+**规律（值得记住）**：端点是字符串字面量，**搜池子就有**；
+请求体是运行时构造的对象，**必须读调用链**。两者的取证成本差一个数量级。

@@ -1,0 +1,77 @@
+﻿families with a host: 45
+present in the replica: 17
+absent: 28
+
+HOST api-search.dickssportinggoods.com
+  /catalog-productdetails/v4/        no
+HOST api.braintreegateway.com
+  /client_api/v1/                    no
+HOST api.nike.com
+  /checkout_previews/v3/             yes
+  /checkout_previews_jobs/v3/        yes
+  /checkouts/v3/                     yes
+  /checkouts_jobs/v3/                yes
+  /deferred_payment_forms/v1/        yes
+  /fulfillment_offerings_jobs/v2/    yes
+  /partner_cart_preorder/v2/         yes
+  /partner_cart_preorder_jobs/v2/    yes
+  /paypal_details/v2/                yes
+  /paypal_mark/v2/                   yes
+  /preview/v3/                       yes
+HOST api.sibspayments.com
+  /form/v1/                          no
+HOST api.vipps.no
+  /internal/v1/                      no
+HOST app.midtrans.com
+  /snap/v1/                          no
+  /snap/v2/                          no
+HOST auth.casio-intl.com
+  /connect/v1/                       no
+HOST challenges.cloudflare.com
+  /turnstile/v0/                     no
+HOST checkout.johnlewis.com
+  /bff/v1/                           yes
+  /bff/v2/                           no
+  /bff/v3/                           no
+  /bff/v4/                           no
+HOST checkout.sportsshoes.com
+  /internalapi/v1/                   no
+HOST checkoutshopper-live.adyen.com
+  /checkoutshopper/v1/               yes
+  /paybylink/v1/                     no
+HOST flex.cybersource.com
+  /flex/v2/                          no
+HOST id.asics.com
+  /api/v2/                           yes
+HOST inbox-api.aycd.io
+  /api/v1/                           yes
+HOST payments.bigcommerce.com
+  /public/v1/                        no
+HOST payments.dickssportinggoods.com
+  /paygate/v2/                       no
+HOST paymentsheet-ent.wdprapps.disney.com
+  /api/v3/                           no
+HOST pbiouukmdvahsphokqle.supabase.co
+  /functions/v1/                     no
+HOST prod-hk-actapi.popmart.com
+  /activity/v1/                      no
+HOST registerdisney.go.com
+  /jgc/v8/                           no
+HOST static-forms.klaviyo.com
+  /api/v7/                           no
+HOST webservices.global-e.com
+  /Checkout/v2/                      no
+HOST www.goat.com
+  /web-api/v1/                       yes
+HOST www.ibm.com
+  /dtd/v11/                          no
+HOST www.nike.com
+  /api/v5/                           yes
+HOST www.paypal.com
+  /threeds/v1/                       no
+HOST www.vans.com
+  /cart/v1/                          no
+  /cart/v2/                          no
+  /products/v2/                      no
+HOST www.vivapayments.com
+  /checkout/v2/                      no

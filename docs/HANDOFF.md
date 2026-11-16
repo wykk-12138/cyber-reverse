@@ -566,3 +566,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **优先级 ② 三条**：Turnstile 端点 · AYCD OTP（`inbox-api.aycd.io`）· 3DS/支付重定向（cybersource/paypal/midtrans）。
 **更正 R835：PopMart 有 2 个宿主**（`popmart.com` 带 `/shop/v1/`+`/store/v1/`；`prod-hk-actapi.popmart.com` 带 `/activity/v1/`）→ 错的形状是「一个站只有一个 API 宿主」。
 **边界：45/56 · 同现不证明唯一归属 · 混了站与厂商 · 不说明复刻件实现情况。**
+
+## R894 补充 — 按宿主覆盖 **17 / 45**（**未改产品代码**）
+
+**分布**：`api.nike.com` **11/11（首个端点层齐的站）** · `checkout.johnlewis.com` 1/4 · adyen 1/2 · asics/goat/www.nike/aycd 各 1/1 · **`www.vans.com` 0/3** · **`challenges.cloudflare.com` 0/1** · **`prod-hk-actapi.popmart.com` 0/1** · 其余 18 个支付商各 0/1。
+**Vans 0/3 而模块在（62 个店模块）→ 「模块在、端点不在」**，比「32 族完全没有」精确。
+**17 是上界**：判据「族段出现过」太松可能误命中。**R892 太严高报 40 vs 32；本轮太松可能低报 —— 同一来源：松紧未标定。**
+**新规矩：报覆盖数必须写「上界/下界/精确」+ 理由。**
+**下一轮**：17 里有多少是泛段误命中（逐条约 100 次对比）；Vans 走的是哪一族。

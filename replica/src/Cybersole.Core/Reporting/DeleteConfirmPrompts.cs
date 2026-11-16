@@ -42,6 +42,13 @@ public static class DeleteConfirmPrompts
         => Build("Tasks.DeleteConfirm", count, copy);
 
     /// <summary>
+    /// The proxies grid's delete confirmation. <c>sub_1406CB910</c> has the accounts shape — a count guard and an
+    /// int32 boxed into three texts — so it shares <see cref=Build/>.
+    /// </summary>
+    public static (string Title, string Message, string Action)? Proxies(int count, Func<string, string> copy)
+        => Build("Proxies.DeleteConfirm", count, copy);
+
+    /// <summary>
     /// Builds a screen's confirmation from its key prefix, or returns <c>null</c> for an empty selection.
     /// </summary>
     internal static (string Title, string Message, string Action)? Build(

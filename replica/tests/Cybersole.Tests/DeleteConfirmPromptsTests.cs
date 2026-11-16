@@ -24,6 +24,10 @@ public class DeleteConfirmPromptsTests
         ["Tasks.DeleteConfirm.MessageFormat"] =
             "Are you sure you want to delete {0} tasks?\nYou cannot undo this action.",
         ["Tasks.DeleteConfirm.ActionFormat"] = "Delete ({0}) tasks",
+        ["Proxies.DeleteConfirm.TitleFormat"] = "Delete {0} proxies?",
+        ["Proxies.DeleteConfirm.MessageFormat"] =
+            "Are you sure you want to delete {0} proxies?\nYou cannot undo this action.",
+        ["Proxies.DeleteConfirm.ActionFormat"] = "Delete ({0}) proxies",
     };
 
     private static (string Title, string Message, string Action)? Tasks(int count)
@@ -61,6 +65,17 @@ public class DeleteConfirmPromptsTests
         Assert.Equal("Delete (9) tasks", pair!.Value.Action);
         Assert.DoesNotContain("(9)", pair.Value.Title, StringComparison.Ordinal);
         Assert.DoesNotContain("(9)", pair.Value.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    // The proxies body has the accounts shape -- count guard, int32 boxed -- so it shares the builder and must
+    // behave identically apart from its strings.
+    public void TheProxiesScreenSharesTheTasksBehaviour()
+    {
+        Assert.Null(DeleteConfirmPrompts.Proxies(0, k => Copy[k]));
+        var pair = DeleteConfirmPrompts.Proxies(4, k => Copy[k]);
+        Assert.Equal("Delete 4 proxies?", pair!.Value.Title);
+        Assert.Equal("Delete (4) proxies", pair.Value.Action);
     }
 
     [Fact]

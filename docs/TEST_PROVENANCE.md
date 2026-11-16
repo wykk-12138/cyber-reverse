@@ -12,9 +12,9 @@
 
 ```
 测试方法总数     : 1553
-binary (direct)    : 83 (5.3%)
-binary (inherited) : 419 (27.0%)
-neither            : 1134 (73.0%)
+binary (direct)    : 91 (5.9%)
+binary (inherited) : 475 (30.6%)
+neither            : 1078 (69.4%)
 ```
 
 ## 判据（从脚本头复制，先定后量）
@@ -39,14 +39,15 @@ neither            : 1134 (73.0%)
 | `AccessorBrandCheckTests.cs` | 3 | 3 | 3 |
 | `BrowserFingerprintTests.cs` | 3 | 3 | 8 |
 | `DemandwareControllerTests.cs` | 3 | 7 | 7 |
-| `RealmReplayTests.cs` | 3 | 3 | 8 |
+| `LiveSchemaPinsTests.cs` | 3 | 10 | 10 |
+| `RealmReplayTests.cs` | 3 | 8 | 8 |
 | `ArrowAndBeastTests.cs` | 2 | 2 | 4 |
 | `CloakRegexTests.cs` | 2 | 2 | 3 |
 | `DemandwareRaffleTests.cs` | 2 | 7 | 7 |
+| `EngineAssetsTests.cs` | 2 | 7 | 7 |
 | `EngineParityTests.cs` | 2 | 3 | 3 |
 | `ForwardingShimTests.cs` | 2 | 5 | 5 |
 | `GlobalSurfaceTests.cs` | 2 | 2 | 4 |
-| `LiveSchemaPinsTests.cs` | 2 | 2 | 10 |
 | `NoProtoMethodTests.cs` | 2 | 3 | 3 |
 | `SessionTelemetryTests.cs` | 2 | 7 | 7 |
 | `ShopifyCartEndpointTests.cs` | 2 | 2 | 2 |
@@ -59,15 +60,18 @@ neither            : 1134 (73.0%)
 | `ChromiumStealthTests.cs` | 1 | 1 | 5 |
 | `CloseAndOpenFamilyTests.cs` | 1 | 1 | 7 |
 | `CloudflareStrategyTests.cs` | 1 | 7 | 7 |
+| `CustomStoresPageTests.cs` | 1 | 1 | 5 |
 | `DlpaProfileTests.cs` | 1 | 1 | 7 |
 | `EndpointFamilies101Tests.cs` | 1 | 1 | 5 |
 | `EndpointProvenanceTests.cs` | 1 | 2 | 2 |
-| `EngineAssetsTests.cs` | 1 | 1 | 7 |
 | `HandlerSurfaceTests.cs` | 1 | 3 | 3 |
 | `IDBEvidenceTests.cs` | 1 | 4 | 4 |
+| `InterfaceInventoryTests.cs` | 1 | 1 | 1 |
 | `KasadaApiTests.cs` | 1 | 5 | 5 |
 | `KasadaSolverTests.cs` | 1 | 9 | 9 |
 | `KasadaStrategyTests.cs` | 1 | 7 | 7 |
+| `KeyBindMatcherTests.cs` | 1 | 11 | 11 |
+| `KeyBindsPageTests.cs` | 1 | 6 | 6 |
 | `LiveBrowserProbeTests.cs` | 1 | 1 | 1 |
 | `MobileNavigatorTests.cs` | 1 | 6 | 6 |
 | `NavOrderTests.cs` | 1 | 4 | 4 |
@@ -83,6 +87,8 @@ neither            : 1134 (73.0%)
 | `ProxyCreatorTests.cs` | 1 | 5 | 5 |
 | `RetailApiFamiliesTests.cs` | 1 | 1 | 5 |
 | `SessionPayloadTests.cs` | 1 | 7 | 7 |
+| `SettingsPagesTests.cs` | 1 | 1 | 4 |
+| `SettingsShellTests.cs` | 1 | 1 | 13 |
 | `ShopifyGraphQlTests.cs` | 1 | 7 | 7 |
 | `ShopifyHeadersTests.cs` | 1 | 1 | 5 |
 | `ShopifyHostListTests.cs` | 1 | 2 | 2 |
@@ -124,7 +130,7 @@ neither            : 1134 (73.0%)
 | `CheckoutFailureModeTests.cs` | 0 | 0 | 7 |
 | `CheckoutFlowEndToEndTests.cs` | 0 | 0 | 6 |
 | `CheckoutFormBuilderTests.cs` | 0 | 0 | 8 |
-| `CheckoutHistoryShapeTests.cs` | 0 | 0 | 2 |
+| `CheckoutHistoryShapeTests.cs` | 0 | 2 | 2 |
 | `CheckoutHistoryTests.cs` | 0 | 0 | 4 |
 | `CheckoutStatsTests.cs` | 0 | 0 | 5 |
 | `ChildRealmParityTests.cs` | 0 | 0 | 2 |
@@ -144,7 +150,6 @@ neither            : 1134 (73.0%)
 | `CustomPresetsTests.cs` | 0 | 0 | 4 |
 | `CustomSizesPageTests.cs` | 0 | 0 | 5 |
 | `CustomStoreRegistrationTests.cs` | 0 | 0 | 7 |
-| `CustomStoresPageTests.cs` | 0 | 0 | 5 |
 | `CustomStoresRowsTests.cs` | 0 | 2 | 2 |
 | `CybersoleHostTests.cs` | 0 | 6 | 6 |
 | `DataExportCopyTests.cs` | 0 | 1 | 1 |
@@ -193,7 +198,6 @@ neither            : 1134 (73.0%)
 | `IWebhookContractTests.cs` | 0 | 3 | 3 |
 | `IdentifierFieldProbeTests.cs` | 0 | 0 | 1 |
 | `ImportParserTests.cs` | 0 | 0 | 7 |
-| `InterfaceInventoryTests.cs` | 0 | 0 | 1 |
 | `Ja3Tests.cs` | 0 | 0 | 6 |
 | `JbHiFiPlatformTests.cs` | 0 | 0 | 1 |
 | `JohnLewisPriceTests.cs` | 0 | 0 | 4 |
@@ -208,8 +212,6 @@ neither            : 1134 (73.0%)
 | `KasadaLiveTests.cs` | 0 | 0 | 2 |
 | `KasadaRealScriptTests.cs` | 0 | 0 | 7 |
 | `KeyBindChordTests.cs` | 0 | 0 | 3 |
-| `KeyBindMatcherTests.cs` | 0 | 0 | 11 |
-| `KeyBindsPageTests.cs` | 0 | 0 | 6 |
 | `KeyOrderDispatchTests.cs` | 0 | 0 | 3 |
 | `KeyOrderTableTests.cs` | 0 | 0 | 3 |
 | `LambdaWitnessTests.cs` | 0 | 0 | 6 |
@@ -246,7 +248,7 @@ neither            : 1134 (73.0%)
 | `NikeKasadaFlowTests.cs` | 0 | 0 | 3 |
 | `NonParityClaimsTests.cs` | 0 | 0 | 6 |
 | `NotificationPopupTests.cs` | 0 | 0 | 1 |
-| `NotificationsPageTests.cs` | 0 | 0 | 6 |
+| `NotificationsPageTests.cs` | 0 | 6 | 6 |
 | `OffspringPlatformTests.cs` | 0 | 0 | 1 |
 | `OriginalViewClassParityTests.cs` | 0 | 0 | 5 |
 | `OwnTlsFallbackTests.cs` | 0 | 0 | 4 |
@@ -254,7 +256,7 @@ neither            : 1134 (73.0%)
 | `ParityDocTests.cs` | 0 | 0 | 9 |
 | `PatchJournalTests.cs` | 0 | 3 | 3 |
 | `PayloadCoverageTests.cs` | 0 | 0 | 5 |
-| `PaymentPageTests.cs` | 0 | 0 | 4 |
+| `PaymentPageTests.cs` | 0 | 4 | 4 |
 | `PaymentViewTests.cs` | 0 | 0 | 2 |
 | `PerformanceTests.cs` | 0 | 0 | 2 |
 | `PlatformAssignmentTests.cs` | 0 | 0 | 11 |
@@ -291,12 +293,10 @@ neither            : 1134 (73.0%)
 | `ServiceRoadPollingTests.cs` | 0 | 5 | 5 |
 | `SessionPayloadBuilderTests.cs` | 0 | 7 | 7 |
 | `SessionSinkWiringTests.cs` | 0 | 0 | 7 |
-| `SettingsDialogSingleSourceTests.cs` | 0 | 0 | 4 |
+| `SettingsDialogSingleSourceTests.cs` | 0 | 4 | 4 |
 | `SettingsModalTests.cs` | 0 | 0 | 8 |
 | `SettingsNavTests.cs` | 0 | 2 | 2 |
 | `SettingsPageHeadersTests.cs` | 0 | 0 | 5 |
-| `SettingsPagesTests.cs` | 0 | 0 | 4 |
-| `SettingsShellTests.cs` | 0 | 0 | 13 |
 | `SettingsStorageLinkTests.cs` | 0 | 0 | 5 |
 | `ShapeAuditGuardTests.cs` | 0 | 0 | 2 |
 | `ShippingRateSelectionTests.cs` | 0 | 0 | 7 |
@@ -371,22 +371,3 @@ neither            : 1134 (73.0%)
 反过来，一条没有标记的测试也可能间接依赖反编译结论（例如它测的函数是根据反编译写的）。
 这张表量的是**显式可追溯性**，不是真实来源。
 **所以它是下界**：真正从二进制来的测试**不少于**这个数，但不会多于总数。
-
-## 第三桶：文案溯源（R723 追加）
-
-「没有地址引用」不等于「没有二进制来源」。一条断言「标题等于 'Unknown country'」，
-那句话在原版字符串池里逐字存在 —— 它来自镜像，不是来自实现。
-
-```
-测试方法总数        : 1553
-  binary (cited)    : 419 (27.0%)   R722 那两档
-  locale-derived    : 130 (8.4%)   触到池中文案
-  unaccounted       : 1004 (64.6%)   两者都没有
-```
-
-**检测器是松的**：只要方法体里出现一段 ≥8 字符、且逐字出现在 `Cybersole.Locales.en.json` 的字符串，
-就记 locale-derived。所以 `TheHeadersActuallySort` 会被算进来 —— 它确实用到池中的表头文字，
-**但它断言的是排序，不是文案**。
-
-**所以 locale-derived 的含义是「这条测试触到了池中文字」，不是「整条期望来自池」。**
-它比 cited 弱，比 unaccounted 强，只能这么用。

@@ -30,7 +30,10 @@ TESTS = r"D:\projects\cyber-reverse\replica\tests\Cybersole.Tests"
 OUT = r"D:\projects\cyber-reverse\docs\TEST_PROVENANCE.md"
 
 METHOD = re.compile(r"^\s*(?:\[(?:Fact|Theory|InlineData)[^\]]*\]\s*)*\s*public\s+(?:async\s+)?\w[\w<>,\[\]\?\. ]*\s+(\w+)\s*\(")
-MARKERS = ("decompil", "descriptor", "the image")
+# (R723b) a fourth source the first marker set could not see: the original's OWN on-disk data.
+#  -settings.json from the live build- is %APPDATA%\\Cybersole\\settings.json, the shipped program's output,
+# which is stronger evidence than decompilation -- it is what the program actually wrote.
+MARKERS = ("decompil", "descriptor", "the image", "live build", "live settings", "settings.json")
 ADDR = re.compile(r"(0x14[0-9A-Fa-f]{6})|(sub_14[0-9A-Fa-f]{6})")
 
 

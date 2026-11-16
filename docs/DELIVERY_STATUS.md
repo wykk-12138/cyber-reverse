@@ -13389,3 +13389,95 @@ ida.py str DotNetBrowser   -> 数百条，含 AvaloniaUi.v12 / Internals.Ipc / C
 **这一轮按短词搜只看到 10 条，而全貌在长词下面。**
 
 **共同点：我选的检索词决定了我能看到什么，而我没有先问「这个词是最具体的那一个吗」。**
+
+
+---
+
+## 262. **PopNow 是一套九方法子系统**，复刻件十二个名字全为 0 —— 而这是三轮里第三次低估
+
+> R838。未改产品代码。
+
+### 一、怎么找到的
+
+R837 留下「三维同一个错、换了三个筛子」的判断。这一轮先按它做：**搜最具体的词。**
+
+`StoreFlow` 的 4 处匹配里有 `<StartPopNowFlow>` —— **POP NOW 是 PopMart 的抽签功能**。
+于是搜 `PopNow`：**29 处。**
+
+### 二、这套子系统长什么样
+
+从元数据串里读出来的方法名（`0x14337xxxx` 一带，async 状态机命名表）：
+
+```
+<StartSignupFlow>d__57   <StartClearFlow>d__58   <StartInStoreFlow>d__59   <StartPopNowFlow>d__60
+<ExtractPopNow>d__83     <SelectPopNow>d__84     <SelectMultiPopNow>d__85  <AddToCartBox>d__86
+<FetchTasks>d__187       <StartDailyCheckInTask>d__188
+<StartPopNowViewTask>d__189   <FetchPopNowSpuIds>d__190   <ViewPopNow>d__191
+```
+
+**所以 PopNow 的流程是：取 SPU id → 抽取 → 选中（单个/多个）→ 加盒到车 → 查看，
+外加两个任务：`StartPopNowViewTask`（看抽签）与 `StartDailyCheckInTask`（每日签到）。**
+
+**而 `0x1433090f5` 单独一个 `PopNow` —— 像是一个模式/枚举值。**
+
+**同族的还有 `StartSignupFlow`（注册）· `StartClearFlow` · `StartInStoreFlow`（门店）。**
+
+### 三、复刻件一个都没有
+
+```
+PopNow 0 · ExtractPopNow 0 · SelectPopNow 0 · SelectMultiPopNow 0 · AddToCartBox 0
+FetchPopNowSpuIds 0 · ViewPopNow 0 · StartPopNowViewTask 0 · StartDailyCheckInTask 0
+StartSignupFlow 0 · StartClearFlow 0 · StartInStoreFlow 0
+```
+
+**十二个全为 0。**
+
+### 四、三轮三次低估 —— 这才是这一轮真正的发现
+
+| 轮 | 结论 | 下一轮被改成 |
+|---|---|---|
+| R830 | PopMart「四块未建模」 | R836：**七块** |
+| R836 | PopMart 七块 | R838：**一整套九方法子系统 + 三个同族 flow** |
+| R837 | 镜像内嵌 DotNetBrowser | （未推翻，但发现路径同样是「换了更具体的词才看见」） |
+
+**每一次我用的词更具体，面就更大。** 这不是精度问题：
+
+> **按词搜索永远给不出「完整清单」——它给的是「含这个词的那些」。
+> 而我每次都在用「含这个词的那些」冒充完整清单。**
+
+**判据 (f) 要求「原版站点与风控清单从二进制取证」。按词搜索不满足这个要求。**
+
+**要给出完整清单，得换方法：**
+
+1. **系统走一遍元数据串表，把「形如方法名的串」全部提取并分类**（不是搜关键词，是遍历后归类）
+2. **或者走类型图（MethodTable → MethodDesc），枚举某个类的全部方法**
+
+**这两条都不是搜词，本轮都没做。**
+
+### 五、验证
+
+```
+ida.py str PopularNow?  不适用
+ida.py str PopNow --limit 200   -> 29 matches（含 13 个方法名 + 1 个裸 PopNow）
+ida.py str StoreFlow            -> 4 matches，全是 *Flow 后缀的另一类概念
+ida.py str NikeFlow/ShopifyFlow/FlowBase -> 全 0（镜像没有按站命名的 Flow 类）
+复刻件 grep 上面 12 个名字      -> 全 0
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **`<StartClearFlow>` 是什么**：**Unknown** —— 名字像「清空」（清购物车？清 cookie？），**未判。**
+- **`<StartInStoreFlow>` 是什么**：**Unknown** —— 「门店」，可能是线上下单门店自提，**未判。**
+- **`<StartDailyCheckInTask>` 是否只服务 PopMart**：**Unknown** —— 名字通用，**可能给所有站用。**
+- **镜像的类清单**：**Unknown，且这是当前最关键的一个** ——
+  **没有它，判据 (f) 只能靠搜词拼，而搜词已经三轮低估。**
+
+### 七、教训
+
+**「搜 `PopNow` 得 29 处」听起来像完整清单，其实只是「含 PopNow 的那些」。**
+**要拿到「PopNow 子系统的全部方法」，得遍历该类的元数据，不是搜名字。**
+
+**而我在三轮里，三次把「含某个词的串」当成「完整的清单」，每次被下一轮推翻。**
+**这次不改判据，下一轮还会犯。**

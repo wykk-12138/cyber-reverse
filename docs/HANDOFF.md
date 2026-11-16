@@ -153,3 +153,10 @@
 复刻件的替代：自建 TLS（`Tls12Client`/`BouncyTls`/`Ja3`/`Http2`）+ 外部 Chrome 经 CDP。
 **`ChromiumBridge.cs:13` 注释表明是有意取舍**，在 goal 允许范围内，但是优先级 ③ 最重要的设计事实。
 **检索词纪律**：搜 `Browser` 得 10 条，搜 `DotNetBrowser` 得数百条 —— 先问「这个词是最具体的吗」。
+
+## R838 补充 — PopNow 子系统
+
+`PopNow` 29 处，读出 13 个方法名：`StartPopNowFlow` / `FetchPopNowSpuIds` / `ExtractPopNow` / `SelectPopNow` / `SelectMultiPopNow` / `AddToCartBox` / `ViewPopNow` / `StartPopNowViewTask` / `StartDailyCheckInTask` + `StartSignupFlow` / `StartClearFlow` / `StartInStoreFlow`。
+**复刻件十二个名字全为 0。** 另：`NikeFlow`/`ShopifyFlow`/`FlowBase` 镜像全 0（复刻件命名自起）。
+**三轮三次低估（四→七→九方法子系统）** —— 按词搜索给的是「含这个词的那些」，不是完整清单。
+**判据 (f) 要完整清单：得遍历元数据后归类，或走类型图枚举某类全部方法。**

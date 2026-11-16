@@ -50496,3 +50496,51 @@ ChromiumBridge.cs:13  /// original gets away with "local generation" because it 
 
 > **检索词决定了能看到什么。而我没有先问「这个词是最具体的那一个吗」。**
 > **R830 按站名搜漏了 `/shop/v1`；R836 按形态筛漏了 `POPMART-RESERVATION`；这一轮按短词搜只看到 10 条 —— 三次都是同一个错，换了三个筛子。**
+
+
+---
+
+## 第 838 轮：PopNow 是九方法子系统，复刻件十二个名字全为 0
+
+### 怎么找到的
+
+`StoreFlow` 的 4 处匹配里有 `<StartPopNowFlow>` —— **POP NOW 是 PopMart 的抽签功能**。搜 `PopNow`：**29 处**。
+
+### 子系统形状
+
+```
+<StartPopNowFlow>d__60        <FetchPopNowSpuIds>d__190
+<ExtractPopNow>d__83          <ViewPopNow>d__191
+<SelectPopNow>d__84           <StartPopNowViewTask>d__189
+<SelectMultiPopNow>d__85      <StartDailyCheckInTask>d__188
+<AddToCartBox>d__86
+```
+
+**流程：取 SPU id → 抽取 → 选中（单/多）→ 加盒到车 → 查看；另加两个任务（看抽签、每日签到）。**
+**同族还有 `StartSignupFlow`（注册）· `StartClearFlow` · `StartInStoreFlow`（门店）。**
+
+### 复刻件：十二个全 0
+
+### 三轮三次低估 —— 这才是真正的发现
+
+| 轮 | 结论 | 下一轮 |
+|---|---|---|
+| R830 | 四块 | R836：**七块** |
+| R836 | 七块 | R838：**九方法子系统 + 三个同族 flow** |
+
+> **按词搜索永远给不出完整清单 —— 它给的是「含这个词的那些」。而我三次都在用后者冒充前者。**
+> **判据 (f) 要「从二进制取证清单」，按词搜索不满足这个要求。**
+
+**要完整清单得换方法**：① 遍历元数据串表后归类，而非搜关键词；② 走类型图枚举某类全部方法。**两条都不是搜词，本轮都没做。**
+
+### 仍然 Unknown
+
+**`StartClearFlow` 是什么**（清购物车？清 cookie？）· **`StartInStoreFlow` 是什么**（门店自提？）·
+**`StartDailyCheckInTask` 是否只服务 PopMart** · **镜像的类清单 —— 当前最关键的一条，缺它判据 (f) 只能靠搜词拼，而搜词已三轮低估。**
+
+### 验证
+
+```
+str PopNow → 29（13 方法名 + 1 裸 PopNow）· str NikeFlow/ShopifyFlow/FlowBase → 全 0
+复刻件 12 个名字 → 全 0 · 产品代码未改
+```

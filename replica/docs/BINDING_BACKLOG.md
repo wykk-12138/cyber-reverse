@@ -2446,3 +2446,33 @@ functions: ratio           | 61.96%
 **检索词决定能看到什么。搜 `Browser` 得 10 条，搜 `DotNetBrowser` 得数百条。**
 **R830 按站名漏 `/shop/v1`；R836 按形态漏 `POPMART-RESERVATION`；R837 按短词只看到 10 条。**
 **先问：这个词是最具体的那一个吗。**
+
+
+## 优先级 ① — PopNow 子系统（R838，已枚举）
+
+| 方法名 | 镜像 | 复刻件 |
+|---|---|---|
+| `StartPopNowFlow` · `FetchPopNowSpuIds` · `ExtractPopNow` · `SelectPopNow` · `SelectMultiPopNow` · `AddToCartBox` · `ViewPopNow` | 有（`0x14337xxxx`） | **全 0** |
+| `StartPopNowViewTask` · `StartDailyCheckInTask` | 有 | **全 0** |
+| `StartSignupFlow` · `StartClearFlow` · `StartInStoreFlow` | 有 | **全 0** |
+
+**流程形状**：取 SPU id → 抽取 → 选中（单/多）→ 加盒到车 → 查看，外加两个任务。
+
+**另：`NikeFlow` / `ShopifyFlow` / `FlowBase` 在镜像里全 0** —— 复刻件按站命名的 Flow 类是自己起的（goal 允许）。
+
+### 三轮三次低估
+
+| 轮 | 结论 | 被改成 |
+|---|---|---|
+| R830 | 四块 | R836：七块 |
+| R836 | 七块 | R838：九方法子系统 + 三同族 flow |
+
+> **按词搜索给的是「含这个词的那些」，不是完整清单。三轮都拿后者当前者。**
+> **判据 (f) 要「从二进制取证清单」—— 得遍历元数据后归类，或走类型图枚举，都不是搜词。**
+
+| 仍 Unknown | |
+|---|---|
+| `StartClearFlow` | 清购物车？清 cookie？ |
+| `StartInStoreFlow` | 门店自提？ |
+| `StartDailyCheckInTask` 是否通用 | 名字通用，可能所有站都用 |
+| **镜像的类清单** | **最关键 —— 缺它 (f) 只能靠搜词拼** |

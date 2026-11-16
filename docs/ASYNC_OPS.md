@@ -628,3 +628,35 @@ GetHome(19) · FindProductMulti(20) · FindProduct(21) · AddToCart(22) · Submi
 
 **所以 R855 说的「三层」是对的，但 sweepstake / lottery 属于**流程层**，不是任务层。**
 **三层应写成：任务型（5 + 3）· 流程（站／变体）· 风控。**
+
+
+### 镜像 = **任务种类 × 店**；复刻件 = **只有店**（R857）
+
+**镜像顶层，五个入口（`0x14337bdc4`，d__57–60 + 第五个）：**
+
+```
+StartSignupFlow · StartClearFlow · StartInStoreFlow · StartPopNowFlow · StartNormalFlow
+```
+
+**这不是五个站，是五种**任务种类**：注册 · 清仓 · 到店 · PopNow 抽签 · 常规结账。**
+
+**复刻件的顶层（`Modules/Registry.cs`，312 行）：**
+
+```
+64 个 FlowStoreModule · 33 个流程类 · 33 个 shop id
+enter · offspring · bodega · concepts · packershoes · socialstatus · undefeated …
+```
+
+**`Registry.cs` 里没有「任务种类」这一层 —— 顶层直接是店。**
+
+### 所以
+
+| | 镜像 | 复刻件 |
+|---|---|---|
+| 顶层 | **任务种类（5 种）** | **店（64 个模块）** |
+| 第二层 | 站／变体的流程序列 | 33 个流程类 |
+| 第三层 | 风控 | 风控（Kasada / Cloudflare） |
+
+**这解释了为什么「20+ 段运行」认不出归属 —— 它们里有的是**种类**下的通用序列，不对应任何站。**
+**`StartPopNowFlow` 对应 Pop Mart 的抽签；`StartInStoreFlow` 对应到店；`StartSignupFlow` 对应注册。
+它们是**跨站的**，所以按站去找必然错位。**

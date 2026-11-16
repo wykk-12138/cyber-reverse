@@ -3081,3 +3081,25 @@ SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken 
 | `FetchTasks` / `StartPopNowViewTask` 有无 | `StartDailyCheckInTask` 已判为 `CheckIn`（R842） |
 
 **纪律**：**「猜属于哪层」看 ordinal 落在哪个编号段，比读名字准 —— 而 ordinal 分段的规则是 R852 自己立的，我没用在自己的猜测上。**
+
+
+## 判据 (f) — 顶层维度不同（R857）
+
+| | 镜像 | 复刻件 |
+|---|---|---|
+| **顶层** | **任务种类 5 种**：`StartSignupFlow` `StartClearFlow` `StartInStoreFlow` `StartPopNowFlow` `StartNormalFlow` | **店：64 模块 / 33 流程类 / 33 shop id** |
+| 二层 | 站／变体的流程序列 | 33 流程类 |
+| 三层 | 风控 | 风控 |
+
+**→ 复刻件能表达「对 Nike 结账」，表达不了「抽签任务 vs 常规结账」的区别 —— 后者在镜像里是顶层选择。**
+
+> **这比缺 14 个方法更根本：方法能在现有结构里补，任务种类这一层没有对应位置。**
+> **R851（一条通用序列 vs 八条按流程序列）与 R857（序列之上还有一层选择）是同一问题的两面。**
+
+| 仍 Unknown | |
+|---|---|
+| 5 个种类各驱动哪些店 | `StartPopNowFlow`→Pop Mart 明；「清仓」适用哪些未查 |
+| 复刻件任务配置有无「种类」字段 | `TaskColumn` 是表格列；要查 `Tasks` 模型 |
+| 64 模块 / 33 流程类 | 一流程类被多 shop id 复用（合理），但「店」成了唯一区分维度 |
+
+**纪律**：**问「这些段属于谁」之前，先问「复刻件按什么维度组织」。维度不同时，用一侧的维度索引另一侧，只会得到对不上的行。**

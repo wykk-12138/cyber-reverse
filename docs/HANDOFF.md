@@ -283,3 +283,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 `0x14337cdcc`: `FetchTasks`187 · `StartDailyCheckInTask`188 · `StartPopNowViewTask`189
 **编号连续 → 分派层入口。而 sweepstake/lottery 是流程内步骤（d__40–42 / d__36–37）→ R855 的「任务变体」不成立，属流程层。**
 **最好答的下一个 Unknown：5 个 `Start*Flow` ↔ `Registry.cs` 63 个模块。**
+
+## R857 补充 — 顶层维度不同
+
+**镜像顶层 = 任务种类 5 种**（`StartSignupFlow` `StartClearFlow` `StartInStoreFlow` `StartPopNowFlow` `StartNormalFlow`）。
+**复刻件顶层 = 店**（`Registry.cs` 64 模块 / 33 流程类 / 33 shop id），**没有种类层**。
+**→ 复刻件能表达「对 Nike 结账」，表达不了「抽签任务 vs 常规结账」** —— 后者在镜像里是顶层选择。
+**这比缺 14 个方法更根本；与 R851（序列形状不同）是同一问题两面。**
+**规则：问「这些段属于谁」之前，先问「复刻件按什么维度组织」。**

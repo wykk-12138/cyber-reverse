@@ -13121,3 +13121,88 @@ python tools\metrics_report.py          1766 通过 / 0 失败
 
 **而为了证明这一点，我写坏了两次工具、又修了两次测试。**
 **第二次的失败形态最值得记：`any()` 在空列表上返回 False —— 一个空集合上的检查，永远说「干净」。**
+
+
+---
+
+## 259. PopMart 抽签面：**没有任何流程覆盖它**，而反编译确认它真的发请求
+
+> R835。未改产品代码。
+
+### 一、三块地名都定住了
+
+用 R829 的路线（`str` → `xrefs` 到 `−12` → `dec`）：
+
+| 端点 | 所在函数 | 大小 |
+|---|---|---|
+| `activity/v1/activity/sample_info` | `sub_140B8B340` | 0x188 |
+| `activity/v1/exhibit_draw/draw` | `sub_140BC1340` | 0x2bc |
+
+**`sub_140B8B340` 是 URL 构造**：建一个容量 76 的 `StringBuilder`，
+再 `sub_141D2B8E0(..., &unk_14707BABC, 144)` —— **从 `0x14707babc` 追加 144 字节（72 字符）**，
+那正是 `sample_info` 串本身，**然后接着追加参数**。
+
+**`sub_140BC1340` 是 `async` 状态机**：`if (!*(_DWORD *)(a1 + 8))` 按状态分支、
+`sub_141D0E0A0(a1)`（`AsyncTaskMethodBuilder.Start`）。
+
+**所以这两个不是残留字符串，是真发请求的代码。**
+
+### 二、没有任何流程覆盖它
+
+| 流程 | 覆盖什么 |
+|---|---|
+| `PopMartFlow` | `/shop/v1/...`（13 个端点，全部有镜像对应，R830） |
+| `RaffleFlow` | `r419.com` · `lndg.page` · `nodnod.digital` —— **Shopify 抽签 App 的域名** |
+
+**`RaffleFlow` 不碰 PopMart。所以 `prod-hk-actapi…/activity/v1/exhibit_draw/draw` 这条路径
+在复刻件里没有任何流程存在。**
+
+### 三、它是不是一个独立任务类型
+
+**查了三个候选，都没有：**
+
+```
+DrawTask   0
+drawTask   0
+LotteryTask 0
+```
+
+**镜像里唯一的 PopMart 类型标记是 `$PopMartProductType`（单个）。**
+
+**所以抽签不是独立任务型，是 PopMart 模块内部的一条可选路径。**
+**这与 `PopMartFlow` 注释里写的「Pop Mart sells sealed boxes」一致 —— 一家店，两种买法：**
+**直接买盒（`/shop/v1/box/...`，复刻件有）与抽签（`activity/v1/exhibit_draw`，复刻件没有）。**
+
+### 四、验证
+
+```
+ida.py str activity/v1/activity/sample_info      -> 1 match @0x14707babc
+ida.py xrefs 0x14707bab0                          -> sub_140B8B340 (0x188 bytes)
+ida.py dec 0x140b8b340                            -> 2079 chars, 容量 76 的 StringBuilder + 追加 144 字节
+ida.py str activity/v1/exhibit_draw/draw          -> 1 match @0x14707bb64
+ida.py xrefs 0x14707bb58                          -> sub_140BC1340 (0x2bc bytes)
+ida.py dec 0x140bc1340                            -> 3435 chars, async 状态机
+复刻件 RaffleFlow 域名: r419.com / lndg.page / nodnod.digital
+ida.py str DrawTask / drawTask / LotteryTask      -> 全 0
+本轮未改产品代码
+七项度量沿用（含函数数量 277,120 / 171,690 / 61.96%）
+```
+
+### 五、仍然 Unknown
+
+- **抽签路径在 PopMart 任务里怎么被触发**：**Unknown** ——
+  **`$PopMartProductType` 是唯一的类型标记，它有没有「抽签」这个取值，得看枚举内容。**
+- **`/web/v2?partner=popmart&appKey=` 的所在函数**：**Unknown** ——
+  **`−12` 处的 xrefs 是 0，可能这条串是拼出来的（前缀 + 参数），而不是整串引用。**
+- **`popDraw.json` 的所在函数**：**Unknown** —— 同样 0 xref。**这条看起来是「抽签数据源」，
+  可能被 `PopmartBrowser` 的页面脚本读，而不是 C# 代码。**
+- **抽签要不要做**：**Unknown** —— 取决于 Cybersole 的 PopMart 任务是否包含抽签模式。
+  **而这条要么看枚举值，要么看 UI（优先级 ④）。**
+
+### 六、教训
+
+**R830 我说「四块未建模」，这一轮把其中一块从「未建模」推进到「确认无流程覆盖、且是真代码」。**
+**两者的差别是：前者可能是我的分组方式不对（就像 `/shop/v1` 那次），后者是查过两种分组方式之后仍然空白。**
+
+**而我查了 `RaffleFlow` 才敢这么说 —— 因为「抽签」这个词在复刻件里是有主的，
+它有主在一个我一开始没想到的流程里。**

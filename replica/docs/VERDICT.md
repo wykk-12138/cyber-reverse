@@ -50340,3 +50340,51 @@ mutation_ownership.py exit 0 · metrics_report 九项 exit 0 无 WARNING · 1766
 
 **「可检出」和「不可能」是两件事，后者更省心。**
 **而 `any()` 在空集合上返回 False —— 一个空集合上的检查，永远说「干净」。**
+
+
+---
+
+## 第 835 轮：PopMart 抽签面没有任何流程覆盖
+
+### 反编译确认它真的发请求
+
+| 端点 | 所在函数 | 形状 |
+|---|---|---|
+| `activity/v1/activity/sample_info` | `sub_140B8B340` (0x188) | **URL 构造**：容量 76 的 StringBuilder，追加 144 字节 = 72 字符的端点串 |
+| `activity/v1/exhibit_draw/draw` | `sub_140BC1340` (0x2bc) | **async 状态机**（`AsyncTaskMethodBuilder.Start`） |
+
+### 没有任何流程覆盖它
+
+| 流程 | 覆盖 |
+|---|---|
+| `PopMartFlow` | `/shop/v1/...`（13 个端点，全有镜像对应） |
+| `RaffleFlow` | `r419.com` · `lndg.page` · `nodnod.digital` —— **Shopify 抽签 App** |
+
+**`RaffleFlow` 不碰 PopMart → `exhibit_draw/draw` 在复刻件里不存在。**
+
+### 它不是独立任务类型
+
+```
+DrawTask 0 · drawTask 0 · LotteryTask 0
+```
+
+**唯一的 PopMart 类型标记是 `$PopMartProductType`（单个）。**
+
+> **所以抽签是 PopMart 模块内部的一条可选路径，不是独立任务型 —— 一家店，两种买法。**
+
+### 验证
+
+```
+两个端点各有 1 match + 1 xref + 一次反编译（2079 / 3435 chars）
+RaffleFlow 域名三个都不含 popmart · 三个任务型候选全 0 · 产品代码未改
+```
+
+### 仍然 Unknown
+
+**抽签在任务里怎么被触发**（要读 `$PopMartProductType` 的枚举值）· **`/web/v2?partner=&appKey=` 与 `popDraw.json` 的 xref 都是 0**（可能整串是拼出来的，或被页面脚本读）· **抽签要不要做**（取决于 Cybersole 的 PopMart 任务是否含抽签模式 —— 枚举值或 UI）
+
+### 教训
+
+**上一轮我说「四块未建模」；这一轮把其中一块推进到「确认无流程覆盖、且是真代码」。**
+**差别在于：前者可能只是我分组方式不对（`/shop/v1` 那次就是这样），后者是查过两种分组之后仍然空白。**
+**而我先查了 `RaffleFlow` 才敢这么说 —— 「抽签」在复刻件里是有主的，主在一个我一开始没想到的流程里。**

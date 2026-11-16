@@ -2369,3 +2369,28 @@ functions: ratio           | 61.96%
 | 无主 WARNING 有无下游消费者 | 未知 |
 
 **九项输出与 R833 完全一致 —— 改造不改变任何数字，只改变可能性。**
+
+
+## 优先级 ① — PopMart 抽签面无流程覆盖（R835，已取证）
+
+**反编译确认是真代码，不是残留串：**
+
+| 端点 | 函数 | 形状 |
+|---|---|---|
+| `activity/v1/activity/sample_info` | `sub_140B8B340` (0x188) | StringBuilder 容量 76 + 追加 144 字节（72 字符端点） |
+| `activity/v1/exhibit_draw/draw` | `sub_140BC1340` (0x2bc) | async 状态机 |
+
+**`RaffleFlow` 覆盖 `r419.com` / `lndg.page` / `nodnod.digital`（Shopify 抽签 App），不碰 PopMart。**
+
+**不是独立任务型**：`DrawTask` / `drawTask` / `LotteryTask` 全 0；唯一标记 `$PopMartProductType`。
+
+> **一家店两种买法：直接买盒（`/shop/v1/box/...`，有）与抽签（`exhibit_draw`，没有）。**
+
+| 仍 Unknown | |
+|---|---|
+| 抽签怎么被触发 | 读 `$PopMartProductType` 的枚举值 |
+| `/web/v2?partner=&appKey=` 的 xref | **0** —— 可能整串是拼出来的 |
+| `popDraw.json` 的 xref | **0** —— 可能被页面脚本读 |
+| 抽签要不要做 | 取决于任务是否含抽签模式（枚举值或 UI） |
+
+**纪律**：**「未建模」与「确认无覆盖」是两句话。前者可能是分组方式不对，后者是查过两种分组后仍空白。**

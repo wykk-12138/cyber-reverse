@@ -134,3 +134,9 @@
 原因：其余条目都要求两到六词的短语，只有 R832 我加的那条用了裸词 `replica:`。
 **已完成（R834）**：`METRICS` 每条声明 owned keys，`summary_bits(out, owned)` 只提取这些 ——
 **串味从「可检出」变成「不可能」**。变异测试 `tools/mutation_ownership.py` 已响（松键进自己的行、不进 datafiles）。
+
+## R835 补充 — PopMart 抽签面
+
+`activity/v1/sample_info` → `sub_140B8B340`（URL 构造）· `activity/v1/exhibit_draw/draw` → `sub_140BC1340`（async）。**两个都是真代码。**
+**`RaffleFlow` 覆盖 Shopify 抽签 App（r419/lndg/nodnod），不碰 PopMart → 抽签面无流程覆盖。**
+不是独立任务型（`DrawTask`/`LotteryTask` 全 0），是 `$PopMartProductType` 下的一条可选路径。

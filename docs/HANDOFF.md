@@ -450,3 +450,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **`DrawStores` 是**属性名**（夹在 `_documentNumber` 与 `_drawid` 之间，无下划线前缀）。**
 **连带撤掉 R877「`DrawStores` 要不要建流程类」——问题不成立（归属未知）。8/12 数字不变，只是不该带归属前缀。**
 **纪律：「看周围」不够 —— 要问「它们真的是同一个东西吗」；**能用算术回答（22 > 11）时就不该靠推断。****
+
+## R879 补充 — 任务种类 **14** 个（不是 5）
+
+**来源 `replica/docs/baseline/recovered_async_methods.txt`（1547 个异步方法名，全量）**：`Start*Flow` 14 个 + `Start*Task` 2 个。**R857 的来源是一个代码区（5 个）→ 判断对，数量错三倍。**
+**14 个**：`AccountRegistration` `Clear` `DrawCheck` `DrawEvent` `Draw` `Exhibit` `InStore` `Normal` `PopNow` `Raffle` `Reservation` `Rpc` `Signup` `Tasks`。
+**无名序列（21–34）按语义归属 `StartAccountRegistrationFlow`**（`CheckVerification`/`SubmitSaleRegistration`/`Register`/`CompleteRegistration` 对上）—— **Inference，不写进 `StoreFlowSteps`。**
+**`Start` ≠ `Init`**（基线里两名都在）→ R877 的 9/12 不存在，**8/12 就是 8/12**。
+**结构缺口**：任务种类这一层在复刻件里几乎没有对应物（`Registry.cs` 64 个模块是「站」不是「任务种类」）。

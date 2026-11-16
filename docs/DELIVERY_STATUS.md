@@ -16997,3 +16997,99 @@ Registry 搜 DrawStore          -> 无输出
 而那个问题有时候能用算术回答（22 > 11），有时候不能。**
 
 **能用算术回答的时候，就不该靠推断。**
+
+
+---
+
+## 303. 任务种类 14 个（R857 说 5 个）；无名序列按**语义**归属；`Start` ≠ `Init`
+
+> R879。未改产品代码。
+
+### 一、14 个任务种类
+
+**`replica/docs/baseline/recovered_async_methods.txt`（1547 个异步方法名）按后缀捞：**
+
+```
+Start*Flow (14)
+  StartAccountRegistrationFlow  StartClearFlow        StartDrawCheckFlow
+  StartDrawEventFlow            StartDrawFlow         StartExhibitFlow
+  StartInStoreFlow              StartNormalFlow       StartPopNowFlow
+  StartRaffleFlow               StartReservationFlow  StartRpcFlow
+  StartSignupFlow               StartTasksFlow
+
+Start*Task (2)
+  StartDailyCheckInTask         StartPopNowViewTask
+```
+
+**R857 在 `0x14337bdc4` 一个代码区看到 5 个，据此说「顶层是任务种类 × 站」。
+那 5 个是这 14 个里的 5 个 —— 判断对，数量错三倍。**
+
+**这正是 §2.7b 那条「先问来源是全量还是抽样」：**
+**R857 的来源是**一个代码区**，而基线是**全量方法名清单**。**
+
+### 二、那条无名序列按语义归属
+
+**序列（21–34）：`Start` · `GetHome` · `CheckVerification` · `SubmitSaleRegistration` ·
+`CheckLogin` · `Register` · `CompleteRegistration` · `GetCart` · `ClearCart` · `FindProduct` ·
+`AddToCart` · `ReplaceProduct`**
+
+**14 个任务种类里有 `StartAccountRegistrationFlow`。四个步骤（`CheckVerification` /
+`SubmitSaleRegistration` / `Register` / `CompleteRegistration`）与「账号注册」语义对上。**
+
+**所以它很可能是 `AccountRegistrationFlow` 的。**
+
+**这是 Inference，而与 R876 那个错的 Inference 的区别值得写下来：**
+
+| | R876（错） | R879 |
+|---|---|---|
+| 依据 | 位置相邻 | **步骤名与流程名语义一致** |
+| 能否被直接推翻 | **能：22 > 11** | 目前不能 |
+| 强度 | 零 | **弱，但非零** |
+
+**R878 说「能用算术回答就不该靠推断」。这条不能用算术回答 ——
+所以它停在 Inference，**不写进 `StoreFlowSteps`**，因为那里放的是 Observation。**
+
+### 三、`Start` ≠ `Init`，所以 8/12 不是 9/12
+
+**基线里 `Start` 与 `Init` 两个名字都存在。它们不是同一件事的两种叫法。**
+
+**`Start` 是镜像里真实存在、而 `StoreFlow` 没有的方法。**
+**→ R877 说「这是 8/12 与 9/12 之间那一步」—— 那一步不存在，8/12 就是 8/12。**
+
+### 四、这条对优先级 ① 的意义
+
+**R857 的「任务种类 × 站」是复刻件 `Registry.cs` 与 `Flows/` 的理论骨架。**
+
+**骨架若按 5 种任务建，就少了 9 种。**
+**而复刻件目前的 `StepSequence` 只有 3 条（Nike / PopMart / JohnLewis），连 5 都没到。**
+
+**所以：不是「差几条序列」，是「**任务种类这一层在复刻件里几乎没有对应物**」。**
+
+### 五、验证
+
+```
+recovered_async_methods.txt -> 1547 pairs
+Start*Flow  -> 14（列出全部）
+Start*Task  ->  2（列出全部）
+Start / Init 均在基线中 -> 两个不同方法
+where_is Alias -> Profiles.cs 无 Alias 字段；访问器基线有 Aliases / AllowAlias / HasAllowAlias，无裸 Alias
+```
+
+### 六、仍然 Unknown
+
+- **那 14 种任务在复刻件里对应什么**：**Unknown —— 这是优先级 ① 最大的结构缺口，本轮只把数量说准。**
+  **`Registry.cs` 有 64 个模块，但模块是「站」，不是「任务种类」。**
+- **无名序列是否真属 `AccountRegistrationFlow`**：**Inference（语义），未证。**
+- **`Start` 这一步做什么**：**Unknown** —— 名字只说明它存在。
+
+### 七、教训
+
+**R857 从一个代码区数出 5，我从全量基线数出 14。**
+
+**两次都是诚实的观察，而差别只在来源。§2.7b 那条规则我读过四次，这次是它第一次在**我自己前几轮的结论**上生效。**
+
+**所以「先问来源是全量还是抽样」不只适用于新扫描 ——
+它也适用于复核自己已经写下的数字。**
+
+**而更值得记的是：R857 那个结论**看起来**是对的（「任务种类 × 站」这个骨架没错），
+错的只是数量。一个方向正确的结论会让人不去复核它的数。**

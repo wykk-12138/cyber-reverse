@@ -52627,3 +52627,56 @@ _rpcFingerprint  _rpcFreightAmount  _rpcAdyenPayId  _rpcAdyenClientKey  _rpcPayP
 > **两次用的是同一个动作：看那一段有什么。区别是这次我算了字节。**
 > **所以「看周围」本身不够 —— 要问「它们真的是同一个东西吗」，而那个问题有时候能用算术回答（22 > 11）。**
 > **能用算术回答的时候，就不该靠推断。**
+
+
+---
+
+## 第 879 轮：任务种类 14 个（不是 5）；无名序列按语义归属；`Start` ≠ `Init`
+
+### 14 个任务种类
+
+**基线 `recovered_async_methods.txt`（1547 个异步方法名）按后缀捞：**
+
+```
+Start*Flow (14): StartAccountRegistrationFlow StartClearFlow StartDrawCheckFlow
+  StartDrawEventFlow StartDrawFlow StartExhibitFlow StartInStoreFlow StartNormalFlow
+  StartPopNowFlow StartRaffleFlow StartReservationFlow StartRpcFlow StartSignupFlow StartTasksFlow
+Start*Task (2): StartDailyCheckInTask StartPopNowViewTask
+```
+
+**R857 在一个代码区看到 5 个 —— 判断（「顶层是任务种类 × 站」）对，数量错三倍。**
+
+> **这是 §2.7b「先问来源是全量还是抽样」第一次在**我自己前几轮的结论**上生效。**
+
+### 无名序列按语义归属
+
+**序列里的 `CheckVerification` / `SubmitSaleRegistration` / `Register` / `CompleteRegistration`
+与 `StartAccountRegistrationFlow` 这个名字**语义**对上 → 很可能是它的。**
+
+| | R876（错） | R879 |
+|---|---|---|
+| 依据 | 位置相邻 | **步骤名 vs 流程名语义** |
+| 能否被直接推翻 | **能：22 > 11** | 目前不能 |
+| 强度 | 零 | **弱，但非零** |
+
+**R878 说「能用算术回答就不该靠推断」；这条不能用算术回答 —— 所以它停在 Inference，**不写进 `StoreFlowSteps`**。**
+
+### `Start` ≠ `Init`
+
+**基线里两个名字都存在 → 不是同一件事 → R877「8/12 与 9/12 之间那一步」不存在，8/12 就是 8/12。**
+
+### 对优先级 ① 的意义
+
+**「任务种类 × 站」这个骨架若按 5 种建就少 9 种；而复刻件的 `StepSequence` 只有 3 条（Nike/PopMart/JohnLewis），连 5 都没到。**
+
+> **所以不是「差几条序列」，是「**任务种类这一层在复刻件里几乎没有对应物**」。**
+> **`Registry.cs` 的 64 个模块是「站」，不是「任务种类」。**
+
+### 仍然 Unknown
+
+**14 种任务在复刻件里对应什么**（**优先级 ① 最大的结构缺口，本轮只把数量说准**）·
+**无名序列是否真属 `AccountRegistrationFlow`**（Inference）· **`Start` 做什么**
+
+### 教训
+
+> **R857 那个结论**看起来**是对的，错的只是数量 —— 一个方向正确的结论会让人不去复核它的数。**

@@ -3804,3 +3804,46 @@ DrawStores: 21 Start · 23 GetHome · 24 CheckVerification · 25 SubmitSaleRegis
 | 字面量表是否按首用顺序 | **Inference，未证** |
 
 **纪律**：**「看周围」不够 —— 要问「它们真的是同一个东西吗」；能用算术回答（22 > 11）时就不该靠推断。**
+
+
+## 优先级 ① — 任务种类 **14**（R857 说 5）；无名序列按语义归属（R879）
+
+### 14 个 `Start*Flow` + 2 个 `Start*Task`
+
+```
+StartAccountRegistrationFlow StartClearFlow StartDrawCheckFlow StartDrawEventFlow
+StartDrawFlow StartExhibitFlow StartInStoreFlow StartNormalFlow StartPopNowFlow
+StartRaffleFlow StartReservationFlow StartRpcFlow StartSignupFlow StartTasksFlow
+(+ StartDailyCheckInTask StartPopNowViewTask)
+```
+
+**来源：`replica/docs/baseline/recovered_async_methods.txt`（1547 个异步方法名，全量）。**
+**R857 的来源是**一个代码区**（5 个）→ §2.7b「先问来源是全量还是抽样」第一次用在复核自己的旧结论上。**
+
+### 无名序列（21–34）按语义归属
+
+**`CheckVerification`/`SubmitSaleRegistration`/`Register`/`CompleteRegistration`
+↔ `StartAccountRegistrationFlow` → **Inference（语义），非 Observation，不写进 `StoreFlowSteps`。****
+
+| | R876（错） | R879 |
+|---|---|---|
+| 依据 | 位置相邻 | 步骤名 vs 流程名语义 |
+| 可推翻 | **能（22>11）** | 目前不能 |
+| 强度 | 零 | 弱但非零 |
+
+### `Start` ≠ `Init`
+
+**基线里两名都在 → R877 的「8/12→9/12」那一步不存在，8/12 就是 8/12。**
+
+### 结构缺口
+
+**「任务种类 × 站」骨架按 5 种建会少 9 种；而复刻件 `StepSequence` 只有 3 条（Nike/PopMart/JohnLewis）。**
+**→ 不是「差几条序列」，是**任务种类这一层几乎没有对应物**（`Registry.cs` 64 个模块是「站」不是「任务种类」）。**
+
+| 仍 Unknown | |
+|---|---|
+| **14 种任务在复刻件里对应什么** | **优先级 ① 最大结构缺口** |
+| 无名序列是否真属 `AccountRegistrationFlow` | Inference |
+| `Start` 做什么 | 未查 |
+
+**纪律**：**方向正确的结论最容易免于复核 —— 复核时先问它的来源是全量还是抽样。**

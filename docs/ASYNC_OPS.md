@@ -1579,3 +1579,63 @@ _rpcPayAmount  _rpcWarehouse  _rpcAdyenPayId  _rpcAdyenClientKey  _rpcPayPalPayI
 
 **R875 我给自己的规则是「每次并列问一句：需要来源吗」。
 这次需要的规则更简单：**先看两个串之间隔多少字节。**
+
+
+### 任务种类是 **14**，不是 5 —— 而它顺带给了那条无名序列一个**语义**归属（R879）
+
+**基线文件 `replica/docs/baseline/recovered_async_methods.txt` 有 1547 个异步方法名。
+从里面按后缀捞：**
+
+```
+Start*Flow  共 14 个
+  StartAccountRegistrationFlow   StartClearFlow        StartDrawCheckFlow
+  StartDrawEventFlow             StartDrawFlow         StartExhibitFlow
+  StartInStoreFlow               StartNormalFlow       StartPopNowFlow
+  StartRaffleFlow                StartReservationFlow  StartRpcFlow
+  StartSignupFlow                StartTasksFlow
+
+Start*Task  共 2 个
+  StartDailyCheckInTask          StartPopNowViewTask
+```
+
+**R857 当时在 `0x14337bdc4` 一个代码区里看到 5 个（`StartSignupFlow` / `StartClearFlow` / `StartInStoreFlow` /
+`StartPopNowFlow` / `StartNormalFlow`），据此说「顶层是任务种类 × 站」。**
+
+**现在看：那 5 个是 14 个里的 5 个。**「任务种类 × 站」的判断是对的，而种类的数量错了三倍。**
+
+### 顺带：那条无名序列（R878 撤回了 `DrawStores` 命名）有了语义归属
+
+**它的 12 步：**
+
+```
+21 Start · 23 GetHome · 24 CheckVerification · 25 SubmitSaleRegistration
+26 CheckLogin · 27 Register · 28 CompleteRegistration
+30 GetCart · 31 ClearCart · 32 FindProduct · 33 AddToCart · 34 ReplaceProduct
+```
+
+**而 14 个任务种类里有一个叫 `StartAccountRegistrationFlow`。**
+
+**`CheckVerification` / `SubmitSaleRegistration` / `Register` / `CompleteRegistration` ——
+这四步与「账号注册流程」这个名字是**语义**对上的。**
+
+**所以那条序列很可能是 `AccountRegistrationFlow` 的，而不是 `DrawStores` 的。**
+
+**这是 Inference，而它与 R876 那次错的 Inference 有一个关键区别：**
+
+| | R876（错） | R879（这条） |
+|---|---|---|
+| 依据 | **位置相邻** | **步骤名与流程名语义一致** |
+| 可反驳点 | **字节间隔 22 > 11，直接推翻** | **没有直接推翻的证据** |
+| 强度 | **零** | **弱，但非零** |
+
+**R878 的教训是「能用算术回答就不该靠推断」。这一条不能用算术回答 ——
+所以它停在 Inference，标注清楚，不写进 `StoreFlowSteps`。**
+
+### `Start` ≠ `Init`
+
+**R877 说「`Start` 与 `Init` 是否同一件事，这是 8/12 与 9/12 之间那一步」。**
+
+**基线里 `Start` 和 `Init` **两个名字都存在**（`Start` 一条、`Init` 一条）。
+所以它们不是同一件事的两种叫法，`Start` 是镜像里一个真实存在而复刻件没有的方法。**
+
+**→ 8/12 就是 8/12，不是 9/12。**

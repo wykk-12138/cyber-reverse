@@ -78,10 +78,12 @@ pe_strings.txt 里的 Cybersole 描述符 : 1457 条
 
 ## 说明
 
-- **方向字段不能用来判类型。** 全表实测分布：Getter-only **181** / Setter-only **0** /
-  Getter+Setter **638**。78% 的成员都是 G/S，包括 `Product.Name`、`TaskGroup.Name`
-  这类显然是数据的成员，所以「有 Setter」推不出「该做成可写属性」。
-  **R712 本表曾有一列「该做成什么」，那是过度解读，R714 删除。**
+- **方向字段不能用来判类型。** 全表实测：Getter **100%** / Property **100%** / Setter **77.9%**，
+  只有两种组合（Getter+Property+Setter 638、Getter+Property 181）。**Getter 与 Property 是常量，
+  只有 Setter 在变。** R717 专门校准过 Setter 的含义：G+S 组带 `set_` 访问器名的占 56.4%、
+  G-only 组占 44.8% —— **没有分开**，所以它既不能读作「有 set 访问器」，也不能读作「双向绑定」。
+  **Setter 的含义是 Unknown**，本表因此不再给任何形状建议。
+  **R712 本表曾有一列「该做成什么」，那是过度解读；R714 删列，R717 连理由也修正。**
 
 - **能判类型的只有两种证据**：
   ① **基数/排除法** —— `Notification` 原版绑定四个名字、record 四个参数，两两对齐；

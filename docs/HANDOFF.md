@@ -127,3 +127,9 @@
 口径差异：与 IDA `af` 的 321,244 不可直接比；`.pdata` 数非叶函数，不含内联与裁剪。
 **不能读成「少了 38% 功能」** —— 两边框架不同（原版 .NET 10 AOT；复刻件 .NET 8 AOT + Avalonia）。
 **已完成（R832）**：`replica/tools/func_count.py` 注册为**第七项度量**，`METRICS.md` 有三行（original / replica / ratio）。
+
+## R833 补充 — summary_bits 无串味
+
+九个脚本 × 全部正则的矩阵：**每项 bits 只含自己的键，零串味**。
+原因：其余条目都要求两到六词的短语，只有 R832 我加的那条用了裸词 `replica:`。
+**待办：加断言要求每个 pattern 只在自家输出里出现** —— 让「短语够独特」这条前提可检验。

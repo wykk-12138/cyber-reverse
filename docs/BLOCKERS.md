@@ -18712,3 +18712,82 @@ Avalonia 自带一大批函数、BCL 也不同）；不是「函数级对等」�
 
 **而 `functions: replica .pdata: 0` 这个形态特别值得记：**
 **它是一个正确的数（真的是 0 个匹配），被贴到了一个错误的键上，于是读起来像一个事实。**
+
+
+---
+
+## 257. `summary_bits` 其余十一项**全部干净**；而原因是它们的形状
+
+> R833。未改产品代码（只跑了一遍交叉矩阵）。
+
+### 一、上一轮留下的问题
+
+R832 发现我新加的 `replica\s*:\s*([\d,]+)` 从 `datafiles_diff.py` 的输出里读了一个 0，进了 `数据文件名对照` 那一行。
+**修法是把标签改成唯一前缀。**
+
+**留下的 Unknown**：**其余十一项有没有同类问题？**
+
+### 二、做法：把每个脚本的输出与全部正则做矩阵
+
+`analysis/cross_match.py` 载入 `metrics_report.py` 的 `METRICS` 与 `patterns`，
+**逐个跑脚本、对每份输出套全部正则，再把每项的 `bits` 打出来。**
+
+**结果：**
+
+```
+名字级绑定缺口      real gap 4 · missing 16
+类型级绑定缺口      types with scope misses 0
+类型缺失            types absent from source 17
+成员形状差异        total mismatches 78
+文案缺口总表        copy: zones with a missing key 0 (in 0 zone[s])
+绑定缺口分桶        backlog: classes missing members 0 · backlog: types absent 4
+原版绑定描述符表    descriptor entries 951 · descriptor types 215 · only in descriptors 132 · only in xaml table 0
+数据文件名对照      datafiles: original-on-disk not in replica 0 · datafiles: replica-only 2
+函数数量（.pdata）  functions: original .pdata 277,120 · replica 171,690 · ratio 61.96%
+```
+
+**每一项的 `bits` 只含自己的键。零串味。**
+
+### 三、为什么其余十一项没这个问题
+
+**看它们要求什么：**
+
+| 正则 | 要求 |
+|---|---|
+| `types with scope misses:\s*(\d+)` | 四词短语 |
+| `descriptor entries\s*:\s*(\d+)` | 两词短语 |
+| `only in xaml table\s*:\s*(\d+)` | 四词短语 |
+| `original-on-disk but not written by the replica\s*:\s*(\d+)` | **六个词的整句** |
+
+**而我新加的那条是 `replica\s*:\s*([\d,]+)` —— 一个裸词加冒号。**
+**它是全表唯一一条能被别人的输出满足的。**
+
+**所以这不只是「我这条写得松」，是「这个表的其余条目都用了足够长的短语」。**
+**这个表的设计前提是「短语足够独特」；我加的那条违反了前提，而不是表本身有缺陷。**
+
+### 四、验证
+
+```
+python analysis\cross_match.py     九个脚本全 exit 0；每项 bits 只含自己的键
+python tools\metrics_report.py     七项全 exit 0（R832 已跑）
+本轮未改产品代码
+四项度量沿用 4 / 0 / 17 / 78 / 0（+ 第七项 277,120 / 171,690 / 61.96%）
+```
+
+### 五、仍然 Unknown
+
+- **将来新加的正则会不会再犯**：**Unknown** —— 判据是「短语够不够独特」，
+  **而「够不够」没有机械检验。** 补法：**加一条断言，要求每个 pattern 在自己的输出的 `bits` 里出现、
+  且在其余八份输出里都不出现。** 本轮没加。
+- **`copy:` 那条是特殊的**：它在 `summary_bits` 里走分支（`label.startswith("copy:")`），
+  **返回的是聚合值而不是最后一个匹配。** 这条逻辑我只读到、没验过边界。
+
+### 六、教训
+
+**「其余十一项有没有同样的问题」这个问题，答案是「没有」，而理由不是它们写得更好，
+是它们都用了足够长的短语 —— 而表的设计前提就是这个。**
+
+**我加的那条违反了前提，看起来却和别的条目一样整齐。**
+**一条正则的危险不在它长什么样，在它能匹配到什么。**
+
+**这一轮没找到缺陷。** **而「检查一遍、没有」这种结果，只有把矩阵打出来才算数 —— 我说「其余十一项应该没问题」是没有价值的。**

@@ -46992,3 +46992,52 @@ jbhifi        7 条   endclothing 10 条  notre       6 条
 
 补那 4 项（先 `snapshot.py`，整块锚点替换，读 `RetailFlows.cs` 的 Superswipe 段）；
 并把 Superswipe 这个方法套到另外 21 个 store 上，逐条填判据 f。
+
+
+---
+
+## 第 761 轮：store 元数据是数据不是代码
+
+### 四次尝试，前三次错在"找的地方不对"
+
+| 轮 | 方法 | 结果 |
+|---|---|---|
+| R757 | 源码子串计数 | 把步骤名当 store |
+| R759 | store 基址的 xref | 落进异步状态机 |
+| R759 | 多店名求交 | 687 KB 的 IDA 并片 |
+| **R761** | **按字段名找配置记录** | **对** |
+
+**原版把元数据存成数据记录**（字段名 + 分隔字节 + 值连写），**代码按字段名读**，所以没有可追的 xref。
+
+### 由此拿到端点表，而复刻件全覆盖
+
+`HumanPresence` 36 · `cf-solver` 12 · `Turnstile` 50 · Stripe 84 · Unzer 17 · Omise 33 · 遥测 4×2 —— **全有。**
+
+### 唯一真缺口：Forter
+
+```
+ForterEnvelope · ForterEventsEncoder · get_ForterEnvelope · Create_ForterEnvelope · Forter（枚举成员）
+```
+
+**`Envelope` + `EventsEncoder` 是 Forter 反欺诈 SDK 的典型形状。可复刻的具体目标。**
+
+### 而另两个"缺"是我猜的
+
+`funcaptcha` / `arkose` —— **原版里根本没有**。**撤回。**
+
+> **这正是"子串计数只当地图不当判据"的反面教材：我当时把通用风控知识当成了判据。**
+
+### `store_records.py` 的局限（写清）
+
+它给的是**服务端点**，**没给 store 清单** —— 多数 store 记录里没有 URL。
+**所以判据 f 的左半边：厂商/服务部分完成，store 部分仍未完成。**
+
+### 验证
+
+```
+产品代码未改；套件 1745 / 0
+```
+
+### 下一轮
+
+反编译 `ForterEnvelope` / `ForterEventsEncoder`，按形状在复刻件里建对应物 —— **这是第一个有明确名字的风控缺口**。

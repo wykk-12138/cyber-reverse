@@ -7096,3 +7096,100 @@ youwillnevergetthis/fingerprint 反指纹探测路径
 - `SubdomainAlphabet` 的完整串与用法：**Unknown** —— 只看到前缀，未读使用它的函数。
 - 其余 21 个 store 是否也是「大部分已实现、缺几项」：**Unknown** —— 只做了 Superswipe 一个。
 - `store_catalog.py` 的构造函数形式缺陷：**未修**（补丁写坏一次，见 R759）。
+
+
+---
+
+## 189. 判据 f 的取法终于对了：**store 元数据是数据不是代码**；端点全覆；**唯一真缺口是 Forter**
+
+> R761。新增 `analysis/store_records.py`。本轮未改产品代码（证据轮）。
+
+### 一、四次尝试，前三次都错在"找的地方不对"
+
+| 轮 | 方法 | 结果 |
+|---|---|---|
+| R757 | 源码里的子串计数 | 把步骤名（`supreme-add`）当成 store |
+| R759 | 顺着 store 基址 URL 的 xref | 落进该模块的**异步状态机** |
+| R759 | 多个店名求交 | 落在 `sub_14117C4E0`，**687 KB，不是函数** |
+| **R761** | **按字段名找配置记录** | **对** |
+
+**为什么前三次错**：原版把 store 与服务的元数据存成**数据记录**（字段名 + 分隔字节 + 值连写），
+**代码按字段名读**，所以**没有可追的 xref**。
+
+```
+CaptchaOrigin<https://captcha.superswipe.com
+ProgressApi:https://status.superswipe.com
+EntryUrlDhttps://enter.superswipe.com/enter
+ClickTrackerUrl>https://clicks.superswipe.com/c"SubdomainAlphabetHabcdefghijklmnopqrstuvwxyz0123456789
+```
+
+`<` `:` `D` `>` `"` `H` 这些单字节是**长度/分隔**，不是内容。
+
+### 二、由此得到原版自己的服务端点表（16 对，Observation）
+
+```
+TelemetryHost    https://telemetry.cybersole.io
+EndpointUrl      https://analytics.cybersole.io
+WebHost          https://cybersole.io
+SolverUrl        https://cf-solver.cybersole.io        ← 自建 Cloudflare solver
+BaseUrl          https://api.humanpresence.io/v2       ← Human Presence（反机器人）
+RaffleUrl        https://r419.com/  +  _turnstileSiteKey
+StripeJsOrigin   https://js.stripe.com + _stripePublishableKey, _stripePaymentMethodId
+SquareHost       https://pci-connect.squareup.com + SquareApplicationId: sq0idp-…
+UnzerApiHost     https://api.unzer.com
+CheckoutHost     https://checkout.johnlewis.com
+CheckoutPage     https://checkout-page.omise.co/
+```
+
+**复刻件对这些的覆盖：全部有。**
+`HumanPresence` 36 处（`Drivers.cs`）· `cf-solver` 12 · `r419.com` 4 · `Turnstile` 50 ·
+Stripe 84 / Square 7 / Unzer 17 / Omise 33 · 遥测两个宿主各 4（`CybersoleHosts.cs`、`SessionTelemetry.cs`）。
+
+### 三、**唯一真正的厂商缺口：Forter**，而且另外两个是我猜出来的假项
+
+R757 我按通用风控知识写了三个"缺"：`forter` / `funcaptcha`(Arkose) / `arkoselabs`。核完：
+
+| 厂商 | 原版 | 复刻件 |
+|---|---|---|
+| **Forter** | **真集成** | **零** |
+| funcaptcha | **原版里根本没有**（`str funcaptcha` → no match） | 零 |
+| arkose | **原版里根本没有** | 零 |
+
+**Forter 在原版里的形态**（Observation）：
+
+```
+Forter                      ← 一个枚举成员（名 + 长度 11）
+ForterEnvelope
+ForterEventsEncoder
+get_ForterEnvelope
+Create_ForterEnvelope
+```
+
+**`Envelope` + `EventsEncoder` 是 Forter 反欺诈 SDK 的典型协议形状**（传感器数据打封装、事件编码上报）。
+**这是可复刻的具体目标，不是模糊的"要做风控"。**
+
+**而 `funcaptcha` / `arkose` 两条要撤回**：原版没有，复刻它没有意义。
+**这正是"子串计数只当地图不当判据"那条纪律的反面教材 —— 我当时把它当成了判据。**
+
+### 四、`store_records.py` 的局限（写清）
+
+它找到的是**服务端点**，**没有**给出每个 store 的完整记录 —— 因为多数 store 的记录里**没有 URL**，
+而我的模式要求 name 后面跟 URL。所以：
+
+- **判据 f 的左半边仍不完整**：拿到了**服务/厂商清单**，**没拿到 store 清单**。
+- 下一步要么放宽模式（接受更多值形态），要么换成"按记录起点分组 + 用域名锚定"。
+
+### 五、验证
+
+```
+本轮未改产品代码
+完整套件保持 1745 通过 / 0 失败
+新增 analysis/store_records.py（有效，但有上述局限）
+```
+
+### 六、仍然 Unknown
+
+- 完整的 **store** 记录集：**Unknown** —— 见第四节。
+- `ForterEnvelope` 的实际字段与编码方式：**Unknown** —— 未反编译，只看到符号。
+- `subdomainAlphabet` 的**用法**：**Unknown** —— 记录里给了字母表，但用法无 xref 可追。
+- `notre` 的 6 条命中是否噪声：**未知**（R760 记，未复检）。

@@ -47241,3 +47241,50 @@ ModuleCoverageTests 4/4；原始输出存 analysis/coverage_raw.txt 供复算
 - **请求体字段名**（最薄）
 - `goat` 该用哪把尺子
 - `GetCheckoutAsync` 仍走猜的 `/checkout` —— **已知不一致，故意没和本轮混在一起**
+
+
+---
+
+## 第 767 轮：把一个写在代码里的 Unknown 消掉
+
+### 先分类再动手
+
+对余下 8 个站按域名取 URL，分「结账面 / 别的面」：
+
+**`hbx` 最完整（5 条结账 URL）**；`casio` 弱（2 条）；`hypecommerce` 是平台侧 API；
+`bstn`/`fanatics`/`offspring`/`warhammer`/`yeezysupply` 的域名根本没以 URL 形式出现 —— **要换搜法。**
+
+### `HbxFlow` 原来写着一句诚实的失败
+
+> "The order endpoint has not been captured yet; the cart path is known, this is not."
+
+**那句话当时是对的** —— 而镜像其实比它以为的长（Observation）：
+
+```
+hbx.com/api/v1/carts
+hbx.com/checkout?step=1
+hbx.com/checkout?step=2
+hbx.com/checkout/pay
+```
+
+**所以这一轮做的是「消掉一个记录在案的 Unknown」，不是「猜一个端点」。**
+
+### 改了什么
+
+`SubmitShippingAsync` → `?step=1`；`SubmitPaymentAsync` → `?step=2`；`SubmitOrderAsync` → `/checkout/pay`（原为失败桩）。
+
+**Observation**：URL 与「编号两步 + 独立 pay」。
+**Inference（中）**：哪一步是地址、哪一步是支付，**以及三个请求体** —— 镜像只给端点名，没给字段名。
+
+### 验证
+
+```
+构建绿 · hbx 71% → 100% · 套件 1751 / 0 · 度量未变 · 71% 组 11 → 10
+```
+
+### 仍然 Unknown
+
+- 三个请求体的字段名（与 R766 同一层薄）
+- `casio` 的收尾形态
+- 另外 5 个站的端点：**按域名取不到，要换搜法**
+- `HbxFlow` 类注释已部分过时（方法级注释现在是权威）

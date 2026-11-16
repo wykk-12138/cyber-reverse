@@ -654,3 +654,23 @@ R685：这个「类型」在源码里找不到      → 1 条真缺 + 3 条判�
 
 **以及一个通用风险**：`SubmitShippingAsync`/`SubmitPaymentAsync` 的**请求体是推断**，
 镜像只给了 action 名。补任何一步都要把 body 标成推断，不要写成证据。
+
+
+## 核心 — 结账收尾（R767 后）
+
+已到 100%：`scheels`（R766）、`hbx`（R767）。
+
+**余下 9 个**：
+
+| 模块 | 已知线索 | 下一步 |
+|---|---|---|
+| casio | `_adyenOrderId` + Square PCI hydrate | 补搜，判断收尾形态 |
+| hypecommerce | `admin.hypecommerce.io/api/payment/methods/store` | **平台侧 API，可能是尺子问题** |
+| bstn, fanatics, offspring, warhammer, yeezysupply | 域名未以 URL 出现 | **换搜法**：按 action 名 / host 前缀 |
+| popmart, superswipe | 非电商形态 | 先定尺子 |
+| goat | drops + submit-drop-captcha | **抽奖面，先定尺子** |
+
+**通用风险（两轮都出现）**：新补的 `SubmitShippingAsync`/`SubmitPaymentAsync` 的**请求体都是推断**，
+镜像只给 action 名。补任何一步都要把 body 标成推断。
+
+**另立**：`ScheelsFlow.GetCheckoutAsync` 与 `HbxFlow` 的类注释都有过时表述，各自独立处理。

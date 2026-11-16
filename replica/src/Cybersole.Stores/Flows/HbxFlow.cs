@@ -243,8 +243,87 @@ public class HbxFlow : StoreFlow
     public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
         OpenCheckoutAsync(c, "hbx-checkout", "/checkout", ct);
 
-    /// <summary>The order endpoint has not been captured yet; the cart path is known, this is not.</summary>
-    public override Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct) =>
-        Task.FromResult(StepOutcome.Fail(
-            "hbx: order endpoint unknown — cart create and add are captured, checkout is not"));
+    /// <summary>
+    /// The two checkout steps, now that the endpoints are known. R767.
+    ///
+    /// <para>
+    /// Until this round <see cref="SubmitOrderAsync"/> returned a failure whose message said the order endpoint had
+    /// not been captured. That was accurate: the image's HBX strings were a product surface and a cart API and
+    /// nothing beyond. They go further than the flow used, though --
+    /// </para>
+    ///
+    /// <code>
+    /// https://hbx.com/api/v1/carts
+    /// https://hbx.com/checkout?step=1
+    /// https://hbx.com/checkout?step=2
+    /// https://hbx.com/checkout/pay
+    /// </code>
+    ///
+    /// <para>
+    /// <b>Observation:</b> those four URLs, and the fact that the checkout is numbered in two steps with a separate
+    /// pay call. <b>Inference (medium):</b> that step=1 is the address and step=2 the payment method, and the request
+    /// bodies, which the image does not describe. The split follows the numbering, not a captured transcript.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
+    {
+        var payload = new JObject
+        {
+            ["cartId"] = c.Session.CartId,
+            ["email"] = c.ProfileData?.Email ?? c.Account?.Email,
+        };
+
+        var res = await PostJsonAsync(c, CheckoutStep(c, 1),
+            payload.ToString(Newtonsoft.Json.Formatting.None), "hbx-shipping", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("hbx shipping unreachable", retryable: true);
+        if (res.StatusCode == 403) return StepOutcome.Fail("hbx shipping blocked", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"hbx shipping HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["shipping"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        var payload = new JObject { ["cartId"] = c.Session.CartId };
+
+        var res = await PostJsonAsync(c, CheckoutStep(c, 2),
+            payload.ToString(Newtonsoft.Json.Formatting.None), "hbx-payment", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("hbx payment unreachable", retryable: true);
+        if (res.StatusCode == 403) return StepOutcome.Fail("hbx payment blocked", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"hbx payment HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["payment"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>The numbered checkout step. Observation: the image carries <c>?step=1</c> and <c>?step=2</c>.</summary>
+    private static string CheckoutStep(FlowContext c, int step) =>
+        Origin(c.Url) + "/checkout?step=" + step.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>The pay call. Observation: <c>https://hbx.com/checkout/pay</c>.</summary>
+    private static string PayUrl(FlowContext c) => Origin(c.Url) + "/checkout/pay";
+
+    /// <summary>
+    /// Observation: the pay URL exists. Inference (medium): that it is the final call and that it returns an order
+    /// identifier. The body is inferred -- the image names the endpoint, not its fields.
+    /// </summary>
+    public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        var payload = new JObject { ["cartId"] = c.Session.CartId };
+
+        var res = await PostJsonAsync(c, PayUrl(c),
+            payload.ToString(Newtonsoft.Json.Formatting.None), "hbx-order", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("hbx order unreachable", retryable: true);
+        if (res.StatusCode == 403) return StepOutcome.Fail("hbx order blocked", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"hbx order HTTP {res.StatusCode}", retryable: true);
+
+        var order = TryRead(res.Body, "orderNumber") ?? TryRead(res.Body, "orderId");
+        if (!string.IsNullOrEmpty(order)) c.Session.OrderNumber = order;
+
+        return StepOutcome.Success();
+    }
 }

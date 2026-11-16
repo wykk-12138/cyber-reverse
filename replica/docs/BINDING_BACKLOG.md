@@ -752,3 +752,22 @@ platform.poq.io/clients/office/{AtaVerifyCaptcha, recaptcha?trackingId=}
 **数字变好、证据变差，不做。**
 
 **另记**：`flow_wiring_audit.py` 可复算「声明了却没接线的叶子 flow」，当前只有 `OffspringFlow` 一个真问题。
+
+
+## 核心 — offspring 的两种表面（R773）
+
+**已确认**：`offspring.co.uk` 网页 = **Hybris**（实机证据：主页含 `hybris`，
+`/view/resources/getUserInfo`、`/view/component/basket/minibasketAjax` 回 JSON）。
+镜像里的 `platform.poq.io/clients/offspring/*`（guest-token / cart/items / checkout/start / products?ids=）
+是 **App 面**，Poq 平台。
+
+| 项 | 状态 |
+|---|---|
+| 原版有没有走 App 面的任务类型 | **Unknown —— 必须先确认，再建 flow** |
+| `office` client（AtaVerifyCaptcha / recaptcha） | Unknown，同上 |
+| Poq 的支付端点 | Unknown，池子里没有 |
+
+**本轮教训**：我因为镜像里有 Poq 字符串就把它当成 offspring 的结账面并替换了注册表，
+被 `PlatformAssignmentTests` 的实机证据否掉。**"镜像里有某个面的字符串" ≠ "这个面就是它"。**
+
+**R772 建、R773 回滚，净改动为零。** 证据记在 BLOCKERS §199 与 §198。

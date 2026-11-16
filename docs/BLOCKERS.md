@@ -13633,3 +13633,81 @@ if own in declared and typ != own:           # 永远不成立
 - Poq 家族的形状：**Unknown** —— 7 条证据够建 4 个步骤，不够建 7 个。
 - `office` 是不是该成为独立 module：**Unknown** —— 它现在被 `offspring` 的域名列表顺带覆盖。
 - `checkout/start` 之后由谁收尾（支付）：**Unknown** —— 池子里没有下一步的端点。
+
+
+---
+
+## 199. **我建了 PoqFlow，一个既有测试把它否了，我回滚并删掉了它**
+
+> R772 建、R773 回滚。`Registry.cs` 恢复原状，`PoqFlow.cs` 已删除。**净改动为零。**
+
+### 一、我做了什么
+
+按 R771 的计划，用镜像里那 7 条 Poq 字符串建了 `PoqFlow`：
+
+```
+account/guest-token · cart/items · checkout/start · products?ids=   ← 4 步有据
+office/AtaVerifyCaptcha · office/recaptcha?trackingId=              ← 常量
+```
+
+**只写有证据的 4 步，另外 3 步故意不写** —— 因为覆盖率把「声明了 override」就算实现，
+写三个诚实的失败桩会把 71% 抬到 100% 而那句话是假的（我在类的注释里就是这么写的）。
+
+然后把注册表从 `HybrisFlow("offspring", …)` 换成 `new PoqFlow()`。
+
+**覆盖率如预测下降**：
+
+```
+offspring   +  +  +  +  -  -  -   57%
+```
+
+**我以为这就是"降到了证据支撑的数字"。**
+
+### 二、然后全量红了
+
+```
+失败 PlatformAssignmentTests.OffspringIsHybrisNotMagento
+  Expected: typeof(HybrisFlow)
+  Actual:   typeof(PoqFlow)
+```
+
+**那个测试的依据是实机证据**：
+
+> 「the home page contains "hybris" and calls `/view/resources/getUserInfo` and
+> `/view/component/basket/minibasketAjax`, both answering JSON; no Magento surface does」
+
+**所以 `offspring.co.uk` 的网页确实是 Hybris。**
+
+### 三、我错在哪
+
+**我把「一个表面」当成了「唯一表面」。**
+
+- `platform.poq.io/clients/offspring/*` → **App 面**（Poq 是移动端平台）
+- `offspring.co.uk/view/...` → **网页面**，是 Hybris
+
+**两个都是真的。** 镜像里有 App 面的字符串，**不等于网页面也是 Poq**。
+**这是 `AGENTS.md` §2.7 的第七次：先假设形状，再把不符合假设的读成"应该替换"。**
+
+### 四、为什么删掉而不是保留
+
+`PoqFlow` 留着就是**一个新的死类** —— 而我上一轮（R771）刚把 `OffspringFlow` 的"存在但从未构造"
+记成一个真问题。**自己刚批评过的形状，不该由自己再造一个。**
+
+**证据不丢**：7 条字符串完整记在本节与 R771 里，`BINDING_BACKLOG` 留了待办。
+
+### 五、净结果
+
+```
+Registry.cs   恢复为 HybrisFlow("offspring", …)，加一条注释写明两种表面（R773）
+PoqFlow.cs    已删除
+完整套件      1752 通过 / 0 失败 / 0 跳过
+四项度量      4 / 0 / 17 / 78 / 0（未变）
+offspring     仍是 71%（与原状一致）
+```
+
+### 六、仍然 Unknown
+
+- **原版有没有"App 面"的模块**：**Unknown** —— 镜像有 Poq 字符串，但有没有一条走它的任务类型未知。
+  **在确认之前就给它建 flow，就是这一轮犯的错。**
+- `office` 是 App 面的另一个 client：**Unknown** —— 同样不能因字符串存在就建模块。
+- Poq 的支付端点：**Unknown** —— 池子里没有。

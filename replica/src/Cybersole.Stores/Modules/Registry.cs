@@ -167,6 +167,10 @@ public static class StoreModuleCatalog
         new FlowStoreModule(new JohnLewisFlow()),
         new FlowStoreModule(new PopMartFlow()),
         new FlowStoreModule(new YeezySupplyFlow()),
+        // R773: offspring's WEB surface is Hybris — the home page carries "hybris" and answers JSON at
+        // /view/resources/getUserInfo and /view/component/basket/minibasketAjax (PlatformAssignmentTests).
+        // The image's platform.poq.io/clients/offspring/* strings are the app surface, a second surface, not a
+        // replacement for this one. See BLOCKERS 199.
         new FlowStoreModule(new HybrisFlow("offspring", "Offspring",
             new[] { "offspring.co.uk", "offspring.com" })),
         new FlowStoreModule(new RaffleFlow()),

@@ -47490,3 +47490,49 @@ ModuleCoverageTests 5/5 · 完整套件 1752 / 0 · 四项度量未变
 ```
 产品代码未改；套件 1752 / 0；新增 analysis/flow_wiring_audit.py
 ```
+
+
+---
+
+## 第 772/773 轮：我建了，被否了，删了
+
+### 我怎么想的
+
+用 7 条 Poq 字符串建 `PoqFlow`，只写 4 个有据的步骤，把注册表从 `HybrisFlow` 换过去。
+覆盖率如预测**下降**到 57% —— 我以为这就是"降到证据支撑的数字"。
+
+### 然后全量红了
+
+```
+PlatformAssignmentTests.OffspringIsHybrisNotMagento
+  Expected HybrisFlow, Actual PoqFlow
+```
+
+**那个测试的依据是实机证据**：offspring 主页里有 `hybris`，且
+`/view/resources/getUserInfo`、`/view/component/basket/minibasketAjax` 都回 JSON。
+
+### 我错在哪
+
+**我把「一个表面」当成了「唯一表面」。**
+
+- `platform.poq.io/clients/offspring/*` → **App 面**
+- `offspring.co.uk/view/...` → **网页面，Hybris**
+
+**两个都是真的。镜像里有 App 面的字符串，不等于网页面也是 Poq。**
+**§2.7 第七次：先假设形状，再把不符合假设的读成"应该替换"。**
+
+### 为什么删而不是留
+
+留着就是**新的死类** —— 我上一轮刚把 `OffspringFlow` 的"存在但未构造"记成问题。
+**自己刚批评过的形状，不该自己再造一个。** 证据记在文档里，不留在代码里。
+
+### 净结果
+
+```
+Registry.cs 恢复 + 注释写明两种表面 · PoqFlow.cs 删除
+套件 1752 / 0 · 四项度量未变 · offspring 仍 71%
+```
+
+### 仍然 Unknown
+
+**原版有没有走 App 面的模块** —— 在确认之前给它建 flow 就是这一轮犯的错。

@@ -3565,3 +3565,37 @@ python tools\where_is.py Sequence --all
 | `GetInstoreOrders`(105) | 同段、可能有常量 — **下一轮第一件事 `where_is`** |
 
 **纪律**：**§2.7c 不只避免重复品，还能在读到的文件里发现自己没意识到的假设。**
+
+
+## 优先级 ① — 猜错一个，写对两个（R872，**已改产品代码**）：coverage 1 → 3
+
+### R871 的「likely」被证伪
+
+**`where_is GetInstoreOrders` → implementation 只有我 R871 的注释；`PopMartEndpoints` 无 in-store orders 端点。**
+**→ 写它等于编 URL。**「同段」是真的，「常量可能有」是假的。**
+
+> **待办里不该有「可能可写」——只该有「已确认可写，因为 X」和「未查，下一步查 Y」。**
+
+### 写了一对
+
+| 步骤 | 端点 | 形状 |
+|---|---|---|
+| `FindExhibit` | `StoreOfflineDrawInfo` | `?alias=`（缺 alias → **失败**） |
+| `EnterExhibit` | `StoreOfflineDrawJoin` | POST（缺 exhibit 体 → **失败**） |
+
+**`StoreFlow` 加两个默认失败的虚方法；`PopMartFlow` override。**
+
+**R116 观察：`StoreOfflineDrawJoin` 也服务 `EnterReservation` —— 一端点两阶段，同 R847 的 John Lewis。**
+
+### 数字
+
+`map 166→168` · `implementable 1→3` · `sequence 24` —— **四数一起钉（168/24/3 + 三条 CanRunStep）。**
+**套件 1773 通过 / 0 失败。**
+
+| 仍 Unknown | |
+|---|---|
+| `GetInstoreOrders` 用哪个端点 | **未查（不写 likely）** |
+| `alias` 从哪来 | **无人放入 → `FindExhibit` 会明确失败** |
+| `StoreOfflineDrawJoin` 请求体结构 | **现在发上一步响应体 = 我的选择，不是镜像行为** |
+
+**纪律**：**「缺就失败」优于「发空的、返回 200 算成功」—— 第七次同一形态，这次写时就避开。**

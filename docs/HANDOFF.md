@@ -398,3 +398,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **写了**：`StoreFlow.virtual GetOrdersAsync`（默认显式失败）+ `PopMartFlow` override → `GET OrderList` → `Session.Vars["orders"]`。**响应体整份存不解析（无 schema 证据）。**
 **测试三数一起钉：`map=166` / `sequence=24` / `implementable=1`。套件 1773 通过 / 0 失败。**
 **下一轮第一件事：`where_is GetInstoreOrders`（105，同段，可能有常量）。**
+
+## R872 补充 — 猜错一个，写对两个（**已改产品代码**）：coverage 1 → 3
+
+**R871 的「`GetInstoreOrders` likely 可写」被证伪**：`PopMartEndpoints` 无 in-store orders 端点（只有 `BuyNow`/`OrderCounter`/`CanPlaceOrder`/`OrderList`/`OrderDetail` + 抽签/票务）。**写它等于编 URL。**
+**改写了一对**：`FindExhibit` → `StoreOfflineDrawInfo?alias=`（缺 alias 失败）· `EnterExhibit` → `POST StoreOfflineDrawJoin`（缺 exhibit 体失败）。**`StoreFlow` 各加默认失败的虚方法。**
+**数字：`map 166→168` · `implementable 1→3` · 四数一起钉（168/24/3 + 三条 CanRunStep）。套件 1773 通过 / 0 失败。**
+**待办里不写「likely」——只写「已确认，因为 X」或「未查，下一步查 Y」。**

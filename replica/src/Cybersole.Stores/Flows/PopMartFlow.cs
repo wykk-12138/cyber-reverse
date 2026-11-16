@@ -36,6 +36,67 @@ public sealed class PopMartFlow : StoreFlow
     public override IReadOnlyList<string> StepSequence => StoreFlowSteps.PopMart.Names;
 
     /// <summary>
+    /// Pop Mart's in-store exhibit lookup — step <c>FindExhibit</c>, paired by R116 with
+    /// <see cref="PopMartEndpoints.StoreOfflineDrawInfo"/>.
+    ///
+    /// <para>
+    /// R872. <see cref="GetInstoreOrders"/> was the step I expected to write this round, and it cannot be written: no
+    /// endpoint in <see cref="PopMartEndpoints"/> pairs with it, so it would mean inventing a URL. These two are the
+    /// opposite case — R116 paired them by name and the constants carry their query shapes, so both can be written
+    /// without inventing anything.
+    /// </para>
+    ///
+    /// <para>
+    /// The <c>alias</c> the endpoint takes is not established, so it is taken from the session var the flow already
+    /// carries when a caller has set one, and the step fails clearly when it has not. Failing on a missing input is
+    /// better than sending an empty alias and calling whatever comes back a result.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> FindExhibitAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("alias", out var alias) || string.IsNullOrEmpty(alias))
+            return StepOutcome.Fail("FindExhibit needs a session var 'alias' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.StoreOfflineDrawInfo + alias,
+            "popmart-exhibit-info", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart exhibit unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart exhibit HTTP {res.StatusCode}");
+
+        c.Session.Vars["exhibit"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Pop Mart's in-store exhibit entry — step <c>EnterExhibit</c>, paired by R116 with
+    /// <see cref="PopMartEndpoints.StoreOfflineDrawJoin"/>.
+    ///
+    /// <para>
+    /// The same endpoint also serves <c>EnterReservation</c> according to R116, which is a reading worth keeping in
+    /// view: one endpoint, two client phases. That is the same shape R847 found in John Lewis, where a step list is the
+    /// client's stages and an endpoint is the server's resource.
+    /// </para>
+    ///
+    /// <para>
+    /// The request body is <b>not</b> established, so this step sends the exhibit body the previous step stored, which
+    /// is a real payload the image would plausibly echo back. If no exhibit has been fetched it fails rather than
+    /// posting nothing — an empty POST that returns 200 would look like success.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> EnterExhibitAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("exhibit", out var body) || string.IsNullOrEmpty(body))
+            return StepOutcome.Fail("EnterExhibit needs the exhibit body from FindExhibit and none was stored");
+
+        var res = await PostJsonAsync(c, Origin(c.Url) + PopMartEndpoints.StoreOfflineDrawJoin, body,
+            "popmart-exhibit-join", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart exhibit join unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart exhibit join HTTP {res.StatusCode}");
+
+        c.Session.Vars["exhibitJoin"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// Pop Mart's order list — step <c>GetOrders</c>, ordinal 104, first of the flow's sequence.
     ///
     /// <para>

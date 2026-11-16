@@ -86,6 +86,24 @@ public abstract class StoreFlow
     public virtual Task<StepOutcome> GetOrdersAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(StepOutcome.Fail("GetOrders is not implemented by " + Id));
 
+    /// <summary>
+    /// The in-store exhibit lookup. Like <see cref="GetOrdersAsync"/>, outside the checkout sequence and therefore
+    /// failing by default rather than reporting a success nothing performed.
+    ///
+    /// <para>
+    /// R872. Kept beside <see cref="EnterExhibitAsync"/> because the image's Pop Mart sequence has them adjacent and
+    /// because they are a pair: the first fetches what the second posts.
+    /// </para>
+    /// </summary>
+    public virtual Task<StepOutcome> FindExhibitAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("FindExhibit is not implemented by " + Id));
+
+    /// <summary>
+    /// Entering an in-store exhibit. Fails by default for the same reason as the two above.
+    /// </summary>
+    public virtual Task<StepOutcome> EnterExhibitAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("EnterExhibit is not implemented by " + Id));
+
 
     // ── session ───────────────────────────────────────────────────────────────
     public virtual async Task<StepOutcome> InitAsync(FlowContext c, CancellationToken ct)

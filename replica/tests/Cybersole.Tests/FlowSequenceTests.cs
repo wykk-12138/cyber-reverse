@@ -104,13 +104,15 @@ public class FlowSequenceTests
         var map = flow.StepDispatch;
         var implementable = flow.StepSequence.Count(map.ContainsKey);
 
-        // R871 raised the map from 165 to 166 by adding GetOrdersAsync to StoreFlow, and the sequence's coverage from
-        // zero to one. Both numbers are pinned together so neither can drift unremarked: a new virtual that no sequence
-        // names would move the first without the second, and a written step would move the second without the first.
-        Assert.Equal(166, map.Count);
+        // R872 raised the map from 166 to 168 with FindExhibitAsync and EnterExhibitAsync, and the sequence's coverage
+        // from one to three. All four numbers are pinned so none can drift unremarked: a virtual added and never used
+        // moves the first without the others, a written step moves the last without the first.
+        Assert.Equal(168, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
-        Assert.Equal(1, implementable);
+        Assert.Equal(3, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");
+        Assert.True(flow.CanRunStep("FindExhibit"), "FindExhibit was added in R872");
+        Assert.True(flow.CanRunStep("EnterExhibit"), "EnterExhibit was added in R872");
     }
 
     /// <summary>

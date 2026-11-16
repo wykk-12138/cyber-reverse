@@ -52231,3 +52231,61 @@ GetOrders>d__104       @0x14337c7e5 → GetInstoreOrders>d__105 · StartDrawFlow
 > **这一轮两件事都是规则带来的，不是我想到的：`where_is` 把会让我判错归属的文件推到我面前；而我没先写代码，先核了那句话。**
 > **核它的成本是两条 `ida.py str`。不核的话，`GetOrders` 会带着一个我没意识到的归属假设 —— 而那是整条序列的地基。**
 > **所以 §2.7c 的用处不只是「避免重复品」，还有「在读到的文件里发现自己的假设」。**
+
+
+---
+
+## 第 872 轮：猜错一个，写对两个 —— coverage 1 → 3
+
+### R871 那个「likely」是错的
+
+```
+where_is GetInstoreOrders -> implementation: PopMartFlow.cs (1)   ← 我 R871 自己的注释
+PopMartEndpoints: BuyNow · OrderCounter · CanPlaceOrder · OrderList · OrderDetail
+                  StoreOfflineDrawInfo/Join/JoinResult（抽签）· StoreTicketDates · StoreTicketMainPage
+```
+
+**没有「店内订单」端点。写它等于编 URL。那句「likely」两半都错：同段是真的，常量没有。**
+
+> **「可能」这个词正是问题 —— 它把一个没查的事写成了倾向。而一个带「可能」的待办，下一轮会被当成待办去做。**
+> **正确写法：「`GetInstoreOrders` 未查端点，下一轮查」。**
+
+### 而同一批查询暴露了更好的目标
+
+| 步骤 | 端点 | 形状 |
+|---|---|---|
+| `FindExhibit` | `StoreOfflineDrawInfo` | `?alias=` |
+| `EnterExhibit` | `StoreOfflineDrawJoin` | POST |
+
+**两步都写了（R116 已配对、常量都在）。**
+
+**`EnterExhibit` 注释里留了 R116 的一条观察：同一端点也服务 `EnterReservation` ——
+一个端点、两个客户端阶段，与 R847 在 John Lewis 发现的形状相同。**
+
+### 两个「缺就失败」是刻意的
+
+| 步骤 | 缺什么 | 处理 |
+|---|---|---|
+| `FindExhibit` | session 的 `alias` | **失败**，不发空 alias |
+| `EnterExhibit` | 上一步的 exhibit 体 | **失败**，不发空 POST |
+
+**理由：返回 200 的空请求会被读成成功 —— 本会话第七次遇到这个形态，而这次是**写的时候就避开**。**
+
+### 数字
+
+```
+map.Count 166 -> 168 · implementable 1 -> 3 · sequence 24 不变
+测试四数一起钉：168 / 24 / 3 / 三条 CanRunStep
+```
+
+### 仍然 Unknown
+
+**`GetInstoreOrders` 用哪个端点**（常量里没有；**这次我写「未查」，不写「likely」**）·
+**`alias` 从哪来**（现在从 session 取，**谁放它进去没建立 —— 所以 `FindExhibit` 会明确失败而不是跑错**）·
+**`StoreOfflineDrawJoin` 的请求体结构**（现在发上一步响应体，**那是我的选择，不是镜像的行为**）
+
+### 教训
+
+> **一个「likely」在待办里能活很久，而它其实只是「我没查」。**
+> **查它两分钟；不查，我会花一轮去写一个没有端点的步骤，写到一半发现没地方发请求。**
+> **所以待办里不该有「可能可写」；只该有「已确认可写，因为 X」和「未查，下一步查 Y」。**

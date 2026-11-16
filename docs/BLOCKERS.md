@@ -22120,3 +22120,95 @@ python tools\metrics_report.py          -> 1773 通过 / 0 失败 / 0 跳过
 会带着一个我没意识到的归属假设 —— 而那个假设是整条序列的地基。**
 
 **所以 §2.7c 的用处不只是「避免重复品」，还有「在读到的文件里发现自己的假设」。**
+
+
+---
+
+## 296. 猜错一个，写对两个：coverage **1 → 3**
+
+> R872。**改了产品代码。** 套件 **1773 通过 / 0 失败 / 0 跳过**。
+
+### 一、R871 的猜测是错的，而错的形状值得记
+
+**R871 结尾写：`GetInstoreOrders`(105)「likely 可写 —— 同段、`PopMartEndpoints` 里可能有对应常量」。**
+
+**查了：**
+
+```
+where_is GetInstoreOrders -> implementation: PopMartFlow.cs (1)   ← 我 R871 自己的注释
+PopMartEndpoints 与订单/门店相关的常量：BuyNow · OrderCounter · CanPlaceOrder · OrderList · OrderDetail
+                                        StoreOfflineDrawInfo/Join/JoinResult（抽签）· StoreTicketDates · StoreTicketMainPage
+```
+
+**没有一个是「店内订单」。写它等于编一个 URL。**
+
+**所以那句「likely」两半都错：同段是真的，常量没有。**
+
+> **而「可能」这个词正是问题 —— 它把一个没查的事写成了倾向。
+> 一个带「可能」的待办，下一轮会被当成待办去做；而它其实是一个未验证的猜测。**
+
+**正确写法应该是：「`GetInstoreOrders` 未查端点，下一轮查」。**
+
+### 二、同一批查询暴露了更好的目标
+
+**R116 已配对、常量都在的两步：**
+
+| 步骤 | 端点 | 形状 |
+|---|---|---|
+| `FindExhibit` | `StoreOfflineDrawInfo` | `?alias=` |
+| `EnterExhibit` | `StoreOfflineDrawJoin` | POST |
+
+**两步都写了。**
+
+**`EnterExhibit` 的注释里记了一条值得留的观察：R116 说同一端点也服务 `EnterReservation` ——
+一个端点、两个客户端阶段。这与 R847 在 John Lewis 发现的形状相同：步骤是客户端的阶段，端点是服务端的资源。**
+
+### 三、两个「缺就失败」是刻意的
+
+| 步骤 | 缺什么 | 处理 |
+|---|---|---|
+| `FindExhibit` | session 里的 `alias` | **失败**，不发空 alias |
+| `EnterExhibit` | 上一步存的 exhibit 体 | **失败**，不发空 POST |
+
+**理由：返回 200 的空请求会被读成成功。**
+
+**这是本会话第七次遇到同一个形态（编造值 / 空壳方法 / 死字段 / 空循环假成功 / …），
+而这次是在**写的时候就避开**，不是事后修。**
+
+### 四、数字
+
+```
+map.Count      166 -> 168
+implementable    1 ->   3
+sequence.Count  24 不变
+```
+
+**测试四个数一起钉：`168` / `24` / `3` / 三条 `CanRunStep`。
+一个虚方法加了没人用会动第一个；写一步会动第三个 —— 分开断言才分得清。**
+
+### 五、验证
+
+```
+where_is GetInstoreOrders  -> implementation 只有我自己的注释，无实现
+PopMartEndpoints 常量扫描   -> 无 in-store orders 端点
+D:\tools\dotnet8\dotnet.exe build ... -> 0 错误
+test --filter FlowSequenceTests          -> 7 通过 / 0 失败
+python tools\metrics_report.py           -> 1773 通过 / 0 失败 / 0 跳过
+```
+
+### 六、仍然 Unknown
+
+- **`GetInstoreOrders` 用哪个端点**：**Unknown** —— 常量里没有，可能要查镜像的字符串池里有没有别的
+  `order` 类路径。**本轮没查，而这次我写「未查」，不写「likely」。**
+- **`alias` 从哪来**：**Unknown** —— 现在是从 session 取，但谁往 session 里放它没建立。
+  **这条让 `FindExhibit` 在当前代码里跑不通 —— 它会明确失败，而不是跑错。**
+- **`StoreOfflineDrawJoin` 的请求体结构**：**Unknown** —— 现在发的是上一步的响应体，那是**我的选择**，不是镜像的行为。
+
+### 七、教训
+
+**一个「likely」在待办清单里能活很久，而它其实只是「我没查」。**
+
+**这一轮把它查了，代价是一条 `where_is` 加一次常量扫描 —— 两分钟。
+而如果不查，我会花一轮去写一个没有端点的步骤，写到一半发现没地方发请求。**
+
+**所以待办里不该有「可能可写」；只该有「已确认可写，因为 X」和「未查，下一步查 Y」。**

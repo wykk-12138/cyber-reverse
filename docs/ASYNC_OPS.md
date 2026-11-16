@@ -1229,3 +1229,59 @@ GetOrders>d__104         @0x14337c7e5  → 同段 GetInstoreOrders>d__105 · Sta
 
 **第二个失败是个好信号：加一个虚方法会动 map，写一个步骤会动 coverage。
 两个数一起断言，就能区分「加了虚方法但没人用」和「写了一步」。**
+
+
+### R871 说 `GetInstoreOrders`「likely 可写」—— 查了，**不可写**（R872）
+
+```
+python tools\where_is.py GetInstoreOrders -> 9 files
+    implementation: PopMartFlow.cs (1)   ← 我 R871 自己写的注释，不是实现
+    analysis:       StoreFlowSteps.cs
+```
+
+**`PopMartEndpoints` 里与订单/门店相关的常量：**
+
+```
+BuyNow          /shop/v1/order/pre/v2/buyNow
+OrderCounter    /shop/v1/order/pre/counter
+CanPlaceOrder   /shop/v1/shop/can/place/order
+OrderList       /shop/v1/order/list?currentPage=1&pageSize=20
+OrderDetail     /shop/v1/order/v2/detailV2?orderNo=
+StoreOfflineDrawInfo /join /joinResult       ← 抽签，不是订单
+StoreTicketDates / StoreTicketMainPage
+```
+
+**没有一个是「店内订单」。所以写 `GetInstoreOrders` 就等于编一个 URL。**
+
+**R871 那句「likely（同段、`PopMartEndpoints` 里可能有对应常量）」**两半都错了**：
+同段是真的，常量没有。而「可能」这个词正是问题 —— 它把一个没查的事写成了倾向。**
+
+### 而同一批查询暴露了更好的目标
+
+**R116 已经配对、常量又都在的两步：**
+
+| 步骤 | 端点 | 查询形状 |
+|---|---|---|
+| `FindExhibit` | `StoreOfflineDrawInfo` | `?alias=` |
+| `EnterExhibit` | `StoreOfflineDrawJoin` | 无查询，POST |
+
+**两步都写了。**
+
+| 文件 | 改动 |
+|---|---|
+| `StoreFlow.cs` | 新增 `virtual FindExhibitAsync` / `virtual EnterExhibitAsync`，均**默认显式失败** |
+| `PopMartFlow.cs` | `FindExhibit` → `GET info?alias=`（alias 从 session 取，缺则失败）· `EnterExhibit` → `POST join`（体 = 上一步存的 exhibit，缺则失败） |
+
+### 两个「缺就失败」是刻意的
+
+**`FindExhibit` 缺 `alias` → 失败，不是发空 alias。**
+**`EnterExhibit` 缺 exhibit 体 → 失败，不是发空 POST。**
+
+**理由一致：返回 200 的空请求会被读成成功。这是本会话第七次遇到同一个形态，而这次是在写的时候就避开的。**
+
+### 覆盖变化
+
+```
+map.Count     166 -> 168
+implementable   1 ->   3
+```

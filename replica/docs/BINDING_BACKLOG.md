@@ -2239,3 +2239,34 @@ HandleBlock 0 · SetRequest 0 · HandleResponse 0 · GetHome 0 · VerifySession 
 
 **搜镜像时用「复刻件实际写的那个串」，不要用「站名」。**
 搜 `popmart` 只得到含站名的串；复刻件的 `/shop/v1/...` 不含它 —— **于是「复刻件全无」凭空成立**。
+
+
+## 判据 — 「函数数量对等」首次测量（R831）
+
+**首次数字**（此前 `METRICS.md` 六项全是声明层，无函数数）：
+
+| 产物 | `.pdata` 函数数 |
+|---|---|
+| 原版 `target\Cybersole.exe` | **277,120** |
+| 复刻件 `.publish-aot\Cybersole.Ui.exe` | **171,690** |
+
+**61.95%。** 口径：`.pdata` 的 `RUNTIME_FUNCTION`（12 字节）条数。
+
+**偏差**：文档记 277,094，实测 277,120，**差 26** —— rawsize 含尾部填充。
+
+### 能不能说「少了 38% 功能」
+
+**不能。** 两边框架不同（.NET 10 AOT ↔ .NET 8 AOT + Avalonia），**Avalonia 自带一大批函数**；
+`.pdata` 数非叶函数，不含内联与裁剪；**与 IDA `af` 的 321,244 不同口径。**
+
+### 待办
+
+**把「两产物 `.pdata` 计数」加进 `tools/metrics_report.py`**（或让 `func_compare.py` 在 13338 没起时用 `.pdata` 兜底）。**本轮未做** —— 要改共享工具并复跑全量。
+
+| 仍 Unknown | |
+|---|---|
+| 复刻件 IDA `af` 计数 | 需 13338 实例；唯一与 321,244 对齐的口径 |
+| 62% 里 Avalonia 占多少 | `.pdata` 无命名空间信息 |
+| 26 条偏差是否填充 | Inference（中），未逐条核 |
+
+**纪律**：**目标的第一句话是最后才被量的一句 —— 因为数声明比数产物容易。**

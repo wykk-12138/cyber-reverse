@@ -306,3 +306,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **附带结论：五个 `Start*Flow` 的种类**不是在创建表单里选的** —— 复刻件从「没有种类输入」（正确）走到「没有种类派发」（错误）。**
 **复刻件任务字段一半有出处（`MonitorMode`/`PriceCheck`/`MultiCart`），一半自造（`NameTemplate`/`CheckoutDelay` 0 命中）。**
 **教训：找领域的**语法**比搜一个词有用 —— `Type` 有 27 个变体，直接搜等于没搜。**
+
+## R860 补充 — 模型层齐备，Task.Type 冗余
+
+**镜像 schema：`BotTask` 14（无 Type，有 `Task` 嵌套）· `BaseCheckout` 8（**有 Type**）· `TaskGroup` 17 · `WebTask` 2。**
+**复刻件对照 14/14 · 8/8 · 17/17 · 2/2 —— 齐备。→ `Tasks.cs` 的 `Type` 是冗余，正确那份在 `BaseCheckout`。**
+**优先级 ② Observation：`CaptchaSource` · `CloudflareSolverId` · 配额 · 计数全挂 `TaskGroup`，不是单任务。**
+**未删理由：查了「有没有写」没查「有没有读」—— 只读不写也可能进 `tasks.json`，改输出结构会动用例。**
+**对照是上界宽松**（正则搜整个文件，不是解析声明）。

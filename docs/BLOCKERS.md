@@ -21039,3 +21039,95 @@ ida.py str CheckoutDelay     -> 0
 
 **找到一个领域里的**语法**，比搜一个词有用 —— 而 AGENTS.md §2.7 说的「先问有几种写法」，
 说的就是这个，只是我这次才真的照做。**
+
+
+---
+
+## 284. 模型层**全部齐备**；`Task.Type` 是**冗余**，不是缺
+
+> R860。未改产品代码。**R858 的「留还是删」有答案了。**
+
+### 一、镜像的模型 schema
+
+按 R859 找到的语法抽表：
+
+| 模型 | 属性数 | 备注 |
+|---|---|---|
+| `BotTask` | 14 | **无 `Type`**；有 `Task`（嵌套）、`StartTime`、`Status` |
+| `BaseCheckout` | 8 | **有 `Type`** |
+| `TaskGroup` | 17 | **`CaptchaSource` · `CloudflareSolverId` · `ProfileLimit` · `CheckoutLimit` · `TotalCheckouts` · `TotalDeclines`** |
+| `WebTask` | 2 | `Account` · `Steps` |
+
+**复刻件对照：14/14 · 8/8 · 17/17 · 2/2。**
+
+### 二、所以 R858 的答案
+
+**镜像的 `Type` 在 `BaseCheckout` 上，不在 `BotTask` 上。**
+**而复刻件的 `BaseCheckout` 也有 `Type`（8/8 之一）。**
+
+**所以 `Tasks.cs` 那个没人写的 `Type` 是**冗余声明** —— 正确的那份已经在 `BaseCheckout` 上。**
+
+**这与 R858 的两种猜测都不同：不是「镜像有，该留着并被写」，也不是「镜像没有，该删」，
+而是「镜像有，但它在另一个类型上，而这个类型已经有了」。**
+
+**可以删。但本轮仍不删，理由见第四节。**
+
+### 三、两条对优先级 ② 有用的 Observation
+
+**`TaskGroup` 里同时有：**
+
+```
+CaptchaSource · CloudflareSolverId · ProfileLimit · CheckoutLimit
+TotalCheckouts · TotalDeclines · UsageExpiry · Webhooks
+```
+
+**即：验证码来源、Cloudflare solver、配额、成败计数、用量到期、webhook，**全部挂在任务组上，不是单任务上**。**
+
+**这对风控实现意味着：一个组的任务共用同一套 solver 配置与配额 —— 而不是每个任务各自配。
+复刻件的 `KasadaSolvers` / `CloudflareClearance` 是怎么挂的，没查，但这一条给了正确的挂载点。**
+
+### 四、为什么本轮仍然不删 `Task.Type`
+
+**因为「可以删」和「现在就删」之间还差一件事：删掉之后有没有东西在读它。**
+
+**我这轮查的是「有没有写它」（0 处），**没查「有没有读它」**。
+一个只读不写的字段更糟（永远是空），但它可能被序列化进 `tasks.json` ——
+**而那会改变输出文件的结构，属于会影响既有用例的改动。**
+
+**所以下一步是查读点，不是直接删。**
+
+### 五、这个对照的边界（必须写明）
+
+**「14/14、8/8、17/17」是用正则 `\b<属性名>\b` 在**整个模型文件**里搜的，**
+**不是解析属性声明。所以它证明「这些名字出现过」，不证明「它们都是那个类型的 public 属性」。**
+
+**这比 R816 那种「池子里找不到就判没有」好在方向是对的（正向可用），
+但它是**上界宽松**的检查 —— 会把注释里提到、别的类型里有、局部变量同名的都算进去。**
+
+**要收紧，得解析属性声明本身。本轮没做。**
+
+### 六、验证
+
+```
+ida.py str Cybersole.Models. / Models.Task / Models.Base / Models.Bot
+  13 个声明类型；BotTask 14 · BaseCheckout 8 · TaskGroup 17 · WebTask 2（另有 Account/AccountGroup/Analytics/Checkout/Product/Release/Store/TaskStep/Variant）
+replica 对照（正则名搜）: 14/14 · 8/8 · 17/17 · 2/2
+本轮未改产品代码
+七项度量沿用
+```
+
+### 七、仍然 Unknown
+
+- **`BotTask.Task` 是什么类型**：**Unknown** ——
+  14 个属性里有个叫 `Task` 的，**如果它是嵌套任务对象，那「种类」可能在里面。**
+- **`Task.Type` 有没有读点**：**Unknown** —— **决定能否安全删。**
+- **`TaskGroup` 那套 solver 配置复刻件挂在哪**：**Unknown** ——
+  **`KasadaSolvers.cs` / `CloudflareClearance.cs` 存在，但挂载点没查。**
+- **那个对照是不是上界宽松**：**是（Inference 高）** —— 见第五节。
+
+### 八、教训
+
+**R858 我列了两种可能（镜像有 / 镜像没有），实际是第三种：镜像有，但在另一个类型上。**
+
+**「这个字段存不存在」这个问题，少了一个维度 —— **在哪个类型上**。**
+**而补上这个维度的成本极低：R859 已经给出了按类型抽表的语法，这一轮只是把它用到四个类型上。**

@@ -3166,3 +3166,35 @@ SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken 
 | 两个自造字段留不留 | 支撑 `TaskCombinationBuilder`；镜像有无此功能未查 |
 
 **纪律**：**找一个领域的**语法**比搜一个词有用 —— `Type` 有 27 个变体，直接搜等于没搜。**
+
+
+## 判据 (f) — 模型层齐备；`Task.Type` 冗余（R860）
+
+| 模型 | 镜像 | 复刻件 |
+|---|---|---|
+| `BotTask` | 14（**无 Type**；有 `Task` 嵌套、`StartTime`、`Status`） | **14/14** |
+| `BaseCheckout` | 8（**有 Type**） | **8/8** |
+| `TaskGroup` | 17（`CaptchaSource` · `CloudflareSolverId` · `ProfileLimit` · `CheckoutLimit` · `TotalCheckouts` · `TotalDeclines` · `Webhooks`） | **17/17** |
+| `WebTask` | 2 | **2/2** |
+
+**→ `Tasks.cs` 的 `Type` 是**冗余声明**，正确那份在 `BaseCheckout` 上。**
+
+### 优先级 ② 的 Observation
+
+**solver / 配额 / 计数全挂在 `TaskGroup`，不是单任务** —— **一个组共用同一套 solver 配置。**
+
+### 未删的理由
+
+**查了「有没有写」（0 处），没查「有没有读」。只读不写也可能被序列化进 `tasks.json` → 改输出结构 → 影响用例。**
+
+### 对照的边界
+
+**正则 `\b<属性名>\b` 搜**整个模型文件**，不是解析属性声明 → **上界宽松**，会把注释/别的类型/局部变量算进去。**
+
+| 仍 Unknown | |
+|---|---|
+| `BotTask.Task` 是什么类型 | **若嵌套任务对象，「种类」可能在里** |
+| `Task.Type` 有没有读点 | 决定能否安全删 |
+| `TaskGroup` solver 配置复刻件挂在哪 | `KasadaSolvers`/`CloudflareClearance` 在，挂载点未查 |
+
+**纪律**：**「字段存不存在」少了「在哪个类型上」这一维。**

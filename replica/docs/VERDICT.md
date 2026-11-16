@@ -51559,3 +51559,55 @@ Plus · PriceCheckVisible · Quantity · Sizes · Symbol · TogglePriceCheck
 > **R858 我问「镜像有没有 Type」，问得太粗 —— `Type` 在镜像里有 27 个变体（`get_TypeId` / `get_TypeOfT` …），直接搜等于没搜。**
 > **这一轮换成「先找到字段的书写模式，再按模式抽表」，才得到 13 个属性这样一个可核对的答案。**
 > **找到一个领域里的**语法**，比搜一个词有用 —— 这正是 §2.7 说的「先问有几种写法」。**
+
+
+---
+
+## 第 860 轮：模型层全部齐备；`Task.Type` 是冗余不是缺
+
+### 镜像的模型 schema
+
+| 模型 | 属性数 | 备注 |
+|---|---|---|
+| `BotTask` | 14 | **无 `Type`**；有 `Task`（嵌套）、`StartTime`、`Status` |
+| `BaseCheckout` | 8 | **有 `Type`** |
+| `TaskGroup` | 17 | **`CaptchaSource` · `CloudflareSolverId` · `ProfileLimit` · `CheckoutLimit` · `TotalCheckouts` · `TotalDeclines` · `Webhooks`** |
+| `WebTask` | 2 | `Account` · `Steps` |
+
+**复刻件：14/14 · 8/8 · 17/17 · 2/2 —— 全部齐备。**
+
+### R858 的答案：第三种
+
+**镜像的 `Type` 在 `BaseCheckout` 上，不在 `BotTask` 上；而复刻件的 `BaseCheckout` 也有 `Type`。**
+
+> **所以 `Tasks.cs` 那个没人写的 `Type` 是**冗余声明** —— 正确的那份已经在 `BaseCheckout` 上。**
+> **不是「镜像有该留着写」，也不是「镜像没有该删」。**
+
+### 对优先级 ② 的 Observation
+
+**`TaskGroup` 里同时有 `CaptchaSource` · `CloudflareSolverId` · `ProfileLimit` · `CheckoutLimit` · `TotalCheckouts` · `TotalDeclines`。**
+
+> **验证码来源、Cloudflare solver、配额、成败计数，**全部挂在任务组上，不是单任务上**。**
+> **一个组的任务共用同一套 solver 配置与配额。**
+
+### 为什么本轮仍不删
+
+**「可以删」和「现在就删」还差一件事：删掉之后有没有东西在读它。**
+**我查的是「有没有写」（0 处），没查「有没有读」。一个只读不写的字段可能被序列化进 `tasks.json` —— 那会改变输出文件结构，影响既有用例。**
+
+**→ 下一步是查读点，不是直接删。**
+
+### 这个对照的边界
+
+**「14/14 · 8/8 · 17/17」是用正则 `<属性名>` 在**整个模型文件**里搜的，不是解析属性声明。**
+**它证明「名字出现过」，不证明「都是那个类型的 public 属性」—— 是**上界宽松**的检查，会把注释里、别的类型里、局部变量同名的都算进去。**
+
+### 仍然 Unknown
+
+**`BotTask.Task` 是什么类型**（**若它是嵌套任务对象，「种类」可能在里面**）· **`Task.Type` 有没有读点**（决定能否安全删）·
+**`TaskGroup` 那套 solver 配置复刻件挂在哪**（`KasadaSolvers` / `CloudflareClearance` 在，挂载点没查）
+
+### 教训
+
+> **「这个字段存不存在」少了一个维度 —— **在哪个类型上**。**
+> **R858 我列了两种可能，实际是第三种：镜像有，但在另一个类型上。补上这个维度的成本极低，因为 R859 已经给出了按类型抽表的语法。**

@@ -720,3 +720,33 @@ Plus · PriceCheckVisible · Quantity · Sizes · Symbol · TogglePriceCheck
 | `NameTemplate` | **0 命中** —— 复刻件自己起的名字 |
 | `CheckoutDelay` | **0 命中** —— 同上 |
 | **`Type`** | **`CreateInputModel` 里没有；任务模型未查** |
+
+
+### 模型层从镜像取全；四个模型复刻件**全部齐备**（R860）
+
+**镜像的模型 schema（按 `类型,Cybersole.Core.属性!访问器` 语法抽取）：**
+
+| 模型 | 属性数 | 属性 |
+|---|---|---|
+| `BotTask` | 14 | MonitorDelay · MonitorMode · Product · Products · Profile · Properties · ProxyGroup · RetryDelay · Running · StartTime · Status · Store · Task · Timeout |
+| `BaseCheckout` | 8 | Image · Price · Product · Properties · Size · Store · Timestamp · **Type** |
+| `TaskGroup` | 17 | CaptchaSource · CheckoutLimit · CloudflareSolverId · LinkedDelays · MonitorDelay · Name · NextReset · Pinned · ProfileLimit · RetryDelay · Running · Tasks · Timeout · TotalCheckouts · TotalDeclines · UsageExpiry · Webhooks |
+| `WebTask` | 2 | Account · Steps |
+
+**复刻件对照：14/14 · 8/8 · 17/17 · 2/2 —— 全部齐备。**
+
+### 所以 R858 那个「留还是删」有答案了
+
+**镜像的 `Type` 在 `BaseCheckout`（结账记录）上，而**不在** `BotTask` 上（14 个属性里没有 Type）。**
+
+**而复刻件的 `BaseCheckout` 也有 `Type`（8/8）。**
+
+**所以 `Tasks.cs` 里那个没人写的 `Type` 是**冗余声明** —— 正确的那份在 `BaseCheckout` 上，已经有了。**
+
+### 两条对优先级 ② 有用的 Observation
+
+- **`TaskGroup.CaptchaSource`** —— 验证码来源是**任务组**级配置
+- **`TaskGroup.CloudflareSolverId`** —— Cloudflare solver 也是任务组级
+- **`TaskGroup.ProfileLimit` · `CheckoutLimit` · `TotalCheckouts` · `TotalDeclines`** —— 配额与计数也在组级
+
+**即：风控配置的挂载点是 `TaskGroup`，不是单任务。**

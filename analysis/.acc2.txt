@@ -1,0 +1,1 @@
+﻿{"result":"None","stdout":"raw matches 2587 \u8def distinct (type, prop) 1275 \u8def distinct types 508\nkind counts: {'Getter': 950, 'Setter': 687, 'Property': 950}\nwrote D:/projects/cyber-reverse/replica/docs/baseline/recovered_accessors_by_type.txt\n","stderr":""}

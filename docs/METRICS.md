@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-16 22:39:32 +0800 |
+| 生成时间 | 2026-11-16 22:45:44 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -20,7 +20,7 @@
 | 名字级绑定缺口 — missing | 16 |
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 17 |
-| 成员形状差异 — total mismatches | 78 |
+| 成员形状差异 — total mismatches | 94 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
 | 绑定缺口分桶 — backlog: types absent | 4 |
@@ -113,13 +113,25 @@ note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed
 
 ```
 cd D:\projects\cyber-reverse\replica
-C:\Python312\python.exe tools/shape_audit.py
+C:\Python312\python.exe tools/shape_audit.py --baseline
 ```
 
 `exit 0`
 
 ```text
+evidence: baseline (211 types, kinds kept)
 mismatches: member has Setter evidence but the replica is not a settable property
+  BotTask                    Products               evidence=Getter,Property,Setter     replica=prop-get
+  BotTask                    Running                evidence=Getter,Property,Setter     replica=?
+  BotTask                    Task                   evidence=Getter,Property,Setter     replica=?
+  Checkout                   Profile                evidence=Getter,Property,Setter     replica=?
+  CreateModel                Inputs                 evidence=Getter,Property,Setter     replica=?
+  Notification               Message                evidence=Getter,Property,Setter     replica=prop-get
+  Notification               Timestamp              evidence=Getter,Property,Setter     replica=?
+  Notification               Title                  evidence=Getter,Property,Setter     replica=?
+  Notification               Type                   evidence=Getter,Property,Setter     replica=prop-get
+  TaskGroup                  Running                evidence=Getter,Property,Setter     replica=prop-get
+  ClockService               Current                evidence=Getter,Property,Setter     replica=prop-get
   AccountGrid                Edit                   evidence=Getter,Property,Setter     replica=prop-get
   AccountGroupView           Delete                 evidence=Getter,Property,Setter     replica=?
   AccountGroupView           Save                   evidence=Getter,Property,Setter     replica=?
@@ -198,7 +210,12 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   StoreGroupModal            RemoveStore            evidence=Getter,Property,Setter     replica=method
   StoreGroupModal            Save                   evidence=Getter,Property,Setter     replica=?
   UtilitiesView              CreateStoreGroup       evidence=Getter,Property,Setter     replica=method
-total mismatches: 78
+  IWebhook                   Enabled                evidence=Getter,Property,Setter     replica=prop-get
+  IWebhook                   Events                 evidence=Getter,Property,Setter     replica=prop-get
+  IWebhook                   ExtraFields            evidence=Getter,Property,Setter     replica=prop-get
+  IWebhook                   Name                   evidence=Getter,Property,Setter     replica=prop-get
+  IWebhook                   Url                    evidence=Getter,Property,Setter     replica=prop-get
+total mismatches: 94
 ```
 
 ### 文案缺口总表
@@ -323,9 +340,9 @@ D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c
 `exit 0` · 1780 通过 / 0 失败 / 0 跳过 / 1780 总计
 
 ```text
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\HttpAnalyticsFlushTests.cs(57,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\GlobalSurfaceTests.cs(65,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\GlobalSurfaceTests.cs(66,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\HelpPageTests.cs(67,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\HttpAnalyticsFlushTests.cs(57,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\MethodPatchTableTests.cs(77,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\NavigatorCensusTests.cs(36,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(34,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
@@ -337,7 +354,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  1780，已跳过:     0，总计:  1780，持续时间: 45 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  1780，已跳过:     0，总计:  1780，持续时间: 56 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

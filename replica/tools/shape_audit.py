@@ -17,17 +17,24 @@ BASELINE = os.path.join(ROOT, "docs", "baseline", "recovered_accessors_by_type.t
 shape = collections.defaultdict(lambda: collections.defaultdict(set))
 
 if "--baseline" in sys.argv and os.path.exists(BASELINE):
+    # R886 format: one row per (type, property) with the accessor kinds kept, because the setter check
+    # below reads them. R883's format collapsed this to one row per type and dropped the kind, which made
+    # the check silently match nothing.
     for line in io.open(BASELINE, encoding="utf-8", errors="replace"):
-        parts = line.rstrip("\n").split("\t")
-        if len(parts) != 3 or line.startswith("#"):
+        if line.startswith("#"):
             continue
-        decl, _n, props = parts
+        parts = line.rstrip("\n").split("\t")
+        if len(parts) != 3:
+            continue
+        decl, prop, ks = parts
         short = decl.split(".")[-1]
-        for p in props.split(","):
-            p = p.strip().split(".")[-1]
-            if p:
-                shape[short][p].add("Property")
-    print("evidence: baseline (%d types)" % len(shape))
+        prop = prop.strip().split(".")[-1]
+        if not prop:
+            continue
+        for k in ks.split(","):
+            if k.strip():
+                shape[short][prop].add(k.strip())
+    print("evidence: baseline (%d types, kinds kept)" % len(shape))
 else:
     lines = io.open(POOL, encoding='utf-8', errors='replace').read().splitlines()
     rows = [m.group(2).strip() for m in (re.match(r'^\s*(0x[0-9a-f]+)\s+(.*)$', l) for l in lines) if m]

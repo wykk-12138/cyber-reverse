@@ -44,7 +44,7 @@ METRICS = [
     ("名字级绑定缺口", ["tools/bind_diff.py", "--buckets"], ["real gap", "missing"]),
     ("类型级绑定缺口", ["tools/bind_scope.py"], ["types with scope misses"]),
     ("类型缺失（type presence）", ["tools/bind_diff.py", "--type-presence"], ["types absent from source"]),
-    ("成员形状差异", ["tools/shape_audit.py"], ["total mismatches"]),
+    ("成员形状差异", ["tools/shape_audit.py", "--baseline"], ["total mismatches"]),
     ("文案缺口总表", ["tools/copy_audit_report.py"], ["copy: zones with a missing key"]),
     ("绑定缺口分桶", ["tools/backlog_report.py"], ["backlog: classes missing members", "backlog: types absent"]),
     # R466 fifth metric. Reads the TSV written by analysis/binding_descriptors.py (IDA-dependent, slow);

@@ -36,6 +36,10 @@
 | `0x1406458f0` | `Settings.Stores.DeleteConfirm.*` | **已实现**（R741，+2 条探针） | 与 sizes 同形（零值闸门 + int32 + 两文案）；**出厂文案说 presets，与 stores 屏无关，照抄** |
 | `0x140797d30` | `Accounts.DeleteConfirm.*` | **与另三个同形**（R742） | 不新增实现；accounts 至此是 **4 个原版函数 → 1 个实现**，**函数数差 -3** |
 | `0x140f77350` / `0x140f777e0` | `ProfileCsv` 校验器 | **已被 R718 覆盖** | 那 15 条探针就是这两个函数的（国家 / 州） |
+| `0x140713888` | `ProfileCsv.Status.ParseFailed` | **复刻件已实现**（R743） | 16 行的提示格式化器；`ProfileViews.cs` 已经在用这个键 |
+| `0x140720f8a` | `ProfileCsv.Status.ParseFailed` | **复刻件已实现**（R743） | 同上，另一个捕获点 |
+| `0x14071fd80` | `ProfileCsv.Status.Exported` | **不可探**（R743） | 200+ 行、50 局部变量的导出**编排器**；`Exported` 只是其中一句 |
+| `0x1407145a0` | `ProfileCsv.Status.IgnoredColumns` | **复刻件已实现**（R743） | 同上 |
 | `0x1407b8ac0` | `Update.Downloading*` | **不可探** | 构造下载对话框，**百分比参数硬编码为 0**，没有计算 |
 | `0x140654480` | `Common.Hour12/Hour24/Disabled` 等 | **不可探** | 构造选项列表：三个 `{label=槽位, value=0/1/2}` + 两个 `{label, value=0/1}`。**label↔value 的对应在槽位里，解不出**（同 R731）；结构本身（3 项/2 项）不足以断言行为 |
 

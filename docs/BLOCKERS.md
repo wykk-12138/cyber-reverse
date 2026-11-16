@@ -11473,3 +11473,72 @@ ranking 里有两个我早就有探针的函数：
 - 其余 108 个候选的形状：**Unknown** —— 台账一屏一屏填。
 - 「4 个同键函数是否真的一模一样」：**Inference（高）**，依据是四个 body 的头部逐行比对；
   **未做逐字节或逐分支的全等比较**。
+
+
+---
+
+## 172. CSV 簇：**复刻件已经实现了这个区域**，问题从「缺实现」变成「键选择是否一致」
+
+> R743。本轮未改产品代码。
+
+### 一、读了两个，一个太小一个太大
+
+| 候选 | 规模 | 结论 |
+|---|---|---|
+| `0x140713888` | **16 行** | 解析失败的提示格式化器：取模板、取 `ex.Message`、格式化、弹提示 |
+| `0x14071fd80` | **200+ 行、50 个局部变量** | 导出**编排器**，`Exported {0} rows to {1}` 只是其中一句 |
+
+**16 行的可断言，但只有一句 `string.Format`；200 行的不可探。两个都不值得单独写实现。**
+
+### 二、于是去查复刻件有没有这个区域 —— 有
+
+```
+Cybersole.Ui\Views\Profiles\ProfileViews.cs      Csv. 引用 50 处
+                                                 Couldn / Exported / Ignored unknown columns 各命中
+```
+
+**复刻件的 CSV 编辑/导入/导出流程已经存在。** 而它取的键与目录里的文案都对得上
+（目录本身就是从原版抽出来的，所以文案一致是**构造上就成立**的）。
+
+### 三、而目录露出的 CSV 文案比我 ranking 里的**多**
+
+`analysis/witness_ranking.py` 只按「函数引用了哪些键」聚合，所以只露出被那 4 个函数引用的几条。
+把目录里所有 CSV 键列出来，是 **8 条带占位符的**：
+
+```
+ProfileCsv.Status.ParseFailed      Couldn't read the CSV: {0}          ← ranking 里有
+ProfileCsv.Status.Exported         Exported {0} rows to {1}            ← 有
+ProfileCsv.Status.IgnoredColumns   Ignored unknown columns: {0}        ← 有
+ProfileCsv.Status.Imported         Merged {0} rows from {1}            ← **没有**
+ProfileCsv.Status.Replaced         Replaced {0} values                 ← 没有
+ProfileCsv.ConfirmDeleteFormat     Apply and delete {0} profiles       ← 没有
+ProfileCsv.Menu.SelectedCells      {0} CELLS SELECTED                  ← 没有
+ProfileCsv.Summary.*               {0} edited / errors / new / removed ← 没有
+```
+
+**ranking 的口径是"函数引用了什么"，不是"目录里有什么"。** 两者不等，这一轮才看清。
+
+### 四、于是真正待查的东西变了
+
+**不是**「CSV 簇缺 4 个实现」，**而是**：
+
+> **复刻件在什么条件下选哪条 CSV 文案，与原版是否一致？**
+
+**这个问题可查、有界，而且是新的一类检查**：
+
+- 已知：文案一致（同源目录）、复刻件有这个区域
+- **未知：键的选择条件是否一致**
+
+### 五、验证
+
+```
+本轮未改产品代码
+完整套件        1705 通过 / 0 失败（与 R742 相同）
+已审候选        25 / 129（新增 4 个：2 个"复刻件已实现"、1 个"太大"、1 个"太薄"）
+```
+
+### 六、仍然 Unknown
+
+- **复刻件选键的条件与原版是否一致**：**Unknown** —— 这是本轮新提出的问题，未查。
+- ranking 口径（函数引用）与目录口径（键存在）的差有多大：**Unknown** —— 只在这一簇上看到了。
+- `0x14071fd80` 那 200 行里除 `Exported` 之外的行为：**Unknown**（未读；读了也超出探针范围）。

@@ -13711,3 +13711,79 @@ offspring     仍是 71%（与原状一致）
   **在确认之前就给它建 flow，就是这一轮犯的错。**
 - `office` 是 App 面的另一个 client：**Unknown** —— 同样不能因字符串存在就建模块。
 - Poq 的支付端点：**Unknown** —— 池子里没有。
+
+
+---
+
+## 200. App 面不是 flow 家族，是**一套请求身份** —— 上一轮的方向错在层级
+
+> R774。未改产品代码。
+
+### 一、先问该先问的问题
+
+上一轮我被 `PlatformAssignmentTests` 驳回后才意识到：**该先问「原版有没有把 Poq 当作平台」**。
+这一轮就查这个。平台名在原版里是一族词（`Demandware` / `Hybris` / `Magento`），
+**如果 `Poq` 在这族里，建 flow 才有结构依据。**
+
+### 二、结果：不在那一族里，而在**请求头**里
+
+`^Poq` 与 `^poq` 各 7 条（Observation）：
+
+```
+Poq-Native-iOS-App          ← User-Agent
+poq-app-id
+poq-app-identifier
+poq-country-identifier
+poq-currency-identifier
+poq-slot-conditions
+poq-user-id                 ← 5 个自定义请求头
+```
+
+**原版冒充的是 Poq 的 iOS App。** 这不是「一个新平台类型」，是**一个请求身份** ——
+**所以它属于第 3 优先级（请求与指纹层），不属于第 1（站点 flow）。**
+
+**上一轮我把它当成第 1 层的东西去建，层级就错了。** 驳回我的那个测试说的是网页面的平台，
+而这一族字符串说的是 App 面的身份 —— **两条证据不在同一层，所以并不矛盾。**
+
+### 三、复刻件现状（Observation）
+
+```
+poq                    Registry.cs(1)  ← 只是我上一轮加的那条注释
+Poq                    CanvasTable.Generated.cs(1)  ← 无关
+Poq-Native-iOS-App     ABSENT
+poq-app-id             ABSENT
+poq-slot-conditions    ABSENT
+poq-user-id            ABSENT
+```
+
+**整套 App 身份在复刻件里一处都没有。**
+
+身份层的现有落点：`BrowserIdentity.cs`（95 行，会话级浏览器身份）、
+`BrowserFingerprint.cs`（193 行）、`BrowserProfile.cs`（15 行）、`BrowserShim.cs`（204 行）。
+
+### 四、**为什么这一轮仍然不写代码**
+
+有两个理由，都指向同一个动作：
+
+1. **写一个没有任何调用方的 `PoqAppIdentity` 类，就是新的死代码** ——
+   上一轮我删掉 `PoqFlow` 用的正是这条理由，这一轮不能反过来用它。**前后要一致。**
+2. **「原版有没有一条驱动 App 面的任务类型」仍然是 Unknown。**
+   `Poq-Native-iOS-App` 出现在池子里，**说明原版会发这个 UA**，但**发在哪个环节、由哪种任务触发，不知道**。
+   **没确认就建，正是上一轮犯的错。**
+
+**所以本轮交付的是判断，不是代码：这套东西的归属层级确定了，落点也有了，缺的是「谁用它」。**
+
+### 五、验证
+
+```
+本轮未改产品代码
+完整套件保持 1752 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **驱动 App 面的任务类型**：**Unknown** —— 这是唯一挡在实现前面的问题。
+  候选查法：找发送 `Poq-Native-iOS-App` 的调用点（`-12` 处取 xref），看它属于哪条路径。
+- `poq-app-id` 等头的**取值**：**Unknown** —— 只有头名，没有值。
+- `poq-slot-conditions` 的语义：**Unknown** —— 「slot」在 Poq 里可能指投放位或时段条件。
+- `office` client 与 `offspring` client 的头是否不同：**Unknown**。

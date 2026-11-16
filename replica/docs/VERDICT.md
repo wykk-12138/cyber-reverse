@@ -47536,3 +47536,42 @@ Registry.cs 恢复 + 注释写明两种表面 · PoqFlow.cs 删除
 ### 仍然 Unknown
 
 **原版有没有走 App 面的模块** —— 在确认之前给它建 flow 就是这一轮犯的错。
+
+
+---
+
+## 第 774 轮：层级搞错了，不是方向搞错了
+
+### 先问该先问的问题
+
+上一轮被测试驳回后我才想到：**该先查「原版有没有把 Poq 当作平台名」**。平台名在原版里是一族词。
+
+### 结果：不在那一族，在请求头里
+
+```
+Poq-Native-iOS-App      ← User-Agent
+poq-app-id · poq-app-identifier · poq-country-identifier
+poq-currency-identifier · poq-slot-conditions · poq-user-id
+```
+
+**原版冒充 Poq 的 iOS App。这不是新平台，是一个请求身份。**
+**所以它属于第 3 优先级（请求与指纹层），不属于第 1（站点 flow）。**
+
+**上一轮的错在层级：** 驳回我的测试说的是网页面（Hybris），这一族字符串说的是 App 面身份 ——
+**两条证据不在同一层，并不矛盾。**
+
+### 复刻件现状
+
+整套 App 身份**一处都没有**。身份层现有落点是 `BrowserIdentity` / `BrowserFingerprint` / `BrowserShim`。
+
+### 为什么这轮仍然不写代码
+
+1. 写一个没有调用方的 `PoqAppIdentity` 就是新的死代码 —— **上一轮删 `PoqFlow` 用的正是这条理由，这轮不能反过来用。**
+2. **「谁发这个 UA」仍是 Unknown。** 出现在池子里说明原版会发，**但由哪种任务、在哪个环节，不知道。**
+
+**所以本轮交付的是判断：归属层级确定了，落点有了，缺的是「谁用它」。**
+
+### 仍然 Unknown
+
+**驱动 App 面的任务类型** —— 唯一挡在实现前面的问题。
+查法：找发送 `Poq-Native-iOS-App` 的调用点（`-12` 取 xref），看它属于哪条路径。

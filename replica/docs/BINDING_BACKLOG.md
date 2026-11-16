@@ -771,3 +771,24 @@ platform.poq.io/clients/office/{AtaVerifyCaptcha, recaptcha?trackingId=}
 被 `PlatformAssignmentTests` 的实机证据否掉。**"镜像里有某个面的字符串" ≠ "这个面就是它"。**
 
 **R772 建、R773 回滚，净改动为零。** 证据记在 BLOCKERS §199 与 §198。
+
+
+## 请求与指纹层 — Poq App 身份（R774）
+
+**证据（Observation）**：`Poq-Native-iOS-App`（UA）+ `poq-app-id` / `poq-app-identifier` /
+`poq-country-identifier` / `poq-currency-identifier` / `poq-slot-conditions` / `poq-user-id`（请求头）。
+
+**归属**：第 3 优先级（请求与指纹层），**不是**站点 flow —— 上一轮错在这一层，见 R772/R773。
+
+**复刻件现状**：整套身份**一处都没有**。
+
+| 项 | 状态 |
+|---|---|
+| **谁发送这个 UA** | **Unknown —— 唯一挡在实现前面的事** |
+| 查法 | 对 `Poq-Native-iOS-App` 在 `chars-12` 处取 xref，读调用点属于哪条路径 |
+| 头的取值 | Unknown（只有头名） |
+| `poq-slot-conditions` 语义 | Unknown |
+| `office` 与 `offspring` 的头是否相同 | Unknown |
+
+**实现前提**：确认调用链之后，把这套身份加进 `BrowserIdentity` / `BrowserFingerprint` 一族，
+**不要建独立死类**（R772 的教训）。

@@ -3044,3 +3044,56 @@ after :  boxSkuId 优先；没有就退到 c.Session.VariantId；两者都无才
 
 **第三个用例第一次是红的，因为我用了固定 2400 字符窗口，第四个端点被截掉了 ——
 **那是一次「测试写错而不是代码写错」的红**，而它说明固定长度窗口本身是个坏做法。**
+
+
+### 让数据挑目标：最高杠杆的四个名字全在 HTTP 客户端上（R910）
+
+**前面几轮的目标是「碰巧注意到的」。这一轮按镜像里的出现次数排序缺失名字。**
+
+**新工具 `tools/absent_by_leverage.py`。排序后前四名：**
+
+| 名字 | 镜像引用次数 |
+|---|---|
+| **`StartAsync`** | **19** |
+| **`HandleResponse`** | **18** |
+| **`StopAsync`** | **14** |
+| `WriteToAsync` | 7 |
+| `ScrapeProduct` · `ScrapeJson` · `GetOwnProperties` · `DisposeAsyncCore` | 各 7 |
+
+### 而前四名里三个是 HTTP 客户端的生命周期
+
+**查过：`BouncyHttpClient` 在，但 `StartAsync` / `StopAsync` / `HandleResponse` / `DisposeAsyncCore`
+**全库一个都没有**。**
+
+**而它的 `Dispose()` 是**空体** —— `public void Dispose() { }`，正是 R850 的「有形状无内容」，换了个名字。**
+
+### 改了什么
+
+| 改动 | 依据 |
+|---|---|
+| `ParseResponse` → **`HandleResponse`** | **同一概念，用镜像的名字** |
+| `+ StartAsync` · `+ StopAsync` · `+ IsRunning` | 生命周期 |
+| `+ DisposeAsyncCore` · `+ IAsyncDisposable` | 异步释放 |
+| `Dispose()` 不再空 | `StopAsync` 里 `_analytics?.Flush()` |
+
+**而 `StartAsync` 在 `StopAsync` 之后**拒绝启动**（抛 `NetException`）—— 不是因为镜像这么做，
+是因为**允许复活已释放的客户端会让错误推到后面的 socket 失败上**。**
+
+### 数字，而这一轮可以验算
+
+| 度量 | R909 | **R910** |
+|---|---|---|
+| 套件 | 1808 | **1815** |
+| 异步覆盖 | 311（20.1%） | **315（20.4%）** |
+| **缺失名承载的出现次数** | **1523** | **1465** |
+
+**58 的差，正好等于那四个名字的引用次数之和：19 + 18 + 14 + 7 = **58**。**
+
+**这是这一串度量工作里第一次出现**事先可算的预测与实际相符**：
+加哪些名字之前就知道会减去多少，而结果一分不差。**
+
+### 而新的缺失榜首已经换人了
+
+`WriteToAsync` 7 · `ScrapeProduct` 7 · `ScrapeJson` 7 · `GetOwnProperties` 7 · `WriteRawAsync` 6
+
+**其中 `ScrapeProduct` / `ScrapeJson` 属优先级 ①（抓商品），`WriteToAsync` / `WriteRawAsync` 属 ③（IO）。**

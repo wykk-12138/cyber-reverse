@@ -4914,3 +4914,39 @@ after :  boxSkuId → 回退 c.Session.VariantId → 都无才失败
 | 5 个 AddToCart 真缺口 | 各自实现未读 |
 
 **纪律**：**「有调用者」要问第二句 —— 那个调用者跑得到吗？**
+
+
+## 优先级 ③ — HTTP 客户端生命周期四个名字（R910，**改产品代码 +7 用例**）
+
+### 选择依据换成杠杆
+
+**`tools/absent_by_leverage.py` 按镜像引用次数排序缺失名：`StartAsync` 19 · `HandleResponse` 18 · `StopAsync` 14 · `DisposeAsyncCore` 7。**
+
+### 而这三个是 HTTP 客户端生命周期，全库没有；`Dispose()` 是空体（R850 同形）
+
+**改动**：`ParseResponse` → `HandleResponse` · `+StartAsync` · `+StopAsync` · `+IsRunning` ·
+`+DisposeAsyncCore` · `+IAsyncDisposable` · `Dispose()` 不再空
+
+**`StartAsync` 在 `StopAsync` 后拒绝启动** —— 防止复活已释放的客户端把错误推到 socket 层。
+
+### 数字（可验算）
+
+| 度量 | R909 | **R910** |
+|---|---|---|
+| 套件 | 1808 | **1815** |
+| 异步覆盖 | 311（20.1%） | **315（20.4%）** |
+| **缺失名承载出现次数** | **1523** | **1465** |
+
+**58 的差 = 19+18+14+7，**事先可算，结果一分不差** —— 这一串度量里第一次。**
+
+### 新榜首
+
+**`WriteToAsync` 7 · `ScrapeProduct` 7 · `ScrapeJson` 7 · `GetOwnProperties` 7 · `WriteRawAsync` 6**
+
+| 仍 Unknown | |
+|---|---|
+| `StartAsync` 原版里具体做什么 | 可能预热连接池或预协商 TLS |
+| `ScrapeProduct`/`ScrapeJson` 是否同族 | 属 ① |
+| `GetOwnProperties` 属什么层 | 反射 |
+
+**纪律**：**一个可以被预测的改进，说明选择依据是结构而不是记忆。**

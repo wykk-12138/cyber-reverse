@@ -726,3 +726,15 @@ BoxGoodsList 与 BoxExtract 刻意不接：FindProduct 取 json、FindVariant �
 一次测试写错的红：固定 2400 字符窗口截掉第四个端点 → 改成取到下一个 override。
 
 纪律：「有调用者」要问第二句 —— 那个调用者跑得到吗？
+
+## R910 补充 — HTTP 客户端生命周期四名字（改产品代码 +7 用例，套件 1808→1815）
+
+新工具 tools/absent_by_leverage.py 按镜像引用次数排序缺失名：StartAsync 19 · HandleResponse 18 · StopAsync 14 · DisposeAsyncCore 7 —— 这四个全库没有，而 BouncyHttpClient.Dispose() 是空体（R850 同形）。
+
+改动：ParseResponse → HandleResponse · +StartAsync · +StopAsync · +IsRunning · +DisposeAsyncCore · +IAsyncDisposable · Dispose 不再空。
+
+数字：套件 1815 · 异步覆盖 311 → 315（20.4%）· 缺失名承载出现次数 1523 → 1465。
+58 的差 = 19+18+14+7 —— 事先可算，结果一分不差。这一串度量里第一次。
+
+新榜首：WriteToAsync 7 · ScrapeProduct 7 · ScrapeJson 7 · GetOwnProperties 7 · WriteRawAsync 6。
+ScrapeProduct/ScrapeJson 属 ①（抓商品）—— 下一轮从这里挑。

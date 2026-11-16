@@ -54235,3 +54235,58 @@ after :  boxSkuId 优先；没有就退到 VariantId；两者都无才失败
 
 > **R908 那轮我报的是「4/6 有调用者」。而其中一条新接上的端点所属的方法**根本调不到**。
 > 所以「有调用者」要问第二句：**那个调用者跑得到吗？****
+
+
+---
+
+## 第 910 轮：让数据挑目标 —— 最高杠杆的四个名字全在 HTTP 客户端上
+
+### 按镜像出现次数排序缺失名字
+
+| 名字 | 次数 |
+|---|---|
+| **`StartAsync`** | **19** |
+| **`HandleResponse`** | **18** |
+| **`StopAsync`** | **14** |
+| `WriteToAsync` | 7 |
+| `ScrapeProduct` · `ScrapeJson` · `GetOwnProperties` · `DisposeAsyncCore` | 各 7 |
+
+### 而前四名里三个是 HTTP 客户端的生命周期
+
+**`BouncyHttpClient` 在，但 `StartAsync` / `StopAsync` / `HandleResponse` / `DisposeAsyncCore` **全库没有**。**
+
+> **而它的 `Dispose()` 是**空体** —— `public void Dispose() { }`，正是 R850 的「有形状无内容」，换了个名字。**
+
+### 改了什么
+
+| 改动 | 依据 |
+|---|---|
+| `ParseResponse` → **`HandleResponse`** | 同一概念，用镜像的名字 |
+| `+ StartAsync` · `+ StopAsync` · `+ IsRunning` | 生命周期 |
+| `+ DisposeAsyncCore` · `+ IAsyncDisposable` | 异步释放 |
+| `Dispose()` 不再空 | `_analytics?.Flush()` |
+
+**`StartAsync` 在 `StopAsync` 之后拒绝启动（抛 `NetException`）—— 不是镜像这么做，而是
+**允许复活已释放的客户端会把错误推到后面的 socket 失败上**。**
+
+### 数字，而这一轮可以验算
+
+| 度量 | R909 | **R910** |
+|---|---|---|
+| 套件 | 1808 | **1815** |
+| 异步覆盖 | 311（20.1%） | **315（20.4%）** |
+| **缺失名承载的出现次数** | **1523** | **1465** |
+
+> **58 的差 = 19 + 18 + 14 + 7。**
+> **这是这一串度量工作里第一次出现**事先可算的预测与实际相符** —— 加哪些名字之前就知道会减去多少，结果一分不差。**
+
+### 新的缺失榜首
+
+**`WriteToAsync` 7 · `ScrapeProduct` 7 · `ScrapeJson` 7 · `GetOwnProperties` 7 · `WriteRawAsync` 6**
+**→ `ScrapeProduct`/`ScrapeJson` 属 ①（抓商品）；`WriteToAsync`/`WriteRawAsync` 属 ③（IO）。**
+
+### 教训
+
+> **前面几轮我挑目标的依据是「刚注意到什么」，而这一轮是「哪里被引用得最多」。**
+> **两者差别的证据是：这一轮的数字可以**事先算出来**，而之前的不能。**
+> **一个可以被预测的改进，说明选择依据是结构而不是记忆。**

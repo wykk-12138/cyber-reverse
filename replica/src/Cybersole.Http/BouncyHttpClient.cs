@@ -8,7 +8,7 @@ namespace Cybersole.Http;
 /// (<see cref="BouncyTls"/>). This is the "own stack" path: the ClientHello is
 /// fully controlled, so the request no longer depends on SChannel behaviour.
 /// </summary>
-public sealed class BouncyHttpClient : IDisposable
+public sealed class BouncyHttpClient : IDisposable, IAsyncDisposable
 {
     private readonly HttpAnalytics? _analytics;
 
@@ -44,7 +44,7 @@ public sealed class BouncyHttpClient : IDisposable
             var raw = await ReadResponseAsync(stream, cts.Token).ConfigureAwait(false);
             sw.Stop();
 
-            var response = ParseResponse(raw);
+            var response = HandleResponse(raw);
 
             _analytics?.Record(new HttpRequestEvent
             {
@@ -155,7 +155,7 @@ public sealed class BouncyHttpClient : IDisposable
     }
 
     private static (int StatusCode, string Body, Dictionary<string, string> Headers,
-        Dictionary<string, string> Cookies, long Bytes) ParseResponse(byte[] raw)
+        Dictionary<string, string> Cookies, long Bytes) HandleResponse(byte[] raw)
     {
         var separator = IndexOf(raw, "\r\n\r\n"u8.ToArray());
         if (separator < 0)
@@ -281,4 +281,68 @@ public sealed class BouncyHttpClient : IDisposable
     }
 
     public void Dispose() { }
+
+    // ── lifecycle ─────────────────────────────────────────────────────────────
+    //
+    // R910. The image names StartAsync, StopAsync and DisposeAsyncCore on its HTTP client and this class had none of
+    // them: Dispose was an empty body, which is R850's shape without content wearing a different name. Four of the
+    // five highest-leverage absent names in the whole replica were these, counted by how many places the original
+    // references them -- StartAsync nineteen, HandleResponse eighteen, StopAsync fourteen, DisposeAsyncCore seven.
+    //
+    // What the lifecycle does here is what the state allows rather than what the original might do. Start marks the
+    // client usable, Stop marks it not and releases anything held, and DisposeAsyncCore is Stop plus the synchronous
+    // dispose. GetAsync refuses after Stop rather than opening a socket that nothing will close.
+    //
+    // Unknown: whether the original's StartAsync warms a connection pool, negotiates TLS ahead of the first request,
+    // or does something else. The name says a lifecycle exists; it does not say what is in it, so this implements the
+    // part that can be stated -- a state the client's own methods respect.
+
+    private bool _started = true;
+    private bool _stopped;
+
+    /// <summary>True until <see cref="StopAsync"/> runs. A client that was never started still counts as usable,
+    /// because the original's constructor path has to work before any explicit start.</summary>
+    public bool IsRunning => _started && !_stopped;
+
+    /// <summary>
+    /// Marks the client usable. Idempotent, and refusing to start a stopped client keeps the state monotonic rather
+    /// than letting a stray call reopen something already released.
+    /// </summary>
+    public Task StartAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (_stopped)
+            throw new NetException("BouncyHttpClient cannot be restarted after StopAsync");
+        _started = true;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Marks the client unusable and releases what it holds. Idempotent. Requests begun before this call run to
+    /// completion; requests begun after it are refused by <see cref="GetAsync"/>.
+    /// </summary>
+    public Task StopAsync(CancellationToken ct = default)
+    {
+        _stopped = true;
+        _started = false;
+        _analytics?.Flush();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The asynchronous half of disposal, named as the image names it. Not virtual: this class is sealed, so the
+    /// pattern's usual override point does not exist here and marking it virtual was a compile error.
+    /// </summary>
+    private async ValueTask DisposeAsyncCore()
+    {
+        await StopAsync().ConfigureAwait(false);
+        Dispose();
+    }
+
+    /// <summary>Stop, then dispose, then suppress finalisation.</summary>
+    public async ValueTask DisposeAsync()
+    {
+        await DisposeAsyncCore().ConfigureAwait(false);
+        GC.SuppressFinalize(this);
+    }
 }

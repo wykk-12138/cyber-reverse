@@ -25085,3 +25085,67 @@ metrics_report.py                    -> 1808 通过 / 0 失败
 
 **这一轮两个数字（4/6、175）都没动，而可达性变了 —— 所以数字不动不等于没有改进，
 也不等于改进被记下来了。**
+
+
+---
+
+## 334. HTTP 客户端生命周期四名字；缺失出现次数 1523 → 1465（可验算）
+
+> R910。**改产品代码 +7 用例。** 套件 **1815 通过 / 0 失败 / 0 跳过**。
+
+### 一、选择依据换成杠杆
+
+**新增 `tools/absent_by_leverage.py`：按镜像引用次数排序缺失名。**
+
+| 名字 | 次数 |
+|---|---|
+| **`StartAsync`** | **19** |
+| **`HandleResponse`** | **18** |
+| **`StopAsync`** | **14** |
+| `WriteToAsync` | 7 |
+| `ScrapeProduct` · `ScrapeJson` · `GetOwnProperties` · `DisposeAsyncCore` | 各 7 |
+
+### 二、前四名里三个是 HTTP 客户端生命周期，全库没有
+
+**而 `BouncyHttpClient.Dispose()` 是**空体** —— R850 的「有形状无内容」，换了名字。**
+
+### 三、改动
+
+| 改动 | 依据 |
+|---|---|
+| `ParseResponse` → `HandleResponse` | 同一概念，用镜像名字 |
+| `+ StartAsync` · `+ StopAsync` · `+ IsRunning` | 生命周期 |
+| `+ DisposeAsyncCore` · `+ IAsyncDisposable` | 异步释放 |
+| `Dispose()` 不再空 | `_analytics?.Flush()` |
+
+**`StartAsync` 在 `StopAsync` 之后抛 `NetException`** —— 防止复活已释放的客户端。
+
+### 四、数字可验算
+
+| 度量 | R909 | **R910** |
+|---|---|---|
+| 套件 | 1808 | **1815** |
+| 异步覆盖 | 311（20.1%） | **315（20.4%）** |
+| 缺失名承载出现次数 | **1523** | **1465** |
+
+**58 = 19 + 18 + 14 + 7。事先可算，结果一分不差。**
+
+### 五、一次编译错
+
+**`DisposeAsyncCore` 第一次写成 `protected virtual`，而 `BouncyHttpClient` 是 `sealed` → CS0549。
+改成 `private`，并在注释里写明「这个类的密封使得惯常的 override 点不存在」。**
+
+### 六、仍然 Unknown
+
+- **`StartAsync` 在原版里具体做什么**：**Unknown** —— 可能预热连接池、预协商 TLS，或别的。
+  **名字说明有生命周期，不说生命周期里有什么。**
+- **`ScrapeProduct` / `ScrapeJson` 是否同族**：**Unknown**，属优先级 ①。
+- **`GetOwnProperties` 属哪层**：**Unknown** —— 名字像反射。
+
+### 七、教训
+
+**前面几轮挑目标的依据是「刚注意到什么」，这一轮是「哪里被引用得最多」。**
+
+**而两者差别的证据是：这一轮的数字可以**事先算出来**，而之前的不能。**
+
+**一个可以被预测的改进，说明选择依据是结构而不是记忆。**

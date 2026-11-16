@@ -3258,3 +3258,34 @@ R857 顶层是种类 → R858 `Task.Type` 死字段 → R859 创建表单无 Typ
 | 委托初始化点是否全无 xref | R504 只查两块描述符 |
 
 **纪律**：**backlog 是「已经走不通的路」的清单。R504 记下后，我在 R824–R828 又重试了五轮。**
+
+
+## 判据 — 天花板只挡 UI（R863）
+
+**42 条点名的类全部 UI**：`AccountGrid` `AccountGroupView` `ActionsModal` `CreateGroupModal` `DesktopNotification`
+`GoogleLogin` `InputModal` `MessageBoxDialog` `PublishTemplateModal` `StoreGroupModal`
+**成员：`Add` `Clear` `Close` `Delete` `Edit` `OpenUrl` `Save` `Start` `StartAll`**
+
+| 层 | R504 天花板 |
+|---|---|
+| **UI 成员行为** | **挡**（YG 已明令暂缓） |
+| **核心流程行为** | **不挡** |
+
+### 核心走另一条路
+
+**核心一步 = 方法发一个请求 → 行为证据在三处：端点串（R849 39 个全在）· 序列与 ordinal（R851–R856）· 参数记号（R850）。**
+
+> **核心的行为证据是「发什么请求」，UI 的是「改什么状态」。前者在字符串池与 `.pdata` 里活着，后者被内联吃掉。**
+
+### 待 YG 的确认（分量已变）
+
+> 核心层功能相等可靠请求证据推进；UI 层行为静态拿不到，而那是暂缓部分。
+> **按现优先级做核心、UI 行为记 Unknown —— 这条路认可吗？或先给凭据让 UI 层也能验。**
+
+| 仍 Unknown | |
+|---|---|
+| 核心类里「有方法但行为不明」的成员 | 42 条筛的是「既无方法也无属性」，这批未查 |
+| `TaskGroup` solver 配置是属性还是方法 | 未查 |
+| UI 不做时「1:1」怎么表述 | **要 YG 定** |
+
+**纪律**：**天花板的作用域和天花板本身一样重要 —— 不说「哪些行为」，就等于说「全都拿不到」。**

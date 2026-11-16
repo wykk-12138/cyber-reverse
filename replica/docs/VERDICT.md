@@ -51725,3 +51725,58 @@ type could be an engine handle, an interface or a string id … so it stays name
 
 > **这个天花板从 R504 起就在第 38 行，而我在这之后的**约 360 轮**里，又在 R824–R828 重试了同一条路五轮。**
 > **backlog 不是备忘，它是「已经知道走不通的路」的清单。不读它，就会重复走。**
+
+
+---
+
+## 第 863 轮：那个天花板只挡 UI；核心的行为有另一条路
+
+### 那 42 条点名的类，全部是 UI
+
+```
+AccountGrid · AccountGroupView · ActionsModal · CreateGroupModal · DesktopNotification
+GoogleLogin · InputModal · MessageBoxDialog · PublishTemplateModal · StoreGroupModal
+```
+
+**成员：`Add` `Clear` `Close` `Delete` `Edit` `OpenUrl` `Save` `Start` `StartAll` —— UI 按钮动作。**
+
+### 所以天花板的作用域
+
+| 层 | 挡不挡 |
+|---|---|
+| **UI 成员行为** | **挡** —— 而 YG 明令「ui先不急着复刻」，排第 4 位 |
+| **核心流程行为** | **不挡** |
+
+### 核心为什么走另一条路
+
+**R504 的三条断点（描述符无 xref · setter 内联 · `ICommand` 委托点无类型信息）全是**UI 属性**的性质 ——
+一个按钮的 `Save` 做什么，没有独立函数体可读。**
+
+**而核心的一步是**方法发一个请求**，它的行为可以从三处证：**
+
+| 证据 | 已到哪一步 |
+|---|---|
+| 端点串（`/shop/v1/drawScratch/draw`） | R849 核过 39 个全在 |
+| 步骤序列 + ordinal | R851–R856 |
+| 请求参数记号（`_uniqCode` / `storeUniqCode` / `Drawno`） | R850 |
+
+> **核心的行为证据是「它发什么请求」，UI 的行为证据是「它改什么状态」。
+> 前者在字符串池与 `.pdata` 里活着，后者被内联吃掉了。**
+
+### 那个问题要重问，但分量变了
+
+> **核心层的功能相等我能靠请求证据推到较高程度；UI 层的行为（按钮 Save/Clear/Delete 改什么）静态拿不到，
+> 而那是你已明令暂缓的部分。所以我按现在的优先级做核心，UI 行为一律记 Unknown —— 这条路你认可吗？
+> 或者你想先把凭据给我，让 UI 那层也能验。**
+
+**这不再是「通不过的关卡」，是一个优先级确认。**
+
+### 仍然 Unknown
+
+**核心类里有没有「属性式」成员踩同一条断点**（42 条筛的是「既无方法也无属性」，**核心类里「有方法但行为不明」的成员可达性没查**）·
+**`TaskGroup` 那套 solver 配置是属性还是方法** · **UI 不做时「1:1」怎么表述**（要 YG 定）
+
+### 教训
+
+> **一个天花板的作用域，和天花板本身一样重要。**
+> **「静态拿不到行为证据」这句话，如果不说**哪些**行为，就等于说「全都拿不到」。**

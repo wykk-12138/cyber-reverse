@@ -816,3 +816,44 @@ so it stays named in docs/BINDING_BACKLOG.md.
 把 setter 内联、把描述符做成无 xref 的数据，静态工具在原理上够不到。**
 
 **所以完成判据里混了两种东西：存在性（可达）与行为（不可达，除非运行期）。**
+
+
+### R504 的天花板**只挡 UI**；核心的行为有另一条路（R863）
+
+**42 条里点名的类，全部是 UI：**
+
+```
+AccountGrid · AccountGroupView · ActionsModal · CreateGroupModal · DesktopNotification
+GoogleLogin · InputModal · MessageBoxDialog · PublishTemplateModal · StoreGroupModal
+```
+
+**成员是 `Add` · `Clear` · `Close` · `Delete` · `Edit` · `OpenUrl` · `Save` · `Start` · `StartAll` ——
+都是 UI 上的按钮动作。**
+
+### 所以
+
+| 层 | R504 的天花板挡不挡 |
+|---|---|
+| **UI 成员行为** | **挡 —— 而 YG 2026-11-16 明令「ui先不急着复刻」** |
+| **核心流程行为** | **不挡 —— 走的是另一条路（见下）** |
+
+### 核心为什么不受影响
+
+**R504 的断点有三条：描述符无 xref、setter 内联、`ICommand` 委托点无类型信息。
+这三条都是**UI 属性**的问题 —— 一个按钮的 `Save` 属性做什么，没有独立函数体可读。**
+
+**而核心步骤不是属性，是**方法发一个请求**。它的行为可以从三处证：**
+
+1. **端点串**（`/shop/v1/drawScratch/draw` 这类，R849 已核 39 个全在）
+2. **步骤序列与 ordinal**（R851–R856：哪几步、什么顺序、归哪一层）
+3. **请求参数记号**（R850：`_uniqCode` / `storeUniqCode` / `Drawno`）
+
+**所以核心的行为证据是「它发什么请求」，而 UI 的行为证据是「它改什么状态」。
+前者在字符串池与 `.pdata` 里，后者被内联吃掉了。**
+
+### 这对「每个函数功能相等」意味着
+
+**这条判据在核心层**部分可达**（能证发什么请求），在 UI 层**不可达**（除非运行期差分）。**
+
+**而 YG 的优先级已经把 UI 排在第 4 位。所以核心做到底时，
+「功能相等」在核心层是有证据的；剩下的行为 Unknown 集中在被暂缓的 UI 层。**

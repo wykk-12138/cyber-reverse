@@ -112,7 +112,10 @@ public class FlowSequenceTests
         // (56 through 77, the one holding the five Start-prefixed flows), while Pop Mart's own run starts at 104. So
         // implementing a step and the step being in this sequence are separate facts, and this test now pins both:
         // the coverage counts only names the sequence declares.
-        Assert.Equal(174, map.Count);
+        // R908 added AddToCartBoxAsync, taking the map from 174 to 175. It is not one of Pop Mart's twenty-four
+        // names either, so the sequence's coverage stays at eight: the image has the method and the flow does not
+        // list it, the same split as FindProductInstore.
+        Assert.Equal(175, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
         Assert.Equal(8, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");

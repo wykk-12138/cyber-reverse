@@ -24956,3 +24956,64 @@ tools/addtocart_family.py                  -> 8 有 / 7 缺，逐个列出镜像
 
 **如果我按两格报，`AddToCartDummy` 会进待补清单；按四格报，它出局。
 一个字的差别决定它占不占一轮。**
+
+
+---
+
+## 332. `AddToCartBox` 实现：5 条死端点接上了调用者；虚步骤 174 → 175
+
+> R908。**改产品代码。** 套件 **1805 通过 / 0 失败 / 0 跳过**。
+
+### 一、先核了一遍
+
+| 端点 | 之前 |
+|---|---|
+| `AddBoxListToCart` | **1 个**（`AddToCart` 在用） |
+| 其余 5 条 | **全无** |
+
+**所以 R907 的「6 条没被调用」要修成「1 有 5 无」。而那一 条让整族看起来被覆盖。**
+
+### 二、四步链
+
+**`BoxSpuDetail?skuId=` → `BoxSetPreview?skuId=` → `BoxSetExtract` → `AddBoxListToCart`**
+
+**`AddToCartBox` 不在 PopMart 的 24 名里 → 方法在、序列不列，同 `FindProductInstore`。**
+
+### 三、数字
+
+| 度量 | 之前 | 之后 |
+|---|---|---|
+| `StoreFlow` 虚步骤 | 174 | **175** |
+| `implementable` | 8 | **8**（不变） |
+| 异步覆盖 | 310（20.0%） | **311（20.1%）** |
+| box 端点有调用者 | 1 / 6 | **4 / 6** |
+
+### 四、剩下两条无调用者
+
+- **`BoxGoodsList`（`goodsListV2`）**：列表端点 —— 属「发现」，不该由加车方法用。
+- **`BoxExtract`（`/box/extract`）vs `BoxSetExtract`（`/box_set/extract`）**：两个变体，我用了后者。
+
+### 五、验证
+
+```
+box 常量调用者计数           -> 之前 1/6，之后 4/6
+StoreFlow 虚步骤             -> 175
+test --filter FlowSequenceTests -> 7 通过
+async_method_coverage.py     -> 311 / 1547 = 20.1%
+metrics_report.py            -> 1805 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **四步的顺序**：**Inference** —— 名字的自然读法，非观察。
+- **每步的请求体**：**Unknown** —— 所以用最小 payload。
+- **`BoxGoodsList` 与 `BoxExtract` 的调用者**：**Unknown**。
+
+### 七、教训
+
+**「1 条有调用者」比「零条」更危险 —— 它让整族看起来被覆盖。**
+
+**而我上一轮写「6 条端点没被调用」时，就是把 1 和 0 混着说的。
+这一轮核了一遍才发现是 1 有 5 无。**
+
+**所以「这族被覆盖了」这句话要拆成「几条有调用者 / 共几条」。一个数不够。**

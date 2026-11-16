@@ -4852,3 +4852,31 @@ https://www.vans.com/api/products/v2/products/
 | `Dummy` 是否真该排除 | 判读，非观察 |
 
 **纪律**：**上界到确数之间隔着的动作是「按语义分类」，而不是「按存不存在分类」。**
+
+
+## 优先级 ① — `AddToCartBox` 实现（R908，**改产品代码**）
+
+### 6 条 box 端点的调用者（之前 → 之后）
+
+| 端点 | 之前 | 之后 |
+|---|---|---|
+| `AddBoxListToCart` | 1 | **2** |
+| `BoxSpuDetail` · `BoxSetPreview` · `BoxSetExtract` | 0 | **各 1** |
+| `BoxGoodsList` · `BoxExtract` | 0 | **仍 0** |
+
+### 四步链
+
+**`BoxSpuDetail?skuId=` → `BoxSetPreview?skuId=` → `BoxSetExtract` → `AddBoxListToCart`**
+
+### 数字
+
+**`StoreFlow` 虚步骤 174 → **175**（`AddToCartBoxAsync`）· `implementable` 仍 **8**（不在 24 名里）·
+异步覆盖 310 → **311（20.1%）** · 套件 **1805 通过**
+
+| 仍 Unknown | |
+|---|---|
+| 四步顺序与请求体 | **Inference** |
+| `BoxGoodsList` 的调用者 | 属「发现」步骤 |
+| `BoxExtract` vs `BoxSetExtract` | 两变体，前者不明 |
+
+**纪律**：**「1 条有调用者」比「零条」更危险 —— 它让整族看起来被覆盖。**

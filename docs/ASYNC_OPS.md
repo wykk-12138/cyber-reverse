@@ -2942,3 +2942,53 @@ AddToCartFrontend · AddToCartNext · AddToCartSvelte
 有专门的加车路径 —— 而不是走通用 API。**
 
 **所以「一家店一个实现」还不够准；更准的说法是**一个前端栈一个实现**。**
+
+
+### `AddToCartBox` 实现了 —— 而它给 5 条死端点接上了调用者（R908）
+
+**R907 说下一轮补 `AddToCartBox`。补了。**
+
+### 先核了一遍「6 条 box 端点有没有调用者」
+
+| 端点 | 之前 |
+|---|---|
+| `AddBoxListToCart` | **有 1 个**（PopMart 的 `AddToCart` 在用） |
+| `BoxGoodsList` · `BoxSpuDetail` · `BoxSetPreview` · `BoxSetExtract` · `BoxExtract` | **全无** |
+
+**所以 R907 那句「6 条端点没被调用」要修成「1 条有、5 条没有」。
+而那一 条正是 `AddToCart` 用的 —— 它让整族**看起来**被覆盖了。**
+
+### 实现了什么
+
+**`AddToCartBoxAsync`（基类虚方法 + PopMart override），四步：**
+
+1. `BoxSpuDetail?skuId=` —— 盒子属于哪个套装
+2. `BoxSetPreview?skuId=` —— 套装里有什么（不揭示内容）
+3. `BoxSetExtract` —— 从套装里抽一个
+4. `AddBoxListToCart` —— 把抽到的条目加进车
+
+**而 `AddToCartBox` 不在 PopMart 那 24 个名字里** —— 所以它像 `FindProductInstore` 一样：
+**方法在、序列不列。** `implementable` 仍是 8，`map` 从 174 到 **175**。
+
+### 调用者变化
+
+| 端点 | 之前 | 之后 |
+|---|---|---|
+| `AddBoxListToCart` | 1 | **2** |
+| `BoxSpuDetail` · `BoxSetPreview` · `BoxSetExtract` | 0 | **各 1** |
+| `BoxGoodsList` · `BoxExtract` | 0 | **仍 0** |
+
+**剩下两条仍无调用者，而它们各有一说：**
+- **`BoxGoodsList`（`goodsListV2`）是列表端点** —— 属于「发现」而非「加车」，不该由这个方法用。
+- **`BoxExtract`（`/box/extract`）与 `BoxSetExtract`（`/box_set/extract`）是两个变体** —— 我用了后者，前者不明。
+
+### 异步覆盖
+
+**310 → **311**（20.1%）—— 一个方法。这一族 15 个名字里现在 9 有 6 缺。**
+
+### 而顺序与参数是 Inference
+
+**镜像证明的是：有个方法叫 `AddToCartBox`，而 5 条端点在。**
+**没证明的是：那四步的顺序、以及每一步的请求体。**
+
+**所以方法里用的是最小 payload，而缺会话变量时**明确失败**（要 `boxSkuId`），不猜。**

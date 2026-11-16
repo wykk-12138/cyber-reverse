@@ -148,6 +148,26 @@ public abstract class StoreFlow
     public virtual Task<StepOutcome> FindProductInstoreAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(StepOutcome.Fail("FindProductInstore is not implemented by " + Id));
 
+    /// <summary>
+    /// Adding a sealed box to the cart: preview which set the box comes from, extract one, then add the extracted
+    /// item.
+    ///
+    /// <para>
+    /// R908. The image names this method, so it is not inferred from a path. Until now the replica held five
+    /// <c>/shop/v1/box/</c> constants with no caller at all: the goods list, the SPU detail, the set preview, the set
+    /// extract and the plain extract. Only <c>addBoxListToCart</c> was reached, from Pop Mart's ordinary AddToCart,
+    /// which is why the six looked covered when five were not.
+    /// </para>
+    ///
+    /// <para>
+    /// What is inferred rather than observed is the order and the parameters: preview then extract then add is the
+    /// natural reading of the names, and no request body is evidenced for any of the three. A store that has no
+    /// boxes fails explicitly instead, which is the same shape as the other unsettled steps here.
+    /// </para>
+    /// </summary>
+    public virtual Task<StepOutcome> AddToCartBoxAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(StepOutcome.Fail("AddToCartBox is not implemented by " + Id));
+
 
     // ── session ───────────────────────────────────────────────────────────────
     public virtual async Task<StepOutcome> InitAsync(FlowContext c, CancellationToken ct)

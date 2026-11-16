@@ -54131,3 +54131,55 @@ captcha（`AddImageAsync` / `AddHintImageAsync`）· UI（`Animate`）**
 
 > **R906 说 1,237 是上界。这一轮把一族变成确数：15 个名字，8 有 7 缺，而 7 个里 1 个是测试桩、5 个是真缺口。**
 > **所以上界到确数之间隔着的动作是：**把名字按语义分类**，而不是按存不存在分类。**
+
+
+---
+
+## 第 908 轮：`AddToCartBox` 实现，给 5 条死端点接上调用者
+
+### 先核「6 条 box 端点有没有调用者」
+
+| 端点 | 之前 |
+|---|---|
+| `AddBoxListToCart` | **有 1 个**（`AddToCart` 在用） |
+| `BoxGoodsList` · `BoxSpuDetail` · `BoxSetPreview` · `BoxSetExtract` · `BoxExtract` | **全无** |
+
+> **所以 R907 那句「6 条没被调用」要修成「1 有 5 无」—— 而那一 条让整族**看起来**被覆盖了。**
+
+### 实现了什么
+
+**`AddToCartBoxAsync`（虚方法 + PopMart override），四步：**
+
+1. `BoxSpuDetail?skuId=` —— 属于哪个套装
+2. `BoxSetPreview?skuId=` —— 套装里有什么
+3. `BoxSetExtract` —— 抽一个
+4. `AddBoxListToCart` —— 加进车
+
+**它不在 PopMart 那 24 个名字里 → 像 `FindProductInstore`：方法在、序列不列。
+`implementable` 仍 8，`map` 174 → **175**。**
+
+### 调用者变化
+
+| 端点 | 之前 | 之后 |
+|---|---|---|
+| `AddBoxListToCart` | 1 | **2** |
+| `BoxSpuDetail` · `BoxSetPreview` · `BoxSetExtract` | 0 | **各 1** |
+| `BoxGoodsList` · `BoxExtract` | 0 | **仍 0** |
+
+**剩下两条各有一说：`BoxGoodsList` 是列表端点（属「发现」非「加车」）；
+`BoxExtract` 与 `BoxSetExtract` 是两个变体，我用了后者，前者不明。**
+
+### 异步覆盖
+
+**310 → 311（20.1%）—— 一个方法。这一族 15 个名字里现在 9 有 6 缺。**
+
+### 而顺序与参数是 Inference
+
+> **镜像证明：有个方法叫 `AddToCartBox`，5 条端点在。
+> 没证明：那四步的顺序、每步的请求体。**
+> **所以用最小 payload，缺会话变量时明确失败（要 `boxSkuId`），不猜。**
+
+### 教训
+
+> **这一族的教训是「一条有调用者」比「零条」更危险 —— 它让整族看起来被覆盖。
+> 而我上一轮写「6 条端点没被调用」时，就是把 1 和 0 混着说的。**

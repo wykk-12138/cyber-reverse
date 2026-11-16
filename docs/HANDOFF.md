@@ -701,3 +701,15 @@ Paynamics 是菲律宾支付网关 → /shield/v1/verify_otp 是支付 OTP。R90
 两条新线索：AddToCartBox 是 PopMart /shop/v1/box/* 那 6 条端点的调用者；Astro/Next/Svelte 各一个方法 → 「一个前端栈一个实现」比「一家店一个实现」更准。
 
 下一轮：补 AddToCartBox（那 6 条端点已有常量，等方法）。
+
+## R908 补充 — AddToCartBox 实现（改产品代码）
+
+先核了一遍 6 条 box 端点的调用者：之前 AddBoxListToCart 有 1 个（AddToCart 在用），其余 5 条全无。R907 的「6 条没被调用」要修成「1 有 5 无」—— 而那一条让整族看起来被覆盖。
+
+四步链：BoxSpuDetail?skuId= → BoxSetPreview?skuId= → BoxSetExtract → AddBoxListToCart。
+
+数字：StoreFlow 虚步骤 174 → 175 · implementable 仍 8（不在 24 名里）· 异步覆盖 310 → 311（20.1%）· box 端点有调用者 1/6 → 4/6 · 套件 1805 通过。
+
+剩下 BoxGoodsList（列表端点）与 BoxExtract（另一变体）仍无调用者。
+
+下一轮：BoxGoodsList 的调用者（属「发现」步骤，可能是 FindVariant 或 FindProduct 的一个分支）。

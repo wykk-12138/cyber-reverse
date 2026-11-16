@@ -456,6 +456,66 @@ public sealed class PopMartFlow : StoreFlow
         return Task.FromResult(StepOutcome.Success());
     }
 
+    /// <summary>
+    /// Sealed-box add: preview the set the box comes from, extract one from it, then hand the extracted line to the
+    /// ordinary cart call.
+    ///
+    /// <para>
+    /// R908. Five of the six <c>/shop/v1/box/</c> constants had no caller before this method: the goods list, the SPU
+    /// detail, the set preview, the set extract and the plain extract. Only <c>addBoxListToCart</c> was reached, from
+    /// <see cref="AddToCartAsync"/>, which made the family look covered when five sixths of it was dead.
+    /// </para>
+    ///
+    /// <para>
+    /// The chain is inferred from the names. What is observed is that the image has a method called AddToCartBox and
+    /// these five endpoints exist; what is not observed is any request body, so the payloads below are minimal and the
+    /// method reports what it could not send rather than pretending.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> AddToCartBoxAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("boxSkuId", out var boxSku) || string.IsNullOrEmpty(boxSku))
+            return StepOutcome.Fail("popmart AddToCartBox needs a session var 'boxSkuId' and none was set");
+
+        var origin = Origin(c.Url);
+
+        // 1) which set this box belongs to
+        var spu = await GetAsync(c, origin + PopMartEndpoints.BoxSpuDetail + "?skuId=" + Uri.EscapeDataString(boxSku),
+            "popmart-box-spu", ct).ConfigureAwait(false);
+        if (spu is null) return StepOutcome.Fail("popmart box spu unreachable", retryable: true);
+        if (!spu.IsSuccess) return StepOutcome.Fail($"popmart box spu HTTP {spu.StatusCode}");
+
+        c.Session.Vars["boxSpu"] = spu.Body;
+
+        // 2) what the set holds, without revealing it
+        var preview = await GetAsync(c, origin + PopMartEndpoints.BoxSetPreview + "?skuId=" +
+            Uri.EscapeDataString(boxSku), "popmart-box-preview", ct).ConfigureAwait(false);
+        if (preview is null) return StepOutcome.Fail("popmart box preview unreachable", retryable: true);
+        if (!preview.IsSuccess) return StepOutcome.Fail($"popmart box preview HTTP {preview.StatusCode}");
+
+        c.Session.Vars["boxPreview"] = preview.Body;
+
+        // 3) take one out of the set
+        var extract = await PostJsonAsync(c, origin + PopMartEndpoints.BoxSetExtract,
+            new JObject { ["skuId"] = boxSku, ["quantity"] = c.Session.Quantity }
+                .ToString(Newtonsoft.Json.Formatting.None), "popmart-box-extract", ct).ConfigureAwait(false);
+        if (extract is null) return StepOutcome.Fail("popmart box extract unreachable", retryable: true);
+        if (!extract.IsSuccess) return StepOutcome.Fail($"popmart box extract HTTP {extract.StatusCode}");
+
+        c.Session.Vars["boxExtract"] = extract.Body;
+
+        // 4) the extracted line, added through the same call the ordinary path uses
+        var added = await PostJsonAsync(c, origin + PopMartEndpoints.AddBoxListToCart,
+            new JObject { ["skuId"] = boxSku, ["quantity"] = c.Session.Quantity }
+                .ToString(Newtonsoft.Json.Formatting.None), "popmart-box-cart", ct).ConfigureAwait(false);
+        if (added is null) return StepOutcome.Fail("popmart box cart unreachable", retryable: true);
+        if (!added.IsSuccess) return StepOutcome.Fail($"popmart box cart HTTP {added.StatusCode}");
+
+        c.Session.Vars["cart"] = added.Body;
+        c.Session.CartId = Regex.Match(added.Body, @"""cartId""\s*:\s*""([^""]+)""").Groups[1].Value;
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
         var payload = new JObject

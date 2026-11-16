@@ -4309,3 +4309,76 @@ public ConcurrencySettings MonitorConcurrency { get; set; } = new();
 而那两个度量数的是**类型存在性**与**成员集合**，不是成员类型。**
 
 > **所以「没动」不说明「没改」：这一轮把一个 `int` 换成了一个对象，而 1915 / 16 / 94 三个数一个都没变。**
+
+
+### `ConcurrencyMode` 的第三个值是**发明的**，而 `Both` 有一条成文的规则（R930）
+
+**R929 留下「`ConcurrencyMode` 的三个值未核」。核了。**
+
+### 二进制里只有类型名一个字符串
+
+```
+ConcurrencyMode    (0x1432312cd)   ← 就这一个
+```
+
+**枚举**成员名没单独出现**。所以值只能从 locale 推 —— 而 locale 给了三项：**
+
+```
+"Settings.General.MonitorConcurrency.Maximum": "Maximum:"
+"Settings.General.MonitorConcurrency.Ratio": "Ratio:"
+"Settings.General.MonitorConcurrency.Both": "Both:"
+"Settings.General.MonitorConcurrency.Max": "max"
+```
+
+**而 `BothDesc` 把规则写下来了：**
+
+> **「Allows you to set both a maximum and ratio. The amount of monitoring tasks will be equal to **whichever is greater**.」**
+
+### 而复刻件是 `Unlimited / Maximum / Ratio`
+
+**第三项写成 `Unlimited` —— 而 `Concurrency.Unlimited` 在镜像里 **0 匹配**。
+5 个 `Unlimited` 全是无关的（TTS 引擎的 `UnlimitedStorage`、一个叫 Games Unlimited 的店）。**
+
+> **所以 `Unlimited` 也是我的发明 —— 第二个。而它比 R929 那个 `int` 更隐蔽：
+> 「不限并发」是一个听起来很自然的能力，而三项里空出一项时，填一个“无限制”比填一个“两个都算”容易想到。**
+
+### 改成 `Maximum / Ratio / Both`，并把那条规则实现出来
+
+```csharp
+public enum ConcurrencyMode { Maximum = 0, Ratio = 1, Both = 2 }
+```
+
+**`Models/ConcurrencyLimit.cs`：**
+
+| 模式 | 规则 | 依据 |
+|---|---|---|
+| `Maximum` | `min(max, tasks)`；`max <= 0` 时等于全部 | 名字 |
+| `Ratio` | `floor(tasks × ratio)` | 名字 |
+| **`Both`** | **`max(maximum, floor(tasks × ratio))`，再 `min(tasks, …)`** | **locale 的 `BothDesc` 原文「whichever is greater」** |
+
+### 三个刻意的决定
+
+**① `max <= 0` 当作「没有上限」，不当「零个任务」。**
+**一个什么都没设的 settings 文件应该表现为不限，而不是一个都不跑。**
+
+**② `Ratio` 向下取整，且标注为 Inference。**
+**没有任何恢复到的材料说小数怎么处理；向下取整因为**多启动监控池是要防的失败** —— 这个模式存在的目的是限制并发，不是达到目标。**
+
+**③ 一个函数，三个调用方。**
+**任务引擎的门、设置预览、测试都要这个数，而这么小的规则正是那种会被各写一遍、各差一点的东西。**
+
+### 数字
+
+| 度量 | R929 | **R930** |
+|---|---|---|
+| 套件 | 1915 | **1928** |
+| 类型缺失 | 16 | 16 |
+| 成员形状 | 94 / 17 | 94 / 17 |
+
+### 教训
+
+> **两轮之内我发明了两样东西：一个 `int MonitorConcurrency`（R929）和一个 `Unlimited` 枚举值（R930）。
+> 两个都被「听起来合理」保护着。**
+> **而两次的判据是同一个动作：**去镜像里搜那个词**。一次搜出 `<MonitorConcurrency>k__BackingField`，
+> 一次搜出 0 匹配。**
+> **发明不需要证据，而**搜索只要一分钟**。**

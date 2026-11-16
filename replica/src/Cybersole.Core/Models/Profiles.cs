@@ -250,7 +250,7 @@ public sealed class MonitorFilters
 /// <summary>Concurrency policy (settings.concurrency).</summary>
 public sealed class ConcurrencySettings
 {
-    public ConcurrencyMode Mode { get; set; } = ConcurrencyMode.Unlimited;
+    public ConcurrencyMode Mode { get; set; } = ConcurrencyMode.Both;
     public int Maximum { get; set; } = 3;
     public double Ratio { get; set; } = 0.1;
 }

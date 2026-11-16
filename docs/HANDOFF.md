@@ -1021,3 +1021,20 @@ R928 的两个测例编码旧事实 → 改写成合并后的真相。
 纪律：「没动」不说明「没改」—— 把一个 int 换成对象，三个度量数一个没变。
 
 下一轮：Enums.ConcurrencyMode 的三个值；或其余成员的**类型**是否对（只核了名字）。
+
+## R930 补充 — ConcurrencyMode：Unlimited 是发明的，改为 Both 并实现规则（+13 用例，套件 1928）
+
+二进制仅有类型名 ConcurrencyMode 一个字符串；locale 三项 Maximum/Ratio/Both，BothDesc 原文「equal to whichever is greater」。Concurrency.Unlimited → 0 匹配。
+
+→ Unlimited 是发明的（两轮内第二个，第一个是 R929 的 int MonitorConcurrency）。
+
+改成 Maximum=0/Ratio=1/Both=2；新增 Models/ConcurrencyLimit.cs：Maximum=min(max,tasks) · Ratio=floor(tasks×ratio) · Both=min(tasks, max(maximum, ratio)) —— 依据 locale 原文。
+Profiles.cs 默认 Unlimited → Both。
+
+三个决定：max<=0 当无上限（非零任务）· Ratio 向下取整标 Inference · 一个函数三个调用方。
+
+数字：套件 1915 → 1928 · 类型缺失 16 · 成员形状 94/17。
+
+纪律：发明不需要证据，而搜索只要一分钟。
+
+下一轮：StartupPage 的 6 个值同法核。

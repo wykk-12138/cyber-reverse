@@ -20710,3 +20710,80 @@ metrics_report.py                  -> 1915 通过 / 0 失败
 **「没动」不说明「没改」。这一轮把一个 `int` 换成了一个对象，而 1915 / 16 / 94 三个数一个都没变。**
 
 **所以度量不动的时候，要先问它数的是什么，再判断这一轮有没有做成事。**
+
+
+---
+
+## 354. `ConcurrencyMode`：`Unlimited` 是发明的，改为 `Both` 并实现规则
+
+> R930。**改产品代码 +13 用例。** 套件 **1928 通过 / 0 失败 / 0 跳过**。
+
+### 一、二进制只有类型名
+
+**`ConcurrencyMode` (0x1432312cd) —— 枚举成员名没单独出现。值只能从 locale 推：**
+
+```
+"Settings.General.MonitorConcurrency.Maximum": "Maximum:"
+"Settings.General.MonitorConcurrency.Ratio": "Ratio:"
+"Settings.General.MonitorConcurrency.Both": "Both:"
+"Settings.General.MonitorConcurrency.BothDesc": "…will be equal to whichever is greater."
+```
+
+### 二、而复刻件是 `Unlimited / Maximum / Ratio`
+
+**`Concurrency.Unlimited` → **0 匹配**。5 个 `Unlimited` 全是无关的（TTS 的 `UnlimitedStorage`、一个叫 Games Unlimited 的店）。**
+
+**→ `Unlimited` 是我的发明 —— 两轮内第二个（第一个是 R929 的 `int MonitorConcurrency`）。**
+
+### 三、改动
+
+```csharp
+public enum ConcurrencyMode { Maximum = 0, Ratio = 1, Both = 2 }
+```
+
+**`Models/ConcurrencyLimit.cs`：**
+
+| 模式 | 规则 |
+|---|---|
+| `Maximum` | `min(max, tasks)`；`max<=0` → 全部 |
+| `Ratio` | `floor(tasks × ratio)` |
+| **`Both`** | **`min(tasks, max(maximum, floor(tasks×ratio)))` —— locale 原文「whichever is greater」** |
+
+**`Profiles.cs` 默认 `Unlimited` → `Both`。**
+
+### 四、三个决定
+
+1. **`max<=0` 当「没有上限」，不当「零个任务」** —— 空 settings 应表现不限。
+2. **`Ratio` 向下取整，标 Inference** —— 多启动监控池是要防的失败。
+3. **一个函数三个调用方** —— 这么小的规则会被各写一遍、各差一点。
+
+### 五、数字
+
+| 度量 | R929 | R930 |
+|---|---|---|
+| 套件 | 1915 | **1928** |
+| 类型缺失 | 16 | 16 |
+| 成员形状 | 94 / 17 | 94 / 17 |
+
+### 六、验证
+
+```
+analysis/ida.py str "Concurrency.Unlimited"  -> 0 匹配
+analysis/ida.py str "ConcurrencyMode"        -> 仅类型名一个
+test --filter ConcurrencyModeTests           -> 13 通过
+metrics_report.py                            -> 1928 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **`StartupPage` 的 6 个值**：**Unknown** —— 同法未核。
+- **其余枚举**：**Unknown** —— 同法未核。
+- **`Ratio` 的取整方向**：**Inference**。
+
+### 八、教训
+
+**两轮之内发明了两样东西：`int MonitorConcurrency`（R929）与 `Unlimited`（R930）。两个都被「听起来合理」保护着。**
+
+**而两次的判据是同一个动作：**去镜像里搜那个词**。一次搜出 `<MonitorConcurrency>k__BackingField`，一次搜出 0 匹配。**
+
+**发明不需要证据，而搜索只要一分钟。**

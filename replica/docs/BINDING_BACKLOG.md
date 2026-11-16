@@ -5663,3 +5663,39 @@ chargetokens → paymentdetails?ref= → transactions
 | 其余成员的**类型**是否对 | 只核了名字 |
 
 **纪律**：**「没动」不说明「没改」—— 这一轮把一个 int 换成了对象，而三个度量数一个都没变。**
+
+
+## 判据 (a) — `ConcurrencyMode`：`Unlimited` 是发明的，改为 `Both` 并实现其规则（R930，**改产品代码 +13 用例**）
+
+### 证据
+
+**二进制仅有类型名 `ConcurrencyMode` 一个字符串；locale 三项 `Maximum` / `Ratio` / `Both`，
+且 `BothDesc` 原文给规则：「equal to whichever is greater」。**
+**`Concurrency.Unlimited` → **0 匹配**（5 个 `Unlimited` 全无关）。**
+
+### 改动
+
+```csharp
+public enum ConcurrencyMode { Maximum = 0, Ratio = 1, Both = 2 }
+```
+
+**`Models/ConcurrencyLimit.cs`：`Resolve(mode, tasks, max, ratio)`**
+**`Maximum` = `min(max,tasks)` · `Ratio` = `floor(tasks×ratio)` · `Both` = `min(tasks, max(maximum, ratio))`**
+
+**`Profiles.cs` 默认值 `Unlimited` → `Both`。**
+
+### 三个决定
+
+**`max<=0` = 无上限（非零任务）· `Ratio` 向下取整（标 Inference）· 一个函数三个调用方**
+
+### 数字
+
+**套件 1915 → 1928 · 类型缺失 16 · 成员形状 94/17**
+
+| 仍 Unknown | |
+|---|---|
+| `StartupPage` 的 6 个值 | 同法未核 |
+| 其余枚举 | 同法未核 |
+| `Ratio` 的取整方向 | Inference |
+
+**纪律**：两轮发明两样东西，都靠「听起来合理」。判据是同一个动作 —— 去镜像里搜那个词。

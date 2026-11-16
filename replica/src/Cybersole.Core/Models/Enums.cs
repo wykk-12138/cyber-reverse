@@ -111,12 +111,22 @@ public enum StartupPage
     Settings = 5,
 }
 
-/// <summary>Concurrency limiting strategy (settings concurrency.mode).</summary>
+/// <summary>
+/// Concurrency limiting strategy (settings concurrency.mode).
+///
+/// <para>
+/// R930. The third value is <see cref="Both"/> rather than an unlimited mode. R929's locale strings name the three
+/// choices the settings screen offers -- <c>Settings.General.MonitorConcurrency.Maximum</c>,
+/// <c>.Ratio</c> and <c>.Both</c> -- and describe the last as "Allows you to set both a maximum and ratio. The amount of
+/// monitoring tasks will be equal to whichever is greater." Searching the image for a concurrency-scoped Unlimited found
+/// nothing, so Unlimited was invented here rather than recovered.
+/// </para>
+/// </summary>
 public enum ConcurrencyMode
 {
-    Unlimited = 0,
-    Maximum = 1,
-    Ratio = 2,
+    Maximum = 0,
+    Ratio = 1,
+    Both = 2,
 }
 
 /// <summary>Checkout / web task result classification.</summary>

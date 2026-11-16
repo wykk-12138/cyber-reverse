@@ -55326,3 +55326,51 @@ public ConcurrencySettings MonitorConcurrency { get; set; } = new();
 > **三个数一个都没动 —— 因为这一轮修的是**成员的类型与名字**，
 > 而那两个度量数的是**类型存在性**与**成员集合**。**
 > **所以「没动」不说明「没改」：这一轮把一个 `int` 换成了一个对象。**
+
+
+---
+
+## 第 930 轮：`ConcurrencyMode` 的第三个值是发明的，而 `Both` 有成文规则
+
+### 二进制只有类型名一个字符串
+
+**`ConcurrencyMode` (0x1432312cd) —— 枚举**成员名没单独出现**。值只能从 locale 推。**
+
+```
+"Settings.General.MonitorConcurrency.Maximum": "Maximum:"
+"Settings.General.MonitorConcurrency.Ratio": "Ratio:"
+"Settings.General.MonitorConcurrency.Both": "Both:"
+"Settings.General.MonitorConcurrency.BothDesc": "…will be equal to whichever is greater."
+```
+
+### 而复刻件是 `Unlimited / Maximum / Ratio`
+
+**`Concurrency.Unlimited` 在镜像里 **0 匹配**；5 个 `Unlimited` 全是无关的（TTS 的 `UnlimitedStorage`、一个店名）。**
+
+> **`Unlimited` 是我的发明 —— 第二个（第一个是 R929 那个 `int`）。
+> 而它更隐蔽：「不限并发」是个自然的能力，三项里空出一项时，填「无限制」比填「两个都算」容易想到。**
+
+### 改成 `Maximum / Ratio / Both` 并实现规则
+
+**`Models/ConcurrencyLimit.cs`：`Maximum` = `min(max, tasks)` · `Ratio` = `floor(tasks × ratio)` ·
+**`Both` = `max(maximum, floor(tasks × ratio))` 再 `min(tasks, …)` —— 依据是 locale 的原文「whichever is greater」****
+
+### 三个决定
+
+**① `max <= 0` = 没有上限，不是零个任务**（空 settings 应表现不限，而不是一个不跑）
+**② `Ratio` 向下取整，标 Inference** —— 没有材料说小数怎么处理；向下因为**多启动监控池是要防的失败**
+**③ 一个函数三个调用方** —— 这么小的规则会被各写一遍、各差一点
+
+### 数字
+
+| 度量 | R929 | **R930** |
+|---|---|---|
+| 套件 | 1915 | **1928** |
+| 类型缺失 | 16 | 16 |
+| 成员形状 | 94 / 17 | 94 / 17 |
+
+### 教训
+
+> **两轮之内发明了两样东西，两个都被「听起来合理」保护着。
+> 而两次的判据是同一个动作：**去镜像里搜那个词** —— 一次搜出 backing field，一次搜出 0 匹配。**
+> **发明不需要证据，而搜索只要一分钟。**

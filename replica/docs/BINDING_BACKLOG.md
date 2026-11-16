@@ -3198,3 +3198,31 @@ SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken 
 | `TaskGroup` solver 配置复刻件挂在哪 | `KasadaSolvers`/`CloudflareClearance` 在，挂载点未查 |
 
 **纪律**：**「字段存不存在」少了「在哪个类型上」这一维。**
+
+
+## 判据 (a)/(f) — `BotTask.Task` 类型是 R364 未定项（R861）
+
+**`Tasks.cs` 注释：**
+```
+R364: the binding table names six more members on this model. Five have an inferable type; "Task"'s
+type could be an engine handle, an interface or a string id … so it stays named in docs/BINDING_BACKLOG.md.
+```
+
+**→ 这是既有未定项，不是新问题。**
+
+### 与 `Task.Type` 的关系
+
+**若 `BotTask.Task` 的类里真有 `Type`，复刻件那行不是「冗余」，是「**放错了位置**」→ 第三种处理：「挪」。**
+
+### 四轮链条
+
+R857 顶层是种类 → R858 `Task.Type` 死字段 → R859 创建表单无 Type → R860 `Type` 在 `BaseCheckout` → **R861 回到 R364 未定项**
+
+| 仍 Unknown | |
+|---|---|
+| `BotTask.Task` 的类型 | R364 起；需 MethodTable（R828 未通） |
+| `Task.Type` 删还是挪 | 取决于上一条 |
+| 那六个成员里另外五个 | 注释未列名字 |
+
+**纪律（第五次同类教训）**：**查一个成员之前，先在 `BINDING_BACKLOG.md` 里搜它的名字。**
+**前四次是没读仓里的分析文件，这次是没读自己的待办清单。**

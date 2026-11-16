@@ -21131,3 +21131,93 @@ replica 对照（正则名搜）: 14/14 · 8/8 · 17/17 · 2/2
 
 **「这个字段存不存在」这个问题，少了一个维度 —— **在哪个类型上**。**
 **而补上这个维度的成本极低：R859 已经给出了按类型抽表的语法，这一轮只是把它用到四个类型上。**
+
+
+---
+
+## 285. 追了四轮的东西回到 **R364 就记着的未定项**
+
+> R861。未改产品代码。
+
+### 一、答案在复刻件自己的注释里
+
+`Cybersole.Core/Models/Tasks.cs`：
+
+```
+R364: the binding table names six more members on this model. Five have an inferable type; "Task"'s
+type could be an engine handle, an interface or a string id, and the name collides with System...,
+so it stays named in docs/BINDING_BACKLOG.md.
+```
+
+**所以 `BotTask.Task` 的类型从 R364 起就是**明写的未定项**，不是我这轮才发现的问题。**
+
+### 二、而它和 `Task.Type` 是同一件事的两面
+
+| 成员 | 状态 |
+|---|---|
+| `BotTask.Task` | **类型未定**（R364 记为 Unknown） |
+| `Task.Type` | **复刻件多加的字段，0 处写入**（R858） |
+
+**关键在于：**
+
+> **如果 `BotTask.Task` 的类里真有 `Type`，那复刻件那行就不是「冗余」，是「放错了位置」。**
+
+**所以 R858 的「留还是删」这个二选一又不够 —— 第三种可能是「挪」。**
+
+**而选哪个取决于 `BotTask.Task` 的类型，也就是 R364 那条未定项。**
+
+### 三、这四轮的形状
+
+| 轮 | 我追的 | 结论 |
+|---|---|---|
+| R857 | 顶层是种类还是站 | 种类（5 个 `Start*Flow`） |
+| R858 | `Task.Type` 是不是死字段 | 是，0 处写入 |
+| R859 | 镜像有没有 `Type` | 创建表单 13 属性里没有 |
+| R860 | `Type` 在哪个类型上 | `BaseCheckout`，复刻件已有 |
+| **R861** | **`BotTask.Task` 是什么类型** | **R364 未定项** |
+
+**四轮下来，每一轮都得到一个正确但更窄的结论，而链条的末端指向一个 R364 就记下的 Unknown。**
+
+**这不是白走 —— R857–R860 的结论都是新的、可复算的（顶层维度、死字段、13 属性、模型 schema 齐备）。
+但**这一轮该做的是先读自己的 backlog**，而不是再从镜像查一遍。**
+
+### 四、R843 的规则我用错了地方
+
+**R843 立的规则是「每批裁决前先 grep 仓里有没有同名分析文件」，我用它找 `*StepMap.cs`，很有效。**
+
+**而 `BINDING_BACKLOG.md` 本身就是那个文件 —— 它记着所有未结案项。**
+**这四轮我一直在从 METRICS/BLOCKERS/HANDOFF 读现状，但**没查 backlog 里「Task 的类型」这一条**。**
+**规则该是：查一个成员之前，先在 backlog 里搜它的名字。**
+
+### 五、验证
+
+```
+replica\src\Cybersole.Core\Models\Tasks.cs
+  'R364: the binding table names six more members on this model …"Task"'s type could be an engine handle,
+   an interface or a string id … so it stays named in docs/BINDING_BACKLOG.md.'
+ida.py str Cybersole.Models. -> 7 个类型名（纯类型名搜索，比属性语法的 13 个更弱）
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **`BotTask.Task` 的类型**：**Unknown，R364 起就是 —— 要证它得走类型元数据（MethodTable / 字段描述符），
+  而那条路 R828 已记未通。**
+- **`Task.Type` 是删是挪**：**Unknown** —— 取决于上一条。
+- **那六个成员里另外五个是什么**：**Unknown** —— 注释只说「五个类型可推」，没列名字。
+
+### 七、教训
+
+**「先查 backlog」这条，是我这个会话里第五次学到同一类教训的形状：**
+
+| 轮 | 本该先查的 |
+|---|---|
+| R843 | `StoreFlowSteps.cs` |
+| R845 | `StoreFlow` 的 165 个虚步骤 |
+| R846 | `ScapiAppPath.cs` |
+| R847 | `JohnLewisStepMap.cs` / `DemandwareStepMap.cs` |
+| **R861** | **`BINDING_BACKLOG.md` 里「Task 的类型」那一条** |
+
+**前四次是「没读仓里的分析文件」，这次是「没读自己的待办清单」。**
+**而 backlog 就是为我这种遗忘准备的 —— 我建了它，却在查一个它明确记着的成员时没打开它。**

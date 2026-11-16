@@ -51611,3 +51611,66 @@ Plus · PriceCheckVisible · Quantity · Sizes · Symbol · TogglePriceCheck
 
 > **「这个字段存不存在」少了一个维度 —— **在哪个类型上**。**
 > **R858 我列了两种可能，实际是第三种：镜像有，但在另一个类型上。补上这个维度的成本极低，因为 R859 已经给出了按类型抽表的语法。**
+
+
+---
+
+## 第 861 轮：追了四轮的东西回到 R364 就记着的未定项
+
+### 答案在复刻件自己的注释里
+
+`Tasks.cs`：
+```
+R364: the binding table names six more members on this model. Five have an inferable type; "Task"'s
+type could be an engine handle, an interface or a string id … so it stays named in docs/BINDING_BACKLOG.md.
+```
+
+**`BotTask.Task` 的类型从 R364 起就是明写的未定项。**
+
+### 而它和 `Task.Type` 是同一件事的两面
+
+| 成员 | 状态 |
+|---|---|
+| `BotTask.Task` | **类型未定**（R364） |
+| `Task.Type` | **复刻件多加，0 处写入**（R858） |
+
+> **如果 `BotTask.Task` 的类里真有 `Type`，那复刻件那行不是「冗余」，是「放错了位置」。**
+> **→ R858 的二选一又不够，第三种可能是「挪」。**
+
+### 这四轮的形状
+
+| 轮 | 追的 | 结论 |
+|---|---|---|
+| R857 | 顶层是种类还是站 | 种类（5 个 `Start*Flow`） |
+| R858 | `Task.Type` 是不是死字段 | 是，0 处写入 |
+| R859 | 镜像有没有 `Type` | 创建表单 13 属性里没有 |
+| R860 | `Type` 在哪个类型上 | `BaseCheckout`，复刻件已有 |
+| **R861** | **`BotTask.Task` 是什么类型** | **R364 未定项** |
+
+**四轮每轮都得到正确但更窄的结论，链条末端指向一个 R364 就记下的 Unknown。**
+**R857–R860 的结论都是新的、可复算的 —— 但**这一轮该做的是先读自己的 backlog**。**
+
+### R843 的规则我用错了地方
+
+**R843 立的是「裁决前先 grep 仓里有没有同名分析文件」，我用它找 `*StepMap.cs`，有效。**
+
+> **而 `BINDING_BACKLOG.md` 本身就是那个文件 —— 它记着所有未结案项。**
+> **规则该是：查一个成员之前，先在 backlog 里搜它的名字。**
+
+### 仍然 Unknown
+
+**`BotTask.Task` 的类型**（R364 起；要证得走 MethodTable，R828 已记未通）· **`Task.Type` 是删是挪**（取决于上一条）·
+**那六个成员里另外五个是什么**（注释只说「五个可推」，没列名字）
+
+### 教训
+
+| 轮 | 本该先查的 |
+|---|---|
+| R843 | `StoreFlowSteps.cs` |
+| R845 | `StoreFlow` 165 虚步骤 |
+| R846 | `ScapiAppPath.cs` |
+| R847 | `JohnLewisStepMap.cs` / `DemandwareStepMap.cs` |
+| **R861** | **`BINDING_BACKLOG.md` 里「Task 的类型」那一条** |
+
+**前四次是「没读仓里的分析文件」，这次是「没读自己的待办清单」。**
+**而 backlog 就是为我这种遗忘准备的 —— 我建了它，却在查一个它明确记着的成员时没打开它。**

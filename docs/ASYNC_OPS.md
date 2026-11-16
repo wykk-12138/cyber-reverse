@@ -750,3 +750,32 @@ Plus · PriceCheckVisible · Quantity · Sizes · Symbol · TogglePriceCheck
 - **`TaskGroup.ProfileLimit` · `CheckoutLimit` · `TotalCheckouts` · `TotalDeclines`** —— 配额与计数也在组级
 
 **即：风控配置的挂载点是 `TaskGroup`，不是单任务。**
+
+
+### `BotTask.Task` 的类型：**R364 已经记为未定项**（R861）
+
+**复刻件 `Tasks.cs` 里就写着：**
+
+```
+R364: the binding table names six more members on this model. Five have an inferable type; "Task"'
+type could be an engine handle, an interface or a string id, and the name collides with System...,
+so it stays named in docs/BINDING_BACKLOG.md.
+```
+
+**所以这不是新问题 —— 它从 R364 起就在 `BINDING_BACKLOG.md` 里。**
+
+### 这四轮追的东西是同一批
+
+| 轮 | 我在追 | 实际上 |
+|---|---|---|
+| R857 | 镜像顶层是「种类」还是「站」 | 是种类（5 个 `Start*Flow`） |
+| R858 | `Task.Type` 是死字段 | 是，0 处写入 |
+| R859 | 镜像有没有 `Type` | `CreateInputModel` 13 属性里没有 |
+| R860 | `Type` 在哪个类型上 | 在 `BaseCheckout` 上，复刻件已有 |
+| **R861** | **`BotTask.Task` 是什么类型** | **R364 已记为未定项** |
+
+**而 `Task.Type` 与 `BotTask.Task` 是同一件事的两面：**
+**`BotTask` 上有个成员叫 `Task`，类型未定；而 `Task.Type` 是复刻件多加的一个无人写的字段。**
+**如果 `BotTask.Task` 的类里真有 `Type`，那复刻件那行就不是冗余，是**放错了位置**。**
+
+**所以 `Task.Type` 删不删，取决于 `BotTask.Task` 的类型 —— 而那一条 R364 就没定。**

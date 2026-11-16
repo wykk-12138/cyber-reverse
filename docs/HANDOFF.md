@@ -314,3 +314,9 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **优先级 ② Observation：`CaptchaSource` · `CloudflareSolverId` · 配额 · 计数全挂 `TaskGroup`，不是单任务。**
 **未删理由：查了「有没有写」没查「有没有读」—— 只读不写也可能进 `tasks.json`，改输出结构会动用例。**
 **对照是上界宽松**（正则搜整个文件，不是解析声明）。
+
+## R861 补充 — 回到 R364 未定项
+
+**`BotTask.Task` 的类型自 R364 起就记在 `BINDING_BACKLOG.md`** —— `Tasks.cs` 注释原话：「type could be an engine handle, an interface or a string id」。
+**而它与 `Task.Type` 是一件事两面：若 `BotTask.Task` 的类里真有 Type，复刻件那行不是冗余，是**挪错了位置**。**
+**规则（第五次同类教训）：查一个成员之前，先在 `BINDING_BACKLOG.md` 里搜它的名字。** 前四次是没读仓里的分析文件，这次是没读自己的待办清单。

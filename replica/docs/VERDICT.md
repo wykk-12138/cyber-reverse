@@ -55269,3 +55269,60 @@ public StartupPage StartupPage { ... }
 
 > **「48 对 44」不说你是 4 个缺失还是 4 个多余 —— 一个要补，一个要删，是完全不同的问题。
 > 而这四个里三个是「多余但合法」，一个是「两边都对而互相冲突」。四种情况，一个数字。**
+
+
+---
+
+## 第 929 轮：`MonitorConcurrency` 定了 —— 而复刻件是错的
+
+### 三组证据
+
+**① locale 把 `Maximum` / `Ratio` / `Both` / `Max` 挂在 `Settings.General.MonitorConcurrency` 底下**
+**② 绑定描述符同列 `Settings.MonitorConcurrency` 与 `Models.Concurrency.Maximum`**
+**③ `<MonitorConcurrency>k__BackingField` —— 它是字段支撑的属性**
+
+### 所以
+
+> **`MonitorConcurrency` **就是**那个 `Models.Concurrency` 对象（Maximum/Ratio/Mode），不是旁边一个 `int`。**
+
+**而复刻件有两个：`ConcurrencySettings Concurrency` + **凭空造的 `int MonitorConcurrency = 10`**。**
+
+> **那个 `int` 是我的发明。而它看起来完全合理 —— 因为「并发数」听起来就是个数字。**
+
+### 合成一个（与 R927 的 `StartupPage` 同一手法）
+
+```csharp
+[JsonProperty("concurrency")]
+public ConcurrencySettings MonitorConcurrency { get; set; } = new();
+```
+
+### 而改的时候我第二次犯了同一个错
+
+**第一次正则改所有 `.Concurrency` → 17 处 → 构建报错：
+`c.Concurrency` / `picked.Concurrency` 是 **`CaptchaProvider` 自己的**（描述符表里有）。**
+
+**回滚，按**接收者**限定：`settings.` 与 `s.`，共 8 处。**
+
+> **R927 我写过「改名前要问还有谁在用这个名字」。
+> 而这一轮我改的是**后缀**，不是名字 —— 同一个词在两个类型上，正则分不出来。
+> 「谁是接收者」比「名字长什么样」更能定住一处引用。**
+
+### 而我 R928 的两个测例因此红了
+
+**它们编码的是**旧事实**。改成合并后的真相：是对象、序列化名 `concurrency`、**没有 int 兄弟**、
+类型上有 `Maximum`/`Ratio`。**
+
+### 数字
+
+| 度量 | R928 | **R929** |
+|---|---|---|
+| 套件 | 1915 | 1915 |
+| 类型缺失 | 16 | 16 |
+| 成员形状 | 94 / 17 | 94 / 17 |
+| **设置不匹配成员** | 4 | **3** |
+
+### 教训
+
+> **三个数一个都没动 —— 因为这一轮修的是**成员的类型与名字**，
+> 而那两个度量数的是**类型存在性**与**成员集合**。**
+> **所以「没动」不说明「没改」：这一轮把一个 `int` 换成了一个对象。**

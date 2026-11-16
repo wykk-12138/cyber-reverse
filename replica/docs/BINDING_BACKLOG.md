@@ -5624,3 +5624,42 @@ chargetokens → paymentdetails?ref= → transactions
 | 44 键备份的版本 | 至少早于 `EnableClock` |
 
 **纪律**：「48 对 44」不说你是缺 4 个还是多 4 个。四种情况，一个数字。
+
+
+## 判据 (a) — `MonitorConcurrency` 从二进制定案：复刻件是错的（R929，**改产品代码 + 改写 2 用例**）
+
+### 三组证据
+
+**locale：`Settings.General.MonitorConcurrency.{,Tooltip,Maximum,MaximumDesc,Ratio,RatioDesc,Both,BothDesc,Max}`**
+**描述符：`Settings.MonitorConcurrency!Getter` + `Models.Concurrency.Maximum!Getter`**
+**符号：`<MonitorConcurrency>k__BackingField`**
+
+### 定案
+
+**`MonitorConcurrency` 就是 `Models.Concurrency` 对象；复刻件凭空加了一个 `int MonitorConcurrency = 10`。**
+
+```csharp
+[JsonProperty("concurrency")] public ConcurrencySettings MonitorConcurrency { get; set; } = new();
+```
+
+### 一次过宽的改名（第二次同类错）
+
+**正则改所有 `.Concurrency` → 17 处 → `CaptchaProvider.Concurrency` 被误改 → 回滚。
+按**接收者**限定 `settings.` / `s.` → 8 处。**
+**→ 「谁是接收者」比「名字长什么样」更能定住引用。**
+
+### 两个自己的测例红了（编码旧事实）
+
+**改写成：是对象 · 序列化名 `concurrency` · 没有 int 兄弟 · 类型上有 `Maximum`/`Ratio`。**
+
+### 数字
+
+**套件 1915（不变）· 类型缺失 16（不变）· 成员形状 94/17（不变）· 设置不匹配 4 → **3****
+
+| 仍 Unknown | |
+|---|---|
+| `ClockFormat` / `StoreGroups` 该不该持久化 | 不在契约 |
+| `Enums.ConcurrencyMode` 的三个值 | 未核 |
+| 其余成员的**类型**是否对 | 只核了名字 |
+
+**纪律**：**「没动」不说明「没改」—— 这一轮把一个 int 换成了对象，而三个度量数一个都没变。**

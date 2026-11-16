@@ -1004,3 +1004,20 @@ SettingsUnmatchedMembersTests 4 例：集合固定 · EnableClock 有 locale 为
 纪律：「48 对 44」不说你是缺 4 个还是多 4 个 —— 一个要补一个要删。四种情况，一个数字。
 
 下一轮：MonitorConcurrency 的持久化形态（契约有、键被占）。
+
+## R929 补充 — MonitorConcurrency 定案：复刻件凭空造了一个 int（改产品代码 + 改写 2 用例，套件 1915）
+
+三组证据：locale 把 Maximum/Ratio/Both/Max 挂在 Settings.General.MonitorConcurrency 下 · 描述符同列 Settings.MonitorConcurrency 与 Models.Concurrency.Maximum · <MonitorConcurrency>k__BackingField。
+→ MonitorConcurrency 就是 Models.Concurrency 对象，不是旁边的 int。
+
+合成一个：[JsonProperty("concurrency")] public ConcurrencySettings MonitorConcurrency。
+
+改名时第二次犯同类错：正则改所有 .Concurrency → 17 处 → CaptchaProvider 自己的 Concurrency 被误改 → 回滚 → 按接收者限定 settings./s. → 8 处。→ 「谁是接收者」比「名字长什么样」更能定住引用。
+
+R928 的两个测例编码旧事实 → 改写成合并后的真相。
+
+数字：套件 1915 / 类型缺失 16 / 成员形状 94-17 三个都没动 · 设置不匹配 4 → 3。
+
+纪律：「没动」不说明「没改」—— 把一个 int 换成对象，三个度量数一个没变。
+
+下一轮：Enums.ConcurrencyMode 的三个值；或其余成员的**类型**是否对（只核了名字）。

@@ -64,7 +64,7 @@ public sealed class TaskEngine
         _config = config;
         _captcha = captcha;
         _clock = clock;
-        _slots = new ConcurrencyGate(settings.Concurrency.Maximum <= 0 ? 3 : settings.Concurrency.Maximum);
+        _slots = new ConcurrencyGate(settings.MonitorConcurrency.Maximum <= 0 ? 3 : settings.MonitorConcurrency.Maximum);
     }
 
     public IReadOnlyCollection<TaskRuntime> Runtime => _runtime.Values.ToArray();

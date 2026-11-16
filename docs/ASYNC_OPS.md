@@ -4233,3 +4233,79 @@ public StartupPage StartupPage { get => _startup; set => ... }
 > 一个要补，一个要删。**
 > **而这四个里三个是「多余但合法」，一个是「两边都对而互相冲突」。
 > 四种情况，一个数字。**
+
+
+### `MonitorConcurrency` 定了 —— 而复刻件是**错的**（R929）
+
+**R928 把 `MonitorConcurrency` 钉成「契约有、键被占」的矛盾。这一轮问二进制，答案对复刻件不利。**
+
+### 三组证据，指向同一件事
+
+**① locale 把 `Maximum` / `Ratio` / `Both` / `Max` 挂在 `MonitorConcurrency` 底下：**
+
+```
+"Settings.General.MonitorConcurrency": "Monitor Concurrency"
+"Settings.General.MonitorConcurrency.Tooltip": "Configures the amount of monitoring tasks when using the \"Shared Monitor\" monitor mode."
+"Settings.General.MonitorConcurrency.Maximum": "Maximum:"
+"Settings.General.MonitorConcurrency.Ratio": "Ratio:"
+"Settings.General.MonitorConcurrency.Both": "Both:"
+"Settings.General.MonitorConcurrency.Max": "max"
+```
+
+**② 绑定描述符同时列了这两个：**
+
+```
+Cybersole.Global.Settings,Cybersole.Core.MonitorConcurrency!Getter
+Cybersole.Models.Concurrency,Cybersole.Core.Maximum!Getter
+```
+
+**③ 而 `<MonitorConcurrency>k__BackingField` 与 `set_Clock,get_MonitorConcurrency@` 说明它是一个**字段支撑的属性**。**
+
+### 所以
+
+> **`MonitorConcurrency` **就是**那个 `Models.Concurrency` 对象本身（有 Maximum / Ratio / Mode），
+> 不是它旁边的一个 `int`。**
+
+**而复刻件有两个：`ConcurrencySettings Concurrency` + **凭空造的 `int MonitorConcurrency = 10`**。**
+
+**那个 `int` 是我的发明 —— 而它看起来完全合理，因为「并发数」听起来就是个数字。**
+
+### 合成一个
+
+```csharp
+[JsonProperty("concurrency")]
+public ConcurrencySettings MonitorConcurrency { get; set; } = new();
+```
+
+**一个属性，名字取绑定那边的，键取文件那边的 —— 与 R927 的 `StartupPage` 同一手法。**
+
+### 而改的时候我第二次犯了同一个错
+
+**第一次我用正则把所有 `.Concurrency` 改成 `.MonitorConcurrency` —— **17 处**。
+构建报错：`ProviderViews.cs` 里 `c.Concurrency` / `picked.Concurrency` 是 **`CaptchaProvider` 自己的 `Concurrency`**
+（描述符表里就有 `CaptchaProviders.CaptchaProvider,Cybersole.Core.Concurrency!Getter`）。**
+
+**回滚，改成按**接收者**限定：`settings.` 与 `s.` 两个，共 **8 处**。**
+
+> **R927 的教训我写过：「改名前要问还有谁在用这个名字」。
+> 而这一轮我改的是**后缀**，不是名字 —— 于是同一个词在两个类型上，正则分不出来。
+> **「谁是接收者」比「名字长什么样」更能定住一处引用。****
+
+### 而我自己 R928 的两个测例因此红了
+
+**它们编码的是**旧事实**（`MonitorConcurrency` 是 int、`Concurrency` 是对象）。
+改成合并后的真相：`MonitorConcurrency` 是对象、序列化名 `concurrency`、**没有 int 兄弟**、且其类型上有 `Maximum` / `Ratio`。**
+
+### 数字
+
+| 度量 | R928 | **R929** |
+|---|---|---|
+| 套件 | 1915 | **1915** |
+| 类型缺失 | 16 | 16 |
+| 成员形状 | 94 / 17 | 94 / 17 |
+| **设置不匹配成员** | 4 | **3**（`MonitorConcurrency` 有键了） |
+
+**套件与形状三个数都没动 —— 因为这一轮修的是一个**成员的类型与名字**，
+而那两个度量数的是**类型存在性**与**成员集合**，不是成员类型。**
+
+> **所以「没动」不说明「没改」：这一轮把一个 `int` 换成了一个对象，而 1915 / 16 / 94 三个数一个都没变。**

@@ -21,7 +21,7 @@ public class SettingsTests
             Timeout = 12,
             Currency = Currency.EUR,
             Language = "English",
-            Concurrency = new ConcurrencySettings { Mode = ConcurrencyMode.Maximum, Maximum = 5, Ratio = 0.25 },
+            MonitorConcurrency = new ConcurrencySettings { Mode = ConcurrencyMode.Maximum, Maximum = 5, Ratio = 0.25 },
         };
         settings.NotificationOptions.Checkout.Sound = false;
         settings.Webhooks.Add(new Webhook { Url = "https://discord.com/api/webhooks/1/2" });
@@ -34,7 +34,7 @@ public class SettingsTests
         Assert.Equal("6af28adf9813baada60406dd", back.License);
         Assert.Equal(1500, back.MonitorDelay);
         Assert.Equal(Currency.EUR, back.Currency);
-        Assert.Equal(5, back.Concurrency.Maximum);
+        Assert.Equal(5, back.MonitorConcurrency.Maximum);
         Assert.False(back.NotificationOptions.Checkout.Sound);
         Assert.Single(back.Webhooks);
         // camelCase on disk

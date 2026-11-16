@@ -146,13 +146,13 @@ public sealed class GlobalSettings : ObservableObject
     public string ClockFormat { get => _clockFormat; set => SetProperty(ref _clockFormat, value); }
 
     public Currency Currency { get => _currency; set => SetProperty(ref _currency, value); }
-    public ConcurrencySettings Concurrency { get; set; } = new();
+    [Newtonsoft.Json.JsonProperty("concurrency")]
+    public ConcurrencySettings MonitorConcurrency { get; set; } = new();
 
     /// <summary>
     /// How many monitors run at once (bound as <c>MonitorConcurrency</c>). Distinct from <see cref="Concurrency"/>,
     /// which is the checkout pool: the settings page shows "Monitor Concurrency" as its own row.
     /// </summary>
-    public int MonitorConcurrency { get; set; } = 10;
 
     // ---- logs & backups ----
     public TimeSpan MaxLogRetention { get => _maxLogRetention; set => SetProperty(ref _maxLogRetention, value); }

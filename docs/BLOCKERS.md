@@ -26377,3 +26377,79 @@ metrics_report.py                           -> 1915 通过 / 0 失败
 **而这四个里三个是「多余但合法」，一个是「两边都对而互相冲突」。四种情况，一个数字。**
 
 **所以一个差额要逐个问过，才能从「4」变成「3 个已知 + 1 个待解」。**
+
+
+---
+
+## 353. `MonitorConcurrency` 定案：复刻件凭空造了一个 int
+
+> R929。**改产品代码 + 改写 2 用例。** 套件 **1915 通过 / 0 失败 / 0 跳过**。
+
+### 一、三组证据
+
+```
+locale   "Settings.General.MonitorConcurrency": "Monitor Concurrency"
+         "Settings.General.MonitorConcurrency.Maximum": "Maximum:"
+         "Settings.General.MonitorConcurrency.Ratio": "Ratio:"
+         "Settings.General.MonitorConcurrency.Both": "Both:"
+描述符   Cybersole.Global.Settings,Cybersole.Core.MonitorConcurrency!Getter
+         Cybersole.Models.Concurrency,Cybersole.Core.Maximum!Getter
+符号     <MonitorConcurrency>k__BackingField
+```
+
+### 二、定案
+
+**`MonitorConcurrency` **就是** `Models.Concurrency` 那个对象（Maximum/Ratio/Mode），不是旁边的 `int`。**
+
+**复刻件有 `ConcurrencySettings Concurrency` + 凭空造的 `int MonitorConcurrency = 10`。
+那个 int 是我的发明 —— 而它看起来合理，因为「并发数」听起来就是个数字。**
+
+### 三、合成一个（同 R927 的 `StartupPage` 手法）
+
+```csharp
+[JsonProperty("concurrency")]
+public ConcurrencySettings MonitorConcurrency { get; set; } = new();
+```
+
+### 四、而改名时我第二次犯同类错
+
+**正则改所有 `.Concurrency` → 17 处 → `ProviderViews.cs` 的 `c.Concurrency` / `picked.Concurrency`
+是 `CaptchaProvider` 自己的（描述符表里有）→ 构建报错 → 回滚。
+按**接收者**限定（`settings.` / `s.`）→ 8 处 → 通过。**
+
+**→ 「谁是接收者」比「名字长什么样」更能定住一处引用。**
+
+### 五、我 R928 的两个测例红了
+
+**它们编码旧事实。改写为：是对象 · 序列化名 `concurrency` · 没有 int 兄弟 · 类型上有 `Maximum`/`Ratio`。**
+
+### 六、数字
+
+| 度量 | R928 | R929 |
+|---|---|---|
+| 套件 | 1915 | **1915** |
+| 类型缺失 | 16 | 16 |
+| 成员形状 | 94 / 17 | 94 / 17 |
+| **设置不匹配成员** | 4 | **3** |
+
+**三个度量数一个没动 —— 因为这一轮修的是成员的类型与名字，而它们数的是类型存在性与成员集合。**
+
+### 七、验证
+
+```
+analysis/ida.py str "oncurrency"   -> locale 的 Maximum/Ratio/Both/Max 全在 MonitorConcurrency 下
+test --filter SettingsUnmatchedMembersTests -> 4 通过
+metrics_report.py                  -> 1915 通过 / 0 失败
+```
+
+### 八、仍然 Unknown
+
+- **`ClockFormat` / `StoreGroups` 该不该持久化**：**Unknown** —— 不在契约。
+- **`Enums.ConcurrencyMode` 的三个值**：**Unknown** —— 未核。
+- **其余成员的**类型**是否对**：**Unknown** —— 只核了名字。
+
+### 九、教训
+
+**「没动」不说明「没改」。这一轮把一个 `int` 换成了一个对象，而 1915 / 16 / 94 三个数一个都没变。**
+
+**所以度量不动的时候，要先问它数的是什么，再判断这一轮有没有做成事。**

@@ -253,9 +253,9 @@ public sealed class GeneralSettingsView : UserControl
         var enableClock = UiKit.Check("Enable clock", s.EnableClock);
         var clockFormat = UiKit.Text(s.ClockFormat, watermark: "HH:mm");
 
-        var concMode = UiKit.Combo(Enum.GetNames<ConcurrencyMode>(), (int)s.Concurrency.Mode);
-        var concMax = UiKit.Number(s.Concurrency.Maximum);
-        var concRatio = UiKit.Text(s.Concurrency.Ratio.ToString("0.##"));
+        var concMode = UiKit.Combo(Enum.GetNames<ConcurrencyMode>(), (int)s.MonitorConcurrency.Mode);
+        var concMax = UiKit.Number(s.MonitorConcurrency.Maximum);
+        var concRatio = UiKit.Text(s.MonitorConcurrency.Ratio.ToString("0.##"));
 
         // R51: two halves of one setting, each orphaned.
         //
@@ -326,9 +326,9 @@ public sealed class GeneralSettingsView : UserControl
                 ? null
                 : services.Config.ProxyGroups[Math.Min(quickProxies.SelectedIndex - 1,
                     services.Config.ProxyGroups.Count - 1)].Id;
-            s.Concurrency.Mode = (ConcurrencyMode)Math.Max(0, concMode.SelectedIndex);
-            if (UiKit.TryReadInt(concMax.Text, out var mx)) s.Concurrency.Maximum = mx;
-            if (double.TryParse(concRatio.Text, out var ratio)) s.Concurrency.Ratio = ratio;
+            s.MonitorConcurrency.Mode = (ConcurrencyMode)Math.Max(0, concMode.SelectedIndex);
+            if (UiKit.TryReadInt(concMax.Text, out var mx)) s.MonitorConcurrency.Maximum = mx;
+            if (double.TryParse(concRatio.Text, out var ratio)) s.MonitorConcurrency.Ratio = ratio;
 
             services.Config.Save();
             status.Text = "Saved.";

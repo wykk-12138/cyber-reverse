@@ -59,7 +59,7 @@ public class SettingsUnmatchedMembersTests
             .OrderBy(n => n)
             .ToArray();
 
-        Assert.Equal(new[] { "ClockFormat", "EnableClock", "MonitorConcurrency", "StoreGroups" }, unmatched);
+        Assert.Equal(new[] { "ClockFormat", "EnableClock", "StoreGroups" }, unmatched);
     }
 
     /// <summary>
@@ -93,22 +93,38 @@ public class SettingsUnmatchedMembersTests
     }
 
     /// <summary>
-    /// MonitorConcurrency is the one that stays genuinely open: the contract lists it and the backup has no key for it,
-    /// while concurrency is already taken by the nested ConcurrencySettings object. Pinned so the question cannot be
-    /// lost.
+    /// R929 settled this from the binary, and it went against the replica.
+    ///
+    /// <para>
+    /// The locale strings put Maximum, Ratio, Both and Max under Settings.General.MonitorConcurrency:
+    /// <c>"Settings.General.MonitorConcurrency.Maximum": "Maximum:"</c> and its neighbours. So MonitorConcurrency is
+    /// the ConcurrencySettings object itself, not a scalar beside it -- and the binding descriptor naming
+    /// <c>Cybersole.Global.Settings,Cybersole.Core.MonitorConcurrency!Getter</c> alongside
+    /// <c>Cybersole.Models.Concurrency,Cybersole.Core.Maximum!Getter</c> says the same thing.
+    /// </para>
+    ///
+    /// <para>
+    /// The replica had both a ConcurrencySettings Concurrency and an invented int MonitorConcurrency. They are now one
+    /// property: the object under the binding's name, carrying the file's key. This test pins that there is no scalar
+    /// left, because the scalar was the invention.
+    /// </para>
     /// </summary>
     [Fact]
-    public void MonitorConcurrencyIsAContractMemberWithNoKeyAndConcurrencyIsObject()
+    public void MonitorConcurrencyIsTheObjectAndThereIsNoScalarBesideIt()
     {
         var props = typeof(GlobalSettings).GetProperties();
 
         var monitor = props.Single(p => p.Name == "MonitorConcurrency");
-        var concurrency = props.Single(p => p.Name == "Concurrency");
+        Assert.Equal("concurrency", SerialisedName(monitor));
+        Assert.NotEqual(typeof(int), monitor.PropertyType);
 
-        Assert.Equal(typeof(int), monitor.PropertyType);
-        Assert.NotEqual(typeof(int), concurrency.PropertyType);
-        Assert.Equal("concurrency", SerialisedName(concurrency));
-        Assert.Equal("monitorconcurrency", SerialisedName(monitor));
+        // the invented scalar is gone, and nothing else answers to the name
+        Assert.DoesNotContain(props, p => p.PropertyType == typeof(int) && p.Name == "MonitorConcurrency");
+        Assert.DoesNotContain(props, p => p.Name == "Concurrency");
+
+        // Maximum lives on the type MonitorConcurrency is, which is what the locale's .Maximum entry names
+        Assert.NotNull(monitor.PropertyType.GetProperty("Maximum"));
+        Assert.NotNull(monitor.PropertyType.GetProperty("Ratio"));
     }
 
     private static string RepoRoot()

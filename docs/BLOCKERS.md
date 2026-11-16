@@ -20860,3 +20860,94 @@ grep 'Start.*Flow' replica\src -> 无分派层
 **这个检查本该在 R854 之前做 —— 在问「这些段属于谁」之前，先问「复刻件按什么维度组织」。**
 
 **两个系统的顶层维度不同时，用一侧的维度去索引另一侧的条目，只会得到一堆对不上的行。**
+
+
+---
+
+## 282. `Task.Type` 是个**死字段** —— 比缺字段更糟
+
+> R858。未改产品代码。
+
+### 一、字段在，写入者不在
+
+`Cybersole.Core/Models/Tasks.cs`：
+
+```csharp
+public bool MonitorMode { get; set; }
+public string Type { get; set; } = string.Empty;
+```
+
+**而全 `replica\src` 没有一处 `.Type =` 给任务赋值。**
+（搜到的 `.Type ==` 全是 `Tls12Client` 的 TLS record 类型判断与 `RetailFlows` 的 `JTokenType`。）
+
+**创建路径也不带它：**
+
+```csharp
+public sealed class TaskCombinationRequest
+{
+    public required string Store { get; init; }     // ← 只有店
+    public bool MonitorMode { get; init; }
+    // … 没有 Kind / Mode / Type
+}
+```
+
+### 二、所以 R857 的结论要收紧一层
+
+| | 镜像 | 复刻件 |
+|---|---|---|
+| 种类 | 顶层五个 `Start*Flow`（d__57–61），真的有分派 | **字段存在，无写入者、无按它分派** |
+
+**复刻件有那个**字段**，没有那一**层**。**
+
+### 三、为什么死字段比缺字段更糟
+
+**一个不存在的字段，任何人读代码都知道要新建。
+一个存在但没人写的字段，读代码的人会以为「已经有了，只是还没接上」——
+于是先去查「为什么 Type 是空的」，而不是「种类层要不要建」。**
+
+**这与 R823 删掉编造 CSRF 兜底、R850 不写 11 个空壳方法是同一条标准的第三种形态：**
+
+| 形态 | 例子 |
+|---|---|
+| 编造一个值 | R823 的三个 CSRF GUID |
+| 写一个有形状没内容的方法 | R850 那 11 个抽签步骤 |
+| **留一个没人写的字段** | **R858 的 `Task.Type`** |
+
+**三种都会让「已完成」这句话看起来成立。**
+
+### 四、这一轮不动代码，理由
+
+**删掉 `Task.Type` 是一个动作，但**该不该删**取决于它是不是镜像里真有的字段 ——
+如果是（比如镜像的任务模型真有 Type），那它该留着并且该被写；如果不是，它该删。**
+
+**这条没查：镜像里任务模型有没有 Type。**
+**而「先删再查」会让下一步失去线索 —— R815 记过这个坑（删掉一个模块可能删掉证据）。**
+
+**所以本轮只记录状态，不删。**
+
+### 五、验证
+
+```
+replica\src\Cybersole.Core\Models\Tasks.cs: public string Type
+grep '\.Type\s*=' 全 src -> 0 处任务赋值（只有 TLS record 与 JToken 比较）
+replica\src\Cybersole.Core\Store\TaskCombinationBuilder.cs: TaskCombinationRequest 只有 Store
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **镜像的任务模型有没有 Type 字段**：**Unknown** ——
+  **这决定 `Task.Type` 该留该删。要查任务模型的字段名（可能在 `0x14337xxxx` 段）。**
+- **镜像的 `Start*Flow` 是靠什么分派的**：**Unknown** ——
+  五个方法存在，**但派发它们的判断（读任务哪个字段）没查。**
+- **`Task.Type` 是谁加进来的、为什么**：**Unknown** ——
+  **git log 能查，但那条记录未必说了理由。**
+
+### 七、教训
+
+**R857 我说「复刻件没有种类这一层」。这一轮查得更准：它有字段，没层。**
+
+**两个说法差别很大，因为第一个说法会让人去找「层」在哪，第二个说法会让人去查「字段为什么空」。**
+
+**而这两种后续动作里，只有第二种会走到「镜像里到底有没有这个字段」这个问题上。**

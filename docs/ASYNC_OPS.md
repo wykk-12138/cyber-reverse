@@ -660,3 +660,32 @@ enter · offspring · bodega · concepts · packershoes · socialstatus · undef
 **这解释了为什么「20+ 段运行」认不出归属 —— 它们里有的是**种类**下的通用序列，不对应任何站。**
 **`StartPopNowFlow` 对应 Pop Mart 的抽签；`StartInStoreFlow` 对应到店；`StartSignupFlow` 对应注册。
 它们是**跨站的**，所以按站去找必然错位。**
+
+
+### 复刻件有 `Task.Type` 字段，而**没有任何地方写它**（R858）
+
+**`Cybersole.Core/Models/Tasks.cs` 里有：**
+
+```csharp
+public bool MonitorMode { get; set; }
+public string Type { get; set; } = string.Empty;
+```
+
+**而全 `replica\src` 里没有一处 `.Type =` 给它赋值**（搜到的 `.Type ==` 全是 `Tls12Client` 的 record 类型与 `JTokenType`）。
+
+**`TaskCombinationRequest`（创建任务的输入）只有 `Store`，没有种类字段：**
+
+```csharp
+public required string Store { get; init; }
+public string? Url { get; init; }
+public bool MonitorMode { get; init; }
+// … 没有 Kind / Mode / Type
+```
+
+### 所以
+
+| | 镜像 | 复刻件 |
+|---|---|---|
+| 种类 | **顶层五个 `Start*Flow`，真的有分派** | **`Task.Type` 字段存在，无人写、无人按它分派** |
+
+**死字段比缺字段更糟：它让「种类这一层」看起来存在。**

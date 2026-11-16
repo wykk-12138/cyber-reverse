@@ -187,3 +187,10 @@
 **`StartDailyCheckInTask` 确认有实现**（`CheckIn` 横跨 `NikeSteps`/`PopMartEndpoints`/`StoreFlowSteps`）。
 **探针到头**：40 条要判需**调用图**（从函数地址走，不从名字串走，R828 已证）。下一阶段工具：按地址找调用者。
 **「为什么」不能是「我搜过没搜到」。**
+
+## R843 补充 — 步骤表早已在仓里
+
+**`replica/src/Cybersole.Stores/Flows/StoreFlowSteps.cs`（R112 起）有 9 个流程的步骤表，带 ordinal。**
+R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有的**。
+**Nike：镜像 16 步 ↔ NikeFlow 17 重写，同名仅 2 个。差距是粒度** —— 镜像 10 个细步（`ValidateAddress`/`CheckInventory`/`GetShopperIp`…）vs 复刻件 3 个粗步。
+**Pop Mart 24 步，抽签/展览/预约共 17 步；`PopNow` 只是其中一条流的一个词。**

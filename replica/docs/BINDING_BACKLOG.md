@@ -2607,3 +2607,30 @@ python analysis/ida.py str <Flow|Task|Pop|Cart|Checkout|Order|Session|Signup> --
 | 换词仍 0 | 仍未找到 | **仍不能** |
 
 **「为什么」不能是「我搜过没搜到」。**
+
+
+## 判据 (f) — 步骤表已在仓里（R843）；Nike 差距是粒度
+
+**`StoreFlowSteps.cs`（R112 起）有 9 个流程的步骤表，带 ordinal、按流程分组、注明出处：**
+Nike 16 · **Pop Mart 24** · John Lewis 17 · Demandware 经典 12 / 双路 15 · CollectPlus App 16 · StructureToken 多/单 14/14
+
+> **R838–R842 从元数据提的 115 个名字是「按八个词搜的扁清单」。后者好得多，而我没读它。**
+> **「我不知道它已经存在」和「它不存在」在我脑子里长得一样。**
+
+### Nike：17 重写 ↔ 16 步，同名只有 2 个
+
+**镜像 10 个细步**（`SubmitCustomer`/`ValidateAddress`/`SubmitShippingAddress`/`GetShippingMethods`/`SubmitShippingMethod`/`SubmitBillingAddress`/`BeginCheckout`/`CheckInventory`/`GetShopperIp`/`GetPaymentMethods`）
+**↔ 复刻件 3 个粗步**（`SubmitShipping`/`SubmitPayment`/`GetCheckout`）。
+
+**→ 差距是粒度，不是缺失。影响「功能相等」与错误定位。**
+
+### Pop Mart 24 步：抽签/展览/预约共 17 步
+
+`StartDrawFlow`…`CheckResult`（6）· `StartDrawEventFlow`…`RedeemMemberPoints`（7）· `StartExhibitFlow`…`EnterExhibit`（3）· `StartReservationFlow`…`EnterReservation`（5）
+**R838 的 `PopNow` 只是其中一条流的一个词。**
+
+| 仍 Unknown | |
+|---|---|
+| Nike 10 细步 ↔ 复刻件哪一行 | 要读三个粗步的实现 |
+| 其余 8 个流程的对比 | 本轮只做 Nike |
+| 9 步骤表流程 ↔ `Registry.cs` 63 模块 | 关系未建立 |

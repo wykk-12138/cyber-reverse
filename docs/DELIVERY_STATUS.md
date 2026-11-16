@@ -13795,3 +13795,107 @@ docs\ASYNC_OPS.md: 第三批表 + 累计表 + 教训
 
 **表格里没有一格能单独读成「缺失」。**
 **而判据 (f) 要求「未覆盖的每条写为什么」—— 「为什么」不能是「我搜过没搜到」。**
+
+
+---
+
+## 267. **步骤表早就在仓里（R112）；而 Nike 的真实差距是粒度，不是缺失**
+
+> R843。未改产品代码。**这一轮先承认一件事：R838–R842 在重新推导一份 `StoreFlowSteps.cs` 里已有的东西。**
+
+### 一、我先做了什么，错在哪
+
+**为了让「71 条未覆盖」有个清单，我从 R839 起从元数据里提 `<Name>d__N`，得到 115 个名字，
+再用三轮探针判了 71 条。**
+
+**而 `replica/src/Cybersole.Stores/Flows/StoreFlowSteps.cs` 里，从 R112 起就有更权威的东西：**
+
+```csharp
+/// Each flow's steps sit in one adjacent run in the string pool, with the compiler's d__N ordinals
+/// attached — which makes the list authoritative rather than reconstructed.
+```
+
+**它给出 9 个流程、每条带 ordinal、按流程分组：**
+
+| 流程 | 步数 | 例 |
+|---|---|---|
+| Nike | 16 | `StartEcomSession 41` … `SubmitOrder 58` |
+| **Pop Mart** | **24** | `StartDrawFlow 115` · `FindMegaDraw 133` · `ChooseGoods 135` · `StartReservationFlow 149` … |
+| John Lewis | 17 | `WebHandOver 23` · `GuestCallback 25` · `GetStripePaymentIntent 39` |
+| Demandware 经典 | 12 | `InitiateCheckout 33` · `GenerateCSRF 34` · `SubmitConsignment 37` |
+| Demandware 双路 | 15 | `StartAppFast 36` · `GetCartDw 39` · `AddToCartAppDw 42` |
+| CollectPlus App | 16 | |
+| StructureToken 多/单 | 14 / 14 | |
+
+**我的 115 个名字是「按八个词搜出来的扁清单」；这份是「按流程分组、带序号、有出处」的表。**
+**后者好得多，而我没读它。**
+
+**R838 说「按词搜索给不出完整清单」—— 而正确答案不是「换个搜索方式」，是「先读仓里已有的清单」。**
+
+### 二、Nike 的逐步骤对比（这才是判据 f 要的形态）
+
+**`NikeFlow` 重写 17 个方法，而镜像 Nike 流程有 16 步；名字对得上的只有两个：**
+
+```
+OK  FindVariant            ordinal 44
+OK  SubmitOrder            ordinal 58
+--  StartEcomSession       41     --  SubmitShippingAddress  50     --  CheckInventory     55
+--  Authorize              42     --  GetShippingMethods     51     --  GetShopperIp       56
+--  GetAccessToken         43     --  SubmitShippingMethod   52     --  GetPaymentMethods  57
+--  CreateBasket           46     --  SubmitBillingAddress   53
+--  SubmitCustomer         48     --  BeginCheckout          54
+--  ValidateAddress        49
+```
+
+**14 步没有同名重写。** 但原因不是「缺」：
+
+**镜像把 Nike 的结账拆成细步 —— `SubmitCustomer` / `ValidateAddress` / `SubmitShippingAddress` /
+`GetShippingMethods` / `SubmitShippingMethod` / `SubmitBillingAddress` / `BeginCheckout` /
+`CheckInventory` / `GetShopperIp` / `GetPaymentMethods` 十步；
+复刻件把它们压成 `SubmitShipping` / `SubmitPayment` / `GetCheckout` 三个。**
+
+**所以 Nike 的差距是粒度，不是缺失**：**镜像有 10 个可分别失败的结账阶段，复刻件有 3 个。**
+**这影响「每个函数功能相等」和「错误定位」：镜像某一步失败时能说清是哪一步，复刻件只能说到「提交配送」。**
+
+### 三、Pop Mart 的 24 步（R838 的「抽签子系统」其实就在这里）
+
+```
+GetOrders 104 · GetInstoreOrders 105
+StartDrawFlow 115 · StartDrawCheckFlow 116 · FindDraw 117 · CheckDraw 118 · EnterDraw 119 · CheckResult 120
+StartDrawEventFlow 131 · FindDrawEvent 132 · FindMegaDraw 133 · EnterDrawEvent 134 · ChooseGoods 135
+RedeemMemberPoints 136 · RedeemLuckPoints 137 · FetchAliases 138
+StartExhibitFlow 139 · FindExhibit 141 · EnterExhibit 142
+StartReservationFlow 149 · FetchDetails 150 · FindDates 151 · FindTimeSlots 152 · EnterReservation 153
+```
+
+**R838 从 `PopNow` 里读出 13 个名字，兴奋地称它「九方法子系统」—— 而这份表里 Pop Mart 的抽签/展览/预约
+一共 17 步，分成四条独立的流（draw / draw-event / exhibit / reservation），`PopNow` 只是其中一条的一个词。**
+
+**所以 R838 那个「子系统」判断既对又不全：对在「粗读复刻件没有」，不全在「把它当成一套」。**
+
+### 四、验证
+
+```
+replica\src\Cybersole.Stores\Flows\StoreFlowSteps.cs   （R112 起就有，9 个流程、带 ordinal）
+NikeFlow overrides 17 个；与镜像 16 步同名相交 2 个（FindVariant / SubmitOrder）
+Pop Mart 镜像 24 步，其中抽签/展览/预约共 17 步
+本轮未改产品代码
+七项度量沿用
+```
+
+### 五、仍然 Unknown
+
+- **Nike 那 10 个细步在复刻件里分别对应到哪一行代码**：**Unknown** ——
+  需要逐个读 `SubmitShipping` / `SubmitPayment` / `GetCheckout` 的实现，**看它们各自做了几件事。**
+- **其余 8 个流程的同类对比**：**未做** —— 本轮只做了 Nike。
+- **`StoreFlowSteps` 的 9 个流程与 `Registry.cs` 的 63 个模块怎么对应**：**Unknown** ——
+  9 个有步骤表，63 个有模块，**中间的关系没建立。**
+
+### 六、教训
+
+**我在四轮里造了一份「名字清单」，而仓里躺着一份更好的 —— 按流程分组、带序号、注明出处的。**
+
+**R838 的诊断是「按词搜索给不出完整清单」，我当时写下的结论是「换方法：遍历元数据或走类型图」。
+正确的结论是更简单的一句：先读仓里已经有的。**
+
+**因为「我不知道它已经存在」和「它不存在」在我脑子里长得一样。**

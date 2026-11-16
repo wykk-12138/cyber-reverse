@@ -50716,3 +50716,54 @@ PopMartFlow.cs L232 → PostJsonAsync(... AddBoxListToCart ...) · 七项度量�
 ### 仍然 Unknown
 
 **40 条的真相**（需调用图）· **3 条探针无辨识力的命中文件是否关于这件事** · **`GetCartId` 的 11 个文件里哪个是「取车 id」**
+
+
+---
+
+## 第 843 轮：步骤表早就在仓里；Nike 的差距是粒度不是缺失
+
+### 先承认：R838–R842 在重新推导已有之物
+
+`replica/src/Cybersole.Stores/Flows/StoreFlowSteps.cs` **从 R112 起就有 9 个流程的步骤表，带 ordinal、按流程分组、注明出处**：
+
+| 流程 | 步数 |
+|---|---|
+| Nike | 16 |
+| **Pop Mart** | **24** |
+| John Lewis | 17 |
+| Demandware 经典 / 双路 | 12 / 15 |
+| CollectPlus App | 16 |
+| StructureToken 多 / 单 | 14 / 14 |
+
+**我从元数据提的 115 个名字是「按八个词搜出的扁清单」。后者好得多，而我没读它。**
+
+> **R838 的结论是「换方法」；正确的结论更简单：先读仓里已经有的。**
+> **「我不知道它已经存在」和「它不存在」在我脑子里长得一样。**
+
+### Nike 逐步骤对比（判据 f 要的形态）
+
+**`NikeFlow` 17 个重写 ↔ 镜像 16 步，同名的只有两个（`FindVariant` 44 · `SubmitOrder` 58）。**
+
+**14 步没有同名重写，但原因是粒度：**
+
+> **镜像把 Nike 结账拆成 10 个可分别失败的阶段**（`SubmitCustomer`/`ValidateAddress`/`SubmitShippingAddress`/`GetShippingMethods`/`SubmitShippingMethod`/`SubmitBillingAddress`/`BeginCheckout`/`CheckInventory`/`GetShopperIp`/`GetPaymentMethods`），
+> **复刻件压成 3 个**（`SubmitShipping`/`SubmitPayment`/`GetCheckout`）。
+> **影响两件事：「每个函数功能相等」，以及错误定位 —— 镜像能说清哪一步失败，复刻件只能说到「提交配送」。**
+
+### Pop Mart 的 24 步里，抽签/展览/预约共 17 步
+
+`StartDrawFlow`/`FindDraw`/`EnterDraw`/`CheckResult` · `StartDrawEventFlow`/`FindMegaDraw`/`ChooseGoods`/`RedeemMemberPoints` · `StartExhibitFlow`/`EnterExhibit` · `StartReservationFlow`/`FindDates`/`FindTimeSlots`/`EnterReservation`
+
+**R838 的 `PopNow` 只是其中一条流的一个词 —— 那轮「九方法子系统」既对（粗读没有）又不全（当成一套）。**
+
+### 仍然 Unknown
+
+**Nike 那 10 个细步分别对应复刻件哪一行**（要逐个读三个粗步的实现）· **其余 8 个流程的同类对比**（本轮只做 Nike）· **9 个有步骤表的流程 ↔ `Registry.cs` 63 个模块**（关系未建立）
+
+### 验证
+
+```
+StoreFlowSteps.cs（R112 起）9 个流程带 ordinal
+NikeFlow 17 重写 ∩ 镜像 16 步 = 2 · Pop Mart 24 步中抽签/展览/预约 17 步
+产品代码未改 · 七项度量沿用
+```

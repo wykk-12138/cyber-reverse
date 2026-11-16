@@ -46310,3 +46310,49 @@ ProfileCsvSentenceCompositionTests   3 / 3
 ### 下一轮
 
 `0x140713b20`（1,792 B，唯一引用 `Imported`）—— 读出它，就能回答 R744 的另一个缺口。
+
+
+---
+
+## 第 746 轮：第二处同 bug 修了，但套件红了
+
+### 修了什么
+
+R745 修了 `Preview()`；**`ApplyCore()` 里有一模一样的一处**，注释还写着「same message as Preview」。已改。
+
+### 顺带查出 10 处自造状态文案，都没动
+
+| 行 | 复刻件 | 目录里 |
+|---|---|---|
+| 725 | `Imported {N} profile(s) into {group}.` | **有 `Merged {0} rows from {1}`** |
+| 669 | `"Nothing to import."` | 无 |
+| 720 | `$"{FixErrors} — {errors[0]}"` | 无 |
+| 806…1200 | `"Copied …"` / `"Group deleted."` / … | 无 |
+
+**第 725 行有对应键，但 `{1}`（来源）在 `ApplyCore` 里没有 —— Unknown，不改。**
+其余 9 处目录里根本没有，**要么该消失要么该换，两种都 Unknown，不改。**
+
+### 套件红了，如实报
+
+```
+1707 通过 / 1 失败
+失败: HomePageParityTests.ThePagerBelongsToTheReleasesNotThePeriod
+上一轮是 1708 / 0
+```
+
+**已查**：单独跑通过、与 `ProfileCsv*` 一起跑通过、全量重跑**仍失败**。
+断言是 `Assert.InRange(view.ReleasePage, 1, view.ReleasePages)`，
+**若 `ReleasePages == 0` 会直接抛**，与 12ms 时长吻合 → **指向共享数据被前面的测试弄脏**。
+
+**没查清**：哪个测试弄脏了它，以及为什么 R745 那轮没碰到。
+
+### 这一轮不能算通过
+
+**判据 (e) 要求全量绿。现在不绿。**
+
+> 代码改动在证据上是对的，**但红着就是红着**。把它写成"完成"，就是拿一条红换一次自我感觉良好。
+
+### 下一轮
+
+**先修红，再做别的。** 第一步：读 `AppServices.Create` 的隔离机制，
+找出 `ReleasePages` 依赖什么；第二步：定位哪个测试把它弄成 0。

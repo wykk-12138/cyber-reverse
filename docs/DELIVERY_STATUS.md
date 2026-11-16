@@ -5964,3 +5964,79 @@ ProfileCsvCopyTests（原有）            通过（它断言的是键的文案�
 - `Imported`（`Merged {0} rows from {1}`）在哪个上下文产生：**Unknown** —— 函数 `0x140713b20`（1,792 B）已定位，未读。
 - `Preview()` 兜底那句的原版对应物：**Unknown**（R744 记）。
 - `0x140F75EE0` 那 363 行里其余 14 个 CSV 键的调用关系：**Unknown**（只读了 NoHeader 一处）。
+
+
+---
+
+## 175. ApplyCore 的第二处同 bug 已修；**但套件变红了，且我没查清原因**
+
+> R746。改 `ProfileViews.cs` 的 `ApplyCore()` 一处。
+
+### 一、修的是什么（有证据）
+
+R745 修了 `Preview()` 里 `StatusNoHeader` 单独显示的问题（原版是**抛出**这句、由外层 `ParseFailed` 包起来）。
+**`ApplyCore()` 里有一模一样的一处**，而且它的注释还写着「same message as Preview」——
+
+```csharp
+if (!HeaderHasKnownColumn())
+{
+    // R653: same message as Preview -- the header names no column this editor knows.
+    _status.Text = Text("StatusNoHeader");   // ← R745 已证这句在原版里是被包起来的
+    return;
+}
+```
+
+已改成 `string.Format(Text("StatusParseFailed"), Text("StatusNoHeader"))`。
+
+### 二、顺带查出一批**自造文案**，但都没动
+
+`_status.Text` 的 16 处赋值里，**10 处是目录里没有的文字**：
+
+| 行 | 复刻件 | 目录里 |
+|---|---|---|
+| 725 | `$"Imported {rows.Count} profile(s) into {group.Name}."` | **有 `Status.Imported` = `Merged {0} rows from {1}`** |
+| 669 | `"Nothing to import."` | 无 |
+| 720 | `$"{FixErrors} — {errors[0]}"` | 无（连接符是自造的） |
+| 806 / 883 / 890 / 1057 / 1118 / 1162 / 1189 / 1200 | `"Copied …"` / `"Group deleted."` / … | 无 |
+
+**只有第 725 行有明确的目录对应物。** 但 `ApplyCore` 的来源是编辑器本身，**不是文件名**，
+所以 `Merged {0} rows from {1}` 的 `{1}` 该填什么 —— **Unknown**。**没改。**
+
+其余 9 处**目录里没有对应键**，所以它们要么该消失、要么该换成我还没找到的文案 —— **两种都是 Unknown。没改。**
+
+### 三、套件变红了，如实报
+
+```
+完整套件   1707 通过 / 1 失败 / 0 跳过
+失败       Cybersole.Tests.HomePageParityTests.ThePagerBelongsToTheReleasesNotThePeriod
+```
+
+**上一轮（R745）是 1708 / 0。** 所以必须查。
+
+**已查到的**：
+
+1. **单独跑它 → 6 / 6 通过**
+2. **把它和 `ProfileCsv*` 一起跑 → 28 / 28 通过**
+3. **重跑全量 → 同样失败**（不是随机）
+4. 断言是 `Assert.InRange(view.ReleasePage, 1, view.ReleasePages)` ——
+   **若 `ReleasePages == 0`，`InRange(x, 1, 0)` 直接抛**（min > max），与 12ms 的失败时长吻合
+
+**所以最可能的机制**：`ReleasePages` 由**共享数据**算出，前面的某个测试把它弄成 0。
+`TestServices.Create()` 的注释说「isolated from the user's real settings」，**但隔离机制在
+`AppServices.Create` 里，我没有查到底。**
+
+**没查清的部分**：哪个测试弄脏了它、以及为什么 R745 那一轮没碰到。
+
+### 四、这一轮不能按"完成"记
+
+**判据 (e) 要求全量套件绿。现在不绿。** 所以：
+
+- R746 的代码改动**在证据上是对的**（与 R745 同一处 bug 的第二份）
+- **但这一轮不能算通过**，套件红着
+- **`docs/METRICS.md` 现在写的是 1 失败** —— 这是事实，不掩盖
+
+### 五、仍然 Unknown
+
+- `ReleasePages` 为 0 的来源：**Unknown** —— 未查到哪个测试弄脏共享状态
+- `AppServices.Create` 的隔离机制：**Unknown** —— 未读
+- 那 10 处自造文案的原版对应物：**Unknown**（第 725 行除外，它有键但参数缺）

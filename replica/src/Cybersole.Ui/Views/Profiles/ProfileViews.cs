@@ -659,8 +659,11 @@ public sealed class ProfileCsvEditorView : UserControl
                 Math.Max(0, _services.Config.BillingGroups.Count - 1));
             if (!HeaderHasKnownColumn())
             {
-                // R653: same message as Preview -- the header names no column this editor knows.
-                _status.Text = Text("StatusNoHeader");
+                // R653 found the key; R745 corrected the mechanism. sub_140F75EE0 loads Status.NoHeader and then
+                // reaches __debugbreak() -- a throw -- so the sentence is an exception message that the parse
+                // failure handler wraps. Preview() was corrected in R745 and this call site repeated the same
+                // mistake, including the comment claiming it matched Preview.
+                _status.Text = string.Format(Text("StatusParseFailed"), Text("StatusNoHeader"));
                 return;
             }
 

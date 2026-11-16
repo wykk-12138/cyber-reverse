@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 06:41:26 +0800 |
+| 生成时间 | 2026-11-17 06:47:03 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2053 通过 / 0 失败 / 0 跳过 / 2053 总计** |
+| 完整套件 | **2059 通过 / 0 失败 / 0 跳过 / 2059 总计** |
 
 ## 摘要素值
 
@@ -34,12 +34,12 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 173,653 |
 | 函数数量（.pdata） — functions: ratio | 62.66% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 10 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 1044 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 11 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 1153 |
 | 核心覆盖：store 宿主 — hosts with a path | 39 |
 | 核心覆盖：store 宿主 — store hosts | 27 |
-| 核心覆盖：store 宿主 — store hosts matched | 24 |
-| 核心覆盖：store 宿主 — store hosts unmatched | 3 |
+| 核心覆盖：store 宿主 — store hosts matched | 27 |
+| 核心覆盖：store 宿主 — store hosts unmatched | 0 |
 | 核心覆盖：store 宿主 — vendor hosts | 12 |
 | 核心覆盖：vendor 宿主 — vendor hosts carrying a path | 12 |
 | 核心覆盖：vendor 宿主 — vendors named somewhere in src | 12 |
@@ -358,9 +358,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 04:40:00
-newest source: src\Cybersole.Stores\Flows\AntiBotProtocol.cs (2026-11-17 06:08:34)
-source files newer than the artifact: 10
-lines in those files: 1044
+newest source: src\Cybersole.Stores\Payments\PaymentHostGaps.cs (2026-11-17 06:45:40)
+source files newer than the artifact: 11
+lines in those files: 1153
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -382,11 +382,11 @@ registry identifiers: 82   flow types: 35
 
 store hosts
   matched api-search.dickssportinggoods.com         1 paths  dickssportinggoods
-  unmatched api.braintreegateway.com                  2 paths  
-  matched api.nike.com                              4 paths  nikegs, nike
+  matched api.braintreegateway.com                  2 paths  in src
+  matched api.nike.com                              4 paths  nike, nikegs
   matched api.sibspayments.com                      1 paths  in src
   matched api.tobe-official.jp                      1 paths  in src
-  unmatched api.vipps.no                              1 paths  
+  matched api.vipps.no                              1 paths  in src
   matched app.midtrans.com                          2 paths  poqapp
   matched auth.casio-intl.com                       1 paths  casio, casio
   matched authenticate.riotgames.com                1 paths  riotgames
@@ -398,7 +398,7 @@ store hosts
   matched forms.shopifyapps.com                     2 paths  shopify
   matched hbx.com                                   1 paths  hbx
   matched id.asics.com                              3 paths  in src
-  unmatched payments.bigcommerce.com                  1 paths  
+  matched payments.bigcommerce.com                  1 paths  in src
   matched payments.dickssportinggoods.com           2 paths  dickssportinggoods
   matched prod-hk-actapi.popmart.com                2 paths  popmart
   matched retry.touchtechpayments.com               1 paths  in src
@@ -406,7 +406,7 @@ store hosts
   matched threeds.airwallex.com                     1 paths  in src
   matched www.goat.com                              9 paths  goat
   matched www.ibm.com                               1 paths  in src
-  matched www.nike.com                              1 paths  nikegs, nike
+  matched www.nike.com                              1 paths  nike, nikegs
   matched www.vans.com                              6 paths  in src
 
 vendor hosts
@@ -425,8 +425,8 @@ vendor hosts
 
 hosts with a path: 39
 store hosts: 27
-store hosts matched: 24
-store hosts unmatched: 3
+store hosts matched: 27
+store hosts unmatched: 0
 vendor hosts: 12
 NOTE: matched means a registration contains the host's label; unmatched means none does. Neither proves
       the store works or is absent -- a store can be registered under a label sharing no letters with its
@@ -473,7 +473,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2053 通过 / 0 失败 / 0 跳过 / 2053 总计
+`exit 0` · 2059 通过 / 0 失败 / 0 跳过 / 2059 总计
 
 ```text
   正在确定要还原的项目…
@@ -490,7 +490,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2053，已跳过:     0，总计:  2053，持续时间: 1 m 30 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2059，已跳过:     0，总计:  2059，持续时间: 1 m 31 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

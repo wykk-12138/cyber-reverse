@@ -5482,3 +5482,76 @@ buy/orders    n=0
 > 而上一轮那个「比例」是从 n=1 外推出来的。**
 > **而它们的共同形状是：**我在**描述**证据，而不是**读**证据。**
 > **读一行扫描输出和读一个测试体，成本差十倍，而错误的代价是同一件事：一个数字被写进文档。**
+
+
+### 判据 (f) 关：三个 unmatched 的 store host，**全是支付 host**（R948）
+
+**判据 (f) 要求「原版站点与风控清单从二进制取证 ↔ `Registry.cs` 与 `Flows/Scripts` 逐条对，
+未覆盖的每条写为什么」。跑两个工具：**
+
+```
+vendor 侧: 12 个 host，absent from src 0
+store  侧: 27 个 host，unmatched 3
+```
+
+### 三个 unmatched
+
+```
+api.braintreegateway.com    2 paths
+api.vipps.no                1 paths
+payments.bigcommerce.com    1 paths
+```
+
+**而它们**全是支付 host，不是店** —— 所以没有任何 store flow 认领它们。那不是缺口，是**分类错位**：
+它们在 store 侧被数，而它们属于支付侧。**
+
+### 而三条都有具体路径
+
+```
+Braintree   /merchants/rfbkw27jcwmw2xgp/client_api/v1/payment_methods/paypal_account
+            /merchants/rfbkw27jcwmw2xgp/client_api/v1/paypal_hermes/create_payment_resource
+            assets.braintreegateway.com        （第二个 host）
+Vipps       /adyen-card-enrollment/initiate · /commit
+            /checkout-frontend/session/        （第二个 host：checkout.vipps.no）
+BigCommerce /api/public/v1/orders/payments
+```
+
+> **而 Braintree 那个 `rfbkw27jcwmw2xgp` 是**商户 id**，硬写在镜像里。
+> 它按商户不按厂商 —— 所以它属于**一家店**，而记住它错了会把钱打到别的商户。**
+
+### 而 `VippsNo` 我按措辞记，不按地区记
+
+**那串旁边还有 `3DS Unsupported (VippsNo)`。**
+
+> **`No` 可以是 Norway，也可以是「否」。而它有第二种解释 —— 所以记成措辞，不记成 locale 标识。**
+
+### 而工具的数字自己动了
+
+**加完 `PaymentHostGaps.cs` 之后：**
+
+```
+store hosts matched: 27
+store hosts unmatched: 0
+```
+
+> **不是因为补了三个 flow，而是因为那三个 host 现在**有名字**在 src 里。
+> 而 `core_coverage.py` 的判据就是「某个注册里含这个 host 的标签」——
+> 所以它从 3 变 0，说明的是**工具的条件被满足了**，不是**集成完成了**。**
+> **而那个 caveat 工具自己印在最后一行：「matched 不代表实现对了」。**
+
+### 数字
+
+| 度量 | R947 | **R948** |
+|---|---|---|
+| 套件 | 2053 | **2059** |
+| 产物陈旧度 | 10 文件 / 1044 行 | **11 文件 / 1153 行** |
+| **store host unmatched** | 3 | **0** |
+| **vendor host absent** | 0 | **0** |
+
+### 教训
+
+> **判据 (f) 的 store 侧从 3 变 0，而**没有任何一个 flow 被写出来**。
+> 变的只是「这三个 host 在不在 src 里」这件事 —— 而工具的判据正是这个。**
+> **所以「unmatched: 0」这句话是真的，而它不等于「覆盖完成」。
+> 一个度量能归零，而它归零的原因可能只是**你让被度量的东西出现了**。****
+> **而这一轮的真实产出是那三条路径 + 一个商户 id —— 数字归零只是它的副作用。**

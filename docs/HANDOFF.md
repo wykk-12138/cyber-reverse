@@ -1311,3 +1311,19 @@ Nike 两条路径 · OrderV5/scheels · DataDomeRelay · PopMart CheckResult · 
 纪律：读一行扫描输出和读一个测试体，成本差十倍，而错误的代价相同：一个数字被写进文档。
 
 下一轮：核心覆盖表（判据 f）—— 原版站点与风控清单 ↔ Registry.cs 与 Flows/Scripts 逐条对。
+
+## R948 补充 — 判据 (f)：store host unmatched 3 → 0；三个都是支付 host（+6 用例，套件 2059）
+
+vendor 侧 12 host absent 0；store 侧 27 host unmatched 3 = api.braintreegateway.com / api.vipps.no / payments.bigcommerce.com —— 全是支付 host 不是店。
+
+三条路径：Braintree（含商户 id rfbkw27jcwmw2xgp，两条 client_api + assets host）· Vipps（adyen-card-enrollment/{initiate,commit} + checkout-frontend/session + checkout.vipps.no）· BigCommerce（/api/public/v1/orders/payments）。
+
+VippsNo 按措辞记不按地区记（No 可作 Norway 或「否」）。
+
+而 store unmatched 3 → 0 不是补了 flow，是那三个 host 现在在 src 里有名字 —— 工具的判据正是这个。
+
+数字：套件 2053 → 2059 · 陈旧度 10/1044 → 11/1153 · store unmatched 3 → 0。
+
+纪律：一个度量能归零，而它归零的原因可能只是你让被度量的东西出现了。
+
+下一轮：判据 (c) 产物级对照（target\Cybersole.exe ↔ .publish-aot）重算一次；或 ③ 请求与指纹层。

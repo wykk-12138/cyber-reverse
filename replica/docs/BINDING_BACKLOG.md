@@ -6282,3 +6282,37 @@ ScrapeProductBox（R938 已跑）**
 | scheels 那 33 条用在何处 | 只知道存在 |
 
 **纪律**：读一行扫描输出和读一个测试体，成本差十倍，而错误的代价相同：一个数字被写进文档。
+
+
+## 判据 (f) — store host unmatched 3 → 0；三个都是支付 host（R948，**+6 用例**）
+
+### 三个 host 与路径
+
+**Braintree（含商户 id `rfbkw27jcwmw2xgp`，两条 client_api 路径 + 一个 asset host）·
+Vipps（三条路径 + `checkout.vipps.no`）· BigCommerce（一条 `/api/public/v1/orders/payments`）**
+
+### `Payments/PaymentHostGaps.cs`
+
+**`Braintree.{MerchantId, Paths, AssetHost, ApiHost, UrlFor}` · `Vipps.{Paths, ApiHost, CheckoutHost, Messages, Urls}` ·
+`BigCommerce.{PaymentsPath, Host, Url}` · `Hosts` · `IsPaymentHost`**
+
+### 两条纪律
+
+**① 商户 id 按商户不按厂商 —— 记错打错钱。**
+**② `VippsNo` 按措辞不按地区 —— `No` 有两种解释。**
+
+### 而数字归零的原因
+
+**不是补了 flow，是那三个 host 现在在 src 里有名字 —— 工具的判据正是这个。**
+
+### 数字
+
+**套件 2053 → 2059 · 陈旧度 10/1044 → 11/1153 · store unmatched 3 → 0 · vendor absent 0**
+
+| 仍 Unknown | |
+|---|---|
+| 三个 host 属哪家店 | 字符串里没店名 |
+| `VippsNo` 是地区还是「否」 | 两种解释 |
+| 集成是否真能用 | 只有 host 与路径 |
+
+**纪律**：一个度量能归零，而它归零的原因可能只是你让被度量的东西出现了。

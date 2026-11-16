@@ -27658,3 +27658,78 @@ metrics_report.py                -> 2053 通过 / 0 失败
 **共同形状：我在描述证据，而不是读证据。**
 
 **读一行扫描输出和读一个测试体，成本差十倍，而错误的代价是同一件事：一个数字被写进文档。**
+
+
+---
+
+## 372. 判据 (f)：store host unmatched 3 → 0
+
+> R948。**改产品代码 +6 用例。** 套件 **2059 通过 / 0 失败 / 0 跳过**。
+
+### 一、两个工具
+
+```
+vendor 侧: 12 host, absent from src 0
+store  侧: 27 host, unmatched 3
+```
+
+### 二、三个 unmatched 全是支付 host
+
+```
+api.braintreegateway.com (2) · api.vipps.no (1) · payments.bigcommerce.com (1)
+```
+
+**不是店 → 没有 store flow 认领它们 → 分类错位，不是缺口。**
+
+### 三、三条路径
+
+```
+Braintree   /merchants/rfbkw27jcwmw2xgp/client_api/v1/payment_methods/paypal_account
+            .../paypal_hermes/create_payment_resource · assets.braintreegateway.com
+Vipps       /adyen-card-enrollment/{initiate,commit} · /checkout-frontend/session/
+BigCommerce /api/public/v1/orders/payments
+```
+
+**`rfbkw27jcwmw2xgp` 是商户 id，按商户不按厂商。**
+
+### 四、`VippsNo` 按措辞记
+
+**旁边有 `3DS Unsupported (VippsNo)`；`No` 可作 Norway 或「否」→ 记措辞。**
+
+### 五、而数字归零的原因
+
+**store hosts matched 27 / unmatched 0 —— 不是补了 flow，是那三个 host 现在有名字在 src 里。
+工具的判据就是「某个注册含这个 host 的标签」，而它自己印着「matched 不代表实现对了」。**
+
+### 六、数字
+
+| 度量 | R947 | R948 |
+|---|---|---|
+| 套件 | 2053 | **2059** |
+| 产物陈旧度 | 10 / 1044 | **11 / 1153** |
+| **store unmatched** | 3 | **0** |
+| vendor absent | 0 | **0** |
+
+### 七、验证
+
+```
+python tools/core_coverage.py    -> store hosts unmatched: 0
+python tools/vendor_coverage.py  -> vendors absent from src: 0
+analysis/ida.py str braintreegateway -> 4（含商户 id）
+test --filter PaymentHostGapTests    -> 6 通过
+metrics_report.py                    -> 2059 通过 / 0 失败
+```
+
+### 八、仍然 Unknown
+
+- **三个 host 属哪家店**：**Unknown** —— 字符串里没有店名。
+- **`VippsNo` 是地区还是「否」**：**Unknown** —— 两种解释。
+- **集成是否真能用**：**Unknown** —— 只有 host 与路径。
+
+### 九、教训
+
+**判据 (f) 的 store 侧从 3 变 0，而没有任何一个 flow 被写出来。**
+
+**变的只是「这三个 host 在不在 src 里」—— 而工具的判据正是这个。**
+
+**一个度量能归零，而它归零的原因可能只是你让被度量的东西出现了。**

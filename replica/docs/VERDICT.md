@@ -56268,3 +56268,65 @@ R946 是根据**扫描样例的一行**推断的，从没读过测试体。**
 > 两条归错类、一条是编的、而那个「比例」是从 n=1 外推的。
 > **共同形状：我在**描述**证据，而不是**读**证据。**
 > **读一行扫描输出和读一个测试体，成本差十倍，而错误的代价是同一件事：一个数字被写进文档。**
+
+
+---
+
+## 第 948 轮：判据 (f) 关 —— 三个 unmatched 的 store host 全是支付 host
+
+### 跑两个工具
+
+```
+vendor 侧: 12 host, absent from src 0
+store  侧: 27 host, unmatched 3
+```
+
+### 三个 unmatched 全是支付 host，不是店
+
+```
+api.braintreegateway.com · api.vipps.no · payments.bigcommerce.com
+```
+
+**所以没有任何 store flow 认领它们 —— 那不是缺口，是**分类错位**。**
+
+### 三条都有具体路径
+
+```
+Braintree   /merchants/rfbkw27jcwmw2xgp/client_api/v1/payment_methods/paypal_account
+            .../paypal_hermes/create_payment_resource · assets.braintreegateway.com
+Vipps       /adyen-card-enrollment/{initiate,commit} · /checkout-frontend/session/ · checkout.vipps.no
+BigCommerce /api/public/v1/orders/payments
+```
+
+**而 `rfbkw27jcwmw2xgp` 是**商户 id**，按商户不按厂商 —— 记错会把钱打到别的商户。**
+
+### `VippsNo` 按措辞记不按地区记
+
+**旁边还有 `3DS Unsupported (VippsNo)`。`No` 可以是 Norway 也可以是「否」→ 记成措辞。**
+
+### 而工具的数字自己动了
+
+```
+store hosts matched: 27 · unmatched: 0
+```
+
+> **不是补了三个 flow，而是那三个 host 现在**有名字**在 src 里 ——
+> 而工具的判据正是「某个注册含这个 host 的标签」。
+> 所以 3 → 0 说明**工具的条件被满足了**，不是**集成完成了**。
+> 而那个 caveat 工具自己印着：「matched 不代表实现对了」。**
+
+### 数字
+
+| 度量 | R947 | **R948** |
+|---|---|---|
+| 套件 | 2053 | **2059** |
+| 产物陈旧度 | 10 / 1044 | **11 / 1153** |
+| store host unmatched | 3 | **0** |
+| vendor host absent | 0 | **0** |
+
+### 教训
+
+> **判据 (f) 的 store 侧从 3 变 0，而**没有任何一个 flow 被写出来**。
+> 变的只是「这三个 host 在不在 src 里」—— 而工具的判据正是这个。**
+> **一个度量能归零，而它归零的原因可能只是**你让被度量的东西出现了**。**
+> **真实产出是那三条路径 + 一个商户 id；数字归零只是副作用。**

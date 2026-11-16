@@ -476,3 +476,27 @@ GetPaymentToken · SubmitOrder · ProcessOrder
 **这就是「14 个抽签步骤写不进 `PopMartFlow`」的真实原因：不是方法没写，是 runner 里没有它们的位置。**
 
 **也是 Nike「10 个细步 vs 3 个粗步」的真实原因：通用序列没有 `ValidateAddress` 这一步，只能并进 `SubmitShipping`。**
+
+
+### ordinal 是**按流程编号**的（R852）—— R851 从 Inference 升为 Observation
+
+**130 个 ordinal，只有 63 个不同，67 个跨流程重复：**
+
+| 流程 | 范围 |
+|---|---|
+| JohnLewis | 20 – 39 |
+| DemandwareDual | 26 – 47 |
+| StructureTokenMulti | 29 – 47 |
+| DemandwareClassic | 32 – 43 |
+| CollectPlusApp | 33 – 50 |
+| StructureTokenSingle | 40 – 51 |
+| Nike | 41 – 58 |
+| PopMart | 104 – 153 |
+
+**六个流程挤在 20–51 且大量重叠** —— 若是同一编号空间，`d__32` 只能是一个方法；
+**而这里 `d__32` 在 DemandwareClassic 是 `AddToCart`、在 CollectPlusApp 是别的步骤。**
+
+**所以每个流程自己从低位数起：各自一个类、各自一套序列。**
+
+**结论：R851 说的「镜像八条按流程的序列」成立，而它上一轮只是 Inference（因为「ordinal 递增是否即运行顺序」没证）。
+现在有证了 —— 不是「递增即顺序」，而是「编号空间按流程分开」，这足以支持「序列是每条流程自己的」。**

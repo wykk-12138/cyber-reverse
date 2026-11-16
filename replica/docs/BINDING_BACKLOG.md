@@ -2917,3 +2917,36 @@ SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken 
 | 做法 1 对 165 声明 + 1766 用例的影响 | 未估 |
 
 **纪律**：**「缺几个方法」和「户型不一样」是两个诊断；我前面十几轮一直在做前者。**
+
+
+## 判据 (f) — ordinal 按流程编号（R852）
+
+**130 个 ordinal · 63 不同 · 67 跨流程重复 · 范围 20–153。**
+
+| 流程 | 范围 |
+|---|---|
+| JohnLewis | 20 – 39 |
+| DemandwareDual | 26 – 47 |
+| StructureTokenMulti | 29 – 47 |
+| DemandwareClassic | 32 – 43 |
+| CollectPlusApp | 33 – 50 |
+| StructureTokenSingle | 40 – 51 |
+| Nike | 41 – 58 |
+| PopMart | 104 – 153 |
+
+**六个挤在 20–51 且重叠 → 每流程自己编号 → 各自一个类、各自一套序列。**
+**→ R851「八条按流程的序列」从 Inference 升为 Observation。**
+
+### 一条对复刻件设计的反证
+
+**`AddToCart` 在 JohnLewis 是 22、在 DemandwareClassic 是 32 —— 同名不同号。**
+**→ 镜像里同名步骤在不同流程中是**不同方法**，不是共享方法被复用。**
+**→ 对「165 虚方法 + 按站重写」是反证：镜像似乎每流程各写一份。**
+
+| 仍 Unknown | |
+|---|---|
+| 镜像类结构 | 八类各持一套序列（Inference 高）；要证走 MethodTable |
+| 重叠是否可能来自共享方法 | 「`d__32` 指不同步骤」排除，但观察来自转写 |
+| 做法 1 该做多大 | 若序列与类绑定，可能不只是加一个列表 |
+
+**纪律**：**「同一个结论换一个能证伪它的检查」比「补原来缺的那个证据」容易 —— 前者只要读表。**

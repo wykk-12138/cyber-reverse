@@ -276,3 +276,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **8 条之外的段一部分是任务变体**：raffle 有（96 处）· **sweepstake 0 · lottery 0**。
 **`ProcessPaymentPaypalCreditCard` 那 11 步不是站，是支付变体** —— 「段属于谁」至少两层。
 **→ 判据 (f) 的表需要三列：站 / 任务变体 / 风控**，而不是一列站名。
+
+## R856 补充 — 任务层 = 5 个 Start*Flow + 3 个 *Task
+
+`0x14337bdc4`: `StartSignupFlow`57 · `StartClearFlow`58 · `StartInStoreFlow`59 · `StartPopNowFlow`60 · `StartNormalFlow?`61
+`0x14337cdcc`: `FetchTasks`187 · `StartDailyCheckInTask`188 · `StartPopNowViewTask`189
+**编号连续 → 分派层入口。而 sweepstake/lottery 是流程内步骤（d__40–42 / d__36–37）→ R855 的「任务变体」不成立，属流程层。**
+**最好答的下一个 Unknown：5 个 `Start*Flow` ↔ `Registry.cs` 63 个模块。**

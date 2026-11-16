@@ -597,3 +597,34 @@ GetHome(19) · FindProductMulti(20) · FindProduct(21) · AddToCart(22) · Submi
 **而变体这一层，复刻件只做了 raffle 一种。**
 
 **这也解释了 `ProcessPaymentPaypalCreditCard` 那 11 步 —— 它可能不是某个站的流程，是「PayPal 信用卡」这个支付变体。**
+
+
+### 任务层是 5 个 `Start*Flow` + 3 个 `*Task`；sweepstake / lottery **不在**其中（R856）
+
+**镜像原文：**
+
+```
+0x14337bdc4  <StartSignupFlow>d__57 · <StartClearFlow>d__58 · <StartInStoreFlow>d__59 · <StartPopNowFlow>d__60 · <St…
+0x14337cdcc  <FetchTasks>d__187 · <StartDailyCheckInTask>d__188 · <StartPopNowViewTask>d__189
+```
+
+**编号连续（57–60、187–189），是分派层的入口，不是流程内部的步骤。**
+
+**而 `SweepStake` / `Lottery` 出现在流程序列内部：**
+
+```
+0x1433712d6  <GetSweepStakeCheckout>d__40 · <GetSweepStakesShippingMethod>d__41 · <SubmitSweepStakesShipping>d__42 …
+0x1434b3109  <FindProductMulti>d__32 · <FindProductFlow>d__33 · <FindVariant>d__35 · <GetLotteryForm>d__36 · <Submit…
+```
+
+**序号 40–42、32–36 —— 是某条流程内的步骤。**
+
+### 所以 R855 那个 Inference 有答案
+
+| R855 的猜测 | 结论 |
+|---|---|
+| sweepstake / lottery 是任务型 | **不是** —— 任务型是那 5 + 3 个 |
+| 它们是某些站的结账变体 | **更像这个** —— 它们是流程序列内的步骤，序号在 32–43 段 |
+
+**所以 R855 说的「三层」是对的，但 sweepstake / lottery 属于**流程层**，不是任务层。**
+**三层应写成：任务型（5 + 3）· 流程（站／变体）· 风控。**

@@ -14963,3 +14963,76 @@ grep TaskType                             -> 2（ThirdPartyDrivers.cs）
 
 **一个「段属于谁」的问题，被我默认成「属于哪个站」，是因为前面十几轮全在按站数。**
 **而 (f) 要的其实是「站 × 变体 × 风控」的矩阵，不是一列站名。**
+
+
+---
+
+## 280. 任务层是 **5 个 `Start*Flow` + 3 个 `*Task`**；sweepstake / lottery 不在其中
+
+> R856。未改产品代码。**R855 的 Inference 得到答案。**
+
+### 一、镜像里的任务分派层
+
+```
+0x14337bdc4  <StartSignupFlow>d__57 · <StartClearFlow>d__58 · <StartInStoreFlow>d__59 · <StartPopNowFlow>d__60 · <St…
+0x14337cdcc  <FetchTasks>d__187 · <StartDailyCheckInTask>d__188 · <StartPopNowViewTask>d__189
+```
+
+**五个 `Start*Flow`（57–60，第五个应是 `StartNormalFlow` 61）+ 三个 `*Task`（187–189）。
+编号连续 → 是分派层的入口方法，不是某条流程内部的步骤。**
+
+### 二、而 sweepstake / lottery 是流程内的步骤
+
+```
+0x1433712d6  <GetSweepStakeCheckout>d__40 · <GetSweepStakesShippingMethod>d__41 · <SubmitSweepStakesShipping>d__42
+0x1434b3109  <FindProductMulti>d__32 · <FindProductFlow>d__33 · <FindVariant>d__35 · <GetLotteryForm>d__36 · <SubmitLottery>d__37
+```
+
+**注意这两段的序号：40–42 与 32–37 —— 落在**流程序列的编号段里**（R852 已证流程各自从低位编号）。**
+
+**所以它们是某条流程里的步骤，不是分派层入口。**
+
+### 三、R855 的三层要改一处
+
+| R855 写的 | 现在 |
+|---|---|
+| 站 · 任务变体 · 风控 | **任务型（5 + 3）· 流程（站／变体）· 风控** |
+
+**sweepstake / lottery 归**流程层**，不归任务层。**
+
+**而这一条对复刻件更有利：复刻件没有 sweepstake / lottery，但那缺的是**某条流程里的两个步骤**，
+不是缺两种任务型。工作量完全不同。**
+
+### 四、复刻件这一层的名字对照
+
+**复刻件有 `NikeSteps.cs` / `PopMartEndpoints.cs` / `StoreFlowSteps.cs`，但**没有** `Start*Flow` 这种分派层
+—— 它用 `Registry.cs` 的 63 个模块 + `FlowStoreModule(new XxxFlow(...))` 表达「有哪条流程」。
+
+**所以镜像的「五个 Start*Flow」对应复刻件的什么，没查。**
+**这是一个新的、具体的 Unknown，而且它比「20+ 段属哪个站」更容易答 —— 五个名字都拿到了。**
+
+### 五、验证
+
+```
+ida.py str SweepStake  -> 25 matches（含 0x1433712d6 的 d__40/41/42 段）
+ida.py str Lottery     -> 24 matches（含 0x1434b3109 的 d__32/33/35/36 段）
+ida.py str PopNow      -> 29 matches（含 0x14337bdc4 的 d__57–60 段、0x14337cdcc 的 d__187–189 段）
+grep SweepStake/Lottery 全 replica\src -> 0
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **五个 `Start*Flow` 的第五个是不是 `StartNormalFlow`**：**Inference（高）** —— 字符串被截断在 `<St`。
+- **这五个与 `Registry.cs` 的 63 个模块是什么关系**：**Unknown，但这是最好答的一个** —— 五个名字都在手上。
+- **`FetchTasks` / `StartDailyCheckInTask` / `StartPopNowViewTask` 三个 `*Task` 在复刻件里有没有**：
+  **`StartDailyCheckInTask` R842 已判为改名实现（`CheckIn`）；另两个未查。**
+
+### 七、教训
+
+**R855 我把 sweepstake / lottery 猜成「任务变体」，理由是名字里有 `Checkout` 和 `Raffle`。
+这一轮一查编号就否了它 —— 40–42 落在流程段，不落在分派段。**
+
+**「猜一个东西属于哪层」最省的办法不是读名字，是看它的 ordinal 落在哪个编号段。
+而 ordinal 分段的规则是 R852 自己刚建立的 —— 我建了工具，没用在自己的猜测上。**

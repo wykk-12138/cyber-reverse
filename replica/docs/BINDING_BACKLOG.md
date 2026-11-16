@@ -3050,3 +3050,34 @@ SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken 
 | 20+ 段哪些是站哪些是变体 | 本轮只认 3 段 |
 
 **纪律**：**「段属于谁」被我默认成「属于哪个站」—— 因为前面十几轮全在按站数。而 `ProcessPaymentPaypalCreditCard` 一看就不是站。**
+
+
+## 判据 (f) — 任务层 = 5 个 `Start*Flow` + 3 个 `*Task`（R856）
+
+```
+0x14337bdc4  StartSignupFlow d__57 · StartClearFlow d__58 · StartInStoreFlow d__59 · StartPopNowFlow d__60 · StartNormalFlow? d__61
+0x14337cdcc  FetchTasks d__187 · StartDailyCheckInTask d__188 · StartPopNowViewTask d__189
+```
+
+**编号连续 → 分派层入口。**
+
+**而 sweepstake / lottery 是流程内步骤**（`GetSweepStakeCheckout` d__40–42 · `GetLotteryForm` d__36 / `SubmitLottery` d__37）。
+**→ 序号落在流程段 → R855 猜的「任务变体」不成立；它们属**流程层**。**
+
+### 三层修正
+
+**任务型（5+3）· 流程（站／变体）· 风控**
+
+**→ 复刻件缺 sweepstake/lottery 是「某条流程里两个步骤」，不是「两种任务型」。**
+
+### 新的最好答的 Unknown
+
+**镜像 5 个 `Start*Flow` ↔ 复刻件 `Registry.cs` 63 个模块 —— 五个名字都在手上。**
+
+| 仍 Unknown | |
+|---|---|
+| 第五个是不是 `StartNormalFlow` | Inference 高（截断在 `<St`） |
+| **5 个 Start*Flow ↔ 63 模块** | **最好答的一个** |
+| `FetchTasks` / `StartPopNowViewTask` 有无 | `StartDailyCheckInTask` 已判为 `CheckIn`（R842） |
+
+**纪律**：**「猜属于哪层」看 ordinal 落在哪个编号段，比读名字准 —— 而 ordinal 分段的规则是 R852 自己立的，我没用在自己的猜测上。**

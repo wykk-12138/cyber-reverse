@@ -51365,3 +51365,50 @@ FindProductMulti · FindProductFlow · FindVariant · GetLotteryForm · SubmitLo
 
 **一个「段属于谁」的问题，被我默认成「属于哪个站」，是因为前面十几轮全在按站数。**
 **而 `ProcessPaymentPaypalCreditCard` 这个名字一看就不是站。**
+
+
+---
+
+## 第 856 轮：任务层是 5 个 `Start*Flow` + 3 个 `*Task`；sweepstake / lottery 不在其中
+
+### 镜像里的任务分派层
+
+```
+0x14337bdc4  <StartSignupFlow>d__57 · <StartClearFlow>d__58 · <StartInStoreFlow>d__59 · <StartPopNowFlow>d__60 …
+0x14337cdcc  <FetchTasks>d__187 · <StartDailyCheckInTask>d__188 · <StartPopNowViewTask>d__189
+```
+
+**编号连续（57–60、187–189）→ 分派层入口。**
+
+### 而 sweepstake / lottery 是流程内的步骤
+
+```
+0x1433712d6  GetSweepStakeCheckout d__40 · GetSweepStakesShippingMethod d__41 · SubmitSweepStakesShipping d__42
+0x1434b3109  FindProductMulti d__32 · GetLotteryForm d__36 · SubmitLottery d__37
+```
+
+**序号 40–42 / 32–37 落在流程段（R852 已证流程各自从低位编号）→ 它们不是分派层入口。**
+
+### R855 的三层要改一处
+
+| R855 | 现在 |
+|---|---|
+| 站 · 任务变体 · 风控 | **任务型（5+3）· 流程（站／变体）· 风控** |
+
+**这对复刻件更有利：它没有 sweepstake / lottery，缺的是**某条流程里的两个步骤**，不是两种任务型。工作量完全不同。**
+
+### 一个新的、更好答的 Unknown
+
+**复刻件用 `Registry.cs` 63 个模块 + `FlowStoreModule(new XxxFlow(...))` 表达「有哪条流程」，没有 `Start*Flow` 分派层。**
+
+> **镜像那五个 `Start*Flow` 对应复刻件的什么 —— 五个名字都在手上，比「20+ 段属哪个站」好答得多。**
+
+### 仍然 Unknown
+
+**第五个是不是 `StartNormalFlow`**（字符串截断在 `<St`，Inference 高）· **五个 ↔ 63 个模块的关系**（**最好答的一个**）·
+**`FetchTasks` / `StartPopNowViewTask` 在复刻件里有没有**（`StartDailyCheckInTask` R842 已判为 `CheckIn`）
+
+### 教训
+
+> **「猜一个东西属于哪层」最省的办法不是读名字，是看它的 ordinal 落在哪个编号段。**
+> **而 ordinal 分段的规则是 R852 自己刚建立的 —— 我建了工具，没用在自己的猜测上。**

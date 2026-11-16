@@ -851,3 +851,19 @@ VERDICT.md 12 处历史 63 个模块不该改 → 守卫按意图收窄到摘要
 数字：套件 1842 · 模块 63→64 · flow 类型 33→34 · store 宿主 22/28→23/28。
 
 下一轮：dickssportinggoods（R917 另一个真缺口）。
+
+## R919 补充 — DicksSportingGoods 补上（改产品代码 +8 用例，套件 1842→1850）
+
+九条证据：身份 4 种（DICKS / DicksSportingGoods / Dicks Sporting Goods / dsg-ecomm）· 端点 4 条（www / api-search byPartNumber / paygate authorization / threeDSAuthentication）· 行为 1 条（_outOfStock 闭包名 → 缺货回调）。
+
+改动：DicksSportingGoodsFlow.cs 新建（4 身份 + 3 宿主 + 4 地址 + 2 步骤）· Registry.cs 注册 · 8 用例。
+序列只有两步：没有车/结账路径被恢复，更长序列会在第二步失败。
+
+3DS 有条件（判据来自授权响应）；商品按零件号查不取页面。
+
+数字：套件 1850 · 模块 64→65 · flow 类型 34→35 · store 宿主 23/28 → 24/28。
+剩 4 个：braintreegateway · vipps · bigcommerce（支付商子域）· purpledotprice（未知）。
+
+(f) 那张表两轮清空两个真缺口 —— 它的价值不在覆盖率，在于未匹配项就是待办清单。
+
+下一轮：purpledotprice 是什么（唯一非支付商未匹配）。

@@ -3598,3 +3598,61 @@ ParityDocTests.TheFlowTypeCountInParityMatchesTheCatalogue
 | **store 宿主覆盖** | 22 / 28 | **23 / 28** |
 
 **`checkout.sportsshoes.com` 现在匹配了。**
+
+
+### DicksSportingGoods 补上 —— 而 (f) 那张表两轮就清空了两个真缺口（R919）
+
+**R917 的表剩两个真缺口：`sportsshoes` 与 `dickssportinggoods`。R918 补了前者，这一轮补后者。**
+
+### 比 R917 那 6 条更多的证据：九条，分三组
+
+```
+身份  "DICKS" · "DicksSportingGoods" · "Dicks Sporting Goods" · "dsg-ecomm"
+端点  https://www.dickssportinggoods.com/
+      https://api-search.dickssportinggoods.com/catalog-productdetails/v4/byPartNumber/
+      https://payments.dickssportinggoods.com/prod/api/paygate/v2/authorization
+      https://payments.dickssportinggoods.com/prod/api/paygate/v2/threeDSAuthentication
+行为  "_outOfStock(Dicks Sporting Goods"
+```
+
+### 三件值得说的事
+
+**① 身份有**四种形式**，不是「显示名 + id」两种。
+`dsg-ecomm` 像是请求里带的 channel/应用名，`DICKS` 像短标签。
+**所以四个都记成常量，不挑一个 —— 哪个出现在请求里不知道，猜一个会把错值放进 header。**
+
+**② 行为那条最有信息量：`_outOfStock` 是**闭包名**，
+说明原版对这个店**专门挂了一个缺货回调**。那是监控关注点而不是结账关注点，所以按监控建模。**
+
+**③ 而这个店**没有车/结账路径**被恢复 —— 端点只有按零件号查商品和支付闸。**
+
+> **所以 `StepSequence` 只有两步：`FindProduct` 与 `SubmitPayment`。
+> 一个有支付闸、却没有任何车调用的店，用这份证据走不完一次购买；
+> 写一个更长的序列会是一串在第二步就失败的步骤。**
+
+### 两个刻意的实现决定
+
+**① 商品是按**零件号**查的，不是按 URL 取页面。**
+`byPartNumber/` 是版本段之后的整个路径段 —— 去取商品页就是读另一个端点，不是镜像点名的那个。
+
+**② 3DS 是有条件的。**
+两条 paygate 调用在镜像里是分开的，这里也分开：**总是跑第二步会给不需要验证的订单做验证。**
+**而判据是授权响应自己说要不要，不是流程预设。**
+
+### 数字
+
+| 度量 | R918 | **R919** |
+|---|---|---|
+| 套件 | 1842 | **1850** |
+| 模块 | 64 | **65** |
+| flow 类型 | 34 | **35** |
+| **store 宿主覆盖** | 23 / 28 | **24 / 28** |
+
+**剩下 4 个未匹配：`braintreegateway` · `vipps` · `bigcommerce` · `purpledotprice` —— 前三个是支付商子域。**
+
+### 而这一轮的价值不在这个店本身
+
+**R917 建那张表用了两次修正；R918 与 R919 用它清掉了**它列出的两个真缺口**。**
+
+> **所以那张表的正确用法不是「覆盖率多高」，而是**它列出的未匹配项就是待办清单**。**
+> **而 24/28 里剩下的 4 个，三个已被判为支付商子域 —— 也就是说这张表**快用完了**。**

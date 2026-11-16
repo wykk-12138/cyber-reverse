@@ -188,6 +188,7 @@ public static class StoreModuleCatalog
         // a host label appearing nowhere in src; the binary carries thirteen literals for Sportsshoes across three
         // hosts and six for Dicks Sporting Goods.
         new FlowStoreModule(new SportsshoesFlow()),
+        new FlowStoreModule(new DicksSportingGoodsFlow()),
         new FlowStoreModule(new JdSportsFlow()),
         new FlowStoreModule(new FanaticsFlow()),
         new FlowStoreModule(new RiotGamesFlow()),

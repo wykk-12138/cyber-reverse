@@ -5263,3 +5263,36 @@ checkout.sportsshoes.com/checkout?setCurrencyId=1
 | `dickssportinggoods` 何时补 | R917 的另一个真缺口 |
 
 **纪律**：**事实变一次，六处跟着变，每处都被逼着写原因 —— 这就是「数字随事实走」的执行方式。**
+
+
+## 优先级 ① — DicksSportingGoods 补上（R919，**改产品代码 +8 用例**）
+
+### 九条证据
+
+**身份 4 种：`DICKS` · `DicksSportingGoods` · `Dicks Sporting Goods` · `dsg-ecomm`**
+**端点 4 条：www / api-search`byPartNumber` / paygate`authorization` / paygate`threeDSAuthentication`**
+**行为 1 条：`_outOfStock`（闭包名 → 缺货回调）**
+
+### 改动
+
+**`Flows/DicksSportingGoodsFlow.cs` 新建（4 身份常量 + 3 宿主 + 4 地址 + 2 步骤）· `Registry.cs` 注册 · 8 用例**
+
+### 两个实现决定
+
+**按零件号查商品（不取页面）· 3DS 有条件（判据来自授权响应，不是流程预设）**
+
+### 序列只有两步的理由
+
+**没有车/结账路径被恢复 → 用这份证据走不完一次购买；更长的序列会在第二步失败。**
+
+### 数字
+
+**套件 1842 → 1850 · 模块 64 → 65 · flow 类型 34 → 35 · store 宿主 23/28 → **24/28****
+
+| 仍 Unknown | |
+|---|---|
+| 四种身份里哪种进请求 | 猜一个会把错值放进 header |
+| 车的端点在哪个宿主 | 未恢复 |
+| `purpledotprice` 是什么 | 只剩它一个非支付商未匹配 |
+
+**纪律**：**度量工具最大的价值不是它报的数，是它报出来的清单。**

@@ -25690,3 +25690,66 @@ checkout.sportsshoes.com/checkout?setCurrencyId=1
 
 **而「为了让守卫变绿而改守卫」与「守卫的命题本身错了」是两件事。**
 **这一轮后者成立：49,000 行追加日志里的每个历史数字都必须等于今天，这条命题不可能对。**
+
+
+---
+
+## 343. DicksSportingGoods 补上：24/28；(f) 的表两轮清空两个真缺口
+
+> R919。**改产品代码 +8 用例。** 套件 **1850 通过 / 0 失败 / 0 跳过**。
+
+### 一、九条证据，分三组
+
+```
+身份  "DICKS" · "DicksSportingGoods" · "Dicks Sporting Goods" · "dsg-ecomm"
+端点  www.dickssportinggoods.com/
+      api-search.dickssportinggoods.com/catalog-productdetails/v4/byPartNumber/
+      payments.dickssportinggoods.com/prod/api/paygate/v2/authorization
+      payments.dickssportinggoods.com/prod/api/paygate/v2/threeDSAuthentication
+行为  "_outOfStock(Dicks Sporting Goods"
+```
+
+### 二、三件事
+
+1. **身份四种形式**，四个都记成常量 —— **哪个进请求不知道，猜一个会把错值放进 header。**
+2. **`_outOfStock` 是闭包名** → 原版对这个店**专门挂了缺货回调** → 按监控建模。
+3. **没有车/结账路径被恢复** → 序列只有两步（`FindProduct` · `SubmitPayment`）。
+
+### 三、两个实现决定
+
+- **按零件号查商品**（`byPartNumber/` 是版本段后的整段），不取商品页 —— 那是另一个端点。
+- **3DS 有条件**，判据来自**授权响应**而不是流程预设：总是跑第二步会给不需要验证的订单做验证。
+
+### 四、数字
+
+| 度量 | R918 | R919 |
+|---|---|---|
+| 套件 | 1842 | **1850** |
+| 模块 | 64 | **65** |
+| flow 类型 | 34 | **35** |
+| **store 宿主覆盖** | 23 / 28 | **24 / 28** |
+
+**剩 4 个：`braintreegateway` · `vipps` · `bigcommerce`（支付商子域）· `purpledotprice`（未知）。**
+
+### 五、验证
+
+```
+core_coverage.py                     -> store 24/28；两台 DSG 宿主均 matched
+test --filter DicksSportingGoodsFlowTests -> 8 通过
+metrics_report.py                    -> 1850 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **四种身份里哪种进请求**：**Unknown** —— 这正是四个都留着的原因。
+- **车的端点在哪个宿主**：**Unknown** —— 未恢复，也是序列只有两步的原因。
+- **`purpledotprice` 是什么**：**Unknown** —— 4 个未匹配里唯一非支付商。
+
+### 七、教训
+
+**R917 建那张表用了两次修正；R918 与 R919 用它清掉了它列出的两个真缺口。**
+
+**所以那张表的正确用法不是「覆盖率多高」，而是**它列出的未匹配项就是待办清单**。**
+
+**而 7/28 那个数是错的，它列出的 21 个名字里有 2 个是真的 —— 修正判据之后，那 2 个还在。
+错的数里可以有对的清单，这是两件事。**

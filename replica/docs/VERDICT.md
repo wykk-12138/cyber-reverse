@@ -18,7 +18,7 @@
 
 | 维度 | 数值 | 命令 |
 |---|---|---|
-| 注册模块 | **64**（34 种 flow） | `verify.ps1` → `store modules` |
+| 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
 | 变异检查 | **36 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫） | `tools/mutation-check.py` |
@@ -54718,3 +54718,57 @@ checkout.sportsshoes.com/checkout?setCurrencyId=1
 > **六个守卫同时红，说明它们覆盖了六个不同的地方 —— 而这正是「数字随事实走」的执行方式：
 > 事实变一次，六处跟着变，每一处都被逼着写原因。**
 > **而其中一处逼出了一个更好的问题：哪个数字该变，哪个数字不该。**
+
+
+---
+
+## 第 919 轮：DicksSportingGoods 补上 —— (f) 那张表两轮清空了两个真缺口
+
+### 九条证据，分三组
+
+```
+身份  "DICKS" · "DicksSportingGoods" · "Dicks Sporting Goods" · "dsg-ecomm"
+端点  www.dickssportinggoods.com/
+      api-search.dickssportinggoods.com/catalog-productdetails/v4/byPartNumber/
+      payments.dickssportinggoods.com/prod/api/paygate/v2/{authorization, threeDSAuthentication}
+行为  "_outOfStock(Dicks Sporting Goods"
+```
+
+### 三件值得说的事
+
+**① 身份有**四种形式**。`dsg-ecomm` 像请求里的 channel 名，`DICKS` 像短标签。
+**四个都记成常量，不挑一个 —— 哪个出现在请求里不知道，猜一个会把错值放进 header。**
+
+**② `_outOfStock` 是**闭包名** → 原版对这个店**专门挂了一个缺货回调**。按监控建模，不按结账。**
+
+**③ 这个店**没有车/结账路径**被恢复 —— 只有按零件号查商品和支付闸。**
+
+> **所以序列只有两步。一个有支付闸、却没有任何车调用的店，用这份证据走不完一次购买；
+> 写更长的序列会是一串在第二步就失败的步骤。**
+
+### 两个实现决定
+
+**① 商品按**零件号**查**（`byPartNumber/` 是版本段后的整段），不是取商品页 —— 取页面就是读另一个端点。
+**② 3DS 有条件**：两条 paygate 调用分开，判据是授权响应自己说要不要，不是流程预设。
+
+### 数字
+
+| 度量 | R918 | **R919** |
+|---|---|---|
+| 套件 | 1842 | **1850** |
+| 模块 | 64 | **65** |
+| flow 类型 | 34 | **35** |
+| store 宿主覆盖 | 23 / 28 | **24 / 28** |
+
+**剩 4 个未匹配：`braintreegateway` · `vipps` · `bigcommerce` · `purpledotprice` —— 前三个是支付商子域。**
+
+### 而这一轮的价值不在这个店本身
+
+> **R917 建那张表用了两次修正；R918 与 R919 用它清掉了它列出的两个真缺口。**
+> **所以那张表的正确用法不是「覆盖率多高」，而是**它列出的未匹配项就是待办清单**。
+> 而 24/28 剩下的 4 个里三个已被判为支付商子域 —— **这张表快用完了**。**
+
+### 教训
+
+> **一个度量工具最大的价值不是它报的数，是它报出来的**清单**。
+> 7/28 那个数当时是错的，而它列出的 21 个名字里有 2 个是真的 —— 修正判据之后，那 2 个还在。**

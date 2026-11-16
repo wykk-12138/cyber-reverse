@@ -50388,3 +50388,53 @@ RaffleFlow 域名三个都不含 popmart · 三个任务型候选全 0 · 产品
 **上一轮我说「四块未建模」；这一轮把其中一块推进到「确认无流程覆盖、且是真代码」。**
 **差别在于：前者可能只是我分组方式不对（`/shop/v1` 那次就是这样），后者是查过两种分组之后仍然空白。**
 **而我先查了 `RaffleFlow` 才敢这么说 —— 「抽签」在复刻件里是有主的，主在一个我一开始没想到的流程里。**
+
+
+---
+
+## 第 836 轮：PopMart 覆盖面逐条枚举 —— 上一轮说「四块」，真实是七块
+
+### 镜像全貌（38 条，按性质分）
+
+| 组 | 记号 |
+|---|---|
+| 类型 | `$PopMartProductType` · `PopMartField` · `PopMartHandler` · `PopMartRpcHandler` · `PopMartBrowser` |
+| 命名空间 | `…:Cybersole.Engine.Popmart` |
+| **模式/变体** | `POPMART` · `POPMART DEBUG` · **`POPMART-RESERVATION`** · `PopMart Store` · **`PopMart-Tax-All`** · `Popmart.html` |
+| **身份/路径** | `_popmart_com` · **`popmart_apac`** · **`popmart_registration`** |
+| 区域 API | `prod-{apac,global,hk,mo,na,uk-online}-api.popmart.com` |
+| 端点 | `/web/v2?partner=&appKey=` · `/shop/v1/...`（13，已有） · `activity/v1/sample_info` · `exhibit_draw/draw` · `popDraw.json` |
+
+### 复刻件命中
+
+| 记号 | 复刻件 |
+|---|---|
+| `/shop/v1/...` 13 个 | **全部命中** |
+| 其余 12 个记号 | **全 0** |
+
+（`registration` 在复刻件有 13 处，但都在 `BstnFlow`/`DemandwareFlow`/`MagentoFlow` 等别的流程里，
+`popmart_registration` 这一条没有。）
+
+### 上一轮漏了什么，为什么
+
+**R830 用「URL 形态」筛了一遍，把不带斜杠的键滤掉了 —— 而漏掉的三个恰好最像「模式」：**
+
+- **`POPMART-RESERVATION`** —— 预约模式，R830 只知道有抽签 API，不知道它作为模式名存在
+- **`popmart_registration`** —— 注册路径，**完全没提过**
+- **`PopMart-Tax-All`** —— 税费，**完全没提过**
+
+> **R830 的教训是「别按站名搜，按复刻件写的串搜」。这一轮补后半句：也别按形态筛。完整列出来，再分类。**
+
+**「四块」与「七块」的差别不是精度 —— 是我漏了三个最能说明功能的词。**
+
+### 仍然 Unknown
+
+**`POPMART-RESERVATION` 是站点别名还是模式枚举**（与 `POPMART DEBUG` 相邻，间隔 40 字节，像同表条目）·
+**`PopMart-Tax-All` 是税类别还是开关** · **`popmart_apac` ↔ 6 个区域主机怎么映射** · **七块里哪些非做不可**
+
+### 验证
+
+```
+str "opmart" --limit 200 → 38 条全列 · 复刻件 12/13 记为 0 · str "/shop/v1/" → 41 匹配
+产品代码未改 · 七项度量沿用
+```

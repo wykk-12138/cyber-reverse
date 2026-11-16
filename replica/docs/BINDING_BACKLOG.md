@@ -2394,3 +2394,29 @@ functions: ratio           | 61.96%
 | 抽签要不要做 | 取决于任务是否含抽签模式（枚举值或 UI） |
 
 **纪律**：**「未建模」与「确认无覆盖」是两句话。前者可能是分组方式不对，后者是查过两种分组后仍空白。**
+
+
+## 优先级 ① — PopMart 覆盖表（R836，逐条可复算）
+
+| 记号 | 镜像 | 复刻件 |
+|---|---|---|
+| `/shop/v1/...`（13 端点） | 有 | **全部命中** |
+| `$PopMartProductType` · `PopMartField` · `PopMartHandler` · `PopMartRpcHandler` · `PopMartBrowser` | 有 | **0** |
+| **`POPMART-RESERVATION`** | 有 | **0** |
+| **`popmart_registration`** | 有 | **0** |
+| **`PopMart-Tax-All`** | 有 | **0** |
+| `popmart_apac` · `_popmart_com` · `POPMART DEBUG` | 有 | **0** |
+| 6 个 `prod-*-api.popmart.com` | 有 | **0** |
+| `activity/v1/sample_info` · `exhibit_draw/draw` · `popDraw.json` | 有 | **0** |
+| `/web/v2?partner=&appKey=` | 有 | **0** |
+
+**R830 说「四块」，真实是七块** —— 因为上一轮用「URL 形态」筛，把 `POPMART-RESERVATION` / `popmart_apac` / `PopMart-Tax-All` 三个不带斜杠的键滤掉了。**而它们最像「模式」。**
+
+> **R830 的教训是「别按站名搜」；这一轮补后半句：也别按形态筛。完整列出，再分类。**
+
+| 仍 Unknown | |
+|---|---|
+| `POPMART-RESERVATION` 是别名还是模式枚举 | 与 `POPMART DEBUG` 相邻 40 字节，像同表条目 |
+| `PopMart-Tax-All` 是什么 | 税类别 or 开关 |
+| `popmart_apac` ↔ 区域主机映射 | 未证 |
+| 七块里哪些非做不可 | 抽签看任务模式；注册/税费/区域主机可能下单必需 |

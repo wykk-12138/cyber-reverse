@@ -13206,3 +13206,83 @@ ida.py str DrawTask / drawTask / LotteryTask      -> 全 0
 
 **而我查了 `RaffleFlow` 才敢这么说 —— 因为「抽签」这个词在复刻件里是有主的，
 它有主在一个我一开始没想到的流程里。**
+
+
+---
+
+## 260. PopMart 覆盖面**逐条枚举**：镜像 17 个记号，复刻件命中 1 类
+
+> R836。未改产品代码。这张表是判据 (f) 的形状。
+
+### 一、镜像的 PopMart 全貌（`ida.py str "opmart" --limit 200`，38 条）
+
+**按性质分四组：**
+
+| 组 | 记号 |
+|---|---|
+| **类型** | `$PopMartProductType` · `PopMartField` · `PopMartHandler` · `PopMartRpcHandler` · `PopMartBrowser` |
+| **命名空间** | `Cybersole.Core, Version=5.18.32.0 … :Cybersole.Engine.Popmart` |
+| **模式/站点变体** | `POPMART` · `POPMART DEBUG` · `POPMART-DEBUG` · **`POPMART-RESERVATION`** · `PopMart Store` · **`PopMart-Tax-All`** · `Popmart` · `Popmart.html` |
+| **身份/路径** | `popmart` · `popmart.com` · `.popmart.com` · `_popmart_com` · **`popmart_apac`** · **`popmart_registration`** |
+| **区域 API** | `prod-{apac,global,hk,mo,na,uk-online}-api.popmart.com` |
+| **端点** | `/web/v2?partner=popmart&appKey=` · `/shop/v1/...`（13 个，R830 已对） · `activity/v1/activity/sample_info?key=` · `activity/v1/exhibit_draw/draw?` · `global-activities/json/popDraw.json?t=` |
+
+### 二、逐条核复刻件
+
+| 记号 | 复刻件 |
+|---|---|
+| `POPMART-RESERVATION` | **0** |
+| `popmart_registration` | **0** |
+| `Tax-All` | **0** |
+| `POPMART DEBUG` | **0** |
+| `PopMartField` / `PopMartHandler` / `PopMartRpcHandler` / `PopMartBrowser` / `PopMartProductType` | **全 0** |
+| `popmart_apac` / `_popmart_com` | **全 0** |
+| `/shop/v1/...`（13 个） | **全部命中**（R830） |
+
+**`registration` 这个词在复刻件里有 13 处，但都在别的流程里**（`BstnFlow` · `DemandwareFlow` · `MagentoFlow` 等），
+**`popmart_registration` 这一条没有。**
+
+**结论：复刻件覆盖 PopMart 的店铺下单面（`/shop/v1`），不覆盖它的预约/抽签、注册、税费、区域主机、以及四个类型。**
+
+### 三、这次枚举改变了什么
+
+**R830 说「四块未建模」。这一轮把它变成一张逐条可对的表，并且发现上一轮漏了两组：**
+
+- **`POPMART-RESERVATION`** —— 「预约」。R830 只知道有抽签 API，**不知道它作为一个模式名存在**
+- **`popmart_registration`** —— 注册路径。**完全没提过**
+- **`PopMart-Tax-All`** —— 税费处理。**完全没提过**
+- **`popmart_apac`** —— 区域标识。R830 只记了 6 个主机名，**没记这个内部键**
+
+**所以「四块」这个数是错的 —— 真实是至少七块。**
+**而它之所以是错的，因为我上轮用「URL 形态」筛了一遍，把不带斜杠的键（`popmart_apac`、`POPMART-RESERVATION`）滤掉了。**
+
+**这与 R830 自己刚记下的教训是同一条，只是换了个筛子：上一轮按站名搜，这一轮按 URL 形态筛。**
+
+### 四、验证
+
+```
+ida.py str "opmart" --limit 200      -> 38 matches, 全部列出
+复刻件 grep 13 个记号               -> 12 个为 0，`registration` 13 处但都在别的流程
+ida.py str "/shop/v1/"              -> 41 matches（复刻件 13 个端点全在其中）
+本轮未改产品代码
+七项度量沿用
+```
+
+### 五、仍然 Unknown
+
+- **`POPMART-RESERVATION` 是站点名还是模式名**：**Unknown** ——
+  它与 `POPMART` / `POPMART DEBUG` 排在一起（`0x146e3454c` 起，间隔 40 字节），**像是一组同表条目**，
+  但那张表是「站点别名表」还是「模式枚举」**没确认。**
+- **`PopMart-Tax-All` 是税类别还是开关**：**Unknown**。
+- **`popmart_apac` 与 6 个区域主机的映射关系**：**Unknown** —— 名字暗示 apac 对应 `prod-apac-api`，**未证。**
+- **这七块里哪些非做不可**：**Unknown** —— 抽签可能要看任务模式；注册、税费、区域主机**可能是下单必需**。
+
+### 六、教训
+
+**上一轮我用「URL 形态」筛选，于是漏掉了 `POPMART-RESERVATION`、`popmart_apac`、`PopMart-Tax-All`
+这三个不带斜杠的键 —— 而它们恰恰是最像「模式」的三个。**
+
+**R830 记的教训是「别按站名搜，按复刻件写的串搜」。**
+**这一轮补上后半句：也别按形态筛。完整列出来，再分类。**
+
+**「四块」和「七块」的差别不是精度，是我漏了三个最能说明功能的词。**

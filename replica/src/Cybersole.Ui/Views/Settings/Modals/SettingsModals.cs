@@ -32,7 +32,7 @@ public sealed class ImapCreatorView : SettingsModal
             services.Config.Accounts.Imap.Add(new ImapAccount
             {
                 Host = host.Text!,
-                Port = int.TryParse(port.Text, out var p) ? p : 993,
+                Port = UiKit.TryReadInt(port.Text, out var p) ? p : 993,
                 User = user.Text!,
                 Password = pass.Text ?? string.Empty,
                 UseSsl = ssl.IsChecked == true,
@@ -67,7 +67,7 @@ public sealed class AycdInboxCreatorView : SettingsModal
             aycd.ApiKey = key.Text;
             aycd.AppGroup = group.Text;
             aycd.TemplateId = template.Text;
-            if (int.TryParse(timeout.Text, out var t)) aycd.TimeoutSeconds = t;
+            if (UiKit.TryReadInt(timeout.Text, out var t)) aycd.TimeoutSeconds = t;
             aycd.Enabled = enabled.IsChecked == true;
             services.Config.Save();
         }));
@@ -134,8 +134,8 @@ public sealed class CaptchaProviderCreatorView : SettingsModal
                 : target.Type;
             target.Name = string.IsNullOrWhiteSpace(name.Text) ? target.Type : name.Text!;
             target.ApiKey = apiKey.Text;
-            if (int.TryParse(concurrency.Text, out var c)) target.Concurrency = c;
-            if (int.TryParse(priority.Text, out var p)) target.Priority = p;
+            if (UiKit.TryReadInt(concurrency.Text, out var c)) target.Concurrency = c;
+            if (UiKit.TryReadInt(priority.Text, out var p)) target.Priority = p;
             target.Enabled = enabled.IsChecked == true;
 
             if (existing is null) registry.AddConfig(target);
@@ -189,7 +189,7 @@ public sealed class CloudflareSolverCreatorView : SettingsModal
         {
             target.Name = string.IsNullOrWhiteSpace(name.Text) ? "CfSolver" : name.Text!;
             target.ApiKey = apiKey.Text;
-            if (int.TryParse(concurrency.Text, out var c)) target.Concurrency = c;
+            if (UiKit.TryReadInt(concurrency.Text, out var c)) target.Concurrency = c;
             target.Enabled = !string.IsNullOrEmpty(target.ApiKey);
             registry.AddConfig(target);
             services.Config.Save();

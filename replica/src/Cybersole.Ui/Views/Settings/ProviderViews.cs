@@ -226,7 +226,7 @@ public sealed class CaptchaProvidersView : UserControl
                 // the form is the only editor for these fields, so Add doubles as Save
                 if (!string.IsNullOrWhiteSpace(name)) existing.Name = name;
                 if (keyBox.Text is { Length: > 0 }) existing.ApiKey = keyBox.Text;
-                if (int.TryParse(concurrency.Text, out var cc) && cc > 0) existing.Concurrency = cc;
+                if (UiKit.TryReadInt(concurrency.Text, out var cc) && cc > 0) existing.Concurrency = cc;
                 existing.Enabled = existing.ApiKey is { Length: > 0 };
 
                 Sync();
@@ -243,7 +243,7 @@ public sealed class CaptchaProvidersView : UserControl
                 Type = type,
                 Name = string.IsNullOrWhiteSpace(name) ? type : name,
                 ApiKey = keyBox.Text,
-                Concurrency = int.TryParse(concurrency.Text, out var c2) && c2 > 0 ? c2 : 10,
+                Concurrency = UiKit.TryReadInt(concurrency.Text, out var c2) && c2 > 0 ? c2 : 10,
                 Enabled = keyBox.Text is { Length: > 0 },
                 Priority = 0,
             };
@@ -465,7 +465,7 @@ public sealed class CloudflareSolversView : UserControl
                 Name = string.IsNullOrWhiteSpace(name) ? type : name,
                 Type = type,
                 ApiKey = keyBox.Text is { Length: > 0 } ? keyBox.Text : null,
-                Concurrency = int.TryParse(concurrencyBox.Text, out var cc) && cc > 0
+                Concurrency = UiKit.TryReadInt(concurrencyBox.Text, out var cc) && cc > 0
                     ? cc
                     : 5,
             });
@@ -1348,8 +1348,8 @@ public sealed class DataView : UserControl
                 UiKit.Row("Maximum Retention Time", retention),
                 UiKit.Buttons(UiKit.Button("Save", () =>
                 {
-                    if (int.TryParse(maxBackups.Text, out var mb)) s.MaxBackups = mb;
-                    if (int.TryParse(maxSize.Text, out var ms)) s.MaxLogSize = ms;
+                    if (UiKit.TryReadInt(maxBackups.Text, out var mb)) s.MaxBackups = mb;
+                    if (UiKit.TryReadInt(maxSize.Text, out var ms)) s.MaxLogSize = ms;
                     s.BackupInterval = IntervalOf(interval.SelectedIndex);
                     s.MaxLogRetention = RetentionOf(retention.SelectedIndex);
                     services.Config.Save();

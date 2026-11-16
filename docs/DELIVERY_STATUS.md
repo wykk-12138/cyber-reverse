@@ -6721,3 +6721,80 @@ if (int.TryParse(monitor.Text, out var m)) s.MonitorDelay = m;   // ← 也不�
 - `Currency` 那行是否也渲染成图标：**Unknown** —— 在折叠线下，滚动没到。
 - 第 2/3/4 条是**有意简化**还是**遗漏**：**Unknown** —— 没有作者意图的证据。
 - 原版顶栏那 5 个无标签按钮各是什么：**Unknown** —— a11y 树给的 name 是控件类型名。
+
+
+---
+
+## 185. `2,500`：显示与回读**一起**改，屏幕上确认；并纠正我自己两条说法
+
+> R756。改 `UiKit.cs`（`Number` 格式 + 新增 `TryReadInt`）；6 个文件 **36 处**回读改成 `UiKit.TryReadInt`；
+> 新增 `NumberFieldTests`（14 条）。
+
+### 一、改了什么
+
+```csharp
+// 之前
+Text(value?.ToString(), "0", width)                      // → "2500"
+if (int.TryParse(monitor.Text, out var m)) …             // 不容忍逗号
+
+// 现在
+Text(value?.ToString("#,0", CultureInfo.InvariantCulture), "0", width)   // → "2,500"
+if (UiKit.TryReadInt(monitor.Text, out var m)) …         // 剥掉逗号再解析
+```
+
+`TryReadInt` 先 `Replace(",", "")` 再 `int.TryParse`，**两种写法都收**（`2,500` 与 `2500`）。
+
+**范围**：只改 6 个**已引用 `UiKit.`** 的文件（`ProviderViews` 5 / `SettingsViews` 7 / `SettingsModals` 5 /
+`StaggerStartView` 6 / `TasksViews` 12 / `ProxyGroupView` 1 = 36 处）。
+`TaskEditorWindow` 用自己的框、`ProfileViews` 那处解析的是局部字符串，**都未受影响**。
+
+### 二、屏幕上确认了（不是只有测试绿）
+
+复刻件跑起来，Settings → General：
+
+```
+Default Monitor   2,500      Default Error   2,500      Default Timeout   10
+```
+
+**与活窗口的 `2,500` 一致；`10` 不加分隔符，正确。三个 `ⓘ` 图标仍在。**
+
+### 三、纠正我自己说的两条
+
+**纠正一（R754/R755）**：我写过「这个仓库的 UI 测试不构造控件」。**错了** ——
+`UiKit.Number(...)` 在测试里构造得好好的，`NumberFieldTests` 14 条全过，不需要 Avalonia app。
+**准确的说法是：既有 UI 测试*选择了*读源码文本做断言，不是*不能*构造控件。**
+这条重要，因为它决定下一轮什么可验证 —— **能构造，就能对行为断言，而不只是对存在断言。**
+
+**纠正二（本轮开头）**：我一度以为 36 点改动会静默丢数据。**实际不会** ——
+因为显示与回读是**同一次改动**，且回读比原来更宽容。**风险在"只改一半"，而我没有只改一半。**
+
+### 四、`shape_audit.py` 的那次崩溃：**按崩溃记，不按失败记**
+
+第一次全量跑出现：
+
+```
+shape_audit.py exited -1073741819     ← 0xC0000005 访问违例
+```
+
+按 AGENTS.md §2.6：**「没跑成」既不等于通过也不等于失败**，单列。
+
+**查证**：直接跑 `shape_audit.py` **5 次，全部 exit 0**（78 处 mismatch，与平时一致）。
+**所以是偶发，且与我的改动无关**（改动是 C#，崩溃是 Python 的原生访问违例）。
+
+**但它是套件的一个不稳来源** —— 记在这里，下次全量红在 `ShapeAuditGuardTests` 时先想它。
+
+### 五、验证
+
+```
+NumberFieldTests      14 / 14 通过（含 0/1/999/2500/12345/999999/1000000 的往返）
+完整套件              1745 通过 / 0 失败 / 0 跳过（1731 + 14）
+四项度量              4 / 0 / 17 / 78 / 0（未变）
+屏幕                  2,500 / 2,500 / 10 亲眼确认
+```
+
+### 六、仍然 Unknown
+
+- 原版**其它**数字框是否也带分隔符：**Unknown** —— 只观测过 Default Monitor / Default Error / Timeout。
+  我按"同一个 `UiKit.Number` 控件"的理由推广到全部，**这是 Inference（中）**，不是 Observation。
+- 原版是否容忍用户输入不带逗号的 `2500`：**Unknown**（要往它框里打字，红线）。
+- `shape_audit.py` 偶发崩溃的触发条件：**Unknown** —— 5 次未复现，与内存压力无关（17 GB 空闲时也出过一次）。

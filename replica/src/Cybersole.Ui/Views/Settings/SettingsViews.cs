@@ -298,14 +298,14 @@ public sealed class GeneralSettingsView : UserControl
 
         var save = UiKit.Button("Save", () =>
         {
-            if (int.TryParse(monitor.Text, out var m)) s.MonitorDelay = m;
-            if (int.TryParse(retry.Text, out var r)) s.RetryDelay = r;
-            if (int.TryParse(timeout.Text, out var t)) s.Timeout = t;
+            if (UiKit.TryReadInt(monitor.Text, out var m)) s.MonitorDelay = m;
+            if (UiKit.TryReadInt(retry.Text, out var r)) s.RetryDelay = r;
+            if (UiKit.TryReadInt(timeout.Text, out var t)) s.Timeout = t;
             languageSvc.Select(language.SelectedItem as string);
             s.Currency = (Core.Models.Currency)Math.Max(0, currency.SelectedIndex);
             s.Startup = (StartupPage)Math.Max(0, startup.SelectedIndex);
             s.QueuePresentation = (QueuePresentation)Math.Max(0, queue.SelectedIndex);
-            if (int.TryParse(clock.Text, out var ck)) s.Clock = ck;
+            if (UiKit.TryReadInt(clock.Text, out var ck)) s.Clock = ck;
             s.EnableClock = enableClock.IsChecked == true;
             if (!string.IsNullOrWhiteSpace(clockFormat.Text)) s.ClockFormat = clockFormat.Text!;
 
@@ -324,7 +324,7 @@ public sealed class GeneralSettingsView : UserControl
                 : services.Config.ProxyGroups[Math.Min(quickProxies.SelectedIndex - 1,
                     services.Config.ProxyGroups.Count - 1)].Id;
             s.Concurrency.Mode = (ConcurrencyMode)Math.Max(0, concMode.SelectedIndex);
-            if (int.TryParse(concMax.Text, out var mx)) s.Concurrency.Maximum = mx;
+            if (UiKit.TryReadInt(concMax.Text, out var mx)) s.Concurrency.Maximum = mx;
             if (double.TryParse(concRatio.Text, out var ratio)) s.Concurrency.Ratio = ratio;
 
             services.Config.Save();
@@ -1728,10 +1728,10 @@ public sealed class PaymentView : UserControl
             UiKit.Buttons(UiKit.Button("Save", () =>
             {
                 s.AutoOpen3DS = auto3ds.SelectedIndex == 1;
-                if (int.TryParse(auto3dsLimit.Text, out var max3ds) && max3ds >= 0)
+                if (UiKit.TryReadInt(auto3dsLimit.Text, out var max3ds) && max3ds >= 0)
                     s.AutoOpen3DSLimit = max3ds;
                 s.BrowserPath = browserPath.Text;
-                if (int.TryParse(browserTabs.Text, out var tabs)) s.BrowserLimit = tabs;
+                if (UiKit.TryReadInt(browserTabs.Text, out var tabs)) s.BrowserLimit = tabs;
                 s.BrowserWindowMode = (BrowserWindowMode)Math.Max(0, openAs.SelectedIndex);
                 s.BrowserProfileAssignment =
                     (BrowserProfileAssignment)Math.Max(0, assignment.SelectedIndex);

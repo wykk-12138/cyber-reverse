@@ -101,7 +101,7 @@ public sealed class ProxyGroupView : UserControl
         name.TextChanged += (_, _) => _group.Name = name.Text ?? string.Empty;
         maxUsage.TextChanged += (_, _) =>
         {
-            if (int.TryParse(maxUsage.Text, out var v)) _group.MaxUsage = v;
+            if (UiKit.TryReadInt(maxUsage.Text, out var v)) _group.MaxUsage = v;
         };
 
         // The derived boundary is shown, not edited: NextReset has no setter in the original.

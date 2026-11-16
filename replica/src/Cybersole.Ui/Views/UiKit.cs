@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using System.Globalization;
 
 namespace Cybersole.Ui.Views;
 
@@ -55,8 +56,28 @@ public static class UiKit
         PasswordChar = password ? '*' : '\0',
     };
 
+    /// <summary>
+    /// A whole-number field. The window writes thousands separators (R755 read 2,500 off the live Default
+    /// Monitor field), so this formats with one; <see cref=TryReadInt/> is the matching reader, and the two
+    /// must stay in step or an edit would be silently discarded on save.
+    /// </summary>
     public static TextBox Number(int? value, double width = 120) =>
-        Text(value?.ToString(), "0", width);
+        Text(value?.ToString("#,0", CultureInfo.InvariantCulture), "0", width);
+
+    /// <summary>
+    /// Reads a number field back, ignoring the separators the field displays.
+    /// </summary>
+    /// <remarks>
+    /// R755: thirty-five call sites paired UiKit.Number with a bare int.TryParse. Changing the display without
+    /// changing the reader would have left each of them showing 2,500 while failing to parse it, and the caller
+    /// keeps the old value without a word to the user -- a data loss with no symptom. This strips separators
+    /// before parsing, so the field round-trips whether or not the user types them.
+    /// </remarks>
+    public static bool TryReadInt(string? text, out int value)
+    {
+        var digits = (text ?? string.Empty).Replace(",", string.Empty).Trim();
+        return int.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+    }
 
     public static CheckBox Check(string text, bool value, Action<bool>? onChanged = null)    {
         var box = new CheckBox { Content = text, IsChecked = value };

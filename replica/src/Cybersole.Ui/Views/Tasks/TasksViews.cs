@@ -195,7 +195,7 @@ public sealed class TaskCreatorView : UserControl
     public int Quantity => ReadQuantity();
 
     private int ReadQuantity() =>
-        _quantityPerProfileBox is not null && int.TryParse(_quantityPerProfileBox.Text, out var q) ? q : 1;
+        _quantityPerProfileBox is not null && UiKit.TryReadInt(_quantityPerProfileBox.Text, out var q) ? q : 1;
 
     private int StepQuantity(int delta)
     {
@@ -297,12 +297,12 @@ public sealed class TaskCreatorView : UserControl
             ProxyGroupIds = _selectedProxyGroups.Count > 0
                 ? _selectedProxyGroups
                 : _services.Config.ProxyGroups.Select(g => g.Id).ToList(),
-            QuantityPerProfile = int.TryParse(_quantityPerProfileBox?.Text, out var q) ? q : 1,
+            QuantityPerProfile = UiKit.TryReadInt(_quantityPerProfileBox?.Text, out var q) ? q : 1,
             MultiCart = _multiCartBox?.IsChecked == true,
             StartTime = DateTime.TryParse(_startTimeBox?.Text, out var st) ? st : null,
-            MonitorDelay = int.TryParse(_monitorDelayBox?.Text, out var md) ? md : null,
-            RetryDelay = int.TryParse(_retryDelayBox?.Text, out var rd) ? rd : null,
-            Timeout = int.TryParse(_timeoutBox?.Text, out var to) ? to : null,
+            MonitorDelay = UiKit.TryReadInt(_monitorDelayBox?.Text, out var md) ? md : null,
+            RetryDelay = UiKit.TryReadInt(_retryDelayBox?.Text, out var rd) ? rd : null,
+            Timeout = UiKit.TryReadInt(_timeoutBox?.Text, out var to) ? to : null,
             MonitorMode = _monitorOnlyBox?.IsChecked == true,
             PriceCheck = _priceCheckBox?.IsChecked == true,
         };
@@ -482,7 +482,7 @@ public sealed class TaskGroupView : UserControl
         pinned.IsCheckedChanged += (_, _) => _group.Pinned = pinned.IsChecked == true;
         order.TextChanged += (_, _) =>
         {
-            if (int.TryParse(order.Text, out var v)) _group.Order = v;
+            if (UiKit.TryReadInt(order.Text, out var v)) _group.Order = v;
         };
 
         return UiKit.Scroll(UiKit.Form(
@@ -510,19 +510,19 @@ public sealed class TaskGroupView : UserControl
 
         monitor.TextChanged += (_, _) =>
         {
-            if (int.TryParse(monitor.Text, out var v)) _group.MonitorDelay = v;
+            if (UiKit.TryReadInt(monitor.Text, out var v)) _group.MonitorDelay = v;
         };
         retry.TextChanged += (_, _) =>
         {
-            if (int.TryParse(retry.Text, out var v)) _group.RetryDelay = v;
+            if (UiKit.TryReadInt(retry.Text, out var v)) _group.RetryDelay = v;
         };
         error.TextChanged += (_, _) =>
         {
-            if (int.TryParse(error.Text, out var v)) _group.ErrorDelay = v;
+            if (UiKit.TryReadInt(error.Text, out var v)) _group.ErrorDelay = v;
         };
         timeout.TextChanged += (_, _) =>
         {
-            if (int.TryParse(timeout.Text, out var v)) _group.Timeout = v;
+            if (UiKit.TryReadInt(timeout.Text, out var v)) _group.Timeout = v;
         };
         linked.IsCheckedChanged += (_, _) => _group.LinkedDelays = linked.IsChecked == true;
 
@@ -552,11 +552,11 @@ public sealed class TaskGroupView : UserControl
 
         checkoutLimit.TextChanged += (_, _) =>
         {
-            if (int.TryParse(checkoutLimit.Text, out var v)) _group.CheckoutLimit = v;
+            if (UiKit.TryReadInt(checkoutLimit.Text, out var v)) _group.CheckoutLimit = v;
         };
         profileLimit.TextChanged += (_, _) =>
         {
-            if (int.TryParse(profileLimit.Text, out var v)) _group.ProfileLimit = v;
+            if (UiKit.TryReadInt(profileLimit.Text, out var v)) _group.ProfileLimit = v;
         };
 
         // R352: the period-start editor lives here, not on a tab of its own — the locale keeps its tooltip in this panel

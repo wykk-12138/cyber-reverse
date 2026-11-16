@@ -62,9 +62,9 @@ public sealed class StaggerStartView : Window
 
         void Recalculate()
         {
-            if (!int.TryParse(toRun.Text, out var total)) total = _tasks.Count;
-            if (!int.TryParse(perRound.Text, out var round) || round <= 0) round = 1;
-            if (!int.TryParse(delay.Text, out var ms) || ms < 0) ms = 0;
+            if (!UiKit.TryReadInt(toRun.Text, out var total)) total = _tasks.Count;
+            if (!UiKit.TryReadInt(perRound.Text, out var round) || round <= 0) round = 1;
+            if (!UiKit.TryReadInt(delay.Text, out var ms) || ms < 0) ms = 0;
 
             var rounds = (int)Math.Ceiling(total / (double)round);
             var seconds = Math.Max(0, rounds - 1) * ms / 1000.0;
@@ -78,9 +78,9 @@ public sealed class StaggerStartView : Window
 
         Start = new RelayCommand(() =>
         {
-            if (!int.TryParse(perRound.Text, out var round) || round <= 0) round = 1;
-            if (!int.TryParse(delay.Text, out var ms) || ms < 0) ms = 0;
-            if (!int.TryParse(toRun.Text, out var total) || total <= 0) total = _tasks.Count;
+            if (!UiKit.TryReadInt(perRound.Text, out var round) || round <= 0) round = 1;
+            if (!UiKit.TryReadInt(delay.Text, out var ms) || ms < 0) ms = 0;
+            if (!UiKit.TryReadInt(toRun.Text, out var total) || total <= 0) total = _tasks.Count;
 
             total = Math.Min(total, _tasks.Count);
             _ = RunAsync(_tasks.Take(total), round, TimeSpan.FromMilliseconds(ms));

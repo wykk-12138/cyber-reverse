@@ -271,3 +271,31 @@
 1. **粒度合并** —— 复刻件的某个粗步做了它（Nike 那 10 条属此类）
 2. **基类默认实现** —— 复刻件基类已有，只是没重写
 3. **真缺**
+
+## 108 条的两刀切（R845）
+
+### 108 条的两刀切（R845，`analysis/partition_steps.py`）
+
+```
+108 条不同名
+ ├── 49 条：StoreFlow 基类已声明 → 只是没重写，不是缺口
+ └── 59 条：基类也没有
+      ├── 24 条 PopMart（抽签/展览/预约 17 + GetOrders/GetInstoreOrders 等 7）
+      └── 35 条：需要行为裁决
+```
+
+**`StoreFlow` 声明 165 个虚步骤；108 条里 49 条就在那 165 个里面。**
+
+| 流程 | 基类有（无缺口） | 基类没有 |
+|---|---|---|
+| nike | 5（`Authorize` `CreateBasket` `SubmitCustomer` `SubmitShippingMethod` `SubmitBillingAddress`） | **9** |
+| popmart | 0 | **24** |
+| johnlewis | 5（`GetPaymentPage` `SubmitOrderStripe` `PlaceOrder` `HandleRequiresAction` `GetStripePaymentIntent`） | **8** |
+| demandware-classic | 3（`InitiateCheckout` `CreateStripePaymentMethod` `CreateOrder`） | **5** |
+| demandware-dual | 4（`GetRates` `FindProductApp` `AddToCartApp` `SubmitOrderApp`） | **9** |
+| collectplus-app | 8（`GetProduct` `GetSessionApp` `GetBasket` `SubmitDiscount` `LookupAddress` `SubmitDelivery` `SubmitBilling` `StartPayment` `GetPaymentUrl`） | **4** |
+| structure-token-multi | 12 | 0 |
+| structure-token-single | 8 | 0 |
+
+**注意 `structure-token-*` 那两行：基类全有 —— 也就是说那 4 个「同名」之外，剩下的基类都实现了。
+R844 里我对这两行的映射（指向共用文件）导致的「不同名」全部落在基类一侧。**

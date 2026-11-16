@@ -2671,3 +2671,45 @@ Nike 16 · **Pop Mart 24** · John Lewis 17 · Demandware 经典 12 / 双路 15 
 | `Registry.cs` 63 模块 ↔ 8 流程表 | 关系未建 |
 
 **纪律**：**一个错的总数比没有总数更坏 —— 错的地方不在数字，在它旁边没写清楚它是什么。**
+
+
+## 判据 (f) — 108 塌成 35（R845）
+
+**工具**：`python analysis\partition_steps.py`。
+
+```
+108 条不同名
+ ├── 49 条 StoreFlow（165 虚步骤）已声明 → 无缺口，只是没重写
+ └── 59 条 基类也没有
+      ├── 24 PopMart（17 抽签/展览/预约已证没有 + 7 未判）
+      └── 35 真问题
+```
+
+### 49 条基类侧体现的设计
+
+`Authorize` `CreateBasket` `SubmitCustomer` `SubmitShippingMethod` `InitiateCheckout` `CreateOrder`
+`GetRates` `CalculateTaxes` `GetStructureToken` `CreateTransaction` `SubmitPayPal` `ProcessPayment`
+—— **通用结账步骤在基类，各站复用。**
+
+**`structure-token-*` 两行基类全有（12+8）→ R844 里那两行「不同名」是映射粗糙，不是缺口。**
+
+### 59 条的分布
+
+| 流程 | 条数 | 状态 |
+|---|---|---|
+| popmart | 24 | 17 已证没有；7 未判 |
+| nike | 9 | **R843 已定性：粒度** |
+| demandware-dual | 9 | App/Dw 双路（R112 注释） |
+| johnlewis | 8 | Stripe + 交付回调 |
+| demandware-classic | 5 | 未判 |
+| collectplus-app | 4 | 未判 |
+
+**→ 剩 26 条要分别判。**
+
+| 仍 Unknown | |
+|---|---|
+| 26 条真判 | dual 9 · johnlewis 8 · classic 5 · collectplus 4 |
+| 49 条基类实现是否适用每站 | **「有」≠「对它这个站正确」** |
+| popmart 7 步 | 未判 |
+
+**纪律**：**数变小不是因为放宽标准，是因为做了一次检查。**

@@ -50811,3 +50811,49 @@ NikeFlow 17 重写 ∩ 镜像 16 步 = 2 · Pop Mart 24 步中抽签/展览/预�
 > **我造出一个看起来很吓人的数（16.9%），而它有三种非缺陷解释。**
 > **如果只写「22/130」，下一轮的人会把它当覆盖率，去「修」那 108 条 —— 而大部分可能只是粒度不同。**
 > **这就是「一个错的总数比没有总数更坏」的具体形态；错的地方不在数字，在它旁边没写清楚它是什么。**
+
+
+---
+
+## 第 845 轮：108 条塌成 35 条 —— 先查基类，少掉 49 条
+
+### 最便宜的那一刀
+
+`StoreFlow` 声明 **165 个虚步骤**。名字在上面的，基类已实现，只是该流程没重写。
+
+```
+108 条不同名
+ ├── 49 条 StoreFlow 声明了 → 无缺口
+ └── 59 条 基类也没有
+      ├── 24 条 PopMart
+      └── 35 条 真问题
+```
+
+**那 49 条看得出设计意图**：`Authorize` `CreateBasket` `SubmitCustomer` `SubmitShippingMethod`
+`InitiateCheckout` `CreateOrder` `GetRates` `CalculateTaxes` `GetStructureToken` `SubmitPayPal` `ProcessPayment` —— **通用结账步骤在基类，各站复用。**
+
+**`structure-token-multi`/`single` 两行基类全有（12+8）** —— **R844 里那两行的「不同名」全部落在基类一侧，是我映射粗糙，不是缺口。**
+
+### 59 条的形状
+
+| 流程 | 条数 | 性质 |
+|---|---|---|
+| **popmart** | **24** | 抽签/展览/预约 17（已证没有）+ 7 未判 |
+| **nike** | **9** | R843 已定性为**粒度** |
+| **demandware-dual** | **9** | App 侧 / Dw 侧双路（R112 注释即此） |
+| **johnlewis** | **8** | Stripe 支付 + 交付回调链 |
+| **demandware-classic** | **5** | `GenerateCSRF` `SubmitConsignment` `SubmitShippingOption` `GetPaymentMethod` `ConfirmPayment` |
+| **collectplus-app** | **4** | `CreateCheckoutApp` `GetDelivery` `GetCollectPlusLocations` `SubmitCollectPlus` |
+
+**24 + 9 已有定性 → 剩 26 条要分别判。**
+
+### 仍然 Unknown
+
+**26 条的真判**（dual 9 · johnlewis 8 · classic 5 · collectplus 4）·
+**49 条基类实现对每个站是否真的适用**（「基类有」证明方法存在，不证明对它这个站行为正确）·
+**`popmart` 那 7 步**
+
+### 教训
+
+> **这个数变小不是因为我放宽了标准，是因为我做了一个检查。**
+> **上一轮说「一个错的总数比没有总数更坏」；这一轮是正面对照 —— 一个查清了构成的总数，比一个吓人的总数有用得多。**

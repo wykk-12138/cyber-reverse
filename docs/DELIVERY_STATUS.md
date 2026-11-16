@@ -13974,3 +13974,78 @@ docs\ASYNC_OPS.md 增表
 **如果我在文档里只写「22/130」，下一轮的人会把它当覆盖率，然后去「修」那 108 条 ——
 而其中大部分可能只是粒度不同。**
 **这就是「一个错的总数比没有总数更坏」的具体形态；而错的地方不在数字，在它旁边没写清楚它是什么。**
+
+
+---
+
+## 269. **108 条塌成 35 条**：先查基类，就少掉 49 条
+
+> R845。`analysis/partition_steps.py` 常驻。`docs/ASYNC_OPS.md` 增分区表。未改产品代码。
+
+### 一、R844 的三种原因，其中一种最便宜
+
+R844 给 108 条不同名列了三种可能：**粒度合并 / 基类默认实现 / 真缺**。
+
+**第二种最便宜，而且完全机械：`StoreFlow` 声明了 165 个虚步骤 —— 名字在上面的，基类已经实现了，只是该流程没重写。**
+
+### 二、结果
+
+```
+108 条不同名
+ ├── 49 条 StoreFlow 声明了 → 无缺口
+ └── 59 条 基类也没有
+      ├── 24 条 PopMart
+      └── 35 条 真问题
+```
+
+**那 49 条里能看出复刻件的设计意图**：`Authorize` `CreateBasket` `SubmitCustomer` `SubmitShippingMethod`
+`SubmitBillingAddress` `InitiateCheckout` `CreateOrder` `GetRates` `CalculateTaxes` `GetStructureToken`
+`CreateTransaction` `SubmitPayPal` `ProcessPayment` …… **这些通用结账步骤在基类里，各站复用。**
+
+**而 `structure-token-multi` / `structure-token-single` 两行基类全有（12 + 8 条）** ——
+**说明 R844 里我对这两行的文件映射（指向共用文件）造成的「不同名」，全部落在基类一侧，不是缺口。**
+
+### 三、剩下 59 条的形状
+
+| 流程 | 条数 | 性质 |
+|---|---|---|
+| **popmart** | **24** | 抽签/展览/预约 17 步（R835–R838 已证没有）+ `GetOrders` `GetInstoreOrders` 等 7 步 |
+| **nike** | **9** | `StartEcomSession` `GetAccessToken` `ValidateAddress` `SubmitShippingAddress` `GetShippingMethods` `BeginCheckout` `CheckInventory` `GetShopperIp` `GetPaymentMethods` |
+| **demandware-dual** | **9** | `StartAppFast` `StartAppSafe` `GetSessionDw` `GetCartDw` `AddToCartAppDw` `SaveSessionDw` `ApplyDiscountApp` `GetCheckoutApp` `GetRatesApp` |
+| **johnlewis** | **8** | `WebHandOver` `SessionHandover` `GuestCallback` `DeliveryPage` `CreateDelivery` `GetDeliveryMethods` `SubmitDeliveryMethod` `AuthenticatePayment` |
+| **demandware-classic** | **5** | `GenerateCSRF` `SubmitConsignment` `SubmitShippingOption` `GetPaymentMethod` `ConfirmPayment` |
+| **collectplus-app** | **4** | `CreateCheckoutApp` `GetDelivery` `GetCollectPlusLocations` `SubmitCollectPlus` |
+
+**Nike 那 9 条 R843 已定性为粒度**（镜像 10 个可分别失败的结账阶段）。
+**`demandware-dual` 那 9 条是「App 侧 / Dw 侧双路」**（R112 的注释就说这个流程两条路并存）。
+**`johnlewis` 那 8 条是 Stripe 支付与交付回调链。**
+
+**所以 59 条里，24（PopMart）+ 9（Nike）已有定性；剩 26 条要分别判。**
+
+### 四、验证
+
+```
+python analysis\partition_steps.py
+  StoreFlow declares 165 virtual steps
+  unmatched by name: 108
+  ...StoreFlow declares the step: 49
+  ...and StoreFlow does not:      59
+本轮未改产品代码
+七项度量沿用
+```
+
+### 五、仍然 Unknown
+
+- **26 条的真判**（59 − 24 − 9）：**Unknown** ——
+  `demandware-dual` 9 · `johnlewis` 8 · `demandware-classic` 5 · `collectplus-app` 4。
+- **49 条基类实现是否真的对每个站都适用**：**Unknown** ——
+  **「基类有」证明方法存在，不证明它对这个站的行为正确。** 这是「功能相等」比「存在」更强的地方。
+- **`popmart` 那 7 步**（`GetOrders` `GetInstoreOrders` 等）：**Unknown** —— 17 步已证没有，这 7 步未判。
+
+### 六、教训
+
+**R844 我造了个 16.9%，并写清它有三种解释。这一轮把其中一种查掉，108 变成 35。**
+
+**而关键点是：这个数变小不是因为我放宽了标准，是因为我做了一个检查。**
+**上一轮我说「一个错的总数比没有总数更坏」；这一轮是它的正面对照 ——
+一个查清了构成的总数，比一个吓人的总数有用得多。**

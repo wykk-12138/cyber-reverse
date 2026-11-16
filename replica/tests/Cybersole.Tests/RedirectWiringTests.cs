@@ -27,9 +27,12 @@ public class RedirectWiringTests
 
         Assert.Contains("RedirectPolicy.IsRedirect", netClient);
         Assert.Contains("RedirectPolicy.LimitFrom", netClient);
-        Assert.Contains("RedirectPolicy.Resolve", netClient);
+        // R952: resolving moved inside FollowAsync, so NetClient no longer names it
+        Assert.Contains("limit + 1", netClient);
         Assert.Contains("RedirectPolicy.PreservesMethod", netClient);
-        Assert.Contains("RedirectPolicy.TooManyRedirectsName", netClient);
+        Assert.Contains("RedirectPolicy.FollowAsync", netClient);
+        // R952: the exception now comes from FollowAsync ToomanyMessage(), so the name is formatted there
+        Assert.Contains("followed.TooManyMessage()", netClient);
     }
 
     /// <summary>
@@ -43,7 +46,7 @@ public class RedirectWiringTests
 
         Assert.Contains("private async Task<NetResponse> SendAsync(", netClient);
         Assert.Contains("int hops,", netClient);
-        Assert.Contains("hops + 1", netClient);
+        Assert.Contains("limit + 1", netClient);
     }
 
     /// <summary>A caller's FollowRedirects setting is honoured, since the transport used to hand redirects to HttpClient.</summary>
@@ -79,8 +82,9 @@ public class RedirectWiringTests
         var netClient = System.IO.File.ReadAllText(System.IO.Path.Combine(RepoRoot(),
             "src", "Cybersole.Http", "NetClient.cs"));
 
-        Assert.Contains("result.StatusCode == 303 || !keep ? HttpMethod.Get : method", netClient);
-        Assert.Contains("nextOptions = options.Clone()", netClient);
+        // R952: the method switch moved inside the FollowAsync fetch delegate, so it is asserted where it now lives
+        Assert.Contains("followMethod = HttpMethod.Get", netClient);
+        Assert.Contains("carried.Clone()", netClient);
         Assert.DoesNotContain("options with {", netClient);
 
         // and the policy agrees: 303 never preserves, 307 always does

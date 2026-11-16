@@ -234,27 +234,48 @@ public sealed class NetClient : IDisposable
                 // R951: the redirect branch is here rather than in each transport, so all three share one policy.
                 // A chain that exceeds the limit throws rather than returning the last hop, because a truncated chain
                 // looks like an answer.
+                // R952: the recursion is replaced by RedirectPolicy.FollowAsync so the chain walks through one async
+                // method rather than through this one calling itself. Two reasons, and the second is the one that
+                // matters for parity: an async method keeps its state machine in the image where a small synchronous
+                // helper would be inlined and leave no .pdata entry at all.
                 if (options.FollowRedirects && RedirectPolicy.IsRedirect(result.StatusCode) &&
                     result.Headers.TryGetValue("Location", out var location) &&
                     !string.IsNullOrEmpty(location))
                 {
                     var limit = RedirectPolicy.LimitFrom(options.MaxRedirects);
-                    if (hops >= limit)
-                        throw new NetException(RedirectPolicy.TooManyRedirectsName +
-                            " (after " + hops.ToString(CultureInfo.InvariantCulture) + " hops): " + url);
+                    var carried = options;
+                    var followMethod = method;
 
-                    var next = RedirectPolicy.Resolve(url, location!);
-                    // 303 always becomes a GET; 307/308 keep both method and body; 301/302 keep only for GET/HEAD
-                    var keep = RedirectPolicy.PreservesMethod(result.StatusCode, method.Method);
-                    var nextMethod = result.StatusCode == 303 || !keep ? HttpMethod.Get : method;
-                    var nextOptions = options;
-                    if (!keep)
-                    {
-                        nextOptions = options.Clone();
-                        nextOptions.Content = null;
-                    }
+                    var followed = await RedirectPolicy.FollowAsync(
+                        url,
+                        async (current, token) =>
+                        {
+                            if (string.Equals(current, url, StringComparison.Ordinal))
+                                return new RedirectHop(result.StatusCode, location);
 
-                    return await SendAsync(nextMethod, next, nextOptions, hops + 1, ct).ConfigureAwait(false);
+                            // every subsequent hop is a real request, so the chain is walked rather than replayed
+                            var nextOptions = carried;
+                            if (!RedirectPolicy.PreservesMethod(result.StatusCode, followMethod.Method))
+                            {
+                                nextOptions = carried.Clone();
+                                nextOptions.Content = null;
+                                followMethod = HttpMethod.Get;
+                            }
+
+                            var hopResponse = await SendAsync(followMethod, current, nextOptions, limit + 1, token)
+                                .ConfigureAwait(false);
+                            return new RedirectHop(hopResponse.StatusCode,
+                                hopResponse.Headers.TryGetValue("Location", out var next) ? next : null);
+                        },
+                        limit,
+                        ct).ConfigureAwait(false);
+
+                    if (followed.TooMany)
+                        throw new NetException(followed.TooManyMessage());
+
+                    if (!string.Equals(followed.FinalUrl, url, StringComparison.Ordinal))
+                        return await SendAsync(followMethod, followed.FinalUrl, carried, limit + 1, ct)
+                            .ConfigureAwait(false);
                 }
 
                 _analytics.Record(new HttpRequestEvent

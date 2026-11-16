@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 02:37:19 +0800 |
+| 生成时间 | 2026-11-17 02:50:16 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -34,6 +34,14 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 171,690 |
 | 函数数量（.pdata） — functions: ratio | 61.96% |
+| 核心覆盖：store 宿主 — hosts with a path | 39 |
+| 核心覆盖：store 宿主 — store hosts | 27 |
+| 核心覆盖：store 宿主 — store hosts matched | 24 |
+| 核心覆盖：store 宿主 — store hosts unmatched | 3 |
+| 核心覆盖：store 宿主 — vendor hosts | 12 |
+| 核心覆盖：vendor 宿主 — vendor hosts carrying a path | 12 |
+| 核心覆盖：vendor 宿主 — vendors named somewhere in src | 5 |
+| 核心覆盖：vendor 宿主 — vendors absent from src | 7 |
 
 ## 逐条命令与原始输出
 
@@ -337,6 +345,105 @@ function count (non-leaf, from .pdata):
   compares function mass between the two images and does not establish function-level equality.
 ```
 
+### 核心覆盖：store 宿主
+
+```
+cd D:\projects\cyber-reverse\replica
+C:\Python312\python.exe tools/core_coverage.py
+```
+
+`exit 0`
+
+```text
+hosts with a path: 39  (store 27, vendor 12)
+registry identifiers: 82   flow types: 35
+
+store hosts
+  matched api-search.dickssportinggoods.com         1 paths  dickssportinggoods
+  unmatched api.braintreegateway.com                  2 paths  
+  matched api.nike.com                              4 paths  nike, nikegs
+  matched api.sibspayments.com                      1 paths  in src
+  matched api.tobe-official.jp                      1 paths  in src
+  unmatched api.vipps.no                              1 paths  
+  matched app.midtrans.com                          2 paths  poqapp
+  matched auth.casio-intl.com                       1 paths  casio, casio
+  matched authenticate.riotgames.com                1 paths  riotgames
+  matched checkout.johnlewis.com                   11 paths  johnlewis
+  matched checkout.sportsshoes.com                  1 paths  sportsshoes
+  matched degica.as1.gpayments.net                  1 paths  in src
+  matched ecommerce-gateway.mollie.com              1 paths  hypecommerce
+  matched flex.cybersource.com                      1 paths  in src
+  matched forms.shopifyapps.com                     2 paths  shopify
+  matched hbx.com                                   1 paths  hbx
+  matched id.asics.com                              3 paths  in src
+  unmatched payments.bigcommerce.com                  1 paths  
+  matched payments.dickssportinggoods.com           2 paths  dickssportinggoods
+  matched prod-hk-actapi.popmart.com                2 paths  popmart
+  matched retry.touchtechpayments.com               1 paths  in src
+  matched static-forms.klaviyo.com                  1 paths  in src
+  matched threeds.airwallex.com                     1 paths  in src
+  matched www.goat.com                              9 paths  goat
+  matched www.ibm.com                               1 paths  in src
+  matched www.nike.com                              1 paths  nike, nikegs
+  matched www.vans.com                              6 paths  in src
+
+vendor hosts
+  matched challenges.cloudflare.com                 1 paths  cloudflare
+  matched checkoutshopper-live.adyen.com            2 paths  adyen
+  unmatched inbox-api.aycd.io                         3 paths  aycd
+  unmatched payments-panel.production.eshopworld.com  3 paths  eshopworld
+  unmatched paymentsheet-ent.wdprapps.disney.com      3 paths  disney
+  matched registerdisney.go.com                     1 paths  go
+  unmatched retailer-shopifypayments-api.production.eshopworld.com  2 paths  eshopworld
+  unmatched web-dsy.global-e.com                      1 paths  global-e
+  unmatched webservices.global-e.com                  3 paths  global-e
+  matched www.paypal.com                            4 paths  paypal
+  unmatched www.purpledotprice.com                    1 paths  purpledotprice
+  unmatched www.vivapayments.com                      3 paths  vivapayments
+
+hosts with a path: 39
+store hosts: 27
+store hosts matched: 24
+store hosts unmatched: 3
+vendor hosts: 12
+NOTE: matched means a registration contains the host's label; unmatched means none does. Neither proves
+      the store works or is absent -- a store can be registered under a label sharing no letters with its
+      domain, and a short label can match by accident.
+```
+
+### 核心覆盖：vendor 宿主
+
+```
+cd D:\projects\cyber-reverse\replica
+C:\Python312\python.exe tools/vendor_coverage.py
+```
+
+`exit 0`
+
+```text
+vendor hosts carrying a path: 12
+
+host                                                        pt  service      named in
+challenges.cloudflare.com                                    1  Cloudflare   yes  AntiBotProtocol.cs, AntiBotVendors.cs, BouncyH2Client.cs
+checkoutshopper-live.adyen.com                               2  Adyen        yes  AdyenGateway.cs, AdyenPayPalFlow.cs, BstnFlow.cs
+inbox-api.aycd.io                                            3  AYCD         yes  Accounts.cs, AycdInboxAccount.cs, AycdInboxClient.cs
+payments-panel.production.eshopworld.com                     3  eShopWorld   NO   -
+paymentsheet-ent.wdprapps.disney.com                         3  Disney       NO   -
+registerdisney.go.com                                        1  Disney       NO   -
+retailer-shopifypayments-api.production.eshopworld.com       2  eShopWorld   NO   -
+web-dsy.global-e.com                                         1  Global-e     NO   -
+webservices.global-e.com                                     3  Global-e     NO   -
+www.paypal.com                                               4  PayPal       yes  Accounts.cs, AdyenPayPalFlow.cs, CandidateSteps.cs
+www.purpledotprice.com                                       1  PurpleDot    yes  PurpleDot.cs
+www.vivapayments.com                                         3  Viva         NO   -
+
+vendor hosts carrying a path: 12
+vendors named somewhere in src: 5
+vendors absent from src: 7
+NOTE: 'yes' means some source file contains the service's name. It does not mean the integration is complete
+      or correct -- a constant naming a host and a working flow are different things.
+```
+
 ### 完整套件
 
 ```
@@ -361,7 +468,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  1857，已跳过:     0，总计:  1857，持续时间: 1 m 36 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  1857，已跳过:     0，总计:  1857，持续时间: 1 m 22 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

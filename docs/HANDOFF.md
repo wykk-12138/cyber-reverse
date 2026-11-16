@@ -882,3 +882,17 @@ Payments/PurpleDot.cs：Host/PreorderState/ApiKey · UrlFor（query 而非 heade
 数字：套件 1850 → 1857 · store 桶 24/28 → 24/27（分母变小，误分类移出）。
 
 下一轮：vendor 桶 12 个逐个判（含 Cloudflare/AYCD/Paynamics/PurpleDot 已做，还剩若干）。
+
+## R921 补充 — 判据 (f) 的 vendor 侧：5/12，缺 7 条归 4 家服务（新工具 + 接进 METRICS）
+
+vendor 12 宿主：5 有（Cloudflare / Adyen / AYCD / PayPal / PurpleDot）· 7 无，归成 4 家服务 16 条路径（eShopWorld 5 · Disney 4 · Global-e 4 · Viva 3）。
+
+而这一栏回答 R905 的撤回：Cloudflare 有、AYCD 有 → **反爬这一侧不在 7 个缺口里**，缺的全是支付/跨境商务。→ 优先级 ② 在 154 条范围内不缺端点；缺的是 ①（支付）与 ③（跨境定价）。
+
+接进 METRICS 踩两道机制（都拦对了）：summary_bits 的硬编码 patterns 表 · R834 归属规则（每条目只报自己声明的键）。
+
+数字：套件 1857（不变）· vendor 5/12 · METRICS.md 核心覆盖行 0 → 8。
+
+纪律：判据 (f) 写着「站点**与**风控清单」，我连续四轮只报站点那一侧 —— 因为判据不会自己执行。
+
+下一轮：从 4 家缺的服务里挑一家（Global-e 疑似优先级 ③，eShopWorld/Disney 疑似 ①）。

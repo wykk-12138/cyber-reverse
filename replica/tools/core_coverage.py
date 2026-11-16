@@ -171,7 +171,12 @@ def main():
         print("  %-6s %-40s %2d paths  %s" % (state, host, count, lab))
 
     print("")
-    print("store hosts matched %d / %d, unmatched %d" % (hit, hit + miss, miss))
+    # R921: metrics_report parses "key: value" lines, so every figure it needs is printed in that form.
+    print("hosts with a path: %d" % len(names))
+    print("store hosts: %d" % (hit + miss))
+    print("store hosts matched: %d" % hit)
+    print("store hosts unmatched: %d" % miss)
+    print("vendor hosts: %d" % len(vendors))
     print("NOTE: matched means a registration contains the host's label; unmatched means none does. Neither proves")
     print("      the store works or is absent -- a store can be registered under a label sharing no letters with its")
     print("      domain, and a short label can match by accident.")

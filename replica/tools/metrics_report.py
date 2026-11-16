@@ -61,6 +61,10 @@ METRICS = [
     # R832 seventh metric: the goal's first clause is that the function counts be equal, and until then
     # nothing here measured it -- the six above count declarations, this one counts the artifacts.
     ("函数数量（.pdata）", ["tools/func_count.py"], ["functions: original .pdata", "functions: replica .pdata", "functions: ratio"]),
+    # R921: criterion (f) has two columns and only the store one had been measured. These add the vendor column, so the
+    # coverage table the criterion asks for comes out of the single number source instead of being assembled by hand.
+    ("核心覆盖：store 宿主", ["tools/core_coverage.py"], ["hosts with a path", "store hosts", "store hosts matched", "store hosts unmatched", "vendor hosts"]),
+    ("核心覆盖：vendor 宿主", ["tools/vendor_coverage.py"], ["vendor hosts carrying a path", "vendors named somewhere in src", "vendors absent from src"]),
 ]
 
 SCOPE_NOTE = "note: base-class inheritance is counted (by design since R343)"
@@ -92,6 +96,15 @@ def summary_bits(name_out, owned):
         "types with scope misses": r"types with scope misses:\s*(\d+)",
         "types absent from source": r"type presence: \d+ declared in bindings, \d+ present in source, (\d+) absent",
         "total mismatches": r"total mismatches:\s*(\d+)",
+        # R921: criterion (f) -- the core coverage table has two columns and these are their figures.
+        "hosts with a path": r"hosts with a path:\s*(\d+)",
+        "store hosts": r"(?:^|\\n)store hosts:\s*(\d+)",
+        "store hosts matched": r"store hosts matched:\s*(\d+)",
+        "store hosts unmatched": r"store hosts unmatched:\s*(\d+)",
+        "vendor hosts": r"(?:^|\\n)vendor hosts:\s*(\d+)",
+        "vendor hosts carrying a path": r"vendor hosts carrying a path:\s*(\d+)",
+        "vendors named somewhere in src": r"vendors named somewhere in src:\s*(\d+)",
+        "vendors absent from src": r"vendors absent from src:\s*(\d+)",
         # R888: the same audit's rows restricted to Stores, Services, Http and Core. The total is
         # dominated by Ui, so this is the figure that tracks progress on the deferred-behind work.
         "core mismatches": r"core mismatches:\s*(\d+)",

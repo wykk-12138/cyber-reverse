@@ -5335,3 +5335,41 @@ https://www.purpledotprice.com/api/v1/products/preorder-state?api_key=c114b1fe-6
 | vendor 桶 12 个里还有几个该实现 | 未逐个判 |
 
 **纪律**：**分母变小与分子变大是两种进展，只看比例会把后者藏起来。**
+
+
+## 判据 (f) — vendor 侧：**5 / 12**（R921，**新工具 `tools/vendor_coverage.py` + 接进 METRICS**）
+
+### 5 有
+
+**Cloudflare（`AntiBotProtocol.cs`）· Adyen（`AdyenGateway.cs`）· AYCD（`AycdInboxClient.cs`）· PayPal · PurpleDot**
+
+### 7 无 → 归成 4 家服务 / 16 条路径
+
+| 服务 | 条 | 宿主 |
+|---|---|---|
+| **eShopWorld** | **5** | `payments-panel.production.…` · `retailer-shopifypayments-api.production.…` |
+| **Disney** | **4** | `paymentsheet-ent.wdprapps.…` · `registerdisney.go.com` |
+| **Global-e** | **4** | `webservices.…` · `web-dsy.…` |
+| **Viva** | **3** | `www.vivapayments.com` |
+
+### 回答 R905 的撤回
+
+**Cloudflare 有、AYCD 有 → **反爬这一侧不在 7 个缺口里**。缺的全是支付/跨境商务。
+→ 「优先级 ② 缺什么」的准确回答：在 154 条范围内它不缺端点；缺的是 ①（支付）与 ③（跨境定价）。**
+
+### 接进 METRICS 踩两道机制（都拦对了）
+
+**① `summary_bits` 有硬编码 patterns 表 —— 工具只读它认识的键。**
+**② R834 归属规则 —— 每个条目只能报自己声明的键（我原来只声明三个）。**
+
+### 数字
+
+**套件 1857（不变）· vendor 5/12 · METRICS.md 核心覆盖行 0 → **8****
+
+| 仍 Unknown | |
+|---|---|
+| 4 家服务各自要不要实现 | 16 条路径，无请求体 |
+| Global-e 是否属优先级 ③ | 跨境定价，名字支持但未证 |
+| vendor 桶之外还有没有 | 本表只覆盖「带路径的宿主」 |
+
+**纪律**：**判据 (f) 写着「站点**与**风控清单」。我连续四轮只报站点那一侧，而没人拦我 —— 因为判据不会自己执行。**

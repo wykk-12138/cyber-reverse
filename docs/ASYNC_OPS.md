@@ -3711,3 +3711,64 @@ https://www.purpledotprice.com/api/v1/products/preorder-state?api_key=c114b1fe-6
 | **store 桶** | 24 / 28 | **24 / 27** |
 
 **比例没变好，而**分母变小了** —— 因为一个被误分类的宿主移出了这一桶。**
+
+
+### 判据 (f) 的另一半：vendor **5 / 12**，而缺的 7 个归成 4 家服务（R921）
+
+**R917–R920 把 store 那一侧闭合了。这一轮量 vendor 那一侧 —— (f) 要求的表有**两栏**，我一直只报一栏。**
+
+### 新工具 `tools/vendor_coverage.py`：12 个 vendor 宿主逐个查
+
+| 宿主 | 条 | 服务 | 复刻件 |
+|---|---|---|---|
+| `challenges.cloudflare.com` | 1 | Cloudflare | **有**（`AntiBotProtocol.cs` · `AntiBotVendors.cs` · `BouncyH2Client.cs`） |
+| `checkoutshopper-live.adyen.com` | 2 | Adyen | **有**（`AdyenGateway.cs` · `AdyenPayPalFlow.cs`） |
+| `inbox-api.aycd.io` | 3 | AYCD | **有**（`AycdInboxClient.cs` · `AycdInboxAccount.cs`） |
+| `www.paypal.com` | 4 | PayPal | **有** |
+| `www.purpledotprice.com` | 1 | PurpleDot | **有**（R920 刚建） |
+| `payments-panel.production.eshopworld.com` | 3 | **eShopWorld** | **无** |
+| `retailer-shopifypayments-api.production.eshopworld.com` | 2 | **eShopWorld** | **无** |
+| `paymentsheet-ent.wdprapps.disney.com` | 3 | **Disney** | **无** |
+| `registerdisney.go.com` | 1 | **Disney** | **无** |
+| `webservices.global-e.com` | 3 | **Global-e** | **无** |
+| `web-dsy.global-e.com` | 1 | **Global-e** | **无** |
+| `www.vivapayments.com` | 3 | **Viva** | **无** |
+
+**所以：**5 有 7 无**，而无的那 7 条归成**4 家服务、16 条路径**：**
+**eShopWorld（5）· Disney（4）· Global-e（4）· Viva（3）。**
+
+### 而这一栏回答了 R905 撤回的那个问题
+
+**R905 我撤回了「反爬在端点层没有具体缺口」，因为当时那两条都不是反爬。
+这一轮可以给一个准确的答案：**
+
+> **Cloudflare 是**有**的（`AntiBotProtocol.cs` / `AntiBotVendors.cs`）。
+> AYCD 是有的（`AycdInboxClient.cs` —— 那正是 OTP 收件箱）。
+> 而**反爬这一侧没有 7 个缺口里的任何一个** —— 缺的 7 个全是**支付/跨境商务**服务。**
+
+**所以「优先级 ② 缺什么」的答案现在是：**在 154 条路径的范围里，它不缺端点。**
+**缺的是 ①（支付）与 ③（跨境定价）。****
+
+### 接进了 METRICS.md
+
+**而接进去的过程踩了**两道**机制，而两道都拦对了：**
+
+**① 第一次 `（未解析，见下方原始输出）`** —— 因为 `metrics_report.py` 的 `summary_bits` 有一个**硬编码的 patterns 表**，
+而我的键不在里面。**工具不会去读任意 `key: value`，它只读它认识的键。**
+
+**② 补了 patterns 之后仍有三个键没解析** —— 因为 R834 的**归属规则**：
+每个条目只能报它自己声明的键。**我原来只声明了三个。**
+
+> **两道都是「工具不知道我要什么」，而不是「工具坏了」。
+> 而第二道是 R834 那条规则在起作用：它防止一个宽松的正则把邻近条目的数字填进这一行。**
+
+### 数字
+
+| 度量 | R920 | **R921** |
+|---|---|---|
+| 套件 | 1857 | **1857** |
+| **store 宿主** | 24 / 27 | 24 / 27（已闭合） |
+| **vendor 宿主** | 未测 | **5 / 12（7 缺，归 4 家服务）** |
+| METRICS.md 里的核心覆盖行 | 0 | **8** |
+
+**这一轮没有改产品代码 —— 它把 (f) 从「一半可复算」变成「两半都在 METRICS.md 里」。**

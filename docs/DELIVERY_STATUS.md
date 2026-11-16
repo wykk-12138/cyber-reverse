@@ -20078,3 +20078,69 @@ metrics_report.py           -> 1857 通过 / 0 失败
 分子的数没变，分母小了，因为一个误分类的宿主移了出去。**
 
 **分母变小与分子变大是两种进展，而只看比例会把后者藏起来。**
+
+
+---
+
+## 345. 判据 (f) 的 vendor 侧：5/12，缺 7 条归 4 家服务；核心覆盖接进 METRICS
+
+> R921。**新工具 + 改 metrics 管线，未改产品代码。** 套件 **1857 通过 / 0 失败 / 0 跳过**。
+
+### 一、vendor 表
+
+| 宿主 | 服务 | 复刻件 |
+|---|---|---|
+| `challenges.cloudflare.com`(1) | Cloudflare | **有** `AntiBotProtocol.cs` |
+| `checkoutshopper-live.adyen.com`(2) | Adyen | **有** `AdyenGateway.cs` |
+| `inbox-api.aycd.io`(3) | AYCD | **有** `AycdInboxClient.cs` |
+| `www.paypal.com`(4) | PayPal | **有** |
+| `www.purpledotprice.com`(1) | PurpleDot | **有** R920 |
+| `eshopworld` ×2 (5) | **eShopWorld** | **无** |
+| `disney` ×2 (4) | **Disney** | **无** |
+| `global-e` ×2 (4) | **Global-e** | **无** |
+| `www.vivapayments.com`(3) | **Viva** | **无** |
+
+**→ 5 有 7 无；7 条归成 4 家服务、16 条路径。**
+
+### 二、而这一栏回答了 R905 的撤回
+
+**Cloudflare 有、AYCD 有 → **反爬这一侧不在 7 个缺口里任何一个**。缺的全是支付/跨境商务。**
+
+**→ 「优先级 ② 缺什么」的准确回答：在 154 条路径范围内它不缺端点；缺的是 ①（支付）与 ③（跨境定价）。**
+
+### 三、接进 METRICS 踩两道机制，两道都拦对了
+
+1. **`summary_bits` 有**硬编码 patterns 表** → 我的键不在里面 → `（未解析）`。**
+   **工具不读任意 `key: value`，只读它认识的键。**
+2. **补 patterns 后仍有三个键没解析 → R834 的归属规则：每个条目只能报自己声明的键。**
+   **我原来只声明三个。而这条规则正是防止宽松正则把邻近条目的数字填进这一行。**
+
+### 四、数字
+
+| 度量 | R920 | R921 |
+|---|---|---|
+| 套件 | 1857 | 1857 |
+| store 宿主 | 24 / 27 | 24 / 27 |
+| **vendor 宿主** | 未测 | **5 / 12** |
+| **METRICS.md 核心覆盖行** | 0 | **8** |
+
+### 五、验证
+
+```
+vendor_coverage.py            -> vendor 12 宿主，5 named / 7 absent
+metrics_report.py             -> 8 行核心覆盖全部解析，套件 1857
+docs/METRICS.md               -> 「核心覆盖：store 宿主」5 行 +「vendor 宿主」3 行
+```
+
+### 六、仍然 Unknown
+
+- **4 家服务各自要不要实现**：**Unknown** —— 16 条路径，无请求体。
+- **Global-e 是否属优先级 ③**：**Inference** —— 跨境定价，名字支持但未证。
+- **vendor 桶之外还有没有**：**Unknown** —— 本表只覆盖带路径的宿主。
+
+### 七、教训
+
+**判据 (f) 写着「站点**与**风控清单」。我连续四轮只报站点那一侧，而**没人拦我** ——
+因为判据不会自己执行。**
+
+**是这一轮把「与」那个字读了一遍才发现的。而四轮里每一轮的数字都是真的。**

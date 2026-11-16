@@ -47710,3 +47710,48 @@ python analysis/off_slot_reader.py [slot…]
 ```
 产品代码未改；套件 1752 / 0
 ```
+
+
+---
+
+## 第 778 轮：规格齐了
+
+| header | value |
+|---|---|
+| user-agent | `Poq-Native-iOS-App` |
+| accept | `application/json` |
+| accept-language | `nl-NL,nl;q=0.9` |
+| accept-encoding | `gzip, deflate, br` |
+| authorization | `"Bearer "` + token（动态） |
+| version-code | `26.0` |
+| platform | `iphone` |
+| poq-app-id | `275` |
+| poq-app-identifier | `a1dad595-7431-45bc-9fb9-684dac169b5b` |
+| poq-country-identifier / currency / user-id | 动态 |
+| poq-slot-conditions | 名字确认，取值未定位 |
+
+**10 常量 + 3 动态。**
+
+### 两个值得单独说的
+
+- **`poq-app-identifier` 是个 GUID** —— 像 App 的客户端标识，**常量，可照抄**。
+- **`accept-language` 是荷兰语 `nl-NL,nl;q=0.9`** —— 可能是区域默认值，也可能写死。
+  **标 Inference（低）：它是否被其它区域覆盖，Unknown。**
+
+### 又一次 off-by-12（第四次）
+
+`poq-slot-conditions` 先读成 `'ot-conditions'` —— 我把 R774 的 **chars 地址**当成了**对象地址**。
+对象要 −12。
+
+**两个方向都要记住：代码→字符串 +12；字符→对象 −12。**
+
+### 验证
+
+```
+校准通过；套件 1752 / 0；产品代码未改
+```
+
+### 下一步
+
+**规格够了，可以建 flow 单元**（身份 + 四动作 + 注册项）。
+**三个动态值从会话取，不照抄** —— 照抄就是把常量冒充成运行时数据。

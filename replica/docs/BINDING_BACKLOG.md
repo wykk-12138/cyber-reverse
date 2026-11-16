@@ -867,3 +867,26 @@ poq-app-id · poq-app-identifier · poq-country-identifier · poq-currency-ident
 | 触发 App 面的任务类型 | Unknown |
 
 **构建单位不变**：App 面一个 flow（身份 + 四步 + 注册项）。**身份的头名现在齐了，值还差。**
+
+
+## App 面 — 规格已齐（R778），可以建 flow
+
+```
+user-agent Poq-Native-iOS-App · accept application/json · accept-encoding gzip, deflate, br
+accept-language nl-NL,nl;q=0.9 · version-code 26.0 · platform iphone
+poq-app-id 275 · poq-app-identifier a1dad595-7431-45bc-9fb9-684dac169b5b
+authorization "Bearer "+token · poq-country-identifier · poq-currency-identifier · poq-user-id   ← 动态
+poq-slot-conditions   名字确认，取值未定位
+```
+
+**构建单位**：App 面一个 flow（身份 + 四动作 + 注册项）。**不要只建常量**（R772 的教训）。
+
+| 项 | 状态 |
+|---|---|
+| 三个动态值 | 从会话取，**不照抄** |
+| `poq-slot-conditions` 取值 | Unknown |
+| `nl-NL` 是否被区域覆盖 | Unknown |
+| 触发它的任务类型 | Unknown |
+
+**地址规则（第四次踩）**：从代码往字符串走 **+12**；从字符往对象走 **−12**。
+`off_slot_reader.py` 只接受**对象地址**。

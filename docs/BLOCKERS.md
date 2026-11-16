@@ -14055,3 +14055,71 @@ python analysis/off_slot_reader.py 0x1471151d0  # 读指定槽
 - `poq-slot-conditions` 在哪个构造器：**Unknown**。
 - **触发 App 面的任务类型**：**Unknown**（R775）。
 - 四个头部构造器为何是四个：**Unknown**。
+
+
+---
+
+## 204. Poq App 身份**规格齐了**：13 个头全部有名字，10 个有值，3 个是动态的
+
+> R778。新增 `analysis/poq_header_values.py`。未改产品代码。
+
+### 一、完整规格（Observation）
+
+```
+header                    value
+------------------------- ------------------------------------
+user-agent                Poq-Native-iOS-App
+accept                    application/json
+accept-language           nl-NL,nl;q=0.9
+accept-encoding           gzip, deflate, br
+authorization             "Bearer " + <token>            （动态）
+version-code              26.0
+platform                  iphone
+poq-app-id                275
+poq-app-identifier        a1dad595-7431-45bc-9fb9-684dac169b5b    （36 字符 GUID）
+poq-country-identifier    <对象链取值>                   （动态）
+poq-currency-identifier   <sub_140B399B0(a1)>            （动态）
+poq-user-id               <a1[24]>                       （动态）
+poq-slot-conditions       <名字已确认，值所在构造器未定位>
+```
+
+**10 个是常量、3 个是运行时取值**（country / currency / user-id），另有 `poq-slot-conditions` 的取值未定位。
+
+### 二、两个值得单独说的
+
+1. **`poq-app-identifier` 是一个 GUID**：`a1dad595-7431-45bc-9fb9-684dac169b5b`。
+   **这像是 App 的客户端标识**，不是站点键。**它是常量，所以可以直接照抄。**
+2. **`accept-language` 是 `nl-NL,nl;q=0.9`** —— **荷兰语**。
+   **这可能是某个区域的默认值，也可能是一个写死的值。** 我不把它当作"所有任务都用荷兰语"，
+   **标为 Inference（低）：这是该构造器里的字面量，但它是否被其它区域覆盖，Unknown。**
+
+### 三、又一次 off-by-12（第四次）
+
+`poq-slot-conditions` 第一次读成 `'ot-conditions'` —— 因为我把 R774 记的 **chars 地址**
+（`0x1471152dc`）当成了**对象地址**。对象是 `0x1471152d0`，读出来就是 `'poq-slot-conditions'` len=19。
+
+**第四次栽在同一处：NativeAOT 里"字符地址"和"对象地址"差 12。**
+R720 立的规则是"代码 `lea` 的是对象头"，而我这轮从**字符串池的字符地址**反过来推对象时忘了减 12。
+**两个方向都要记住：从代码往字符串走 +12，从字符往对象走 −12。**
+
+### 四、验证
+
+```
+off_slot_reader.py 校准通过（off_1471151D0 -> 'poq-app-id'，长度一致）
+poq_header_values.py 输出上表
+本轮未改产品代码；完整套件保持 1752 通过 / 0 失败
+```
+
+### 五、仍然 Unknown
+
+- 三个动态值的**具体语义**：country 来自对象链、currency 来自 `sub_140B399B0(a1)`、user-id 是 `a1[24]`
+  —— **三者都是会话数据，不是常量，所以"读出来"本来就不适用。**
+- `poq-slot-conditions` 的**取值**：**Unknown** —— 名字确认了，值所在的构造器未定位。
+- **`nl-NL` 是否被区域覆盖**：**Unknown**。
+- **触发 App 面的任务类型**：**Unknown**（R775）。
+
+### 六、下一步
+
+**规格够了，可以建那个 flow 单元了。** 单位仍是 R775 定的：
+**App 面一个 flow（身份 + 四个 action + 一个注册项）**，不是只建常量。
+三个动态值在 flow 里从会话取，**不照抄** —— 照抄就是把常量冒充成运行时数据。

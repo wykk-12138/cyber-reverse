@@ -689,3 +689,15 @@ Paynamics 是菲律宾支付网关 → /shield/v1/verify_otp 是支付 OTP。R90
 一族直接证据：AddToCart 有 7 个变体（2/Astro/Box/Dummy/Frontend/Next/Svelte），复刻件只有一个。
 
 下一轮：1,237 里挑可判的子集（如 AddToCart 7 变体）逐个查。
+
+## R907 补充 — AddToCart 族 8/15，真缺口 5（新工具 tools/addtocart_family.py）
+
+族是 15 个名字不是 8 个：AddToCart 32 · Preload 11 · StoreFront 8 · Multi 6 · App 3 · 其余 10 各 1。
+
+复刻件 8 有（AddToCart 35 · Preload 2 · StoreFront 2 · Multi 2 · App 7 · AppDw 4 · GraphQL 8 · PreloadGraphQL 5），7 缺（2/Dummy/Box/Frontend/Astro/Next/Svelte）。
+
+缺失分三类：真缺口 5（Box/Frontend/Astro/Next/Svelte）· 测试桩 1（Dummy）· 不明 1（2）。
+
+两条新线索：AddToCartBox 是 PopMart /shop/v1/box/* 那 6 条端点的调用者；Astro/Next/Svelte 各一个方法 → 「一个前端栈一个实现」比「一家店一个实现」更准。
+
+下一轮：补 AddToCartBox（那 6 条端点已有常量，等方法）。

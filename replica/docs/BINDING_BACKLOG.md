@@ -4818,3 +4818,37 @@ https://www.vans.com/api/products/v2/products/
 | 7 个 AddToCart 变体各差什么 | 需逐个查 |
 
 **纪律**：**「有没有写下来」与「有没有实现」隔着一整层 —— 那一层才是 goal 问的。**
+
+
+## 判据 — `AddToCart` 族 **8/15**，真缺口 5（R907，**新工具 `tools/addtocart_family.py`**）
+
+### 15 个名字（R906 只看到 8 个）
+
+**`AddToCart` 32 · `Preload` 11 · `StoreFront` 8 · `Multi` 6 · `App` 3 · 其余 10 个各 1**
+
+### 复刻件 8 有 / 7 缺
+
+| 有 | `AddToCart` 35 · `Preload` 2 · `StoreFront` 2 · `Multi` 2 · `App` 7 · `AppDw` 4 · `GraphQL` 8 · `PreloadGraphQL` 5 |
+|---|---|
+| **缺** | **`2` · `Dummy` · `Box` · `Frontend` · `Astro` · `Next` · `Svelte`** |
+
+### 缺失分三类
+
+| 类 | 名字 | 数 |
+|---|---|---|
+| **真缺口** | `Box` · `Frontend` · `Astro` · `Next` · `Svelte` | **5** |
+| **测试桩**（原版自有，不该复刻） | `Dummy` | 1 |
+| 不明 | `2` | 1 |
+
+### 两条新线索
+
+**① `AddToCartBox` 是 PopMart `/shop/v1/box/*` 那 6 条端点的调用者** —— R890 只当端点记了，漏了方法。
+**② `Astro`/`Next`/`Svelte` 各一个方法 → 「一个前端栈一个实现」，比「一家店一个实现」更准。**
+
+| 仍 Unknown | |
+|---|---|
+| `AddToCart2` 是什么 | 只有名字 |
+| 5 个真缺口各差什么 | 需读实现 |
+| `Dummy` 是否真该排除 | 判读，非观察 |
+
+**纪律**：**上界到确数之间隔着的动作是「按语义分类」，而不是「按存不存在分类」。**

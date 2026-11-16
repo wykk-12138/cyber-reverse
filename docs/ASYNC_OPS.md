@@ -2891,3 +2891,54 @@ AddToCartFrontend · AddToCartNext · AddToCartSvelte
 `Animate` · `AnimateViewportOffsetAsync`（UI）**
 
 **所以 1,237 个缺失方法横跨服务端、并发、结账、captcha、UI —— 这就解释了为什么 20%。**
+
+
+### `AddToCart` 族量准了：**8 / 15**，而缺的 7 个里 5 个是真缺口（R907）
+
+**R906 说「1,237 是上界，因为可能只是改名」。这一轮挑一族把它变成确数。**
+
+### 而族不是 8 个，是 **15** 个
+
+**R906 只看到 7 个变体，实际 15 个，而且带出现次数（所以「同一件事被多少处调用」是可读的）：**
+
+| 名字 | 镜像 | 复刻件 | 判读 |
+|---|---|---|---|
+| `AddToCart` | 32 | **35** | 主干，齐 |
+| `AddToCartPreload` | 11 | 2 | 有，但复刻件里用得少 |
+| `AddToCartStoreFront` | 8 | 2 | 有 |
+| `AddToCartMulti` | 6 | 2 | 有 |
+| `AddToCartApp` | 3 | **7** | 有，且复刻件里更多 |
+| `AddToCartAppDw` | 1 | **4** | 有 |
+| `AddToCartGraphQL` | 1 | **8** | 有，且复刻件里更多 |
+| `AddToCartPreloadGraphQL` | 1 | **5** | 有 |
+| `AddToCart2` | 1 | **0** | **缺** |
+| `AddToCartDummy` | 1 | **0** | **缺 —— 但原版这个是测试桩** |
+| `AddToCartBox` | 1 | **0** | **缺 —— 谜盒加车** |
+| `AddToCartFrontend` | 1 | **0** | **缺** |
+| `AddToCartAstro` | 1 | **0** | **缺 —— 无头前端框架** |
+| `AddToCartNext` | 1 | **0** | **缺 —— 同上** |
+| `AddToCartSvelte` | 1 | **0** | **缺 —— 同上** |
+
+### 所以 7 个缺失要分三类
+
+| 类 | 名字 | 判读 |
+|---|---|---|
+| **真缺口** | `AddToCartBox` · `AddToCartFrontend` · `AddToCartAstro` · `AddToCartNext` · `AddToCartSvelte` | **5 个** |
+| **测试桩** | `AddToCartDummy` | **原版自己的测试桩，不该复刻** |
+| **不明** | `AddToCart2` | 只有名字 |
+
+**所以这一族真实缺口是 5，不是 7。**
+
+### 而 `AddToCartBox` 是一条我漏掉的线索
+
+**R890 我记过 PopMart 的 `/shop/v1/box/*` 那 6 条端点（`boxCart/addBoxListToCart`、`box_set/extract`、
+`box_spu/detail` 等），当端点记下了，**但没注意到原版有一个专门的方法 `AddToCartBox` 在用它们。**
+
+**所以那 6 条端点的调用者现在有了名字 —— 这比「有 6 条端点没被调用」精确。**
+
+### 三个无头框架变体说明一件事
+
+**`Astro` · `Next` · `Svelte` 是三个前端框架。它们各有一个加车方法，意味着原版对**用这些框架搭的无头店**
+有专门的加车路径 —— 而不是走通用 API。**
+
+**所以「一家店一个实现」还不够准；更准的说法是**一个前端栈一个实现**。**

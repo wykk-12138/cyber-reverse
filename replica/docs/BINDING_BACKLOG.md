@@ -5876,3 +5876,37 @@ script#__NEXT_DATA__                                       选择器
 | Svelte 的机制 | 未查 |
 
 **纪律**：排除假设的成本是一次字符串查询；实现一个错假设的成本是一轮。
+
+
+## 优先级 ① — SvelteKit surface（R936，**+14 用例**）
+
+### 五条字面量
+
+```
+/__data.json?x-sveltekit-invalidated=001 · __sveltekit · x-sveltekit-pathname · x-sveltekit-search · SvelteKitData
+```
+
+### `Scripts/SvelteKitSurface.cs`
+
+**`DataPath` · `DataEndpoint` · `InvalidatedParam` · `NonceCookiePrefix` · 两个头名 · `MethodFamily` ·
+`DataUrl(route, invalidated)` · `DataHeaders(route, query)` · `IsNonceCookie` · `LooksLikeSvelteKit`**
+
+### 三个决定
+
+**尾部斜杠去掉 · 两个头总是都发 · `invalidated` 是参数不是常量（无递增证据）**
+
+### 一个边界
+
+**`IsNonceCookie` 前缀后必须是 `-`/`.`/`_` 或结束 —— `__sveltekitz` 不该匹配，测例抓到。**
+
+### 数字
+
+**套件 1955 → 1969 · 陈旧度 2/246 → 3/371 · AddToCart 平台缺口 2 → **1**（只剩 Frontend）**
+
+| 仍 Unknown | |
+|---|---|
+| `invalidated` 如何递增 | 无材料 |
+| 数据 JSON 的形状 | 无响应体 |
+| Frontend 指什么 | 未查 |
+
+**纪律**：前缀匹配要配边界 —— 匹配宽松一格，就多接受一个错东西。

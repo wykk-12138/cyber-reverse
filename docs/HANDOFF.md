@@ -1120,3 +1120,22 @@ island 假设被否：astro-island 0 · component-url 0 · props= 0。
 纪律：排除假设的成本是一次字符串查询；实现一个错假设的成本是一轮。
 
 下一轮：Svelte（22 条，同法筛非名字字面量）。
+
+## R936 补充 — SvelteKit 五条字面量给调用（+14 用例，套件 1969）
+
+五条：/__data.json?x-sveltekit-invalidated=001 · __sveltekit · x-sveltekit-pathname · x-sveltekit-search · SvelteKitData。
+
+机制：数据在路由路径 + /__data.json；路由与查询在两个头里；invalidated 说第几代数据。
+为什么有头：端点相对发起页面 → 把路由放进头，一个端点服务所有路由；缺头无法被正确回答。
+
+三个决定：尾部斜杠去掉 · 两个头总是都发 · invalidated 是参数不是常量（无递增证据）。
+
+测试抓到：IsNonceCookie 裸 StartsWith → __sveltekitz 误匹配 → 前缀后必须有边界。
+
+三平台证据量：Next 形状 / Svelte 调用形状 / Astro 只能核属性家族 —— 差三个数量级。
+
+数字：套件 1955 → 1969 · 陈旧度 2/246 → 3/371 · AddToCart 平台缺口 2 → 1（只剩 Frontend）。
+
+纪律：前缀匹配要配边界 —— 匹配宽松一格，就多接受一个错东西。
+
+下一轮：Frontend（最后一个平台缺口），查它指什么。

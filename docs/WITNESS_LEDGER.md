@@ -43,6 +43,8 @@
 | `0x14061e0e0` | `SmartActions.LastRun.Format` | **已实现**（R749，8 条探针） | 两条类型守卫**都 return 0** → 畸形记录不产出标签；**与 R740 的降级行为相反** |
 | `0x140600020` | `SmartActionsCreator.Filters*` | **已实现**（R750，9 条探针） | **0/1/n 三段**：`No Filters` / `1 Filter Saved`（数字写死）/ `{0} Filters Saved`；条件无下界，负数走格式化 |
 | `0x1406000e0` | `SmartActionsCreator.Actions*` | **已实现**（R750） | 同上，同形 31 行 |
+| `0x1405fffa0` | `SmartActionsCreator.NoTrigger/TriggerFormat` | **已实现**（R751，5 条探针） | **两段**（名字型，无 1 档）；与 R750 的 0/1/n 相反 —— **判别式是参数种类** |
+| `0x1405ffd50` | `SmartActionsCreator.BehaviourFormat`（`{0} if`） | **待解** | 两段，条件是一次**比较**；另一支的槽 `off_146E90C18` 未解，`{0}` 填什么 Unknown |
 | `0x1407b8ac0` | `Update.Downloading*` | **不可探** | 构造下载对话框，**百分比参数硬编码为 0**，没有计算 |
 | `0x140654480` | `Common.Hour12/Hour24/Disabled` 等 | **不可探** | 构造选项列表：三个 `{label=槽位, value=0/1/2}` + 两个 `{label, value=0/1}`。**label↔value 的对应在槽位里，解不出**（同 R731）；结构本身（3 项/2 项）不足以断言行为 |
 

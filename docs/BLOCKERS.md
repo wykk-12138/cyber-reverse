@@ -12111,3 +12111,80 @@ SmartActionSavedCountsTests   9 / 9 通过
 - `sub_1406000E0`（actions）的逐行分支：**Inference（高）** —— 同为 31 行同形，尾部读过，**未逐行比对**
 - `SmartActionsCreator.BehaviourFormat` = `{0} if`（`0x1405ffd50`）是否也是 0/1/n：**Unknown**，未读
 - 负数计数在原版里是否真会出现：**Unknown** —— 只知代码没有下界守卫
+
+
+---
+
+## 180. 「整簇都是 0/1/n」——**被证伪**。判别式是**参数的种类**，不是屏幕
+
+> R751。新增 `SmartActionTriggerLabel.cs`、对应 5 条探针；`0x1405ffd50` 记为待解。
+
+### 一、上一轮我差一步就写下"整簇通例"
+
+R750 在 filters / actions 两个统计上确认了 **0 / 1 / n**，于是自然的下一步推论是
+「整个 `SmartActionsCreator` 区域都是三段」。**这一轮读两个，不成立。**
+
+### 二、两个都是两段，而且原因清楚
+
+**`sub_1405FFFA0`（17 行，全读）：**
+
+```c
+if ( a2 )
+{
+    box = *(_QWORD *)(a2 + 24);            // ← 一个**名字**，不是计数
+    return format(&off_146E912C8, box);     // "{0} Trigger"
+}
+else
+    return localise(&off_146E910C8);        // "No Trigger"
+```
+
+**两段。没有"1 Trigger"这一档** —— 因为参数是名字，一个触发器不是特殊情况。
+
+**`sub_1405FFD50`（54 行）：**
+
+```c
+if ( v8 != *(_QWORD *)(v3 + 16) )
+{
+    box = property(2);
+    return format(&off_146E90B10, box);     // "{0} if"
+}
+return localise(&off_146E90C18);            // ← 另一条
+```
+
+**也是两段**，而它的分支条件是**一次比较**，不是计数。
+
+### 三、于是判别式浮出来了
+
+| 参数是什么 | 文案条数 | 例子 |
+|---|---|---|
+| **计数** | **三段（0/1/n）** | `No Filters` / `1 Filter Saved` / `{0} Filters Saved` |
+| **名字** | 两段 | `No Trigger` / `{0} Trigger` |
+| **一个被比较的值** | 两段 | `{0} if` / 另一条 |
+
+**所以「整簇 0/1/n」是错的通例。** 而且这个判别式有**可解释的因果**：
+**只有当参数是计数时，"1"才值得一条独立句子。**
+
+### 四、这个区分对度量覆盖率有什么用
+
+R750 说 ranking 的盲区是「只数带占位符的」。
+**现在可以补一句更准的**：**只有计数型的标签才有那种"无占位符的兄弟"**，
+所以 ranking 的盲区**恰好落在计数型的文案上** —— 而这类正好是 0/1/n 里被藏起来的两档。
+
+**盲区不是均匀分布的。** 这决定了下一轮该往哪儿找漏掉的文案。
+
+### 五、验证
+
+```
+SmartActionTriggerLabelTests   5 / 5 通过
+完整套件                       1730 通过 / 0 失败（1725 + 5）
+四项度量                       4 / 0 / 17 / 78 / 0（未变）
+已审候选                       29 / 129
+```
+
+### 六、仍然 Unknown
+
+- `off_146E90C18`（`{0} if` 的另一支）是什么文案：**Unknown** —— 槽位未解。
+  `SmartActionsCreator.AlwaysRun` = "This smart action will always run when triggered"
+  **读起来像对应物（条件式 vs 总是运行），但那是猜，不是映射。**
+- `{0} if` 那个 `{0}` 填什么：**Unknown**（`property(2)`，类型未解）。
+- `sub_1405FFD50` 里前三行的那几个 `<= 1` 守卫各自判什么：**Unknown**（未逐行解）。

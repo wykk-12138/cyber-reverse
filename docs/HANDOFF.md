@@ -29,8 +29,9 @@ python tools\metrics_report.py
 1. **`GetHomeAsync` 忽略 `c.Url` 的 3 个流程**（`NikeFlow` / `PoqAppFlow` / `SuperswipeFlow`）——
    已确认与 `ModuleRobustnessTests` 的例外名单一致。**待判的是「忽略是对的还是遗漏」，判据在镜像里。**
    工具：`analysis/scan_url_ignoring4.py`（缩进切类 + 截到下一成员，唯一自洽的版本）。
-2. **`StoreFlow.HandleResponseAsync` 是死代码** —— 有定义、无调用点，读 `lastStatus` 并按状态码分支。
-   **它看起来该被某步调用。谁该调它，是下一个要查的。**
+2. **两个真死步骤（R824 已确认）**：`HandleResponseAsync` 与 `RefreshSessionAsync`，总提及都是 1（只有自己的声明）。
+   `StoreFlowParityTests` 的规范步骤表含 `RefreshSession`/`VerifySession` → **镜像有这些阶段**。
+   **下一步：读反编译，看 `RefreshSession` 挂在哪个时刻。猜一个调用点 = 假覆盖（R799）。**
 3. **`ScrapeVariantAvailabilityAsync` 有 19 个实现只返回成功** —— 抽查两个都是真活（读 `raw`、写 `available`），
    **但没有全部读过。**
 4. 判据 (a)(b)(c)(d)(e)(f) 的状态见 `docs/COMPLETION_AUDIT.md` 与本文件下方。

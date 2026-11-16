@@ -2979,3 +2979,44 @@ SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken 
 | 总共多少条序列 | **(f) 的分母，现不可靠** |
 
 **纪律**：**分母错了，百分比就错了 —— 而它已经写进三份记录。**
+
+
+## 判据 (f) — 67 段序列（R854）：8 条是抽样
+
+**`idautils.Strings()` 遍历 1301 条含 `d__` 串 → 4 步以上递增运行 **67 段**。**
+
+**明显是业务流程的 ≥20 段；`StoreFlowSteps` 的 8 条只是其中一部分。**
+
+| 8 条里没有的（部分） | 步数 |
+|---|---|
+| `…GetPaypalId · GetPaypalBearer · ProcessPaymentPaypalCreditCard` | 11 |
+| `GetHome · GetCartValue · SubmitInfo · SendManualNotification` | 8 |
+| `…GetLotteryForm · SubmitLottery` | 7 |
+| `GetSession · RefreshToken · GenerateCheckout · SubmitEmail` | 7 |
+| `SubmitPayPal · ApplyPayPal · ProcessPayPal · Process3DS` | 6 |
+| `GetSweepStakeCheckout · … · EnterSweepStakesRaffle` | 4 |
+
+> **R844 的 16.9% 连分母都不对，不该再当覆盖率引用。**
+
+### `HandleResponse` 的邻居（优先级 ②）
+
+```
+0x14345abb1   HandleResponse · GetScript · GetKasada · GetWorkTime
+```
+
+**R824 查到它「总提及 = 1」、R827/R828 追不到代码 —— 现在它在一条序列里，邻居是 `GetKasada`。**
+**→ 它大概是 Kasada 流程里的一步，不是通用「处理响应」。**
+
+### 另外三组（优先级 ②）
+
+`GetLogo · GetCookie · SubmitClientData · SubmitPOW · SubmitWebRtc`（POW/WebRTC）·
+`SubmitProps · SubmitProps2 · SubmitWpt · SubmitSensor` · `MoveMouseAsync · PressMouseOnScreenAsync · PressKeyAsync`
+
+| 仍 Unknown | |
+|---|---|
+| 20+ 段各属哪个站 | 要看端点族 |
+| 8 条当初怎么选的 | 已知是抽样 |
+| `HandleResponse` 是否真属 Kasada | Inference 中（「相邻 ≠ 同管线」） |
+| 67 段里多少是库代码 | 未逐段分类 |
+
+**纪律**：**「抽样还是总体」我在 R816 对 `pe_strings.txt` 问过并写进 §2.7b，却没对 `StoreFlowSteps` 问 —— 因为它看起来是我自己整理的数据。**

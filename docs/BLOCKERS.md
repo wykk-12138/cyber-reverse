@@ -20532,3 +20532,94 @@ ida.py str "d__22"            -> 34 matches
 **如果分母是错的，那个百分比的分母就是错的 —— 而它已经被写进 `ASYNC_OPS.md` 和三轮记录。**
 
 **「8 条是怎么选出来的」这个问题，我从来没问过。**
+
+
+---
+
+## 278. **67 段序列，`StoreFlowSteps` 的 8 条是抽样**；而 `HandleResponse` 的邻居是 `GetKasada`
+
+> R854。未改产品代码。**这一条推翻了 R844 的分母。**
+
+### 一、怎么数的
+
+**镜像里每条流程序列是「多个 `d__N` 相邻、ordinal 递增」的一段串。
+用 IDAPython 遍历全部 **1301** 条含 `d__` 的串（`idautils.Strings()`，不是 `str` —— 后者上限 500），
+抽出「4 步以上、ordinal 递增且间隔 ≤3」的运行。**
+
+**结果：67 段。**
+
+### 二、8 条只是其中一部分
+
+**明显是业务流程的至少 20 段。8 条里有的：`demandware-dual`(12) · `demandware-classic`(8) ·
+`johnlewis`(6) · `collectplus-app`(6) · `popmart` 片段(4) · `nike`(4)。**
+
+**8 条里没有的（部分）：**
+
+| 步数 | 序列 |
+|---|---|
+| 11 | `FindProduct · AddToCart · SubmitDiscount · GetCheckout · GetShippingRates · GetPaypalId · GetPaypalBearer · ProcessPaymentPaypalCreditCard` |
+| 8 | `GetHome · AddToCart · SubmitDiscount · GetCartValue · SubmitShipping · SubmitBilling · SubmitInfo · SendManualNotification` |
+| 7 | `FindProduct · GetProduct · CreateCart · AddToCart · SubmitPayment · SubmitOrder · ProcessOrder` |
+| 7 | `GetSession · RefreshToken · CreateCart · FindProduct · GenerateCheckout · SubmitEmail · SubmitShipping` |
+| 7 | `FindProductMulti · FindProductFlow · FindVariant · GetLotteryForm · SubmitLottery · AddToCartMulti · AddToCartPreload` |
+| 6 | `SubmitPayPal · ApplyPayPal · ProcessPayPal · Process3DS · SubmitOrder · ProcessOrder` |
+| 6 | `SetEmail · GetCheckoutPage · GetShippingRates · SubmitShipping · SetPayment · SubmitOrder` |
+| 4 | `GetSweepStakeCheckout · GetSweepStakesShippingMethod · SubmitSweepStakesShipping · EnterSweepStakesRaffle` |
+
+**所以 R844 的 16.9% 是「8 条样本里的同名比」，不是「全镜像的覆盖率」。**
+**这个数不该再被引用为覆盖率 —— 它连分母都不对。**
+
+### 三、最重要的一条：`HandleResponse` 的邻居
+
+```
+0x14345abb1   HandleResponse · GetScript · GetKasada · GetWorkTime
+```
+
+**`HandleResponse` 是 R824 查到「总提及 = 1、真死」的那一步，R827/R828 追了几轮都到不了它的代码。**
+
+**现在它在一条序列里，而邻居是 `GetKasada` —— 那是风控（优先级 ②）。**
+**所以它大概不是通用的「处理响应」，是**Kasada 流程里的**一步。**
+
+**这解释了为什么它在复刻件里孤立：复刻件有 `KasadaSolvers.cs` / `KasadaClearance.cs`，
+但没有把 `HandleResponse` 接进任何序列。**
+
+### 四、另外三组值得注意的
+
+| 序列 | 性质 |
+|---|---|
+| `GetLogo · GetCookie · SubmitClientData · SubmitPOW · SubmitWebRtc` | **风控指纹组**（POW = proof of work，WebRTC） |
+| `SubmitProps · SubmitProps2 · SubmitWpt · SubmitSensor` | **指纹组**（sensor / wpt） |
+| `MoveMouseAsync · ReleaseMouseOnScreenAsync · PressMouseOnScreenAsync · PressKeyAsync` | **人机行为组** |
+
+**这三组都不在 `StoreFlowSteps` 里（它不是流程表），但都是优先级 ② 的对象，而且都是 Observation。**
+
+### 五、验证
+
+```
+idautils.Strings() 含 d__ 的串: 1301
+4 步以上递增运行: 67
+其中业务流程类: ≥20；库代码类: ReadFrameHeader/ConnectAsync/ProcessMessages/StartReceiving 等
+0x14345abb1: HandleResponse · GetScript · GetKasada · GetWorkTime
+0x14344be8a: GetLogo · GetCookie · SubmitClientData · SubmitPOW · SubmitWebRtc
+本轮未改产品代码
+七项度量沿用
+```
+
+### 六、仍然 Unknown
+
+- **那 20+ 段流程各属哪个站**：**Unknown** —— 段落有了，归属没有。**要把段落对到站，得看每段的端点族。**
+- **`StoreFlowSteps` 的 8 条当初怎么选的**：**仍是 Unknown**，但**现在知道它是抽样**。
+- **`HandleResponse` 是否真属 Kasada 流程**：**Inference（中）** —— 邻居里有 `GetKasada`，
+  **但「相邻」不等于「同一条管线」（R827 已记过这个坑）。**
+- **67 段里有多少是库代码**：**Unknown** —— 我人工标了几组，**没逐段分类。**
+
+### 七、教训
+
+**R844 我用 8 条算出 16.9%，并在记录里写了三条「这不是覆盖率」的理由 ——
+但那三条都是关于「解释」的（粒度、基类、映射），没有一条问「分母本身对不对」。**
+
+**R853 发现了第 9 条，才逼出这个问题。**
+**而这一轮一数：67 段。**
+
+**「这个数是抽样还是总体」这个问题，我在 R816 就对 `pe_strings.txt` 问过一次，还写进了 AGENTS.md §2.7b。
+而我没有对 `StoreFlowSteps` 问同一个问题 —— 因为它看起来是我自己整理的数据，不像外部来源。**

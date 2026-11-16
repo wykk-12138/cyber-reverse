@@ -51265,3 +51265,57 @@ R852 的警告（「来自转写不是原文」）解除。**
 
 **我在 R844 用 8 条算出 130 步 · 22 同名 · 16.9%，而这一轮发现 8 条之外还有一条。**
 **分母错了，那个百分比的分母就错了 —— 而它已经写进 `ASYNC_OPS.md` 和三份记录。**
+
+
+---
+
+## 第 854 轮：67 段序列，`StoreFlowSteps` 的 8 条是抽样
+
+### 怎么数的
+
+**用 `idautils.Strings()` 遍历全部 **1301** 条含 `d__` 的串（`str` 上限 500，不够），
+抽「4 步以上、ordinal 递增且间隔 ≤3」的运行 → **67 段**。**
+
+### 8 条只是其中一部分，明显是业务流程的至少 20 段
+
+**8 条里没有的（部分）：**
+
+| 步数 | 序列 |
+|---|---|
+| 11 | `…GetPaypalId · GetPaypalBearer · ProcessPaymentPaypalCreditCard` |
+| 8 | `GetHome · AddToCart · GetCartValue · SubmitInfo · SendManualNotification` |
+| 7 | `…GetLotteryForm · SubmitLottery · AddToCartMulti` |
+| 7 | `GetSession · RefreshToken · CreateCart · GenerateCheckout · SubmitEmail` |
+| 6 | `SubmitPayPal · ApplyPayPal · ProcessPayPal · Process3DS` |
+| 4 | `GetSweepStakeCheckout · SubmitSweepStakesShipping · EnterSweepStakesRaffle` |
+
+> **R844 的 16.9% 是「8 条样本里的同名比」，不是覆盖率 —— 它连分母都不对，不该再被引用为覆盖率。**
+
+### 最重要的一条：`HandleResponse` 的邻居
+
+```
+0x14345abb1   HandleResponse · GetScript · GetKasada · GetWorkTime
+```
+
+**`HandleResponse` 就是 R824 查到「总提及 = 1、真死」、R827/R828 追几轮到不了代码的那一步。**
+
+**现在它在一条序列里，邻居是 `GetKasada` —— 风控（优先级 ②）。**
+**所以它大概不是通用的「处理响应」，是**Kasada 流程里的一步** —— 这解释了它在复刻件里为何孤立。**
+
+### 另外三组（都是优先级 ② 的 Observation）
+
+| 序列 | 性质 |
+|---|---|
+| `GetLogo · GetCookie · SubmitClientData · SubmitPOW · SubmitWebRtc` | 风控指纹（POW / WebRTC） |
+| `SubmitProps · SubmitProps2 · SubmitWpt · SubmitSensor` | 指纹（sensor / wpt） |
+| `MoveMouseAsync · ReleaseMouseOnScreenAsync · PressMouseOnScreenAsync · PressKeyAsync` | 人机行为 |
+
+### 仍然 Unknown
+
+**那 20+ 段各属哪个站**（段落有了，归属没有 —— 要看每段端点族）· **8 条当初怎么选的**（仍是 Unknown，但已知是抽样）·
+**`HandleResponse` 是否真属 Kasada**（Inference 中，「相邻 ≠ 同一管线」R827 已记过）· **67 段里多少是库代码**（未逐段分类）
+
+### 教训
+
+**R844 我给 16.9% 写了三条「这不是覆盖率」的理由，但那三条全是关于「解释」的，**没有一条问「分母本身对不对」**。**
+**而「这个数是抽样还是总体」我在 R816 就对 `pe_strings.txt` 问过，还写进了 §2.7b —— 却没对 `StoreFlowSteps` 问，因为它看起来是我自己整理的数据。**

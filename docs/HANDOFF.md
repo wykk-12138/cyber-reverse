@@ -263,3 +263,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **`GetHome(19)·FindProductMulti(20)·FindProduct(21)·AddToCart(22)·SubmitDiscount(23)` 不匹配 8 条中任何一条 → 镜像至少还有第九条序列。**
 **没问过的问题：`StoreFlowSteps` 那 8 条是怎么选出来的？** R112 注释只说「相邻一段」，没说怎么定「哪些流程」。
 **8 是 R844 那个 16.9% 的分母 —— 分母错了，百分比就错了。**
+
+## R854 补充 — 67 段序列，8 条只是抽样
+
+**1301 条含 `d__` 串 → 4 步以上递增运行 67 段**（`idautils.Strings()`；`str` 上限 500 不够）。
+**`StoreFlowSteps` 的 8 条只是其中一部分，明显是业务流程的 ≥20 段。R844 的 16.9% 连分母都不对。**
+**`HandleResponse · GetScript · GetKasada · GetWorkTime` @`0x14345abb1`** —— R824 那个「真死」步骤，**邻居是 `GetKasada`，所以它大概是 Kasada 流程里的一步（优先级 ②）。**
+另三组指纹序列：`SubmitPOW`/`SubmitWebRtc` · `SubmitWpt`/`SubmitSensor` · 鼠标键盘行为组。

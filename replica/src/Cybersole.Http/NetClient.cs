@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -107,11 +108,22 @@ public sealed class NetClient : IDisposable
         }
     }
 
-    public async Task<NetResponse> SendAsync(
+    public Task<NetResponse> SendAsync(
         HttpMethod method,
         string url,
         RequestOptions? options = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default) => SendAsync(method, url, options, 0, ct);
+
+    /// <summary>
+    /// The hop counter is a separate overload rather than an optional parameter on the public method, so a caller cannot
+    /// start a chain half way through by passing a number -- only this class counts redirects.
+    /// </summary>
+    private async Task<NetResponse> SendAsync(
+        HttpMethod method,
+        string url,
+        RequestOptions? options,
+        int hops,
+        CancellationToken ct)
     {
         options ??= new RequestOptions();
 
@@ -218,6 +230,32 @@ public sealed class NetClient : IDisposable
                     Bytes = body.Length,
                     Protocol = response.Version.Major >= 2 ? "h2" : "http/1.1",
                 };
+
+                // R951: the redirect branch is here rather than in each transport, so all three share one policy.
+                // A chain that exceeds the limit throws rather than returning the last hop, because a truncated chain
+                // looks like an answer.
+                if (options.FollowRedirects && RedirectPolicy.IsRedirect(result.StatusCode) &&
+                    result.Headers.TryGetValue("Location", out var location) &&
+                    !string.IsNullOrEmpty(location))
+                {
+                    var limit = RedirectPolicy.LimitFrom(options.MaxRedirects);
+                    if (hops >= limit)
+                        throw new NetException(RedirectPolicy.TooManyRedirectsName +
+                            " (after " + hops.ToString(CultureInfo.InvariantCulture) + " hops): " + url);
+
+                    var next = RedirectPolicy.Resolve(url, location!);
+                    // 303 always becomes a GET; 307/308 keep both method and body; 301/302 keep only for GET/HEAD
+                    var keep = RedirectPolicy.PreservesMethod(result.StatusCode, method.Method);
+                    var nextMethod = result.StatusCode == 303 || !keep ? HttpMethod.Get : method;
+                    var nextOptions = options;
+                    if (!keep)
+                    {
+                        nextOptions = options.Clone();
+                        nextOptions.Content = null;
+                    }
+
+                    return await SendAsync(nextMethod, next, nextOptions, hops + 1, ct).ConfigureAwait(false);
+                }
 
                 _analytics.Record(new HttpRequestEvent
                 {

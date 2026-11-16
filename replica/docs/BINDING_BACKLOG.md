@@ -6376,3 +6376,33 @@ Vipps（三条路径 + `checkout.vipps.no`）· BigCommerce（一条 `/api/publi
 | 103,467 缺口里多少是「没接上」 | 未知，可能很大 |
 
 **纪律**：「写了一个类」和「产物里多了一个类」是两件事。
+
+
+## 判据 (c)/③ — 接线成功；`TooManyRedirects` 进产物；而 `.pdata` 数非内联函数（R951，**+5 用例**）
+
+### 接线
+
+**`RedirectPolicy.{IsRedirect,LimitFrom,Resolve,PreservesMethod,TooManyRedirectsName}` 接进 `NetClient.SendAsync`；
+`RequestOptions` 加 `int? MaxRedirects`；`FollowRedirects` 被尊重；用 `Clone()` 而非 `with`（class 不是 record）。**
+
+### 三层的区别（本轮核心）
+
+| 层 | 判据 | 结果 |
+|---|---|---|
+| 写了 | 源码有 | ✅ |
+| 进产物 | 可达 | ✅ |
+| 进 `.pdata` | 未被内联 | ❌ |
+
+### 而 `FollowAsync`（async，会留状态机）**没被接** —— 接的是五个小方法
+
+### 数字
+
+**套件 2088 → 2093 · 陈旧度 0/0 · 函数数 173,653 未变 · 产物 54,652 → 54,655 KB**
+
+| 仍 Unknown | |
+|---|---|
+| 内联阈值在哪 | 未测 |
+| 已有 HTTP 层有多少方法被内联 | 未测 |
+| 103,467 缺口的可行路径 | 需要「大方法 + 可达」 |
+
+**纪律**：第三件的判据是编译器的内联决定，不是我的意图。

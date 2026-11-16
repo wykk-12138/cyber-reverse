@@ -130,6 +130,11 @@ public sealed class RequestOptions
     public int Retries { get; set; } = 2;
     public string? Tag { get; set; }
     public bool FollowRedirects { get; set; } = true;
+    /// <summary>
+    /// Hop limit for a redirect chain. Null means the default in <see cref="RedirectPolicy"/>; a non-positive
+    /// value means do not follow, since an unlimited chain is the failure the limit exists to prevent.
+    /// </summary>
+    public int? MaxRedirects { get; set; }
     public HttpContent? Content { get; set; }
 
     public RequestOptions Clone()

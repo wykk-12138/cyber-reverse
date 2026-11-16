@@ -1194,3 +1194,35 @@ AddItemToCart 2107 · AddToCart 536 · ApproveOnboardPaymentMutation 4022
 | 订单提交 operation | 未定位 |
 
 **下一步**：`SubmitOrderAsync` 的 operation 定位（比支付 token 更可能取证成功）。
+
+
+## 核心 — Warhammer **100%**（R792）
+
+**关键发现：这个站没有独立的「提交订单」mutation。**
+
+```
+^mutation 10 总（6 大 + 4 类型名）· placeOrder/submitOrder 只在类型名区 · completeCheckout 0
+```
+
+**原版用 `ApproveOnboardPaymentMutation` 完成结账 —— 批准支付即下单。**
+
+| 步骤 | 实现 |
+|---|---|
+| `AddToCartAsync` | `AddToCart`（R789） |
+| `SubmitShippingAsync` | `UpdateShippingAddress`（R791） |
+| `SubmitPaymentAsync` | `ApproveOnboardPaymentMutation`（R792） |
+| `SubmitOrderAsync` | **从支付响应读订单号**（R792，不再 POST 编的端点） |
+| `GetCheckoutAsync` | `OpenCheckoutAsync` |
+
+**`fully covered` 49 → 50。**
+
+| 仍 Unknown | |
+|---|---|
+| 支付 `token` 来源 | 没有就明确失败 |
+| `instrumentId` 来源 | 未知 |
+| 支付响应里订单号字段 | 找 `orderNumber`/`orderId`，找不到明说 |
+| `supportedThreeDsExperiences` 是否必发 | 可选，未发 |
+| `shippingRateId` 选取规则 | 取第一个 `id`，Inference（低） |
+
+**Inference（中）记录在案**：「批准支付即下单」是证据最支持的读法，**不是正面观察到的事实**。
+**若日后找到反证，改这里。**

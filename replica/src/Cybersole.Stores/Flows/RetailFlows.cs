@@ -709,15 +709,86 @@ public sealed class WarhammerFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    /// <summary>
+    /// Approve the payment, which is how this site completes a checkout. R792.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the image's pool holds no order-submit operation for Warhammer. Every <c>^mutation</c>
+    /// string over two hundred characters is one of the six already recovered, and while placeOrder and submitOrder
+    /// each match forty times, all of those sit in the type-name region rather than the pool. What the image does have
+    /// is <c>ApproveOnboardPaymentMutation</c>, whose <c>approveGuestSignUpPayment(token:)</c> returns the buyer, a
+    /// cart-done page and completed payment info.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Inference (medium):</b> that approving the payment is what places the order, and that no separate submit
+    /// exists. The mutation's return shape is consistent with it -- a completed payment and a done page -- but the
+    /// image does not name an order-submit step anywhere, so "there is none" is the reading that fits the evidence
+    /// rather than something positively observed.
+    /// </para>
+    ///
+    /// <para>
+    /// Two of the four variables are non-null: the token, which comes from the payment provider, and
+    /// <c>isBillingAgreement</c>, which is ours to set. Without a token this step fails and says so; it does not send a
+    /// placeholder, because a rejected approval looks the same as a declined card from the caller's side.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        ApplyWaf(c);
+
+        if (!c.Session.Vars.TryGetValue("paymentToken", out var token) || token.Length == 0)
+            return StepOutcome.Fail(
+                "warhammer: payment approval needs a provider token, and none was supplied for this session");
+
+        var variables = new JObject
+        {
+            ["token"] = token,
+            ["isBillingAgreement"] = false,
+        };
+        if (c.Session.Vars.TryGetValue("paymentInstrumentId", out var instrument) && instrument.Length > 0)
+            variables["instrumentId"] = instrument;
+
+        var body = new JObject
+        {
+            ["operationName"] = "ApproveOnboardPaymentMutation",
+            ["query"] = WarhammerQueries.ApproveOnboardPaymentMutation,
+            ["variables"] = variables,
+        };
+
+        var res = await PostJsonAsync(c, ApiHost + "/graphql",
+            body.ToString(Newtonsoft.Json.Formatting.None), "wh-payment", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("warhammer payment failed", retryable: true);
+        if (res.IsSuccess && res.Body.Contains("\"errors\"", StringComparison.Ordinal))
+            return StepOutcome.Fail("warhammer payment: graphql returned errors");
+        if (!res.IsSuccess) return StepOutcome.Fail($"warhammer payment HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["payment"] = res.Body;
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
-        var res = await PostJsonAsync(c, $"{ApiHost}/api/orders", "{}", "wh-order", ct)
-            .ConfigureAwait(false);
-        if (res is null) return StepOutcome.Fail("warhammer order failed", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"warhammer order HTTP {res.StatusCode}", retryable: true);
+        // R792: was POST {ApiHost}/api/orders, an invented endpoint. The image has no order-submit operation at all --
+        // approval is the completion -- so the order number has to come out of the approval's response, and if that
+        // response carries none, saying so is the honest outcome.
+        if (!c.Session.Vars.TryGetValue("payment", out var body) || body.Length == 0)
+            return StepOutcome.Fail(
+                "warhammer: no order without a completed payment; this site approves a payment rather than posting an order");
 
-        c.Session.OrderNumber = Regex.Match(res.Body, @"""orderNumber""\s*:\s*""([^""]+)""").Groups[1].Value;
-        return StepOutcome.Success();
+        foreach (var key in new[] { "orderNumber", "orderId" })
+        {
+            var m = Regex.Match(body, "\"" + key + "\"\\s*:\\s*\"?([A-Za-z0-9_-]+)");
+            if (m.Success)
+            {
+                c.Session.OrderNumber = m.Groups[1].Value;
+                return StepOutcome.Success();
+            }
+        }
+
+        return StepOutcome.Fail(
+            "warhammer: the payment response carried no order number; the selection does not name the field plainly");
     }
     public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
         OpenCheckoutAsync(c, "wh-checkout", "/checkout", ct);

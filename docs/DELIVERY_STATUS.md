@@ -9444,3 +9444,87 @@ ModuleCoverageTests warhammer 86%
 2. **记录脚本第一次根本没跑**：输出被管道接进 `Select-String -Pattern "+=|check"`，
    **而 `+=` 不是合法正则 —— 参数绑定错误发生在管道执行之前，所以 Python 从未启动。**
    **教训：记录脚本裸跑，不要接过滤；"没有输出"要先确认脚本跑了没有。**
+
+
+---
+
+## 218. Warhammer 到 **100%** —— 因为那个站**没有独立的「提交订单」步**
+
+> R792。`RetailFlows.cs`：新增 `WarhammerFlow.SubmitPaymentAsync`，重写 `SubmitOrderAsync`。
+
+### 一、先查"订单提交"这个 operation 到底存不存在
+
+```
+^mutation         10 总 —— 6 条大的（R788 已全取）+ 4 条类型名
+placeOrder        40 匹配，全部在 0x1433…/0x1434…（类型名区，不是池子）
+submitOrder       40 匹配，同样在类型名区
+completeCheckout   0
+```
+
+**结论**：**镜像里 Warhammer 没有独立的订单提交 mutation。**
+`^mutation` 那 10 条我一条没漏 —— **R788 的过滤器没漏东西，只是东西本来不存在。**
+
+### 二、为什么 `SubmitOrderAsync` 一直找不到端点
+
+**因为它在原版里就不存在。** 原版走的是 `ApproveOnboardPaymentMutation`：
+
+```
+approveGuestSignUpPayment(token: $token) {
+  buyer { … }
+  ...CartDonePage
+  ...CompletedPaymentInfo
+  fundingOptions { fundingInstrument { id lastDigits … } }
+}
+```
+
+**「批准支付」就是下单** —— 返回里有 done page 与 completed payment info。
+
+**这就是为什么复刻件那个 `/api/orders` 一直是编的：没有对应的东西可抄。**
+
+### 三、实现
+
+**`SubmitPaymentAsync`**（新）：
+- 四个变量：`$token: String!`、`$instrumentId: String`、`$isBillingAgreement: Boolean!`、`$supportedThreeDsExperiences`
+- **只发必填的两个 + 有则发 `instrumentId`**
+- **没有 `paymentToken` 时如实失败**，不发占位值 ——
+  「被拒的批准」与「被拒的卡」在调用方看来是一样的，发假的会掩盖真相
+
+**`SubmitOrderAsync`**（重写）：
+- **不再 POST 到编出来的 `/api/orders`**
+- **从支付响应里读订单号**；读不到就明说"这个站的支付响应里没有直白的订单号字段"
+
+**这不是"把失败改成成功"，是"把编的端点换成原版真实的完成方式"。**
+
+### 四、Observation / Inference 分清楚
+
+- **Observation**：池子里没有订单提交 mutation；`approveGuestSignUpPayment` 的存在与返回形状
+- **Inference（中）**：**"批准支付即下单"** —— 返回形状与之一致，
+  但镜像并没有在哪里**明确声明**"没有提交步"。**所以这一条是"证据最支持的读法"，不是"正面观察到的事实"**
+
+**这句话写进了类注释。** 差别很重要：它意味着如果以后找到反证，该改的是这里。
+
+### 五、覆盖率
+
+```
+warhammer    +  +  +  +  +  +  +   100%
+resolved 63/63 flows; fully covered 49 -> 50; exempt 2
+```
+
+**`fully covered` 从 49 变成 50** —— 这是本会话第一次让这个数增加。
+
+### 六、验证
+
+```
+构建                已成功
+ModuleCoverageTests warhammer 100%
+完整套件            1766 通过 / 0 失败 / 0 跳过（未变）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 七、仍然 Unknown
+
+- **支付 `token` 从哪来**：**Unknown** —— 现在没有就明确失败。
+- **`instrumentId` 的来源**：**Unknown**。
+- **支付响应里订单号的确切字段**：**Unknown** —— 现在找 `orderNumber` / `orderId`，找不到就明说。
+- **`supportedThreeDsExperiences`** 是否必须发：**Unknown** —— 可选，未发。
+- **`shippingRateId` 的选取规则**：仍是 Inference（低）（R791）。

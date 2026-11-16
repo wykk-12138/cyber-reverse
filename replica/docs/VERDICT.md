@@ -48338,3 +48338,59 @@ resolved 63/63 · fully covered 49 · exempt 2
 2. **记录脚本第一次根本没跑** —— 输出接进了 `Select-String -Pattern "+=|check"`，
    而 `+=` 不合法，**参数绑定错误在管道执行前发生，Python 从未启动**。
    **教训：记录脚本裸跑；"没有输出"先确认脚本跑了没有。**
+
+
+---
+
+## 第 792 轮：Warhammer 到 100%，因为那站没有独立的提交订单步
+
+### 先查它到底存不存在
+
+```
+^mutation       10 总 —— 6 条大的（已全取）+ 4 条类型名
+placeOrder      40 匹配，全在类型名区
+submitOrder     40 匹配，同样
+completeCheckout 0
+```
+
+> **镜像的 Warhammer 没有订单提交 mutation。R788 没漏，是本来就没有。**
+
+### 为什么 `/api/orders` 一直是编的
+
+**因为没有对应的东西可抄。** 原版走 `ApproveOnboardPaymentMutation`：
+
+```
+approveGuestSignUpPayment(token: $token) { buyer {…} ...CartDonePage ...CompletedPaymentInfo }
+```
+
+**「批准支付」就是下单。**
+
+### 实现
+
+- **`SubmitPaymentAsync`**：只发必填的 `token` + `isBillingAgreement`（+ 有则发 `instrumentId`）。
+  **没有 token 时如实失败，不发占位值** —— 被拒的批准与被拒的卡在调用方看来一样，发假的会掩盖真相。
+- **`SubmitOrderAsync`**：不再 POST 到编的端点，**从支付响应读订单号**，读不到就明说。
+
+**这不是把失败改成成功，是把编的端点换成原版真实的完成方式。**
+
+### Observation / Inference
+
+- **Observation**：池子里没有提交 mutation；`approveGuestSignUpPayment` 的存在与返回形状
+- **Inference（中）**：**「批准支付即下单」** —— 形状一致，**但镜像没在哪里明确声明「没有提交步」**
+
+**写进了类注释：以后找到反证，该改的是这里。**
+
+### 覆盖率
+
+```
+warhammer   + + + + + + +   100%
+fully covered  49 -> 50
+```
+
+**本会话第一次让 `fully covered` 增加。**
+
+### 验证
+
+```
+构建绿 · warhammer 100% · 整套 1766 / 0 · 度量未变
+```

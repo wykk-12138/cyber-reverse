@@ -10882,3 +10882,72 @@ if ( !*(BYTE*)(a1+1268)                                  // 一个"已确认过"
 - 那三个委托（`off_147328250` 等）的语义：**Unknown**（未反编译）。
 - 六个选项槽位的 label：**Unknown**（读回值不合理）。
 - 剩下 123 个候选的形状分布：**Unknown** —— 台账会一个轮次一个轮次填。
+
+
+---
+
+## 163. 候选排序落地，第四个实现：**空选择不弹框**
+
+> R734。新增 `analysis/witness_ranking.py`、`analysis/witness_ranking.tsv`；
+> `replica/src/Cybersole.Core/Reporting/SizePresetDeletePrompt.cs`、对应 6 条探针。
+
+### 一、把台账的经验系统化
+
+R733 那条经验（"引用的文案带占位符 → 大概率可探"）现在能算了：
+对 129 个候选，数它引用的键里有多少个**对应的文案含 `{0}`/`{1}`**。
+
+```
+候选总数                 129
+至少引一个占位符文案       38
+  其中还没读的            35
+```
+
+**顶上是整个 `*DeleteConfirm.ActionFormat/MessageFormat/TitleFormat` 家族**
+（Tasks / Accounts / Proxies / Profiles / Groups，7 个），与 R732 的 store-group 同形状。
+
+### 二、先否掉一个：`0x1407b8ac0`（`Update.DownloadingFormat`）
+
+看着像百分比格式化器，读了发现：`*(_DWORD *)(v10 + 8) = 0` —— **参数硬编码为 0**。
+它是"下载对话框的初始状态（Downloading 0%）"，不是百分比计算。**不合格。**
+
+**顺带得出**：真正更新百分比的是**另一个函数**，`Update.DownloadingFormat` 的占位符在别处被填。
+
+### 三、实现第四个：`0x140641190`（尺寸预设删除确认）
+
+```c
+if (*(DWORD*)(*(a1 + 528)[8] + 16))     // 选择计数
+{
+    title   = format(&off_146E891F8, count);   // "Delete {0} presets?"
+    message = format(&off_146E89188, count);   // "Are you sure you want to delete {0} sizes?\n…"
+    show(...)
+}
+return;                                  // count == 0：什么都不做
+```
+
+**可断言的行为是那个零值闸门**：计数为 0 时**整个函数被跳过**，不弹任何框。
+**一个无条件构造对话框的复刻件会在空选择时显示「delete 0 sizes?」——原版从不这样。**
+
+### 四、出厂文案自己不一致，照抄不修
+
+- 标题：`Delete {0} presets?`
+- 消息：`Are you sure you want to delete {0} sizes?\nYou cannot undo this action.`
+
+**标题说 presets，消息说 sizes。** 那是目录里的实际内容。
+**一个"顺手统一"成一致措辞的复刻件，会在用户读到的字符串上与原文不同。**
+探针 `TheShippedWordingIsKeptEvenWhereItDisagreesWithItself` 钉住这一点。
+
+### 五、验证
+
+```
+SizePresetDeletePromptTests   6 / 6 通过
+完整套件                      1684 通过 / 0 失败（1678 + 6）
+四项度量                      4 / 0 / 17 / 78 / 0（未变）
+已审候选                      7 / 129（5 实现 + 2 不可探）
+```
+
+### 六、仍然 Unknown
+
+- `off_146E891F8` / `off_146E89188` 的槽位内容：**Inference（高）**，依据是 `sub_140740120` 的实参顺序，
+  而该顺序由 R732 的 store-group 案例确立。
+- 同一个函数是否同时服务「sizes」和「presets」两个栅格：**Unknown**；文案不一致说明源码里有一条是旧的。
+- `0x1407b8ac0` 之外的百分比更新函数在哪：**Unknown**（未找）。

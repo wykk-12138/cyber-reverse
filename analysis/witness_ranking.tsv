@@ -1,0 +1,132 @@
+# witness candidates ranked by how many placeholder texts they load (R734)
+placeholders	addr	status	sample
+3	0x140579e40	implemented R732	This will permanently delete the store group
+3	0x1405aaa60	pending	Delete ({0}) tasks
+3	0x14065ebf0	pending	Delete ({0}) accounts
+3	0x1406686f0	pending	Delete ({0}) accounts
+3	0x140686230	pending	Delete ({0}) accounts
+3	0x1406cb910	pending	Delete ({0}) proxies
+3	0x1406e9190	pending	Delete ({0}) profiles
+3	0x140797d30	pending	Delete ({0}) accounts
+3	0x1407a8450	pending	Delete {0}
+3	0x1410e2b60	implemented R729	{0} days ago
+2	0x140594500	implemented R731	Create {0} Tasks
+2	0x1405c52e0	pending	Pin {0}
+2	0x140641190	pending	Are you sure you want to delete {0} sizes?
+Y
+2	0x1406458f0	pending	Are you sure you want to delete {0} presets?
+2	0x1407b8ac0	pending	Downloading {0}%
+1	0x1405ffd50	pending	{0} if
+1	0x1405fffa0	pending	{0} Trigger
+1	0x140600020	pending	{0} Filters Saved
+1	0x1406000e0	pending	{0} Actions Saved
+1	0x14061e0e0	pending	Triggered {0} ({1})
+1	0x14061e2b0	pending	{0} Filters
+1	0x14061e3b0	pending	{0} ({1} more)
+1	0x140713230	pending	Replaced {0} values
+1	0x140713888	pending	Couldn't read the CSV: {0}
+1	0x1407145a0	pending	Ignored unknown columns: {0}
+1	0x14071fd80	pending	Exported {0} rows to {1}
+1	0x140720f8a	pending	Couldn't read the CSV: {0}
+1	0x140797f30	pending	Edit ({0})
+1	0x1407b8230	pending	Downloading {0}%
+1	0x1407b8820	pending	{0} Available
+1	0x1407b8c00	pending	{0} Ready To Install
+1	0x1407b8d20	pending	Failed to download update {0}. Please try ag
+1	0x140f59af0	pending	Download {0}
+1	0x140f59c50	pending	Install {0}
+1	0x140f59ec0	pending	Downloading {0}%
+1	0x140f5aee0	pending	Downloading {0}%
+1	0x140f77350	pending	Unknown country "{0}"
+1	0x140f777e0	pending	Unknown state "{0}" for {1}
+0	0x14056ad30	pending	
+0	0x140574d50	pending	
+0	0x1405750f0	pending	
+0	0x140589ba0	pending	
+0	0x1405943d0	pending	
+0	0x14059e970	pending	
+0	0x1405aa350	pending	
+0	0x1405b9d20	pending	
+0	0x1405d9c60	pending	
+0	0x1405e3a40	pending	
+0	0x1405e3cb0	pending	
+0	0x1405e7f50	pending	
+0	0x1405f9ad0	pending	
+0	0x1405ffe70	pending	
+0	0x1406001a0	pending	
+0	0x140601620	unprobeable R733	
+0	0x14061e750	pending	
+0	0x14062ff70	pending	
+0	0x14063bcf0	pending	
+0	0x14064ae10	pending	
+0	0x14064afc0	pending	
+0	0x14064b110	pending	
+0	0x140653330	pending	
+0	0x1406534b0	pending	
+0	0x14065378a	pending	
+0	0x140653800	pending	
+0	0x140653b0b	pending	
+0	0x140653be0	pending	
+0	0x14065400f	pending	
+0	0x140654480	unprobeable R733	
+0	0x14065ded0	pending	
+0	0x14065e160	pending	
+0	0x1406688a0	pending	
+0	0x14067e0d0	pending	
+0	0x14068a3a0	pending	
+0	0x14068ce20	pending	
+0	0x14068cf60	pending	
+0	0x14068d060	pending	
+0	0x14068d720	pending	
+0	0x140695fe0	pending	
+0	0x14069ee50	pending	
+0	0x14069f620	pending	
+0	0x1406a8070	pending	
+0	0x1406c6630	pending	
+0	0x1406cbbe0	pending	
+0	0x1406cbd60	pending	
+0	0x1406cbde0	pending	
+0	0x1406cbe80	pending	
+0	0x1406d5f50	pending	
+0	0x1406d7e50	pending	
+0	0x1406d8d30	pending	
+0	0x1406da4c0	pending	
+0	0x1406e1430	pending	
+0	0x1406e9540	pending	
+0	0x1406f7160	pending	
+0	0x1406f8ff0	pending	
+0	0x1406fbc90	pending	
+0	0x1406fc250	pending	
+0	0x1406fc680	pending	
+0	0x1407047c0	pending	
+0	0x14070ec20	pending	
+0	0x1407134e8	pending	
+0	0x140714980	pending	
+0	0x140715020	pending	
+0	0x140721030	pending	
+0	0x14072f940	pending	
+0	0x1407461c0	pending	
+0	0x14076b23a	pending	
+0	0x14076b4a8	pending	
+0	0x14076d2f0	pending	
+0	0x140772d40	pending	
+0	0x140773371	pending	
+0	0x1407733ee	pending	
+0	0x14078f480	pending	
+0	0x140790b10	pending	
+0	0x1407a08a0	pending	
+0	0x1407ac930	pending	
+0	0x1407b8760	pending	
+0	0x1407b8e20	pending	
+0	0x1407b9030	pending	
+0	0x1407f4740	pending	
+0	0x140f59d80	pending	
+0	0x140f75ee0	pending	
+0	0x140f76e80	pending	
+0	0x140f76f90	pending	
+0	0x140f77060	pending	
+0	0x140f771e0	pending	
+0	0x140fa4c20	pending	
+0	0x14125fc80	unprobeable R733	
+0	0x141263b30	pending	
+0	0x141263b70	pending	

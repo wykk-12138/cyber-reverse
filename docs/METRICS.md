@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-16 13:08:30 +0800 |
+| 生成时间 | 2026-11-16 13:11:26 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **1678 通过 / 0 失败 / 0 跳过 / 1678 总计** |
+| 完整套件 | **1684 通过 / 0 失败 / 0 跳过 / 1684 总计** |
 
 ## 摘要素值
 
@@ -299,7 +299,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 1678 通过 / 0 失败 / 0 跳过 / 1678 总计
+`exit 0` · 1684 通过 / 0 失败 / 0 跳过 / 1684 总计
 
 ```text
   正在确定要还原的项目…
@@ -316,7 +316,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  1678，已跳过:     0，总计:  1678，持续时间: 37 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  1684，已跳过:     0，总计:  1684，持续时间: 47 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

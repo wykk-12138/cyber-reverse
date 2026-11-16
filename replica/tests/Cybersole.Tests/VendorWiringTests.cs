@@ -75,8 +75,12 @@ public sealed class VendorWiringTests
             Assert.Contains(row.Cookie!, cookies);
         }
 
-        // and the two vendors with no cookie named stay that way
-        Assert.Null(AntiBotProtocol.CookiesFor("PerimeterX"));
+        // R944: this used to assert that PerimeterX had no cookie, which was false and was the second place the same
+        // false absence was written down -- the doc comment being the first. Written twice, it stopped being a claim
+        // anyone checked. PerimeterX has _px3. Imperva remains absent: no search was run on it, so that one is still an
+        // unverified assertion and is labelled as such rather than trusted.
+        Assert.NotNull(AntiBotProtocol.CookiesFor("PerimeterX"));
+        Assert.Contains("_px3", AntiBotProtocol.CookiesFor("PerimeterX")!);
         Assert.Null(AntiBotProtocol.CookiesFor("Imperva"));
     }
 

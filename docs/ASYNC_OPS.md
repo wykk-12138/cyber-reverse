@@ -5248,3 +5248,69 @@ AddToCartNext       AddToCartNext(364) · ScrapeProductSvelte(378) · CheckPrice
 > 描述符表装绑定不装方法；序号在拼接串里被截断。**
 > **而两次的错误形式相同：**一个能回答相邻问题的来源，被我当成了能回答这个问题的来源。**
 > **而它们的输出都不报错 —— 描述符表给出「不在表里」，序号给出一个看起来正常的数字。**
+
+
+### 转优先级 ② 第一件事：`_px3` **一直都在**，而那个「没有」被写了三遍（R944）
+
+**十轮做完 ①，转 ②。查五个厂商，四个全在：**
+
+```
+Kasada 40 · DataDome 15 · PerimeterX 5 (+ _px 4) · Queue-it 13
+```
+
+**而 `AntiBotProtocol.cs` 已经覆盖六家：Kasada · Akamai · DataDome · Cloudflare · Queue-it · TrustDecision。**
+
+### 而它**不含 PerimeterX**，理由写在注释里
+
+> 「PerimeterX is the exception: the image names the vendor and a token, but no `_px` cookie —
+> so it is deliberately absent here rather than filled in from memory.」
+
+**那句话写得很好 —— 它甚至防了「凭记忆填」。而它**是错的**：**
+
+```
+_px (n=4) → _px3 · _pxHandler · __pxvid · _pxvid
+```
+
+### 而同一个假缺席被写了**三遍**
+
+| 位置 | 内容 |
+|---|---|
+| `AntiBotProtocol.cs` 的类注释 | 「no `_px` cookie」 |
+| `VendorWiringTests` | `Assert.Null(CookiesFor("PerimeterX"))` |
+| `AntiBotProtocolTests` | `Assert.Null(CookiesFor("PerimeterX"))` |
+
+> **三遍。而这就是它从没被查的原因 —— **一个被重复的断言读起来像被印证的事实。****
+> **而三处里有两处是**测例**。测例本来是防这件事的，而它们在这里**保存**了那件事。**
+> **一个错被写成断言，就变成了「已验证」；写成三次，就变成了「显然」。**
+
+### 补上了什么
+
+```
+_px3              主 cookie
+__pxvid · _pxvid  两个访客 id（只差一个下划线，刻意不合并）
+PerimeterX-Token  请求头（保留镜像的大小写）
+PerimeterXHandler handler 名
+"Solving PerimeterX" · "PerimeterX block (Rotating proxy)"   镜像自己的措辞，不解释
+```
+
+**而「两个访客 id 不合并」是刻意的：镜像有两种拼法，而没有东西说它们同值。**
+
+### 而 cookie 表是 **5** 家不是 7
+
+**Queue-it 用路由、TrustDecision 用脚本 —— 把它们算进 cookie 表就是断言一个它们没有的 cookie。**
+**（我第一版测例写的 7，被自己的断言纠正了。）**
+
+### 数字
+
+| 度量 | R943 | **R944** |
+|---|---|---|
+| 套件 | 2036 | **2043** |
+| 产物陈旧度 | 9 文件 / 920 行 | **10 文件 / 1044 行** |
+| **cookie 表覆盖厂商** | 4 | **5（+PerimeterX）** |
+
+### 教训
+
+> **这一轮最值钱的不是补上 PerimeterX，是发现那个「刻意不填」的注释是错的。**
+> **它之所以能活十轮，不是因为它隐蔽，而是因为它**被写得很有纪律** ——
+> 「deliberately absent rather than filled in from memory」正是我会赞同的那种句子。**
+> **而一个听起来像纪律的错误，比一个听起来像错误的错误贵得多。**

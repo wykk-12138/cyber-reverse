@@ -56070,3 +56070,57 @@ AddToCartBox   ExtractPopNow(83) · SelectPopNow(840) · AddToCartBox(864) · Se
 > **两个假设都被否，都是**问错了来源**：描述符表装绑定不装方法；序号在拼接串里被截断。
 > 而错误形式相同：**一个能回答相邻问题的来源，被当成了能回答这个问题的来源。**
 > 而它们都不报错 —— 描述符表给出「不在表里」，序号给出一个看起来正常的数字。**
+
+
+---
+
+## 第 944 轮：`_px3` 一直都在，而那个「没有」被写了三遍
+
+### 转优先级 ②，四个厂商全在
+
+```
+Kasada 40 · DataDome 15 · PerimeterX 5 (+_px 4) · Queue-it 13
+```
+
+**而 `AntiBotProtocol.cs` 覆盖六家，**不含 PerimeterX**，理由写在注释里：**
+
+> 「the image names the vendor and a token, but no `_px` cookie — so it is deliberately absent here rather than filled
+> in from memory.」
+
+**那句话写得很好 —— 它甚至防了「凭记忆填」。而它**是错的**：`_px (n=4) → _px3 · __pxvid · _pxvid · _pxHandler`。**
+
+### 而同一个假缺席被写了**三遍**
+
+| 位置 | 内容 |
+|---|---|
+| 类注释 | 「no `_px` cookie」 |
+| `VendorWiringTests` | `Assert.Null(...)` |
+| `AntiBotProtocolTests` | `Assert.Null(...)` |
+
+> **三遍。而这就是它从没被查的原因 —— 一个被重复的断言读起来像被印证的事实。**
+> **三处里两处是**测例**。测例本来防这件事，而它们在这里**保存**了那件事。**
+> **一个错被写成断言就变成「已验证」；写成三次就变成「显然」。**
+
+### 补上的
+
+**`_px3` · `__pxvid`/`_pxvid`（刻意不合并）· `PerimeterX-Token` · `PerimeterXHandler` · 两条镜像措辞**
+
+### 而 cookie 表是 5 家不是 7
+
+**Queue-it 用路由、TrustDecision 用脚本 —— 算进来就是断言一个它们没有的 cookie。
+（第一版测例写 7，被自己的断言纠正。）**
+
+### 数字
+
+| 度量 | R943 | **R944** |
+|---|---|---|
+| 套件 | 2036 | **2043** |
+| 产物陈旧度 | 9 / 920 | **10 / 1044** |
+| cookie 表厂商 | 4 | **5** |
+
+### 教训
+
+> **最值钱的不是补上 PerimeterX，是发现那个「刻意不填」的注释是错的。
+> 它能活十轮不是因为隐蔽，而是因为**它被写得很有纪律** ——
+> 「deliberately absent rather than filled in from memory」正是我会赞同的那种句子。
+> **一个听起来像纪律的错误，比一个听起来像错误的错误贵得多。**

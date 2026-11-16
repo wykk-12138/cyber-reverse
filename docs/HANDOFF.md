@@ -1248,3 +1248,20 @@ R940 那句「唯一不依赖端点证据」也错了：它需要一个占位商
 纪律：一个能回答「相邻」问题的来源，不能当成能回答「这个」问题的来源 —— 而它不会报错。
 
 下一轮：转优先级 ②（风控对抗）或 ③（请求与指纹层）。
+
+## R944 补充 — PerimeterX 补上；假缺席被写了三遍（+7 用例 + 修 3 处，套件 2043）
+
+转优先级 ②：Kasada 40 · DataDome 15 · PerimeterX 5(+_px 4) · Queue-it 13 —— 四个全在。
+AntiBotProtocol.cs 覆盖六家但缺 PerimeterX，注释说「no _px cookie」—— 而 _px 有 4 条（_px3/__pxvid/_pxvid/_pxHandler）。
+
+同一个假缺席写了三遍：类注释 + VendorWiringTests 的 Assert.Null + AntiBotProtocolTests 的 Assert.Null。
+→ 三处里两处是测例；测例本来防这件事，而它们在这里保存了那件事。
+
+补上：_px3 · __pxvid/_pxvid（刻意不合并）· PerimeterX-Token · PerimeterXHandler · 两条镜像措辞。
+cookie 表 4 → 5（不是 7：Queue-it 用路由、TrustDecision 用脚本）。
+
+数字：套件 2036 → 2043 · 陈旧度 9/920 → 10/1044。
+
+纪律：一个听起来像纪律的错误，比一个听起来像错误的错误贵得多。
+
+下一轮：Imperva 是否也有 cookie（同一类未验证断言）；或 ③ 请求与指纹层。

@@ -21646,3 +21646,74 @@ metrics_report.py         -> 2036 通过 / 0 失败
 **错误形式相同：一个能回答**相邻**问题的来源，被当成了能回答**这个**问题的来源。**
 
 **而它们都不报错 —— 描述符表给出「不在表里」，序号给出一个看起来正常的数字。**
+
+
+---
+
+## 368. PerimeterX 补上；假缺席被写了三遍
+
+> R944。**改产品代码 +7 用例 + 修 3 处旧断言。** 套件 **2043 通过 / 0 失败 / 0 跳过**。
+
+### 一、转优先级 ②，四个厂商全在
+
+```
+Kasada 40 · DataDome 15 · PerimeterX 5 (+_px 4) · Queue-it 13
+```
+
+**`AntiBotProtocol.cs` 覆盖六家，缺 PerimeterX，理由在注释里：**
+
+> 「the image names the vendor and a token, but no `_px` cookie — so it is deliberately absent here rather than filled
+> in from memory.」
+
+**而 `_px (n=4) → _px3 · _pxHandler · __pxvid · _pxvid`。那句话是错的。**
+
+### 二、同一个假缺席被写了三遍
+
+| 位置 | 内容 |
+|---|---|
+| `AntiBotProtocol.cs` 类注释 | 「no `_px` cookie」 |
+| `VendorWiringTests` | `Assert.Null(CookiesFor("PerimeterX"))` |
+| `AntiBotProtocolTests` | `Assert.Null(CookiesFor("PerimeterX"))` |
+
+**三处里两处是测例 —— 测例本来防这件事，而它们在这里保存了那件事。**
+
+### 三、补上的
+
+**`_px3` · `__pxvid`/`_pxvid`（刻意不合并）· `PerimeterX-Token` · `PerimeterXHandler` ·
+「Solving PerimeterX」·「PerimeterX block (Rotating proxy)」（镜像措辞，不解释）**
+
+### 四、cookie 表 4 → 5，不是 7
+
+**Queue-it 用路由、TrustDecision 用脚本 —— 算进 cookie 表就是断言它们没有的 cookie。**
+
+### 五、数字
+
+| 度量 | R943 | R944 |
+|---|---|---|
+| 套件 | 2036 | **2043** |
+| 产物陈旧度 | 9 / 920 | **10 / 1044** |
+| **cookie 表厂商** | 4 | **5** |
+
+### 六、验证
+
+```
+analysis/ida.py str "_px"        -> 4：_px3 · _pxHandler · __pxvid · _pxvid
+analysis/ida.py str "PerimeterX" -> 5：含 PerimeterX-Token / Handler
+test --filter PerimeterXProtocolTests -> 7 通过
+metrics_report.py                -> 2043 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **Imperva 是否有 cookie**：**Unknown** —— 未查，仍是未验证断言（已在测例里标注）。
+- **PerimeterX 的求解流程**：**Unknown** —— 只有名字与两条措辞。
+- **`_pxvid` 与 `__pxvid` 是否同值**：**Unknown** —— 无证据。
+
+### 八、教训
+
+**最值钱的不是补上 PerimeterX，是发现那个「刻意不填」的注释是错的。**
+
+**它能活十轮不是因为隐蔽，而是因为**它被写得很有纪律** ——
+「deliberately absent rather than filled in from memory」正是我会赞同的那种句子。**
+
+**一个听起来像纪律的错误，比一个听起来像错误的错误贵得多。**

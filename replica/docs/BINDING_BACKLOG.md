@@ -6156,3 +6156,31 @@ d__45 GetProduct · d__46 AddToCartDummy · d__47 AddToCartMulti · d__48 Remove
 | 是否还有误读名字 | 已定位 13 个，只能对它们下结论 |
 
 **纪律**：一个能回答**相邻**问题的来源，不能当成能回答**这个**问题的来源 —— 而它不会报错。
+
+
+## 优先级 ② — PerimeterX 补上；假缺席被写了三遍（R944，**改产品代码 +7 用例 + 修 3 处旧断言**）
+
+### 发现
+
+**`_px3` 一直在（n=1），而类注释说「no `_px` cookie」，并有两处 `Assert.Null` 把它钉住 —— 三遍。**
+
+### 补上
+
+**`_px3` · `__pxvid`/`_pxvid` · `PerimeterX-Token` · `PerimeterXHandler` · 「Solving PerimeterX」·
+「PerimeterX block (Rotating proxy)」**
+
+### cookie 表 4 → 5
+
+**Queue-it 用路由、TrustDecision 用脚本，不算 cookie 家庭。**
+
+### 数字
+
+**套件 2036 → 2043 · 陈旧度 9/920 → 10/1044 · cookie 表厂商 4 → 5**
+
+| 仍 Unknown | |
+|---|---|
+| Imperva 是否有 cookie | 未查（仍是未验证断言，已标注） |
+| PerimeterX 的求解流程 | 只有名字与两条措辞 |
+| `_pxvid` 与 `__pxvid` 是否同值 | 无证据 |
+
+**纪律**：一个错被写成断言就变成「已验证」；写成三次就变成「显然」。

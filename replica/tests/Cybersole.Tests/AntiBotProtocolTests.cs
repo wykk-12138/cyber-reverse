@@ -44,22 +44,25 @@ public sealed class AntiBotProtocolTests
 
     /// <summary>Four vendors have a cookie family; PerimeterX deliberately does not.</summary>
     [Fact]
-    public void FourVendorsHaveCookieFamilies()
+    public void FiveVendorsHaveCookieFamilies()   // R944: PerimeterX is the fifth; Queue-it and TrustDecision are covered by routes and scripts, not cookies
     {
         var vendors = AntiBotProtocol.VendorsWithCookies().OrderBy(v => v).ToList();
         _out.WriteLine(string.Join(", ", vendors));
 
-        Assert.Equal(4, vendors.Count);
-        Assert.Equal(new[] { "Akamai", "Cloudflare", "DataDome", "Kasada" }, vendors);
+        Assert.Equal(5, vendors.Count);
+        Assert.Equal(new[] { "Akamai", "Cloudflare", "DataDome", "Kasada", "PerimeterX" }, vendors);   // R944
 
         Assert.Equal(new[] { "_abck", "ak_bmsc" }, AntiBotProtocol.CookiesFor("Akamai"));
         Assert.Equal(new[] { "datadome" }, AntiBotProtocol.CookiesFor("DataDome"));
         Assert.Equal(new[] { "cf_clearance" }, AntiBotProtocol.CookiesFor("Cloudflare"));
         Assert.Equal(new[] { "kpsdk" }, AntiBotProtocol.CookiesFor("Kasada"));
 
-        // the vendor is known, but the image names no cookie for it
+        // R944: these two lines asserted that the image names no cookie for PerimeterX, and it does -- _px3. This was
+        // the third copy of that false absence: the doc comment, VendorWiringTests, and here. Three copies is why it was
+        // never checked; a claim repeated looks like a fact corroborated.
         Assert.True(AntiBotVendors.Knows("PerimeterX"));
-        Assert.Null(AntiBotProtocol.CookiesFor("PerimeterX"));
+        Assert.NotNull(AntiBotProtocol.CookiesFor("PerimeterX"));
+        Assert.Contains("_px3", AntiBotProtocol.CookiesFor("PerimeterX")!);
     }
 
     /// <summary>Queue-it's hosts and the cookie it sets.</summary>

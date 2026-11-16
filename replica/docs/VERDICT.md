@@ -49575,7 +49575,7 @@ Assert.False(string.IsNullOrWhiteSpace(outcome));
 
 ### 我又把文档守卫弄红两次，根因不是围栏
 
-**是我引用坏字符串**：R816 我写了「而我在 R813 写了 `### …57 个模块逐个查过`」，还写了标题「顺带查清：`62 modules` 不是违规」。
+**是我引用坏字符串**：R816 那段既引用了 R813 那个带数字的小标题原文，又写了一个含数字加关键词的小标题。**两个数各自都不等于目录数，句式却跟目录断言撞了。**
 
 > **我在解释「这个模式会被守卫抓」的时候，把那个模式又写了一遍。**
 
@@ -49584,3 +49584,72 @@ Assert.False(string.IsNullOrWhiteSpace(outcome));
 ### 教训
 
 **注释会烂，因为它测不了。而「要么成功要么失败都行」的断言，看起来像 pin，实际是许可。**
+
+
+---
+
+## 第 819 轮：两个 prune 没 gate，删掉了桌面档的 window.chrome
+
+### 发现
+
+```
+{"chrome":"undefined","runtime":"undefined","plugins":5,...,"vendor":"Intel Inc."}
+```
+
+**八项里六项对，只有 `chrome`/`runtime` 是 undefined —— 而 Kasada 第一件事就是查它。**
+
+### 为什么
+
+`GlobalPrune` 删「设备清单里没有的 window 名字」，**而清单是 iPhone 的**（`WindowNameTable`，1062 个名字）。
+拿 iPhone 的清单 prune 桌面档，就会删掉桌面独有的名字。
+
+**而规矩本来就有**（R193 注释）：「A desktop profile must not inherit iPhone-only globals」。
+`NavPrune`、`MobileNavigator` 都在 gate 里，**只有那两个 prune 没有**。
+
+### 改了什么
+
+```csharp
+if (MobileSurface.IsAppleUserAgent(userAgent))
+{
+    surfaceBody += GlobalPrune.GlobalBodyJs();
+    surfaceBody += GlobalPrune.DocumentBodyJs();
+}
+```
+
+**顺序不变，只加一层条件。**
+
+```
+改前 chrome=undefined  →  改后 chrome=object（其余六项不变）
+ChromiumStealthTests  5 通过 / 0 失败
+```
+
+**为什么能烂着**：它带 `Speed=Slow`、要驱动真 Chrome，**默认套件排除它** —— 套件绿着，缺陷在。
+
+### 顺带诊出第二个：`lastStatus` 跨步残留
+
+```
+Monitor_Survives_An_Unreachable_Host(poq-app)  Expected: Error  Actual: Captcha
+```
+
+**R818 时是过的 —— 网络变了，把它暴露了。**
+
+`lastStatus` 只有一个槽位：`Init` 拿 403 写进去 → `GetHome` 的 DNS 失败不产生状态 → 读到残留的 403 → 判成 Captcha。
+
+> **一个从来不解析的主机，被报告成验证码墙。**
+
+**没修**：写入方不在 `StoreFlowRunner.cs`，要找写入点才能决定清空还是按步记录。
+
+### 验证
+
+```
+ChromiumStealthTests 5/0 · DocsConsistencyTests 7/0
+metrics_report 1765 / 1 失败（poq-app，原因已诊）
+四项度量 4 / 0 / 17 / 78 / 0 未变
+```
+
+**套件不是绿的，原因已知、有机制、下一轮修。这个状态要写着，不能抹平。**
+
+### 教训
+
+**上一轮我把这条失败记成「被 metrics 默认排除」就放过了。**
+**「被默认排除」说的是它不在定期跑的范围里，不是它不重要 —— 而它恰恰覆盖着默认套件看不到的那一层。**

@@ -328,8 +328,18 @@ public sealed class ChromiumBridge : IAsyncDisposable
         // removes at the source.
         surfaceBody += WindowOrderWrap.BodyJs();
 
-        surfaceBody += GlobalPrune.GlobalBodyJs();
-        surfaceBody += GlobalPrune.DocumentBodyJs();
+        // R819: gated on the device claim, like every other body that asserts iPhone facts (R193 states the rule
+        // two blocks below: a desktop profile must not inherit iPhone-only globals). Both prunes delete every window
+        // name the device's list does not carry, and that list is the captured iPhone's 1062 names -- so running them
+        // for a desktop profile removed `chrome`, which a desktop Chrome reports as an object. Measured by
+        // ChromiumStealthTests.TheRestOfTheFingerprintLooksOrdinary: every other property in its probe was correct
+        // while chrome came back undefined. That test drives a real browser and is excluded from the default suite,
+        // which is why the deletion stayed invisible.
+        if (MobileSurface.IsAppleUserAgent(userAgent))
+        {
+            surfaceBody += GlobalPrune.GlobalBodyJs();
+            surfaceBody += GlobalPrune.DocumentBodyJs();
+        }
 
         // R189: the interface Blink never shipped. A Safari computed style is a CSSStyleProperties — 1468 accessors on
         // the prototype, numeric indices on the instance — and the proxy around getComputedStyle is what stops `in`,

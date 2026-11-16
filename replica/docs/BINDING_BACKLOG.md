@@ -1893,3 +1893,38 @@ p50 ratio (own/system) = 1.06x
 R816/R818 各犯一次，共四处。
 
 **一条断言若接受成功与失败两种答案，它不是 pin，是许可。**
+
+
+## 优先级 ③ — prune 已 gate；`lastStatus` 残留待修（R819）
+
+### 已修
+
+`ChromiumBridge.cs`：`GlobalPrune.GlobalBodyJs()` / `DocumentBodyJs()` 放进
+`if (MobileSurface.IsAppleUserAgent(userAgent))` —— 与 R193 的规矩一致（桌面档不得继承 iPhone 独有的全局）。
+
+```
+改前 {"chrome":"undefined","runtime":"undefined", ...}
+改后 {"chrome":"object",   "runtime":"object",    ...}
+ChromiumStealthTests 5 通过 / 0 失败
+```
+
+**它此前烂着，因为该用例 `Speed=Slow` + 驱动真 Chrome，默认套件排除。**
+
+### 待修（下一轮第一件事）
+
+`ModuleRobustnessTests.Monitor_Survives_An_Unreachable_Host(poq-app)`：**Expected Error，Actual Captcha。**
+
+**机制**：`LastStatus(ctx)` 读 `ctx.Session.Vars["lastStatus"]`，**单槽位、跨步残留**。
+`Init` 的 403 → `GetHome` 的 DNS 失败（不产生状态）→ 读到 403 → 判 Captcha。
+
+**阻塞点**：`lastStatus` 的**写入方不在 `StoreFlowRunner.cs`**（该文件只有读），需先定位写入点。
+
+| 仍 Unknown | |
+|---|---|
+| `platform.poq.io` 是否真返 403 | Inference（高），未单独抓 |
+| `lastStatus` 写入点 | **未找到，下一轮** |
+| 其余模块是否踩同一残留 | 只有 poq-app 红，说明其余首步不产 403 |
+
+**套件现状：1765 / 1 失败。不抹平。**
+
+**纪律**：**「被默认排除」说的是不在定期跑的范围里，不是不重要** —— 它恰恰覆盖默认套件看不到的那一层。

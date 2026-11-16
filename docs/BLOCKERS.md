@@ -17453,3 +17453,119 @@ python tools\metrics_report.py             1766 通过 / 0 失败
 
 **另一条**：**在文档里解释「这个字符串会被守卫抓」，不能把那个字符串抄进去。**
 **这跟 §2.5 第 5 条是同一件事，我却在为它立规的下一轮又犯了一次。**
+
+
+---
+
+## 243. **两个 prune 没按档位 gate，把桌面档的 `window.chrome` 删掉了**
+
+> R819。`ChromiumBridge.cs`：把 global/document 两个 prune 放进已有的 Apple gate。
+
+### 一、怎么发现的
+
+上一轮全量里有两条失败，一条是我的文档措辞，另一条我只记了一句「被 metrics 默认排除」就放过了。
+**这一轮回去查它，是真缺陷。**
+
+```
+ChromiumStealthTests.TheRestOfTheFingerprintLooksOrdinary
+  {"chrome":"undefined","runtime":"undefined","plugins":5,"languages":"en-US,en",
+   "cores":8,"memory":8,"vendor":"Intel Inc.","uaCh":"Chromium|Google Chrome|Not_A Brand"}
+```
+
+**八项里六项正确，只有 `chrome` 与 `runtime` 是 `undefined`。**
+**而 Kasada 护的店第一件事就是查 `typeof window.chrome === 'object'`。**
+
+### 二、为什么
+
+`GlobalPrune` 的职责是「**删掉设备清单里没有的每一个 window 名字**」。而那份清单是 **iPhone 的** ——
+`WindowNameTable` 记着 1062 个名字，来自一台被捕获设备上的 `Object.getOwnPropertyNames(window)`。
+
+**拿 iPhone 的清单去 prune 一个桌面档，就会把桌面独有的名字全删掉，`chrome` 是其中之一。**
+
+**而代码里本来就有这个规矩** —— `ChromiumBridge.cs` 第 344 行的注释写着：
+
+> R193: gated on the device claim, like every other body that asserts iPhone facts.
+> **A desktop profile must not inherit iPhone-only globals.**
+
+**`NavPrune`、`MobileNavigator` 都已经在这个 gate 里，只有第 331–332 行那两个 prune 没有。**
+
+### 三、改了什么
+
+```csharp
+if (MobileSurface.IsAppleUserAgent(userAgent))
+{
+    surfaceBody += GlobalPrune.GlobalBodyJs();
+    surfaceBody += GlobalPrune.DocumentBodyJs();
+}
+```
+
+**顺序不变**（仍在 `WindowOrderWrap` 之后、`CssStyleProperties` 之前），**只加了一层条件。**
+
+### 四、验证
+
+```
+改前： {"chrome":"undefined","runtime":"undefined", ...}
+改后： {"chrome":"object",   "runtime":"object",    ... 其余六项不变}
+
+dotnet test --filter ChromiumStealthTests   5 通过 / 0 失败
+```
+
+**为什么它能烂着**：这条用例带 `[Trait("Speed","Slow")]`、要驱动真 Chrome，
+**`metrics_report.py` 默认排除它** —— 于是套件绿着，缺陷在。
+
+### 五、顺带诊出第二个缺陷：**`lastStatus` 会跨步残留**
+
+改完后全量仍是 1765 / 1 失败：
+
+```
+ModuleRobustnessTests.Monitor_Survives_An_Unreachable_Host(id: "poq-app")
+  Expected: Error    Actual: Captcha
+```
+
+**这一条 R818 那次全量是过的，所以不是我的改动引起的 —— 是网络变了，把它暴露了。**
+
+**机制：**
+
+```csharp
+private static int? LastStatus(FlowContext ctx) =>
+    ctx.Session.Vars.TryGetValue("lastStatus", out var raw) && int.TryParse(raw, out var code)
+        ? code : null;
+```
+
+**`lastStatus` 只有一个槽位，每次请求覆盖。**
+
+1. `Init` 打 `platform.poq.io` → 拿到 **403** → 写进 `lastStatus`
+2. `GetHome` 打 `https://no-such-host.invalid/...` → **DNS 失败，根本不产生状态码**
+3. `ClassifyMonitorFailure` 读 `lastStatus` → 仍是 **403** → 判成 `Captcha`
+
+**一个从来不解析的主机，被报告成验证码墙。**
+
+**`ClassifyMonitorFailure` 自己的注释写着「A 403 from an anti-bot is a captcha wall … very different from
+"the host is down"」** —— **它的意图是对的，但它读的那个槽位不是这一步的状态。**
+
+**这条没修**：`lastStatus` 的**写入方不在 `StoreFlowRunner.cs` 里**（该文件里只出现一次，是读），
+**要找写入点才能决定是把槽位在每步前清空，还是改成按步记录。下一轮做。**
+
+### 六、验证（本轮）
+
+```
+dotnet test --filter ChromiumStealthTests       5 通过 / 0 失败
+dotnet test --filter DocsConsistencyTests       7 通过 / 0 失败
+python tools\metrics_report.py                  1765 通过 / 1 失败（poq-app，原因见上）
+四项度量                                         4 / 0 / 17 / 78 / 0（未变）
+```
+
+**套件不是绿的，而原因是已知的、有机制的、下一轮要修的。** **这个状态要写着，不能抹平。**
+
+### 七、仍然 Unknown
+
+- **`platform.poq.io` 现在是否真的返 403**：**Inference（高）** —— 从「403 被继承」反推，
+  **没有单独抓一次确认。**
+- **`lastStatus` 的写入方在哪**：**Unknown** —— 本轮没找到，下一轮第一件事。
+- **除 `poq-app` 外还有多少模块会踩这个残留**：**Unknown** ——
+  这条用例是 `[Theory]` 跑全部 63 个模块，**只有 poq-app 红，说明其余模块的首步不产生 403。**
+
+### 八、教训
+
+**上一轮我把这条失败记成「被 metrics 默认排除」，然后放过了。**
+**「被默认排除」说的是它不在定期跑的范围里，不是它不重要 —— 而它恰恰覆盖着默认套件看不到的那一层。**

@@ -47964,3 +47964,51 @@ R782 那个改动有 fallback，最坏等于没改；这一个没有，最坏是
 ### 仍然 Unknown
 
 **`casioid` 是商品 id 还是变体 id** —— 挡在 `FindVariantAsync` 前面的唯一问题。
+
+
+---
+
+## 第 784 轮：`casioid` 优先、`sku` 兜底 —— 推翻上一轮
+
+### R783 的前提没验
+
+我拒绝加 `casioid` 的理由是「`sku` 更明确、更安全」。**这一轮验了那个前提：**
+
+```
+casio…sku / sku…casio  -> 0 matches
+casio_sku              -> 0 matches
+```
+
+**镜像里 Casio 的配置记录没有 sku 概念**，而 `casioid` 与 `casio_can_purchase` 等同处一条记录。
+
+**所以复刻件原来的 `"sku"` 正则对 Casio 是无据的猜测。两个都无据时，选镜像有据的那个。**
+
+### 改了什么
+
+```csharp
+var m = Regex.Match(body, @"""casioid""…");
+if (!m.Success) m = Regex.Match(body, @"""sku""…");   // 兜底：只带 sku 的页面行为不变
+```
+
+**Observation**：记录里有 `casioid`、没有 sku。
+**Inference（中）**：它是购物车行要的标识 —— **站点是否区分商品 id 与变体 id 仍未确立。**
+
+### 4 条测试
+
+两者都在取 `casioid` · 只有 sku 时行为不变 · 都没有时返回 null（不是空串当成功）· 字段名被钉住。
+
+### 两次自伤
+
+1. **差点改错方法** —— `find('FindVariantAsync')` 在整份文件里先命中 **`YeezySupplyFlow`** 的同名方法
+   （失败文案是 `"yeezy: no variant id in the page"`）。
+   **§2.7 又一次：在文件里按方法名找，等于假设只有一个同名方法。** 靠 Casio 独有文案才定位对。
+2. **手写代码打坏了 `Groups[1].Value`**，构建报错才发现。
+
+> **手写会坏字，而坏字编译期就能抓 —— 所以「构建绿」不能省，哪怕只改三行。**
+
+### 验证
+
+```
+Casio 相关 9 / 9 · 完整套件 1761 / 0 · 四项度量未变
+Casio 覆盖率仍 71%（改的是标识来源，不是补步骤）
+```

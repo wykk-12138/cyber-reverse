@@ -995,3 +995,21 @@ poq-slot-conditions   名字确认，取值未定位
 例如读 `sub_140952790` 里那个对象的其余成员，或找到把 `casioid` 与 `sku` 一起用到的调用点。
 
 **判据**：改动后最坏情况是否会**更糟且不报错**。会 → 不改。
+
+
+## 核心 — Casio 标识（R784 已改）
+
+`FindVariantAsync` 现在：**`casioid` 优先，`sku` 兜底**。
+
+**依据**：Casio 配置记录里有 `casioid`（与 `casio_can_purchase` / `casio_image_url` /
+`casio_gender` / `casio_dob` 同处），**且 `casio.{0,24}sku` 与 `casio_sku` 都是 0 匹配** ——
+**镜像里 Casio 没有 sku 概念**。
+
+| 项 | 状态 |
+|---|---|
+| 站点是否区分商品 id / 变体 id | **Unknown**（`casioid` 语义最后一问） |
+| `casio_dob` / `casio_gender` / `casio_image_url` 用途 | Unknown |
+| Casio shipping / payment | 信息不足（Adyen 已知、端点未知） |
+
+**方法论记录**：在整份 `RetailFlows.cs` 里按方法名找 `FindVariantAsync`，**先命中 `YeezySupplyFlow`** ——
+**同名方法在一个文件里有多个，按名字找必须先限定类体。**（§2.7 第八次）

@@ -257,13 +257,41 @@ public sealed class CasioFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    /// <summary>
+    /// The product identifier. R784.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the image's Casio configuration record carries <c>casioid</c> and carries no sku at all --
+    /// <c>casio.{0,24}sku</c> and <c>casio_sku</c> both match nothing in the pool, while <c>casioid</c> sits beside
+    /// <c>casio_can_purchase</c>, <c>casio_image_url</c>, <c>casio_gender</c> and <c>casio_dob</c>. Two functions read
+    /// it: a 187-byte keyed lookup with a default, and an 893-byte builder that attaches it as a member name.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Inference (medium):</b> that <c>casioid</c> is the identifier a cart line needs. It is the only Casio
+    /// identifier the image has, which is why it is tried first -- but whether the site distinguishes product id from
+    /// variant id is not established. The <c>sku</c> branch stays as a fallback so pages that carry one behave exactly
+    /// as before.
+    /// </para>
+    ///
+    /// <para>
+    /// This reverses R783, which declined the same change. The reason it reversed is that R783 assumed <c>sku</c> was
+    /// the safer, established concept; the pool says the image never mentions a Casio sku, so that assumption was
+    /// wrong. Between two unbacked orderings, prefer the one the image evidences.
+    /// </para>
+    /// </summary>
     public override Task<StepOutcome> FindVariantAsync(FlowContext c, CancellationToken ct)
     {
         var body = c.Session.Vars.TryGetValue("raw", out var r) ? r : string.Empty;
-        var sku = Regex.Match(body, @"""sku""\s*:\s*""([^""]+)""").Groups[1].Value;
-        if (string.IsNullOrEmpty(sku)) return Task.FromResult(StepOutcome.Fail("casio: no sku"));
 
-        c.Session.VariantId = sku;
+        var m = Regex.Match(body, @"""casioid""\s*:\s*""([^""]+)""");
+        if (!m.Success) m = Regex.Match(body, @"""sku""\s*:\s*""([^""]+)""");
+
+        if (!m.Success || string.IsNullOrEmpty(m.Groups[1].Value))
+            return Task.FromResult(StepOutcome.Fail("casio: neither casioid nor sku in the page"));
+
+        c.Session.VariantId = m.Groups[1].Value;
+        c.Session.Vars["variant"] = m.Groups[1].Value;
         return Task.FromResult(StepOutcome.Success());
     }
 

@@ -14524,3 +14524,84 @@ R782 的改动有 fallback，最坏情况等于没改；R783 那个没有，最�
 - `casio_dob` / `casio_gender` / `casio_image_url` 的用途：**Unknown** —— 名字像商品属性，未验证。
 - `sub_140952790` 构造的是什么对象：**Unknown** —— 893 B 里有多处对象分配与数组扩容，未读全。
 - `CasioRegion` 的取值集合与分区行为：**Unknown**（R781）。
+
+
+---
+
+## 210. `casioid` 优先、`sku` 兜底 —— **推翻 R783 的决定，因为它的前提是错的**
+
+> R784。改 `CasioFlow.FindVariantAsync`（+ 文档注释）；新增 `CasioIdentifierTests`（4 条）。
+
+### 一、R783 的推理有一半是错的
+
+R783 我拒绝加 `casioid`，理由是「`sku` 是更明确、更安全的既有概念」。
+
+**那个前提没验。** 这一轮把它验了：
+
+```
+[Cc]asio.{0,24}[Ss]ku | [Ss]ku.{0,24}[Cc]asio   -> 0 matches
+casio_sku                                        -> 0 matches
+^sku                                             -> 30 matches（多为姓氏 Skute/Skupova…；
+                                                    ），另有 SkuRegexes / SkuCorrections / get_ListAvailableSku
+```
+
+**镜像里 Casio 的配置记录没有任何 sku 概念**，而 `casioid` 与 `casio_can_purchase` /
+`casio_image_url` / `casio_gender` / `casio_dob` 同处一条记录。
+
+**所以复刻件原来那个 `"sku"` 正则对 Casio 来说是无据的猜测** —— **两个选项都无据时，
+选镜像有据的那一个。**
+
+### 二、改了什么
+
+```csharp
+var m = Regex.Match(body, @"""casioid""\s*:\s*""([^""]+)""");
+if (!m.Success) m = Regex.Match(body, @"""sku""\s*:\s*""([^""]+)""");
+if (!m.Success || …) return Fail("casio: neither casioid nor sku in the page");
+c.Session.VariantId = m.Groups[1].Value;
+```
+
+**顺序是「镜像的字段优先，复刻件原来的猜测兜底」** ——
+**只带 sku 的页面行为与改动前完全一致。**
+
+### 三、Observation / Inference 分开
+
+- **Observation**：Casio 记录里有 `casioid`、没有 sku；两个函数读它（R783）
+- **Inference（中）**：`casioid` 是购物车行需要的那个标识。
+  **站点是否区分「商品 id」与「变体 id」仍未确立** —— 注释里写明了。
+
+### 四、4 条测试
+
+```
+CasioidWinsWhenBothArePresent          两者都在 -> 取 casioid
+SkuStillWorksWhenCasioidIsAbsent       只有 sku -> 行为与改前一致
+NeitherPresentIsNoIdentifier           都没有 -> null（不是空串当成功）
+TheFieldNameIsTheImages                字段名被钉住
+```
+
+### 五、过程中的两次自伤（都记下来）
+
+1. **差点改错方法**：我用 `t.find('FindVariantAsync')` 在整份 `RetailFlows.cs` 里找，
+   **命中 `YeezySupplyFlow` 的同名方法**（它的失败文案是 `"yeezy: no variant id in the page"`）。
+   **这是 §2.7 的又一次：在文件里按方法名找，等于假设文件里只有一个同名方法。**
+   最后靠 Casio 独有的文案锚点（`"casio: no sku"`）才定位正确。
+2. **生成文本时把 `Groups[1].Value` 打成了 `Groups[1].Value`**，在测试文件里写坏了一次。
+   **构建报错才发现。** 已修，并用脚本核过只剩合法的 1 处。
+
+**第 2 条值得记**：我这轮的几处代码是手写生成的，**手写会坏字，而坏字编译期就能抓**——
+**所以"构建绿"这条检查不能省，哪怕改动只有三行。**
+
+### 六、验证
+
+```
+构建                已成功
+CasioAvailabilityTests 5 + CasioIdentifierTests 4 = 9 / 9
+完整套件            1761 通过 / 0 失败 / 0 跳过（1757 + 4）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+Casio 覆盖率        仍 71%（改的是标识来源，不是补步骤）
+```
+
+### 七、仍然 Unknown
+
+- 站点是否区分商品 id 与变体 id：**Unknown** —— 这是 `casioid` 语义的最后一问。
+- `casio_dob` / `casio_gender` / `casio_image_url` 的用途：**Unknown**。
+- Casio 的 shipping / payment：**信息不足**（Adyen 已知、端点未知，R780）。

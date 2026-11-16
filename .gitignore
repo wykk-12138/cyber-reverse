@@ -49,3 +49,4 @@ target/*.id1
 target/*.id2
 target/*.nam
 target/*.til
+replica/tools/.snapshots/

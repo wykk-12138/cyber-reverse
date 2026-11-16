@@ -47343,3 +47343,51 @@ platform.poq.io/clients/office/AtaVerifyCaptcha       ← 同模块 Office 走 A
 - 删不删 `bstn`：**待裁决**
 - Poq 家族该建成什么形状（多 client 平台，不是一个站）
 - `fanatics`/`warhammer`/`yeezysupply` 的结账面是否**原版也没有**
+
+
+---
+
+## 第 769 轮：至少两个「缺口」不是缺口
+
+### 按形式问，不按 URL 问
+
+结账面至少有四种写法：店铺主机路径 / 第三方平台主机 + client / API hub action / **GraphQL mutation（不是 URL）**。
+**所以「没有 URL 路径」≠「没有结账」。**
+
+### 结果
+
+```
+fanatics     9 串 / 7 URL / checkout 0 / graphql 0 / platform 0   → 全是 oauth2 登录
+warhammer   17 串 / 9 URL / checkout 0 / graphql 1                → graphql + oauth
+yeezysupply  1 串 / 1 URL / checkout 0                            → 一条裸域名
+```
+
+### 判定
+
+| 站 | 判定 |
+|---|---|
+| **fanatics** | **不是缺口 —— 原版只有账号面** |
+| **yeezysupply** | **不是缺口 —— 原版整池只有 1 条字符串** |
+| **warhammer** | **Unknown —— 有 GraphQL，结账是否在其中无证据** |
+
+> **R765 把「七步缺两步」当成缺口，而对这两站来说，缺的正是原版也没有的。**
+> **那不是复刻偏差，那是忠实。**
+
+**反倒是复刻件多做了**（与 `bstn` 同类）。
+
+### 为什么不顺手改覆盖率测试
+
+`ModuleCoverageTests` 有 `NonCommerce` 豁免机制。**加进去是合理动作，但它改的是"数字来源"**，
+按 §3 该单独一轮并跑全量。**本轮只判定，不动数字。`warhammer` 不进豁免 —— 它是 Unknown。**
+
+### 验证
+
+```
+产品代码未改；套件 1751 / 0；新增 analysis/store_surface_probe.py
+```
+
+### 仍然 Unknown
+
+- `warhammer` 的 GraphQL 里有没有 checkout mutation（字符串层看不到）
+- 复刻件 `WarhammerFlow` 是 REST，**原版是 GraphQL —— 与 offspring 同一类形态错配**
+- `fanatics` 的账号面复刻件有没有对应（未查）

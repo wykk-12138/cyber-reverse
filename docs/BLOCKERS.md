@@ -13403,3 +13403,71 @@ https://platform.poq.io/clients/office/recaptcha?trackingId=
 - `fanatics` / `warhammer` / `yeezysupply` 的结账面：**Unknown** ——
   现有证据是账号面（oauth/login）与一条 GraphQL，**结账端点可能同样不存在**。
 - 这五个站里**有几个的 71% 其实不该算缺口**（原版就没有）：**Unknown，需逐站判定**。
+
+
+---
+
+## 196. **R765 的「12 个下不了单」里，至少两个不是缺口** —— 原版也没有
+
+> R769。新增 `analysis/store_surface_probe.py`。未改产品代码。
+
+### 一、按形式问，而不是按 URL 问
+
+`AGENTS.md` §2.7 要求先问「这东西有几种写法」。结账面至少有四种（Observation 支撑的分类）：
+
+```
+① 店铺自己主机上的路径        hbx.com/checkout/pay
+② 第三方平台主机 + client     platform.poq.io/clients/offspring/checkout/start
+③ API hub 上的 action         apihub.scheels.com/frontastic/action/cart/checkout
+④ GraphQL mutation，不是 URL  api.prod.warhammer.com/graphql
+```
+
+**所以「没有 URL 路径」不等于「没有结账」。** 探针把三件事分开报：结账词、GraphQL、平台名。
+
+### 二、结果
+
+```
+fanatics     strings=9   urls=7   checkout=0   graphql=0   platform=0
+             全部是 id.fanatics.com/api-internal/{oauth2/*,login/factor-request}
+warhammer    strings=17  urls=9   checkout=0   graphql=1   platform=0
+             api.prod.warhammer.com/graphql + login.mywarhammer.com/oauth/token
+yeezysupply  strings=1   urls=1   checkout=0   graphql=0   platform=0
+             只有 https://www.yeezysupply.com
+```
+
+### 三、判定（逐条写「为什么未覆盖」）
+
+| 站 | 判定 | 依据 |
+|---|---|---|
+| **fanatics** | **不是缺口 —— 原版只有账号面** | 7 条 URL 全是 oauth2/login，**0 个结账词**，无平台名 |
+| **yeezysupply** | **不是缺口 —— 原版几乎不认识这个站** | **整池只有 1 条字符串**（裸域名） |
+| **warhammer** | **Unknown —— 有 GraphQL，但结账是否在其中无证据** | 1 条 graphql，**0 个结账词**；mutation 名不在字符串里 |
+
+**这条比"补两步"重要**：**R765 把「七步里缺两步」当成缺口，而对 `fanatics` / `yeezysupply` 来说，
+缺的正是原版也没有的。** 那不是复刻偏差，那是忠实。
+
+**复刻件反而是多做的**（与 `bstn` 同类：`bstn` 原版 0 字符串，`yeezysupply` 原版 1 条）。
+
+### 四、为什么不顺手改覆盖率测试
+
+`ModuleCoverageTests` 有 `NonCommerce` 豁免机制（`raffle` / `pocketgames` / `riotgames`）。
+**把 `fanatics` / `yeezysupply` 加进去是合理的技术动作，但它改的是"数字来源"**，
+按 `AGENTS.md` §3 该单独一轮做，并且要跑全量。**本轮只判定，不动数字。**
+
+**`warhammer` 不进豁免** —— 它是 Unknown，不是"不是缺口"。
+
+### 五、验证
+
+```
+本轮未改产品代码
+完整套件保持 1751 通过 / 0 失败
+新增 analysis/store_surface_probe.py
+```
+
+### 六、仍然 Unknown
+
+- `warhammer` 的 GraphQL 里有没有 checkout mutation：**Unknown** ——
+  需要读 `api.prod.warhammer.com/graphql` 的调用方或请求体，字符串层看不到。
+- 复刻件的 `WarhammerFlow` 是 REST 形态，**而原版是 GraphQL** —— 这与 `offspring`（Hybris vs Poq）
+  是同一类形态错配，**未取证到 ops 名，故未动手。**
+- `fanatics` 的账号面复刻件有没有对应：**未查。**

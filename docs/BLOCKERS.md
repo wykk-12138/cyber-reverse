@@ -14861,3 +14861,70 @@ Warhammer 覆盖率    未变（这一轮加的是请求头与端点，不是补
 
 **教训是双向的**：坏字会发生（前面几次真坏了），**但不要凭回显判定文件坏了** ——
 **要看文件本身**（这次用 `repr()` 打出来才看清）。**判定依据必须是文件内容，不是我对调用的记忆。**
+
+
+---
+
+## 214. Warhammer 的 GraphQL operation **全部取回**：六条，12,508 字符
+
+> R788。新增 `analysis/extract_graphql.py`、`analysis/warhammer_graphql.txt`。未改产品代码。
+
+### 一、顺着 `/graphql` 找，找到的是一个静态初始化器
+
+`off_147054A60`（URL 对象）只被 `sub_140E4AE90`（133 B）引用，而它是个**静态初始化器**：
+
+```c
+*(qword + 8)  = &off_147054A60;          // https://api.prod.warhammer.com/graphql
+*(qword + 16) = &off_147066CC0;          // https://flex.cybersole.io（43 字符）
+*(qword + 24) = sub_141D25160(945);      // 945 字符的字符串
+*(qword + 32) = sub_141D25160(1920);     // 1920 字符的字符串
+```
+
+**945 与 1920 是长度参数** —— 说明**查询文本是池子里的长字面量**，只是被运行期按长度拷出来。
+**所以不该顺着代码找，该直接搜池子。**
+
+### 二、搜池子就出来了（Observation）
+
+`^mutation` / `^query` 里凡是长度 > 200 且带选择集的，共**六条，12,508 字符**：
+
+```
+0x1470c8c44   1995 chars  mutation（匿名：copyFromId / firstname / lastname / address1 …）
+0x1470c9bf4   2249 chars  mutation（匿名：selectedShippingRateId / isNewsletterSubscribed …）
+0x1470cad9c    798 chars  mutation AddCreditCard
+0x1470cb3f4   2108 chars  mutation AddItemToCart
+0x1470cc484    536 chars  mutation AddToCart
+0x1470cc8cc   4022 chars  mutation ApproveOnboardPaymentMutation
+```
+
+**这就是 Warhammer 结账的核心**：加购（两种）、加信用卡、地址、运费率、支付审批。
+
+**全文落在 `analysis/warhammer_graphql.txt`（12,524 字符、700 行）**，带地址与长度。
+抽查 `AddItemToCart` 可见完整的选择集与 fragment（`GiftCardCartFields` / `ProductCartFields` /
+`cartTotalFields` / `giftWithPurchaseFields`）。
+
+### 三、为什么这一轮不改代码
+
+**这六条是"底本"，不是"结论"。** 把它们翻成复刻件还缺三样：
+
+1. **每条 operation 的变量从哪来** —— 例如 `AddItemToCartInput` 的字段集，要从 `fragment` 与调用点推；
+2. **`operationName` 与查询文本怎么配对**（匿名的那两条尤其）；
+3. **响应里哪些字段被消费** —— 选择集大，不代表都用。
+
+**先把底本落盘、下一轮再翻，比这一轮凭印象写六个方法可靠。**
+**R772 的教训是"先建再验"，这一轮是它的反面：先取全文，再动手。**
+
+### 四、验证
+
+```
+文件 analysis/warhammer_graphql.txt：12,524 字符 / 700 行 / 6 条 operation
+抽查 AddItemToCart：选择集与四个 fragment 名称完整
+本轮未改产品代码
+完整套件保持 1761 通过 / 0 失败
+```
+
+### 五、仍然 Unknown
+
+- **`AddItemToCartInput` 的字段集**：**Unknown** —— fragment 里有响应字段，请求字段要另找。
+- **两条匿名 mutation 的 operationName**：**Unknown**。
+- **查询类**（商品、购物车读取）是否也有对应 GraphQL 文本：**未找全** —— 这次只取了长度 > 200 的。
+- **响应消费面**：**Unknown**。

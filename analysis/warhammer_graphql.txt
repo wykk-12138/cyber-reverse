@@ -1,0 +1,700 @@
+# GraphQL operations recovered from the image (R788)
+
+## 0x1470c8c44  (1995 chars)
+# mutation ($copyFromId: Int, $firstname: String, $lastname: String, $address1: String, $address2: Str
+
+mutation ($copyFromId: Int, $firstname: String, $lastname: String, $address1: String, $address2: String, $zipcode: String, $city: String, $state_id: Int, $country_id: Int, $phone: String, $document_number: String, $tax_code: String, $neighborhood: String) {
+  updateShippingAddress(
+    attributes: {copyFromId: $copyFromId, firstname: $firstname, lastname: $lastname, address1: $address1, address2: $address2, zipcode: $zipcode, city: $city, stateId: $state_id, countryId: $country_id, phone: $phone, documentNumber: $document_number, taxCode: $tax_code, neighborhood: $neighborhood}
+  ) {
+    errors
+    order {
+      number
+      checkoutVersion
+      state
+      isRegistrationValid
+      isShippingValid
+      isPaymentValid
+      isShippingFromClosestStockLocation
+      stockLocationNames
+      shippingAddress {
+        ...userAddress
+        __typename
+      }
+      shippingRates {
+        ...shippingRate
+        __typename
+      }
+      promotionAdjustment {
+        ...promotionAdjustment
+        __typename
+      }
+      taxAdjustments {
+        ...taxAdjustment
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment userAddress on UserAddress {
+  id
+  is_default
+  gender
+  firstname
+  lastname
+  address1
+  address2
+  zipcode
+  city
+  phone
+  document_number
+  tax_code
+  neighborhood
+  country_id
+  countryData {
+    id
+    iso
+    name
+    hasStates
+    requireZipcode
+    requireStates
+    __typename
+  }
+  state_id
+  stateData {
+    id
+    name
+    abbr
+    __typename
+  }
+  __typename
+}
+
+fragment taxAdjustment on TaxAdjustment {
+  label
+  amount
+  type
+  __typename
+}
+
+fragment promotionAdjustment on PromotionAdjustment {
+  id
+  amount
+  code
+  currency
+  __typename
+}
+
+fragment shippingRate on ShippingRate {
+  id
+  name
+  category
+  isClickAndCollect
+  pickUpAddress {
+    ...userAddress
+    __typename
+  }
+  price
+  displayPrice
+  selected
+  estimatedDelivery
+  estimatedDeliveryForAnalytics
+  deliveryItemDescription
+  notice
+  __typename
+}
+
+---
+
+## 0x1470c9bf4  (2249 chars)
+# mutation ($selectedShippingRateId: Int, $isNewsletterSubscribed: Boolean) {
+
+mutation ($selectedShippingRateId: Int, $isNewsletterSubscribed: Boolean) {
+  updateShippingRate(
+    id: $selectedShippingRateId
+    isNewsletterSubscribed: $isNewsletterSubscribed
+  ) {
+    errors
+    order {
+      number
+      checkoutVersion
+      state
+      adyenTotalAmount
+      guestToken
+      isRegistrationValid
+      isShippingValid
+      isPaymentValid
+      isTaxIncluded
+      canShowTaxLines
+      items {
+        id
+        variantId
+        variantSku
+        sku
+        color
+        name
+        groupName
+        imageUrl
+        price
+        productPath
+        productType
+        quantity
+        size
+        stock
+        giftCardMessage
+        __typename
+      }
+      shippingAddress {
+        ...userAddress
+        __typename
+      }
+      billingAddress {
+        ...userAddress
+        __typename
+      }
+      shippingRates {
+        ...shippingRate
+        __typename
+      }
+      promotionAdjustment {
+        ...promotionAdjustment
+        __typename
+      }
+      taxAdjustments {
+        ...taxAdjustment
+        __typename
+      }
+      __typename
+    }
+    user {
+      id
+      email
+      first_name
+      last_name
+      gender
+      birthday
+      addresses {
+        ...userAddress
+        __typename
+      }
+      __typename
+    }
+    preFilledNewsletterCheckbox {
+      email
+      isShown
+      isChecked
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment userAddress on UserAddress {
+  id
+  is_default
+  gender
+  firstname
+  lastname
+  address1
+  address2
+  zipcode
+  city
+  phone
+  document_number
+  tax_code
+  neighborhood
+  country_id
+  countryData {
+    id
+    iso
+    name
+    hasStates
+    requireZipcode
+    requireStates
+    __typename
+  }
+  state_id
+  stateData {
+    id
+    name
+    abbr
+    __typename
+  }
+  __typename
+}
+
+fragment taxAdjustment on TaxAdjustment {
+  label
+  amount
+  type
+  __typename
+}
+
+fragment promotionAdjustment on PromotionAdjustment {
+  id
+  amount
+  code
+  currency
+  __typename
+}
+
+fragment shippingRate on ShippingRate {
+  id
+  name
+  category
+  isClickAndCollect
+  pickUpAddress {
+    ...userAddress
+    __typename
+  }
+  price
+  displayPrice
+  selected
+  estimatedDelivery
+  estimatedDeliveryForAnalytics
+  deliveryItemDescription
+  notice
+  __typename
+}
+
+---
+
+## 0x1470cad9c  (798 chars)
+# mutation AddCreditCard($creditCardInfo: CreditCardInfoInput!, $saveToWallet: Boolean!, $editRequest:
+
+mutation AddCreditCard($creditCardInfo: CreditCardInfoInput!, $saveToWallet: Boolean!, $editRequest: Boolean!, $addressUpdated: Boolean!, $roundUpDetails: RoundUpDetailsInput, $isPrimary: Boolean) {
+  addCreditCard(
+    creditCardInfo: $creditCardInfo
+    saveToWallet: $saveToWallet
+    editRequest: $editRequest
+    addressUpdated: $addressUpdated
+    roundUpDetails: $roundUpDetails
+    isPrimary: $isPrimary
+  ) {
+    paymentInfo {
+      payments {
+        id
+        paymentMethodInfo {
+          method
+          name
+          paymentInterface
+          __typename
+        }
+        custom {
+          customFieldsRaw {
+            name
+            value
+            __typename
+          }
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}
+
+---
+
+## 0x1470cb3f4  (2108 chars)
+# mutation AddItemToCart($input: AddItemToCartInput!) {
+
+mutation AddItemToCart($input: AddItemToCartInput!) {
+  addItemToCart(input: $input) {
+    id
+    products {
+      ...GiftCardCartFields
+      ...ProductCartFields
+      __typename
+    }
+    ...cartTotalFields
+    giftWithPurchases {
+      ...giftWithPurchaseFields
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment GiftCardCartFields on GiftCardCartItem {
+  id
+  imageUrl
+  amount
+  recipientEmail
+  recipientName
+  senderName
+  __typename
+}
+
+fragment ProductCartFields on ProductCartItem {
+  id
+  __typename
+  quantity
+  bonusItemId
+  restricted
+  adjustments {
+    promotionId
+    itemText
+    price
+    couponCode
+    __typename
+  }
+  product {
+    id
+    masterId
+    name
+    price
+    salePrice
+    images {
+      href
+      alt
+      __typename
+    }
+    inventory
+    brand
+    primaryCategoryId
+    styleNumber
+    colorValue
+    colorName
+    size {
+      name
+      value
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment cartTotalFields on Cart {
+  subTotal
+  shippingCosts
+  taxTotal
+  estimatedTotal
+  amountRemaining
+  orderAdjustments {
+    price
+    __typename
+  }
+}
+
+fragment giftWithPurchaseFields on GiftWithPurchasePromo {
+  id
+  allowedQuantity
+  promotionId
+  calloutMessage
+  fullfilled
+  availableProducts {
+    ... on VariantProduct {
+      __typename
+      masterId
+      id
+      name
+      price
+      images {
+        href
+        alt
+        __typename
+      }
+      inventory
+      primaryCategoryId
+      styleNumber
+      colorValue
+      colorName
+      size {
+        name
+        value
+        __typename
+      }
+    }
+    ... on ProductWithExclusion {
+      __typename
+      excludedColors
+      product {
+        id
+        name
+        variations {
+          id
+          colorValue
+          colorName
+          salePrice
+          price
+          preview
+          sizes {
+            id
+            label
+            productId
+            orderable
+            __typename
+          }
+          images {
+            href
+            alt
+            __typename
+          }
+          __typename
+        }
+        __typename
+      }
+    }
+    __typename
+  }
+}
+
+---
+
+## 0x1470cc484  (536 chars)
+# mutation AddToCart($sku: String!, $fascia: String!, $linkedOfferId: String, $offerId: String, $quant
+
+mutation AddToCart($sku: String!, $fascia: String!, $linkedOfferId: String, $offerId: String, $quantity: Int, $statusPoint: String, $recaptchaToken: String, $storeId: String, $algoliaQueryId: String, $objectId: String) {
+  addToCart(
+    sku: $sku
+    fascia: $fascia
+    linkedOfferId: $linkedOfferId
+    offerId: $offerId
+    quantity: $quantity
+    statusPoint: $statusPoint
+    recaptchaToken: $recaptchaToken
+    storeId: $storeId
+    algoliaQueryId: $algoliaQueryId
+    objectId: $objectId
+  ) {
+    ctCartJWT
+    __typename
+  }
+}
+
+---
+
+## 0x1470cc8cc  (4022 chars)
+# mutation ApproveOnboardPaymentMutation($token: String!, $instrumentId: String, $isBillingAgreement: 
+
+mutation ApproveOnboardPaymentMutation($token: String!, $instrumentId: String, $isBillingAgreement: Boolean!, $supportedThreeDsExperiences: [ThreeDSPaymentExperience]) {
+  attemptSetStickyFi(token: $token, instrumentId: $instrumentId) @include(if: $isBillingAgreement) {
+    buyer {
+      userId
+      __typename
+    }
+    __typename
+  }
+  approveGuestSignUpPayment(token: $token) {
+    buyer {
+      userId
+      email {
+        stringValue
+        __typename
+      }
+      name {
+        fullName
+        __typename
+      }
+      __typename
+    }
+    ...CartDonePage
+    ...CompletedPaymentInfo
+    fundingOptions {
+      fundingInstrument {
+        id
+        lastDigits
+        name
+        nameDescription
+        type
+        __typename
+      }
+      __typename
+    }
+    merchant {
+      name
+      preferences {
+        autoReturnToMerchant
+        enablePaymentDataTransfer
+        returnUrl
+        __typename
+      }
+      __typename
+    }
+    shippingAddresses {
+      fullAddress
+      name {
+        fullName
+        __typename
+      }
+      __typename
+    }
+    paymentContingencies {
+      ...threeDomainSecure
+      ...threeDSContingencyData
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment CartDonePage on CheckoutSession {
+  cart {
+    paymentId
+    returnUrl {
+      href
+      pathname
+      __typename
+    }
+    cancelUrl {
+      href
+      pathname
+      __typename
+    }
+    intent
+    items {
+      quantity
+      name
+      sku
+      unitPrice {
+        currencyValue
+        currencyFormat
+        __typename
+      }
+      itemOptionSelections {
+        name
+        description
+        __typename
+      }
+      __typename
+    }
+    amounts {
+      subtotal {
+        currencyCode
+        currencyFormat
+        currencyValue
+        __typename
+      }
+      tax {
+        currencyCode
+        currencyFormat
+        currencyValue
+        __typename
+      }
+      shipping {
+        currencyCode
+        currencyFormat
+        currencyValue
+        __typename
+      }
+      insurance {
+        currencyCode
+        currencyFormat
+        currencyValue
+        __typename
+      }
+      handlingFee {
+        currencyCode
+        currencyFormat
+        currencyValue
+        __typename
+      }
+      total {
+        currencyCode
+        currencyFormat
+        currencyFormatSymbolISOCurrency
+        currencyValue
+        __typename
+      }
+      discount {
+        currencyCode
+        currencyFormat
+        currencyValue
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment CompletedPaymentInfo on CheckoutSession {
+  completedPaymentInfo {
+    transactionId
+    transactionState
+    receiptId
+    softDescriptor
+    postbackData
+    __typename
+  }
+  __typename
+}
+
+fragment threeDomainSecure on PaymentContingencies {
+  threeDomainSecure(experiences: $supportedThreeDsExperiences) {
+    status
+    redirectUrl {
+      href
+      __typename
+    }
+    method
+    parameter
+    experience
+    requestParams {
+      key
+      value
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment threeDSContingencyData on PaymentContingencies {
+  threeDSContingencyData {
+    name
+    causeName
+    resolution {
+      type
+      resolutionName
+      paymentCard {
+        billingAddress {
+          line1
+          line2
+          city
+          state
+          country
+          postalCode
+          __typename
+        }
+        expireYear
+        expireMonth
+        currencyCode
+        cardProductClass
+        id
+        encryptedNumber
+        type
+        number
+        bankIdentificationNumber
+        __typename
+      }
+      contingencyContext {
+        deviceDataCollectionUrl {
+          href
+          __typename
+        }
+        jwtSpecification {
+          jwtDuration
+          jwtIssuer
+          jwtOrgUnitId
+          type
+          __typename
+        }
+        authenticationProvider
+        cardBrandProcessed
+        reason
+        referenceId
+        source
+        __typename
+      }
+      __typename
+... [4040 chars total]
+
+---

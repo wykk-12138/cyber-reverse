@@ -25887,3 +25887,80 @@ docs/METRICS.md               -> 「核心覆盖：store 宿主」5 行 +「vend
 因为判据不会自己执行。**
 
 **是这一轮把「与」那个字读了一遍才发现的。而四轮里每一轮的数字都是真的。**
+
+
+---
+
+## 346. Global-e：vendor 5/12 → 7/12；第一个可核形状的 vendor
+
+> R922。**改产品代码 +11 用例。** 套件 **1868 通过 / 0 失败 / 0 跳过**。
+
+### 一、四条字面量，比之前任何一家都多
+
+```
+/Checkout/v2/8x1r · /Checkout/v2/8um2
+/Checkout/v2/8x1r/641efc40-…?gaSesID=…&ga4SID=…&chkcuid=…&isNECAllowed=true
+                                &_vwo_store=&vph=1081&vpw=2649&ift=113&utm_source=direct&utm_medium=
+/Checkout/v2/{_encodedMerchantId}/641efc40-…?（同套）
+```
+
+**两个商户 id · 一个模板占位符（说明是**替换**构造）· 十参数完整集合与顺序。**
+
+### 二、三个可读参数
+
+**`chkcuid`（checkout customer id，GUID）· `vph`/`vpw`（视口 1081/2649）· `isNECAllowed`（非欧盟国家是否允许）**
+
+### 三、分类
+
+**跨境定价与关税 → 结账关注点（① 的序列里），职能属 ③。**
+**回答 R921 的 Inference：不冲突 —— 它是 ③ 的定价职能落在 ① 的结账序列里。**
+
+### 四、`Stores/GlobalECheckout.cs`
+
+| 成员 | |
+|---|---|
+| `WebServicesHost` · `DsyHost` | 两台宿主 |
+| `RecoveredMerchantIds` | `8x1r` · `8um2` |
+| `MerchantPlaceholder` | `{_encodedMerchantId}` |
+| `SampleCheckoutCustomerId` | 字面量里的 GUID |
+| **`ParamOrder`** | **十参数的顺序，不只是集合** |
+| `UrlFor` · `IsNonEu` | 构造 + Inference |
+
+### 五、三个刻意的决定
+
+1. **`ParamOrder` 记顺序** —— 按位置比对才能发现「名字都对但顺序变了」。
+2. **空值也发** —— 恢复到的字面量里 `_vwo_store=` 与 `utm_medium=` 本就是空的，
+   **所以空参数是正常请求的证据。**
+3. **`IsNonEu` 标 Inference** —— EEA+GB+CH 是猜的边界。
+
+### 六、数字
+
+| 度量 | R921 | R922 |
+|---|---|---|
+| 套件 | 1857 | **1868** |
+| **vendor 命名** | 5 / 12 | **7 / 12** |
+| **vendor 缺失** | 7 | **5** |
+
+**剩 5 个：`eShopWorld`（2 台）· `Disney`（2 台）· `Viva`（1 台）。**
+
+### 七、验证
+
+```
+vendor_coverage.py                 -> 两台 global-e 宿主均 yes（GlobalECheckout.cs）；7 named / 5 absent
+test --filter GlobalECheckoutTests -> 11 通过
+metrics_report.py                  -> 1868 通过 / 0 失败
+```
+
+### 八、仍然 Unknown
+
+- **十参数里哪些必需**：**Unknown** —— 全部发出，空的也发。
+- **checkout 返回什么**：**Unknown** —— 无响应证据。
+- **`isNECAllowed` 的真实边界**：**Inference** —— EEA+GB+CH 是猜的。
+
+### 九、教训
+
+**前面几家 vendor 我只能核「名字在不在」，这一家能核形状：路径段、参数名、顺序、空值位置。**
+
+**四样都来自同一件事 —— 恢复到的是一条**完整 URL**，不是一条路径。**
+
+**所以「证据有多少」不取决于服务多复杂，取决于镜像里存的是路径还是完整请求行。**

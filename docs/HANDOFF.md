@@ -896,3 +896,18 @@ vendor 12 宿主：5 有（Cloudflare / Adyen / AYCD / PayPal / PurpleDot）· 7
 纪律：判据 (f) 写着「站点**与**风控清单」，我连续四轮只报站点那一侧 —— 因为判据不会自己执行。
 
 下一轮：从 4 家缺的服务里挑一家（Global-e 疑似优先级 ③，eShopWorld/Disney 疑似 ①）。
+
+## R922 补充 — Global-e 建了（改产品代码 +11 用例，套件 1857→1868）
+
+四条字面量：两个商户 id（8x1r/8um2）· 模板占位符 {_encodedMerchantId} · 十参数完整集合与顺序。
+可读参数：chkcuid（checkout customer id）· vph/vpw（视口 1081/2649）· isNECAllowed（非欧盟国家是否允许）。
+
+分类：跨境定价与关税 → 结账关注点（① 的序列），职能属 ③。回答 R921 的 Inference：不冲突。
+
+Stores/GlobalECheckout.cs：ParamOrder 记顺序（按位置比对）· 空值也发（字面量里两个本就是空的）· IsNonEu 标 Inference。
+
+数字：套件 1868 · vendor 命名 5/12 → 7/12 · 缺失 7 → 5（eShopWorld×2 · Disney×2 · Viva×1）。
+
+纪律：证据有多少不取决于服务多复杂，取决于镜像里存的是路径还是完整请求行。
+
+下一轮：eShopWorld（5 条路径，含 APM session 轮询）。

@@ -3772,3 +3772,81 @@ https://www.purpledotprice.com/api/v1/products/preorder-state?api_key=c114b1fe-6
 | METRICS.md 里的核心覆盖行 | 0 | **8** |
 
 **这一轮没有改产品代码 —— 它把 (f) 从「一半可复算」变成「两半都在 METRICS.md 里」。**
+
+
+### Global-e 建了 —— 第一个能拿**恢复到的字符串**去核的 vendor（R922）
+
+**R921 说从 4 家缺的服务里挑一家。挑了 Global-e，因为它的四条字面量给出的东西比之前任何一家都多。**
+
+### 四条字面量
+
+```
+/Checkout/v2/8x1r
+/Checkout/v2/8um2
+/Checkout/v2/8x1r/641efc40-744a-443c-ad99-420a092c6644?gaSesID=…&ga4SID=…&chkcuid=…&isNECAllowed=true
+                                    &_vwo_store=&vph=1081&vpw=2649&ift=113&utm_source=direct&utm_medium=
+/Checkout/v2/{_encodedMerchantId}/641efc40-…?（同一套参数）
+```
+
+**两个商户 id、一个**模板占位符**、以及一套**完整的十参数**。**
+**而第四条是 `{_encodedMerchantId}` —— 说明原版是**替换**出来的，不是常量拼接。**
+
+### 三个可读的参数
+
+| 参数 | 读作 |
+|---|---|
+| `chkcuid` | checkout customer id，字面量里是个 GUID |
+| `vph` / `vpw` | 视口高 / 宽（1081 / 2649） |
+| **`isNECAllowed`** | **「非欧盟国家是否允许」** |
+
+**其余（`gaSesID` · `ga4SID` · `_vwo_store` · `ift` · `utm_*`）是分析与实验标识 —— 它们在这里只因为
+**一个缺了这些参数的请求，可能和被当成不一样的请求**。**
+
+### 而 Global-e 属哪一类，现在清楚了
+
+**它在结账时做跨境定价与关税。所以它是**结账关注点**而不是支付网关关注点：
+流程必须在订单**定价之前**到达它，而不是在付完款之后。**
+
+**这也回答了 R921 那句 Inference（「Global-e 是否属优先级 ③」）—— 是 ③ 的**定价**职能，
+但落在 ① 的结账序列里。两者不冲突。**
+
+### 写了什么
+
+| 成员 | |
+|---|---|
+| `WebServicesHost` · `DsyHost` | 两台宿主 |
+| `RecoveredMerchantIds` = `8x1r` · `8um2` | 两个商户 |
+| `MerchantPlaceholder` = `{_encodedMerchantId}` | 模板占位符，记下来因为它说明构造方式 |
+| `SampleCheckoutCustomerId` | 字面量里那个 GUID |
+| **`ParamOrder`** | **十参数的**顺序**，不只是集合** |
+| `UrlFor(merchant, values)` | 按顺序拼，**空值也发** |
+| `IsNonEu(code)` | **Inference，明确标注** |
+
+### 两个刻意的决定
+
+**① `ParamOrder` 记的是**顺序**，不是集合。**
+**因为按位置比对才能发现「参数名都对但顺序变了」—— 而一个按集合比对的测试会放过它。**
+
+**② 空值也发。**
+**因为恢复到的字面量里 `_vwo_store=` 与 `utm_medium=` 本身就是空的。
+**所以空参数是**正常请求的证据**，不是错误的证据。****
+
+**③ `IsNonEu` 明确标 Inference。**
+**参数名说「非欧盟」、流程需要布尔、而由一个集合得出 —— 那个集合（EEA + GB + CH）是**猜的边界**，
+所以标注而非当成恢复。**
+
+### 数字
+
+| 度量 | R921 | **R922** |
+|---|---|---|
+| 套件 | 1857 | **1868** |
+| **vendor 命名** | 5 / 12 | **7 / 12** |
+| **vendor 缺失** | 7 | **5** |
+
+**剩 5 个：eShopWorld（2 台）· Disney（2 台）· Viva（1 台）。**
+
+### 教训
+
+> **前面几家 vendor 我只能核「名字在不在」。这一家能核**形状**：路径段、参数名、参数顺序、以及空值的位置。**
+> **而这四样都来自同一件事 —— 恢复到的是一条**完整 URL**，不是一条路径。**
+> **所以「证据有多少」不取决于服务多复杂，取决于**镜像里存的是路径还是完整请求行**。**

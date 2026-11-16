@@ -5373,3 +5373,39 @@ https://www.purpledotprice.com/api/v1/products/preorder-state?api_key=c114b1fe-6
 | vendor 桶之外还有没有 | 本表只覆盖「带路径的宿主」 |
 
 **纪律**：**判据 (f) 写着「站点**与**风控清单」。我连续四轮只报站点那一侧，而没人拦我 —— 因为判据不会自己执行。**
+
+
+## 优先级 ①/③ — Global-e 建了（R922，**改产品代码 +11 用例**）
+
+### 证据：四条字面量，含一条完整 URL + 一个模板
+
+```
+/Checkout/v2/8x1r · /Checkout/v2/8um2
+/Checkout/v2/8x1r/641efc40-…?gaSesID=…&ga4SID=…&chkcuid=…&isNECAllowed=true&_vwo_store=&vph=1081&vpw=2649&ift=113&utm_source=direct&utm_medium=
+/Checkout/v2/{_encodedMerchantId}/641efc40-…?（同套）
+```
+
+### `Stores/GlobalECheckout.cs`
+
+**`WebServicesHost`/`DsyHost` · `RecoveredMerchantIds`(8x1r,8um2) · `MerchantPlaceholder` ·
+`SampleCheckoutCustomerId` · **`ParamOrder`（十参数顺序）** · `UrlFor(merchant, values)` · `IsNonEu`（Inference）**
+
+### 三个决定
+
+**顺序而非集合（按位置比对）· 空值也发（字面量里两个本就是空的）· `IsNonEu` 标 Inference（EEA+GB+CH 是猜的边界）**
+
+### 分类
+
+**跨境定价 + 关税 → 结账关注点（① 的序列里），职能属 ③ 的定价 —— 不冲突。**
+
+### 数字
+
+**套件 1857 → 1868 · vendor 命名 5/12 → **7/12** · 缺失 7 → **5**（eShopWorld×2 · Disney×2 · Viva×1）**
+
+| 仍 Unknown | |
+|---|---|
+| 十参数里哪些必需 | 全部发出，空的也发 |
+| checkout 返回什么 | 无响应证据 |
+| `isNECAllowed` 的真实边界 | Inference |
+
+**纪律**：**证据有多少不取决于服务多复杂，取决于镜像里存的是路径还是完整请求行。**

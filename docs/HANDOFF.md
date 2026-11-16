@@ -765,3 +765,18 @@ snapshot.py 加 --list / --restore <stamp> [relpath]。四种行为实测：列�
 中途 --skip-tests 让 METRICS.md 写「未运行」→ 末尾重跑完整 metrics，L13 回到 1815 通过 / 0 失败。
 
 纪律：「加了检查」和「检查在验证东西」是两件事。
+
+## R913 补充 — Submit 族四桶（新工具 tools/submit_family.py）
+
+先否掉假印象：244 个结账相关缺失名次数几乎都是 1；而最高的三个 SubmitShipping 28 / SubmitOrder 24 / SubmitPayment 22 都在 StoreFlow 上。
+→「244 个缺失」在数变体，不在数功能。
+
+四桶（93 名 / 240 次）：base 50/183/**26 有** · provider 14/20/3 · platform 9/11/2 · **challenge 20/26/3**。
+
+provider 缺 11：Adyen* StripeOrder UnzerOrder KakaoPay HpsPayment ExternalPayment WebComponent SDK Paypal ThreeDSAuthentication
+challenge 缺 14：RecaptchaChallenge PowChallenge POW Challenges · **Fingerprint ClientData WebRtc BrowserData** · Collect* Pat Wpt Render
+
+而 challenge 桶混了两层：挑战应答=②；Fingerprint/ClientData/WebRtc/BrowserData=③（指纹采集）。
+→ R905 的撤回要修正：挑战应答缺几个、**指纹采集缺四个**。
+
+纪律：缺口形状是「基础集一半、变体几乎没有」，不是「少 244 个」。

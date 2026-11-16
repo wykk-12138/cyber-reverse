@@ -5032,3 +5032,36 @@ python tools/snapshot.py --restore <stamp> [relpath]
 | 六个浏览器类最近跑过吗 | 未查 |
 
 **纪律**：**「加了检查」和「检查在验证东西」是两件事 —— 前者会让人以为后者也成立。**
+
+
+## 优先级 ① / ② / ③ — `Submit` 族四桶（R913，**新工具 `tools/submit_family.py`**）
+
+### 先否掉假印象
+
+**244 个结账相关缺失名，次数几乎都是 1；而最高的三个 `SubmitShipping` 28 · `SubmitOrder` 24 · `SubmitPayment` 22 **都在 StoreFlow 上**。
+→ 「244 个缺失」在数**变体**，不在数功能。**
+
+### 四桶
+
+| 桶 | 名字 | 出现次数 | 有 |
+|---|---|---|---|
+| **base** | **50** | **183** | **26** |
+| provider | 14 | 20 | 3 |
+| platform | 9 | 11 | 2 |
+| **challenge** | **20** | **26** | **3** |
+
+**provider 缺 11**：`Adyen*` `StripeOrder` `UnzerOrder` `KakaoPay` `HpsPayment` `ExternalPayment` `WebComponent` `SDK` `Paypal` `ThreeDSAuthentication`
+**challenge 缺 14**：`RecaptchaChallenge` `PowChallenge` `POW` `Challenges` · **`Fingerprint` `ClientData` `WebRtc` `BrowserData`** · `Collect*` `Pat` `Wpt` `Render`
+
+### 而 challenge 桶混了两层
+
+**挑战应答 = ②；`Fingerprint`/`ClientData`/`WebRtc`/`BrowserData` = ③（指纹采集）。**
+**→ R905 的撤回要修正：挑战应答缺几个、指纹采集缺四个。**
+
+| 仍 Unknown | |
+|---|---|
+| provider 缺的 11 个各自要不要 | 需读实现 |
+| 指纹那四个的名字对应什么 | `ClientData` 像 Kasada |
+| 分桶按名字是否可靠 | **只为分组，非结论** |
+
+**纪律**：**缺口形状是「基础集一半、变体几乎没有」，而不是「少 244 个」—— 两句话对下一步的指示完全不同。**

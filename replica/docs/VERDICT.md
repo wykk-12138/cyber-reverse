@@ -54390,3 +54390,51 @@ python tools/snapshot.py --restore <stamp> [rel]    恢复一个文件或整份
 > **R911 我说「记错一个目录名就等于没有快照」。这一轮把它做成命令，并且让命令**自己打印路径**。**
 > **而同一轮里我发现：我加的一个安全检查实际上不可达。**
 > **「加了检查」和「检查在验证东西」是两件事 —— 而前者会让人以为后者也成立。**
+
+
+---
+
+## 第 913 轮：`Submit` 族拆四桶 —— 缺口位置被搬了家
+
+### 先否掉一个假印象
+
+**按次数排结账相关缺失名得到 244 个，而次数几乎都是 1。
+再看最高的三个 `SubmitShipping` 28 · `SubmitOrder` 24 · `SubmitPayment` 22 —— **都在 `StoreFlow` 上**。**
+
+> **所以「244 个缺失」不说明结账有问题。它在数变体，不在数功能。**
+
+### 四桶
+
+| 桶 | 名字 | 出现次数 | 复刻件有 |
+|---|---|---|---|
+| **base** | **50** | **183** | **26** |
+| provider | 14 | 20 | 3 |
+| platform | 9 | 11 | 2 |
+| **challenge** | **20** | **26** | **3** |
+
+**provider 缺：** `AdyenOrder` · `AdyenPayment` · `StripeOrder` · `UnzerOrder` · `KakaoPay` · `HpsPayment` ·
+`ExternalPayment` · `WebComponent` · `SDK` · `Paypal` · `ThreeDSAuthentication`
+
+**challenge 缺：** `RecaptchaChallenge` · `PowChallenge` · `POW` · `Challenges` · **`Fingerprint`** ·
+**`ClientData`** · **`WebRtc`** · **`BrowserData`** · `Collect` · `CollectRedirect` · `CollectRedirectV2` ·
+`Pat` · `Wpt` · `Render`
+
+### 而 challenge 那桶里混了两件事
+
+> **`RecaptchaChallenge` / `PowChallenge` / `Challenges` 是反爬挑战应答（优先级 ②）。
+> `Fingerprint` / `ClientData` / `WebRtc` / `BrowserData` 是**指纹采集**（优先级 ③）——
+> 它们在同一桶只是因为名字里都带那类词。**
+
+**所以 R905 那句「反爬在端点层没有具体缺口」要修成更准的：
+**挑战应答有几个在、几个不在；而指纹采集那一组是 ③ 的缺口，不是 ② 的。****
+
+### 方法说明
+
+**分桶按名字，而 R730 裁决说「不要用名字替代读代码」。这里用名字**只为把候选分组**，
+不声称某名字属于某层。分错桶的代价是看一眼，不是错结论。**
+
+### 教训
+
+> **一个「244 个缺失」的数让我以为结账有问题。而最高的三个名字都在。
+> 所以缺口的形状不是「少 244 个」，是「基础集有一半、变体几乎没有」。**
+> **这两个说法对下一步的指示完全不同。**

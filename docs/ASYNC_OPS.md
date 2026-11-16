@@ -3201,3 +3201,46 @@ R911 我不是不知道怎么恢复，是**记错了目录名**。所以让命�
 **而 `--skip-tests` 那次让 METRICS.md 写了「本次未运行 —— 这不等于通过」。**
 **按 §2.6 那条（「没跑成」≠「通过」）这个写法本身是对的，但它让 METRICS.md 暂时不能引用。**
 **这一轮末尾重跑了完整 metrics，METRICS.md L13 回到 `1815 通过 / 0 失败`。**
+
+
+### `Submit` 族拆成四桶，而缺口位置被搬了家（R913）
+
+**R912 之后回到优先级 ①。先按次数排结账相关缺失名，得到 244 个 —— 而**次数几乎都是 1**。**
+
+**再看最高的三个：`SubmitShipping` 28 · `SubmitOrder` 24 · `SubmitPayment` 22 ——
+**它们都在 `StoreFlow` 上。** 所以「244 个缺失」不说明结账有问题。**
+
+### 所以拆成四桶
+
+| 桶 | 名字 | 出现次数 | 复刻件有 |
+|---|---|---|---|
+| **base** | **50** | **183** | **26** |
+| provider | 14 | 20 | 3 |
+| platform | 9 | 11 | 2 |
+| **challenge** | **20** | **26** | **3** |
+
+**而缺口在最后两桶：**
+
+**provider 缺：** `AdyenOrder` · `AdyenPayment` · `StripeOrder` · `UnzerOrder` · `KakaoPay` · `HpsPayment` ·
+`ExternalPayment` · `WebComponent` · `SDK` · `Paypal` · `ThreeDSAuthentication`
+
+**challenge 缺：** `RecaptchaChallenge` · `PowChallenge` · `POW` · `Challenges` · **`Fingerprint`** ·
+**`ClientData`** · **`WebRtc`** · **`BrowserData`** · `Collect` · `CollectRedirect` · `CollectRedirectV2` ·
+`Pat` · `Wpt` · `Render`
+
+### 而 challenge 那桶里混了两件事
+
+**`RecaptchaChallenge` / `PowChallenge` / `Challenges` 是**反爬挑战应答**（优先级 ②）。**
+
+**而 `Fingerprint` / `ClientData` / `WebRtc` / `BrowserData` 是**指纹采集**（优先级 ③）——
+**它们被放进同一桶只是因为名字里都带 challenge 类的词。**
+
+**所以这一轮也把「优先级 ② 在端点层没有具体缺口」（R905 的撤回）修成了一句更准的话：
+**反爬挑战应答有 3 个名字在、还有几个不在；而指纹采集那一组是优先级 ③ 的缺口，不是 ② 的。**
+
+### 一处方法说明
+
+**分桶按名字，而 AGENTS.md §1 的 R730 裁决说「不要用名字替代读代码」。**
+
+**这里用名字**只为把候选分组给人挑**，不声称某个名字属于某一层。
+**分错桶的代价是看一眼，不是错结论。**

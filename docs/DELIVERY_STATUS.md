@@ -19533,3 +19533,67 @@ python tools/snapshot.py --restore <stamp> [relpath]
 而实际上拒绝来自另一个检查，我的守卫一次都没执行。**
 
 **如果不是我把 `restored 0` 的文案读了一遍，这个守卫会在文档里写成「已验证」。**
+
+
+---
+
+## 337. `Submit` 族四桶：基础 26/50，challenge 3/20，provider 3/14
+
+> R913。**新增工具，未改产品代码。**
+
+### 一、先否掉一个假印象
+
+**244 个结账相关缺失名，次数几乎都是 1。而最高的三个 `SubmitShipping` 28 · `SubmitOrder` 24 ·
+`SubmitPayment` 22 **都在 `StoreFlow` 上**。**
+
+**所以「244 个缺失」在数**变体**，不在数功能。**
+
+### 二、四桶（93 个名字 / 240 次出现）
+
+| 桶 | 名字 | 出现次数 | 复刻件有 |
+|---|---|---|---|
+| **base** | **50** | **183** | **26** |
+| provider | 14 | 20 | 3 |
+| platform | 9 | 11 | 2 |
+| **challenge** | **20** | **26** | **3** |
+
+**provider 缺 11**：`AdyenOrder` `AdyenPayment` `StripeOrder` `UnzerOrder` `KakaoPay` `HpsPayment`
+`ExternalPayment` `WebComponent` `SDK` `Paypal` `ThreeDSAuthentication`
+
+**challenge 缺 14**：`RecaptchaChallenge` `PowChallenge` `POW` `Challenges` · **`Fingerprint` `ClientData`
+`WebRtc` `BrowserData`** · `Collect` `CollectRedirect` `CollectRedirectV2` `Pat` `Wpt` `Render`
+
+### 三、而 challenge 桶混了两层
+
+**挑战应答 = 优先级 ②。`Fingerprint` / `ClientData` / `WebRtc` / `BrowserData` = 优先级 ③（指纹采集）。**
+
+**→ R905 那句「反爬在端点层没有具体缺口」要修成：挑战应答缺几个、**指纹采集缺四个**。**
+
+### 四、方法说明
+
+**分桶按名字，而 R730 裁决说「不要用名字替代读代码」。**
+**这里用名字只为把候选分组；分错桶的代价是看一眼，不是错结论。**
+
+### 五、验证
+
+```
+absent_checkout.py     -> 244 个结账相关缺失，次数几乎都是 1
+submit_family.py       -> 93 个 Submit 名字 / 240 次；base 50/183/26 有 · provider 14/20/3 · platform 9/11/2 · challenge 20/26/3
+StoreFlow 的 Submit 步骤 -> 26 个（含 SubmitOrder/SubmitPayment/SubmitShipping）
+本轮未改产品代码；套件沿用 1815
+```
+
+### 六、仍然 Unknown
+
+- **provider 缺的 11 个各自要不要**：**Unknown** —— 需逐个读实现。
+- **指纹那四个（`ClientData` 等）对应什么**：**Unknown** —— `ClientData` 像 Kasada 的客户端数据。
+- **分桶按名字是否可靠**：**Unknown，且这一轮的工具自己声明了不可靠** —— 只为分组。
+
+### 七、教训
+
+**一个「244 个缺失」的数让我以为结账有问题。而最高的三个名字都在。**
+
+**所以缺口的形状不是「少 244 个」，是「**基础集有一半、变体几乎没有**」。**
+
+**这两句话对下一步的指示完全不同：前者指向大规模重写，后者指向补变体 ——
+而补变体之前要先知道每个变体差什么，那需要读实现而不是数名字。**

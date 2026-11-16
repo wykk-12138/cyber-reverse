@@ -51319,3 +51319,49 @@ R852 的警告（「来自转写不是原文」）解除。**
 
 **R844 我给 16.9% 写了三条「这不是覆盖率」的理由，但那三条全是关于「解释」的，**没有一条问「分母本身对不对」**。**
 **而「这个数是抽样还是总体」我在 R816 就对 `pe_strings.txt` 问过，还写进了 §2.7b —— 却没对 `StoreFlowSteps` 问，因为它看起来是我自己整理的数据。**
+
+
+---
+
+## 第 855 轮：8 条之外的段，一部分是任务变体
+
+### 一个猜测，两条证据
+
+```
+Raffle      96 处 / 7 文件   ← 有         SweepStake  0   ← 无         Lottery  0   ← 无
+```
+
+**而镜像里有：**
+```
+GetSweepStakeCheckout · GetSweepStakesShippingMethod · SubmitSweepStakesShipping · EnterSweepStakesRaffle
+FindProductMulti · FindProductFlow · FindVariant · GetLotteryForm · SubmitLottery · …
+```
+
+**→ 镜像至少三种 raffle 族变体（raffle / sweepstake / lottery），复刻件只有第一种。**
+
+### 这解释了 R854 里最长的那段
+
+**11 步的 `… GetPaypalId · GetPaypalBearer · ProcessPaymentPaypalCreditCard` ——
+`ProcessPaymentPaypalCreditCard` 不是任何一个站，是「PayPal 信用卡」这个支付变体。**
+
+**所以「段属于谁」至少有两层：站与变体。而我前面一直只按站想。**
+
+### 对 (f) 的意义：那张表需要三列
+
+| 维度 | 复刻件状态 |
+|---|---|
+| 站 | Nike · PopMart · JohnLewis · Demandware ×2 · CollectPlus · structure-token ×2 · **另 20+ 段未认** |
+| **任务变体** | **raffle 有；sweepstake 无；lottery 无；PayPal 信用卡无** |
+| 风控 | Kasada · Cloudflare · **`HandleBlock` 未接** |
+
+> **「站 × 变体 × 风控」这个矩阵，比单纯的站点清单更接近 (f) 要的东西。**
+
+### 仍然 Unknown
+
+**sweepstake / lottery 是否真是任务型**（Inference 中，名字里有 `Checkout`/`Raffle`，也可能只是某些站的结账变体）·
+**镜像的任务型枚举长什么样**（只见过 `PopMartProductType`）· **20+ 段里哪些是站哪些是变体**（本轮只认了 3 段）
+
+### 教训
+
+**一个「段属于谁」的问题，被我默认成「属于哪个站」，是因为前面十几轮全在按站数。**
+**而 `ProcessPaymentPaypalCreditCard` 这个名字一看就不是站。**

@@ -270,3 +270,9 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **`StoreFlowSteps` 的 8 条只是其中一部分，明显是业务流程的 ≥20 段。R844 的 16.9% 连分母都不对。**
 **`HandleResponse · GetScript · GetKasada · GetWorkTime` @`0x14345abb1`** —— R824 那个「真死」步骤，**邻居是 `GetKasada`，所以它大概是 Kasada 流程里的一步（优先级 ②）。**
 另三组指纹序列：`SubmitPOW`/`SubmitWebRtc` · `SubmitWpt`/`SubmitSensor` · 鼠标键盘行为组。
+
+## R855 补充 — 站 × 变体 × 风控
+
+**8 条之外的段一部分是任务变体**：raffle 有（96 处）· **sweepstake 0 · lottery 0**。
+**`ProcessPaymentPaypalCreditCard` 那 11 步不是站，是支付变体** —— 「段属于谁」至少两层。
+**→ 判据 (f) 的表需要三列：站 / 任务变体 / 风控**，而不是一列站名。

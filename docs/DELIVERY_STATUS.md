@@ -14880,3 +14880,86 @@ idautils.Strings() 含 d__ 的串: 1301
 
 **「这个数是抽样还是总体」这个问题，我在 R816 就对 `pe_strings.txt` 问过一次，还写进了 AGENTS.md §2.7b。
 而我没有对 `StoreFlowSteps` 问同一个问题 —— 因为它看起来是我自己整理的数据，不像外部来源。**
+
+
+---
+
+## 279. 8 条之外的那些段，一部分是**任务变体**；复刻件只做了 raffle
+
+> R855。未改产品代码。
+
+### 一、一个猜测，两条证据
+
+**R854 留下的问题：那 20+ 段各属哪个站。**
+
+**我的怀疑：有些不是「别的站」，是「别的任务型」。**
+
+**查复刻件：**
+
+```
+Raffle      96 处 / 7 个文件      ← 有
+SweepStake   0 处                ← 无
+Lottery      0 处                ← 无
+TaskType     2 处（ThirdPartyDrivers.cs）
+```
+
+**而镜像里有这两段：**
+
+```
+GetSweepStakeCheckout · GetSweepStakesShippingMethod · SubmitSweepStakesShipping · EnterSweepStakesRaffle
+FindProductMulti · FindProductFlow · FindVariant · GetLotteryForm · SubmitLottery · AddToCartMulti · AddToCartPreload
+```
+
+**所以：镜像至少有三种 raffle 族变体（raffle / sweepstake / lottery），复刻件只有第一种。**
+
+### 二、这解释了 R854 里最长的那一段
+
+**11 步的 `FindProduct · AddToCart · SubmitDiscount · GetCheckout · GetShippingRates ·
+GetPaypalId · GetPaypalBearer · ProcessPaymentPaypalCreditCard` ——**
+
+**`ProcessPaymentPaypalCreditCard` 这个名字不是任何一个站的，是「PayPal 信用卡」这个支付变体。**
+
+**所以 20+ 段的归属至少有两层：站与变体。而我前面一直只按站想。**
+
+### 三、对判据 (f) 的意义
+
+**(f) 要求「原版站点与风控清单从二进制取证 ↔ `Registry.cs` 与 `Flows/Scripts` 逐条对」。**
+
+**这一轮说明那张表至少需要三列而不是两列：**
+
+| 维度 | 复刻件状态 |
+|---|---|
+| **站** | Nike · PopMart · JohnLewis · Demandware ×2 · CollectPlus · structure-token ×2 · 另有 20+ 段的站未认 |
+| **任务变体** | **raffle 有；sweepstake 无；lottery 无；PayPal 信用卡无** |
+| **风控** | Kasada（`KasadaSolvers` / `KasadaClearance`）· Cloudflare（`CloudflareClearance`）· `HandleBlock` 未接 |
+
+**「站 × 变体」这个矩阵，比单纯的站点清单更接近 (f) 要的东西。**
+
+### 四、验证
+
+```
+grep SweepStake / Sweepstake / Lottery 全 src  -> 0
+grep Raffle                               -> 96（7 文件）
+grep TaskType                             -> 2（ThirdPartyDrivers.cs）
+镜像: 0x1433712d6 GetSweepStakeCheckout … EnterSweepStakesRaffle
+镜像: 0x1434b3109 … GetLotteryForm · SubmitLottery …
+镜像: 0x143391b79 … ProcessPaymentPaypalCreditCard
+本轮未改产品代码
+七项度量沿用
+```
+
+### 五、仍然 Unknown
+
+- **sweepstake / lottery 是不是真的任务型**：**Inference（中）** ——
+  名字里有 `Checkout` 与 `Raffle`，**但也可能只是某些站的结账变体。**
+- **镜像的任务型枚举长什么样**：**Unknown** ——
+  **`PopMartProductType` 是唯一见过的类型标记，通用任务型没找到。**
+- **那 20+ 段里哪些是站、哪些是变体**：**Unknown** —— **这一轮只认了 3 段（sweepstake / lottery / PayPal）。**
+
+### 六、教训
+
+**R854 我写「那 20+ 段各属哪个站」，把归属当成了一个维度。**
+**而 `ProcessPaymentPaypalCreditCard` 这个名字一看就不是站 —— 它是支付方式。**
+
+**一个「段属于谁」的问题，被我默认成「属于哪个站」，是因为前面十几轮全在按站数。**
+**而 (f) 要的其实是「站 × 变体 × 风控」的矩阵，不是一列站名。**

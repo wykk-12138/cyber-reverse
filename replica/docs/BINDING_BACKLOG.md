@@ -3020,3 +3020,33 @@ SubmitShippingMethod SubmitBilling SubmitDiscount SubmitPayment GetPaymentToken 
 | 67 段里多少是库代码 | 未逐段分类 |
 
 **纪律**：**「抽样还是总体」我在 R816 对 `pe_strings.txt` 问过并写进 §2.7b，却没对 `StoreFlowSteps` 问 —— 因为它看起来是我自己整理的数据。**
+
+
+## 判据 (f) — 站 × 变体 × 风控 三层（R855）
+
+**复刻件覆盖差别：**
+
+| 变体 | 镜像步骤 | 复刻件 |
+|---|---|---|
+| raffle | （`RaffleFlow`，R835 查过 r419/lndg/nodnod） | **96 处 / 7 文件** |
+| **sweepstake** | `GetSweepStakeCheckout · GetSweepStakesShippingMethod · SubmitSweepStakesShipping · EnterSweepStakesRaffle` | **0** |
+| **lottery** | `… GetLotteryForm · SubmitLottery …` | **0** |
+| **PayPal 信用卡** | `… GetPaypalId · GetPaypalBearer · ProcessPaymentPaypalCreditCard` | 未查 |
+
+**`TaskType` 在复刻件只 2 处（`ThirdPartyDrivers.cs`），无任务型枚举。**
+
+### (f) 的表需要三列而非一列
+
+| 维度 | 状态 |
+|---|---|
+| 站 | 8 条已记 + **20+ 段未认** |
+| **任务变体** | raffle 有；sweepstake / lottery / PayPal 信用卡 无 |
+| 风控 | Kasada · Cloudflare · **`HandleBlock` 未接** |
+
+| 仍 Unknown | |
+|---|---|
+| sweepstake/lottery 是否真是任务型 | Inference 中 |
+| 镜像的任务型枚举 | 只见过 `PopMartProductType` |
+| 20+ 段哪些是站哪些是变体 | 本轮只认 3 段 |
+
+**纪律**：**「段属于谁」被我默认成「属于哪个站」—— 因为前面十几轮全在按站数。而 `ProcessPaymentPaypalCreditCard` 一看就不是站。**

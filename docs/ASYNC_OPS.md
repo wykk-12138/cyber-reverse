@@ -575,3 +575,25 @@ GetHome(19) · FindProductMulti(20) · FindProduct(21) · AddToCart(22) · Submi
 **67 段里，明显是业务流程的至少 20 段；`StoreFlowSteps` 的 8 条是其中一部分。**
 
 **R844 那个 16.9% 的分母（8 条 / 130 步）是抽样，不是总体。**
+
+
+### 8 条之外的段：一部分是**任务变体**，不是别的站（R855）
+
+**镜像里有这三组运行，而复刻件的覆盖差别极大：**
+
+| 变体 | 镜像里的步骤 | 复刻件 |
+|---|---|---|
+| **raffle** | （已在 `RaffleFlow`，R835 查过 `r419.com` / `lndg.page` / `nodnod.digital`） | **`Raffle` 96 处 / 7 个文件** |
+| **sweepstake** | `GetSweepStakeCheckout · GetSweepStakesShippingMethod · SubmitSweepStakesShipping · EnterSweepStakesRaffle` | **`SweepStake` 0 处** |
+| **lottery** | `FindProductMulti · FindProductFlow · FindVariant · GetLotteryForm · SubmitLottery · AddToCartMulti · AddToCartPreload` | **`Lottery` 0 处** |
+
+**而 `TaskType` 在复刻件只出现 2 次（`ThirdPartyDrivers.cs`），没有对应的任务型枚举。**
+
+### 所以 R854 那 20+ 段里的归属有两种
+
+1. **站**（Nike / PopMart / JohnLewis / Demandware / CollectPlus / …）
+2. **任务变体**（raffle / sweepstake / lottery / PayPal 信用卡）
+
+**而变体这一层，复刻件只做了 raffle 一种。**
+
+**这也解释了 `ProcessPaymentPaypalCreditCard` 那 11 步 —— 它可能不是某个站的流程，是「PayPal 信用卡」这个支付变体。**

@@ -50593,3 +50593,48 @@ AddToCartPreload · AddToCartPreloadGraphQL · AddToCartStoreFront · AddToCartS
 
 **1304 里 115 之外的那 1189 条**（多为 Avalonia/BCL/DotNetBrowser，比例未验）·
 **71 条里哪些是改名实现**（逐条 grep 别名未做）· **`AddToCart*` 各变体对应哪些站**（名字是前端框架，暗示按框架分）
+
+
+---
+
+## 第 840 轮：71 条裁决第一批 —— 3 改名实现，1 探针无效，3 待判
+
+### 方法
+
+未命中名 → 取最有辨识度的词 → grep 复刻件全部 `.cs`。
+
+| 未命中 | 探针 | 复刻件 | 裁决 |
+|---|---|---|---|
+| `AddToCartBox` | `boxCart` | `PopMartEndpoints.cs` ×2 | **改名实现** |
+| `AddToCartFrontend` | `Frontend` | `StoreFlow.cs` ×1 | **改名实现** |
+| `AddToCartSvelte` | `Svelte` | `RetailFlows.cs` ×1 | **改名实现** |
+| `AddToCartNext` | `Next` | 几十个文件 | **探针无效** |
+| `AddToCartAstro` | `Astro` | 0 | 待判 |
+| `AddToCart2` | `AddToCart2` | 0 | 待判 |
+| `AddToCartDummy` | `Dummy` | 0 | 待判 |
+
+**最干净的一条**：镜像 `AddToCartBox` ↔ 复刻件 `PopMartFlow.AddToCartAsync` POST `addBoxListToCart` ——
+**同动作、两个名字、一个端点对上。这正是 goal 里「命名可不同」的那一类。**
+
+### `AddToCartNext` 的探针为什么无效
+
+**用 `Next` grep 命中几十个文件 —— 因为 `NextPoll`、`NextStep` 到处都是。**
+**这个结果不能读成「已实现」。**
+
+> **本会话此前记的探针失败都是「命中为零」；这是第一次「命中一片，但什么都没证明」——
+> 而它比零命中更危险，因为它看起来像结论。**
+
+### 三条 0 命中的方向（未证）
+
+**`AddToCartAstro`**（Astro 是前端框架）· **`AddToCart2`**（`2` 说明有站需要两种载荷）· **`AddToCartDummy`**（`Dummy` 暗示空实现，抽签场景可能本就不需要）
+
+### 验证
+
+```
+boxCart → PopMartEndpoints.cs×2 · Frontend → StoreFlow.cs×1 · Svelte → RetailFlows.cs×1
+PopMartFlow.cs L232 → PostJsonAsync(... AddBoxListToCart ...) · 七项度量沿用
+```
+
+### 仍然 Unknown
+
+**三条 0 命中的真实归属**（要看哪个流程调用它们，那是调用图不是名字）· **`AddToCartNext` 的对应物**（换探针 `__NEXT_DATA__`）· **其余 64 条**

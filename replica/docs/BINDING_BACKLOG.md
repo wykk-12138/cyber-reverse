@@ -2516,3 +2516,31 @@ python analysis/ida.py str <Flow|Task|Pop|Cart|Checkout|Order|Session|Signup> --
 
 **逐字节遍历 7 MB 会把 IDA 弄崩、数据库写坏**（重开要点「Database still contains inconsistencies」）。
 **用 `idautils.Strings()`。** `py_eval` 是**持久 globals**，变量名会残留。内联 py 里的反斜杠会被 shell 吃掉。
+
+
+## 判据 (f) — 71 条裁决进度（R840：7 条已判）
+
+**方法**：未命中名 → 取最有辨识度的词 → grep 复刻件全部 `.cs`。**探针必须有辨识度。**
+
+| 未命中 | 探针 | 复刻件 | 裁决 |
+|---|---|---|---|
+| `AddToCartBox` | `boxCart` | `PopMartEndpoints.cs` ×2 | **改名实现** |
+| `AddToCartFrontend` | `Frontend` | `StoreFlow.cs` ×1 | **改名实现** |
+| `AddToCartSvelte` | `Svelte` | `RetailFlows.cs` ×1 | **改名实现** |
+| `AddToCartNext` | `Next` | 几十个文件 | **探针无效** |
+| `AddToCartAstro` · `AddToCart2` · `AddToCartDummy` | — | 0 | 待判 |
+
+**最干净的一条**：`AddToCartBox` ↔ `PopMartFlow.AddToCartAsync` POST `addBoxListToCart`（`PopMartFlow.cs` L232）。
+
+### 新形态的失败：命中一片
+
+**`Next` grep 命中几十文件（`NextPoll`/`NextStep`），不能读成「已实现」。**
+**此前记的探针失败全是「命中为零」；这是第一次「命中一片但什么都没证明」—— 比零命中更像结论，所以更危险。**
+
+**换探针**：`__NEXT_DATA__` / `_next/` / `nextjs`。
+
+| 仍 Unknown | |
+|---|---|
+| `AddToCartAstro` / `AddToCart2` / `AddToCartDummy` 归属 | 要看哪个流程调用 —— 调用图，不是名字 |
+| `AddToCartNext` 对应物 | 换探针 |
+| 其余 64 条 | 全部待判 |

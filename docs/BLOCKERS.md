@@ -19317,3 +19317,75 @@ grep 复刻件 src -> 命中 44
 
 **而崩溃的根因是本会话的老问题换了形状：我想「遍历一大片」，于是写了个每字节调一次 COM 的循环。**
 **在那之前该问的是：这个插件有没有索引化的接口？有 —— `idautils.Strings()`。**
+
+
+---
+
+## 264. 71 条裁决的第一批：3 条改名实现，1 条探针无效，3 条待判
+
+> R840。`docs/ASYNC_OPS.md` 增「裁决记录」表。未改产品代码。
+
+### 一、方法
+
+**对每个未命中的名字，取它最有辨识度的那一个词，去 grep 复刻件的全部 `.cs`。**
+
+**七条加车变体的结果：**
+
+| 未命中 | 探针 | 复刻件命中 | 裁决 |
+|---|---|---|---|
+| `AddToCartBox` | `boxCart` | `PopMartEndpoints.cs` ×2 | **改名实现** |
+| `AddToCartFrontend` | `Frontend` | `StoreFlow.cs` ×1 | **改名实现** |
+| `AddToCartSvelte` | `Svelte` | `RetailFlows.cs` ×1 | **改名实现** |
+| `AddToCartNext` | `Next` | 几十个文件 | **探针无效** |
+| `AddToCartAstro` | `Astro` | 0 | 待判 |
+| `AddToCart2` | `AddToCart2` | 0 | 待判 |
+| `AddToCartDummy` | `Dummy` | 0 | 待判 |
+
+**`AddToCartBox` 是最干净的一条**：镜像叫 `AddToCartBox`，复刻件在 `PopMartFlow.AddToCartAsync` 里
+POST `PopMartEndpoints.AddBoxListToCart` —— **同一个动作，两个名字，一个端点对上。**
+**这正是 goal 里「命名可不同」的那一类，判据要的是「功能相等」，不是「名字相同」。**
+
+### 二、`AddToCartNext` 的探针是无效的
+
+**我用 `Next` 去 grep，命中几十个文件 —— 因为 `NextPoll`、`NextStep` 这类词到处都是。**
+
+**这个结果不能读成「已实现」**：它只说明 `Next` 这个词常见，不说明镜像那个 `AddToCartNext` 有对应物。
+
+**判据必须重新挑词**（比如 `nextjs` / `_next/` / `__NEXT_DATA__` —— 那是 Next.js 的页面标记）。
+
+**而这一条值得单独记，因为它的失败形态是「命中太多」。**
+**本会话此前记的所有探针失败都是「命中为零」；这是第一次见到「命中一片，但其实什么都没证明」。**
+
+### 三、三条 0 命中的，方向判断（未证）
+
+- **`AddToCartAstro`**：**Astro 是前端框架**（astro.build）。复刻件 0 命中 →
+  **要么该站不需要单独路径，要么这条真缺。**
+- **`AddToCart2`**：名字里的 `2` 说明**有一个站需要两种加车载荷**。复刻件 0 命中 → **待判。」
+- **`AddToCartDummy`**：`Dummy` 暗示**空实现**（抽签/无需加车的场景）。
+  复刻件若在该场景下根本不走加车步骤，则**「本就不需要」**；**未证。**
+
+### 四、验证
+
+```
+python - (grep Frontend / Svelte / boxCart / Astro / AddToCart2 / Dummy in replica\src)
+  AddToCartBox     -> PopMartEndpoints.cs (boxCart x2)
+  AddToCartFrontend-> StoreFlow.cs (Frontend x1)
+  AddToCartSvelte  -> RetailFlows.cs (Svelte x1)
+  AddToCartNext    -> 几十个文件（探针无效）
+  Astro / AddToCart2 / Dummy -> 0
+PopMartFlow.cs L232: PostJsonAsync(..., PopMartEndpoints.AddBoxListToCart, ...)
+本轮未改产品代码
+七项度量沿用
+```
+
+### 五、仍然 Unknown
+
+- **`AddToCartAstro` / `AddToCart2` / `AddToCartDummy` 的真实归属**：**Unknown** ——
+  **要判它们属于哪个站，得看镜像里哪个流程调用它们，那是调用图，不是名字。**
+- **`AddToCartNext` 的对应物**：**Unknown** —— 需要换探针（`__NEXT_DATA__` / `_next/`）。
+- **其余 64 条**：**全部待判。**
+
+### 六、教训
+
+**「命中为零」和「命中一片」都可以是无效探针，而我一直只防前一种。**
+**`Next` 命中几十个文件时，那一列看起来很像「已实现」—— 比零命中更危险，因为它看起来像结论。**

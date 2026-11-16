@@ -168,3 +168,8 @@
 **工具坑**：逐字节遍历 7 MB 会把 IDA 弄崩并写坏数据库 —— **用 `idautils.Strings()`**；
 `py_eval` 用持久 globals（变量会残留）；内联 py 的反斜杠会被 shell 吃掉。
 **重开 IDA 多了一个框**：「警告：Database still contains inconsistencies」→ 点「确定」。
+
+## R840 补充 — 71 条裁决已判 7 条
+
+`docs/ASYNC_OPS.md` 增「裁决记录」表。**3 条改名实现**（`AddToCartBox`/`AddToCartFrontend`/`AddToCartSvelte`）· 1 条探针无效（`AddToCartNext` 用 `Next` 命中几十文件，什么都没证明）· 3 条待判。
+**新失败形态**：此前探针失败都是「命中为零」，这次是「命中一片但无意义」—— 比零命中更像结论。

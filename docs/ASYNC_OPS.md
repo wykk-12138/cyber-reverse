@@ -2432,3 +2432,53 @@ METRICS.md L24  成员形状差异 — core mismatches  |  17
 问题在于**族级本身不是覆盖率**，因为它给「提到 1 条」和「提到全部」同样的分。**
 
 **所以真正要修的不是松紧，是**分母**。**
+
+
+### 分母拆开：站 **55/142（38.7%）**，厂商 **0/28（0.0%）**（R896）
+
+**R895 说「171 条里多少属支付商而非站 —— 混着算让 32.2% 含义不清」。这一轮拆开。**
+
+### 结果
+
+| 分类 | 宿主 | 路径 | 覆盖 |
+|---|---|---|---|
+| **站** | 15 | **142** | **55（38.7%）** |
+| **厂商** | 14 | **28** | **0（0.0%）** |
+
+**所以那 55 条覆盖**全部来自站**，而厂商那 28 条一条都没有。**
+
+### 这改变了 32.2% 的含义
+
+| 度量 | 值 | 含义 |
+|---|---|---|
+| 混合（R895） | 55/171 = 32.2% | **两个不同的问题被平均了** |
+| **站（本轮）** | **55/142 = 38.7%** | **站点 API 的覆盖率** |
+| **厂商（本轮）** | **0/28 = 0.0%** | **支付与防护第三方，一条都没接** |
+
+**32.2% 落在两者之间，而它既不是站覆盖率也不是厂商覆盖率。
+
+### 厂商那 0/28 是一个干净的缺口
+
+| 宿主 | 族 | 属什么 |
+|---|---|---|
+| **`challenges.cloudflare.com`** | `/turnstile/v0/` | **Turnstile（优先级 ②）** |
+| **`inbox-api.aycd.io`** | `/api/v1/` | **AYCD 验证码/OTP（优先级 ②）** |
+| `flex.cybersource.com` | `/flex/v2/` | 3DS Flex |
+| `www.paypal.com` | `/threeds/v1/` | 3DS |
+| `app.midtrans.com` | `/snap/v1` · `/snap/v2` | Snap 支付 |
+| `checkoutshopper-live.adyen.com` | `/checkoutshopper/v1` · `/paybylink/v1` | Adyen 结账 |
+| `api.braintreegateway.com` · `api.sibspayments.com` · `www.vivapayments.com` · `payments.bigcommerce.com` | 各 1 | 支付 |
+| `webservices.global-e.com` · `static-forms.klaviyo.com` · `pbiouukmdvahsp…` · `api.vipps.no` · `www.ibm.com` | 各 1 | 跨境/表单/云函数/钱包/可疑 |
+
+**而 `inbox-api.aycd.io` 在 R894 的族级判据下算「有」（1/1），路径级是 0** ——
+**因为族段 `api/v1` 太泛，误命中了别处的 `api/v1`。**
+
+**这正是 R895 猜的那个误命中，现在具体到了一条。**
+
+### 两处分类判断，写明以便复核
+
+1. **`payments.dickssportinggoods.com` 与 `paymentsheet-ent.wdprapps.disney.com` 归「站」** ——
+   它们是那两家自己的支付子域，不是第三方。**换个人可能归厂商。**
+2. **`-`（无宿主）算进「站」那一桶** —— 这是错的，它应该单列。
+
+**所以 142 里有几条归属可议；这条写在这里而不是藏起来。**

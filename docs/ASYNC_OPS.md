@@ -3149,3 +3149,55 @@ after :  boxSkuId 优先；没有就退到 c.Session.VariantId；两者都无才
 `WriteAsyncInternal` 4 · `OverrideAsyncMethod` 4 · `OnLoadedAsync` 4 · `Enumerate` 4 · `DownloadAsync` 4
 
 **`ScrapeProduct` 与 `ScrapeJson` 已从榜首消失 —— 因为它们现在真的在。**
+
+
+### 恢复变成一条命令；并且我核清了两个套件数为什么不一致（R912）
+
+**R911 的教训是「记错一个目录名就等于没有快照」。这一轮把那句话变成代码。**
+
+### `snapshot.py` 加了两个模式
+
+```
+python tools/snapshot.py --list                     列出所有快照
+python tools/snapshot.py --restore <stamp> [rel]    恢复一个文件或整份
+```
+
+**四种行为都实测过：**
+
+| 情形 | 结果 |
+|---|---|
+| `--list` | 41 份 / 11,770 文件 / 109.5 MB，**并打印实际目录** |
+| 恢复一个不存在的文件 | `not in that snapshot` + `restored 0`，**不写任何东西** |
+| 恢复越界路径 `..\..\outside.cs` | 拒绝，`restored 0` |
+| 恢复真实文件 | `restored 1`，而 `StoreFlow` 虚步骤仍是 **175** |
+
+**而 `--list` 会打印那个真实路径 `tools/.snapshots` —— 这是刻意的：
+R911 我不是不知道怎么恢复，是**记错了目录名**。所以让命令自己说路径。**
+
+### 一处我该说清的：越界拒绝是被前一个检查挡住的
+
+**`..\..\outside.cs` 报的是 `not in that snapshot`，不是我的路径守卫。
+因为那个文件在快照里不存在，所以先被存在性检查拒绝了。**
+
+**所以路径守卫（`dst.startswith(ROOT + sep)`）**只对「快照里存在、但会写到树外」的情形生效** ——
+而快照里不会有那种路径。那行守卫**实际上不可达**。**
+
+**留着它是对的还是多余的？我留着，因为快照的来源是 `os.walk(src)`，而如果将来有人改了快照内容，
+守卫是唯一挡住写入树外的东西。但它现在不验证任何东西，这一点必须写出来。**
+
+### 而两个套件数，我核过了
+
+**`metrics_report.py` 报 1815；直接跑全量报 2113 通过 / 2 跳过。差 298。**
+
+**原因（R493 的设计，不是新问题）：`metrics_report.py` 排除六个依赖真 Chrome 的类**
+（`VoiceListTests` · `GlobalSurfaceTests` · `KeyOrderDispatchTests` · `PatchJournalTests` ·
+`PruneWhitelistTests` · `NetworkRecorderLiveTests`），
+**因为 2026-11-14 连着跑几轮全量把整机内存耗尽、系统重启。**
+
+**所以两个数都对，各自对应一个范围：**
+- **1815 = 不含浏览器类的套件**
+- **2113 + 2 跳过 = 全部**
+
+**而 `--skip-tests` 那次让 METRICS.md 写了「本次未运行 —— 这不等于通过」。**
+**按 §2.6 那条（「没跑成」≠「通过」）这个写法本身是对的，但它让 METRICS.md 暂时不能引用。**
+**这一轮末尾重跑了完整 metrics，METRICS.md L13 回到 `1815 通过 / 0 失败`。**

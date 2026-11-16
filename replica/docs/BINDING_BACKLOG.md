@@ -4987,3 +4987,48 @@ after :  boxSkuId → 回退 c.Session.VariantId → 都无才失败
 | `Write*` 一族属哪层 | IO/序列化 |
 
 **纪律**：**同一轮里判据过严（低报）与锚点过宽（删坏）可以同时发生 —— 严的让人找不存在的东西，宽的让人删掉存在的东西。**
+
+
+## 方法 — `snapshot.py` 加 `--list` / `--restore`（R912）
+
+### 起因
+
+**R911 删坏 `StoreFlow.cs` 后按 `tools/.snapshot-backup` 找恢复源，而真实路径是 `tools/.snapshots`
+→ 改用 `git checkout` 恢复。**记错一个目录名就等于没有快照。**
+
+### 两个模式
+
+```
+python tools/snapshot.py --list
+python tools/snapshot.py --restore <stamp> [relpath]
+```
+
+| 情形 | 结果 |
+|---|---|
+| `--list` | 41 份 / 11,770 文件 / 109.5 MB + **打印实际目录** |
+| 不存在文件 | `restored 0`，不写 |
+| 越界路径 | `restored 0` |
+| 真实文件 | `restored 1`，虚步骤仍 175 |
+
+### 一处不可达的检查（必须写明）
+
+**越界拒绝实际由「文件不在快照里」触发，而非路径守卫。
+守卫只对「快照里有、但写到树外」生效 —— 而快照来自 `os.walk(src)`，不会有那种路径。
+→ **留着但**现在不验证任何东西**。**
+
+### 两个套件数（核清）
+
+| 命令 | 结果 | 范围 |
+|---|---|---|
+| `metrics_report.py` | **1815 通过 / 0 失败** | 不含六个浏览器类（R493 排除） |
+| 直接全量 | **2113 通过 / 2 跳过** | 全部 |
+
+**差 298 = `VoiceListTests` · `GlobalSurfaceTests` · `KeyOrderDispatchTests` · `PatchJournalTests` ·
+`PruneWhitelistTests` · `NetworkRecorderLiveTests`。**
+
+| 仍 Unknown | |
+|---|---|
+| 41 份快照要不要清理 | 109.5 MB，未定策略 |
+| 六个浏览器类最近跑过吗 | 未查 |
+
+**纪律**：**「加了检查」和「检查在验证东西」是两件事 —— 前者会让人以为后者也成立。**

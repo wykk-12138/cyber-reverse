@@ -753,3 +753,15 @@ ScrapeProduct/ScrapeJson 属 ①（抓商品）—— 下一轮从这里挑。
 新榜首：WriteToAsync 7 · WriteRawAsync 6 · LoadAsync 5 · WriteStartNamespaceDeclarationAsync 4 · WriteAsyncInternal 4 · OverrideAsyncMethod 4 · OnLoadedAsync 4 · Enumerate 4 · DownloadAsync 4。
 
 纪律：同一轮里判据过严（低报）与锚点过宽（删坏）可以同时发生。
+
+## R912 补充 — 恢复成为命令；两套件数核清（改 tools/snapshot.py）
+
+snapshot.py 加 --list / --restore <stamp> [relpath]。四种行为实测：列出（41 份/11770 文件/109.5MB，打印实际目录）· 不存在文件 restored 0 · 越界路径 restored 0 · 真实文件 restored 1（虚步骤仍 175）。
+
+一处不可达：越界拒绝实际由「文件不在快照里」触发，路径守卫一次没执行 —— 留着但必须写明它现在不验证任何东西。
+
+两个套件数核清：metrics_report.py 1815（不含六个浏览器类，R493 排除）vs 直接全量 2113 通过 / 2 跳过；差 298 = 那六个类。两个数都对，各自对应一个范围。
+
+中途 --skip-tests 让 METRICS.md 写「未运行」→ 末尾重跑完整 metrics，L13 回到 1815 通过 / 0 失败。
+
+纪律：「加了检查」和「检查在验证东西」是两件事。

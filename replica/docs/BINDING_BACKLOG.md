@@ -1644,3 +1644,30 @@ hit   = 声明模式命中 =  1  -> RENAMED / PARTIAL 判定
 **「两边在量不同的东西」是结论，不是起点 —— 而它听起来像起点。**
 
 **本会话第四次同类错误（R806 / R807 / R809），这次错在诊断本身。**
+
+
+## 判据 — (c) PASS，(d) PASS，C4 结案（R811）
+
+| 判据 | 状态 | 命令 |
+|---|---|---|
+| **(c)** 产物对照可复算 | **PASS** | `python analysis\verify_artifact.py` → 1142/1142 locale · 20/20 资源 · 12/12 叶子 |
+| **(d)** claim 表规则 | **PASS** | `python analysis\check_claims.py` → 5 行，无 authority 缺口，非 unknown 全有命令 |
+
+**C4 从 `unknown` 变 `fail`（有答案、可解释）：**
+
+```
+原版    17 DLL / 438 函数 / imphash 7ed8e14777a36b89031807b561000260
+复刻件  18 DLL / 409 函数 / imphash 23e3dee057b2fdead858a8f731dd9830
+两侧 coverage=complete，delay_imports=0
+```
+
+**差别**：复刻件多 `VERSION.dll`（Avalonia 读版本；**原版 0 匹配，已验**）；
+原版多 ADVAPI32 安全 API 组（AOT 运行时 ACL/令牌族）。
+
+| 仍 Unknown | |
+|---|---|
+| C2/C3 的 fail 该不该修 | 由 AOT 版本与静态库决定，**不是复刻件能改的** |
+| 438−409 这 29 个函数的集合差 | **只解释了 DLL 级，未逐条比** |
+
+**纪律**：**`unknown` 行自带的「补法」是可执行的 —— 写清了怎么补的 `unknown` 只是待办，不是雾。**
+C4 的补法挂了好几轮没人做，包括我。

@@ -49172,3 +49172,54 @@ hit   = ...  # 声明模式命中      ->  1   （RENAMED / PARTIAL 判定用）
 
 **两个数字不一样，先问它们各自叫什么。**
 **「两边在量不同的东西」是个结论，不是个起点 —— 而它听起来像起点。**
+
+
+---
+
+## 第 811 轮：判据 (c) 通过；C4 从 unknown 变成可判的 fail
+
+### 判据 (c)：产物级对照 PASS
+
+```
+verify_artifact.py →
+  artifact: 55349248 bytes
+  locale keys:        1142/1142 OK
+  embedded resources: names 20/20, content 20/20 OK
+  resource leaves:    original 12, replica 12 OK
+  result: PASS
+```
+
+### 判据 (d)：先读它自己的规则，再机械核
+
+`PARITY_CLAIMS.md` 写着：**「每条都有 `authority`，且非 unknown 者都有命令」**。
+`check_claims.py` 按这句话核表：
+
+```
+5 行 → fail 3 / pass 2 · 无 authority 的 0 行 · 非 unknown 无命令的 0 行 → PASS
+```
+
+### C4 从 unknown 变 fail
+
+那一行写着补法：「对原版跑一次并重定向到文件」。**这一轮照做了。**
+
+| | 原版 | 复刻件 |
+|---|---|---|
+| DLL / 函数 | **17 / 438** | **18 / 409** |
+| imphash | `7ed8e147…` | `23e3dee0…` |
+| coverage | complete | complete |
+
+**两侧都完整取到 → 不再是「缺证据」，而是确定答案：fail。**
+
+**差别可解释且验过**：复刻件多 `VERSION.dll`（Avalonia 读版本，**原版 0 匹配**）；
+原版多 ADVAPI32 的一组安全 API（AOT 运行时 ACL/令牌族）。
+
+### 现在的表
+
+```
+C1 pass · C2 fail（6↔9 节）· C3 fail（39↔1 导出）· C4 fail（17/438↔18/409）· C5 pass
+```
+
+### 一条值得说的
+
+> **`unknown` 变 `fail` 不是坏消息。一条 `unknown` 是信息缺口；一条带解释的 `fail` 是信息。**
+> **而且 C4 自带的补法挂了好几轮没人做 —— 包括我。写清了怎么补的 `unknown` 只是待办，不是雾。**

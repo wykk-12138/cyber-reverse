@@ -10907,3 +10907,114 @@ TYPE_PRESENCE_TRIAGE.md 未改 —— 它本来就是对的
 
 **两个数字不一样，先问它们各自叫什么。**
 **「两边在量不同的东西」是个结论，不是个起点 —— 而它听起来像起点。**
+
+
+---
+
+## 235. 判据 (c) 复算通过；**C4 从 `unknown` 变成可判的 `fail`**
+
+> R811。`docs/PARITY_CLAIMS.md` 的 C4 行改写；`analysis/check_claims.py` 作为 (d) 的机械检查留存。
+
+### 一、判据 (c)：产物级对照可复算，**PASS**
+
+```
+python analysis\verify_artifact.py
+
+artifact: 55349248 bytes
+locale keys: 1142/1142 OK
+embedded resources: names 20/20, content 20/20 OK
+resource leaves: original 12, replica 12 OK
+result: PASS
+```
+
+**1142 个 locale 键、20 个资源（名字与内容）、12 个资源叶子，逐项对上。**
+
+### 二、判据 (d)：先确认它自己的规则，再机械核一遍
+
+`PARITY_CLAIMS.md` 自己写着判据 (d) 的满足条件：
+
+> **每条都有 `authority`，且非 unknown 者都有命令。**
+
+**`analysis/check_claims.py` 就按这一句去核表：**
+
+```
+claim rows: 5
+  **fail**  3
+  **pass**  2
+rows without an authority: 0
+non-unknown rows without a command: 0
+criterion (d) by its own stated rule: PASS
+```
+
+**所以 (d) 通过 —— 而通过的依据是它自己写下的那句话，不是我另外发明的口径。**
+
+### 三、C4 原来为什么是 `unknown`
+
+那一行写着：
+
+> 缺**原版 imphash 与完整导入集合**：`inspect_pe_imports` 对 129 MB 要求 `max_functions≥438` 且完整转储；
+> 本轮只算了复刻件。**补法：对原版跑一次并重定向到文件。**
+
+**这一轮就照它写的补法做了。** 两侧各一次 `inspect_pe_imports`：
+
+| | 原版 | 复刻件 |
+|---|---|---|
+| `coverage.status` | complete | complete |
+| `examined_dlls` | **17** | **18** |
+| `imports` | **438** | **409** |
+| `delay_imports` | 0 | 0 |
+| `imphash`（pefile/md5） | `7ed8e14777a36b89031807b561000260` | `23e3dee057b2fdead858a8f731dd9830` |
+
+**两侧都完整取到，所以这一条不再「缺证据」—— 它有了确定答案：`fail`。**
+
+### 四、差别可解释，而且验过
+
+- **复刻件多一个 `VERSION.dll`**（3 个导入：`GetFileVersionInfoSizeExW` / `GetFileVersionInfoExW` / `VerQueryValueW`）
+  —— **Avalonia 读文件版本用**
+- **原版多 ADVAPI32 的一组安全 API**（`AddMandatoryAce`、`CreateWellKnownSid`、`SetSecurityDescriptorDacl`、
+  `ImpersonateLoggedOnUser` 等）—— **AOT 运行时的 ACL/令牌族**
+- **imphash 不同是这两处之和的必然结果**
+
+**`VERSION.dll` 在原版里 0 匹配** —— 这一条我单独查过，不是推断。
+
+### 五、现在的 claim 表
+
+```
+C1 pass   两个产物是同类（PE32+/amd64/NativeAOT，无 CLR 目录）
+C2 fail   节布局（6 ↔ 9）
+C3 fail   导出面（39 ↔ 1，Brotli 静态库）
+C4 fail   导入面（17/438 ↔ 18/409）—— 本轮从 unknown 变来
+C5 pass   资源面（12 ↔ 12，逐叶子）
+```
+
+**3 fail，每条都能解释。**
+
+### 六、这一条对完成判据的意义
+
+**判据 (d) 要求「claim 表每条有 authority + 命令 + gap_reason」。**
+**C4 原来有 authority（`unknown`）但没有答案 —— 现在有答案，而且两侧数字都是工具给的、可重算的。**
+
+**`unknown` 变 `fail` 不是坏消息。** 一条 `unknown` 是信息缺口；一条带解释的 `fail` 是信息。
+
+### 七、验证
+
+```
+python analysis\verify_artifact.py          PASS
+python analysis\check_claims.py             PASS（2 pass / 3 fail，无缺口）
+本轮未改产品代码
+完整套件保持 1766 通过 / 0 失败
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 八、仍然 Unknown
+
+- **C2/C3 的 `fail` 是否该修**：**Unknown** —— 节布局与导出面由 AOT 版本与静态库决定，
+  **不是复刻件能改的**（DEVIATIONS.md 有记）。**它们是 `fail` 且不该被修，这个状态合理但读起来刺眼。**
+- **`imports` 差 29 个函数里，除上述两处外还有没有别的原因**：**没逐条比对** ——
+  **只解释了 DLL 级的两处差异，函数级的 438-409 没做集合差。**
+
+### 九、教训
+
+**`unknown` 行自带的「补法」是可执行的。**
+**C4 那一行写着「对原版跑一次并重定向到文件」，而它挂了好几轮没人做 —— 包括我。**
+**一个 `unknown` 如果写清了怎么补，它就只是一个待办，不是一块雾。**

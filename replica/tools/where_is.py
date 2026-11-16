@@ -79,6 +79,11 @@ def main(argv=None):
     ap.add_argument("--kind", choices=ORDER, help="show only one kind")
     ap.add_argument("--all", action="store_true", dest="all_kinds",
                     help="show every hit; by default at most six per kind")
+    ap.add_argument("--case", action="store_true",
+                    help="case-sensitive. Off by default because R894 claimed Vans had a module on the strength of this "
+                         "tool returning only docs: the implementation spells it 'vans', lowercase, so the search missed "
+                         "every hit and the claim was wrong. One concept shows up as a type, a variable, a string "
+                         "literal and a constant, and all four are hits.")
     ap.add_argument("--sub", action="store_true",
                     help="substring match instead of whole-word. Off by default because R884 asked for 'Drop' and "
                          "the substring form returned fifteen files, all of them DropDown and ProxyDrop hits, while "
@@ -87,8 +92,19 @@ def main(argv=None):
 
     # Whole-word by default. R884: a substring search for a short type name is dominated by longer names that
     # contain it, so the exact hit is the one most likely to be missed -- the opposite of what a lookup tool is for.
-    pat = (re.compile(re.escape(a.name)) if a.sub
-           else re.compile(r"\b" + re.escape(a.name) + r"\b"))
+    # R897: case-insensitive by default.
+    #
+    # R894 claimed Vans had a module but no endpoints, on the strength of `where_is Vans` returning only docs.
+    # The implementation spells it "vans", lowercase, in the site-id table at the end of
+    # DemandwareControllers.cs, so a case-sensitive search missed every hit. The claim was wrong and this
+    # tool produced it.
+    #
+    # Searching an identifier is almost never meant to be case-sensitive -- one concept can appear as a
+    # PascalCase type, a camelCase variable, a lowercase string literal and a SCREAMING constant, and all
+    # four are hits. --case restores strict matching for the rare call that wants it.
+    flags = 0 if a.case else re.I
+    pat = (re.compile(re.escape(a.name), flags) if a.sub
+           else re.compile(r"\b" + re.escape(a.name) + r"\b", flags))
 
     found = {k: [] for k in ORDER}
     for rel, full in walk():

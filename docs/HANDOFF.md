@@ -641,3 +641,15 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **数字**：`hostless` 覆盖 **46/67 → 56/67（68.7% → 83.6%）** · 总缺失 **105 → 95** · 套件 **1790 → 1796**。**R892 以来第一次可测的产品进步。**
 **归属 Unknown**（`OwnerIsUnknown = true`）：无字面量同时含路径与宿主 → **写常量正当，写步骤不正当**。
 **下一族**：`/commerce/v1/` 2 条 · `/product-core/v1/` 2 条 · `/legacy/v1/` 2 条 · **`/shield/v1/verify_otp`（优先级 ②）**。
+
+## R903 补充 — hostless 桶关闭 67/67 = 100%（改产品代码 +6 用例）
+
+11 条：/checkout/v1/orders · submitThreeDS2Fingerprint?token= · /commerce/v1/bags · /commerce/v1/products · /legacy/v1/account/login · /legacy/v1/users/me · /marketing/v1/verificationcodes · /payments-vas/v1/card-capture · /product-core/v1/pdp · /pdp/sku · /shield/v1/verify_otp。
+
+数字：hostless 56/67 → 67/67（100%）· 缺失 95 → 84 · 套件 1796 → 1802。
+
+而 store covered 仍是 3 —— 前两轮补的全是无宿主侧；有宿主 55 条只覆盖 3 条，那是剩下的前沿，而它需要归位而非常量。
+
+AntiBotRelated 子集让优先级 ② 可直接数。
+
+下一轮：store 那 52 条缺失清单（-v）+ /shield/v1/verify_otp 单独查。

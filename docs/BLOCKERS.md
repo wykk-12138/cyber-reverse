@@ -24627,3 +24627,68 @@ metrics_report.py         -> 1796 通过 / 0 失败
 **而前五轮的度量工作，一行产品代码也没动。**
 
 **所以度量的正确用法是：跑到能列出清单就停。R901 之后我确实停了，而清单第一条就是这一族。**
+
+
+---
+
+## 327. `hostless` 桶关闭：**67/67 = 100%**；缺失 95 → 84；套件 1802
+
+> R903。**改产品代码 +6 用例。** 套件 **1802 通过 / 0 失败 / 0 跳过**。
+
+### 一、11 条
+
+**`/checkout/v1/orders` · `/checkoutshopper/v1/submitThreeDS2Fingerprint?token=` · `/commerce/v1/bags` ·
+`/commerce/v1/products` · `/legacy/v1/account/login` · `/legacy/v1/users/me` ·
+`/marketing/v1/verificationcodes` · `/payments-vas/v1/card-capture` · `/product-core/v1/pdp` ·
+`/product-core/v1/pdp/sku` · `/shield/v1/verify_otp`**
+
+### 二、数字
+
+| 度量 | R902 | **R903** |
+|---|---|---|
+| `hostless` 覆盖 | 56/67（83.6%） | **67/67（100.0%）** |
+| 总缺失 | 95 | **84** |
+| 套件 | 1796 | **1802** |
+
+### 三、而 `store covered` 还是 3
+
+**前两轮补的全是**无宿主**那一侧。有宿主那 55 条只覆盖 3 条 —— 那是剩下的前沿。**
+
+**而它更难：无宿主的路径只要常量就够；有宿主的要先搞清「哪条路径属哪个站」，
+而镜像对很多条只给了路径与宿主，没给步骤。**
+
+### 四、两处特意做的标注
+
+1. **`AntiBotRelated` 子集**：`ShieldVerifyOtp` + `ThreeDs2Fingerprint` → **优先级 ② 覆盖可直接数**
+2. **`ThePlatformWordsArePreserved`**：`bags` · `pdp` · `shield` · `verificationcodes`（复数）
+   **都是镜像的词，不是命名不一致** —— 断言防将来「规范化」改掉
+
+### 五、验证
+
+```
+endpoint_coverage.py -v       -> 11 条 hostless 缺失（列出全部）
+SharedCommerceEndpoints.cs    -> 新建，11 常量 + OwnerIsUnknown + AntiBotRelated
+test --filter SharedCommerce  -> 6 通过
+endpoint_coverage.py          -> hostless 67/67 = 100.0%，missing 84，store covered 3
+metrics_report.py             -> 1802 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **这 11 条属哪个站**：**Unknown** —— 同 R902。
+- **`/shield/v1/verify_otp` 具体校验什么**：**Unknown** —— 只有路径；
+  **而它是优先级 ② 的第一个具体端点，值得下一轮单独查。**
+- **`store` 那 55 条里 52 条缺失的具体清单**：**Unknown** —— `-v` 能列，下一轮取。
+- **`bags` 与 `cart` 是不是同一件事的两种叫法**：**Unknown。**
+
+### 七、教训
+
+**两轮补完 21 条无宿主路径，`hostless` 桶从 68.7% 到 100%。**
+
+**而这个 100% 有个前提：那 67 条里没有一条需要「知道属哪个站」才能补。
+常量就是路径，路径是观察，所以能补。**
+
+**有宿主那 55 条不同：「这条路径属 Nike 的哪个步骤」需要步骤级证据。
+所以那 52 条缺失不是常量工作，是**归位**工作。**
+
+**100% 这个数好看，但它好看是因为这一侧的活容易。**

@@ -4676,3 +4676,38 @@ https://www.vans.com/api/products/v2/products/
 | **`/shield/v1/verify_otp`** | **优先级 ②** |
 
 **纪律**：**度量跑到能列清单就停 —— 再往后的精度不如一行常量。**
+
+
+## 优先级 ① — `hostless` 桶关闭 67/67（R903，**改产品代码 +6 用例**）
+
+### 11 条
+
+**`/checkout/v1/orders` · `/checkoutshopper/v1/submitThreeDS2Fingerprint?token=` · `/commerce/v1/bags` · `/commerce/v1/products` ·
+`/legacy/v1/account/login` · `/legacy/v1/users/me` · `/marketing/v1/verificationcodes` · `/payments-vas/v1/card-capture` ·
+`/product-core/v1/pdp` · `/product-core/v1/pdp/sku` · `/shield/v1/verify_otp`**
+
+### 数字
+
+| 度量 | R902 | **R903** |
+|---|---|---|
+| `hostless` | 56/67（83.6%） | **67/67（100.0%）** |
+| 缺失 | 95 | **84** |
+| 套件 | 1796 | **1802** |
+
+### 而 `store covered` 仍是 3
+
+**无宿主侧补完 ≠ 有宿主侧补完。有宿主 55 条只覆盖 3 条。**
+
+### 两处标注
+
+**`AntiBotRelated`（`ShieldVerifyOtp` + `ThreeDs2Fingerprint`）→ 优先级 ② 可直接数**
+**`ThePlatformWordsArePreserved`：`bags`/`pdp`/`shield`/`verificationcodes` 是镜像的词，非命名不一致**
+
+| 仍 Unknown | |
+|---|---|
+| 11 条属哪个站 | 同 R902 |
+| **`/shield/v1/verify_otp` 校验什么** | **优先级 ② 第一个具体端点** |
+| store 55 里 52 条缺失清单 | `-v` 可列 |
+| `bags` 与 `cart` 是否同义 | 不同站可能同角色 |
+
+**纪律**：**100% 好看，但要问它为什么好看 —— 这一侧只要常量；那一侧要「归位」。**

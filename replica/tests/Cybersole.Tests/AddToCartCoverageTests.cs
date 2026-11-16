@@ -83,7 +83,7 @@ public class AddToCartCoverageTests
 
     /// <summary>The one gap that does not wait on endpoint evidence is recorded separately.</summary>
     [Fact]
-    public void TheDummyPathIsTheIndependentOne()
+    public void TheDummyPathIsPrimingNotADryRun()
     {
         // internal const, so read it the same way as the counts rather than depending on friend access
         var gap = (string)typeof(AddToCartCoverage)
@@ -94,8 +94,11 @@ public class AddToCartCoverageTests
         Assert.False(AddToCartCoverage.IsImplemented(gap));
         Assert.False(AddToCartCoverage.HasSurfaceWithoutStep(gap));
 
+        // R941 corrected this row: the dummy is a placeholder item for cart priming, not a dry run, so the note no
+        // longer claims it needs no endpoint evidence -- it needs a per-shop placeholder instead, which is a different
+        // kind of unknown.
         var row = Rows().Single(r => r.Name == "AddToCartDummy");
-        Assert.Contains("no endpoint evidence", row.Note);
+        Assert.Contains("cart priming", row.Note);
     }
 
     /// <summary>An unknown name is not implemented, and the answer is false rather than an exception.</summary>

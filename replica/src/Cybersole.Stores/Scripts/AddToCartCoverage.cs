@@ -41,7 +41,9 @@ public static class AddToCartCoverage
         ("AddToCartApp", true, "app client path"),
         ("AddToCartAppDw", true, "app client on Demandware"),
         ("AddToCartBox", true, "PopMart draw step"),
-        ("AddToCartDummy", false, "named only: a dry run, the one of the five needing no endpoint evidence"),
+        // R941: the note said a dry run, which was wrong. AddToCartDummy is followed immediately by RemoveDummy, so it is
+        // a placeholder item added early and removed later -- cart priming. The name is about the item, not the call.
+        ("AddToCartDummy", false, "named only: cart priming with RemoveDummy, not a dry run"),
         ("AddToCartGraphQL", true, "GraphQL transport"),
         ("AddToCartMulti", true, "multi-item cart"),
         ("AddToCartPreload", true, "cart preload"),
@@ -60,7 +62,10 @@ public static class AddToCartCoverage
         "AddToCartNext", "AddToCartAstro", "AddToCartSvelte", "AddToCartFrontend",
     };
 
-    /// <summary>The name whose absence does not depend on endpoint evidence.</summary>
+    /// <summary>
+    /// The name whose absence was thought not to depend on endpoint evidence, which R941 corrected: it is cart
+    /// priming, so what it needs is a placeholder item rather than a recovered cart address -- a per-shop datum.
+    /// </summary>
     internal const string IndependentGap = "AddToCartDummy";
 
     /// <summary>The counts, stated rather than derived, so a reader comparing them with an earlier figure sees the split.</summary>

@@ -55907,3 +55907,55 @@ AddToCart · App · AppDw · Box · Dummy · GraphQL · Multi · Preload · Prel
 > **「13/13」是一个**会让人停止查看**的数字，而它是真的 —— 每个名字都在源码里出现过。
 > 所以「在源码里出现过」对「实现了吗」这个问题**不够**，
 > 而它不够的方式很安静：**它给的是一个满分。**
+
+
+---
+
+## 第 941 轮：`Dummy` 是购物车预热，不是 dry run
+
+### 四条连号
+
+```
+<GetProduct>d__45 · <AddToCartDummy>d__46 · <AddToCartMulti>d__47 · <RemoveDummy>d__48
+```
+
+**一个 add 紧跟它的 remove —— 不是 dry run 也不是 test，是**预热**：
+提前加一个便宜的占位商品、稍后移除，让真正的加车**复用一辆已存在的车**。**
+
+> **`Dummy` 说的是**那件商品**是占位，不是**那次调用**是假的。**
+
+### 邻居把店也描出来了
+
+```
+Login · LoginVerify2FA · EnableTwoFactor · Register · FetchBalance
+CheckFanRewardStat · EnterSweepStakesRaffle
+```
+
+**余额 · 粉丝奖励 · 抽奖 → 一家**有会员体系**的店（Inference，标注了）。
+也解释了为什么占位商品便宜。**
+
+### 「唯一不依赖端点证据」也错了
+
+**它需要的是**一个占位商品**，不是 car地址 —— 那是**按店不同的数据**，不是按框架不同的代码。**
+**所以不是「不依赖证据」，是「依赖另一种证据」。**
+
+### 而这一轮抓到两处旧断言
+
+**① 我自己的 `DoesNotContain("dry run")` —— 而注释写的是「not a dry run」。
+② R940 的 `TheDummyPathIsTheIndependentOne` 断言「no endpoint evidence」—— 正是被纠正掉的说法。**
+
+**两处都改成断言纠正后的说法，并改名为 `TheDummyPathIsPrimingNotADryRun`。**
+
+### 数字
+
+| 度量 | R940 | **R941** |
+|---|---|---|
+| 套件 | 2012 | **2023** |
+| 产物陈旧度 | 7 / 752 | **8 / 832** |
+| 三轮里被纠正的名字 | 2 | **3（+ Dummy）** |
+
+### 教训
+
+> **三轮，三个名字被纠正：`Frontend`（伞）· `Box`（PopMart 一步）· `Dummy`（占位不是空）。
+> 三个都是**同一个判据**能抓的：**看它旁边是谁**。**
+> **所以那条判据不是「别相信名字」，而是**名字只能提出假设，连号才能确认**。**

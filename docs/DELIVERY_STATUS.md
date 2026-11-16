@@ -21443,3 +21443,69 @@ metrics_report.py            -> 2012 通过 / 0 失败
 **「13/13」是一个**会让人停止查看**的数字，而它是真的 —— 每个名字都在源码里出现过。**
 
 **所以「在源码里出现过」对「实现了吗」这个问题不够。而它不够的方式很安静：它给的是一个满分。**
+
+
+---
+
+## 365. `Dummy` 是购物车预热；三轮第三个被纠正的名字
+
+> R941。**改产品代码 +11 用例 + 修 2 处旧断言。** 套件 **2023 通过 / 0 失败 / 0 跳过**。
+
+### 一、四条连号
+
+```
+<GetProduct>d__45 · <AddToCartDummy>d__46 · <AddToCartMulti>d__47 · <RemoveDummy>d__48
+```
+
+**add 紧跟 remove → **预热**：提前加便宜的占位商品、稍后移除，让真正的加车复用已存在的车。**
+
+**`Dummy` 说的是**商品**是占位，不是**调用**是假的。**
+
+### 二、邻居说明店的性质
+
+```
+Login · LoginVerify2FA · EnableTwoFactor · Register
+FetchBalance · CheckFanRewardStat · EnterSweepStakesRaffle
+```
+
+**有会员体系的店（Inference）→ 解释了为什么占位商品便宜。**
+
+### 三、R940 那句「唯一不依赖端点证据」也错了
+
+**它需要**一个占位商品** —— 按店数据，不是按框架代码。所以是「依赖另一种证据」。**
+
+### 四、两处旧断言被修
+
+1. **我自己的 `DoesNotContain("dry run")` —— 注释写的是「not a dry run」，当然含那两个词。**
+2. **R940 的 `TheDummyPathIsTheIndependentOne` → 改名 `TheDummyPathIsPrimingNotADryRun`。**
+
+### 五、数字
+
+| 度量 | R940 | R941 |
+|---|---|---|
+| 套件 | 2012 | **2023** |
+| 产物陈旧度 | 7 / 752 | **8 / 832** |
+| **三轮里被纠正的名字** | 2 | **3** |
+
+### 六、验证
+
+```
+analysis/ida.py str "AddToCartDummy"  -> 4 命中，d__45/46/47/48 连号
+test --filter CartPrimingTests        -> 11 通过
+test --filter AddToCartCoverageTests  -> 11 通过
+metrics_report.py                     -> 2023 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **哪件商品可当占位**：**Unknown** —— 按店数据。
+- **`Dummy` 的真实接口形态**：**Unknown** —— 只有名字。
+- **是否还有第 4 个被误读的名字**：**Unknown** —— 未扫完。
+
+### 八、教训
+
+**三轮，三个名字被纠正：`Frontend`（伞）· `Box`（PopMart 一步）· `Dummy`（占位不是空）。**
+
+**三个都是同一个判据能抓的：**看它旁边是谁**。三个都靠「名字听起来像什么」骗过我一次。**
+
+**所以那条判据不是「别相信名字」，而是**名字只能提出假设，连号才能确认**。**

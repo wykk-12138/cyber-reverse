@@ -1201,3 +1201,19 @@ AddToCartDummy 是五个里唯一不依赖端点证据的。
 纪律：「在源码里出现过」对「实现了吗」不够 —— 它不够的方式很安静：给的是一个满分。
 
 下一轮：AddToCartDummy（唯一不依赖端点证据的缺口）。
+
+## R941 补充 — Dummy 是购物车预热，不是 dry run（+11 用例 + 修 2 处旧断言，套件 2023）
+
+四条连号 d__45 GetProduct · d__46 AddToCartDummy · d__47 AddToCartMulti · d__48 RemoveDummy → add 紧跟 remove = 预热（提前加占位商品、稍后移除，让真正加车复用已存在的车）。
+
+邻居 Login/2FA/Register/FetchBalance/CheckFanRewardStat/EnterSweepStakesRaffle → 有会员体系的店（Inference）。
+
+R940 那句「唯一不依赖端点证据」也错了：它需要一个占位商品（按店数据），不是 car地址。
+
+两处旧断言被修：我的 DoesNotContain("dry run")；R940 的 TheDummyPathIsTheIndependentOne → 改名 TheDummyPathIsPrimingNotADryRun。
+
+数字：套件 2012 → 2023 · 陈旧度 7/752 → 8/832 · 三轮里被纠正的名字 2 → 3。
+
+纪律：名字只能提出假设，连号才能确认。
+
+下一轮：扫是否还有第 4 个被误读的名字（用连号判据）。

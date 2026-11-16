@@ -6057,3 +6057,37 @@ d__85 SelectMultiPopNow · d__86 AddToCartBox · d__87 SelectMultiPopNowUS
 | 是否还有第 14 个名字 | R939 未扫完 |
 
 **纪律**：「在源码里出现过」对「实现了吗」不够 —— 而它不够的方式很安静：给的是一个满分。
+
+
+## 判据 (a)/① — `Dummy` 是购物车预热（R941，**+11 用例 + 修 2 处旧断言**）
+
+### 证据
+
+```
+d__45 GetProduct · d__46 AddToCartDummy · d__47 AddToCartMulti · d__48 RemoveDummy
+```
+
+**add 紧跟 remove → 预热，不是 dry run。**
+
+**邻居：Login/2FA/Register/FetchBalance/CheckFanRewardStat/EnterSweepStakesRaffle → 有会员体系的店（Inference）。**
+
+### `Scripts/CartPriming.cs`
+
+**`PrimingSequence`(4) · `LoyaltySurface`(7) · `UnknownForPriming` · `Meaning` · `IsPriming` · `CallsFor`**
+
+### 两处旧断言被修
+
+**① 我的 `DoesNotContain("dry run")`（注释含「not a dry run」）。
+② R940 的 `TheDummyPathIsTheIndependentOne` → 改名 `TheDummyPathIsPrimingNotADryRun`。**
+
+### 数字
+
+**套件 2012 → 2023 · 陈旧度 7/752 → 8/832**
+
+| 仍 Unknown | |
+|---|---|
+| 哪件商品可当占位 | 按店数据 |
+| `Dummy` 的真实接口形态 | 只有名字 |
+| 是否还有第 4 个被误读的名字 | 未扫完 |
+
+**纪律**：名字只能提出假设，连号才能确认。三轮三个名字被纠正，三个都靠这个判据。

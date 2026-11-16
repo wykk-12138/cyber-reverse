@@ -12024,3 +12024,82 @@ python analysis\scan_url_ignoring.py   报 22 个重写、3 个忽略
 
 **另一条**：**在「一个文件里有多个类」的结构上，用「最近的前缀 class」当归属一定会错。**
 **这与 R764 同族 —— 那次是花括号，这次是类归属，共同点是假设了结构的平坦。**
+
+
+---
+
+## 246. 忽略 `c.Url` 的流程：**3 个，与用例例外名单正好对上**
+
+> R822。`analysis/scan_url_ignoring4.py`（留存）。未改产品代码。
+
+### 一、前三次都错在「近似方法边界」
+
+| 版本 | 做法 | 错在哪 |
+|---|---|---|
+| ①R821 | 整个文件找重写 + 「之前最后一个 `class X`」当归属 | `RetailFlows.cs` 七个类，前面的重写全算到最后一个头上（`CasioFlow` 被记 7 个，`YeezySupplyFlow` 9 个） |
+| ②R822a | 真花括号配对切类体 | **字符串/注释里的 `{` 让类体跑过边界** —— 与 R764 同族 |
+| ③R822b | 缩进切类 + 「后面 40 行」当方法体 | 窗口越过方法末尾，`PoqAppFlow` 因为下一个方法里有 `c.Url` 被误判为「用了」 |
+| ④R822c | **缩进切类 + 截到下一个成员声明** | 自洽 |
+
+### 二、第四版的两个自检都过
+
+```
+overrides found: 22
+classes with more than one: none          <- 归属不再重复
+not reading c.Url: 3
+  NikeFlow         https://www.nike.com/ ×2   12 lines   NikeFlow.cs
+  PoqAppFlow       (no literal host)          15 lines   PoqAppFlow.cs
+  SuperswipeFlow   (no literal host)          13 lines   RetailFlows.cs
+```
+
+- **「没有类有多个重写」** —— 前三版都违反这条
+- **`PoqAppFlow` 15 行** —— 与 R820 我手读的 `126–139` 行一致
+- **`CasioFlow` 出现 1 次**（前几版 7 次）
+- **`YeezySupplyFlow` 用 `c.Url`（26 行）** —— 撤回 R821 对它的怀疑
+
+### 三、最要紧的一致性
+
+**这 3 个流程，正是 `Monitor_Survives_An_Unreachable_Host` 例外名单里的那 3 个：**
+
+```
+用例例外:  nike, nike-gs, superswipe, poq-app
+扫描结果:  NikeFlow, SuperswipeFlow, PoqAppFlow      (nike-gs 继承 NikeFlow)
+```
+
+**两个来源独立得到同一组 —— 用例的例外名单不是我为了让它绿而随便加的，它对应的是「不看传入 URL」这一类流程。**
+
+**所以 R820 那次改动得到了独立印证：`poq-app` 加进名单是对的，而且名单是完整的。**
+
+### 四、这条 Unknown 结案
+
+R820 的 Unknown：「还有谁忽略 `c.Url` —— 忽略 URL 却不回 403 的流程会静默通过测试」。
+
+**答案**：**3 个，全部已在用例例外名单里。** **不存在「静默通过」的漏网者。**
+
+**R821 那个「3」是巧合 —— 它含一个假阳性（`YeezySupplyFlow`）、漏一个真阳性（`SuperswipeFlow` 之一）。**
+**错的答案和正确答案数字相同，这个现象本身值得记：只核总数会放过它（AGENTS.md §2.7 第二条）。**
+
+### 五、验证
+
+```
+python analysis\scan_url_ignoring4.py    22 / 3 / 无重复归属
+与 ModuleRobustnessTests 例外名单逐条核对：一致
+本轮未改产品代码
+完整套件保持 1766 通过 / 0 失败
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 六、仍然 Unknown
+
+- **这 3 个流程忽略 `c.Url` 是对的还是错的**：**Unknown** —— 它们的表面是「按客户/按站点寻址的 API」，
+  **传入 URL 本就无关；但也可能是本该用 URL 的实现遗漏了。判据在镜像里，本轮没查。**
+- **`c.Url` 在其余 19 个重写里都是被真正使用，还是只是出现**：**Inference（中）** ——
+  本版只判「体内是否出现 `c.Url`」，**没判它后面的表达式是否参与请求构造。**
+- **`SuperswipeFlow` 那两个「无字面 host」是怎么拼 URL 的**：**没读。**
+
+### 七、教训
+
+**四个版本里，前三个都错，而错法是同一族**：**用一个近似去代替真边界，再用近似的结果当事实。**
+
+**另一个更值得记的**：**R821 版报「3」，正确答案也是「3」—— 但两个集合不同。**
+**只核总数会放过它。** **这次是靠「没有类该有多个重写」这条不变量发现的，不是靠对照答案。**

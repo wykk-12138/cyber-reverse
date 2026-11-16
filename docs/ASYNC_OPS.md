@@ -1375,3 +1375,39 @@ sequence.Count  24 不变
 
 **第二条是唯一还没试的静态路，而它有具体形态：`&storeUniqCode=1` 后面一定跟着某个 URL 或路径串。**
 **本轮没查 —— 那是下一轮第一件事。**
+
+
+### `&storeUniqCode=1` 是**查询片段表里的一条**，不是某个 URL 的拼接（R875）
+
+**R874 说「找到它拼在谁后面，就知道哪个页面带它」。查了那一段（`0x146a85000`–`0x146a8C000`）：
+
+**`335` 条，按字母序排列，全是查询片段：**
+
+```
+&paypal_client_cfci=   &pid=        &pl=5        &plannedCartLines=   &pm=no
+&provider=             &quantity=   &quantity=1  &redirect_uri=       &referer=
+&response_type=code&…  &returnUrl=  &rt_api=     &scope=              &sessionToken=
+&shipping_address[zip]=               &shop=      &sitekey=            &sku=
+&storeId=              &storeKey=    &storeUniqCode=1   &successURL=   &tempSaveID=
+```
+
+**这是一张**查表**：代码要拼查询串时从这里取片段，不是每条都绑在某个特定 URL 上。**
+
+**所以 R874 那条路走不通 —— 不是「没找到宿主」，是**没有宿主**。**
+
+### 而它带来一个更重要的更正
+
+**`&storeUniqCode=1` 的值**写死为 `1`**。它是一个**标志位**（「要带 store uniq code」），
+而不是一个计算出来的编码。**
+
+**R850 把它和 `_uniqCode` / `currentUniqCode` / `storeUniqCode` 归成「draw 参数记号」，四者并列。
+现在看它们**不是同一类东西**：**
+
+| 记号 | 性质 |
+|---|---|
+| `_uniqCode` | **属性后备字段** —— 值在运行时 |
+| `currentUniqCode` · `storeUniqCode` | **属性名** —— 值在运行时 |
+| **`&storeUniqCode=1`** | **固定标志位** —— 值恒为 1，无需来源 |
+
+**所以「`uniqCode` 从哪来」这个问题，因为这条被排除而变窄了：它不是三个未知里最难的那个，
+它是**两个运行时属性**的问题，而第三个根本不需要来源。**

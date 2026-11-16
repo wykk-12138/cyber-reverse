@@ -19792,3 +19792,104 @@ python analysis\partition_steps.py
 **而关键点是：这个数变小不是因为我放宽了标准，是因为我做了一个检查。**
 **上一轮我说「一个错的总数比没有总数更坏」；这一轮是它的正面对照 ——
 一个查清了构成的总数，比一个吓人的总数有用得多。**
+
+
+---
+
+## 270. `demandware-dual` 9 条 **R124 已答完**；26 塌成 17 —— 而这是第三次同样的事
+
+> R846。未改产品代码。
+
+### 一、我想判那 9 条，结果发现早就判过了
+
+`demandware-dual` 的 9 条：`StartAppFast` `StartAppSafe` `GetSessionDw` `GetCartDw`
+`AddToCartAppDw` `SaveSessionDw` `ApplyDiscountApp` `GetCheckoutApp` `GetRatesApp`。
+
+**`replica/src/Cybersole.Stores/Flows/ScapiAppPath.cs`（94 行，R124）已经把它们按「哪一侧有端点」分完：**
+
+| 类别 | 步骤 |
+|---|---|
+| app 侧有端点 | `StartAppFast` `StartAppSafe` → `getAccessToken`；`AddToCartApp` → `addItemToBasket` |
+| dw 侧有控制器 | `GetSessionDw` `GetCartDw` → `Cart-Get`；`AddToCartAppDw` → `Cart-AddProduct` |
+| **app 侧无端点** | `ApplyDiscountApp` `GetCheckoutApp` `GetRatesApp` `SubmitOrderApp` |
+
+**而且它给出了那个结构性事实：**
+
+> **the SCAPI family has no orders endpoint: create/add/update baskets and two login calls only,
+> so an app-path order must cross back to the classic controllers**
+
+**这解释了「为什么 15 步里两套词汇并存」—— 不是两条完整路径，是「app 侧起手、必须拐回经典控制器收尾」。**
+
+**所以这 9 条：3 条映射到已实现端点，4 条本来就没有端点（因此不需要实现），1 条 `SaveSessionDw` 在 dw 侧同族。
+不需要新工作。**
+
+### 二、`DemandwareFlow` 里 SCAPI 那条路确实写着
+
+```
+/// R107: the image drives SFCC two ways. When the store hands out an SCAPI token the basket
+/// calls go through /scapi/ShopperBaskets/*; otherwise the classic demandware.store
+var scapi = await AddToCartViaScapiAsync(c, token, ct);
+if (scapi is not null) return scapi.Value;
+```
+
+**加上 `scapi.token` / `scapi.basketId` / `scapi.organizationId` 三个 session 变量。
+所以「双路」在复刻件里是「一个方法内部分叉」，不是两组独立步骤。**
+
+### 三、26 塌成 17
+
+| 流程 | R845 待判 | R846 后 |
+|---|---|---|
+| demandware-dual | 9 | **0（R124 已答）** |
+| johnlewis | 8 | 8 |
+| demandware-classic | 5 | 5 |
+| collectplus-app | 4 | 4 |
+| **合计** | **26** | **17** |
+
+### 四、这是第三次
+
+| 轮 | 我造了什么 | 仓里早已有 |
+|---|---|---|
+| R838–R842 | 从元数据提 115 个名字 | `StoreFlowSteps.cs`（R112）9 个流程带 ordinal 的步骤表 |
+| R844–R845 | 108 条不同名 | `StoreFlow` 基类 165 个虚步骤（一条 grep 就够） |
+| **R846** | **demandware-dual 9 条待判** | **`ScapiAppPath.cs`（R124）已按端点分完** |
+
+**三次都是同一个动作：我基于「名字对不对得上」造一个待判清单，而仓里有一份「按语义分好的」。**
+
+### 五、下一次怎么做（写成规则）
+
+**每批裁决前，先 grep 仓库里有没有以该流程/该主题命名的分析文件。**
+
+```
+ls replica/src/Cybersole.Stores/Flows/*.cs | grep -i <flow-or-topic>
+```
+
+**R843 的 `StoreFlowSteps`、R846 的 `ScapiAppPath`、以及 `JohnLewisStepMap.cs` `NikeSteps.cs`
+`NikePersistedOperations.cs` `DemandwareControllers.cs` `DemandwareStepMap.cs` —— 这些名字都提示「这里有一份分析」。**
+
+**而 `johnlewis` 那 8 条待判里有 `JohnLewisStepMap.cs`，`nike` 那批有 `NikeSteps.cs`。
+所以下一轮该做的不是「判 johnlewis 8 条」，是「先读 `JohnLewisStepMap.cs`」。**
+
+### 六、验证
+
+```
+replica\src\Cybersole.Stores\Flows\ScapiAppPath.cs   94 行，R124
+  AppWithEndpoint 3 · DwWithEndpoint 3 · AppWithoutEndpoint 4 · AccountedCount 10
+  NoOrdersEndpoint: "the SCAPI family has no orders endpoint …"
+DemandwareFlow.cs: AddToCartViaScapiAsync + scapi.token/basketId/organizationId
+本轮未改产品代码
+七项度量沿用
+```
+
+### 七、仍然 Unknown
+
+- **`johnlewis` 8 条**：**Unknown** —— 但**下一轮先读 `JohnLewisStepMap.cs`，不是先判**。
+- **`demandware-classic` 5 条**：**Unknown** —— `DemandwareControllers.cs` `DemandwareStepMap.cs` 可能已有。
+- **`collectplus-app` 4 条**：**Unknown** —— 未见同名分析文件，**可能是真的待判。**
+
+### 八、教训
+
+**三次同样的错，说明这不是疏忽，是方法缺一步：**
+**我总是在「名字对齐」这一层建清单，然后往「语义」这一层爬。而仓里那些分析文件已经在语义层了。**
+
+**规则：先 grep 同名分析文件，再建待判清单。**
+**否则会把已经答完的问题重新问一遍 —— 而重新问一遍的代价不是时间，是让文档里出现一份「待判 26 条」的假清单。**

@@ -50857,3 +50857,61 @@ NikeFlow 17 重写 ∩ 镜像 16 步 = 2 · Pop Mart 24 步中抽签/展览/预�
 
 > **这个数变小不是因为我放宽了标准，是因为我做了一个检查。**
 > **上一轮说「一个错的总数比没有总数更坏」；这一轮是正面对照 —— 一个查清了构成的总数，比一个吓人的总数有用得多。**
+
+
+---
+
+## 第 846 轮：`demandware-dual` 9 条 R124 已答完；26 塌成 17
+
+### 我想判，发现早就判过了
+
+`ScapiAppPath.cs`（94 行，R124）已把 15 步按「哪一侧有端点」分完：
+
+| 类别 | 步骤 |
+|---|---|
+| app 侧有端点 | `StartAppFast` `StartAppSafe` → `getAccessToken`；`AddToCartApp` → `addItemToBasket` |
+| dw 侧有控制器 | `GetSessionDw` `GetCartDw` → `Cart-Get`；`AddToCartAppDw` → `Cart-AddProduct` |
+| **app 侧无端点** | `ApplyDiscountApp` `GetCheckoutApp` `GetRatesApp` `SubmitOrderApp` |
+
+**结构性事实**：
+
+> **the SCAPI family has no orders endpoint … so an app-path order must cross back to the classic controllers**
+
+**这解释了「为什么 15 步两套词汇并存」—— 不是两条完整路径，是「app 起手、拐回经典控制器收尾」。**
+
+**`DemandwareFlow` 里 SCAPI 那条路确实写着**（`AddToCartViaScapiAsync` + 三个 `scapi.*` 变量）——
+**「双路」在复刻件里是「一个方法内部分叉」。**
+
+### 26 → 17
+
+| 流程 | R845 | R846 |
+|---|---|---|
+| demandware-dual | 9 | **0** |
+| johnlewis | 8 | 8 |
+| demandware-classic | 5 | 5 |
+| collectplus-app | 4 | 4 |
+| **合计** | **26** | **17** |
+
+### 这是第三次同样的事
+
+| 轮 | 我造了什么 | 仓里早已有 |
+|---|---|---|
+| R838–R842 | 115 个名字 | `StoreFlowSteps.cs`（R112） |
+| R844–R845 | 108 条不同名 | `StoreFlow` 165 虚步骤（一 grep 就够） |
+| **R846** | **demandware-dual 9 条** | **`ScapiAppPath.cs`（R124）** |
+
+### 写成规则
+
+**每批裁决前先 **`ls replica/src/Cybersole.Stores/Flows/*.cs | grep -i <flow-or-topic>`**。**
+**`JohnLewisStepMap.cs` `NikeSteps.cs` `DemandwareStepMap.cs` `DemandwareControllers.cs` —— 这些名字都提示「这里有一份分析」。**
+
+> **下一轮该做的不是「判 johnlewis 8 条」，是「先读 `JohnLewisStepMap.cs`」。**
+
+### 仍然 Unknown
+
+**johnlewis 8**（先读 `JohnLewisStepMap.cs`）· **demandware-classic 5**（`DemandwareStepMap.cs` 可能已有）· **collectplus-app 4**（未见同名分析文件，**可能真的待判**）
+
+### 教训
+
+**三次同样的错不是疏忽，是方法缺一步：我总在「名字对齐」这层建清单，然后往「语义」层爬。而仓里的分析文件已经在语义层。**
+**代价不是时间，是文档里出现一份「待判 26 条」的假清单。**

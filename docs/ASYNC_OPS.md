@@ -299,3 +299,25 @@
 
 **注意 `structure-token-*` 那两行：基类全有 —— 也就是说那 4 个「同名」之外，剩下的基类都实现了。
 R844 里我对这两行的映射（指向共用文件）导致的「不同名」全部落在基类一侧。**
+
+
+### demandware-dual 9 条：R124 已答完（R846）
+
+**`replica/src/Cybersole.Stores/Flows/ScapiAppPath.cs`（R124）已经把 15 步按「哪一侧有端点」分完：**
+
+| 类别 | 步骤 | 端点 |
+|---|---|---|
+| app 侧有端点 | `StartAppFast` · `StartAppSafe` | `/scapi/ShopperLogin/getAccessToken` |
+| app 侧有端点 | `AddToCartApp` | `/scapi/ShopperBaskets/addItemToBasket` |
+| dw 侧有控制器 | `GetSessionDw` · `GetCartDw` | `demandware.store` Cart-Get |
+| dw 侧有控制器 | `AddToCartAppDw` | `demandware.store` Cart-AddProduct |
+| **app 侧无端点** | `ApplyDiscountApp` · `GetCheckoutApp` · `GetRatesApp` · `SubmitOrderApp` | **无 —— 必须回到站点自身** |
+
+**结构性事实（`ScapiAppPath.NoOrdersEndpoint`）：**
+
+> the SCAPI family has no orders endpoint: create/add/update baskets and two login calls only,
+> so an app-path order must cross back to the classic controllers
+
+**而 `DemandwareFlow` 里 SCAPI 那条路是真的写着**（`AddToCartViaScapiAsync` + `scapi.token`/`scapi.basketId`/`scapi.organizationId`）。
+
+**所以这 9 条不需要新工作 —— 三条映射到已实现的端点，四条本来就没有端点。**

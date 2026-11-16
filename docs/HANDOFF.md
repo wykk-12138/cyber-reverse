@@ -206,3 +206,10 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 `analysis/partition_steps.py`：`StoreFlow` 165 虚步骤里已含 108 条中的 **49 条**（无缺口，只是没重写）。
 剩 59 条：**24 PopMart（17 已证没有 + 7 未判）· 9 Nike（R843 已定性粒度）· 9 demandware-dual（App/Dw 双路）· 8 johnlewis（Stripe+交付回调）· 5 classic · 4 collectplus** → **剩 26 条要分别判**。
 **「基类有」证明方法存在，不证明对它这个站行为正确。**
+
+## R846 补充 — demandware-dual 结案；26 → 17
+
+**`ScapiAppPath.cs`（R124）已把 dual 15 步按端点分完**：app 有端点 3 · dw 有控制器 3 · **app 无端点 4**。
+**NoOrdersEndpoint**：「SCAPI 家族没有 orders 端点 → app 起手必须拐回经典控制器收尾」。
+**剩 17 条**：johnlewis 8 · demandware-classic 5 · collectplus-app 4。
+**第三次同样的错** —— 规则：**每批裁决前先 `ls Flows/*.cs | grep -i <flow>`**。下一轮先读 `JohnLewisStepMap.cs`，不是先判 johnlewis。

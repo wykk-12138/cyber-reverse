@@ -2713,3 +2713,39 @@ Nike 16 · **Pop Mart 24** · John Lewis 17 · Demandware 经典 12 / 双路 15 
 | popmart 7 步 | 未判 |
 
 **纪律**：**数变小不是因为放宽标准，是因为做了一次检查。**
+
+
+## 判据 (f) — demandware-dual 结案（R846）：26 → 17
+
+**`ScapiAppPath.cs`（R124）已答完 dual 的 9 条：**
+
+| 类别 | 步骤 |
+|---|---|
+| app 侧有端点 | `StartAppFast` `StartAppSafe` → `getAccessToken`；`AddToCartApp` → `addItemToBasket` |
+| dw 侧有控制器 | `GetSessionDw` `GetCartDw` → `Cart-Get`；`AddToCartAppDw` → `Cart-AddProduct` |
+| **app 侧无端点** | `ApplyDiscountApp` `GetCheckoutApp` `GetRatesApp` `SubmitOrderApp` |
+
+> **NoOrdersEndpoint：「the SCAPI family has no orders endpoint … an app-path order must cross back to the classic controllers」**
+> **→ 15 步两套词汇不是两条完整路径，是「app 起手、经典控制器收尾」。**
+
+### 剩余
+
+| 流程 | 条数 |
+|---|---|
+| johnlewis | 8 |
+| demandware-classic | 5 |
+| collectplus-app | 4 |
+| **合计** | **17** |
+
+### 第三次同样的错 → 规则
+
+| 轮 | 造了什么 | 仓里早已有 |
+|---|---|---|
+| R838–R842 | 115 名字 | `StoreFlowSteps.cs`（R112） |
+| R844–R845 | 108 不同名 | `StoreFlow` 165 虚步骤 |
+| **R846** | dual 9 条 | **`ScapiAppPath.cs`（R124）** |
+
+**规则**：**每批裁决前 `ls replica/src/Cybersole.Stores/Flows/*.cs | grep -i <flow-or-topic>`。**
+**下一轮先读 `JohnLewisStepMap.cs`，不是先判 johnlewis 8 条。**
+
+**纪律**：**代价不是时间，是文档里出现一份「待判 26 条」的假清单。**

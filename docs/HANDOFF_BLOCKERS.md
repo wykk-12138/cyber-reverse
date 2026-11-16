@@ -158,3 +158,8 @@ python replica\tools\metrics_report.py --skip-tests   # 确认度量与 METRICS.
 ```
 
 然后读 `docs/COMPLETION_AUDIT.md`（一页纸，终审表），再按上面的路线走。
+
+
+## 证据种类总表
+
+`docs/EVIDENCE_CLASSES.md` —— **量任何东西之前先读它**：原版能提供十类证据，其中第 7 类（盘上的 5.18.35）从未用于本任务。

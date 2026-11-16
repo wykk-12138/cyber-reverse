@@ -22483,3 +22483,72 @@ metrics_report.py             -> 2097 通过 / 0 失败，比 62.73%
 ### 八、教训
 
 **「死代码」是错的词：代码没有死活，只有可达不可达；不可达需要的不是重写，是一句调用。**
+
+
+---
+
+## 380. 支付键名改成镜像的；captcha 与网关成对
+
+> R956。**改产品代码 +4 用例。** 套件 **2101 通过 / 0 失败 / 0 跳过**。
+
+### 一、镜像里的名字
+
+```
+_paymentGateway · _paymentGatewayName · PaymentGateways · paymentProvider
+paymentFlexibilityTemplate / paymentFlexibilityPaymentTermsTemplate / paymentFlexibilityTermsId
+```
+
+**而 `_captchaToken&_paymentGatewayName6_paymentFlexibilityTemplate` 把 token 与网关名串在一起。**
+
+### 二、改了
+
+| 原来（R955 编的） | 现在 |
+|---|---|
+| `"paymentGateway"` | `PaymentGatewayNameKey = "paymentGatewayName"` |
+| — | `CaptchaTokenKey = "captchaToken"` |
+| switch 硬编码 | `PaymentGateways`(4) 集合 |
+
+**`PaymentGateways` 复数 → 一家店可能接受多个网关。**
+
+### 三、为什么这个错危险
+
+**只差四个字符，编译过、测试过、读者不疑 —— 而它是编的。**
+
+**代价这次是零（键只在内部用）；若它是持久化字段名，会静默读不到原版数据。**
+
+### 四、构建崩溃的次生错误
+
+**`ilc` 退出 `-1073740791`（0xC0000409）→ `LNK1136: 无效或损坏的文件`（坏 .obj）
+→ 删 `obj\Release\net8.0\win-x64\native` 4 项 → 重发成功 54,692 KB。**
+
+**LNK1136 读起来像「源码有问题」，而它只是第一次崩溃的残留。**
+
+### 五、数字
+
+| 度量 | R955 | R956 |
+|---|---|---|
+| 套件 | 2097 | **2101** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,824 | **173,824（未变）** |
+| 产物大小 | 54,692 KB | **54,692 KB** |
+
+### 六、验证
+
+```
+analysis/ida.py str paymentGateway -> 3：_paymentGateway / _paymentGatewayName / PaymentGateways
+analysis/ida.py str gatewayName    -> 1：_captchaToken&_paymentGatewayName6_paymentFlexibilityTemplate
+test --filter PaymentGatewayNamingTests -> 4 通过
+metrics_report.py                  -> 2101 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **`PaymentGateways` 的真实取值**：**Unknown** —— 只有我列的四个。
+- **captcha token 从哪来**：**Unknown** —— 未追。
+- **`paymentFlexibility*` 三个名字的用途**：**Unknown** —— 未解。
+
+### 八、教训
+
+**这一轮函数数没动，而它是这几轮里最值钱的之一 —— 因为上一轮那 43 个函数建立在一个编出来的键名上。**
+
+**「数动了」和「做对了」又一次分开 —— 这次分开在同一段代码上，隔了一轮。**

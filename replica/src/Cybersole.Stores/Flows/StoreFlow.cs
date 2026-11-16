@@ -780,6 +780,18 @@ public abstract class StoreFlow
     }
 
     // ── payment ───────────────────────────────────────────────────────────────
+    /// <summary>The session key for the selected gateway, spelled as the image binds it.</summary>
+    public const string PaymentGatewayNameKey = "paymentGatewayName";
+
+    /// <summary>The session key for the captcha token, which the image keeps beside the gateway name.</summary>
+    public const string CaptchaTokenKey = "captchaToken";
+
+    /// <summary>
+    /// The gateways the image names as a collection. Recorded as a set rather than a switch arm per name, because the
+    /// image has <c>PaymentGateways</c> plural -- one store may accept several.
+    /// </summary>
+    internal static readonly string[] PaymentGateways = { "viva", "disney", "purpledot", "eshopworld" };
+
     /// <summary>
     /// Payment submission dispatches to whichever gateway the session named, and returns NotSupported when none was
     /// named -- the previous behaviour, kept for flows that never reach this step.
@@ -795,10 +807,21 @@ public abstract class StoreFlow
     /// caller passes one in. That lets this dispatch hand them the session's own client without any gateway knowing what
     /// a NetClient is.
     /// </para>
+    ///
+    /// <para>
+    /// <b>The names are the image's.</b> R956 searched for how the original selects a gateway and found the backing field
+    /// <c>_paymentGateway</c>, the bound property <c>_paymentGatewayName</c>, a collection <c>PaymentGateways</c>, and
+    /// <c>paymentProvider</c>. The concatenated descriptor
+    /// <c>_captchaToken&lt;_paymentGatewayName6_paymentFlexibilityTemplate</c> puts the captcha token and the gateway name
+    /// adjacent, which is the real shape of a payment submission: a token and a gateway, together. R955 used
+    /// <c>paymentGateway</c>, which had been invented rather than searched for.
+    /// </para>
     /// </summary>
     public virtual async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
-        var gateway = c.Session.Vars.TryGetValue("paymentGateway", out var named) ? named : null;
+        // R956: the image names this field _paymentGatewayName, and _captchaToken sits beside it. My first version
+        // invented "paymentGateway" -- close enough to compile and not what the original calls it.
+        var gateway = c.Session.Vars.TryGetValue(StoreFlow.PaymentGatewayNameKey, out var named) ? named : null;
         if (string.IsNullOrEmpty(gateway)) return await NotSupported("SubmitPayment").ConfigureAwait(false);
 
         var card = c.Session.Vars.GetValueOrDefault("cardNumber") ?? string.Empty;

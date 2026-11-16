@@ -1437,3 +1437,19 @@ SubmitPaymentAsync 从 `=> NotSupported` 改成按 paymentGateway 派发到 Viva
 纪律：「死代码」是错的词 —— 代码只有可达不可达；不可达需要的不是重写，是一句调用。
 
 下一轮：接另外三个网关（PurpleDot/EshopWorld/GlobalECheckout），或按原版证据核对派发方式。
+
+## R956 补充 — 支付键名改成镜像的；captcha 与网关成对（+4 用例，套件 2101）
+
+R955 的 `paymentGateway` 是我编的。镜像里是 `_paymentGateway`（字段）· `_paymentGatewayName`（绑定属性）· `PaymentGateways`（复数）· `paymentProvider`。
+而 `_captchaToken&_paymentGatewayName6_paymentFlexibilityTemplate` 把 token 与网关名串在一起
+→ 一次支付提交带的是一个 token 和一个网关名。
+
+改动：PaymentGatewayNameKey="paymentGatewayName" · CaptchaTokenKey="captchaToken" · PaymentGateways(4) 集合。
+
+构建崩溃的次生错误：ilc 0xC0000409 → LNK1136（坏 .obj）→ 删 obj/.../native 4 项重发成功。
+
+数字：套件 2097 → 2101 · 陈旧度 0/0 · 函数数 173,824（未变）· 产物 54,692 KB。
+
+纪律：paymentGateway 与 paymentGatewayName 只差四个字符 —— 而读者不会怀疑。
+
+下一轮：接另外三个网关（PurpleDot/EshopWorld/GlobalECheckout），或查 PaymentGateways 的真实取值。

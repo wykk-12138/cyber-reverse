@@ -5982,3 +5982,73 @@ size:          54,674 KB -> 54,692 KB
 > 这一轮补上那句调用 —— 四十三个函数出现，而它们一直都在，只是没有被任何人从入口走到。**
 > **「死代码」这个词是错的：代码没有死活，只有**可达不可达**。
 > 而不可达的代码需要的不是重写，是**一句调用**。**
+
+
+### `paymentGateway` 是**我编的**，而镜像是 `_paymentGatewayName`（R956）
+
+**R955 接支付派发时用了一个 session 键叫 `paymentGateway`，而把它列进 Unknown：「原版按什么派发未取证」。
+这一轮取证了。**
+
+### 而镜像里有五个相关的名字
+
+```
+_paymentGateway          字段（带下划线的 backing field）
+_paymentGatewayName      绑定属性
+PaymentGateways          集合（复数）
+paymentProvider
+paymentFlexibilityTemplate / paymentFlexibilityPaymentTermsTemplate / paymentFlexibilityTermsId
+```
+
+### 而一条描述符把它们串在一起
+
+```
+_captchaToken&_paymentGatewayName6_paymentFlexibilityTemplate
+```
+
+> **`_captchaToken` 就紧挨着 `_paymentGatewayName` ——
+> 所以一次支付提交带的是**一个 token 和一个网关名**，而那正是真实形状。
+> 而我上一轮只带了网关名，把 captcha 当成别处的事。****
+
+### 所以改了三处
+
+| 原来（我编的） | 现在（镜像的） |
+|---|---|
+| `"paymentGateway"` | **`PaymentGatewayNameKey = "paymentGatewayName"`** |
+| — | **`CaptchaTokenKey = "captchaToken"`** |
+| switch 里硬编码四个 case | **`PaymentGateways = {viva, disney, purpledot, eshopworld}`** |
+
+> **而 `PaymentGateways` 是**复数** —— 所以一家店可能接受多个网关，
+> 而一个集合是对的形状，不是单个值。**
+
+### 而这个名字为什么危险
+
+**`paymentGateway` 与 `paymentGatewayName` 只差四个字符。
+它编译得过、测试过得、读者不会怀疑 —— 而它不是原版的名字。**
+
+> **而这就是这几轮一直在找的那种错：**一个听起来合理的名字，顶替了一个查出来的名字。**
+> **而这次的代价是**没有代价** —— 因为那个键只在复刻件内部用。
+> 如果它是持久化字段名（像 `settings.json` 的 `startup` 那样），它会**静默地读不到原版的数据**。****
+
+### 而这一步撞了构建崩溃
+
+**第一次 publish：`ilc` 退出码 `-1073740791`（0xC0000409）。
+第二次：`LNK1136: 无效或损坏的文件` —— 崩溃留下的坏 `.obj`。**
+
+> **处置：删掉 `obj\Release\net8.0\win-x64\native` 那 4 项，重发成功。
+> 而这是**崩溃的次生错误**被当成主错误报出来的经典形状 ——
+> 第二次那个 LNK1136 读起来像「源码有问题」，而它只是第一次崩溃的残留。**
+
+### 数字
+
+| 度量 | R955 | **R956** |
+|---|---|---|
+| 套件 | 2097 | **2101** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,824 | **173,824（未变）** |
+| 产物大小 | 54,692 KB | **54,692 KB** |
+
+### 教训
+
+> **这一轮函数数没动 —— 而它是这几轮里最值钱的一轮之一。
+> 因为上一轮那 43 个函数建立在一个**编出来的键名**上，而这一轮把它换成了证据里的名字。**
+> **而「数动了」和「做对了」又一次分开 —— 这次分开在同一段代码上，隔了一轮。**

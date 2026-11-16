@@ -56691,3 +56691,63 @@ size:          54,674 KB -> 54,692 KB
 > **上一轮我把五个支付类叫「死代码」，而它们只是**没人调用**。
 > 「死代码」这个词是错的：代码没有死活，只有**可达不可达**。
 > 而不可达的代码需要的不是重写，是**一句调用**。**
+
+
+---
+
+## 第 956 轮：`paymentGateway` 是我编的，镜像是 `_paymentGatewayName`
+
+### 镜像里的五个名字
+
+```
+_paymentGateway · _paymentGatewayName · PaymentGateways（复数）· paymentProvider
+paymentFlexibilityTemplate / paymentFlexibilityPaymentTermsTemplate / paymentFlexibilityTermsId
+```
+
+### 一条描述符把它们串起来
+
+```
+_captchaToken&_paymentGatewayName6_paymentFlexibilityTemplate
+```
+
+> **`_captchaToken` 紧挨着 `_paymentGatewayName` —— 一次支付提交带的是**一个 token 和一个网关名**。
+> 而我上一轮只带了网关名。**
+
+### 改了三处
+
+| 原来（编的） | 现在（镜像的） |
+|---|---|
+| `"paymentGateway"` | **`PaymentGatewayNameKey = "paymentGatewayName"`** |
+| — | **`CaptchaTokenKey = "captchaToken"`** |
+| switch 硬编码四 case | **`PaymentGateways = {viva, disney, purpledot, eshopworld}`** |
+
+**`PaymentGateways` 是复数 → 一家店可能接受多个网关，集合是对的形状。**
+
+### 而这个名字为什么危险
+
+**`paymentGateway` 与 `paymentGatewayName` 只差四个字符。它编译得过、测试过得、读者不会怀疑 —— 而它不是原版的名字。**
+
+> **代价这次是零，因为那个键只在复刻件内部用。
+> 如果它是持久化字段名（像 `settings.json` 的 `startup`），它会**静默地读不到原版的数据**。**
+
+### 而这一步撞了构建崩溃
+
+**第一次 `ilc` 退出 `-1073740791`（0xC0000409）；第二次 `LNK1136: 无效或损坏的文件` ——
+崩溃留下的坏 `.obj`。删掉 `obj\...\native` 那 4 项，重发成功。**
+
+> **那是**崩溃的次生错误**被当成主错误报出来 —— LNK1136 读起来像「源码有问题」。**
+
+### 数字
+
+| 度量 | R955 | **R956** |
+|---|---|---|
+| 套件 | 2097 | **2101** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,824 | **173,824（未变）** |
+| 产物大小 | 54,692 KB | **54,692 KB** |
+
+### 教训
+
+> **这一轮函数数没动，而它是这几轮里最值钱的之一 ——
+> 因为上一轮那 43 个函数建立在一个编出来的键名上。**
+> **「数动了」和「做对了」又一次分开 —— 这次分开在同一段代码上，隔了一轮。**

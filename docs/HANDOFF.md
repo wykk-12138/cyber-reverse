@@ -1296,3 +1296,18 @@ Nike 两条路径 · OrderV5/scheels · DataDomeRelay · PopMart CheckResult · 
 纪律：分类不是筛选的礼貌说法，它是把「哪些需要做」和「哪些已经做完」分开的唯一动作。
 
 下一轮：验那 7 条里最可能错的一条（DataDomeRelay 或 Nike 路径）。
+
+## R947 补充 — 8 条验完：3 真 · 3 自证 · 1 撤回（套件 2053）
+
+三条真的：datadome.co n=33（厂商域 api-js/api-sdk）、buy/carts 0、buy/orders 0。而 DataDomeRelay=datadome.cybersole.io/ 是第一方中继，datadome.co 不是其子串（第10字符 o vs y）。
+
+三条自证：PopMart/JohnLewis 的 Assert.Null(EndpointFor(x)) 说的是「在 UnmappedSteps 里」—— 复刻件记账，不是镜像陈述。R946 归错类；那个机制一直在。
+
+一条撤回：「OrderV5 不含 scheels」不存在 —— R946 从扫描样例一行推断，没读测试体。
+而「3 条 1 假」是从 n=1 外推（R944 三条里两条是同一错写三遍）。
+
+数字：套件 2052 → 2053 · 陈旧度不变 · 需镜像否定 8（7 开）→ 3 全真。
+
+纪律：读一行扫描输出和读一个测试体，成本差十倍，而错误的代价相同：一个数字被写进文档。
+
+下一轮：核心覆盖表（判据 f）—— 原版站点与风控清单 ↔ Registry.cs 与 Flows/Scripts 逐条对。

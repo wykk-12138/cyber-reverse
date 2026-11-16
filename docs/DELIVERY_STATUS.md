@@ -21848,3 +21848,70 @@ metrics_report.py                                 -> 2052 通过 / 0 失败
 **同一个数两种读法，而第一种会让我去补 764 条命令 —— 一场没有产出的劳动。**
 
 **分类不是筛选的礼貌说法；它是把「哪些需要做」和「哪些已经做完」分开的唯一动作。**
+
+
+---
+
+## 371. 8 条验完：3 真 · 3 自证 · 1 撤回
+
+> R947。**改测例。** 套件 **2053 通过 / 0 失败 / 0 跳过**。
+
+### 一、三条真的
+
+```
+datadome.co  n=33（api-js / api-sdk，厂商自己的域）
+buy/carts    n=0
+buy/orders   n=0
+```
+
+**`DataDomeRelay = datadome.cybersole.io/` 是第一方中继；`datadome.co` 不是其子串（第 10 字符 o vs y）。
+所以那条断言真，且说的正是要紧的事。**
+
+### 二、三条不是关于镜像的
+
+**`PopMartStepMap` / `JohnLewisStepMap` 有 `UnmappedSteps` →
+`Assert.Null(EndpointFor(x))` = 「x 在列表里」= 复刻件记账。**
+
+**→ R946 归错类；而那个机制一直在，我没查就开始分类。**
+
+### 三、一条根本不存在
+
+**「OrderV5 不含 scheels」在仓库里没有一处。R946 从扫描样例一行推断，没读测试体。
+它编的方式和 R944 的假缺席一模一样。**
+
+### 四、「3 条 1 假」是 n=1 外推
+
+**R944 三条里两条是同一个错写三遍。**
+
+### 五、数字
+
+| 度量 | R946 | R947 |
+|---|---|---|
+| 套件 | 2052 | **2053** |
+| 产物陈旧度 | 10 / 1044 | **10 / 1044** |
+| **需镜像否定** | 8（7 开） | **3（全真）· 3 自证 · 1 撤回 · 1 早结** |
+
+### 六、验证
+
+```
+analysis/ida.py str "datadome"   -> 33，含 api-js / api-sdk
+analysis/ida.py str "buy/carts"  -> 0
+analysis/ida.py str "buy/orders" -> 0
+grep scheels tests/              -> 无「OrderV5 不含 scheels」断言
+test --filter NegativeClaimClassTests -> 5 通过
+metrics_report.py                -> 2053 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **是否还有第 4 条需镜像**：**Unknown** —— 只查了带引号名字的。
+- **`UnmappedSteps` 是否都有出处**：**Unknown** —— 未逐个核。
+- **scheels 那 33 条用在何处**：**Unknown** —— 只知道存在。
+
+### 八、教训
+
+**这一轮没找到一个错的否定，而是发现三件关于**我那次分类**的事：两条归错类、一条是编的、「比例」是 n=1 外推。**
+
+**共同形状：我在描述证据，而不是读证据。**
+
+**读一行扫描输出和读一个测试体，成本差十倍，而错误的代价是同一件事：一个数字被写进文档。**

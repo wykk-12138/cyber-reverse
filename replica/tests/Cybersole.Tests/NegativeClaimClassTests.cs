@@ -43,18 +43,25 @@ public class NegativeClaimClassTests
     /// A negative needs the image when its truth is a fact about the original that running the code cannot settle. Each of
     /// these was found by the R946 scan and none carried a command.
     /// </summary>
-    internal static readonly (string Claim, string Needs)[] ImageClaims =
+    internal static readonly (string Claim, string Needs, string Status)[] ImageClaims =
     {
-        ("NikeEndpoints has no buy/carts/ path", "a search of the image for that path"),
-        ("NikeEndpoints has no buy/orders/ path", "a search for that path"),
-        ("NikeEndpoints.OrderV5 does not mention scheels", "a search for scheels in that table"),
-        ("AntiBotVendors.DataDomeRelay does not contain datadome.co", "a search for the relay host"),
-        ("PopMartStepMap has no endpoint for CheckResult", "a search for that step's endpoint"),
-        ("JohnLewisStepMap has no endpoint for GetStripePaymentIntent", "a search for that endpoint"),
-        ("StoreFlowSteps shares no GetMerchantCode with single", "the step table's own ordinals"),
-        ("No scrape method is named ScrapeProductBox", "R938 already ran this one"),
-    };
+        // R947: three of these were checked by searching the image, and all three are true. datadome.co returns the
+        // vendor's own hosts -- api-js and api-sdk -- which is exactly why the relay must not contain it: the relay is
+        // first-party at datadome.cybersole.io. buy/carts and buy/orders return zero, so NikeEndpoints is right to have
+        // neither.
+        ("DataDomeRelay does not contain datadome.co", "searched: 33 datadome hits, none in the relay", "true"),
+        ("NikeEndpoints has no buy/carts/ path", "searched: 0", "true"),
+        ("NikeEndpoints has no buy/orders/ path", "searched: 0", "true"),
 
+        // The rest are not claims about the image at all. PopMart and John Lewis both keep an UnmappedSteps list, so
+        // Assert.Null(EndpointFor(x)) says x is on that list -- a fact about the replica's own bookkeeping, already
+        // written down, not a statement about the binary. GetMerchantCode's three assertions likewise read a table.
+        ("PopMartStepMap has no endpoint for CheckResult", "UnmappedSteps contains it; not an image claim", "self-proving"),
+        ("JohnLewisStepMap has no endpoint for GetStripePaymentIntent", "UnmappedSteps contains it", "self-proving"),
+        ("StoreFlowSteps shares no GetMerchantCode with single", "the step table's own rows", "self-proving"),
+        ("NikeEndpoints.OrderV5 does not mention scheels", "this assertion does not exist -- R946 listed it from a scan sample and never read a body", "withdrawn"),
+        ("No scrape method is named ScrapeProductBox", "R938 ran this one", "true"),
+    };
     /// <summary>The two kinds, counted, so the 118 figure is not mistaken for 118 problems.</summary>
     [Fact]
     public void TheTwoKindsAreDistinguished()
@@ -72,14 +79,33 @@ public class NegativeClaimClassTests
     /// of.
     /// </summary>
     [Fact]
-    public void EveryImageClaimNamesItsCommand()
+    public void EveryClaimCarriesAStatusAndAReason()
     {
         Assert.All(ImageClaims, c =>
         {
             Assert.False(string.IsNullOrWhiteSpace(c.Needs));
-            Assert.True(c.Needs.Contains("search") || c.Needs.Contains("ordinal") || c.Needs.Contains("R938"),
-                        c.Claim + " -> " + c.Needs);
+            Assert.Contains(c.Status, new[] { "true", "self-proving", "withdrawn" });
         });
+
+        // four true -- three searched this round plus ScrapeProductBox settled in R938 -- three self-proving, one
+        // withdrawn, which is all eight
+        Assert.Equal(4, ImageClaims.Count(c => c.Status == "true"));
+        Assert.Equal(3, ImageClaims.Count(c => c.Status == "self-proving"));
+        Assert.Equal(1, ImageClaims.Count(c => c.Status == "withdrawn"));
+    }
+
+    /// <summary>
+    /// The withdrawal, recorded because it is the same shape as everything this class is about: R946 put a claim in the
+    /// list from a scan sample without reading a test body, and no such assertion exists.
+    /// </summary>
+    [Fact]
+    public void OneClaimWasWithdrawnBecauseItNeverExisted()
+    {
+        var gone = ImageClaims.Where(c => c.Status == "withdrawn").ToArray();
+
+        Assert.Single(gone);
+        Assert.Contains("scheels", gone[0].Claim);
+        Assert.Contains("never read a body", gone[0].Needs);
     }
 
     /// <summary>
@@ -92,6 +118,7 @@ public class NegativeClaimClassTests
 
         Assert.Single(settled);
         Assert.Contains("ScrapeProductBox", settled[0].Claim);
+        Assert.Equal("true", settled[0].Status);
     }
 
     /// <summary>

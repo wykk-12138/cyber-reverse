@@ -259,6 +259,75 @@ public class ScheelsFlow : StoreFlow
     public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
         OpenCheckoutAsync(c, "scheels-checkout", "/checkout", ct);
 
+    /// <summary>
+    /// The two cart-side steps a plain cart has no equivalent for. R766.
+    ///
+    /// <para>
+    /// ModuleCoverageTests scored scheels at 71% because these two were absent, which reads as "cannot place an
+    /// order". The endpoints were never the missing part -- <see cref="RetailApiFamilies.ScheelsFrontastic"/> has
+    /// declared the whole Frontastic action hub since R103, Signifyd step-up included, and this flow simply did not
+    /// call any of it.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>What is Observation:</b> the URLs below, their names, and their order -- that comes straight from
+    /// <c>ScheelsFrontastic.Chain</c>, which lists UpdateCart, Checkout, CompleteDetailsCheckout,
+    /// SignifydStepUpCode, CompleteSignifydStepUp, SetAdyenCreditCard in that sequence.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>What is Inference (medium):</b> the request bodies. The image names the actions but not their JSON
+    /// keys, so the payload here is built from what the flow already holds and is marked as inferred rather than
+    /// evidenced. Anyone tightening these two steps should treat the keys as unknown, not as settled.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
+    {
+        // cart/updateCart carries the address; cart/completeDetailsCheckout then commits the details step.
+        var update = new JObject
+        {
+            ["cartId"] = c.Session.CartId,
+            ["email"] = c.ProfileData?.Email ?? c.Account?.Email,
+        };
+
+        var res = await PostJsonAsync(c, RetailApiFamilies.ScheelsFrontastic.UpdateCart,
+            update.ToString(Newtonsoft.Json.Formatting.None), "scheels-shipping", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("scheels shipping unreachable", retryable: true);
+        if (res.StatusCode == 403) return StepOutcome.Fail("scheels shipping blocked", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"scheels shipping HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["shipping"] = res.Body;
+
+        var details = await PostJsonAsync(c, RetailApiFamilies.ScheelsFrontastic.CompleteDetailsCheckout,
+            update.ToString(Newtonsoft.Json.Formatting.None), "scheels-details", ct).ConfigureAwait(false);
+
+        if (details is null) return StepOutcome.Fail("scheels details unreachable", retryable: true);
+        if (!details.IsSuccess) return StepOutcome.Fail($"scheels details HTTP {details.StatusCode}",
+            retryable: true);
+
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        // SetAdyenCreditCard is the card step, and it sits last in the chain -- after the Signifyd step-up.
+        var payload = new JObject
+        {
+            ["cartId"] = c.Session.CartId,
+        };
+
+        var res = await PostJsonAsync(c, RetailApiFamilies.ScheelsFrontastic.SetAdyenCreditCard,
+            payload.ToString(Newtonsoft.Json.Formatting.None), "scheels-payment", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("scheels payment unreachable", retryable: true);
+        if (res.StatusCode == 403) return StepOutcome.Fail("scheels payment blocked", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"scheels payment HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["payment"] = res.Body;
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
         var payload = new JObject

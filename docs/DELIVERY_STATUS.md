@@ -7433,3 +7433,75 @@ ModuleCoverageTests   4 / 4 通过（既有测试，未改）
 - `raffle` 的 0% 是否正常：**Inference（高置信）** —— 它是纯抽奖，七步全不适用；`NonCommerce` 已单列，未取证。
 - `SuperswipeFlow` 在矩阵里 71%，而它是「跑在 Shopify 店内的抽奖应用」——
   **七步尺子对它同样不合身**，可能与那三个 29% 同属一类。**Unknown，待判。**
+
+
+---
+
+## 193. Scheels 71% → 100%：**缺的从来不是端点**
+
+> R766。改 `replica/src/Cybersole.Stores/Flows/ScheelsFlow.cs`（+2 步）。
+
+### 一、先取证：原版 Scheels 到底有什么
+
+`apihub.scheels.com` 的 17 个 action 全在（Observation）：
+
+```
+account/  getAccount login register requestReset reset
+product/  getProduct
+cart/     addToCart updateCart removeLineItem clean checkout completeDetailsCheckout
+          sendSignifydStepUpCode completeSignifydStepUpCheckout setAdyenCreditCard
+adyen/    beginPayPal completePayPal
+```
+
+**所以支付那一步原版确实有** —— 复刻件的缺失是真缺口，不是原版也没有。
+
+**顺带一个判断上的纠正**：`goat` 的端点全是
+`goat.com/api/v1/drops/get-user-drops`、`/submit-drop-captcha` —— **是抽奖面，不是结账面**，
+**七步尺子对 `goat` 可能同样不合身**（与 `raffle` / `pocketgames` 一类）。**未取证，记 Unknown。**
+
+### 二、而真正的发现是：端点早就声明好了，flow 一个都没用
+
+`RetailApiFamilies.ScheelsFrontastic` 从 R103 起就把整个 action hub 声明成了常量，
+**连两处 Signifyd 升级步骤都有**，而且注释里写着「订单在验证码送出并被接受前无法完成」。
+**还有一条 `Chain` 直接给出购买顺序：**
+
+```
+Login, GetProduct, AddToCart, UpdateCart, Checkout, CompleteDetailsCheckout,
+SignifydStepUpCode, CompleteSignifydStepUp, SetAdyenCreditCard
+```
+
+**而 `ScheelsFlow` 的结账两步用的是 `/checkout` 和 `/api/checkout/submit` —— 猜的路径。**
+
+**所以"缺两步"其实是三层问题**：① 两步没实现；② 已实现的两步指向猜的 URL；③ 真实端点已declared 但无人调用。
+
+### 三、改了什么
+
+加了 `SubmitShippingAsync`（`cart/updateCart` → `cart/completeDetailsCheckout`）
+与 `SubmitPaymentAsync`（`cart/setAdyenCreditCard`），URL 全部取自 `ScheelsFrontastic` 常量。
+
+**Observation 与 Inference 分开写进了注释**：
+
+- **Observation**：URL、名字、**顺序**（来自 `Chain`）
+- **Inference（中）**：**请求体**。镜像给了 action 名，没给 JSON 字段名，
+  所以 payload 由 flow 已有的数据拼出，**标为推断而非证据**。
+
+**这是这一轮唯一需要小心的东西：URL 有据，body 没据。注释里写清了，后来人不要把它当既定事实。**
+
+### 四、验证
+
+```
+构建                      已成功
+ModuleCoverageTests       scheels 71% → 100%（反射矩阵认到了新步骤）
+完整套件                  1751 通过 / 0 失败 / 0 跳过（未变）
+四项度量                  4 / 0 / 17 / 78 / 0（未变）
+```
+
+**71% 组从 12 个降到 11 个**（`bstn` / `goat` 等仍在）。
+
+### 五、仍然 Unknown
+
+- **请求体的真实字段名**：**Unknown** —— 这是这一轮交付里最薄的一层。
+- `goat` 该用哪把尺子：**Unknown** —— 端点显示是抽奖面。
+- `GetCheckoutAsync` 仍走 `/checkout`（猜的）：**已知不一致，未改** ——
+  改它要动 `OpenCheckoutAsync` 的调用约定，留作独立一项，避免和本轮混在一起。
+- 其余 11 个 71% 模块缺的是不是同一对：**Inference（高）**，未逐一取证。

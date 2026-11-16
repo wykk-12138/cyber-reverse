@@ -47192,3 +47192,52 @@ ModuleCoverageTests 4/4；原始输出存 analysis/coverage_raw.txt 供复算
 
 按站取证这 12 个在原版里是否真有 shipping/payment —— **不能假定"原版都有"**。
 先做最可能有的一两个（`goat` / `scheels` 这类标准电商），`popmart`/`superswipe` 这种非电商形态另判。
+
+
+---
+
+## 第 766 轮：缺的从来不是端点
+
+### 先取证
+
+原版 `apihub.scheels.com` 的 17 个 action 全在，**包括支付**：
+`cart/completeDetailsCheckout` · `cart/setAdyenCreditCard` · `cart/sendSignifydStepUpCode` ·
+`cart/completeSignifydStepUpCheckout` · `adyen/beginPayPal` · `adyen/completePayPal`。
+
+**所以复刻件缺的那两步是真缺口，不是原版也没有。**
+
+**附带纠正**：`goat` 的端点全是 `drops/get-user-drops` / `submit-drop-captcha` ——
+**抽奖面，不是结账面**，七步尺子对它可能不合身。
+
+### 真正的发现：端点早声明好了，flow 一个都没用
+
+`RetailApiFamilies.ScheelsFrontastic`（R103 起）把整个 action hub 声明成常量，
+连两处 Signifyd 升级都有，**还有一条 `Chain` 直接给出购买顺序**。
+**而 `ScheelsFlow` 用的是 `/checkout` 和 `/api/checkout/submit` —— 猜的。**
+
+> **所以"缺两步"其实是：① 没实现；② 已实现的指向猜的 URL；③ 真端点已声明但无人调用。**
+
+### 改了什么
+
+`SubmitShippingAsync`（updateCart → completeDetailsCheckout）+
+`SubmitPaymentAsync`（setAdyenCreditCard），URL 全取自常量。
+
+**Observation 与 Inference 分开写：**
+
+- **Observation**：URL、名字、顺序（来自 `Chain`）
+- **Inference（中）**：**请求体** —— 镜像给了 action 名，没给 JSON 字段名
+
+**这是本轮最薄的一层，注释里写清了，后来人不要当既定事实。**
+
+### 验证
+
+```
+构建绿 · scheels 71% → 100% · 完整套件 1751 / 0 · 四项度量未变
+71% 组：12 → 11
+```
+
+### 仍然 Unknown
+
+- **请求体字段名**（最薄）
+- `goat` 该用哪把尺子
+- `GetCheckoutAsync` 仍走猜的 `/checkout` —— **已知不一致，故意没和本轮混在一起**

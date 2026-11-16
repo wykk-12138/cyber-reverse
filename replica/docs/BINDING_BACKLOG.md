@@ -637,3 +637,20 @@ R685：这个「类型」在源码里找不到      → 1 条真缺 + 3 条判�
 
 取证前提：**先确认该站在原版里是否真有这两个步骤**，再实现。
 `popmart` / `superswipe` 是非电商形态（抽奖应用），七步尺子对它们不合身，要先判定它们该用什么尺子。
+
+
+## 核心 — 结账收尾（续，R766 后）
+
+`scheels` 已补齐并到 100%。**余下 11 个 71% 模块**：
+
+| 模块 | 备注 |
+|---|---|
+| bstn, casio, fanatics, hbx, hypecommerce, offspring, warhammer, yeezysupply | 待逐一取证原版端点 |
+| popmart, superswipe | **非电商形态**，尺子本身要先判定 |
+| goat | 端点显示是**抽奖面**（drops + captcha），尺子待判定 |
+
+**另立一项（本轮故意没混做）**：`ScheelsFlow.GetCheckoutAsync` 仍走猜的 `/checkout`，
+而真实端点是 `ScheelsFrontastic.Checkout`。改它要动 `OpenCheckoutAsync` 的调用约定。
+
+**以及一个通用风险**：`SubmitShippingAsync`/`SubmitPaymentAsync` 的**请求体是推断**，
+镜像只给了 action 名。补任何一步都要把 body 标成推断，不要写成证据。

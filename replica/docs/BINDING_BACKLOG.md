@@ -839,3 +839,31 @@ Unknown：另外 6 个头名、全部头的取值、触发它的任务类型
 ```
 
 **构建单位不变**：App 面一个 flow（身份 + 四步 + 注册项），**不要只建身份常量**（R772 的教训）。
+
+
+## 工具债已还 — `off_` 读取器（R777 完成）
+
+```
+python analysis/off_slot_reader.py [slot…]
+```
+
+**NativeAOT 字符串布局**：`+0` 方法表 · `+8` 长度 DWORD · `+12` UTF-16 字符 —— **`off_x` 就是对象本身**。
+校准用 `off_1471151D0 → 'poq-app-id'`，长度与字符数必须一致；**校准不过就停**。
+
+**Poq App 请求头（12 个，全部解出）**：
+
+```
+user-agent Poq-Native-iOS-App · accept · accept-language · accept-encoding
+authorization · version-code · platform
+poq-app-id · poq-app-identifier · poq-country-identifier · poq-currency-identifier · poq-user-id
+```
+
+**余下**：
+
+| 项 | 状态 |
+|---|---|
+| 各头的取值 | Unknown（`sub_141CF6230`、`sub_140B399B0`、`a1[24]` 未读） |
+| `poq-slot-conditions` 所在构造器 | Unknown |
+| 触发 App 面的任务类型 | Unknown |
+
+**构建单位不变**：App 面一个 flow（身份 + 四步 + 注册项）。**身份的头名现在齐了，值还差。**

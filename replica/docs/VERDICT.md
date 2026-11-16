@@ -47658,3 +47658,55 @@ poq-currency-identifier · poq-slot-conditions · poq-user-id
 
 **写一个 `off_` 槽位读取器**：读槽 8 字节 → 判断 VA/RVA → 加 imagebase → +12 → 读 UTF-16。
 **这一族在原版里到处都是，没有它每个键都要手工试一遍 —— 这是工具债。**
+
+
+---
+
+## 第 777 轮：工具做出来了，错的是我的模型
+
+### 先看字节
+
+```
+slot 0x1471151d0:
+  40 6a db 44 01 00 00 00 | 0a 00 00 00 | 70 00 6f 00 71 00 2d 00 …
+  └─ 方法表指针 ──────────┘ └─ 长度=10 ─┘ └─ 'p','o','q','-','a','p'… ┘
+```
+
+**NativeAOT 字符串：`+0` 方法表、`+8` 长度 DWORD、`+12` UTF-16 字符。**
+**`off_x` 就是字符串对象本身 —— 不需要解引用。**
+
+### 我错在哪（连续三轮）
+
+| 轮 | 我的模型 | 实际 |
+|---|---|---|
+| R715/R731 | 槽内容当长度 | 那是方法表 |
+| R776 | 槽当对象头读 +12 | 方向对，但把槽内容当成了对象指针 |
+| R777 | **打出字节才看见** | 槽就是对象 |
+
+**我一直在建模，而不是看。三次都栽在同一处：先假设布局，再去验它。**
+
+### 校准 + 结果
+
+`off_1471151D0` 应为 `poq-app-id`，**规则一次命中，长度 10 == 字符数 10**。12 个槽位全部解出：
+
+```
+user-agent · accept · accept-language · accept-encoding
+authorization · version-code · platform
+poq-app-id · poq-app-identifier
+poq-country-identifier · poq-currency-identifier · poq-user-id
+```
+
+**R776 说的"六项 Unknown"全部解出。** `poq-slot-conditions` 在另一个构造器，未定位。
+
+### 工具
+
+```
+python analysis/off_slot_reader.py [slot…]
+```
+**先校准再批量；校准不过就停** —— 没有可复现的已知答案，剩下的读数就是猜。
+
+### 验证
+
+```
+产品代码未改；套件 1752 / 0
+```

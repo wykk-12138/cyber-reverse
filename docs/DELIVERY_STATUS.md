@@ -8214,3 +8214,101 @@ R775 已经定下：**构建的单位是「App 面一个 flow」（身份 + 四�
 **写一个 `off_` 槽位读取器**：读槽 8 字节 → 判断是 VA 还是 RVA → 加 imagebase → +12 → 读 UTF-16。
 **没有它，这一族的每一个键都得手工试一遍**，而这一族在原版里到处都是。
 **这是工具债，不是这一轮的任务，但它挡着后面好几轮的路。**
+
+
+---
+
+## 203. `off_` 读取器做出来了；**错的是我对布局的模型，不是工具**
+
+> R777。新增 `analysis/off_slot_reader.py`、`analysis/peek_off_slot.py`。未改产品代码。
+
+### 一、先看字节，不再猜结构
+
+R776 试了三条路都读回乱码。这一轮**先把那个槽的真实字节打出来**：
+
+```
+slot 0x1471151d0 (file 0x7113dd0):
+  40 6a db 44 01 00 00 00 | 0a 00 00 00 | 70 00 6f 00 71 00 2d 00 61 00 70 00 …
+  └─ 方法表指针 ──────────┘ └─ 长度=10 ─┘ └─ 'p','o','q','-','a','p','…' ─────┘
+```
+
+**NativeAOT 字符串对象布局（Observation）：**
+
+```
++0   method table pointer   (8 字节)
++8   length                 (DWORD)
++12  UTF-16 characters
+```
+
+**所以 `off_x` 就是字符串对象本身，字符在 `+12`，长度在 `+8`。不需要任何解引用。**
+
+### 二、我错在哪（连续三轮）
+
+| 轮 | 我的模型 | 实际 |
+|---|---|---|
+| R715/R731 | 把槽内容当长度 | 那是方法表 |
+| R776 | 把槽当对象头，读 +12 | **方向对，但我把"槽内容"当成了对象指针** |
+| R777 | 打出字节才看见 | 槽就是对象 |
+
+**我一直在建模，而不是看。** 三次都栽在同一处：**先假设布局，再去验它。**
+`AGENTS.md` §2.7 说的是"有几种写法"，这一层其实是"**先看字节，再谈结构**"。
+
+### 三、校准与结果
+
+用已知的 `off_1471151D0`（应为 `poq-app-id`）校准，**规则 `object+12` 一次命中，且长度 10 == 字符数 10**。
+然后跑那 12 个槽位（每个都带长度校验）：
+
+```
+0x147115240  poq-country-identifier   len=22
+0x1471151d0  poq-app-id               len=10
+0x146f6c400  accept                   len=6
+0x147115200  poq-app-identifier       len=18
+0x146f7cb78  authorization            len=13
+0x147115288  poq-currency-identifier  len=23
+0x14717e5b8  version-code             len=12
+0x146f6c498  accept-language          len=15
+0x147113f48  platform                 len=8
+0x147115310  poq-user-id              len=11
+0x146f6c460  accept-encoding          len=15
+0x1471795d0  user-agent               len=10
+```
+
+**R776 说的"六项 Unknown"现在全部解出。**
+
+### 四、Poq App 请求头的完整集合
+
+```
+user-agent       Poq-Native-iOS-App
+accept · accept-language · accept-encoding
+authorization · version-code · platform
+poq-app-id · poq-app-identifier
+poq-country-identifier · poq-currency-identifier · poq-user-id
+```
+
+**`poq-slot-conditions` 不在这个构造器里** —— 它在另一个函数，R774 提到过。**未定位，记 Unknown。**
+
+### 五、工具已可复用
+
+```
+python analysis/off_slot_reader.py              # 校准 + 读那 12 个
+python analysis/off_slot_reader.py 0x1471151d0  # 读指定槽
+```
+
+**先校准再批量**，校准不过就停 —— **这条是它自己的守护**：
+没有可复现的已知答案，剩下的读数就是猜。
+
+### 六、验证
+
+```
+本轮未改产品代码
+完整套件保持 1752 通过 / 0 失败
+两个新脚本：off_slot_reader.py（可复用）、peek_off_slot.py（一次性的字节诊断，保留作布局证据）
+```
+
+### 七、仍然 Unknown
+
+- **各头部的取值**：**Unknown** —— 名字有了，值来自 `sub_141CF6230(&off_146B5C780, a1[29])`、
+  `sub_140B399B0(a1)`、`a1[24]` 等，语义未读。
+- `poq-slot-conditions` 在哪个构造器：**Unknown**。
+- **触发 App 面的任务类型**：**Unknown**（R775）。
+- 四个头部构造器为何是四个：**Unknown**。

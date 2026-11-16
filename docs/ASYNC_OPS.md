@@ -2580,3 +2580,59 @@ https://www.vans.com/api/products/v2/products/
 |---|---|
 | `VansEndpoints.cs` | 5 个常量补齐 `/api` + 第 6 个 `CartV1` 单列 + `OwnershipIsInference = false` + 注释写明 R898 错在哪 |
 | `VansEndpointTests.cs` | 7 用例；新增 `EveryPathCarriesTheApiPrefix` 与 `OwnershipIsNoLongerInference` |
+
+
+### R892–R896 的覆盖数**低报最多 27 条** —— 前缀被扫描模式截掉了（R900）
+
+**R899 留下的问题：`/api` 这层是不是别的站也有？**
+
+### 答案：不止 `/api`，共 **27 / 154 条（17.5%）**在族前面还有前缀
+
+**那 27 条正是 R893–R896 会截断的 —— 那些轮把「去掉前缀的路径」拿去与复刻件比，
+所以即便复刻件有完整形式也会算成缺。**
+
+| 前缀 | 路径数 |
+|---|---|
+| **`/api`** | **8** |
+| `/payment` | 4 |
+| `/payment-authentication` | 4 |
+| `/web2` | 3 |
+| `/merchants` | 2 |
+| `/prod` | 2 |
+| `/epayment` · `/forms` · `/data` · `/gs` 等 | 各 1 |
+
+**样例（宿主 / 完整路径）：**
+
+```
+api.braintreegateway.com   /merchants/rfbkw27jcwmw2xgp/client_api/v1/payment_me…
+api.nike.com               /payment/deferred_payment_forms/v1/jobs
+api.vipps.no               /epayment/internal/v1/card-page/Payments
+payments.bigcommerce.com   /api/public/v1/orders/payments
+payments.dickssporting…    /prod/api/paygate/v2/authorization
+auth.casio-intl.com        /api/connect/v1/login
+```
+
+### 所以 R895 的 55/171 低报
+
+**低报量最多 27 —— 而这 27 条里有多少是复刻件其实有的，还没算。
+要算它得用完整路径重新对一遍。**
+
+**而 Vans 那 6 条正是这 27 里的一部分 —— R899 修的只是它们，其余 21 条还没修。**
+
+### 两个人口不同，不能直接比
+
+| 扫描 | 路径数 | 代价 |
+|---|---|---|
+| R895（族内匹配） | 171 | **27 条被截断** |
+| R900（全路径匹配） | 154 | **人口更小，因为去重方式不同** |
+
+**所以 55/171 与 49/154 不是同一个度量在两个时点，而是两个不同的度量。
+要一个可比的数，得先用**同一个**提取法跑一遍，而那还没做。**
+
+### 一条要写完的教训
+
+**同一个扫描模式在四轮里给出了四个数（40 族缺失、32 族缺失、17/45、55/171），
+而它每一轮都在做同一件事：在 `/x/vN/` 这个地标处开始匹配。**
+
+**地标匹配方便、好读、看起来对准了 API 的形状 —— 而它**默认前缀不存在**。
+这个默认在 `/shop/v1/` 和 `/activity/v1/` 那些站上恰好成立，在 `/api/cart/v2/` 上不成立。**

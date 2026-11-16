@@ -1,0 +1,9 @@
+# 5.18.32 vs 5.18.35 function stability (R726)
+pdata_32	277094
+pdata_35	277265
+identical	69460
+only_32	207634
+only_35	207805
+masked_identical	81494
+masked_only_32	195600
+masked_only_35	195771

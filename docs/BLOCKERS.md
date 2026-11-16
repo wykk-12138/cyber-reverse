@@ -27317,3 +27317,75 @@ metrics_report.py             -> 2036 通过 / 0 失败
 读起来像「它属于框架迭代器类」，一个完全错误但语法通顺的结论。**
 
 **所以判据用错范围时不会报错，它会**给出一个答案**。**
+
+
+---
+
+## 367. 13/13 定位；两个来源被否；拼接伪影
+
+> R943。**改代码 + 改测例。** 套件 **2036 通过 / 0 失败 / 0 跳过**（红一次后重跑绿）。
+
+### 一、假设一被否：描述符表只装绑定
+
+**`binding_descriptors.tsv` 1,637 条，七个名字一条不在。原因：装属性不装方法 → **问错了表**。**
+
+### 二、假设二被否：序号被截断
+
+```
+AddToCartBox  ExtractPopNow(83) · SelectPopNow(840) · AddToCartBox(864) · SelectMultiPopNowUS(87)
+```
+
+**840 与 864 之间夹 85/87 → 三位截断 → 序号不可信。**
+
+### 三、可信的是邻居名
+
+| 名字 | 邻居 | 类 |
+|---|---|---|
+| `AddToCartBox` | `ExtractPopNow` · `PreviewBoxes` | PopMart 抽签 |
+| `AddToCartGraphQL` | `GetAccessToken` · `CartApiObjectCreate` | 购物车 API |
+| `AddToCartPreloadGraphQL` | `CreateCartGraphql` | GraphQL 车 |
+| `AddToCartNext` | `ScrapeProductSvelte` | 框架抓取 |
+| `AddToCartAstro` | `StartCheckoutAstro` · `ScrapeProductNext` | 框架抓取 |
+| `AddToCartSvelte` | `RefreshSession` | 会话 |
+| `AddToCartFrontend` | `AddToCart` · `AddToCartPreload` | 网页结账 |
+
+### 四、拼接伪影
+
+**`AddToCartNext` 旁边是 Svelte 名 —— 字符串是多类 run 拼接的。
+邻居名说明「这一段有抓取方法」，不说明两个名字同类。**
+
+### 五、套件红过一次
+
+**第一次 metrics 1 失败 → 直接全量 2340/0/2 → 再跑 metrics 2036/0。
+**红一次 ≠ 真红，但要写清是重跑才绿的。****
+
+### 六、数字
+
+| 度量 | R942 | R943 |
+|---|---|---|
+| 套件 | 2036 | **2036** |
+| 产物陈旧度 | 9 / 916 | **9 / 920** |
+| **定位** | 6 / 13 | **13 / 13** |
+
+### 七、验证
+
+```
+binding_descriptors.tsv 查 7 名 -> 0 命中（表装绑定）
+各名字自身字符串          -> 邻居名七类齐全
+test --filter AddToCartPlacementTests -> 13 通过
+metrics_report.py         -> 2036 通过 / 0 失败
+```
+
+### 八、仍然 Unknown
+
+- **每个方法真正的所属类**：**Unknown** —— 序号不可信。
+- **框架抓取类的归属**：**Unknown** —— 拼接伪影掩盖。
+- **是否还有误读名字**：**Unknown** —— 只能对已定位 13 个下结论。
+
+### 九、教训
+
+**两个假设都被否，都是**问错了来源**：描述符表装绑定不装方法；序号在拼接串里被截断。**
+
+**错误形式相同：一个能回答**相邻**问题的来源，被当成了能回答**这个**问题的来源。**
+
+**而它们都不报错 —— 描述符表给出「不在表里」，序号给出一个看起来正常的数字。**

@@ -5179,3 +5179,72 @@ AddToCart  d__36  邻居: CastIterator, CheckForUpdatesAsync, ExpandBufferAsync,
 > **而它的表现是**给出一个看起来很像答案的表** —— `AddToCart` 旁边是 `CastIterator`，
 > 而那读起来像「它属于框架迭代器类」，一个完全错误但语法通顺的结论。**
 > **所以判据用错范围时，它不会报错，它会**给出一个答案**。**
+
+
+### 13 / 13 全部定位，而**两个来源都不是我想的那个**（R943）
+
+**R942 说 7 个定不了位。这一轮补上了，而过程中两个假设先后被否。**
+
+### 假设一：用描述符表 —— 错的
+
+**`analysis/binding_descriptors.tsv` 有 1,637 条，字段是 `declaring_type / owner_assembly / member / accessor`。**
+
+**而七个名字**一条都不在里面**。**
+
+> **原因不是它们不存在，而是那张表只装**绑定**（带 Getter/Setter 的属性）。
+> `AddToCart*` 是**方法**，永远不在里面。**
+> **所以那不是「缺席」，是**问错了表**。**
+
+### 假设二：用序号连号 —— 在这七个身上也不可靠
+
+**读它们各自的字符串，序号是这样的：**
+
+```
+AddToCartBox        ExtractPopNow(83) · SelectPopNow(840) · AddToCartBox(864) · SelectMultiPopNowUS(87)
+AddToCartNext       AddToCartNext(364) · ScrapeProductSvelte(378) · CheckPriceLimitSvelte(39)
+```
+
+> **`840` 与 `864` 之间夹着 `85`/`87` —— 序号被**截断成三位**了。所以这些字符串里的序号不可信。**
+
+### 但**邻居名**可信，而它给了七类
+
+| 名字 | 邻居 | 类 |
+|---|---|---|
+| `AddToCartBox` | `ExtractPopNow` · `SelectPopNow` · `PreviewBoxes` · `FetchAddress` | **PopMart 抽签**（第三次确认） |
+| `AddToCartGraphQL` | `GetAccessToken` · `CartApiObjectCreate` | **购物车 API** |
+| `AddToCartPreloadGraphQL` | `CreateCartGraphql` · `GetCartAvailabilityGraphql` | **GraphQL 车** |
+| `AddToCartNext` | `ScrapeProductSvelte` · `CheckPriceLimitSvelte` | **框架抓取** |
+| `AddToCartAstro` | `StartCheckoutAstro` · `ScrapeProductNext` · `CheckPriceLimitNext` | **框架抓取** |
+| `AddToCartSvelte` | `RefreshSession` | **会话** |
+| `AddToCartFrontend` | `AddToCart` · `AddToCartPreload` | **网页结账** |
+
+### 而 `AddToCartNext` 旁边是 **Svelte** 的名字 —— 那是**拼接伪影**
+
+**它是 `Next`，旁边却是 `ScrapeProductSvelte` / `CheckPriceLimitSvelte`。**
+
+> **所以这些字符串是多个类的连号 run **拼接**在一起的。
+> 而邻居名只能说明「这一类里有抓取方法」，**不能说明这两个名字同类**。**
+> **所以表里的「类」是**这一段的性质**，不是这两个方法共享的类。而我把这个区别写进了常量注释和测例名。****
+
+### 数字
+
+| 度量 | R942 | **R943** |
+|---|---|---|
+| 套件 | 2036 | **2036** |
+| 产物陈旧度 | 9 文件 / 916 行 | **9 文件 / 920 行** |
+| **连号定位** | 6 / 13 | **13 / 13（7 个靠邻居名）** |
+
+### 而套件红过一次 —— 是偶发
+
+**第一次 `metrics_report.py` 报 1 失败；直接跑全量 **2340 通过 / 0 失败 / 2 跳过**；
+再跑 metrics **2036 通过 / 0 失败**。**
+
+> **所以那一次是**偶发**，不是真失败。而 §2.6 那条「没跑成 ≠ 通过」的反面也成立：
+> **红一次 ≠ 真红** —— 但要说清是重跑才绿的，而不是把那次红抹掉。****
+
+### 教训
+
+> **这一轮两个假设都被否，而两个都是**问错了来源**：
+> 描述符表装绑定不装方法；序号在拼接串里被截断。**
+> **而两次的错误形式相同：**一个能回答相邻问题的来源，被我当成了能回答这个问题的来源。**
+> **而它们的输出都不报错 —— 描述符表给出「不在表里」，序号给出一个看起来正常的数字。**

@@ -56012,3 +56012,61 @@ AddToCart  d__36  邻居: CastIterator, CheckForUpdatesAsync, ExpandBufferAsync
 > 而它的表现是**给出一个看起来很像答案的表** —— 读起来像「它属于框架迭代器类」，
 > 一个完全错误但语法通顺的结论。**
 > **所以判据用错范围时不会报错，它会**给出一个答案**。**
+
+
+---
+
+## 第 943 轮：13/13 全部定位，而两个来源都不是我想的那个
+
+### 假设一：描述符表 —— 错的
+
+**`binding_descriptors.tsv` 1,637 条，七个名字**一条都不在**。
+原因不是缺席 —— 那张表只装**绑定**（属性），`AddToCart*` 是**方法**。**
+
+> **不是「缺席」，是**问错了表**。**
+
+### 假设二：序号连号 —— 在这七个身上也不可靠
+
+```
+AddToCartBox   ExtractPopNow(83) · SelectPopNow(840) · AddToCartBox(864) · SelectMultiPopNowUS(87)
+```
+
+**`840` 与 `864` 之间夹着 `85`/`87` —— 序号被**截断成三位**。不可信。**
+
+### 但邻居名可信，给了七类
+
+| 名字 | 邻居 | 类 |
+|---|---|---|
+| `AddToCartBox` | `ExtractPopNow` · `PreviewBoxes` | PopMart 抽签（三次确认） |
+| `AddToCartGraphQL` | `GetAccessToken` · `CartApiObjectCreate` | 购物车 API |
+| `AddToCartPreloadGraphQL` | `CreateCartGraphql` | GraphQL 车 |
+| `AddToCartNext` | `ScrapeProductSvelte` | 框架抓取 |
+| `AddToCartAstro` | `StartCheckoutAstro` · `ScrapeProductNext` | 框架抓取 |
+| `AddToCartSvelte` | `RefreshSession` | 会话 |
+| `AddToCartFrontend` | `AddToCart` · `AddToCartPreload` | 网页结账 |
+
+### 而 `Next` 旁边是 **Svelte** 的名字 —— 拼接伪影
+
+> **这些字符串是多个类的连号 run **拼接**的。邻居名只能说明「这一段里有抓取方法」，
+> 不能说明这两个名字同类。**所以表里的「类」是**这一段的性质**，不是共享的类** ——
+> 这个区别写进了常量注释和测例名。**
+
+### 数字
+
+| 度量 | R942 | **R943** |
+|---|---|---|
+| 套件 | 2036 | **2036** |
+| 产物陈旧度 | 9 / 916 | **9 / 920** |
+| 连号定位 | 6 / 13 | **13 / 13** |
+
+### 而套件红过一次 —— 偶发
+
+**第一次 metrics 报 1 失败；直接全量 **2340 通过 / 0 失败 / 2 跳过**；再跑 metrics **2036 / 0**。**
+
+> **§2.6 的反面也成立：红一次 ≠ 真红 —— 但要说清是重跑才绿的。**
+
+### 教训
+
+> **两个假设都被否，都是**问错了来源**：描述符表装绑定不装方法；序号在拼接串里被截断。
+> 而错误形式相同：**一个能回答相邻问题的来源，被当成了能回答这个问题的来源。**
+> 而它们都不报错 —— 描述符表给出「不在表里」，序号给出一个看起来正常的数字。**

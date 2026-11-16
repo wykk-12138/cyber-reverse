@@ -25,16 +25,17 @@ public class AddToCartPlacementTests
 
     /// <summary>Six placed, seven not, and the counts are stated.</summary>
     [Fact]
-    public void SixArePlacedByAdjacency()
+    public void AllThirteenArePlaced()
     {
         Assert.Equal(13, Rows().Length);
-        Assert.Equal(6, Rows().Count(r => r.Neighbours.Length > 0));
-        Assert.Equal(7, Rows().Count(r => r.Neighbours.Length == 0));
+        // R943: all thirteen are placed now, the last seven from their own strings rather than from one concatenated run
+        Assert.Equal(13, Rows().Count(r => r.Neighbours.Length > 0));
+        Assert.Equal(0, Rows().Count(r => r.Neighbours.Length == 0));
 
-        Assert.Equal(6, (int)typeof(AddToCartPlacement)
+        Assert.Equal(13, (int)typeof(AddToCartPlacement)
             .GetField("Placed", BindingFlags.NonPublic | BindingFlags.Static)!
             .GetRawConstantValue()!);
-        Assert.Equal(7, (int)typeof(AddToCartPlacement)
+        Assert.Equal(0, (int)typeof(AddToCartPlacement)
             .GetField("Unplaced", BindingFlags.NonPublic | BindingFlags.Static)!
             .GetRawConstantValue()!);
     }
@@ -77,13 +78,12 @@ public class AddToCartPlacementTests
     /// without being missing from the image -- the distinction R939 paid for.
     /// </summary>
     [Fact]
-    public void UnplacedMeansUnknownNotAbsent()
+    public void EvenPlacedNamesLeaveTheClassUnproven()
     {
+        // every name now has neighbours, so nothing is unplaced; what remains unproven is whether a name beside another
+        // framework's name shares its class, which the ordinals in these strings cannot answer
         foreach (var name in new[] { "AddToCartNext", "AddToCartAstro", "AddToCartSvelte", "AddToCartFrontend", "AddToCartGraphQL" })
-        {
-            Assert.False(AddToCartPlacement.IsPlaced(name));
-            Assert.Null(AddToCartPlacement.ClassOf(name));
-        }
+            Assert.True(AddToCartPlacement.IsPlaced(name));
 
         var doc = System.IO.File.ReadAllText(System.IO.Path.Combine(RepoRoot(),
             "src", "Cybersole.Stores", "Scripts", "AddToCartPlacement.cs"));

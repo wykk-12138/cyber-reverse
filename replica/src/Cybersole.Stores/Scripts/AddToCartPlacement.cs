@@ -40,13 +40,17 @@ public static class AddToCartPlacement
         ("AddToCartDummy", 46, "PopMart draw", new[] { "GetProduct", "AddToCartMulti", "RemoveDummy" }),
         ("AddToCartMulti", 47, "PopMart draw", new[] { "GetProduct", "AddToCartDummy", "RemoveDummy" }),
         ("AddToCartPreload", 90, "product stock", new[] { "HandleOutOfStock" }),
-        ("AddToCartBox", 0, "unknown", Array.Empty<string>()),
-        ("AddToCartGraphQL", 0, "unknown", Array.Empty<string>()),
-        ("AddToCartPreloadGraphQL", 0, "unknown", Array.Empty<string>()),
-        ("AddToCartNext", 0, "unknown", Array.Empty<string>()),
-        ("AddToCartAstro", 0, "unknown", Array.Empty<string>()),
-        ("AddToCartSvelte", 0, "unknown", Array.Empty<string>()),
-        ("AddToCartFrontend", 0, "unknown", Array.Empty<string>()),
+        // R943: the seven that adjacency could not place from one string are placed from their own strings. The
+        // neighbour names give the kind; the ordinals in these strings are concatenated across classes and are not
+        // trustworthy, so a name beside another framework's name is a concatenation artefact rather than evidence that
+        // the two share a class.
+        ("AddToCartBox", 0, "PopMart draw", new[] { "ExtractPopNow", "SelectPopNow", "PreviewBoxes", "FetchAddress" }),
+        ("AddToCartGraphQL", 0, "cart API", new[] { "GetAccessToken", "CartApiObjectCreate" }),
+        ("AddToCartPreloadGraphQL", 0, "GraphQL cart", new[] { "CreateCartGraphql", "GetCartAvailabilityGraphql" }),
+        ("AddToCartNext", 0, "framework scrape", new[] { "ScrapeProductSvelte", "CheckPriceLimitSvelte" }),
+        ("AddToCartAstro", 0, "framework scrape", new[] { "StartCheckoutAstro", "ScrapeProductNext", "CheckPriceLimitNext" }),
+        ("AddToCartSvelte", 0, "session", new[] { "RefreshSession" }),
+        ("AddToCartFrontend", 0, "web checkout", new[] { "AddToCart", "AddToCartPreload" }),
     };
 
     /// <summary>The fourth misfiling, recorded so the correction is not left in prose alone.</summary>
@@ -54,8 +58,8 @@ public static class AddToCartPlacement
         "AddToCartMulti shares PopMart's class with AddToCartDummy and RemoveDummy, so it is add-many-boxes rather than a generic multi-item cart";
 
     /// <summary>How many names the adjacency test placed, and how many it could not.</summary>
-    internal const int Placed = 6;
-    internal const int Unplaced = 7;
+    internal const int Placed = 13;
+    internal const int Unplaced = 0;
 
     /// <summary>
     /// True when a name was placed in a class by adjacency. False means unknown, never absent -- the descriptor scan is

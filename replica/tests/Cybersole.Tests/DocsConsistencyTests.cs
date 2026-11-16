@@ -61,6 +61,52 @@ public class DocsConsistencyTests
         Assert.All(claims, n => Assert.Equal(actual, n));
     }
 
+    /// <summary>
+    /// The "N 个模块" phrase in the verdict must not spread further.
+    ///
+    /// <para>
+    /// R881. <see cref="TheModuleCountInVerdictMatchesTheCatalogue"/> has gone red four times — R457, R464, R813 and
+    /// R880 — and every time the repair was to change the number, which holds only until the next module lands. The
+    /// phrase is the trap: the guard scans for a number followed by "个模块" and cannot tell a claim about the
+    /// catalogue's size from a sentence reporting that some round handled that many. Thirteen such sentences are in the
+    /// document today, all correct, all fragile.
+    /// </para>
+    ///
+    /// <para>
+    /// This test does not weaken that guard or rewrite history. It fixes a ceiling: the count may fall as sentences are
+    /// reworded but may not rise, so the habit is caught where it is formed. To state the catalogue's size, cite
+    /// docs/METRICS.md or say "模块" without a number.
+    /// </para>
+    ///
+    /// <para>
+    /// The ceiling is sixteen rather than the thirteen I first wrote, and that correction is part of the point: my
+    /// counting script disagreed with this test, the test was right, and the discrepancy came from my own bad
+    /// measurement rather than from a difference between Python and C#. A ceiling derived from a hand count would have
+    /// been a number asserted from a tool I had not checked.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void TheModuleCountPhraseDoesNotSpread()
+    {
+        const int ceiling = 16;
+
+        var path = DocPath();
+        Assert.False(string.IsNullOrEmpty(path), "docs/VERDICT.md not found from the test bin dir");
+
+        var doc = File.ReadAllText(path);
+        var prose = Regex.Replace(doc, "```.*?```", "\n", RegexOptions.Singleline);
+        var count = Regex.Matches(prose, @"(\d+)\s*(?:个模块|modules)")
+            .Select(m => int.Parse(m.Groups[1].Value))
+            .Where(n => n >= 20)
+            .Count();
+
+        _out.WriteLine($"'N 个模块' sentences in prose: {count} (ceiling {ceiling})");
+
+        Assert.True(count <= ceiling,
+            $"the phrase spread from {ceiling} to {count}. Reword the new sentence without a number — cite " +
+            "docs/METRICS.md instead — rather than raising this ceiling.");
+    }
+
     [Fact]
     public void TheCoverageTestAndTheCatalogueAgree()
     {

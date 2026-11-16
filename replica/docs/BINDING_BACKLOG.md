@@ -3884,3 +3884,33 @@ StartRaffleFlow StartReservationFlow StartRpcFlow StartSignupFlow StartTasksFlow
 | `Rpc` 是什么 | 名字是全部证据 |
 
 **纪律**：**改数字撑到下一次，改句式才不再红 —— R764 写过这条，这次轮到自己。**
+
+
+## 方法 — 句式天花板测试（R881）
+
+**`DocsConsistencyTests.TheModuleCountPhraseDoesNotSpread`**：散文里「<数字> 个模块」(>=20) 的处数 **<= 16**，只许降不许升。
+
+| 选择 | 为什么 |
+|---|---|
+| 不削 `TheModuleCountInVerdictMatchesTheCatalogue` | 它分不清断言与事实陈述，削它会连真断言一起削 |
+| 不改那 16 句历史 | 它们今天全对；改对的东西 = 把证据改成叙事 |
+| 只针对增长 | 变少是改稿，变多是习惯 |
+
+### 它第一次跑就纠正了我
+
+**我先数出 13 当 ceiling，测试报 16 → 复核（写进文件的脚本）raw 16 / stripped 16 → 13 是测量错误。**
+**毛病：here-string 里 `chr(10)` + 反引号做围栏剥离。**
+
+> **它防的不只是「再写这个句式」，是「拿手工计数当基准」。**
+
+### 验证
+
+`DocsConsistencyTests` 8 通过 · 全量 **1780 通过 / 0 失败**（原 1779 + 1）
+
+| 仍 Unknown | |
+|---|---|
+| 天花板该不该随改写收紧 | 该调低，但没动作会做 |
+| 那 16 句里有几句该改 | 表格里把数字当锚点的最该改 |
+| 16 余量是否太松 | 可能会 |
+
+**纪律**：**能用可复核工具回答的，就不该靠手工计数。**

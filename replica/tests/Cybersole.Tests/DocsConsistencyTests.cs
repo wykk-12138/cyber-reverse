@@ -49,7 +49,24 @@ public class DocsConsistencyTests
         // line from three rounds earlier — leave history alone, scan prose only.
         var prose = Regex.Replace(doc, "```.*?```", "\n", RegexOptions.Singleline);
 
-        var claims = Regex.Matches(prose, @"(\d+)\s*(?:个模块|modules)")
+        // R918: scope to the summary block, not the whole file.
+        //
+        // VERDICT.md is an append-only log of more than forty-nine thousand lines, and it carries twelve prose claims
+        // of the form "<n> 个模块" from rounds in which the catalogue genuinely held sixty-three entries. Replacing
+        // those with sixty-four would make every one of them false -- they describe measurements taken at the time, and
+        // one of them says so explicitly. The guard's own note above says fenced blocks are history and only prose is
+        // scanned, which is the right intent; it could not tell a historical section from a current summary, because a
+        // heading looks like a heading either way.
+        //
+        // So the scan covers the summary block, which starts at the document's status table and ends at the first
+        // horizontal rule after it. That is where a claim about the catalogue today belongs. A historical claim inside
+        // the log stays as it was written.
+        var summaryStart = doc.IndexOf("| 注册模块 |", StringComparison.Ordinal);
+        Assert.True(summaryStart >= 0, "VERDICT.md no longer has a module-count row");
+        var summaryEnd = doc.IndexOf("\n---", summaryStart, StringComparison.Ordinal);
+        var summary = summaryEnd < 0 ? doc[summaryStart..] : doc[summaryStart..summaryEnd];
+
+        var claims = Regex.Matches(summary, @"(\d+)\s*(?:个模块|modules)")
             .Select(m => int.Parse(m.Groups[1].Value))
             .Where(n => n >= 20)                    // ignore unrelated small numbers
             .Distinct()

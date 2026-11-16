@@ -837,3 +837,17 @@ matched = 标签出现在 src 某文件里（不证明店能用）；unmatched =
 而 Registry 64 注册 vs 镜像 39 宿主 → 数量本身不对应，这不是完整的一一对照。
 
 下一轮：store 那 2 个真缺口（sportsshoes / dickssportinggoods）各差什么。
+
+## R918 补充 — Sportsshoes 补上（改产品代码 +6 用例，套件 1836→1842）
+
+镜像证据三台宿主：www（店面）· sop/cart/add/（加车）· checkout/api/storefront/{checkout,checkouts,orders,payments/stripeocs} + internalapi/v1/checkout/order + /checkout?setCurrencyId=1。→ 该是独立 flow 不是平台子类。
+
+改动：SportsshoesFlow.cs 新建（3 宿主 + 9 地址 + 3 步骤）· Registry.cs 注册 · 6 用例。
+
+六个模块数守卫红（设计如此）：DocsConsistencyTests · SummaryBlockTests · ArrowAndBeastTests · CoreTests · ParityDocTests×2。实际 64，源码正则数到 65（一处在注释里）。
+
+VERDICT.md 12 处历史 63 个模块不该改 → 守卫按意图收窄到摘要区 + 加一行当前声明。
+
+数字：套件 1842 · 模块 63→64 · flow 类型 33→34 · store 宿主 22/28→23/28。
+
+下一轮：dickssportinggoods（R917 另一个真缺口）。

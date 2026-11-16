@@ -184,6 +184,10 @@ public static class StoreModuleCatalog
         new FlowStoreModule(new PocketGamesFlow()),
         new FlowStoreModule(new SnsFlow()),
         new FlowStoreModule(new SizeFlow()),
+        // R918: two stores the image supports and the replica had nowhere. R917's core coverage table found them by
+        // a host label appearing nowhere in src; the binary carries thirteen literals for Sportsshoes across three
+        // hosts and six for Dicks Sporting Goods.
+        new FlowStoreModule(new SportsshoesFlow()),
         new FlowStoreModule(new JdSportsFlow()),
         new FlowStoreModule(new FanaticsFlow()),
         new FlowStoreModule(new RiotGamesFlow()),

@@ -3524,3 +3524,77 @@ www.purpledotprice.com          (1)   —— 未知
 > **一张表修两次才可信，而两次都是**来源或形状假设太窄**：
 > 第一次只查一个文件，第二次只取一个段。**
 > **而两次修之前，数都看起来正常：7/28 和 16/28 都是「有零有整」的数，读起来不像坏了。**
+
+
+### 补上 Sportsshoes —— 而六个「模块数」守卫一起变红（R918）
+
+**R917 的表剩下两个真缺口。这一轮补了同名的那一个。**
+
+### 镜像给它的证据：三台宿主，分工不同
+
+```
+https://www.sportsshoes.com              店面，读商品
+https://sop.sportsshoes.com/cart/        车状态
+https://sop.sportsshoes.com/cart/add/    加车
+https://checkout.sportsshoes.com/api/storefront/checkout/     开始结账
+https://checkout.sportsshoes.com/api/storefront/checkouts/    复数，第二个集合
+https://checkout.sportsshoes.com/api/storefront/orders/       下单
+https://checkout.sportsshoes.com/api/storefront/payments/stripeocs   Stripe 一键
+https://checkout.sportsshoes.com/internalapi/v1/checkout/order       orders 的内部孪生
+https://checkout.sportsshoes.com/checkout?setCurrencyId=1           页面 + 币种参数
+```
+
+**所以一次购买跨越三台宿主：店面 → `sop`（车）→ `checkout`（其后一切）。**
+
+**这正是它该是自己的 flow 而不是 Demandware / Hybris 子类的原因：
+两个平台都不这样分宿主，而这里端点族是 `api/storefront`，两家都不用。**
+
+### 写了什么
+
+| 文件 | 改动 |
+|---|---|
+| `Flows/SportsshoesFlow.cs` | **新建**：3 台宿主 + 9 条地址常量 + 3 个步骤 |
+| `Modules/Registry.cs` | 注册（**63 → 64 个模块**） |
+| `tests/SportsshoesFlowTests.cs` | **6 用例** |
+
+**三个步骤只挑含义足够明确的三条端点：`FindProduct`（www）· `AddToCart`（`sop`）· `SubmitOrder`（`internalapi`）。
+后两条下单端点都在、且没有证据说谁取代谁，所以步骤记下它用了哪一条。**
+
+### 而六个守卫一起红了 —— 这正是它们的作用
+
+```
+DocsConsistencyTests.TheModuleCountInVerdictMatchesTheCatalogue
+SummaryBlockTests.ModuleCountInTheGuideMatchesTheRegistry
+ArrowAndBeastTests.TheCatalogueIsSixtyThreeModules
+CoreTests.Catalog_Registers_All_Modules
+ParityDocTests.TheModuleCountInParityMatchesTheCatalogue
+ParityDocTests.TheFlowTypeCountInParityMatchesTheCatalogue
+```
+
+**而量出来的实际是 **64**，不是我在源码里数到的 65 —— 有一处 `FlowStoreModule(new X)` 在注释里。
+**这个差值得记：**正则在源码上数，编译器数的是别的。**
+
+### 改数字时遇到的一件事：历史不该被改
+
+**`DocsConsistencyTests` 扫全文的 `<n> 个模块`，而 VERDICT.md 是 49,000+ 行、12 处历史 `63 个模块`。**
+**把它们改成 64 会让每一句都变成假话 —— 那些句子描述的是当时的实测，其中一句还明写了「当时」。**
+
+**而守卫自己的注释写着「fenced blocks 是历史，只看正文」——
+**它的意图就是只查当前声明，只是实现上认不出历史段落。****
+
+**所以按**意图**收窄：扫描范围改成摘要区（`| 注册模块 |` 开头到其后第一个 `---`），
+并在摘要里加一行**当前声明** `**64 个模块**`，注明历史数字在文末日志。**
+
+> **这不是为了让守卫变绿而改守卫 —— 是因为「49,000 行追加日志里的每个历史数字都必须等于今天」
+> 这条命题本身是错的。**
+
+### 数字
+
+| 度量 | R917 | **R918** |
+|---|---|---|
+| 套件 | 1836 | **1842** |
+| **模块** | 63 | **64** |
+| **flow 类型** | 33 | **34** |
+| **store 宿主覆盖** | 22 / 28 | **23 / 28** |
+
+**`checkout.sportsshoes.com` 现在匹配了。**

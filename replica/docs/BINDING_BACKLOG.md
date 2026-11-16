@@ -5220,3 +5220,46 @@ ProcessResult 14 · OpenSecurePage 15 · Navigate 17 · RunShield 18 · CardHold
 | 32 个 store 宿主里那 6 个之外还有没有 | 本表只覆盖「有路径的宿主」 |
 
 **纪律**：**「有零有整」不说明判据对 —— 只有拿一个已知答案去试才说明。**
+
+
+## 优先级 ① — Sportsshoes 补上（R918，**改产品代码 +6 用例**）
+
+### 镜像证据：三台宿主
+
+```
+www.sportsshoes.com              店面
+sop.sportsshoes.com/cart/add/    加车（另一台）
+checkout.sportsshoes.com/api/storefront/{checkout,checkouts,orders,payments/stripeocs}
+checkout.sportsshoes.com/internalapi/v1/checkout/order
+checkout.sportsshoes.com/checkout?setCurrencyId=1
+```
+
+**→ 该是自己的 flow，不是 Demandware/Hybris 子类（两家都不这样分宿主，端点族 `api/storefront` 两家都不用）。**
+
+### 改动
+
+**`Flows/SportsshoesFlow.cs` 新建（3 宿主 + 9 地址 + 3 步骤）· `Registry.cs` 注册 · 6 用例**
+
+### 六个守卫红了（设计如此）
+
+**`DocsConsistencyTests` · `SummaryBlockTests` · `ArrowAndBeastTests` · `CoreTests` · `ParityDocTests` ×2**
+
+**而实际是 **64**，源码正则数到 65 —— 有一处在注释里。正则在源码上数，编译器数的是别的。**
+
+### 历史数字不改
+
+**VERDICT.md 49,000+ 行、12 处历史 `63 个模块`。改成 64 会让每句变假。
+守卫注释写着「fenced blocks 是历史」→ 按**意图**收窄到摘要区 + 加一行当前声明。**
+
+### 数字
+
+**套件 1836 → 1842 · 模块 63 → 64 · flow 类型 33 → 34 · store 宿主 22/28 → **23/28****
+
+| 仍 Unknown | |
+|---|---|
+| 两条下单端点谁是真的 | `orders/` vs `internalapi/.../order` |
+| `stripeocs` 何时用 | 一键结账，未判 |
+| `setCurrencyId=1` 的语义 | 只有一条带参地址 |
+| `dickssportinggoods` 何时补 | R917 的另一个真缺口 |
+
+**纪律**：**事实变一次，六处跟着变，每处都被逼着写原因 —— 这就是「数字随事实走」的执行方式。**

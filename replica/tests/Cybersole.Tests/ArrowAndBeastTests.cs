@@ -81,6 +81,6 @@ public sealed class ArrowAndBeastTests
         var count = StoreModuleCatalog.CreateAll().Count;
         _out.WriteLine($"modules: {count}");
 
-        Assert.Equal(63, count);
+        Assert.Equal(64, count);
     }
 }

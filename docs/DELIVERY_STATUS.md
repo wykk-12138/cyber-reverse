@@ -19880,3 +19880,70 @@ metrics_report.py                -> 1836 通过 / 0 失败
 **只有拿一个**已知答案**去试（Vans 一定该匹配）才把第一次的错暴露出来。**
 
 **所以「数看起来合理」不验证判据 —— 一个已知的正例才验证。**
+
+
+---
+
+## 342. Sportsshoes 补上：模块 63 → 64，store 宿主 22/28 → 23/28
+
+> R918。**改产品代码 +6 用例。** 套件 **1842 通过 / 0 失败 / 0 跳过**。
+
+### 一、镜像证据：三台宿主分工
+
+```
+www.sportsshoes.com              店面
+sop.sportsshoes.com/cart/add/    加车
+checkout.sportsshoes.com/api/storefront/{checkout,checkouts,orders,payments/stripeocs}
+checkout.sportsshoes.com/internalapi/v1/checkout/order
+checkout.sportsshoes.com/checkout?setCurrencyId=1
+```
+
+**一次购买跨三台宿主 → 该是独立 flow，不是平台子类。**
+
+### 二、改动
+
+| 文件 | |
+|---|---|
+| `Flows/SportsshoesFlow.cs` | 新建：3 宿主 + 9 地址 + 3 步骤（`FindProduct`/`AddToCart`/`SubmitOrder`） |
+| `Modules/Registry.cs` | 注册 |
+| `tests/SportsshoesFlowTests.cs` | 6 用例 |
+
+**两条下单端点都在、无证据说谁取代谁 → 步骤记下它用了哪一条。**
+
+### 三、六个守卫一起红（设计如此）
+
+`DocsConsistencyTests` · `SummaryBlockTests` · `ArrowAndBeastTests` · `CoreTests` · `ParityDocTests` ×2
+
+**而实际量出 **64**，源码正则数到 **65** —— 有一处 `FlowStoreModule(new X)` 在注释里。**
+
+### 四、而其中一处逼出了更好的问题
+
+**守卫扫全文的 `<n> 个模块`，而 VERDICT.md 是 49,000+ 行、**12 处历史 `63 个模块`**。
+改成 64 会让每句变成假话 —— 它们描述当时的实测，一句还明写了「当时」。**
+
+**守卫自己的注释写着「fenced blocks 是历史，只看正文」→ **它的意图就是只查当前声明**。
+
+→ 按意图收窄到摘要区（`| 注册模块 |` 到其后第一个 `---`），并加一行当前声明 `**64 个模块**`，
+注明历史数字在文末日志。**
+
+### 五、数字
+
+| 度量 | R917 | R918 |
+|---|---|---|
+| 套件 | 1836 | **1842** |
+| 模块 | 63 | **64** |
+| flow 类型 | 33 | **34** |
+| **store 宿主覆盖** | 22 / 28 | **23 / 28** |
+
+### 六、仍然 Unknown
+
+- **`api/storefront/orders/` 与 `internalapi/v1/checkout/order` 谁是真的**：**Unknown** —— 两条都在。
+- **`stripeocs` 何时用**：**Unknown** —— 一键结账，未判。
+- **`dickssportinggoods` 何时补**：**Unknown** —— R917 的另一个真缺口。
+
+### 七、教训
+
+**六个守卫同时红，说明它们覆盖了六个不同的地方。事实变一次，六处跟着变，每一处都被逼着写原因。
+
+**而「为了让守卫变绿而改守卫」与「守卫的命题本身错了」是两件事。**
+**这一轮后者成立：49,000 行追加日志里的每个历史数字都必须等于今天，这条命题不可能对。**

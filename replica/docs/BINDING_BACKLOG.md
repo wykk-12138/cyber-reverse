@@ -6348,3 +6348,31 @@ Vipps（三条路径 + `checkout.vipps.no`）· BigCommerce（一条 `/api/publi
 | 表驱动模块是否该按模块折成函数 | 设计问题 |
 
 **纪律**：判据 (c) 通过的意思是「exe 从当前源码构建」，不是「更接近原版」。
+
+
+## 判据 (c)/③ — 函数数=可达代码；`RedirectPolicy` 无调用者被裁（R950，**+29 用例**）
+
+### 写的真逻辑
+
+**`RedirectPolicy`：`IsRedirect` · `PreservesMethod` · `LimitFrom` · `FollowAsync`（循环+上限）· `Resolve` ·
+`ParseRetryAfter`（两种形式）· `IsThrottled` · `ThrottleLog`**
+
+### 而重发布后函数数未变
+
+**`TooManyRedirects` 不在产物、`BouncyHttpClient` 在 → 裁剪器删了无调用者的类。**
+
+### R949 结论被推翻
+
+**不是「表 0 / 逻辑 1,963」，是「不可达 0 / 可达 >0」。**
+
+### 数字
+
+**套件 2059 → 2088 · 陈旧度 0/0 · 函数数 173,653 未变**
+
+| 仍 Unknown | |
+|---|---|
+| 已有 ~3,200 行 HTTP 层多少在产物里 | 未测 |
+| 哪些 flow 真的走到 `NetClient.SendAsync` | 未追 |
+| 103,467 缺口里多少是「没接上」 | 未知，可能很大 |
+
+**纪律**：「写了一个类」和「产物里多了一个类」是两件事。

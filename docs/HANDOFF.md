@@ -1343,3 +1343,20 @@ VippsNo 按措辞记不按地区记（No 可作 Norway 或「否」）。
 纪律：判据 (c) 通过的意思是「exe 从当前源码构建」，不是「更接近原版」。
 
 下一轮：写一批真正有 non-leaf 函数的代码（优先 ③ 请求与指纹层，或 ① 未做的 flow 逻辑）。
+
+## R950 补充 — 函数数=可达代码；RedirectPolicy 写了但被裁掉（+29 用例，套件 2088）
+
+写了真逻辑（RedirectPolicy：hop 循环/TooManyRedirects/Retry-After 两种形式/[Throttling] 日志），重发布后函数数仍 173,653。
+
+查产物：TooManyRedirects 不在、BouncyHttpClient 在 → 无调用者的类被 NativeAOT 裁剪器删掉。
+→ 函数数量的是**可达代码**；R949 的「表 0 / 逻辑 1,963」被推翻，真相是「不可达 0 / 可达 >0」。
+
+我自己也错过一次：搜 JA3/TlsProfile 都「不在」就判「TLS 层被裁」—— 而 NativeAOT 不把类名写成字面量。
+
+修复中三个真 bug："1.2.3" 被日期解析器接受返回 0（加纯数字点串回落）· 循环多跑一跳 · Hops 多 1。
+
+数字：套件 2059 → 2088 · 陈旧度 0/0 · 函数数 173,653 未变。
+
+纪律：「写了一个类」和「产物里多了一个类」是两件事。
+
+下一轮：把 RedirectPolicy 接进 NetClient.SendAsync（接线而非写作）；或先测已有 HTTP 层多少在产物里。

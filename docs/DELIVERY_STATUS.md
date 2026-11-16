@@ -13048,3 +13048,76 @@ python tools\metrics_report.py     七项全 exit 0（R832 已跑）
 **一条正则的危险不在它长什么样，在它能匹配到什么。**
 
 **这一轮没找到缺陷。** **而「检查一遍、没有」这种结果，只有把矩阵打出来才算数 —— 我说「其余十一项应该没问题」是没有价值的。**
+
+
+---
+
+## 258. 每个度量声明自己拥有的正则键 —— **串味从「可检出」变成「不可能」**
+
+> R834。改 `replica/tools/metrics_report.py`（共享工具），新增 `tools/mutation_ownership.py`。**全量已复跑。**
+
+### 一、R833 留下的选择
+
+R833 的补法是「加一条断言，要求每个 pattern 只在自己输出里出现」。**但那仍然只是检出。**
+
+**改成声明所有权：`METRICS` 每条带上它允许填充的键，`summary_bits(out, owned)` 只提取这些。**
+**于是松正则再也填不进别人的行 —— 不是被抓住，是做不到。**
+
+```python
+("函数数量（.pdata）", ["tools/func_count.py"],
+ ["functions: original .pdata", "functions: replica .pdata", "functions: ratio"]),
+```
+
+**外加一条：没有任何度量拥有的 pattern 会在生成的文件里报 WARNING**（不是静默丢掉）。
+
+### 二、改造踩了两次
+
+| 尝试 | 错 | 后果 |
+|---|---|---|
+| ① | 用 `src.index("]", ...)` 找块尾 —— 找到的是**条目里 keys 列表的** `]` | 留下孤立的 `]),`，**语法错误** |
+| ② | 改用按行切块，但变异测试里第一处锚点少了 `)` | **替换静默失败**，测试「通过」了却什么都没测 |
+
+**① 靠 `git checkout -- replica/tools/metrics_report.py` 恢复**（快照目录结构不是我记的那样，git 更快）。
+**② 靠给两处替换都加断言才发现** —— 只断言「变了」时，第一处成功就掩盖了第二处失败。
+
+### 三、变异测试本身也修了两次
+
+**第一次：读 stdout 找摘要表 —— 而 `--skip-tests` 不打印表，它写进 `METRICS.md`。**
+**两个行列表都是空的，`any()` 在空列表上返回 False，于是「PASS」。**
+
+**第二次：改读生成文件，但没断言第一处替换成功 —— 松键连自己的行都没进，测试报
+「FAIL: the loose key did not even reach its own row, so the test is blind」。**
+
+**第三次才真的响：**
+
+```
+| 函数数量（.pdata） — functions: LOOSE replica | 171,690 |     <- 进了自己的行
+数据文件名对照 — 只有自己那两行                                <- 没串过去
+PASS: the loose pattern filled the row that owns it and no other
+```
+
+**这三步本身就是这一轮的收获**：**一个测试要先证明自己能看见东西，它说的「通过」才有意义。**
+
+### 四、验证
+
+```
+python tools\mutation_ownership.py      exit 0，松键进自己的行 (171,690)、不进 datafiles
+python tools\metrics_report.py          九项全 exit 0，无 WARNING（无无主正则）
+python tools\metrics_report.py          1766 通过 / 0 失败
+九项输出与 R833 完全一致（改造不改变任何数字）
+```
+
+### 五、仍然 Unknown
+
+- **`copy:` 那条的聚合分支**：**Unknown** —— 它走 `label.startswith("copy:")` 的专门分支，
+  **返回值是聚合而非最后一个匹配。改造没碰这段，边界也没验。**
+- **`PATTERN_SOURCE` 在模块导入时读整个文件**：**代价可忽略（17 KB）**，
+  **但如果将来把 pattern 表搬到别处，这条孤儿检查会静默失效。**
+- **无主 pattern 的 WARNING 只在生成文件里出现**：**Unknown 有没有下游消费者会看它。**
+
+### 六、教训
+
+**「可检出」和「不可能」是两件事，而后者更省心：一条松正则现在无论多松都只污染自己的行。**
+
+**而为了证明这一点，我写坏了两次工具、又修了两次测试。**
+**第二次的失败形态最值得记：`any()` 在空列表上返回 False —— 一个空集合上的检查，永远说「干净」。**

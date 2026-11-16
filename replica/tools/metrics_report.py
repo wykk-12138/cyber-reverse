@@ -34,28 +34,29 @@ import re
 import subprocess
 import sys
 
+# R834: the pattern table sits inside summary_bits, so the orphan check reads this file's own text.
+PATTERN_SOURCE = open(__file__, encoding="utf-8").read()
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DEFAULT_OUT = os.path.abspath(os.path.join(ROOT, "..", "docs", "METRICS.md"))
 DOTNET = os.environ.get("DOTNET", r"D:\tools\dotnet8\dotnet.exe")
 
 METRICS = [
-    ("名字级绑定缺口", ["tools/bind_diff.py", "--buckets"]),
-    ("类型级绑定缺口", ["tools/bind_scope.py"]),
-    ("类型缺失（type presence）", ["tools/bind_diff.py", "--type-presence"]),
-    ("成员形状差异", ["tools/shape_audit.py"]),
-    ("文案缺口总表", ["tools/copy_audit_report.py"]),
-    ("绑定缺口分桶", ["tools/backlog_report.py"]),
-    # R466: fifth metric. Reads the TSV written by analysis/binding_descriptors.py (IDA-dependent, slow) so
-    # this wrapper stays fast; it fails loudly if the TSV is missing rather than reporting zeros.
-    ("原版绑定描述符表", ["tools/descriptor_report.py"]),
-    # R600 sixth metric: the persisted-data file names. The other five all measure the binding surface; none of them
-    # looks at what the application writes to disk, which is part of behaviour when data has to be exchangeable.
-    ("数据文件名对照", ["tools/datafiles_diff.py"]),
-    # R832 seventh metric: the goal's first clause is that the function counts be equal, and until now nothing in this
-    # table measured it. The six above all count declarations; this one counts the artifacts. It reads .pdata from both
-    # PEs, so it needs no disassembly and no second IDA instance -- func_compare.py can also answer it but requires the
-    # replica's database on port 13338, which is usually not running.
-    ("函数数量（.pdata）", ["tools/func_count.py"]),
+    ("名字级绑定缺口", ["tools/bind_diff.py", "--buckets"], ["real gap", "missing"]),
+    ("类型级绑定缺口", ["tools/bind_scope.py"], ["types with scope misses"]),
+    ("类型缺失（type presence）", ["tools/bind_diff.py", "--type-presence"], ["types absent from source"]),
+    ("成员形状差异", ["tools/shape_audit.py"], ["total mismatches"]),
+    ("文案缺口总表", ["tools/copy_audit_report.py"], ["copy: zones with a missing key"]),
+    ("绑定缺口分桶", ["tools/backlog_report.py"], ["backlog: classes missing members", "backlog: types absent"]),
+    # R466 fifth metric. Reads the TSV written by analysis/binding_descriptors.py (IDA-dependent, slow);
+    # this wrapper stays fast and fails loudly when the TSV is missing rather than reporting zeros.
+    ("原版绑定描述符表", ["tools/descriptor_report.py"], ["descriptor entries", "descriptor types", "only in descriptors", "only in xaml table"]),
+    # R600 sixth metric: the persisted-data file names, which the other entries do not look at.
+    # R834: every entry now names the pattern keys it owns, so summary_bits can only fill that metric's row.
+    # A loose pattern can no longer put a number in a neighbour's line.
+    ("数据文件名对照", ["tools/datafiles_diff.py"], ["datafiles: original-on-disk not in replica", "datafiles: replica-only"]),
+    # R832 seventh metric: the goal's first clause is that the function counts be equal, and until then
+    # nothing here measured it -- the six above count declarations, this one counts the artifacts.
+    ("函数数量（.pdata）", ["tools/func_count.py"], ["functions: original .pdata", "functions: replica .pdata", "functions: ratio"]),
 ]
 
 SCOPE_NOTE = "note: base-class inheritance is counted (by design since R343)"
@@ -73,8 +74,13 @@ def run(argv, timeout=1800):
         return 124, command, "", "timeout after %ss" % timeout
 
 
-def summary_bits(name_out):
-    """Pull the one line each script uses to state its headline number."""
+def summary_bits(name_out, owned):
+    """Pull the headline numbers, but only the ones this metric owns.
+
+    R834: the caller passes the keys from its METRICS entry. Before this every pattern ran against every
+    script's output, so a loose one could fill a neighbouring metric's row with a number that was correct
+    in itself and belonged somewhere else. Ownership makes that impossible rather than merely detectable.
+    """
     found = {}
     patterns = {
         "real gap": r"real gap\s*:\s*(\d+)",
@@ -101,6 +107,8 @@ def summary_bits(name_out):
         "functions: ratio": r"pdata-ratio:\s*([\d.]+%)",
     }
     for label, pattern in patterns.items():
+        if label not in owned:
+            continue
         hits = re.findall(pattern, name_out, re.M)
         if label.startswith("copy:"):
             total = sum(int(m) for _, m in hits)
@@ -172,7 +180,7 @@ def main(argv=None):
     # stdout is a reliable verdict. What it *produces* is: if the target file was rewritten during the call, the
     # metric ran. That is the check.
     VERDICT_BY_FILE = {"文案缺口总表": os.path.join("docs", "COPY_QUEUE.md")}
-    for title, script_args in METRICS:
+    for title, script_args, owned in METRICS:
         watched = VERDICT_BY_FILE.get(title)
         before = os.path.getmtime(watched) if watched and os.path.exists(watched) else None
         code, command, out, err = run([sys.executable] + script_args)
@@ -182,7 +190,9 @@ def main(argv=None):
             ok = after is not None and (before is None or after > before)
         worst = max(worst, 0 if ok else code)
         results.append({"title": title, "command": command, "code": code,
-                        "out": out, "err": err, "bits": summary_bits(out)})
+                        "out": out, "err": err, "bits": summary_bits(out, owned),
+                        # R834: carried so the report can state what the row is allowed to contain
+                        "owned": owned})
 
     tests = None
     if not args.skip_tests:
@@ -252,6 +262,13 @@ def main(argv=None):
         for label, value in r["bits"].items():
             lines.append("| %s — %s | %s |" % (r["title"], label, value))
     lines.append("")
+
+    # R834: a pattern no entry owns is never extracted, so say so in the file rather than losing it silently.
+    owned_all = {k for r in results for k in r.get("owned", [])}
+    declared = set(re.findall(r'^\s{8}"([^"]+)": r"', PATTERN_SOURCE, re.M))
+    for orphan in sorted(declared - owned_all):
+        lines.append("**WARNING: pattern owned by no metric, so never extracted: `%s`**" % orphan)
+        lines.append("")
 
     lines.append("## 逐条命令与原始输出")
     lines.append("")

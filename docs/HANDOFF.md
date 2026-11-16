@@ -132,4 +132,5 @@
 
 九个脚本 × 全部正则的矩阵：**每项 bits 只含自己的键，零串味**。
 原因：其余条目都要求两到六词的短语，只有 R832 我加的那条用了裸词 `replica:`。
-**待办：加断言要求每个 pattern 只在自家输出里出现** —— 让「短语够独特」这条前提可检验。
+**已完成（R834）**：`METRICS` 每条声明 owned keys，`summary_bits(out, owned)` 只提取这些 ——
+**串味从「可检出」变成「不可能」**。变异测试 `tools/mutation_ownership.py` 已响（松键进自己的行、不进 datafiles）。

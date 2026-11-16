@@ -1194,6 +1194,35 @@ public sealed class HypeCommerceFlow : StoreFlow
     }
 
     /// <summary>
+    /// Store a payment method. R803.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the image carries <c>&lt;StorePaymentMethod&gt;d__30</c> as an async state machine in the
+    /// same cluster as <c>&lt;ValidateEntry&gt;d__27</c> and <c>&lt;CreateEntry&gt;d__29</c>, next to
+    /// <c>&lt;CreateStripePaymentMethod&gt;d__28</c>, and it has the endpoint <c>payment/methods/store</c>. Three
+    /// named steps, three admin endpoints, one-to-one.
+    /// </para>
+    /// </summary>
+    public async Task<StepOutcome> StorePaymentMethodAsync(FlowContext c, CancellationToken ct)
+    {
+        var entryId = c.Session.VariantId;
+        if (string.IsNullOrEmpty(entryId))
+            return StepOutcome.Fail("hypecommerce: no entry id to attach a payment method to");
+
+        var payload = Newtonsoft.Json.JsonConvert.SerializeObject(new { entryId });
+
+        var res = await PostJsonAsync(c, HypeApi + "/api/payment/methods/store", payload,
+            "hype-store-payment", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("hypecommerce: payment/methods/store unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"hypecommerce: payment/methods/store HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["paymentMethod"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// The commerce-facing name for the same two calls, in order. Kept so the seven-step matrix still shows this module
     /// can reach an order-shaped endpoint; the two named steps above are what the non-commerce yardstick measures.
     /// </summary>

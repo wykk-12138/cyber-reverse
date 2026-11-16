@@ -72,6 +72,7 @@ public class ModuleCoverageTests
         {
             "ValidateEntryAsync",
             "CreateEntryAsync",
+            "StorePaymentMethodAsync",
         },
     };
 

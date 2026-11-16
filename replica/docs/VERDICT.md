@@ -48773,3 +48773,57 @@ hypecommerce   - - - - - - +   14%   (non-commerce — see below)
 
 **加豁免之前，先确认没有别的尺子。**
 **「豁免」和「另一套标准」看着都在处理同一件事，但一个抹掉信息、一个产生信息。**
+
+
+---
+
+## 第 803 轮：核过表里的名字，全是镜像的；hypecommerce 补到 3/3
+
+### 上一轮的疑问有答案了
+
+**六个名字，全在镜像里**：`GetReleaseFeed` 2 · `WaitForRelease` 9 · `CompleteRegistration` 21 ·
+`SolveCaptcha` 7 · `EnterRaffle` 27 · `ScrapeRaffleForm` 18。
+
+**所以 `NonCommerce` 那张表可信，4/4 · 6/6 · 7/7 不是虚数。**
+
+### `hypecommerce` 的名字也核了，而且还有第三步
+
+我起的那两个名字是**从端点推的**，本该死说明却没说明。**核完发现镜像里就有：**
+
+```
+<ValidateEntry>d__27 · <CreateEntry>d__29      ← 异步状态机 + lambda 闭包
+<StorePaymentMethod>d__30                      ← 同一簇，10 条匹配
+```
+
+**`StorePaymentMethod` 正对上 `payment/methods/store`。**
+
+### 补第三步
+
+```
+ValidateEntryAsync      -> /api/entries/validate
+CreateEntryAsync        -> /api/entries/create
+StorePaymentMethodAsync -> /api/payment/methods/store
+```
+
+```
+hypecommerce   3/3   exempt 5（未变）
+```
+
+**同一个模块，两轮里从「豁免不用看」变成「三步都实现」。**
+
+### 第四步不补
+
+`/api/settings` 端点在，**但没找到对应方法名** —— **端点在、方法名不在，不足以说明它是这个模块的一步。**
+**宁可少一步，不凑满。**
+
+### 验证
+
+```
+构建绿 · 3/3 · 整套 1766 / 0 · 度量未变
+```
+
+### 教训
+
+**「我从端点推的名字」和「镜像里的方法名」是两件事，即使字面一样。**
+**这次碰巧一样，掩盖了问题；不一样的话，表里会有一个自造的名字而表依然满分。**
+**核名字来源要在补条目之前。**

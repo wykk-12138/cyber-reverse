@@ -10153,3 +10153,104 @@ ModuleCoverageTests exempt 5；hypecommerce 2/2（非结账表）
 **在加一条豁免之前，先确认没有别的尺子。**
 **「豁免」和「另一套标准」看起来都是在处理同一件事，但一个抹掉信息、一个产生信息。**
 **我这轮先选了抹掉，是被测试输出里一张自己没看过的表纠正的。**
+
+
+---
+
+## 227. 核过 `NonCommerce` 的步骤名：**全是镜像的方法名**；`hypecommerce` 补到 3/3
+
+> R803。`RetailFlows.cs` 加 `StorePaymentMethodAsync`；`ModuleCoverageTests` 的 `NonCommerce["hypecommerce"]` 加第三步。
+
+### 一、上一轮留的疑问，这一轮有答案了
+
+上一轮我撤回了两条多余豁免，并留下一个问题：
+**`NonCommerce` 表里的步骤名是不是逐条从镜像取证过的？**
+**如果不是，那 4/4 · 6/6 · 7/7 就是第二处虚高的百分比** —— 和我这两轮刚清理的是同一个病。
+
+**核了六个名字，全在镜像里：**
+
+| 名字 | 匹配 | 属于 |
+|---|---|---|
+| `GetReleaseFeed` | 2 | pocketgames |
+| `WaitForRelease` | 9 | pocketgames |
+| `CompleteRegistration` | 21 | riotgames |
+| `SolveCaptcha` | 7 | raffle |
+| `EnterRaffle` | 27 | raffle |
+| `ScrapeRaffleForm` | 18 | raffle |
+
+**所以那张表是可信的，三个满分不是虚的。**
+
+### 二、`hypecommerce` 的两个名字也核了 —— 而且还有第三步
+
+我起的 `ValidateEntryAsync` / `CreateEntryAsync` 是**从端点推的**，不是从方法名抄的 ——
+**这一点本该说明却没说明。核完发现镜像里就有：**
+
+```
+'(<ValidateEntry>d__27@<CreateStripePaymentMethod>d__28$<CreateEntry>d__29...'
+'ValidateEntryg'  ·  'CreateEntryg'
+',<ValidateEntry>b__27_0,<ValidateEntry>b__27_1g'      ← lambda 闭包
+'(<CreateEntry>b__29_0(<CreateEntry>b__29_1g'
+```
+
+**是异步状态机，和 `raffle`/`pocketgames` 那几个同形。名字对上了。**
+
+**而且同一簇里还有两个：**
+
+```
+'$StorePaymentMethodg'                          ← 10 条匹配
+'6<StorePaymentMethod>b__30_0...'               ← 也是状态机
+<CreateStripePaymentMethod>d__28
+```
+
+**`StorePaymentMethod` 正对上第三个端点 `payment/methods/store`。**
+
+### 三、所以补第三步
+
+```
+ValidateEntryAsync      -> POST /api/entries/validate
+CreateEntryAsync        -> POST /api/entries/create
+StorePaymentMethodAsync -> POST /api/payment/methods/store
+```
+
+**三步、三端点、三个镜像方法名，一一对应。**
+
+### 四、结果
+
+```
+hypecommerce   3/3  + + +
+exempt 5（未变）
+```
+
+**从"豁免"到 2/2 到 3/3 —— 同一个模块，两轮里从「不用看」变成「三步都实现」。**
+
+### 五、`settings` 那个端点呢
+
+镜像还有第四个：`admin.hypecommerce.io/api/settings`。**没有对应的方法名被找到**
+（`StorePaymentMethod` 那一簇里没有 `GetSettings`/`SaveSettings` 之类）。
+**所以第四步不补** —— **端点在、方法名不在，不足以说明它是这个模块的一步。**
+
+**这是「宁可少一步，不凑满」的那条。**
+
+### 六、验证
+
+```
+构建                已成功
+ModuleCoverageTests hypecommerce 3/3；exempt 5
+完整套件            1766 通过 / 0 失败 / 0 跳过
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 七、仍然 Unknown
+
+- **四个 `NonCommerce` 步骤名之外还有没有**：**Unknown** —— 我核了六个名字，
+  **`Register` 与 `GetRaffleData` 没单独核**（前者在 `riotgames` 表里，后者在 `raffle` 表里；
+  `GetRaffleData` 在 R801 的 `raffle` 探测里出现过，`Register` 没有）。
+- **`settings` 端点属于哪个方法**：**Unknown**。
+- **`CreateStripePaymentMethod` 是不是第四步**：**Unknown** —— 名字在，端点未见。
+
+### 八、这一轮的教训
+
+**「我从端点推的名字」和「镜像里的方法名」是两件事，即使字面一样。**
+**这一轮它们碰巧一样，所以问题被掩盖了；如果不一样，我就会在表里放一个自造的名字，而表看起来仍然满分。**
+
+**所以核名字来源这件事，要在补条目之前做，不是之后。**

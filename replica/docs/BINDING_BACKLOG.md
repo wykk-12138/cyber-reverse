@@ -1431,3 +1431,28 @@ raffle 4/4 · pocketgames 6/6 · riotgames 7/7（都在非结账尺子上满分�
 | `NonCommerce` 里其余模块是否也该这样核一遍 | Unknown |
 
 **判据**：**豁免 = 信息真空；另一套尺子 = 信息。** 能后者就不前者。
+
+
+## 覆盖 — 表里的名字已核（R803）
+
+**六个 `NonCommerce` 步骤名全部在镜像里**（`GetReleaseFeed` 2 · `WaitForRelease` 9 ·
+`CompleteRegistration` 21 · `SolveCaptcha` 7 · `EnterRaffle` 27 · `ScrapeRaffleForm` 18）
+→ **`raffle 4/4` · `pocketgames 6/6` · `riotgames 7/7` 不是虚数。**
+
+**`hypecommerce` 补第三步**（镜像有 `<StorePaymentMethod>d__30`）：
+
+```
+ValidateEntryAsync · CreateEntryAsync · StorePaymentMethodAsync   ->  3/3
+exempt 5
+```
+
+| 不补的 | 为什么 |
+|---|---|
+| `/api/settings` | **端点在、方法名不在** —— 不足以说明它是这个模块的一步 |
+
+| 仍 Unknown | |
+|---|---|
+| `Register`（riotgames 表）与 `GetRaffleData`（raffle 表）未单独核 | `GetRaffleData` 在 R801 探测里出现过，`Register` 没有 |
+| `CreateStripePaymentMethod` 是否第四步 | 名字在、端点未见 |
+
+**规矩**：**核名字来源要在补条目之前。** 自造的名字放进去，表看起来一样满分。

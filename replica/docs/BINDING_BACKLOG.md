@@ -3381,3 +3381,36 @@ R857 顶层是种类 → R858 `Task.Type` 死字段 → R859 创建表单无 Typ
 | **1766 用例多少会红** | **改造前必须先估** |
 
 **纪律**：**「能不能写对」和「能不能写」是两个判据。**
+
+
+## 优先级 ① — 结构改造精确到四项（R867）
+
+| 事实 | |
+|---|---|
+| `StoreFlow` **无任何序列** | 唯一 `IReadOnlyList` 是 `Domains` |
+| 165 步骤是**方法**，无派发表 | |
+| 序列数据**早就有** | `StoreFlowSteps.Flow(Store, Steps, Source)`，`Names` 派生 |
+| 6 个文件用 `StoreFlowSteps` | **全是分析，不驱动执行** |
+
+### 四项
+
+| # | 改什么 | 大小 |
+|---|---|---|
+| 1 | `virtual IReadOnlyList<string> StepSequence => Array.Empty<string>();` | 一行 |
+| 2 | 8 个流程 override 返回 `Names` | 8 处机械 |
+| 3 | runner 按 `StepSequence` 跑，否则回落 21 步 | 一个分支 |
+| 4 | **「名字 → 委托」表** | **165 条 —— 真活** |
+
+**第 4 项是缺口：`All` 给名字，runner 要能调的方法，中间无桥。**
+
+### 卡点
+
+**第 4 项写法（源生成 / 手写 / 反射）取决于 `csproj` 里有没有 `PublishAot` / `TrimMode` —— 未查，下一轮第一件事（十行以内）。**
+
+| 仍 Unknown | |
+|---|---|
+| `PublishAot` / `TrimMode` | **决定第 4 项写法** |
+| ordinal 递增是否即列表顺序 | R852 只查了「按流程编号」 |
+| `Flow.Store` 与流程类 `Id` 是否一致 | 未核 |
+
+**纪律**：**「影响面」该是分项表，不是总数 —— 分项后才看出真拦路的是一个 AOT 设置，不是 165 个声明。**

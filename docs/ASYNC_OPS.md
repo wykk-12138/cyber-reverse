@@ -974,3 +974,50 @@ GoogleLogin · InputModal · MessageBoxDialog · PublishTemplateModal · StoreGr
 3. **然后才能加 `GetOrders` / `StartDrawFlow` / `FindDraw`，并且它们只在该流程里跑**
 
 **这是一个可界定的改动，但它动的是 1897 行的 `StoreFlow` 与 294 行的 runner —— 不是一轮能顺手做完的。**
+
+
+### 结构改造的精确范围：**四项，而第四项才是真活**（R867）
+
+**核出来的现状：**
+
+| 事实 | 证据 |
+|---|---|
+| `StoreFlow` **没有任何序列** | 唯一的 `IReadOnlyList` 是 `Domains`（L20） |
+| 165 个步骤是**方法**，不是「名字 → 委托」的表 | `public virtual … (\w+)Async(FlowContext, CancellationToken)` |
+| 序列数据**早就有** | `StoreFlowSteps.Flow` 记录：`(string Store, IReadOnlyList<Step> Steps, FlowSource Source)`，`Names` 是派生（L60） |
+| 有 6 个文件在用 `StoreFlowSteps` | `CandidateSteps` · `DemandwareStepMap` · `JohnLewisStepMap` · `LambdaWitness` · `PopMartStepMap` · `ScapiAppPath` —— **全是为了分析，没有一处驱动执行** |
+
+### 所以改造是这四项
+
+| # | 改什么 | 大小 |
+|---|---|---|
+| 1 | `StoreFlow` 加 `public virtual IReadOnlyList<string> StepSequence => Array.Empty<string>();` | **一行，纯加性** |
+| 2 | 8 个流程 override 它，返回对应的 `StoreFlowSteps.X.Names` | **8 处，机械** |
+| 3 | `StoreFlowRunner` 在有 `StepSequence` 时按它跑，否则回落到现有 21 步 | **改一处分支，保持其余 25 个流程行为不变** |
+| 4 | **一张「步骤名 → 委托」的表**（`StoreFlow` 的 165 个方法要被按名字调用） | **165 条，机械但量大 —— 这才是真活** |
+
+**第 4 项是缺口：`storeflowsteps.All` 给的是**名字**，而 runner 要的是**能调的方法**。
+现在两者之间没有任何桥。**
+
+### 而第 4 项有一个便宜的写法
+
+**不必手写 165 条。`StoreFlow` 可以把表建在基类里：**
+
+```csharp
+protected Dictionary<string, Func<FlowContext, CancellationToken, Task<StepOutcome>>> StepDispatch() => new()
+{
+    ["GetHome"] = GetHomeAsync, ["GetCsrf"] = GetCsrfAsync, /* … 165 条 … */
+};
+```
+
+**而这张表可以用反射或源生成一次性生成，不必手抄。**
+**——但反射在 AOT 下受限（这正是原版的技术约束），所以更可能是源生成或手写。**
+
+**这一条本轮不查（要看复刻件是否已开 AOT / trimming），但它是第 4 项成本的关键。**
+
+### 所以改造成本的正确说法
+
+**「给 `StoreFlow` 加一个列表」是一行；
+「让 runner 按名字调那 165 个方法」是一张 165 条的表 + 一个 AOT 下的实现选择。**
+
+**R866 说「动的是 1897 行与 294 行」——现在更准：动的是 1897 行里的一张派发表，与 294 行里的一个分支。**

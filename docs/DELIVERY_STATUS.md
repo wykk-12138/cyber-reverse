@@ -15905,3 +15905,86 @@ replica\src\Cybersole.Stores\Flows\PopMartFlow.cs       344 行；11 个重写�
 
 **而这两个判据的差别，就是「能不能写对」和「能不能写」的差别 ——
 只过第一个，写出来的东西是对的，但放不进系统里。**
+
+
+---
+
+## 291. 结构改造的精确范围：四项，**第四项才是真活**
+
+> R867。未改产品代码。**R866 说「先估影响面」，这一轮估出来了。**
+
+### 一、现状四条
+
+| 事实 | 证据 |
+|---|---|
+| `StoreFlow` **没有任何序列** | 唯一 `IReadOnlyList` 是 `Domains`（L20） |
+| 165 个步骤是**方法** | `public virtual async Task<StepOutcome> XAsync(FlowContext, CancellationToken)` |
+| 序列数据**早就有** | `StoreFlowSteps.Flow(string Store, IReadOnlyList<Step> Steps, FlowSource Source)`，`Names` 派生（L60） |
+| 6 个文件在用 `StoreFlowSteps` | 全是分析（step map / candidate / witness），**没有一处驱动执行** |
+
+### 二、改造四项
+
+| # | 改什么 | 大小 |
+|---|---|---|
+| 1 | `StoreFlow` 加 `virtual IReadOnlyList<string> StepSequence => Array.Empty<string>();` | **一行，纯加性** |
+| 2 | 8 个流程 override，返回 `StoreFlowSteps.X.Names` | **8 处机械** |
+| 3 | runner 有 `StepSequence` 时按它跑，否则回落 21 步 | **一个分支，其余 25 流程不变** |
+| 4 | **「步骤名 → 委托」表** | **165 条机械但量大 —— 真活** |
+
+**第 4 项是缺口：`All` 给**名字**，runner 要**能调的方法**，两者之间现在没有任何桥。**
+
+### 三、第 4 项有个便宜的写法，但要过 AOT 这道关
+
+**不必手抄 165 条 —— 基类里建一个 `Dictionary<string, Func<…>>`，用反射或源生成填。**
+
+**但反射在 AOT 下受限（正是原版的技术约束），所以更可能是源生成或手写。**
+**这一条本轮没查（要看复刻件是否已开 AOT / trimming），而它决定第 4 项的实际成本。**
+
+### 四、所以成本的说法要改
+
+**R866 说「动的是 1897 行与 294 行」——现在更准：**
+
+> **动的是 1897 行里的**一张派发表**，与 294 行里的**一个分支**。**
+
+**前者的量在 165 条，后者的量在一个 `if`。**
+**而第 1、2 项加起来不到二十行。**
+
+### 五、这一轮没有改代码，理由
+
+**因为第 4 项的实现方式（源生成 / 手写 / 反射）取决于复刻件的 AOT 设置，
+而那一条没查。贸然选一种，可能做完发现 AOT 编不过。**
+
+**而查那条很便宜：看 `.csproj` 里有没有 `PublishAot` / `TrimMode`。
+那是下一轮第一件事，十行以内。**
+
+### 六、验证
+
+```
+replica\src\Cybersole.Stores\Flows\StoreFlow.cs        1897 行
+  IReadOnlyList 只出现在 L20 Domains
+  virtual steps 165（方法形态，无派发表）
+replica\src\Cybersole.Stores\Flows\StoreFlowSteps.cs
+  L57  record Flow(string Store, IReadOnlyList<Step> Steps, FlowSource Source = …)
+  L60  public IReadOnlyList<string> Names => Steps.Select(s => s.Name).ToList()
+  L242 AllStepNames()  L248 按 stepName 找 Flow
+用 StoreFlowSteps 的 6 个文件全在分析侧
+本轮未改产品代码
+七项度量沿用
+```
+
+### 七、仍然 Unknown
+
+- **复刻件是否已开 `PublishAot` / trimming**：**Unknown，下一轮第一件事** —— **决定第 4 项怎么写。**
+- **`Steps` 到 `Steps` 的语义差**：**Unknown** ——
+  `StoreFlowSteps.Flow.Steps` 是 `IReadOnlyList<Step>`（名字 + ordinal），**而 runner 需要的顺序是名字序。**
+  **ordinal 递增是否等于名字在列表里的顺序，R852 只查到「按流程编号」，没查「编号是否即顺序」。**
+- **8 个流程里哪些能直接对上复刻件的流程类**：**Unknown** —— `Flow.Store` 是 "nike"/"popmart" 这类，
+  而流程类的 `Id` 也是这类字符串，**但两者是否一致没核。**
+
+### 八、教训
+
+**R866 我说「影响 165 个声明、33 个流程类、1766 个用例」—— 那是一个**吓人的估法**。
+这一轮拆成四项之后：前两项不到二十行，第三项一个分支，第四项 165 条。**
+
+**「影响面」不该是一个总数，该是一张分项表。**
+**而分项之后才能看出：真正挡住这件事的不是那 165 个声明，是**一个 AOT 设置**。**

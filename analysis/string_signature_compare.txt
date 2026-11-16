@@ -1,0 +1,8 @@
+# string-reference signature comparison (R728)
+funcs_32	277094
+funcs_35	277265
+empty_32	193526
+empty_35	193712
+identical	75897
+only_32	7671
+only_35	7656

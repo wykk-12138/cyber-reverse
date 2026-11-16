@@ -2420,3 +2420,29 @@ functions: ratio           | 61.96%
 | `PopMart-Tax-All` 是什么 | 税类别 or 开关 |
 | `popmart_apac` ↔ 区域主机映射 | 未证 |
 | 七块里哪些非做不可 | 抽签看任务模式；注册/税费/区域主机可能下单必需 |
+
+
+## 优先级 ③ — 架构事实：镜像内嵌 DotNetBrowser（R837）
+
+| | 镜像 | 复刻件 |
+|---|---|---|
+| 进程内浏览器 | **DotNetBrowser**（数百条串：`AvaloniaUi.v12` · `Internals.Ipc` · `IBrowserViewImpl` · `Cast.IMediaReceivers` · `Autofill.*` · 强名公钥） | **无**（7 个 csproj 无该包） |
+| HTTP/TLS | 由库承担 | **自建** `Tls12Client` · `BouncyTls` · `Ja3` · `Http2` · `HpackHuffman` |
+| 浏览器驱动 | 进程内 | **外部 Chrome 经 CDP**（`ChromiumBridge`） |
+
+**`ChromiumBridge.cs:13` 的注释说明这是有意取舍** —— 镜像靠随包带 Chromium 拿到本地生成能力，复刻件改为自己实现。
+**goal 允许「命名可不同」，所以这在范围内；但它是优先级 ③ 最重要的设计事实。**
+
+**副作用解释**：`popDraw.json` 的 xref 为 0 —— 可能由页面脚本在 Chromium 里读，**IDA 看不到**。Inference（中）。
+
+| 仍 Unknown | |
+|---|---|
+| DotNetBrowser 授权状态 | 带 dll ≠ 有分发权；只影响「要不要照搬」 |
+| `Cast.IMediaReceivers` 实际使用程度 | 可能是库未裁掉的串 |
+| 替代方案等价性 | **现有性能度量都没量「能不能过某站风控」** |
+
+### 纪律（第三次同一形态）
+
+**检索词决定能看到什么。搜 `Browser` 得 10 条，搜 `DotNetBrowser` 得数百条。**
+**R830 按站名漏 `/shop/v1`；R836 按形态漏 `POPMART-RESERVATION`；R837 按短词只看到 10 条。**
+**先问：这个词是最具体的那一个吗。**

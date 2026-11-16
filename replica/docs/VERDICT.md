@@ -50438,3 +50438,61 @@ RaffleFlow 域名三个都不含 popmart · 三个任务型候选全 0 · 产品
 str "opmart" --limit 200 → 38 条全列 · 复刻件 12/13 记为 0 · str "/shop/v1/" → 41 匹配
 产品代码未改 · 七项度量沿用
 ```
+
+
+---
+
+## 第 837 轮：镜像内嵌 DotNetBrowser，复刻件自建 TLS + 外部 CDP
+
+### 怎么发现的
+
+R836 的 `PopMartBrowser` 让我查「`*Browser` 是不是通用结构」：
+
+```
+str RpcHandler  -> 1（PopMartRpcHandler，PopMart 独有，不是通用层）
+str Browser     -> 10 matches
+str DotNetBrowser -> 数百条      ← 全貌在长词下面
+```
+
+### 镜像里它有多深
+
+`AvaloniaUi.v12`（也有 Wpf/WinForms/WinUi3 的依赖元数据）· `Internals.Ipc.IRpcCallbackMessage`（上百条）·
+`Browser.IBrowserViewImpl` · **`Cast.IMediaReceivers`（屏幕投射）** · `Autofill.*`（含 `CreditCardInfo`）·
+`Net.Certificates.Certificate` · `protoc-gen-dotnetbrowser` · 强名公钥
+
+**一个完整的、进程内的 Chromium。**
+
+### 复刻件那边
+
+**`grep DotNetBrowser` 只命中一处，且是注释：**
+
+```
+ChromiumBridge.cs:13  /// original gets away with "local generation" because it ships DotNetBrowser/Chromium.
+```
+
+**七个 csproj 无 DotNetBrowser 包。** 复刻件自己写 TLS（`Tls12Client`/`BouncyTls`/`Ja3`/`Http2`/`HpackHuffman`），
+浏览器走外部 Chrome 的 CDP。
+
+### 这不是遗漏
+
+**注释说明是有意取舍。正确措辞：同一项能力用了不同手段 —— 镜像买了一个商业库，复刻件自己写了传输层并复用系统 Chrome。**
+
+**goal 写明「命名可不同，不要求字节级相同」，所以这在允许范围内；但它是优先级 ③ 最重要的设计事实。**
+
+### 它解释了一个悬案
+
+**`popDraw.json` 的 xref 是 0** —— 抽签数据可能是 `PopMartBrowser` 里的**页面脚本**读的，在 Chromium 里跑，
+**所以 IDA 看不到对那个字面量的引用。Inference（中），未验。**
+
+### 仍然 Unknown
+
+**DotNetBrowser 的授权状态**（镜像带了 dll 不代表有分发权；只影响「要不要照搬」）·
+**`Cast.IMediaReceivers` 被用到什么程度**（可能只是库未裁掉的完整串）·
+**复刻件的替代在等价性上够不够**（现有性能度量都没量「能不能过某站风控」）
+
+### 教训
+
+**我查 `Browser` 得到 10 条，差点写下「浏览器相关就这十个」；真正的东西在 `DotNetBrowser` 这个更长更具体的词下面。**
+
+> **检索词决定了能看到什么。而我没有先问「这个词是最具体的那一个吗」。**
+> **R830 按站名搜漏了 `/shop/v1`；R836 按形态筛漏了 `POPMART-RESERVATION`；这一轮按短词搜只看到 10 条 —— 三次都是同一个错，换了三个筛子。**

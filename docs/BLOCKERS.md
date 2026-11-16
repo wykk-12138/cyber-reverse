@@ -19029,3 +19029,106 @@ ida.py str "/shop/v1/"              -> 41 matches（复刻件 13 个端点全在
 **这一轮补上后半句：也别按形态筛。完整列出来，再分类。**
 
 **「四块」和「七块」的差别不是精度，是我漏了三个最能说明功能的词。**
+
+
+---
+
+## 261. 架构级差异：**镜像内嵌 DotNetBrowser，复刻件自建 TLS + 外部 CDP**
+
+> R837。未改产品代码。**这条不是缺口，是一处有意的替代 —— 但此前没有单独记过。**
+
+### 一、怎么发现的
+
+R836 里 `PopMartBrowser` 这个类型名让我去查「`*Browser` 是不是一套通用结构」。
+
+```
+ida.py str RpcHandler   -> 1 match: PopMartRpcHandler   （PopMart 独有，不是通用层）
+ida.py str Browser      -> 10 matches，distinct 记号两个：DotNetBrowser / dll8DotNetBrowser
+```
+
+**然后查 `DotNetBrowser`，出来几百条 —— 不是十个。**
+
+### 二、镜像里它有多深
+
+| 层 | 证据 |
+|---|---|
+| **UI 绑定** | `DotNetBrowser.AvaloniaUi.v12.dll` · 也有 `Wpf` / `WinForms` / `WinUi3`（依赖元数据） |
+| **内部 RPC** | `dnb::DotNetBrowser.Internals.Ipc.IRpcCallbackMessage<DotNetBrowser.Internal.Rpc.BrowserId, …>`（上百条） |
+| **视图实现** | `DotNetBrowser.Browser.IBrowserViewImpl.OnFocusGained` / `DeinitializeView` |
+| **屏幕投射** | `DotNetBrowser.Cast.IMediaReceivers.get_AllAvailable` |
+| **自动填充** | `DotNetBrowser.Autofill.Suggestion` · `CreditCardInfo!Getter` · `AddressOrFullname!Getter` |
+| **证书选择** | `DotNetBrowser.Net.Certificates.Certificate` · `SelectCertificateDialogViewModel` |
+| **codegen 标记** | `protoc-gen-dotnetbrowser` |
+| **强名公钥** | `DotNetBrowser.Core, PublicKey=002400…` |
+
+**所以镜像里有一个完整的、进程内的 Chromium。**
+
+### 三、复刻件那边
+
+**`grep DotNetBrowser` 在复刻件只命中一处，而且是注释：**
+
+```
+ChromiumBridge.cs:13  /// original gets away with "local generation" because it ships DotNetBrowser/Chromium. This
+```
+
+**七个 `csproj` 的 `PackageReference` 里没有 DotNetBrowser。** 只有：
+`Newtonsoft.Json` · `CommunityToolkit.Mvvm` · `BouncyCastle.Cryptography` · `MailKit` ·
+`Microsoft.Extensions.DependencyInjection` · `Jint` · `Avalonia`（含 Fluent/Inter/Diagnostics）· xunit。
+
+**所以复刻件的做法是：**
+**自己写 TLS（`Tls12Client` / `BouncyTls` / `Ja3` / `Http2` / `HpackHuffman`），浏览器走外部 Chrome 的 CDP（`ChromiumBridge`）。**
+
+### 四、这不是遗漏
+
+**`ChromiumBridge.cs:13` 的注释说明这是一次有意的取舍** ——
+**镜像靠「随包带一个 Chromium」拿到本地生成能力，复刻件不这么做，改为自己实现。**
+
+**所以这条的正确措辞是：**
+
+> **同一项能力（在进程内跑一个能通过风控的真浏览器），两边用了不同的手段。**
+> **镜像买了一个（DotNetBrowser 是商业库，需授权）；复刻件自己写了传输层、并复用系统 Chrome。**
+
+**判据上这属于「允许不同」的范畴（goal 写明「命名可不同，不要求字节级相同」），
+但它是**优先级 ③（请求与指纹层）最重要的一个设计事实**，此前没有被单独记下来。**
+
+### 五、它解释了 R835 的一个悬案
+
+**`popDraw.json` 的 xref 是 0。** 现在有了解释的方向：
+**抽签数据可能是 `PopMartBrowser` 里的页面脚本读的 —— 那是在 Chromium 里跑的 JS，不是 C# 代码，
+所以 IDA 看不到对它这个字面量的引用。**
+
+**这是 Inference（中），本轮没验。**
+
+### 六、验证
+
+```
+ida.py str RpcHandler      -> 1（PopMartRpcHandler）—— 不是通用层
+ida.py str Browser         -> 10 matches
+ida.py str DotNetBrowser   -> 数百条，含 AvaloniaUi.v12 / Internals.Ipc / Cast / Autofill / 强名公钥
+复刻件 grep DotNetBrowser  -> 1 处，且是注释（ChromiumBridge.cs:13）
+复刻件 7 个 csproj         -> 无 DotNetBrowser PackageReference
+本轮未改产品代码
+七项度量沿用
+```
+
+### 七、仍然 Unknown
+
+- **DotNetBrowser 的授权状态**：**Unknown** —— 它是商业库，**镜像带了 `.dll` 不代表有分发权。**
+  **这条只影响「要不要照搬」，不影响已做的替代是否成立。**
+- **`Cast.IMediaReceivers` 被用到什么程度**：**Unknown** —— 名字是屏幕投射，
+  **可能是镜像的「浏览器视图」用，也可能只是库的完整字符串（未被裁掉）。**
+- **复刻件的替代在等价性上够不够**：**Unknown** ——
+  **`PerformanceTests` 量的是循环比、`TlsTransportPerformanceTests` 量的是自有 TLS 对 SChannel 比，
+  但没有一条量「能不能通过某站的风控」。**
+- **`popDraw.json` 是否真由页面脚本读**：**Inference（中）**，未验。
+
+### 八、教训
+
+**我查 `Browser` 时先得到 10 条，于是差点写下「浏览器相关就这十个」。
+真正的东西在 `DotNetBrowser` 这个更长、更具体的词下面 —— 有几百条。**
+
+**和 R836 的教训是同一条的第三个变体：**
+**R830 按站名搜漏了 `/shop/v1`；R836 按形态筛漏了 `POPMART-RESERVATION`；**
+**这一轮按短词搜只看到 10 条，而全貌在长词下面。**
+
+**共同点：我选的检索词决定了我能看到什么，而我没有先问「这个词是最具体的那一个吗」。**

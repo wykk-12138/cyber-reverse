@@ -64,7 +64,15 @@ def main(argv):
     elif cmd == 'xrefs':
         print(call('xrefs_to', {'addrs': [rest[0]]}))
     elif cmd == 'str':
-        print(call('find_regex', {'pattern': rest[0], 'limit': 40}))
+        # R817: the limit was hard-coded to 40. That made every count from this tool silently capped: `str kasada`,
+        # `str cloudflare`, `str stripe` and `str myshopify` all returned exactly 40, which reads like a coincidence
+        # and is not one. Zero and values below forty were still trustworthy, so the cap only corrupted counting, not
+        # existence checks -- but it corrupted them invisibly, and R814's slug count had to be walked back because of
+        # it. Pass --limit N to raise it.
+        limit = 40
+        if '--limit' in rest:
+            limit = int(rest[rest.index('--limit') + 1])
+        print(call('find_regex', {'pattern': rest[0], 'limit': limit}))
     elif cmd == 'call':
         # generic passthrough: python analysis/ida.py call <tool> '<json args>'
         print(call(rest[0], json.loads(rest[1]) if len(rest) > 1 else {}))

@@ -14928,3 +14928,97 @@ Warhammer 覆盖率    未变（这一轮加的是请求头与端点，不是补
 - **两条匿名 mutation 的 operationName**：**Unknown**。
 - **查询类**（商品、购物车读取）是否也有对应 GraphQL 文本：**未找全** —— 这次只取了长度 > 200 的。
 - **响应消费面**：**Unknown**。
+
+
+---
+
+## 215. Warhammer 加购改成镜像的 GraphQL —— REST 那版是编的
+
+> R789。改 `RetailFlows.cs`（`WarhammerFlow.AddToCartAsync` + `AddToCartMutation` 常量）；
+> 新增 `WarhammerGraphQlTests`（5 条）。
+
+### 一、改之前
+
+```csharp
+var payload = new JObject { ["sku"] = c.Session.VariantId, ["quantity"] = c.Session.Quantity };
+var res = await PostJsonAsync(c, $"{ApiHost}/api/basket/items", …);
+```
+
+**`/api/basket/items` 是编的。** 镜像里那个路径一次都没出现。
+
+### 二、改之后：用镜像的 mutation 原文
+
+R788 从池子 `0x1470cc484` 取回的 `AddToCart`，变量在签名里全拼出来：
+
+```
+mutation AddToCart($sku: String!, $fascia: String!, $linkedOfferId: String, $offerId: String,
+  $quantity: Int, $statusPoint: String, $recaptchaToken: String, $storeId: String,
+  $algoliaQueryId: String, $objectId: String)
+```
+
+**非空只有两个：`sku` 与 `fascia`。响应只选一个字段：`ctCartJWT`。**
+
+复刻件现在发：
+
+```json
+{"operationName":"AddToCart","query":"<镜像原文>","variables":{"sku":…,"fascia":…,"quantity":…}}
+```
+
+**并且把响应里的 `ctCartJWT` 记进会话** —— 那是后续步骤用来认证的。
+
+### 三、`fascia` 我没有猜
+
+**`fascia` 是必填，但它的取值没取证。**
+**所以不存在时直接如实失败**：
+
+> `warhammer: AddToCart requires a fascia (storefront), and the image does not spell out its value`
+
+**理由与 R785 一致**：`fascia` 猜错会把商品加到错的店面，**而且不会报错**。
+
+### 四、Observation / Inference
+
+- **Observation**：operation 名、十个变量、哪两个非空、唯一被选字段、`recaptchaToken` 是变量
+- **Inference（中）**：`/graphql` 接受 `{operationName, query, variables}` 这个信封 ——
+  **这是 GraphQL-over-HTTP 的标准形状，镜像自己的请求构造器与它一致，但没有把信封拼出来**
+
+### 五、5 条测试
+
+```
+TheOperationNameMatchesTheRecoveredText        以 "mutation AddToCart(" 开头
+SkuAndFasciaAreTheOnlyNonNullArguments         恰好 2 个 '!'
+TheOptionalRecaptchaTokenIsDeclared            说明该站加购要 reCAPTCHA
+TheSelectionIsTheCartJwt                       只选 ctCartJWT + __typename，不含 products
+EveryDeclaredVariableIsAlsoPassedThrough       十个变量声明与传参都在
+```
+
+**为什么要这五条**：**536 字符手抄，错一个字符照样编译通过。**
+**测试查的是不变量，不是抄写本身。**
+
+### 六、一次真实的偶发，不粉饰
+
+第一次全量：**1765 通过 / 1 失败**，失败是 `TaskProfileViewTests.TaskAndProfileUserControlsConstruct`。
+
+- **单跑该测试：17 / 17 通过**
+- **复跑全量：1766 通过 / 0 失败**
+
+**所以是全量并行下的偶发（Avalonia UI 构造），与这一轮改动无关。**
+**但我没有因此就说它"过了"** —— 判据是复跑，不是推断。
+**若它以后反复出现，应单列成一条 flake，而不是混进"失败"或"通过"。**
+
+### 七、验证
+
+```
+构建                已成功
+WarhammerGraphQlTests   5 / 5
+完整套件            1766 通过 / 0 失败 / 0 跳过（1761 + 5）
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+Warhammer 覆盖率    未变 —— 这一轮换的是既有步骤的请求形状，不是补步骤
+```
+
+### 八、仍然 Unknown
+
+- **`fascia` 的取值**：**Unknown** —— 现在会让加购在这上面明确失败，而不是猜。
+- **`SubmitOrderAsync` 仍是 `/api/orders`（编的）** —— 镜像里有 `ApproveOnboardPaymentMutation`，
+  但订单提交那一步的 operation 未定位。
+- **其余五条 mutation 未翻**：`AddItemToCart` / `AddCreditCard` / 两条匿名 / `ApproveOnboardPayment`。
+- **响应消费面**：只用了 `ctCartJWT`。

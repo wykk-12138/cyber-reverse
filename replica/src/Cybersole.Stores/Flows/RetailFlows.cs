@@ -591,20 +591,64 @@ public sealed class WarhammerFlow : StoreFlow
 
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
-        var payload = new JObject
+        // R789: was POST {ApiHost}/api/basket/items with {"sku","quantity"} -- an invented REST shape. The image
+        // speaks GraphQL, and its AddToCart mutation is recovered verbatim in analysis/warhammer_graphql.txt.
+        ApplyWaf(c);
+
+        var sku = c.Session.VariantId;
+        if (string.IsNullOrEmpty(sku)) return StepOutcome.Fail("warhammer: no sku to add");
+
+        // fascia is a required argument and its value is not recovered; taking it from the session rather than
+        // guessing keeps this honest -- a wrong fascia would add to the wrong storefront, silently.
+        if (!c.Session.Vars.TryGetValue("warhammerFascia", out var fascia) || fascia.Length == 0)
+            return StepOutcome.Fail(
+                "warhammer: AddToCart requires a fascia (storefront), and the image does not spell out its value");
+
+        var variables = new JObject
         {
-            ["sku"] = c.Session.VariantId,
+            ["sku"] = sku,
+            ["fascia"] = fascia,
             ["quantity"] = c.Session.Quantity,
         };
+        if (c.Session.AntiBotTokens.TryGetValue("g-recaptcha-response", out var token) && !string.IsNullOrEmpty(token))
+            variables["recaptchaToken"] = token;
 
-        var res = await PostJsonAsync(c, $"{ApiHost}/api/basket/items",
-            payload.ToString(Newtonsoft.Json.Formatting.None), "wh-cart", ct).ConfigureAwait(false);
+        var body = new JObject
+        {
+            ["operationName"] = "AddToCart",
+            ["query"] = AddToCartMutation,
+            ["variables"] = variables,
+        };
+
+        var res = await PostJsonAsync(c, ApiHost + "/graphql",
+            body.ToString(Newtonsoft.Json.Formatting.None), "wh-cart", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("warhammer cart failed", retryable: true);
+        if (res.IsSuccess && res.Body.Contains("\"errors\"", StringComparison.Ordinal))
+            return StepOutcome.Fail("warhammer cart: graphql returned errors");
         if (!res.IsSuccess) return StepOutcome.Fail($"warhammer cart HTTP {res.StatusCode}", retryable: true);
+
         c.Session.Vars["cart"] = res.Body;
+        // the mutation's only selection is ctCartJWT; recording it is what later steps authenticate with
+        var jwt = Regex.Match(res.Body, @"""ctCartJWT""\s*:\s*""([^""]+)""").Groups[1].Value;
+        if (jwt.Length > 0) c.Session.Vars["cartJwt"] = jwt;
         return StepOutcome.Success();
     }
+
+    /// <summary>
+    /// The image's AddToCart mutation, verbatim (Observation, R788). Two arguments are non-null -- sku and fascia --
+    /// and the rest are optional, including recaptchaToken, which says this site's add-to-cart expects a solved
+    /// reCAPTCHA. The only field selected back is ctCartJWT.
+    /// </summary>
+    public const string AddToCartMutation =
+        "mutation AddToCart($sku: String!, $fascia: String!, $linkedOfferId: String, $offerId: String, " +
+        "$quantity: Int, $statusPoint: String, $recaptchaToken: String, $storeId: String, " +
+        "$algoliaQueryId: String, $objectId: String) {\n" +
+        "  addToCart(\n" +
+        "    sku: $sku\n    fascia: $fascia\n    linkedOfferId: $linkedOfferId\n    offerId: $offerId\n" +
+        "    quantity: $quantity\n    statusPoint: $statusPoint\n    recaptchaToken: $recaptchaToken\n" +
+        "    storeId: $storeId\n    algoliaQueryId: $algoliaQueryId\n    objectId: $objectId\n" +
+        "  ) {\n    ctCartJWT\n    __typename\n  }\n}";
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {

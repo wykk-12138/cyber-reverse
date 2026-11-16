@@ -1121,3 +1121,26 @@ warhammer-com-waf-auth   ← 站点自己的，作 cookie（但按头发）
 
 **下一步**：把这六条翻成 WarhammerFlow 的 GraphQL 请求，替换现在的 REST。
 **参照**：复刻件的 NikePersistedOperations.cs 已有 GraphQL 落地先例。
+
+
+## 核心 — Warhammer GraphQL（R789 已落地一条）
+
+**`AddToCart` 已改成镜像原文**（R788 取回，池子 `0x1470cc484`）：
+
+```
+mutation AddToCart($sku: String!, $fascia: String!, … ) { addToCart(…) { ctCartJWT __typename } }
+```
+
+- 请求体 `{operationName, query, variables}`，`ctCartJWT` 记进会话
+- **`fascia` 必填但取值 Unknown → 明确失败，不猜**
+- 5 条测试钉住不变量（非空数 · 只选 ctCartJWT · 十变量都传）
+
+| 待做 | 说明 |
+|---|---|
+| `SubmitOrderAsync` | **仍是编的 `/api/orders`** —— 订单提交的 operation 未定位 |
+| `AddItemToCart` / `AddCreditCard` / 两条匿名 / `ApproveOnboardPayment` | 未翻（原文在 `analysis/warhammer_graphql.txt`） |
+| `fascia` 取值 | Unknown |
+| 响应消费面 | 只用了 `ctCartJWT` |
+
+**注意**：本轮覆盖率未变 —— **换的是既有步骤的请求形状，不是补步骤。**
+**质量改动不要记成覆盖进展。**

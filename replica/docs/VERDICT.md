@@ -48190,3 +48190,51 @@ user-agent · accept · content-type · origin · sec-fetch-site/mode/dest
 
 第一次记录脚本把 `VERDICT.md` 指到根 `docs/`（它在 `replica/docs/`），脚本死在半路，**提交没发生**。
 **教训：记录脚本也要像代码一样核对路径；而"脚本跑完"不等于"记录成功" —— 要看 `git log`。**
+
+
+---
+
+## 第 789 轮：Warhammer 加购改成镜像的 GraphQL
+
+### 改之前是编的
+
+`POST {ApiHost}/api/basket/items` —— **镜像里那个路径一次都没出现。**
+
+### 改之后用 R788 取回的原文
+
+```
+mutation AddToCart($sku: String!, $fascia: String!, $linkedOfferId: String, $offerId: String,
+  $quantity: Int, $statusPoint: String, $recaptchaToken: String, $storeId: String,
+  $algoliaQueryId: String, $objectId: String)
+```
+
+**非空只有 `sku` 与 `fascia`；响应只选 `ctCartJWT`。**
+
+请求体：`{operationName, query, variables}`，并把 `ctCartJWT` 记进会话供后续认证。
+
+### `fascia` 我没有猜
+
+**必填，但取值没取证** → 不存在时如实失败，而不是猜。
+**猜错会把商品加到错的店面，而且不报错。**
+
+### 5 条测试
+
+operation 名 · 恰好两个非空 · `recaptchaToken` 在 · 只选 `ctCartJWT` · 十个变量都传。
+
+**536 字符手抄，错一个字符照样编译 —— 所以测试查的是不变量。**
+
+### 一次真实的偶发
+
+第一次全量 **1765/1**，失败是 `TaskProfileViewTests`。**单跑 17/17 过，复跑全量 1766/0。**
+
+**是全量并行下的偶发，与本轮改动无关 —— 但我用复跑证明，没有用推断。**
+
+### 验证
+
+```
+WarhammerGraphQlTests 5/5 · 整套 1766 / 0 · 度量未变 · 覆盖率未变（换形状，不补步骤）
+```
+
+### 仍然 Unknown
+
+`fascia` 取值 · `SubmitOrderAsync` 仍是编的 `/api/orders` · 其余五条 mutation 未翻 · 响应消费面

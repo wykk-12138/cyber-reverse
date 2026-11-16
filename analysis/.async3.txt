@@ -1,1 +1,0 @@
-﻿{"result":"","stdout":"","stderr":"Traceback (most recent call last):\n  File \"C:\\Users/wykk/AppData/Roaming/Hex-Rays/IDA Pro/plugins\\ida_mcp\\api_python.py\", line 176, in py_eval\n    exec(\n  File \"<string>\", line 1, in <module>\n  File \"<string>\", line 1, in <listcomp>\nNameError: name 'marker' is not defined\n"}

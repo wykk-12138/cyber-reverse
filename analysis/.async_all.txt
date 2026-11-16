@@ -1,1 +1,0 @@
-﻿{"result":"strings=254111  distinct_async=0\n","stdout":"","stderr":""}

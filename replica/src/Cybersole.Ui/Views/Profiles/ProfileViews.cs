@@ -369,6 +369,8 @@ public sealed class ProfileCsvEditorView : UserControl
         ["ErrorMonth"] = "Month must be between 1 and 12",   // ProfileCsv.Error.Month
         ["ErrorNameRequired"] = "Profile name is required",   // ProfileCsv.Error.NameRequired
         ["ErrorYear"] = "Year must be 2 or 4 digits",   // ProfileCsv.Error.Year
+        ["ErrorUnknownCountry"] = "Unknown country \"{0}\"",   // ProfileCsv.Error.UnknownCountry
+        ["ErrorUnknownState"] = "Unknown state \"{0}\" for {1}",   // ProfileCsv.Error.UnknownState
         ["Export"] = "Export CSV",   // ProfileCsv.Export
         ["Find"] = "Find",   // ProfileCsv.Find
         ["Import"] = "Import CSV",   // ProfileCsv.Import
@@ -581,6 +583,11 @@ public sealed class ProfileCsvEditorView : UserControl
     {
         if (string.IsNullOrWhiteSpace(profile.Name)) return Cybersole.Ui.Views.Profiles.ProfileCsvEditorView.Text("ErrorNameRequired");
 
+        // R704: the address columns are validated independently of the card columns, so they must run
+        // before the early return that skips everything when the expiry is blank.
+        var addressError = ValidateAddress(profile);
+        if (addressError is not null) return addressError;
+
         var expiry = profile.CardExpiry;
         if (string.IsNullOrWhiteSpace(expiry)) return null;
 
@@ -596,6 +603,41 @@ public sealed class ProfileCsvEditorView : UserControl
         if (yearPart.Length != 2 && yearPart.Length != 4)
         {
             return Cybersole.Ui.Views.Profiles.ProfileCsvEditorView.Text("ErrorYear");
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The country and state checks the original performs for the ` Country` and ` State` columns.
+    ///
+    /// WHY HERE (AGENTS.md §1.2): R702 decompiled the two guards that raise `ProfileCsv.Error.UnknownCountry`
+    /// and `.UnknownState`; R703 re-derived the reference from raw bytes and decompiled both functions again.
+    /// What they do, per that evidence:
+    ///   * country -- trim, then look the value up in the current locale's country list with a case-insensitive
+    ///     comparison; blank passes without looking anything up;
+    ///   * state -- resolve the country row, take its state list; a country with no list (or an empty one)
+    ///     accepts any state rather than failing, and only then is the value compared;
+    ///   * neither expands abbreviations and neither lowercases the input first.
+    /// The message for a state takes two arguments: the state and the country's own name.
+    /// </summary>
+    private static string? ValidateAddress(Profile profile)
+    {
+        if (!Cybersole.Core.Localization.ProfileValidationLists.ContainsCountry(profile.Country))
+        {
+            return string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                Cybersole.Ui.Views.Profiles.ProfileCsvEditorView.Text("ErrorUnknownCountry"),
+                profile.Country);
+        }
+
+        if (!Cybersole.Core.Localization.ProfileValidationLists.ContainsState(profile.Country, profile.State))
+        {
+            return string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                Cybersole.Ui.Views.Profiles.ProfileCsvEditorView.Text("ErrorUnknownState"),
+                profile.State,
+                Cybersole.Core.Localization.ProfileValidationLists.CanonicalCountryName(profile.Country));
         }
 
         return null;

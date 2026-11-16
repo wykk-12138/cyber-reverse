@@ -512,7 +512,9 @@ JS 对话框接口（`InitializeDefaultJsDialogs` / `DeinitializeDefaultJsDialog
 | 变异检查 | **17 条**，全部 `guard fired`；自检 **5/5** |
 | 站点模块 | **62 个**注册 |
 | 传输模式 | **4 种**：`SChannel` / `BouncyH2` / `OwnTls` / `BouncyHttp11` |
-| 内嵌资源 | **19 个**（`Core` 18：4 语言字典 + 14 引擎资产；`Http` 1：Brotli 字典） |
+| 内嵌资源 | **20 个**（`Core` 19：4 语言字典 + 14 引擎资产 + 1 份 CSV 校验名单；`Http` 1：Brotli 字典） |
+
+R704 加了第 20 个：`Data\ProfileValidation.en.json`（244 国 / 50 州）—— `ProfileCsvEditorView` 的 Country/State 校验要用它；规则由 R702 反编译解出、R703 复验。
 
 ### 分项目
 

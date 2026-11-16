@@ -15,7 +15,7 @@
 | `Data` | 20 | 0 | 0 |
 | `HistoryWindow` | 17 | 0 | 0 |
 | `Monitor` | 15 | 0 | 0 |
-| `ProfileCsv` | 43 | 2 | 0 |
+| `ProfileCsv` | 43 | 0 | 0 |
 | `Release` | 4 | 0 | 0 |
 | `Settings` | 255 | 0 | 0 |
 | `SmartActions` | 22 | 0 | 0 |
@@ -48,5 +48,3 @@
 
 | 区域 | 键 | 原文 |
 |---|---|---|
-| `ProfileCsv` | `ProfileCsv.Error.UnknownCountry` | Unknown country "{0}" |
-| `ProfileCsv` | `ProfileCsv.Error.UnknownState` | Unknown state "{0}" for {1} |

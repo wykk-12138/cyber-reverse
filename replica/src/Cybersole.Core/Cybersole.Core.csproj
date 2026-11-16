@@ -22,6 +22,10 @@
                       LogicalName="Cybersole.Locales.ko.json" WithCulture="false" />
     <EmbeddedResource Include="Locales\Cybersole.Locales.zh-Hans.json"
                       LogicalName="Cybersole.Locales.zh-Hans.json" WithCulture="false" />
+    <!-- R704: the country/state lists the profile CSV validator checks against. Exported from the original
+         by analysis/export_profile_lists.py; R702 decoded the rule and R703 verified both guard functions. -->
+    <EmbeddedResource Include="Data\ProfileValidation.en.json"
+                      LogicalName="Cybersole.ProfileValidation.en.json" WithCulture="false" />
   </ItemGroup>
   <ItemGroup>
     <!-- The engine's captcha pages and anti-detection scripts, recovered in round 134 under the

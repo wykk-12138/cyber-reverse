@@ -25,7 +25,9 @@ public sealed class ProfileCsvCopyTests
     {
         _out.WriteLine(string.Join(", ", ProfileCsvEditorView.Copy.Keys.OrderBy(k => k)));
         // R552: ProfileCsv.HintText was added to the editor table, so it grew from 39 to 40.
-        Assert.Equal(40, ProfileCsvEditorView.Copy.Count);
+        // R704: the country/state validation messages are now referenced by code, so it grew from 40 to 42.
+        // Both keys existed in the image all along -- what was missing was anything that emitted them.
+        Assert.Equal(42, ProfileCsvEditorView.Copy.Count);
         Assert.DoesNotContain(string.Empty, ProfileCsvEditorView.Copy.Values);
     }
 

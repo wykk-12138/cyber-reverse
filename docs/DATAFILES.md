@@ -9,11 +9,11 @@
 | 数据目录 | `C:\Users\wykk\AppData\Roaming\Cybersole` |
 | 目录内 .json 文件 | 11 |
 | 镜像 .json 字面量 | 23 |
-| 复刻件写的 | 12 |
+| 复刻件写的 | 13 |
 
 | 集合 | 名字 |
 |---|---|
 | 两侧都有（目录 ∩ 复刻件） | `accounts.json`, `analytics.json`, `billing.json`, `checkoutHistory.json`, `proxies.json`, `sessions.json`, `settings.json`, `smartActionUtilities.json`, `smartActions.json`, `solvers.json`, `tasks.json` |
 | **原版目录有、复刻件没写** | — |
-| 复刻件引用、两侧都查不到（可能是**读取候选**而非它写的文件） | `license.json` |
+| 复刻件引用、两侧都查不到（可能是**读取候选**而非它写的文件） | `Cybersole.ProfileValidation.en.json`, `license.json` |
 | 只是字面量、不是文件 | `CreateToken.json`, `__data.json`, `config.json`, `graphql.json`, `meta.json`, `popDraw.json`, `products.json`, `prop.json`, `public.json`, `shipping_rates.json`, `sku-stores.json`, `system.text.json.serialization.json`, `wpt.json` |

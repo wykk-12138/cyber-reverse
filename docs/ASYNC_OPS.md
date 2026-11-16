@@ -2287,3 +2287,58 @@ METRICS.md L24  成员形状差异 — core mismatches  |  17
 **而它还有一个前提没满足：那 56 个族是不是都属于 PopMart？**
 **`/bff/*` 是 John Lewis 的，`/activity/v1/` 与 `/shop/v1/`、`/store/v1/` 属于 PopMart。
 所以「56 个族」是**全镜像的**，不是某一个站的 —— 而按站分组还没做。**
+
+
+### 族 ↔ 宿主：**45 族 / 28 宿主**，新文档 `docs/ENDPOINT_FAMILY_HOSTS.md`（R893）
+
+**R892 的边界是「56 个族是全镜像的，按站分组还没做」。这一轮做了 —— 而分组的方法不是我起的名，
+是**同现**。**
+
+### 方法
+
+**有些路径以完整 URL 出现（`//checkout.johnlewis.com/bff/v2/orders`），一条字面量里同时有宿主与族。
+于是判据是：**族与宿主出现在同一条字面量里**。**
+
+**这比「池内邻近」强 —— R876 那次错就是拿邻近当归属。同现是同一个字符串内部的关系。**
+
+### 结果：45 / 56 族有同现宿主
+
+| 宿主 | 族数 |
+|---|---|
+| **`api.nike.com`** | **11** |
+| **`checkout.johnlewis.com`** | **4** |
+| `www.vans.com` | 3 |
+| `checkoutshopper-live.adyen.com` · `app.midtrans.com` | 各 2 |
+| **`prod-hk-actapi.popmart.com`** | **1：`/activity/v1/`** |
+| **`challenges.cloudflare.com`** | **1：`/turnstile/v0/`** |
+| 其余 20 个宿主 | 各 1 |
+
+### 优先级 ② 的三条落了地
+
+| 宿主 | 族 | 读法 |
+|---|---|---|
+| **`challenges.cloudflare.com`** | **`/turnstile/v0/`** | **Cloudflare Turnstile 的端点** —— R876 见过 `_turnstileKey` 字段 |
+| **`inbox-api.aycd.io`** | `/api/v1/` | **AYCD** 是验证码/OTP 收取服务；对应 `AycdInboxAccount` 模型 |
+| `flex.cybersource.com` · `www.paypal.com` · `app.midtrans.com` | `/flex/v2/` · `/threeds/v1/` · `/snap/v1..v2/` | 3DS 与支付重定向 |
+
+### 而它更正了 R835
+
+**`prod-hk-actapi.popmart.com` 只带 `/activity/v1/` 一个族。**
+
+**所以 PopMart 有**三个**路径空间、两个宿主：**
+
+| 宿主 | 前缀 |
+|---|---|
+| `popmart.com`（`Origin(c.Url)` 拼出） | `/shop/v1/`（41）· `/store/v1/`（5） |
+| **`prod-hk-actapi.popmart.com`** | **`/activity/v1/`（2）** |
+
+**R835 当时搜 `activity/v1/exhibit_draw` 找 `StartDrawFlow` 没找到，判「PopMart 没有这个端点」。
+现在看：抽签走 `/shop/v1/drawScratch/*`，而 `activity/v1` 是**另一个宿主的另一个空间**。
+那次错的形状是「一个站只有一个 API 宿主」——而它有两个。**
+
+### 四条边界，与表一起读
+
+1. **45 / 56**：11 个族没有同现宿主，不在表里。
+2. **同现证明「这个族在某宿主上」，不证明「只属于它」**：`/api/v1/` 在 aycd、goat、hbx 三个宿主上都出现。
+3. **表里混了两类宿主**：站的 API（`api.nike.com`）与厂商的 API（`challenges.cloudflare.com`）。
+4. **本表不说明复刻件有没有实现** —— 那是 R892 的 3 / 21 / 32 分级。

@@ -558,3 +558,11 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 **优先级 ② 有两条具体缺口**：`/turnstile/v0/`（R876 的 `_turnstileKey`）与 `/shield/v1/`。
 **边界：56 族是全镜像的**，`/bff/*` 属 John Lewis → 「32 个没有」≠「PopMart 缺 32 族」。**按站分组未做。**
 **纪律：两次判据错方向相反（假 0 / 假 40），来源相同 —— 判据里藏了以为成立的前提。挑样本来推翻自己比相信输出便宜。**
+
+## R893 补充 — 族 ↔ 宿主 **45 / 28**（**新文档 `docs/ENDPOINT_FAMILY_HOSTS.md`**）
+
+**方法：同现**（一条字面量内同时有宿主与族，如 `//checkout.johnlewis.com/bff/v2/orders`）—— **比 R876 的池内邻近强，比 R892 的整条路径字面量稳（后者假设存储形式）。**
+**结果**：`api.nike.com` **11 族** · `checkout.johnlewis.com` **4** · `www.vans.com` 3 · adyen/midtrans 各 2 · **`prod-hk-actapi.popmart.com` 1（`/activity/v1/`）** · **`challenges.cloudflare.com` 1（`/turnstile/v0/`）** · 其余 20 各 1。
+**优先级 ② 三条**：Turnstile 端点 · AYCD OTP（`inbox-api.aycd.io`）· 3DS/支付重定向（cybersource/paypal/midtrans）。
+**更正 R835：PopMart 有 2 个宿主**（`popmart.com` 带 `/shop/v1/`+`/store/v1/`；`prod-hk-actapi.popmart.com` 带 `/activity/v1/`）→ 错的形状是「一个站只有一个 API 宿主」。
+**边界：45/56 · 同现不证明唯一归属 · 混了站与厂商 · 不说明复刻件实现情况。**

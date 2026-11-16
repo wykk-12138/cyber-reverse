@@ -4299,3 +4299,43 @@ R883 的 `Drop.Type` 是「类型挂在哪」，这条是「任务本身是可�
 | relative 21 族里多少「基址对路径缺」 | 判据只查族名/尾部 |
 
 **纪律**：**挑一个预期应该缺席的样本去推翻自己的判据，比相信判据的输出便宜得多。**
+
+
+## 判据 — 族 ↔ 宿主 **45 / 28**（R893，**新文档 `docs/ENDPOINT_FAMILY_HOSTS.md`**）
+
+### 方法：同现（一条字面量内同时有宿主与族）
+
+**比 R876 的「池内邻近」强；比 R892 的「整条路径是字面量」稳（后者假设了存储形式）。**
+
+| 宿主 | 族数 |
+|---|---|
+| **`api.nike.com`** | **11** |
+| **`checkout.johnlewis.com`** | **4** |
+| `www.vans.com` | 3 |
+| `checkoutshopper-live.adyen.com` · `app.midtrans.com` | 各 2 |
+| **`prod-hk-actapi.popmart.com`** | **1（`/activity/v1/`）** |
+| **`challenges.cloudflare.com`** | **1（`/turnstile/v0/`）** |
+| 其余 20 个宿主 | 各 1 |
+
+### 优先级 ② 三条
+
+**`challenges.cloudflare.com` → `/turnstile/v0/`**（Turnstile，R876 的 `_turnstileKey`）·
+**`inbox-api.aycd.io` → `/api/v1/`**（AYCD OTP，`AycdInboxAccount`）·
+`flex.cybersource.com` `/www.paypal.com` `/app.midtrans.com` → 3DS 与支付重定向
+
+### 更正 R835：PopMart 有 **2 个宿主**
+
+**`popmart.com` → `/shop/v1/`(41) + `/store/v1/`(5)；`prod-hk-actapi.popmart.com` → `/activity/v1/`(2)**
+**→ 错的形状是「一个站只有一个 API 宿主」。**
+
+### 四条边界
+
+**45/56（11 个无同现宿主）· 同现不证明唯一归属（`/api/v1/` 在 3 个宿主）· 混了站与厂商两类宿主 · 不说明复刻件实现情况**
+
+| 仍 Unknown | |
+|---|---|
+| 11 个无宿主族属谁 | 相对路径或配置宿主 |
+| 一族多宿主怎么分工 | `/api/v1/` 三处的路径子集未分 |
+| `www.ibm.com` + `/dtd/v11/` | **可疑，可能误收** |
+
+**纪律**：**同现是同一对象内部的关系，邻近是两个对象摆在一起 —— 前者能当归属，后者不能。**

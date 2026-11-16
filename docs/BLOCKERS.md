@@ -23899,3 +23899,77 @@ __bff__ 抽查                             -> Base + "v2/orders" 形式，故第
 
 **而两次的发现方式不同：R888 是测试红了；这次是**抽查一个我预期应该缺席的族**。**
 **「挑一个样本去推翻自己的判据」，比「相信判据的输出」便宜得多。**
+
+
+---
+
+## 317. 族 ↔ 宿主 **45 / 28**，新文档 `ENDPOINT_FAMILY_HOSTS.md`
+
+> R893。**新增文档，未改产品代码。**
+
+### 一、方法：同现，不是邻近
+
+**有些路径以完整 URL 出现（`//checkout.johnlewis.com/bff/v2/orders`），一条字面量里同时含宿主与族。**
+
+**判据：**族与宿主在同一个字符串内部**。**
+
+**这比池内邻近强 —— R876 的错误正是拿邻近当归属。同现是同一对象内部的关系，
+邻近是两个对象摆在一起。**
+
+### 二、结果
+
+| 宿主 | 族数 |
+|---|---|
+| **`api.nike.com`** | **11** |
+| **`checkout.johnlewis.com`** | **4** |
+| `www.vans.com` | 3 |
+| `checkoutshopper-live.adyen.com` · `app.midtrans.com` | 各 2 |
+| **`prod-hk-actapi.popmart.com`** | **1（`/activity/v1/`）** |
+| **`challenges.cloudflare.com`** | **1（`/turnstile/v0/`）** |
+| 其余 20 个 | 各 1 |
+
+**45 / 56 族有同现宿主；11 个没有（相对路径或宿主来自配置），不在表里。**
+
+### 三、优先级 ② 三条落地
+
+**`challenges.cloudflare.com` → `/turnstile/v0/`（Cloudflare Turnstile 端点，R876 的 `_turnstileKey`）·
+`inbox-api.aycd.io` → `/api/v1/`（AYCD 验证码/OTP 收取，对应 `AycdInboxAccount`）·
+`flex.cybersource.com` · `www.paypal.com` · `app.midtrans.com` → 3DS 与支付重定向**
+
+### 四、更正 R835：PopMart 有**两个**宿主
+
+**`prod-hk-actapi.popmart.com` 只带 `/activity/v1/`。**
+
+| 宿主 | 前缀 |
+|---|---|
+| `popmart.com` | `/shop/v1/`（41）· `/store/v1/`（5） |
+| **`prod-hk-actapi.popmart.com`** | **`/activity/v1/`（2）** |
+
+**R835 搜 `activity/v1/exhibit_draw` 没找到 `StartDrawFlow`，判「PopMart 没这个端点」。
+错的形状是「一个站只有一个 API 宿主」—— 而它有两个。**
+
+### 五、四条边界
+
+1. **45 / 56**，11 个族不在表里。
+2. **同现证明「在某宿主上」，不证明「只属于它」**：`/api/v1/` 在 aycd、goat、hbx 三处都出现。
+3. **混了两类宿主**：站的 API 与厂商的 API。
+4. **不说明复刻件有没有实现** —— 那是 R892 的 3 / 21 / 32。
+
+### 六、仍然 Unknown
+
+- **那 11 个没有同现宿主的族属于谁**：**Unknown** ——
+  **可能是相对路径（由某个 Base 常量拼），也可能是配置里的宿主。**
+- **一个族属于多个宿主时怎么分工**：**Unknown** —— `/api/v1/` 三处，各自的路径子集未分。
+- **`www.ibm.com` 带 `/dtd/v11/` 是什么**：**Unknown，且可疑** ——
+  **名字像 IBM 文档站，可能是一条被误收的字符串，不是任何站的 API。**
+
+### 七、教训
+
+**R892 我到手的是「32 个族完全没有」，而这一轮把它变成了「45 个族各自属于谁」。
+
+两者的差别不是精度，是**这张表现在能回答问题**：
+「Nike 的 11 个族复刻件实现了几个」「Cloudflare Turnstile 的端点在不在」。
+
+而这次判据（同现）比上一轮那个（整条字面量）稳 —— 因为它不假设存储形式。
+R892 的错是假设「完整路径存在一个字面量里」；同现只要求「宿主与族在同一字符串里」，
+**两种存储形式都满足**。**

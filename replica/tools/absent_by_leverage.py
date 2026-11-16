@@ -41,6 +41,14 @@ for dp, _dirs, fs in os.walk(os.path.join(ROOT, "replica", "src")):
                 pass
 text = "\n".join(parts_src)
 
+# R915: strip comments before matching, for the same reason as async_method_coverage -- prose that names an image
+# method must not read as an implementation.
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location("comment_split", os.path.join(ROOT, "replica", "tools", "comment_split.py"))
+_cs = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_cs)
+text = _cs.strip_comments(text)
+
 absent = []
 for name, count in pairs:
     # R911: the image's names come from state-machine types, so they carry no Async suffix while a C# method

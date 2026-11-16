@@ -5093,3 +5093,43 @@ python tools/snapshot.py --restore <stamp> [relpath]
 | 注释假阳性有多少个 | **未测** —— 下一轮该分开统计 |
 
 **纪律**：**加一个真东西的同时可能给度量制造一个假的东西；只报总数会把两者混在一起。**
+
+
+## 判据 — 覆盖 **23.4%**（去注释）；10 个名字只在注释里（R915，**新工具 `tools/comment_split.py` +9 用例**）
+
+### 三个数
+
+| 判据 | 名字 | 占比 |
+|---|---|---|
+| **在代码里** | **362** | **23.4%** |
+| **只在注释里** | **10** | **0.6%** |
+| 两者都没有 | 1175 | 76.0% |
+
+**那 10 个「声称过但不存在」：** `CheckVerification` `ExecuteConfigure` `FindProductMultiInstore`
+`GetThreeDsJwtQuery` `MultipartScanEpilogueAsync` `ParseMessageAsync` `Purchase` `RunShield`
+`SubmitSaleRegistration` `SubmitWebRtc`
+
+### `strip_comments` 是字符扫描器，不是正则
+
+**正则 `//` 剥到行尾会撞字符串里的 `https://` → **剥掉真实代码**，比剥不掉更坏。**
+**四种字面量都跟踪：普通串 · verbatim `@""` · raw `"""` · 字符字面量。**
+
+### 两个工具已改用去注释文本
+
+`async_method_coverage.py` · `absent_by_leverage.py` 现在 `import comment_split` 并 `strip_comments(text)`。
+
+### 数字与代价
+
+**套件 1821 → 1830 · 覆盖 372（含假阳性）→ **362 = 23.4%** · 缺失承载 1303 → 1313**
+**代价：9 个用例 1 分 16 秒（每 Strip 起一个 python 进程）→ 套件 4 分钟涨到 6 分钟。**
+
+### 测试自身两次坑
+
+**① `python -c` 参数按空格拆开 → 全红。② `Where(char.IsDigit)` 抓进百分比 → `362234`。**
+
+| 仍 Unknown | |
+|---|---|
+| 那 10 个里哪些该实现 | `RunShield`/`SubmitWebRtc` 已知，其余未判 |
+| 注释假阳性还会不会再产生 | 工具已修，但**新注释仍会增**（现在会被正确分类） |
+
+**纪律**：**一个数被自己的注释抬高 —— 这是最难发现的一种，因为注释读起来像证据。**

@@ -40,6 +40,14 @@ for dp, _dirs, fs in os.walk(os.path.join(ROOT, "replica", "src")):
                 pass
 text = "\n".join(parts)
 
+# R915: strip comments before matching. A name that appears only in a doc comment is documented, not implemented, and
+# counting it inflates the figure -- R914's own new surface did exactly that by naming SubmitWebRtc in prose.
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location("comment_split", os.path.join(ROOT, "replica", "tools", "comment_split.py"))
+_cs = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_cs)
+text = _cs.strip_comments(text)
+
 present, absent = [], []
 for n in names:
     # whole word, so Contains does not count a longer identifier as a hit

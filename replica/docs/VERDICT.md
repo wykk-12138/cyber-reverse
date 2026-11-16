@@ -54491,3 +54491,65 @@ python tools/snapshot.py --restore <stamp> [rel]    恢复一个文件或整份
 > **这一轮加了一个真表面（WebRTC 防护），同时给自己的度量工具制造了一个假阳性。**
 > **两件事都真实：产品多了一个表面，而覆盖数多了一个不该多的名字。**
 > **如果我只报「372，涨了 1」，那个 1 会被当成进展。**
+
+
+---
+
+## 第 915 轮：去掉注释再数 —— 23.4%，而 10 个名字只活在注释里
+
+### 三个数
+
+| 判据 | 名字 | 占比 |
+|---|---|---|
+| **在代码里** | **362** | **23.4%** |
+| **只在注释里** | **10** | **0.6%** |
+| **两者都没有** | **1175** | **76.0%** |
+
+**那 10 个全部是我在文档注释里点过名、却从没实现的名字：**
+
+```
+CheckVerification · ExecuteConfigure · FindProductMultiInstore · GetThreeDsJwtQuery ·
+MultipartScanEpilogueAsync · ParseMessageAsync · Purchase · RunShield ·
+SubmitSaleRegistration · SubmitWebRtc
+```
+
+> **这是一张「声称过但不存在」的清单 —— R850 的「有形状无内容」在这里换了形态：
+> **有名字，没有形状，而且名字在文档里。****
+
+### 去注释器为什么不能是正则
+
+```
+var u = "https://example.test/a"; var after = 1;
+                    ^^ 从这里剥到行尾，后面的真实代码全没了
+```
+
+> **剥掉代码比剥不掉注释**更坏** —— 它让存在的名字看起来不存在。**
+> **所以 `strip_comments` 是字符扫描器，跟踪四种字面量。**
+
+### 9 个用例
+
+**`AUrlInsideAStringDoesNotStartAComment` · `CodeSurvivesStripping`（「剥多了」的守卫）·
+`AQuoteInsideABlockCommentDoesNotOpenAString` · `VerbatimStringDoubledQuotesAreHandled` ·
+`AnEscapedQuoteInAStringDoesNotEndIt` · `ACharLiteralHoldingAQuoteIsNotAString` ·
+`TheTreeSplitsCodeFromComments`（**三个数相加 = 1547**）**
+
+### 而测试自身踩了两次坑
+
+**① `python -c` 的参数被按空格拆开 → 脚本在第一个空格变成语法错误 → 全红。
+② `Where(char.IsDigit)` 把行尾百分比也抓进去（`362  23.4%` → `362234`）。**
+
+### 数字与代价
+
+| 度量 | R914 | **R915** |
+|---|---|---|
+| 套件 | 1821 | **1830** |
+| **异步覆盖** | 372（24.0%，含假阳性） | **362（23.4%）** |
+| 缺失承载出现次数 | 1303 | **1313** |
+
+**代价：那 9 个用例 1 分 16 秒（每个起一个 python 进程）→ 套件 4 分钟涨到 6 分钟。可接受，但该写在案。**
+
+### 教训
+
+> **R914 的 +1 是假阳性，我把它写出来了。这一轮量清：假阳性一共 10 个，而它们全是我自己的文档。**
+> **所以「覆盖 24.0%」这个数一直偏高了 0.6 个百分点，而**来源是我讲过的那些名字**。**
+> **一个数被自己的注释抬高 —— 这是最难发现的一种，因为注释读起来像证据。**

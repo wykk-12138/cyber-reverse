@@ -792,3 +792,18 @@ Scripts/ 已有五个同类表面（Canvas/WebGl/FontMedia/MediaQuery/Voice）�
 数字：套件 1821 · 异步覆盖 372（含 **1 个假阳性**：SubmitWebRtc 只在文档注释里）。
 
 下一轮：把「出现在代码里」与「只出现在注释里」分开统计 —— 注释假阳性必然出现在「注释引用镜像名字」这种写法下。
+
+## R915 补充 — 去注释再数：覆盖 23.4%，10 个名字只在注释里（新工具 comment_split.py +9 用例）
+
+三数：代码里 362（23.4%）· 只在注释里 10（0.6%）· 都没有 1175（76.0%）。
+
+那 10 个是「声称过但不存在」：CheckVerification ExecuteConfigure FindProductMultiInstore GetThreeDsJwtQuery MultipartScanEpilogueAsync ParseMessageAsync Purchase RunShield SubmitSaleRegistration SubmitWebRtc。
+
+strip_comments 是字符扫描器不是正则（正则 // 会撞字符串里的 https:// → 剥掉真实代码，比剥不掉更坏）。跟踪四种字面量。两个覆盖工具已改用它。
+
+数字：套件 1821 → 1830 · 覆盖 372（含假阳性）→ 362 = 23.4% · 缺失承载 1303 → 1313。
+代价：9 个用例 1 分 16 秒（每 Strip 起 python 进程）→ 套件 6 分钟。
+
+测试自身两次坑：python -c 参数按空格拆开（全红）· Where(char.IsDigit) 抓进百分比（362234）。
+
+下一轮：从「只在注释里」那 10 个里挑真该实现的（RunShield 已知）。

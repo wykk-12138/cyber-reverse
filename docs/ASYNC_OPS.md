@@ -3316,3 +3316,68 @@ R911 我不是不知道怎么恢复，是**记错了目录名**。所以让命�
 而它在**注释引用镜像名字**这种写法下必然出现 —— 而那种写法正是我一直在用的。**
 
 **下一轮该修的是这个：扫描应排除注释，或至少分开统计「出现在代码里」与「只出现在注释里」。**
+
+
+### 去掉注释再数：覆盖 **23.4%**，而 10 个名字只活在注释里（R915）
+
+**R914 报了 372（24.0%），并说那个 +1 是我自己的注释。这一轮把整件事量清。**
+
+### 三个数
+
+| 判据 | 名字 | 占比 |
+|---|---|---|
+| **在代码里** | **362** | **23.4%** |
+| **只在注释里** | **10** | **0.6%** |
+| **两者都没有** | **1175** | **76.0%** |
+
+**而「只在注释里」那 10 个，全部是我在文档注释里点过名、却从没实现的名字：**
+
+```
+CheckVerification · ExecuteConfigure · FindProductMultiInstore · GetThreeDsJwtQuery ·
+MultipartScanEpilogueAsync · ParseMessageAsync · Purchase · RunShield ·
+SubmitSaleRegistration · SubmitWebRtc
+```
+
+**这是一张「声称过但不存在」的清单 —— 而 R850 说的「有形状无内容」在这里换了个形态：
+**有名字，没有形状，而且名字在文档里。****
+
+### 去注释器为什么不能是正则
+
+**`//` 剥到行尾的正则会撞上字符串里的 URL：**
+
+```
+var u = "https://example.test/a"; var after = 1;
+                    ^^ 从这两个 / 开始剥，后面的真实代码全没了
+```
+
+**而剥掉代码比剥不掉注释**更坏** —— 它让存在的名字看起来不存在。
+所以 `strip_comments` 是一个字符扫描器，跟踪四种字面量（普通串、verbatim 串、raw 串、字符字面量）。**
+
+### 9 个用例，其中一个专门钉住这个
+
+| 用例 | 钉什么 |
+|---|---|
+| **`AUrlInsideAStringDoesNotStartAComment`** | **字符串里的 URL 不开启注释，且其后的代码仍在** |
+| `CodeSurvivesStripping` | **纯代码严格不变**（这是「剥多了」的守卫） |
+| `AQuoteInsideABlockCommentDoesNotOpenAString` | 注释里的引号不开启字符串 |
+| `VerbatimStringDoubledQuotesAreHandled` | `@""` 的转义不提前收尾 |
+| `AnEscapedQuoteInAStringDoesNotEndIt` | `\"` 同理 |
+| `ACharLiteralHoldingAQuoteIsNotAString` | `'"'` 不开启字符串 |
+| `TheTreeSplitsCodeFromComments` | **三个数相加 = 1547** |
+
+### 而测试自身踩了两次坑
+
+**① 第一次全红，因为 `python -c` 的参数被按空格拆开** —— 脚本在第一个空格处变成语法错误。
+**② 第二次 `TheTreeSplitsCodeFromComments` 红，因为我用 `Where(char.IsDigit)` 抓数字，
+把行尾的百分比也抓进去了（`362  23.4%` → `362234`）。** 改成只取冒号后第一段数字。
+
+### 数字与代价
+
+| 度量 | R914 | **R915** |
+|---|---|---|
+| 套件 | 1821 | **1830** |
+| **异步覆盖（去注释）** | 372（24.0%，含假阳性） | **362（23.4%）** |
+| 缺失名承载出现次数 | 1303 | **1313** |
+
+**而代价：那 9 个用例跑了 **1 分 16 秒**，因为每个 `Strip` 起一个 python 进程。
+**套件从 4 分钟涨到 6 分钟。这是可接受但我该写在案的成本。****

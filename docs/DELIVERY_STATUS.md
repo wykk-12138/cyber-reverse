@@ -19664,3 +19664,75 @@ metrics_report.py                -> 1821 通过 / 0 失败
 
 **如果我只报「372，涨了 1」，那个 1 会被当成进展。
 而它实际上是我的工具把我的注释读成了代码。**
+
+
+---
+
+## 339. 覆盖 **23.4%**（去注释）；10 个名字只活在注释里
+
+> R915。**新工具 + 改两个工具 + 9 用例。** 套件 **1830 通过 / 0 失败 / 0 跳过**。
+
+### 一、三个数
+
+| 判据 | 名字 | 占比 |
+|---|---|---|
+| **在代码里** | **362** | **23.4%** |
+| **只在注释里** | **10** | **0.6%** |
+| 两者都没有 | **1175** | 76.0% |
+
+**那 10 个「声称过但不存在」：**
+
+`CheckVerification` `ExecuteConfigure` `FindProductMultiInstore` `GetThreeDsJwtQuery`
+`MultipartScanEpilogueAsync` `ParseMessageAsync` `Purchase` `RunShield` `SubmitSaleRegistration` `SubmitWebRtc`
+
+**→ R850 的「有形状无内容」在这里换了形态：**有名字，没有形状，而且名字在文档里。****
+
+### 二、`strip_comments` 不能是正则
+
+```
+var u = "https://example.test/a"; var after = 1;
+                    ^^ 从这里剥到行尾，后面的真实代码全没了
+```
+
+**剥掉代码比剥不掉注释**更坏**——它让存在的名字看起来不存在。**
+
+**所以是字符扫描器，跟踪四种字面量：普通串 · verbatim 串 · raw 串 · 字符字面量。**
+
+### 三、9 个用例
+
+**`AUrlInsideAStringDoesNotStartAComment` · `CodeSurvivesStripping`（「剥多了」守卫）·
+`AQuoteInsideABlockCommentDoesNotOpenAString` · `VerbatimStringDoubledQuotesAreHandled` ·
+`AnEscapedQuoteInAStringDoesNotEndIt` · `ACharLiteralHoldingAQuoteIsNotAString` ·
+`TheTreeSplitsCodeFromComments`（三数相加 = 1547）等。**
+
+### 四、而测试自身踩了两次
+
+**① `python -c` 参数被按空格拆开 → 脚本在第一个空格变语法错误 → 9 个全红。
+② `Where(char.IsDigit)` 把行尾百分比抓进去（`362  23.4%` → `362234`）→ 第 9 个红。**
+
+**两次都是**测试写错而不是代码写错**，而第二次是「解析得太宽」——与 R911 的锚点过宽同一类。**
+
+### 五、数字与代价
+
+| 度量 | R914 | R915 |
+|---|---|---|
+| 套件 | 1821 | **1830** |
+| 异步覆盖 | 372（含假阳性） | **362 = 23.4%** |
+| 缺失承载出现次数 | 1303 | 1313 |
+
+**代价：9 个用例 1 分 16 秒（每 Strip 起一个 python 进程）→ 套件 4 分钟涨到 6 分钟。**
+
+### 六、仍然 Unknown
+
+- **那 10 个里哪些该实现**：**Unknown** —— `RunShield` 与 `SubmitWebRtc` 已知（后者已实现防护但名字只在注释里），
+  其余八个未判。
+- **注释假阳性还会不会再产生**：**会** —— 工具现在能正确分类，但新写的注释仍会把名字计入「只在注释里」那一格，
+  而那一格现在是可见的。
+
+### 七、教训
+
+**一个数被自己的注释抬高 —— 这是最难发现的一种，因为**注释读起来像证据**。**
+
+**R914 我只发现了一个（`SubmitWebRtc`）。这一轮量出是 10 个，而它们全部来自我讲过的名字。**
+
+**所以「我提到过它」和「它存在」之间的差，是 10 个名字。而工具之前把两者当同一件事。**

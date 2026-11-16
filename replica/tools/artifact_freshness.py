@@ -1,0 +1,83 @@
+"""Is the .publish-aot artifact the one the current source would produce?
+
+WHY THIS EXISTS: criterion (c) asks for an artifact-level comparison that can be recomputed, and func_count.py does
+exactly that -- original against .publish-aot. But a comparison is only about the current code if the artifact was built
+from it, and nothing checked that. R932 found the published executable dated 2026-11-16 11:49 with sixty-four source
+files totalling twenty thousand lines changed after it, so every figure derived from it -- including the function ratio
+the objective's first clause is measured by -- described a build more than a day old. A stale figure is not a wrong
+figure, but quoting it without knowing it is stale is the mistake, and the fix is to make staleness visible in the same
+table that carries the number.
+
+This is a timestamp comparison and nothing more. It cannot tell whether a change altered the output -- a comment edit
+marks the artifact stale while changing nothing. That is the correct direction to err: a false alarm costs a publish,
+a missed one costs a figure quoted about code that no longer exists.
+"""
+
+import io
+import os
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ARTIFACT = os.path.join(ROOT, ".publish-aot", "Cybersole.Ui.exe")
+SOURCE = os.path.join(ROOT, "src")
+
+
+def newest_source():
+    """The newest .cs under src, and how many files postdate the artifact."""
+    if not os.path.isdir(SOURCE):
+        return None, 0, 0
+
+    newest, newest_path, newer, newer_lines = 0.0, None, 0, 0
+    for dirpath, dirnames, filenames in os.walk(SOURCE):
+        dirnames[:] = [d for d in dirnames if d not in ("obj", "bin")]
+        for name in filenames:
+            if not name.endswith(".cs"):
+                continue
+            p = os.path.join(dirpath, name)
+            try:
+                m = os.path.getmtime(p)
+            except OSError:
+                continue
+            if m > newest:
+                newest, newest_path = m, p
+            if os.path.exists(ARTIFACT) and m > os.path.getmtime(ARTIFACT):
+                newer += 1
+                try:
+                    with io.open(p, encoding="utf-8", errors="replace") as fh:
+                        newer_lines += sum(1 for _ in fh)
+                except OSError:
+                    pass
+    return newest_path, newer, newer_lines
+
+
+def main():
+    if not os.path.exists(ARTIFACT):
+        print("publish artifact: absent")
+        print("publish artifact state: missing -- func_count's replica figure cannot be produced")
+        return 1
+
+    art = os.path.getmtime(ARTIFACT)
+    newest_path, newer, newer_lines = newest_source()
+
+    print("publish artifact: %s" % os.path.relpath(ARTIFACT, ROOT))
+    print("publish artifact mtime: %s" % _stamp(art))
+    if newest_path:
+        print("newest source: %s (%s)" % (os.path.relpath(newest_path, ROOT), _stamp(os.path.getmtime(newest_path))))
+    print("source files newer than the artifact: %d" % newer)
+    print("lines in those files: %d" % newer_lines)
+    print("publish artifact state: %s" % ("stale" if newer else "current"))
+
+    if newer:
+        print("")
+        print("  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an")
+        print("  older build, so it must be labelled as such wherever it is quoted rather than presented as current.")
+    return 0
+
+
+def _stamp(t):
+    import datetime
+    return datetime.datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

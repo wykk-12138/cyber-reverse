@@ -61,6 +61,10 @@ METRICS = [
     # R832 seventh metric: the goal's first clause is that the function counts be equal, and until then
     # nothing here measured it -- the six above count declarations, this one counts the artifacts.
     ("函数数量（.pdata）", ["tools/func_count.py"], ["functions: original .pdata", "functions: replica .pdata", "functions: ratio"]),
+    # R932: the function ratio comes from .publish-aot, so whether that artifact matches the current source is
+    # part of reading the number. Criterion (c) asks for a recomputable artifact comparison; a stale artifact
+    # makes it recomputable but about the wrong build.
+    ("产物陈旧度（.publish-aot vs src）", ["tools/artifact_freshness.py"], ["source files newer than the artifact", "lines in those files"]),
     # R921: criterion (f) has two columns and only the store one had been measured. These add the vendor column, so the
     # coverage table the criterion asks for comes out of the single number source instead of being assembled by hand.
     ("核心覆盖：store 宿主", ["tools/core_coverage.py"], ["hosts with a path", "store hosts", "store hosts matched", "store hosts unmatched", "vendor hosts"]),
@@ -125,6 +129,9 @@ def summary_bits(name_out, owned):
         "functions: original .pdata": r"pdata-original:\s*([\d,]+)",
         "functions: replica .pdata": r"pdata-replica:\s*([\d,]+)",
         "functions: ratio": r"pdata-ratio:\s*([\d.]+%)",
+        # R932: artifact freshness, so the function ratio is never quoted as current without this beside it.
+        "source files newer than the artifact": r"source files newer than the artifact:\s*(\d+)",
+        "lines in those files": r"lines in those files:\s*(\d+)",
     }
     for label, pattern in patterns.items():
         if label not in owned:

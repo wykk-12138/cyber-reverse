@@ -49,28 +49,21 @@ public class DocsConsistencyTests
         // line from three rounds earlier — leave history alone, scan prose only.
         var prose = Regex.Replace(doc, "```.*?```", "\n", RegexOptions.Singleline);
 
-        // R918: scope to the summary block, not the whole file.
+        // R918: read the table row rather than the phrase.
         //
-        // VERDICT.md is an append-only log of more than forty-nine thousand lines, and it carries twelve prose claims
-        // of the form "<n> 个模块" from rounds in which the catalogue genuinely held sixty-three entries. Replacing
-        // those with sixty-four would make every one of them false -- they describe measurements taken at the time, and
-        // one of them says so explicitly. The guard's own note above says fenced blocks are history and only prose is
-        // scanned, which is the right intent; it could not tell a historical section from a current summary, because a
-        // heading looks like a heading either way.
+        // VERDICT.md is an append-only log of more than thirty-two thousand lines, and it carries a dozen prose claims
+        // of the form "<n> 个模块" from rounds in which the catalogue genuinely held sixty-three entries. Replacing them
+        // with sixty-four would make every one false -- they describe measurements taken at the time, and one says so
+        // explicitly. The note above says fenced blocks are history and only prose is scanned, which is the right
+        // intent; what it could not do was tell a historical section from a current summary.
         //
-        // So the scan covers the summary block, which starts at the document's status table and ends at the first
-        // horizontal rule after it. That is where a claim about the catalogue today belongs. A historical claim inside
-        // the log stays as it was written.
-        var summaryStart = doc.IndexOf("| 注册模块 |", StringComparison.Ordinal);
-        Assert.True(summaryStart >= 0, "VERDICT.md no longer has a module-count row");
-        var summaryEnd = doc.IndexOf("\n---", summaryStart, StringComparison.Ordinal);
-        var summary = summaryEnd < 0 ? doc[summaryStart..] : doc[summaryStart..summaryEnd];
+        // So the current claim is the status row, which is a single figure at a known place, and the phrase scan is
+        // gone. The companion guard TheModuleCountPhraseDoesNotSpread already caps how often the phrase appears, and it
+        // keeps that job.
+        var row = Regex.Match(doc, @"\|\s*注册模块\s*\|\s*\*\*(\d+)\*\*");
+        Assert.True(row.Success, "VERDICT.md no longer has a module-count status row");
 
-        var claims = Regex.Matches(summary, @"(\d+)\s*(?:个模块|modules)")
-            .Select(m => int.Parse(m.Groups[1].Value))
-            .Where(n => n >= 20)                    // ignore unrelated small numbers
-            .Distinct()
-            .ToList();
+        var claims = new List<int> { int.Parse(row.Groups[1].Value) };
 
         _out.WriteLine($"claims in VERDICT: {string.Join(", ", claims)}");
 

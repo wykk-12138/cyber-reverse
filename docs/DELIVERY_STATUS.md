@@ -12269,3 +12269,75 @@ VerifySessionAsync: 3（有重写无调用）
 
 **错的判据有个共同点：它们都在问「有没有以这种形状被调用」。**
 **对的判据只问「这个名字被提到过几次」—— 因为它不假设形状。**
+
+
+---
+
+## 249. 20 个 `ScrapeVariantAvailabilityAsync` 全部写判定；五个短模板按站点不同
+
+> R825。未改产品代码（内存 1.29 GB，只读）。
+
+### 一、为什么要查
+
+R823 的扫描说「26 个重写只返回成功、不发 HTTP」，其中 19 个是 `ScrapeVariantAvailabilityAsync`。
+**只抽读了两个**（`RetailFlows` 与 `Shopify`），都做了实事。**「两个是对的」不等于「全部是对的」。**
+
+**一个只返回成功、不写判定的实现，会让监控报上一次的状态** —— 正是本会话反复遇到的「静默错值」。
+
+### 二、结果：20 个，0 个空转
+
+```
+ScrapeVariantAvailabilityAsync implementations: 20
+never write a verdict: 0
+```
+
+**全部写 `c.Session.Vars["available"]`。**
+
+### 三、但 grep 级的检查骗过我多次，所以又抽读了 5 个最短的
+
+那是模板化风险最高的一批（7–8 行）：
+
+| 流程 | 判据 |
+|---|---|
+| `WarhammerFlow` | `body.Contains("\"inStock\":true")` |
+| `FanaticsFlow` | `body.Contains("\"inStock\":true")` |
+| `SuperswipeFlow` | `body.Contains("\"available\":true")` |
+| `PocketGamesFlow` | `body.Contains("\"available\":true")` |
+| **`RaffleFlow`** | **`c.Session.Vars.TryGetValue("open", ...)` —— 抽签「开放」才算有货** |
+
+**关键是它们不一样。** `RaffleFlow` 根本不看 HTTP 响应体，它读的是上一步写进 session 的 `open` 标志 ——
+**对抽签这是对的：抽签的「有货」等于「报名开放」，不等于某个商品字段。**
+
+**模板没被盲目套用，这是本轮唯一想确认的东西。**
+
+### 四、累计读过 10 个（全部 20 个的一半）
+
+| 已通读 | 依据 |
+|---|---|
+| `BstnFlow` · `DemandwareFlow` · `FarfetchFlow` · `FootsitesFlow` · `GoatFlow` | 本轮前段打印 |
+| `WarhammerFlow` · `FanaticsFlow` · `SuperswipeFlow` · `PocketGamesFlow` · `RaffleFlow` | 本轮抽读 |
+| 其余 10 个（`Hbx` `Hybris` `Magento` `JohnLewis` `Nike` `PopMart` `YeezySupply` `Casio` `Scheels` `Shopify`） | **grep 级确认写了判定，未通读** |
+
+### 五、验证
+
+```
+python analysis\read_availability.py    20 个实现 / 0 个不写判定
+抽读 5 个最长 8 行的：全部按站点不同
+本轮未改产品代码
+未跑全量（内存 1.29 GB < 2 GB）
+四项度量沿用：4 / 0 / 17 / 78 / 0
+```
+
+### 六、仍然 Unknown
+
+- **其余 10 个的判据是否各自正确**：**Unknown** —— grep 只证明它们**写了** `available`，
+  **没证明写的规则对该站点是对的。** `NikeFlow` 31 行、`ScheelsFlow` 21 行、`CasioFlow` 23 行是其中最长三个。
+- **这些字符串判据（`"inStock":true` 等）在真站上是否命中**：**Unknown** ——
+  **它们是字符串匹配，而 5 个站点共用了 2 种模式**，可能有两个站用了同一个但只有一个对。
+  这条只能靠实站验，需要凭据。
+
+### 七、教训
+
+**这一轮的答案是「没有缺陷」，而它比找一个缺陷更难得，因为我先确认了抽查不是白抽。**
+**抽读 5 个最短的，是为了验证「它们不一样」—— 而如果一个模板被复制到 5 个站，
+`0 个空转` 这个结论就只是说「都写了同一行」。**

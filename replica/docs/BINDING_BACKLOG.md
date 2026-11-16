@@ -2064,3 +2064,26 @@ ModuleRobustnessTests 190 / 0 · metrics_report 1766 / 0 · 四项度量未变
 | `RefreshSession` 挂在哪个时刻 | **需读反编译 —— 下一步** |
 | `HandleResponseAsync` 在镜像有无对应阶段 | Inference（中）：规范表没列它，可能是多余声明 |
 | 其余 163 个的真实调用情况 | **扫描器两次不可信；「提及=1」只能证死、不能证活** |
+
+
+## 结案 — 20 个 ScrapeVariantAvailabilityAsync 全部写判定（R825）
+
+```
+20 个实现 · 0 个不写判定 · 抽读 5 个最短的：全部按站点不同
+```
+
+| 流程 | 判据 |
+|---|---|
+| `WarhammerFlow` / `FanaticsFlow` | `"inStock":true` |
+| `SuperswipeFlow` / `PocketGamesFlow` | `"available":true` |
+| **`RaffleFlow`** | **读 `Vars["open"]`**（抽签开放才算有货） |
+
+**累计通读 10/20。其余 10 个（`Hbx` `Hybris` `Magento` `JohnLewis` `Nike` `PopMart` `YeezySupply` `Casio` `Scheels` `Shopify`）grep 级确认写了判定，未通读。**
+
+| 仍 Unknown | |
+|---|---|
+| 其余 10 个的判据是否各自正确 | grep 只证明**写了**，没证明规则对该站对。最长三个：`NikeFlow` 31 行 · `CasioFlow` 23 行 · `ScheelsFlow` 21 行 |
+| 字符串判据在真站是否命中 | **5 个站点共用 2 种模式**，可能有两个站用同一个但只有一个对。需实站验（等凭据） |
+
+**纪律**：**「0 个空转」若来自同一模板被复制 5 份，就只是说「都写了同一行」。**
+**抽读最短的，是为了验证「它们不一样」。**

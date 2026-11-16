@@ -3,7 +3,8 @@
 ## 现在在哪
 
 - **轮次**：R826 已提交（`git log` 顶端应为 `drop the record helper` / `R826: NikeFlow reads structurally…`）。
-- **内存**：1.91 GB / 31.71 GB。**低于 2 GB ⇒ 只用 `-m:1`，不跑全量。** 低于 1 GB 停构建。
+- **内存**：重启后 20.1 GB / 31.71 GB，**全量已复跑：1766 / 0**。
+- **IDA**：**已开启并就绪**（`health` = `status=ok / hexrays_ready=true`，13337 LISTENING）。
 - **套件**：最后一次确认绿是 R823（`DocsConsistencyTests` 7/7）。**R824–R826 未跑全量**（内存纪律）。
   重启或内存回到 2 GB 以上后先跑一次 `python tools\metrics_report.py`，**期望 1766 / 0**。
 - **四项度量**（沿用 R820）：名字级 `real gap 4 / missing 16` · 类型级 `0` · 类型缺失 `17` · 形状 `78` · 文案 `0`。
@@ -21,9 +22,9 @@
 
 ## 未结案项（按价值排序）
 
-1. **两个真死步骤（R824）**：`HandleResponseAsync` 与 `RefreshSessionAsync`，**总提及都是 1**（只有自己的声明）。
-   `StoreFlowParityTests` 的规范步骤表含 `RefreshSession`/`VerifySession` → **镜像有这些阶段**。
-   **下一步：读反编译，看 `RefreshSession` 挂在哪个时刻。猜一个调用点 = 假覆盖（R799）。**
+1. **`RefreshSession` 在镜像里零匹配（R827 已证实）** → **镜像没这个步骤，该删声明而不是补调用**。
+   `HandleBlock` 反过来：**镜像有、复刻件 0 匹配** —— 名字级缺口，且名字暗示「处理封锁」，**与优先级 ② 直接相关，值得单独一轮**。
+   `SetRequest` / `HandleResponse` 在镜像里有，调用点待反编译。
 2. **长度守卫（R826）**：`ScheelsFlow`（`body.Length > 200`）与 `BstnFlow`（`> 2000`）把「响应体短/空」也判成
    `available=false`。**误报缺货 = 错过 drop，不可重来**，而它由与商品无关的量决定。
    两种改法（明确失败 / 先看 `lastStatus` 判 `Blocked`）**都需要镜像证据**。

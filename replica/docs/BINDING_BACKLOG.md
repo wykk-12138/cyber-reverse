@@ -2115,3 +2115,32 @@ c.Session.Vars["available"] = !soldOut && body.Length > 200 ? "true" : "false";
 | `body.Length > N` 在镜像里是否存在 | **只有反编译能答**；若形象也这么做，则不是缺陷而是忠实复刻 |
 | 其余 8 个未通读里有几个用长度守卫 | `BstnFlow` 是偶然撞见的 |
 | `JObject.Parse` 在畸形 JSON 上是否抛 | Inference（中）会；被 `GuardAsync` 转成失败，不静默 |
+
+
+## 优先级 ① — IDA 已开；三条名字级事实（R827）
+
+| 名字 | 镜像 | 复刻件 | 含义 |
+|---|---|---|---|
+| **`RefreshSession`** | **0** | 声明 + UI 6 处 | **镜像没这个步骤 → 该删声明，不是补调用** |
+| **`HandleBlock`** | **有** | **0** | **复刻件缺的名字级缺口** |
+| `HandleResponse` | 有 | 声明、从不调用 | 待查调用点 |
+| `SetRequest` | 有 | 声明、仅 `StepAction` 列为一步 | 待查调用点 |
+
+**R824 的结论翻转**：`RefreshSessionAsync` 不是「keep-warm 的步骤没接线」，是**镜像里不存在这个步骤**。
+**「声明了但没调用」有两个方向 —— 接线少了 / 声明多了。我只想过前者。**
+
+### 没写进结论的一条
+
+`<SetRequest>d__53$<HandleBlock>d__54*<HandleResponse>d__55` 相邻 ≠ 执行管线
+（编译器按类内源码顺序排列）。**过度解读的典型形态，挡在记录之外。**
+
+| 仍 Unknown | |
+|---|---|
+| `SetRequest`/`HandleResponse` 的调用点 | 需反编译 |
+| **`HandleBlock` 做什么** | **与优先级 ② 风控直接相关，值得单独一轮** |
+| UI 里 6 处 `RefreshSession` | 可能是刷新任务列表，同名不同物；**删声明前要分清** |
+
+### IDA 开启流程（记住）
+
+`unpacked` 警告 → **Proceed with unpacked base** · `id0 not closed` → **是(Y)** · 「请稍候」→ **等，不点**。
+**判据：再读一次没有框。** `doctor` 报 `PROXY: MISSING` 正常（走 `ida.py` 直连）。

@@ -18171,3 +18171,100 @@ c.Session.Vars["available"] = !soldOut && body.Length > 200 ? "true" : "false";
   本轮只读了 Nike/Scheels，**而 `BstnFlow` 是偶然撞见的。**
 - **`NikeFlow` 的 `JObject.Parse` 在畸形 JSON 上会不会抛**：**Inference（中）会** ——
   抛了会被 `GuardAsync` 的 catch 转成失败，**所以不会静默，但错误信息会是 JSON 解析器的。**
+
+
+---
+
+## 251. IDA 开了；**`RefreshSession` 在镜像里根本不存在** —— R824 的结论要翻
+
+> R827。`analysis/ida.py` 直连插件（PROXY: MISSING 符合预期）。未改产品代码。
+
+### 一、开 IDA 的过程（记住这个顺序）
+
+```
+powershell -File "...\ida-mcp-doctor.ps1" -Path "<target.i64>"   # 后台
+```
+
+**然后按 goal 的规则点框：**
+
+| 框 | 正文 | 动作 |
+|---|---|---|
+| ① 「请确认」 | `IDA has found an unpacked version of database …` | **Proceed with unpacked base** |
+| ② 「请确认」 | `Database for file '…id0' is not closed. Do you want IDA to repair it?` | **是(Y)** |
+| ③ 「请稍候...」 | —— | **等，不点** |
+
+**判据是「再读一次没有框」，不是「点了 N 次」。** 之后 13337 LISTENING、`health` 回
+`status=ok / hexrays_ready=true`。**doctor 自己报 `PROXY: MISSING`，那是因为我用 `ida.py` 直连，不是故障。**
+
+### 二、三条名字级事实
+
+| 名字 | 镜像 | 复刻件 |
+|---|---|---|
+| **`RefreshSession`** | **0 匹配 —— 镜像里没有** | 声明了（`StoreFlow`）+ UI 里 6 处引用 |
+| **`HandleBlock`** | **有**（`<HandleBlock>d__54`） | **0 —— 完全没有** |
+| `HandleResponse` | **有**（`<HandleResponse>d__55`、`<HandleResponse>d__6`） | 声明了，从不调用 |
+| `SetRequest` | **有**（`<SetRequest>d__53`、`<SetRequest>d__27`、`<SetRequest>d__8`） | 声明了，仅 `StepAction` 里被列为一步 |
+
+### 三、R824 的结论要翻
+
+R824 说：
+
+> `RefreshSessionAsync` 真死 —— 注释写「keeps the session cookie warm between polls」，**从不调用 = 长轮询时 session 冷掉**。
+> **下一步：读反编译，看 `RefreshSession` 挂在哪个时刻。**
+
+**镜像里 `RefreshSession` 零匹配。所以它不是「挂了没接线的步骤」，是「镜像没这个步骤、复刻件自己加的」。**
+
+**要做的不是补调用，是删声明。** **方向从「加」变成「减」。**
+
+**这是判据 d 那类错误的镜像版本**：我先假定「声明了但没调用 ⇒ 少了一段接线」，
+**而另一种可能「声明本身是多余的」我没想到 —— 直到查镜像。**
+
+### 四、`HandleBlock` 是复刻件缺的名字
+
+**镜像有 `<HandleBlock>d__54`，复刻件 0 匹配。**
+**这是一个复刻件完全没有的步骤名** —— 判据 (a) 的「类型缺失」是类型级，**这是名字级的一个缺口**。
+
+### 五、我没敢下的一条结论
+
+**`0x143454a52` 的串是：**
+
+```
+<SetRequest>d__53$<HandleBlock>d__54*<HandleResponse>d__55
+```
+
+**三个异步状态机名字相邻，分隔符是 `$` 与 `*`。**
+
+**我本来想写「镜像的管线是 SetRequest → HandleBlock → HandleResponse」。**
+**但那三个名字相邻，是编译器在元数据里按类内源码顺序排的，不等于执行顺序。**
+
+**把「相邻」读成「管线」就是又一个过度解读。** **所以这条不写进结论。**
+
+**另一处 `0x1434551d5` 是 `<Generate>d__26"<SetRequest>d__27*<HandleResponse>d__28` —— 少了 `HandleBlock`。
+两组不同、都不含 `RefreshSession`。**
+
+### 六、验证
+
+```
+python analysis\ida.py health     status=ok, hexrays_ready=true, idb_path=target\Cybersole.exe.i64
+python analysis\ida.py str RefreshSession     matches=0
+python analysis\ida.py str HandleBlock        matches=2
+复刻件 HandleBlock: 0 匹配（全 src）
+本轮未改产品代码
+完整套件 1766 通过 / 0 失败（重启后复跑确认）
+四项度量 4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 七、仍然 Unknown
+
+- **`SetRequest`/`HandleResponse` 在镜像里被谁调用**：**Unknown** —— 需要反编译调用点，
+  **而状态机名字本身不含调用者。**
+- **`HandleBlock` 做什么**：**Unknown** —— 名字暗示「处理封锁」，**与风控对抗（优先级 ②）直接相关，
+  值得单独一轮。**
+- **`RefreshSession` 那 6 处 UI 引用是什么**：**Unknown** —— `MainWindow.cs×5`、`MainViewModel.cs×1`，
+  **可能是刷新任务列表而不是刷新 HTTP 会话，同名不同物。删声明前要分清。**
+
+### 八、教训
+
+**「声明了但没调用」有两个方向的原因，我只想过一个。**
+**可能是接线少了，也可能是声明多了。而我先假定是前者，因为前者更像「工作量」。**
+**查一次镜像字符串就把方向定了 —— 而这一步被内存挡住了一整轮。**

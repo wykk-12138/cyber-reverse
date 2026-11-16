@@ -49951,3 +49951,53 @@ c.Session.Vars["available"] = !soldOut && body.Length > 200 ? "true" : "false";
 
 **一个可以接受的失败，被转换成了一个具体的、错误的断言。**
 **而它由一个与商品无关的量（响应体长度）决定。**
+
+
+---
+
+## 第 827 轮：IDA 开了；`RefreshSession` 在镜像里根本不存在
+
+### 开 IDA 的顺序（记住）
+
+| 框 | 动作 |
+|---|---|
+| `unpacked version … safer to restart from packed` | **Proceed with unpacked base** |
+| `…id0 is not closed. Do you want IDA to repair it?` | **是(Y)** |
+| 「请稍候...」 | **等，不点** |
+
+**判据是「再读一次没有框」。** 之后 `health` 回 `status=ok / hexrays_ready=true`。
+**doctor 报 `PROXY: MISSING` 是正常的 —— 我走 `ida.py` 直连 13337。**
+
+### 三条名字级事实
+
+| 名字 | 镜像 | 复刻件 |
+|---|---|---|
+| **`RefreshSession`** | **0 —— 没有** | 声明 + UI 6 处引用 |
+| **`HandleBlock`** | **有** | **0 —— 完全没有** |
+| `HandleResponse` | **有** | 声明了，从不调用 |
+
+### R824 的结论翻了
+
+R824：「`RefreshSessionAsync` 真死 ⇒ 该补调用，因为它是 keep-warm 的 GET」。
+**镜像零匹配 ⇒ 它不是「没接线」，是「镜像没这个步骤」。**
+
+> **要做的不是补调用，是删声明。方向从「加」变成「减」。**
+
+**「声明了但没调用」有两个方向：接线少了，或声明多了。我只想过前者 —— 因为前者更像工作量。**
+
+### 没敢下的一条
+
+`<SetRequest>d__53$<HandleBlock>d__54*<HandleResponse>d__55` 三个名字相邻。
+
+**那是编译器按类内源码顺序排的，不等于执行顺序。把「相邻」读成「管线」是过度解读，所以不写进结论。**
+
+### 验证
+
+```
+health ok · str RefreshSession = 0 · str HandleBlock = 2 · 复刻件 HandleBlock = 0
+整套 1766 / 0（重启后复跑）· 度量 4 / 0 / 17 / 78 / 0
+```
+
+### 仍然 Unknown
+
+**`SetRequest`/`HandleResponse` 在镜像里被谁调用**（需反编译调用点）· **`HandleBlock` 做什么**（名字暗示「处理封锁」，与优先级 ② 直接相关）· **UI 里那 6 处 `RefreshSession` 引用是什么**（可能是刷新任务列表，同名不同物 —— 删声明前要分清）

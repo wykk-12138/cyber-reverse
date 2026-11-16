@@ -1144,3 +1144,29 @@ mutation AddToCart($sku: String!, $fascia: String!, … ) { addToCart(…) { ctC
 
 **注意**：本轮覆盖率未变 —— **换的是既有步骤的请求形状，不是补步骤。**
 **质量改动不要记成覆盖进展。**
+
+
+## 核心 — Warhammer（R790：原文已生成，方法待接）
+
+**`replica/src/Cybersole.Stores/Flows/WarhammerQueries.g.cs`（生成，6 条）**：
+
+```
+UpdateShippingAddress 1994 · UpdateShippingRate 2248 · AddCreditCard 798
+AddItemToCart 2107 · AddToCart 536 · ApproveOnboardPaymentMutation 4022
+```
+
+**生成命令**：`python analysis/emit_warhammer_queries.py`
+**来源**：`analysis/warhammer_graphql.txt`（R788 从池子取回）
+**命名**：四条自带名；两条匿名取根字段 —— **命名选择，文件头已注明**
+
+| 待接的步骤 | 缺什么 |
+|---|---|
+| `SubmitShippingAsync` ← UpdateShippingAddress | 地址字段 → attributes 映射 |
+| 运费选择 ← UpdateShippingRate | `$selectedShippingRateId` 来源 |
+| `SubmitPaymentAsync` ← ApproveOnboardPaymentMutation | 支付 `token` 来源 |
+
+**`WarhammerFlow` 仍 71%** —— 两步的原文备好了，但没有硬接。
+**不要为了把 71% 变成 100% 而用猜出来的取值。**
+
+**可复算**：`python analysis/emit_warhammer_queries.py` 后 `git diff` 应无变化；
+有变化说明证据文件或生成器动了。

@@ -48238,3 +48238,54 @@ WarhammerGraphQlTests 5/5 · 整套 1766 / 0 · 度量未变 · 覆盖率未变�
 ### 仍然 Unknown
 
 `fascia` 取值 · `SubmitOrderAsync` 仍是编的 `/api/orders` · 其余五条 mutation 未翻 · 响应消费面
+
+
+---
+
+## 第 790 轮：GraphQL 常量改成生成，不再手抄
+
+### 为什么
+
+R789 手抄 536 字符；**这轮要接的两条是 1,994 与 2,248 字符。**
+**四千字符手抄，错一个字符照样编译 —— 更好的办法是不抄。**
+
+### 生成器
+
+```
+analysis/warhammer_graphql.txt
+  → 按 "---" 切块、去 "#" 注释
+  → 名字：声明的优先；匿名的取根字段（UpdateShippingAddress / UpdateShippingRate）
+  → 逐字转 @"..."（引号加倍，不转义）
+  → WarhammerQueries.g.cs
+```
+
+### 产出
+
+```
+UpdateShippingAddress          1994  (root-field)
+UpdateShippingRate             2248  (root-field)
+AddCreditCard                   798  (declared)
+AddItemToCart                  2107  (declared)
+AddToCart                       536  (declared)
+ApproveOnboardPaymentMutation  4022  (declared)
+```
+
+**构建已成功。逐字保真由构造保证 —— 它根本不是抄。**
+
+### 没接方法，理由
+
+三条都能对应上步骤，**但都是「形状已知、取值未知」**：
+
+| operation | 缺 |
+|---|---|
+| UpdateShippingAddress | 地址字段 → attributes 的映射 |
+| UpdateShippingRate | `$selectedShippingRateId` 从哪来 |
+| ApproveOnboardPaymentMutation | 支付 `token` 从哪来 |
+
+**R785/R786 已两次因为「瞎猜只会静默出错」停手，这轮按同一条线。**
+
+### 验证
+
+```
+6 条生成 · 构建绿 · 方法体未改 · 整套 1766 / 0 · 度量未变
+```

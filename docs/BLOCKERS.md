@@ -15571,3 +15571,83 @@ offspring 覆盖率     100%（未变 —— 这一步上一轮已经是"已实�
   **Unknown** —— 两族并存，现在用的是 `creditCardFields_` 那族（名字更全）。
 - **`saveCardAdyen` 与 `saveCard` 的区别**：**Unknown**。
 - **GMO 那一族是否只在日本站用**：**Inference（高）**，未验证。
+
+
+---
+
+## 223. `hypecommerce` 进豁免；**同时把"复刻件那条链是猜的"单独立项**
+
+> R797。`ModuleCoverageTests.YardstickDoesNotApply` 加 `hypecommerce`（6 条豁免）。
+
+### 一、镜像里只有 6 条，全是 admin API（Observation）
+
+```
+https://admin.hypecommerce.io/api/entries/create
+https://admin.hypecommerce.io/api/entries/validate
+https://admin.hypecommerce.io/api/payment/methods/store
+https://admin.hypecommerce.io/api/settings
+（另有主机本身与一个 _hypeApi 前缀标记）
+```
+
+**`entries` 是关键词** —— 报名/抽奖提交，**先 validate 再 create**。
+**没有任何商品、购物车、运费、支付的店面端点。**
+
+**所以七步尺子不合身，与 goat/popmart/superswipe 同一类。**
+
+### 二、但复刻件那 71% 是**猜出来的**
+
+`HypeCommerceFlow` 有 8 个 override：GetHome / Login / FindProduct / FindVariant /
+ScrapeVariantAvailability / AddToCart / SubmitOrder / GetCheckout —— **71%（5/7）**。
+
+**而它的商品/购物车/订单路径在镜像里一条依据都没有。**
+
+**这件事必须分开说**：
+
+- **豁免**回答的是"七步尺子对这个模块合不合身" → **不合身**
+- **它不回答"复刻件那条链对不对"** → **那 71% 是猜的，而且没人验过**
+
+**所以豁免的同时把它单独立项**（见第四节），**否则豁免会顺手把一个问题藏起来。**
+
+### 三、豁免文案
+
+```
+hypecommerce = "R797: 六条字符串全是 admin.hypecommerce.io/api/* —— entries/create,
+entries/validate, payment/methods/store, settings。entries 是报名/抽奖提交，
+所以这是 admin 报名 API，不是七步店面结账"
+```
+
+### 四、新立项：`HypeCommerceFlow` 的那条链没依据
+
+**待办**：要么按镜像的 entries API 重写它（`entries/validate` → `entries/create`），
+要么把它降级成诚实失败。
+
+**判断依据**：镜像里只有 entries，**而 entries 的形状（validate → create）是可以照抄的** ——
+**比现在这条猜出来的商品/购物车链更有据。**
+
+**这一轮没做，因为它是另一个决定**（改 8 个 override 的方向），**不是豁免的连带动作。**
+
+### 五、口径
+
+```
+resolved 63/63 flows; fully covered 51; exempt 6
+```
+
+**分母 58 → 57，`fully covered` 仍 51。**
+**这不是覆盖率上升，是分母变化 —— R793 就写过的同一条。**
+
+### 六、验证
+
+```
+构建                未改产品代码（只改测试的豁免表）
+ModuleCoverageTests hypecommerce 71%（yardstick does not apply）；exempt 6
+完整套件            1766 通过 / 0 失败 / 0 跳过
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+```
+
+### 七、仍然 Unknown
+
+- **`entries/validate` 与 `entries/create` 的请求体**：**Unknown** —— 端点有，字段没有。
+- **`payment/methods/store` 的用途**：**Unknown** —— 存支付方式，但为谁存不明。
+- **镜像有没有 hypecommerce 的店面面**：**Unknown** —— 只搜过 `hypecommerce`，
+  **可能店面域名不含这个词**（§2.7：先问有几种写法）。
+- **`HypeCommerceFlow` 现在那 71% 里有没有一步是对的**：**Unknown** —— 没人验过。

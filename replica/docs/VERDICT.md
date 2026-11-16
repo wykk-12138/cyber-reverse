@@ -48576,3 +48576,52 @@ dwfrm_billing_gmoCreditCardFields_*        3 个（日本网关）
 ### 仍然 Unknown
 
 明文卡 vs `adyenEncryptedData` · `paymentMethodId` 取值 · 两族字段该用哪族 · `saveCardAdyen` 与 `saveCard` 的区别
+
+
+---
+
+## 第 797 轮：hypecommerce 进豁免，而它那条链是猜的要单独说
+
+### 镜像里只有 6 条，全是 admin API
+
+```
+admin.hypecommerce.io/api/{entries/create, entries/validate, payment/methods/store, settings}
+```
+
+**`entries` 是关键词 —— 报名/抽奖提交。没有商品、购物车、运费、支付的店面端点。**
+
+**七步尺子不合身，与 goat/popmart/superswipe 同类。**
+
+### 但复刻件那 71% 是猜出来的
+
+`HypeCommerceFlow` 有 8 个 override，**而它的商品/购物车/订单路径在镜像里没有依据。**
+
+**两件事要分开：**
+
+- **豁免**回答「尺子合不合身」→ **不合身**
+- **它不回答「那条链对不对」** → **71% 是猜的，没人验过**
+
+> **所以豁免的同时把它单独立项 —— 否则豁免会顺手把一个隐藏问题一起藏掉。**
+
+### 新立项
+
+**要么按 entries API 重写（`validate` → `create`，形状可照抄），要么降级成诚实失败。**
+**这一轮没做，因为那是另一个决定，不是豁免的连带动作。**
+
+### 口径
+
+```
+resolved 63/63 · fully covered 51 · exempt 6
+```
+
+**分母 58 → 57，`fully covered` 仍 51 —— 不是覆盖率上升，是分母变化。**
+
+### 验证
+
+```
+只改测试的豁免表 · hypecommerce 71%（yardstick does not apply）· 整套 1766 / 0 · 度量未变
+```
+
+### 仍然 Unknown
+
+`entries` 的请求体 · `payment/methods/store` 用途 · **镜像有没有店面面（只搜过 `hypecommerce` 这一个写法）** · 那 71% 里有没有一步是对的

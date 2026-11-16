@@ -1329,3 +1329,33 @@ dwfrm_billing_gmoCreditCardFields_*        3 个（日本网关）
 
 **纪律**：加密字段是密钥+算法生成的，**猜不了**。
 **发明文让站点自己拒（可见的失败）胜过猜一个加密格式（静默的失败）。**
+
+
+## 覆盖 — hypecommerce 豁免，但它的链是猜的（R797）
+
+```
+resolved 63/63 · fully covered 51 · exempt 6
+分母 58 → 57（不是覆盖率上升，是分母变化）
+```
+
+**镜像只有 6 条，全是 `admin.hypecommerce.io/api/*`：`entries/create` · `entries/validate` ·
+`payment/methods/store` · `settings`。`entries` = 报名/抽奖提交 → 七步尺子不合身。**
+
+## **新立项：`HypeCommerceFlow` 那条链没依据**
+
+| 现状 | 问题 |
+|---|---|
+| 8 个 override、71% | **商品/购物车/订单路径在镜像里一条依据都没有** |
+| 镜像真实形状 | `entries/validate` → `entries/create`（可照抄） |
+
+**两条出路**：① 按 entries API 重写；② 降级成诚实失败。
+**判断倾向**：entries 的形状是**可照抄的**，比现在这条猜的链更有据。
+
+**没做的原因**：这是改 8 个 override 的方向决定，**不是豁免的连带动作。**
+
+| 仍 Unknown | |
+|---|---|
+| `entries` 请求体 | 端点有、字段没有 |
+| `payment/methods/store` 用途 | 不明 |
+| **镜像有没有 hypecommerce 的店面面** | **只搜过 `hypecommerce` 一种写法**（§2.7） |
+| 那 71% 里有没有一步对 | 没人验过 |

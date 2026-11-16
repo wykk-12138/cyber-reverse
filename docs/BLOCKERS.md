@@ -16375,3 +16375,94 @@ AntiBot 相关用例    36 通过 / 0 失败
 **拿「一个字符串列表」当「一个分类清单」之前，先问这个列表是干什么用的。**
 `AntiBotVendors` 里那 9 条字面量长得像清单，**职责却是记录具体的 token 键** ——
 **用它对账厂商，得到的是 18 个不存在的缺口。**
+
+
+---
+
+## 232. `Signifyd` 的两个端点**早就声明过**；我上一轮写了一份重复的
+
+> R808。`AntiBotVendors.cs`：把 R807 写死的两个 URL 改成引用 `RetailApiFamilies.ScheelsFrontastic`。
+
+### 一、上一轮造了一个重复
+
+R807 我在 `AntiBotVendors` 里写了：
+
+```csharp
+public const string SignifydSendCode =
+    "https://apihub.scheels.com/frontastic/action/cart/sendSignifydStepUpCode";
+public const string SignifydCompleteStepUp =
+    "https://apihub.scheels.com/frontastic/action/cart/completeSignifydStepUpCheckout";
+```
+
+**而 `RetailApiFamilies.ScheelsFrontastic` 从 R103 起就有这两个：**
+
+```csharp
+public const string SignifydStepUpCode     = Base + "cart/sendSignifydStepUpCode";
+public const string CompleteSignifydStepUp = Base + "cart/completeSignifydStepUpCheckout";
+```
+
+**同一个事实，两处硬编码。** 这正是会腐化的那种重复：改一处、漏一处，然后两个地方说的是不同的事。
+
+### 二、改成引用
+
+```csharp
+public const string SignifydSendCode = RetailApiFamilies.ScheelsFrontastic.SignifydStepUpCode;
+public const string SignifydCompleteStepUp = RetailApiFamilies.ScheelsFrontastic.CompleteSignifydStepUp;
+```
+
+**`ScheelsFrontastic` 嵌在 `RetailApiFamilies` 里**，所以第一次写漏了外层限定名，编译报 `CS0103`，
+**加上就过了。** 这也说明编译期能抓到的东西不该靠肉眼看。
+
+### 三、顺带看到 `ScheelsFrontastic` 比想象的全
+
+```
+account/{getAccount, login, register, requestReset, reset}
+product/getProduct
+cart/{addToCart, updateCart, removeLineItem, clean, checkout,
+      completeDetailsCheckout, sendSignifydStepUpCode, completeSignifydStepUpCheckout,
+      setAdyenCreditCard}
+adyen/{beginPayPal, completePayPal}
+```
+
+**整套 frontastic 结账面都在常量里。** 而这套常量是 R103 从镜像里抄下来的 ——
+**所以 `scheels` 的端点侧是完整的，缺的只是把它们串起来的流程。**
+
+### 四、`scheels` 的模块状态
+
+它的 override 有 `GetHome` / `GetCaptcha` / `SubmitSensor` / `FindProduct` / `FindVariant` /
+`ScrapeVariantAvailability` 等，**不在那 12 个缺 shipping/payment 的名单里**，
+说明它在七步表上是满的。
+
+**所以 Signifyd 的 step-up 不是覆盖缺口** ——
+**它是 `ScheelsFlow` 里没有的一条支路**（`requiresSignifydStepUp` 为真时才走）。
+
+### 五、为什么这一轮不实现 step-up
+
+**请求体不知道。** 这是第五次同一形状（casio 的 region token、goat 的 build-reservation、
+popmart 的 /web/v2、hypecommerce 的 entries、现在 Signifyd 的 code）。
+
+**而且这次比前几次更难**：step-up 要**先发码、再从邮箱取码、再提交**，
+**取码那一步依赖邮件服务，而复刻件的邮件服务是它自己的实现，不能当实机证据**（§2.2）。
+
+**所以这条支路要等三件事齐**：请求体、取码链路、以及一个能证明它被触发的观察点。
+
+### 六、验证
+
+```
+构建                已成功（CS0103 修掉后）
+完整套件            1766 通过 / 0 失败 / 0 跳过
+四项度量            4 / 0 / 17 / 78 / 0（未变）
+产品行为             未变 —— 只是常量改为引用，字面值相同
+```
+
+### 七、仍然 Unknown
+
+- **Signifyd step-up 的三个请求体**：**Unknown**。
+- **`GetSignifydCode` 从哪取码**：**Unknown** —— 邮件？前端？还是别处。
+- **`requiresSignifydStepUp` 由谁置位**：**Unknown** —— 结账响应的字段，未读。
+
+### 八、教训
+
+**在往一个类里加常量之前，搜一下这个字面值是否已经在别处。**
+R807 加的这两个 URL，`grep` 一次就能发现早就有 —— **而我上一轮是「查到镜像里有，就写下来」，没有回头搜复刻件。**
+**取证和落实现是两个方向，都要搜。**

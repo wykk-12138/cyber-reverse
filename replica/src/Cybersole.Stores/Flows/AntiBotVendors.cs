@@ -95,7 +95,7 @@ public static class AntiBotVendors
     public const string RiskifiedShopCookie = "riskified_cookie";
 
     /// <summary>
-    /// Signifyd's two endpoints, both on <c>apihub.scheels.com/frontastic/action/cart/</c>. R807.
+    /// Signifyd's two endpoints live on the Scheels frontastic hub. R807, deduplicated R808.
     ///
     /// <para>
     /// <b>Observation:</b> the image carries <c>sendSignifydStepUpCode</c> and
@@ -104,13 +104,17 @@ public static class AntiBotVendors
     /// <c>requiresSignifydStepUp</c> as the flag that starts it. That is a code-verification step-up, not a passive
     /// sensor, which is why Signifyd is a handled vendor rather than a named one.
     /// </para>
+    ///
+    /// <para>
+    /// R807 wrote both URLs out as literals here. R808 found that <see cref="ScheelsFrontastic"/> had carried them
+    /// since R103, so this now references that class rather than repeating the strings. Two hard-coded copies of one
+    /// URL is the kind of duplication that drifts.
+    /// </para>
     /// </summary>
-    public const string SignifydSendCode =
-        "https://apihub.scheels.com/frontastic/action/cart/sendSignifydStepUpCode";
+    public const string SignifydSendCode = RetailApiFamilies.ScheelsFrontastic.SignifydStepUpCode;
 
     /// <inheritdoc cref="SignifydSendCode"/>
-    public const string SignifydCompleteStepUp =
-        "https://apihub.scheels.com/frontastic/action/cart/completeSignifydStepUpCheckout";
+    public const string SignifydCompleteStepUp = RetailApiFamilies.ScheelsFrontastic.CompleteSignifydStepUp;
 
     public static readonly IReadOnlyList<Vendor> All = new[]
     {

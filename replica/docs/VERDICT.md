@@ -49020,3 +49020,48 @@ CaptchaKind (5): ReCaptcha · HCaptcha · Turnstile · Geetest · Question
 ### 教训
 
 **拿「一个字符串列表」当「一个分类清单」之前，先问它原本是干什么用的。**
+
+
+---
+
+## 第 808 轮：Signifyd 的两个端点早就声明过，我上一轮写了个重复
+
+### 上一轮造了重复
+
+R807 我在 `AntiBotVendors` 里硬编码了两个 `apihub.scheels.com/frontastic/action/cart/*` URL，**而 `RetailApiFamilies.ScheelsFrontastic` 从 R103 起就有这两个常量。**
+
+**改成引用**（`ScheelsFrontastic` 嵌在 `RetailApiFamilies` 里，第一次漏了外层限定名，编译报 `CS0103`）。
+
+### `ScheelsFrontastic` 比想象的全
+
+```
+account/{getAccount, login, register, requestReset, reset} · product/getProduct
+cart/{addToCart, updateCart, removeLineItem, clean, checkout, completeDetailsCheckout,
+      sendSignifydStepUpCode, completeSignifydStepUpCheckout, setAdyenCreditCard}
+adyen/{beginPayPal, completePayPal}
+```
+
+**整套 frontastic 结账面都在常量里 —— 端点侧完整，缺的是串起来的流程。**
+
+### `scheels` 不在缺口名单里
+
+它不在那 12 个缺 shipping/payment 的模块中 → **七步表上是满的。**
+**所以 Signifyd 的 step-up 不是覆盖缺口，是 `ScheelsFlow` 里没有的一条支路。**
+
+### 为什么不实现
+
+**请求体不知道**（第五次同一形状）。**而且这次更难**：step-up 要发码 → 取码 → 提交，
+**取码依赖邮件服务，而复刻件的邮件服务是自己的实现，不能当实机证据**（§2.2）。
+
+**要等三件事齐**：请求体、取码链路、能证明它被触发的观察点。
+
+### 验证
+
+```
+构建绿（CS0103 修掉后）· 整套 1766 / 0 · 度量未变 · 行为未变（常量改引用，字面值相同）
+```
+
+### 教训
+
+**往一个类里加常量之前，搜一下这个字面值是否已在别处存在。**
+R807 是「查到镜像里有就写下来」，**没有回头搜复刻件 —— 取证和落实现是两个方向，都要搜。**

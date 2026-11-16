@@ -1568,3 +1568,27 @@ CaptchaKind (5)               ReCaptcha · HCaptcha · Turnstile · Geetest · Q
 
 **纪律**：**拿「一个字符串列表」当「一个分类清单」之前，先问它原本是干什么用的。**
 `AntiBotVendors` 里那 9 条字面量长得像清单，职责却是记录 token 键 —— 用它对账得到 18 个不存在的缺口。
+
+
+## 风控 — Signifyd 端点去重（R808）
+
+**R807 的两个硬编码 URL 改成引用 `RetailApiFamilies.ScheelsFrontastic`**（R103 起就有）。
+
+```
+ScheelsFrontastic: account/* · product/getProduct
+                   cart/{addToCart, updateCart, removeLineItem, clean, checkout,
+                         completeDetailsCheckout, sendSignifydStepUpCode,
+                         completeSignifydStepUpCheckout, setAdyenCreditCard}
+                   adyen/{beginPayPal, completePayPal}
+```
+
+**端点侧完整 —— `scheels` 也不在 12 个缺口名单里（七步表已满）。**
+**Signifyd 的 step-up 不是覆盖缺口，是 `ScheelsFlow` 里未实现的一条支路。**
+
+| 待齐三件事 | |
+|---|---|
+| 三个请求体 | Unknown（第五次同一形状） |
+| 取码链路 | **依赖邮件服务，而那是复刻件自己的实现，不能当实机证据**（§2.2） |
+| 触发观察点 | `requiresSignifydStepUp` 由谁置位，未读 |
+
+**纪律**：**往类里加常量前先搜字面值。取证和落实现是两个方向，都要搜。**

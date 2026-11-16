@@ -43,7 +43,11 @@ text = "\n".join(parts)
 present, absent = [], []
 for n in names:
     # whole word, so Contains does not count a longer identifier as a hit
-    if re.search(r"\b" + re.escape(n) + r"\b", text):
+    # R911: the image's names come from state-machine types (d__NN), so they carry no Async suffix, while a C#
+    # method does. A strict whole-word test therefore reports ScrapeProductAsync as missing ScrapeProduct --
+    # fifty-four names were miscounted that way before this fix. Match the bare name and then the name with the
+    # suffix glued on, which is one identifier and not two.
+    if re.search(r"\b" + re.escape(n) + r"(?:Async)?\b", text):
         present.append(n)
     else:
         absent.append(n)

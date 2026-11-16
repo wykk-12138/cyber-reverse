@@ -4950,3 +4950,40 @@ after :  boxSkuId → 回退 c.Session.VariantId → 都无才失败
 | `GetOwnProperties` 属什么层 | 反射 |
 
 **纪律**：**一个可以被预测的改进，说明选择依据是结构而不是记忆。**
+
+
+## 判据 — 覆盖率 **20.4% → 24.0%**：匹配漏了 `Async` 后缀（R911，**改两个工具 + 修产品**）
+
+### 根因
+
+**镜像名来自状态机（`d__NN`）→ `ScrapeProduct`（无 `Async`）；C# 方法 → `ScrapeProductAsync`。
+`\bScrapeProduct\b` 里 `\b` 在 `t`/`A` 间不成立 → 不命中。**
+
+| 判据 | 命中 | 覆盖率 |
+|---|---|---|
+| 严格（旧） | 317 | 20.5% |
+| **允许 `Async`（新）** | **371** | **24.0%** |
+
+**54 个名字被误判 → R906/R910 的所有排序都虚高。**
+
+### 这一轮做坏的一次
+
+**删重复定义时锚点过宽 → 删掉 6,876 字符含 `GetHomeAsync` → 虚步骤 175→165、四店 CS0115。
+`tools/.snapshot-backup` 不存在（真实路径 `tools/.snapshots/`）→ 用 `git checkout --` 恢复。**
+
+### 而第 462 轮的 override 是对的
+
+**HEAD 的 `PopMartFlow` 无这两个 override → 保留。`StoreFlow` 已有虚方法故不重复。**
+
+### 最终数字
+
+**虚步骤 175 · 异步覆盖 371/1547 = 24.0% · 缺失承载 1303（原 1523）· 套件 1815 通过**
+
+**新榜首：`WriteToAsync` 7 · `WriteRawAsync` 6 · `LoadAsync` 5 · `WriteStartNamespaceDeclarationAsync` 4 · `WriteAsyncInternal` 4 · `OverrideAsyncMethod` 4 · `OnLoadedAsync` 4 · `Enumerate` 4 · `DownloadAsync` 4**
+
+| 仍 Unknown | |
+|---|---|
+| 54 个名字里还有几个真缺 | 需按新判据重排 |
+| `Write*` 一族属哪层 | IO/序列化 |
+
+**纪律**：**同一轮里判据过严（低报）与锚点过宽（删坏）可以同时发生 —— 严的让人找不存在的东西，宽的让人删掉存在的东西。**

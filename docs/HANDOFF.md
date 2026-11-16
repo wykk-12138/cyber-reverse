@@ -738,3 +738,18 @@ BoxGoodsList 与 BoxExtract 刻意不接：FindProduct 取 json、FindVariant �
 
 新榜首：WriteToAsync 7 · ScrapeProduct 7 · ScrapeJson 7 · GetOwnProperties 7 · WriteRawAsync 6。
 ScrapeProduct/ScrapeJson 属 ①（抓商品）—— 下一轮从这里挑。
+
+## R911 补充 — 覆盖率 20.4% → 24.0%（匹配漏了 Async 后缀）
+
+根因：镜像名来自状态机 d__NN → ScrapeProduct（无 Async）；C# 是 ScrapeProductAsync；\bScrapeProduct\b 不命中。
+严格 317（20.5%）→ 允许 Async 371（24.0%）。54 个名字被误判 → R906/R910 排序全虚高。
+
+而这一轮先做坏了一次：删重复定义锚点过宽 → 删 6876 字符含 GetHomeAsync → 虚步骤 175→165、四店 CS0115。tools/.snapshot-backup 不存在（真实是 tools/.snapshots/）→ 用 git checkout 恢复。
+
+第 462 轮的 PopMartFlow override 是对的（HEAD 里没有）→ 保留。
+
+最终：虚步骤 175 · 异步覆盖 371/1547 = 24.0% · 缺失承载 1303（原 1523）· 套件 1815 通过。
+
+新榜首：WriteToAsync 7 · WriteRawAsync 6 · LoadAsync 5 · WriteStartNamespaceDeclarationAsync 4 · WriteAsyncInternal 4 · OverrideAsyncMethod 4 · OnLoadedAsync 4 · Enumerate 4 · DownloadAsync 4。
+
+纪律：同一轮里判据过严（低报）与锚点过宽（删坏）可以同时发生。

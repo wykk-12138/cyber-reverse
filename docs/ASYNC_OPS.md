@@ -3097,3 +3097,55 @@ after :  boxSkuId 优先；没有就退到 c.Session.VariantId；两者都无才
 `WriteToAsync` 7 · `ScrapeProduct` 7 · `ScrapeJson` 7 · `GetOwnProperties` 7 · `WriteRawAsync` 6
 
 **其中 `ScrapeProduct` / `ScrapeJson` 属优先级 ①（抓商品），`WriteToAsync` / `WriteRawAsync` 属 ③（IO）。**
+
+
+### 覆盖率从 20.4% 修到 **24.0%** —— 因为我的匹配漏了 `Async` 后缀（R911）
+
+**R910 排出的榜首是 `ScrapeProduct` 7 · `ScrapeJson` 7，我按那个去补 —— 结果编译报 CS0111「重复定义」。**
+
+### 根因
+
+**镜像的名字从状态机类型（`d__NN`）恢复，所以它们是 `ScrapeProduct`（**无 `Async`**）。
+而 C# 方法是 `ScrapeProductAsync`。**
+
+**我的判据是 `\bScrapeProduct\b` —— 而 `\b` 在 `t` 与 `A` 之间**不成立**，因为 `Async` 让标识符继续。
+**所以 `ScrapeProductAsync` 不算命中 `ScrapeProduct`。****
+
+### 影响范围
+
+| 判据 | 命中 | 覆盖率 |
+|---|---|---|
+| 严格整词（旧） | 317 | 20.5% |
+| **允许 `Async` 后缀（新）** | **371** | **24.0%** |
+
+**54 个名字被误判为缺失。而 R906/R910 的所有排序都建立在这个误判上。**
+
+### 而这一轮我先做坏了一次
+
+**发现 CS0111 后我加了个删重复定义的动作，结果删掉 6,876 字符，**连 `GetHomeAsync` 一起删了** ——
+虚步骤从 175 掉到 165，四个店编译失败（CS0115「没有找到适合的方法来重写」）。**
+
+**而 `tools/.snapshot-backup` 不存在**（`snapshot.py` 写的是 `tools/.snapshots/`），所以我按错的路径找恢复源，找不到。**
+
+**最后用 `git checkout -- src/Cybersole.Stores/Flows/StoreFlow.cs` 恢复 —— 175 恢复，编译干净。**
+
+### 而第 462 轮那部分工作其实是对的
+
+**`PopMartFlow` 在 HEAD 里**没有** `ScrapeProductAsync` / `ScrapeJsonAsync` 的 override。
+所以我加的两个 override 是有效的、真实的。**
+
+**这一轮保留了它们：`StoreFlow` 已有虚方法（所以不能重复声明），`PopMartFlow` 加 override（正确）。**
+
+| 度量 | 改后 |
+|---|---|
+| `StoreFlow` 虚步骤 | **175** |
+| 异步覆盖 | **371 / 1547 = 24.0%** |
+| 缺失名承载出现次数 | **1303**（原 1523） |
+| 套件 | **1815 通过 / 0 失败** |
+
+### 新的缺失榜首（都真缺）
+
+`WriteToAsync` 7 · `WriteRawAsync` 6 · `LoadAsync` 5 · `WriteStartNamespaceDeclarationAsync` 4 ·
+`WriteAsyncInternal` 4 · `OverrideAsyncMethod` 4 · `OnLoadedAsync` 4 · `Enumerate` 4 · `DownloadAsync` 4
+
+**`ScrapeProduct` 与 `ScrapeJson` 已从榜首消失 —— 因为它们现在真的在。**

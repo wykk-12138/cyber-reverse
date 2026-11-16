@@ -278,10 +278,17 @@ public sealed class PopMartFlow : StoreFlow
         return StepOutcome.Fail("popmart: no restock window", retryable: true);
     }
 
-    public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
+    /// <summary>
+    /// The payload fetch, split out of <see cref="FindProductAsync"/> in R911 so the step and the scrape carry the
+    /// names the image uses.
+    ///
+    /// <para>
+    /// Pop Mart serves the machine-readable product under <c>.json</c>; the HTML page carries the same data only
+    /// inside a hydration blob, so json is tried first and html is the fallback.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> ScrapeProductAsync(FlowContext c, CancellationToken ct)
     {
-        // Pop Mart serves the machine-readable product under .json; the HTML page carries the
-        // same data only inside a hydration blob, which is not worth parsing first.
         var jsonUrl = c.Url.Contains('?', StringComparison.Ordinal)
             ? c.Url + "&format=json"
             : c.Url + ".json";
@@ -294,8 +301,38 @@ public sealed class PopMartFlow : StoreFlow
         if (!res.IsSuccess) return StepOutcome.Fail($"popmart product HTTP {res.StatusCode}", retryable: true);
 
         c.Session.Vars["raw"] = res.Body;
-        c.Session.Vars["product"] = Regex.Match(res.Body, @"""(?:name|title)""\s*:\s*""([^""]+)""").Groups[1].Value;
-        c.Session.Vars["price"] = ExtractPrice(res.Body);
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// One field out of the payload the session holds. The field name comes from the session variable
+    /// <c>scrapeField</c>, and the result lands in <c>scraped</c>, so a caller sets a name rather than this class
+    /// growing a method per field.
+    /// </summary>
+    public override Task<StepOutcome> ScrapeJsonAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("raw", out var body) || string.IsNullOrWhiteSpace(body))
+            return Task.FromResult(StepOutcome.Fail("popmart ScrapeJson has no payload in the session"));
+
+        var field = c.Session.Vars.TryGetValue("scrapeField", out var f) && !string.IsNullOrWhiteSpace(f)
+            ? f
+            : "name";
+
+        var m = Regex.Match(body, "\"" + Regex.Escape(field) + "\"\\s*:\\s*\"([^\"]*)\"");
+        c.Session.Vars["scraped"] = m.Success ? m.Groups[1].Value : string.Empty;
+        return Task.FromResult(StepOutcome.Success());
+    }
+
+    public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
+    {
+        // R911: the fetch moved to ScrapeProduct; this step now reads what that left behind and derives the fields
+        // the later steps need. Splitting them keeps the two names the image has rather than folding both into one.
+        var scraped = await ScrapeProductAsync(c, ct).ConfigureAwait(false);
+        if (!scraped.Ok) return scraped;
+
+        var body = c.Session.Vars["raw"];
+        c.Session.Vars["product"] = Regex.Match(body, @"""(?:name|title)""\s*:\s*""([^""]+)""").Groups[1].Value;
+        c.Session.Vars["price"] = ExtractPrice(body);
         return StepOutcome.Success();
     }
 

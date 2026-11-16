@@ -25149,3 +25149,68 @@ metrics_report.py                    -> 1808 通过 / 0 失败
 **而两者差别的证据是：这一轮的数字可以**事先算出来**，而之前的不能。**
 
 **一个可以被预测的改进，说明选择依据是结构而不是记忆。**
+
+
+---
+
+## 335. 覆盖率修到 **24.0%**；以及这一轮删坏文件又恢复的过程
+
+> R911。**改两个工具 + 保留产品改动。** 套件 **1815 通过 / 0 失败 / 0 跳过**。
+
+### 一、根因：`Async` 后缀
+
+**镜像名来自状态机（`d__NN`）→ `ScrapeProduct`（无 `Async`）；C# 是 `ScrapeProductAsync`。
+`\bScrapeProduct\b` 的 `\b` 在 `t` 与 `A` 之间不成立 → 不命中。**
+
+| 判据 | 命中 | 覆盖率 |
+|---|---|---|
+| 严格（旧） | 317 | 20.5% |
+| **允许 `Async`（新）** | **371** | **24.0%** |
+
+**54 个名字被误判为缺失 —— R906/R910 的全部排序都因此虚高。**
+
+### 二、这一轮我先做坏了一次
+
+**发现 CS0111 后删重复定义，锚点延伸到下一个 `/// <summary>` → **删掉 6,876 字符，含 `GetHomeAsync`**。
+虚步骤 175 → 165，四店 CS0115。**
+
+**而 `tools/.snapshot-backup` 不存在（`snapshot.py` 实际写 `tools/.snapshots/`），按错路径找不到恢复源。
+最后 `git checkout -- src/Cybersole.Stores/Flows/StoreFlow.cs` 恢复。**
+
+### 三、而第 462 轮的 override 是对的
+
+**HEAD 的 `PopMartFlow` 里没有这两个 override，所以我加的是真实的。
+`StoreFlow` 已有虚方法（不能重复声明），`PopMartFlow` 加 override（正确）—— 保留。**
+
+### 四、最终数字
+
+| 度量 | 值 |
+|---|---|
+| `StoreFlow` 虚步骤 | **175** |
+| 异步覆盖 | **371 / 1547 = 24.0%** |
+| 缺失名承载出现次数 | **1303**（原 1523） |
+| 套件 | **1815 通过 / 0 失败** |
+
+### 五、新的缺失榜首（都真缺）
+
+`WriteToAsync` 7 · `WriteRawAsync` 6 · `LoadAsync` 5 · `WriteStartNamespaceDeclarationAsync` 4 ·
+`WriteAsyncInternal` 4 · `OverrideAsyncMethod` 4 · `OnLoadedAsync` 4 · `Enumerate` 4 · `DownloadAsync` 4
+
+### 六、仍然 Unknown
+
+- **54 个被误判的名字里还有几个真缺**：**Unknown** —— 需按新判据重排后逐个看。
+- **`Write*` 一族属哪层**：**Unknown** —— 名字像 IO/序列化。
+- **`tools/.snapshots/` 的实际内容**：**Unknown** —— 我一直按 `.snapshot-backup` 找。
+
+### 七、教训
+
+**这一轮有两个错，方向相反：**
+
+**① 判据太严（`Async` 后缀）→ **低报**覆盖率 3.5 个百分点。**
+**② 删除锚点太宽（延伸到下一个 `/// <summary>`）→ **删坏产品代码**，丢了 10 个虚方法。**
+
+**两个都不是「想不到」—— 是我在同一个文件上同时用一个过严的判据和一个过宽的锚点。
+严的判据让我去找不存在的东西；宽的锚点让我删掉了存在的东西。**
+
+**而恢复靠的是 `git checkout`，不是快照 —— 因为我把快照目录名记错了。
+记错一个目录名，就等于没有快照。**

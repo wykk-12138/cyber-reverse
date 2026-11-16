@@ -1,0 +1,647 @@
+﻿using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
+
+namespace Cybersole.Stores.Flows;
+
+/// <summary>
+/// Pop Mart — blind-box drops released in waves. There is no guest cart: the flow waits
+/// for the wave to open, then posts a reservation. Mirrors the binary's
+/// <c>PollRestock</c> + <c>FindSlot</c> pair.
+/// </summary>
+public sealed class PopMartFlow : StoreFlow
+{
+    public override string Id => "popmart";
+    public override string Name => "Pop Mart";
+    public override IReadOnlyList<string> Domains =>
+        new[] { "popmart.com", "popmart.co.uk", "popmart.eu", "popmart.sg" };
+
+    /// <summary>
+    /// Pop Mart's own order — the image's twenty-four steps, which R112 recovered from one adjacent run of
+    /// compiler ordinals and <see cref="StoreFlowSteps"/> records verbatim.
+    ///
+    /// <para>
+    /// R868. This is the first flow to declare its sequence, and it is what makes the draw, exhibit and
+    /// reservation steps reachable at all: R851 established that with only the runner's generic twenty-one there was
+    /// nowhere for them to sit, and R866 that adding them to the generic list would leak them into every other store.
+    /// Declaring the order here gives them a place that belongs to Pop Mart alone.
+    /// </para>
+    ///
+    /// <para>
+    /// Most of these steps are not implemented yet. That is deliberate and visible: a name this flow cannot run
+    /// fails with <c>step not implemented by popmart</c>, so the gap reads as a named gap rather than a silent skip.
+    /// R849 established the endpoints for the draw surface all exist, and R850 that three of the steps have enough
+    /// evidence to be written — the remaining work is code, not investigation.
+    /// </para>
+    /// </summary>
+    public override IReadOnlyList<string> StepSequence => StoreFlowSteps.PopMart.Names;
+
+    /// <summary>
+    /// Pop Mart's in-store exhibit lookup — step <c>FindExhibit</c>, paired by R116 with
+    /// <see cref="PopMartEndpoints.StoreOfflineDrawInfo"/>.
+    ///
+    /// <para>
+    /// R872. <see cref="GetInstoreOrders"/> was the step I expected to write this round, and it cannot be written: no
+    /// endpoint in <see cref="PopMartEndpoints"/> pairs with it, so it would mean inventing a URL. These two are the
+    /// opposite case — R116 paired them by name and the constants carry their query shapes, so both can be written
+    /// without inventing anything.
+    /// </para>
+    ///
+    /// <para>
+    /// The <c>alias</c> the endpoint takes is not established, so it is taken from the session var the flow already
+    /// carries when a caller has set one, and the step fails clearly when it has not. Failing on a missing input is
+    /// better than sending an empty alias and calling whatever comes back a result.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> FindExhibitAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("alias", out var alias) || string.IsNullOrEmpty(alias))
+            return StepOutcome.Fail("FindExhibit needs a session var 'alias' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.StoreOfflineDrawInfo + alias,
+            "popmart-exhibit-info", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart exhibit unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart exhibit HTTP {res.StatusCode}");
+
+        c.Session.Vars["exhibit"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Pop Mart's in-store exhibit entry — step <c>EnterExhibit</c>, paired by R116 with
+    /// <see cref="PopMartEndpoints.StoreOfflineDrawJoin"/>.
+    ///
+    /// <para>
+    /// The same endpoint also serves <c>EnterReservation</c> according to R116, which is a reading worth keeping in
+    /// view: one endpoint, two client phases. That is the same shape R847 found in John Lewis, where a step list is the
+    /// client's stages and an endpoint is the server's resource.
+    /// </para>
+    ///
+    /// <para>
+    /// The request body is <b>not</b> established, so this step sends the exhibit body the previous step stored, which
+    /// is a real payload the image would plausibly echo back. If no exhibit has been fetched it fails rather than
+    /// posting nothing — an empty POST that returns 200 would look like success.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> EnterExhibitAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("exhibit", out var body) || string.IsNullOrEmpty(body))
+            return StepOutcome.Fail("EnterExhibit needs the exhibit body from FindExhibit and none was stored");
+
+        var res = await PostJsonAsync(c, Origin(c.Url) + PopMartEndpoints.StoreOfflineDrawJoin, body,
+            "popmart-exhibit-join", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart exhibit join unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart exhibit join HTTP {res.StatusCode}");
+
+        c.Session.Vars["exhibitJoin"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// The draw family, first four steps — R873.
+    ///
+    /// <para>
+    /// R116 paired fourteen of Pop Mart's steps with <c>/shop/v1</c> endpoints. Seven of those endpoints take a query
+    /// parameter whose shape is fixed in the constant itself, which is what makes a step writable without inventing a
+    /// request; the rest are POSTs whose bodies nothing evidences, and those stay unwritten.
+    /// </para>
+    ///
+    /// <para>
+    /// Two things are deliberately not smoothed over. The <c>uniqCode</c> and <c>uniqID</c> these steps need are read
+    /// from the session and <b>nothing in this replica puts them there yet</b>, so the steps fail rather than send an
+    /// empty parameter — the failure names what is missing. And the responses are stored whole, unparsed, because their
+    /// shape is unevidenced.
+    /// </para>
+    ///
+    /// <para>
+    /// R850 found the parameter markers in the image (<c>_uniqCode</c>, <c>currentUniqCode</c>, <c>storeUniqCode</c>,
+    /// <c>&amp;storeUniqCode=1</c>), which is why the naming here is not a guess even though the plumbing is not built.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> StartDrawFlowAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("uniqCode", out var code) || string.IsNullOrEmpty(code))
+            return StepOutcome.Fail("StartDrawFlow needs a session var 'uniqCode' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.DrawScratchDetail + code,
+            "popmart-draw-detail", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart draw unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart draw HTTP {res.StatusCode}");
+
+        c.Session.Vars["draw"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Look up a draw — R116 pairs this with the same detail endpoint as <see cref="StartDrawFlowAsync"/>, which is
+    /// the pattern of one endpoint and two client phases seen throughout this session.
+    /// </summary>
+    public override async Task<StepOutcome> FindDrawAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("uniqCode", out var code) || string.IsNullOrEmpty(code))
+            return StepOutcome.Fail("FindDraw needs a session var 'uniqCode' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.DrawScratchDetail + code,
+            "popmart-draw-find", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart draw unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart draw HTTP {res.StatusCode}");
+
+        c.Session.Vars["draw"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// The dates a store ticket runs on. No query parameter, so nothing has to be supplied and nothing is invented.
+    /// </summary>
+    public override async Task<StepOutcome> FindDatesAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.StoreTicketDates, "popmart-ticket-dates", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart ticket dates unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart ticket dates HTTP {res.StatusCode}");
+
+        c.Session.Vars["ticketDates"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>The time slots for a store ticket, which needs the ticket's <c>uniqID</c> from the session.</summary>
+    public override async Task<StepOutcome> FindTimeSlotsAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("uniqID", out var id) || string.IsNullOrEmpty(id))
+            return StepOutcome.Fail("FindTimeSlots needs a session var 'uniqID' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.StoreTicketMainPage + id,
+            "popmart-ticket-slots", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart ticket slots unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart ticket slots HTTP {res.StatusCode}");
+
+        c.Session.Vars["timeSlots"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// The in-store order list — step <c>GetInstoreOrders</c>, ordinal 105, on a different prefix from the online list.
+    ///
+    /// <para>
+    /// R891. R890 established this endpoint was not under <c>/shop/v1/</c>; enumerating order-shaped paths across the
+    /// whole image located it under <c>/store/v1/</c>, whose query shape is fixed in the constant. No body is invented,
+    /// and the response is kept whole because its schema is unevidenced.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetInstoreOrdersAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.InstoreOrderList, "popmart-instore-orders", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart instore orders unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart instore orders HTTP {res.StatusCode}");
+
+        c.Session.Vars["instoreOrders"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// A product looked up against a physical store — ordinal 76. Needs a <c>storeId</c>, which nothing in this replica
+    /// supplies yet, so it fails rather than sending an empty parameter.
+    /// </summary>
+    public override async Task<StepOutcome> FindProductInstoreAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("storeId", out var storeId) || string.IsNullOrEmpty(storeId))
+            return StepOutcome.Fail("FindProductInstore needs a session var 'storeId' and none was set");
+
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.InstoreProductDetail + storeId,
+            "popmart-instore-product", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart instore product unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart instore product HTTP {res.StatusCode}");
+
+        c.Session.Vars["instoreProduct"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Pop Mart's order list — step <c>GetOrders</c>, ordinal 104, first of the flow's sequence.
+    ///
+    /// <para>
+    /// R871. The endpoint is <see cref="PopMartEndpoints.OrderList"/> and its query shape is fixed in the constant
+    /// itself (<c>?currentPage=1&amp;pageSize=20</c>), so this step needs no invented request: R849 confirmed the
+    /// constant exists and R116 paired it with this step by name.
+    /// </para>
+    ///
+    /// <para>
+    /// The attribution is worth stating because <see cref="CandidateSteps"/> warns that ordinal 104 collides across
+    /// classes. It does, and the collision is between two separate blobs: <c>GetAccessToken&gt;d__104</c> sits with
+    /// <c>CartApiObjectCreate&gt;d__105</c> and <c>AddToCartGraphQL&gt;d__106</c>, while <c>GetOrders&gt;d__104</c> sits
+    /// with <c>GetInstoreOrders&gt;d__105</c> and <c>StartDrawFlow&gt;d__115</c>. The warning is about a bare ordinal
+    /// scan not knowing which blob a name came from; here the name and its ordinal are in the same literal, so the
+    /// owner is not in doubt.
+    /// </para>
+    ///
+    /// <para>
+    /// What the response contains is <b>not</b> established, so the body is stored whole rather than parsed. Parsing it
+    /// would mean inventing a schema, which is the failure this project keeps having to undo.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetOrdersAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.OrderList, "popmart-orders", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart orders unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart orders HTTP {res.StatusCode}");
+
+        c.Session.Vars["orders"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Origin(c.Url) + "/", "popmart-home", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart home unreachable", retryable: true);
+        c.Session.Vars["home"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> PollRestockAsync(FlowContext c, CancellationToken ct)
+    {
+        for (var i = 0; i < 10; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.ProductDetails, "popmart-stock", ct)
+                .ConfigureAwait(false);
+            if (res is null) return StepOutcome.Fail("popmart stock unreachable", retryable: true);
+
+            if (res.Body.Contains("\"inStock\":true", StringComparison.OrdinalIgnoreCase) ||
+                res.Body.Contains("\"available\":true", StringComparison.OrdinalIgnoreCase))
+            {
+                c.Session.Vars["restock"] = "1";
+                return StepOutcome.Success();
+            }
+            await Task.Delay(TimeSpan.FromMilliseconds(400), ct).ConfigureAwait(false);
+        }
+        return StepOutcome.Fail("popmart: no restock window", retryable: true);
+    }
+
+    public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
+    {
+        // Pop Mart serves the machine-readable product under .json; the HTML page carries the
+        // same data only inside a hydration blob, which is not worth parsing first.
+        var jsonUrl = c.Url.Contains('?', StringComparison.Ordinal)
+            ? c.Url + "&format=json"
+            : c.Url + ".json";
+
+        var res = await GetAsync(c, jsonUrl, "popmart-product", ct).ConfigureAwait(false);
+        if (res is null || !res.IsSuccess)
+            res = await GetAsync(c, c.Url, "popmart-product-html", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("popmart product unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart product HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["raw"] = res.Body;
+        c.Session.Vars["product"] = Regex.Match(res.Body, @"""(?:name|title)""\s*:\s*""([^""]+)""").Groups[1].Value;
+        c.Session.Vars["price"] = ExtractPrice(res.Body);
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Pull a usable price out of a Pop Mart product payload.
+    ///
+    /// A plain first-match on <c>"price":</c> lands on <c>"spuPriceInfo":{"price":0,...}</c>,
+    /// which is the SPU-level placeholder while no model is selected — verified against a live
+    /// page where the real price was $30. The actual values live in <c>skus[].price</c> and are
+    /// in cents, so the first non-zero SKU price wins and is divided by 100.
+    ///
+    /// Everything below is a fallback for payloads that do not carry a skus array.
+    /// </summary>
+    /// <summary>Every <c>"skus":[ … ]</c> array body, brace-matched rather than regex-bounded.</summary>
+    private static IEnumerable<string> SkuBlocks(string body)
+    {
+        var at = 0;
+
+        while (true)
+        {
+            var start = body.IndexOf("\"skus\"", at, StringComparison.Ordinal);
+            if (start < 0) yield break;
+
+            var open = body.IndexOf('[', start);
+            if (open < 0) yield break;
+
+            var depth = 0;
+            var end = -1;
+
+            for (var i = open; i < body.Length; i++)
+            {
+                if (body[i] == '[') depth++;
+                else if (body[i] == ']')
+                {
+                    depth--;
+                    if (depth == 0) { end = i; break; }
+                }
+            }
+
+            if (end < 0) yield break;
+
+            yield return body.Substring(open, end - open + 1);
+            at = end + 1;
+        }
+    }
+
+    public static string ExtractPrice(string body)
+    {
+        // Scan inside each skus array only. One Regex.Matches with a lazy .*? over the whole
+        // document stops after the first hit, so a SKU priced 0 would hide the real one behind
+        // it. Brace-matching the array first avoids that.
+        foreach (var skuBlock in SkuBlocks(body))
+        {
+            foreach (Match m in Regex.Matches(skuBlock, @"""price""\s*:\s*(\d+)"))
+            {
+                if (int.TryParse(m.Groups[1].Value, out var cents) && cents > 0)
+                    return (cents / 100m).ToString("0.00");
+            }
+        }
+
+        // some payloads expose a single discounted figure in cents
+        var centsOnly = Regex.Match(body, @"""discountPrice""\s*:\s*(\d+)");
+        if (centsOnly.Success && int.TryParse(centsOnly.Groups[1].Value, out var discounted) &&
+            discounted > 0)
+            return (discounted / 100m).ToString("0.00");
+
+        // last resort: a plain decimal price, which is what an already-rendered page carries
+        var plain = Regex.Match(body, @"""price""\s*:\s*""?(\d+(?:\.\d{1,2})?)""?\s*,\s*""currency""");
+        if (plain.Success && decimal.TryParse(plain.Groups[1].Value,
+                System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture, out var value) && value > 0)
+            return value.ToString("0.00");
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Pop Mart is a blind-box store: the "variant" is the box slot, and the SKU carries it.
+    /// The monitor needs this to answer which sizes are actually purchasable.
+    /// </summary>
+    public override async Task<StepOutcome> FindVariantAsync(FlowContext c, CancellationToken ct)
+    {
+        await Task.CompletedTask.ConfigureAwait(false);
+
+        var body = c.Session.Vars.TryGetValue("raw", out var raw) ? raw : string.Empty;
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            var fetched = await FindProductAsync(c, ct).ConfigureAwait(false);
+            if (!fetched.Ok) return fetched;
+            body = c.Session.Vars["raw"];
+        }
+
+        var wanted = c.Product?.Sizes.FirstOrDefault();
+
+        // Prefer an exact size match, otherwise take the first purchasable slot.
+        var slots = Regex.Matches(body,
+            @"""(?:sku|skuId|variantId)""\s*:\s*""?([A-Za-z0-9_\-]+)""?[^}]*?""(?:name|size|title)""\s*:\s*""([^""]+)""");
+
+        string? chosenId = null;
+        string? chosenName = null;
+
+        foreach (Match m in slots)
+        {
+            var id = m.Groups[1].Value;
+            var name = m.Groups[2].Value;
+
+            if (string.IsNullOrEmpty(chosenId))
+            {
+                chosenId = id;
+                chosenName = name;
+            }
+
+            if (wanted is not null && name.Contains(wanted, StringComparison.OrdinalIgnoreCase))
+            {
+                chosenId = id;
+                chosenName = name;
+                break;
+            }
+        }
+
+        if (chosenId is null)
+        {
+            var fallback = Regex.Match(body, @"""(?:sku|skuId|variantId)""\s*:\s*""?([A-Za-z0-9_\-]+)""?");
+            if (!fallback.Success) return StepOutcome.Fail("popmart: no slot id in payload", retryable: true);
+            chosenId = fallback.Groups[1].Value;
+        }
+
+        c.Session.VariantId = chosenId;
+        c.Session.Vars["variant"] = chosenId;
+        if (chosenName is not null)
+        {
+            c.Session.Vars["size"] = chosenName;
+            c.Session.Vars["sizes"] = chosenName;
+        }
+        return StepOutcome.Success();
+    }
+
+    public override Task<StepOutcome> FindSlotAsync(FlowContext c, CancellationToken ct)
+    {
+        var body = c.Session.Vars.TryGetValue("raw", out var r) ? r : string.Empty;
+        if (string.IsNullOrWhiteSpace(body)) return Task.FromResult(StepOutcome.Fail("popmart: no product"));
+
+        var slot = Regex.Match(body, @"""skuId""\s*:\s*""?([A-Za-z0-9\-]+)""?").Groups[1].Value;
+        if (string.IsNullOrEmpty(slot))
+            slot = Regex.Match(body, @"""id""\s*:\s*""?([A-Za-z0-9\-]{4,})""?").Groups[1].Value;
+        if (string.IsNullOrEmpty(slot)) return Task.FromResult(StepOutcome.Fail("popmart: no sku"));
+
+        c.Session.VariantId = slot;
+        return Task.FromResult(StepOutcome.Success());
+    }
+
+    public override Task<StepOutcome> ScrapeVariantAvailabilityAsync(FlowContext c, CancellationToken ct)
+    {
+        var body = c.Session.Vars.TryGetValue("raw", out var r) ? r : string.Empty;
+        var ok = c.Session.Vars.TryGetValue("restock", out var rs) && rs == "1";
+        if (!ok) ok = body.Contains("\"inStock\":true", StringComparison.OrdinalIgnoreCase);
+        c.Session.Vars["available"] = ok ? "true" : "false";
+        return Task.FromResult(StepOutcome.Success());
+    }
+
+    /// <summary>
+    /// Sealed-box add: preview the set the box comes from, extract one from it, then hand the extracted line to the
+    /// ordinary cart call.
+    ///
+    /// <para>
+    /// R908. Five of the six <c>/shop/v1/box/</c> constants had no caller before this method: the goods list, the SPU
+    /// detail, the set preview, the set extract and the plain extract. Only <c>addBoxListToCart</c> was reached, from
+    /// <see cref="AddToCartAsync"/>, which made the family look covered when five sixths of it was dead.
+    /// </para>
+    ///
+    /// <para>
+    /// The chain is inferred from the names. What is observed is that the image has a method called AddToCartBox and
+    /// these five endpoints exist; what is not observed is any request body, so the payloads below are minimal and the
+    /// method reports what it could not send rather than pretending.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> AddToCartBoxAsync(FlowContext c, CancellationToken ct)
+    {
+        // R909: the box sku falls back to the flow's own variant, so this method is reachable from an ordinary run
+        // rather than only from a session someone had already prepared. R908 required a dedicated variable that
+        // nothing set, which made a written method uncallable in practice -- R850's shape without content, one layer
+        // up. An explicit boxSkuId still wins when a flow wants a different box from the one it is watching.
+        var boxSku = c.Session.Vars.TryGetValue("boxSkuId", out var explicitBox) && !string.IsNullOrEmpty(explicitBox)
+            ? explicitBox
+            : c.Session.VariantId;
+
+        if (string.IsNullOrEmpty(boxSku))
+            return StepOutcome.Fail("popmart AddToCartBox has neither a boxSkuId nor a resolved variant to use");
+
+        var origin = Origin(c.Url);
+
+        // 1) which set this box belongs to
+        var spu = await GetAsync(c, origin + PopMartEndpoints.BoxSpuDetail + "?skuId=" + Uri.EscapeDataString(boxSku),
+            "popmart-box-spu", ct).ConfigureAwait(false);
+        if (spu is null) return StepOutcome.Fail("popmart box spu unreachable", retryable: true);
+        if (!spu.IsSuccess) return StepOutcome.Fail($"popmart box spu HTTP {spu.StatusCode}");
+
+        c.Session.Vars["boxSpu"] = spu.Body;
+
+        // 2) what the set holds, without revealing it
+        var preview = await GetAsync(c, origin + PopMartEndpoints.BoxSetPreview + "?skuId=" +
+            Uri.EscapeDataString(boxSku), "popmart-box-preview", ct).ConfigureAwait(false);
+        if (preview is null) return StepOutcome.Fail("popmart box preview unreachable", retryable: true);
+        if (!preview.IsSuccess) return StepOutcome.Fail($"popmart box preview HTTP {preview.StatusCode}");
+
+        c.Session.Vars["boxPreview"] = preview.Body;
+
+        // 3) take one out of the set
+        var extract = await PostJsonAsync(c, origin + PopMartEndpoints.BoxSetExtract,
+            new JObject { ["skuId"] = boxSku, ["quantity"] = c.Session.Quantity }
+                .ToString(Newtonsoft.Json.Formatting.None), "popmart-box-extract", ct).ConfigureAwait(false);
+        if (extract is null) return StepOutcome.Fail("popmart box extract unreachable", retryable: true);
+        if (!extract.IsSuccess) return StepOutcome.Fail($"popmart box extract HTTP {extract.StatusCode}");
+
+        c.Session.Vars["boxExtract"] = extract.Body;
+
+        // 4) the extracted line, added through the same call the ordinary path uses
+        var added = await PostJsonAsync(c, origin + PopMartEndpoints.AddBoxListToCart,
+            new JObject { ["skuId"] = boxSku, ["quantity"] = c.Session.Quantity }
+                .ToString(Newtonsoft.Json.Formatting.None), "popmart-box-cart", ct).ConfigureAwait(false);
+        if (added is null) return StepOutcome.Fail("popmart box cart unreachable", retryable: true);
+        if (!added.IsSuccess) return StepOutcome.Fail($"popmart box cart HTTP {added.StatusCode}");
+
+        c.Session.Vars["cart"] = added.Body;
+        c.Session.CartId = Regex.Match(added.Body, @"""cartId""\s*:\s*""([^""]+)""").Groups[1].Value;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
+    {
+        var payload = new JObject
+        {
+            ["skuId"] = c.Session.VariantId,
+            ["quantity"] = c.Session.Quantity,
+        };
+
+        var res = await PostJsonAsync(c, Origin(c.Url) + PopMartEndpoints.AddBoxListToCart,
+            payload.ToString(Newtonsoft.Json.Formatting.None), "popmart-cart", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("popmart reservation failed", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart cart HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["cart"] = res.Body;
+        c.Session.CartId = Regex.Match(res.Body, @"""cartId""\s*:\s*""([^""]+)""").Groups[1].Value;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// The cart read — R122 found a six-method cart class whose first method is
+    /// <c>GetCartDataList</c>, and this endpoint is named for it.
+    ///
+    /// <para>
+    /// The draw half of Pop Mart (twenty-four steps: draws, points, reservations) and the buying half
+    /// (this class) are two different things, which R116 inferred from the twenty-five unused endpoints
+    /// and R122 confirmed from the class itself. Reading the cart is the first buying step.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c,
+            Origin(c.Url) + PopMartEndpoints.ShoppingCartDataList + "cart",
+            "popmart-cart-read", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("popmart cart read failed", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart cart HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["cart"] = res.Body;
+
+        // the cart class reads the cart and then the coupons; keep that order
+        await FetchCouponsAsync(c, ct).ConfigureAwait(false);
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// <c>FetchCoupons</c> — the second method of the cart class, served by the coupons list.
+    ///
+    /// <para>
+    /// A private helper rather than an override: <c>StoreFlow</c> has no <c>FetchCoupons</c> step, and
+    /// inventing one would put a step in the vocabulary that the binary does not ask for. The cart
+    /// read calls it, so the behaviour exists without the invented step.
+    /// </para>
+    /// </summary>
+    private async Task<StepOutcome> FetchCouponsAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.CouponsList,
+            "popmart-coupons", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("popmart coupons failed", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart coupons HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["coupons"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// <c>SubmitDiscount</c> — the third method. A checkout cannot apply a discount without verifying
+    /// the coupon, so this posts the code to the verify endpoint and records the verdict.
+    ///
+    /// <para>
+    /// A rejection here is not a failure to retry: a coupon that does not apply still leaves an
+    /// orderable cart, exactly as a non-raffle store still checks out (R99).
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitDiscountAsync(FlowContext c, CancellationToken ct)
+    {
+        var code = c.Session.Vars.TryGetValue("discountCode", out var dc) ? dc : null;
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            c.Session.Vars["discount"] = "absent";
+            return StepOutcome.Success();
+        }
+
+        var payload = new JObject { ["couponCode"] = code };
+
+        var res = await PostJsonAsync(c, Origin(c.Url) + PopMartEndpoints.CouponsVerify,
+            payload.ToString(Newtonsoft.Json.Formatting.None), "popmart-discount", ct).ConfigureAwait(false);
+
+        if (res is null)
+        {
+            c.Session.Vars["discount"] = "unknown";
+            return StepOutcome.Success();
+        }
+
+        c.Session.Vars["discount"] = res.IsSuccess ? "applied" : "rejected";
+        return StepOutcome.Success();
+    }
+
+    public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
+        OpenCheckoutAsync(c, "popmart-checkout", "/checkout", ct);
+
+    public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        var payload = new JObject
+        {
+            ["cartId"] = c.Session.CartId,
+            ["email"] = c.ProfileData?.Email ?? c.Account?.Email,
+        };
+
+        var res = await PostJsonAsync(c, Origin(c.Url) + PopMartEndpoints.BuyNow,
+            payload.ToString(Newtonsoft.Json.Formatting.None), "popmart-order", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("popmart order failed", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart order HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.OrderNumber = Regex.Match(res.Body, @"""order(?:Number|Id)""\s*:\s*""?([A-Za-z0-9\-]+)""?")
+            .Groups[1].Value;
+        return StepOutcome.Success();
+    }
+}

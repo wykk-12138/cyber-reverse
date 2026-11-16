@@ -43,7 +43,10 @@ text = "\n".join(parts_src)
 
 absent = []
 for name, count in pairs:
-    if not re.search(r"\b" + re.escape(name) + r"\b", text):
+    # R911: the image's names come from state-machine types, so they carry no Async suffix while a C# method
+    # does. A strict whole-word test reports ScrapeProductAsync as missing ScrapeProduct; fifty-four names were
+    # miscounted that way and every ordering this tool produced before now was inflated.
+    if not re.search(r"\b" + re.escape(name) + r"(?:Async)?\b", text):
         absent.append((count, name))
 
 absent.sort(reverse=True)

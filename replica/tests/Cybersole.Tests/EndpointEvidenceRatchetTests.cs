@@ -36,6 +36,17 @@ public sealed class EndpointEvidenceRatchetTests
         ("/collections/new-releases", "src/Cybersole.Stores/Flows/MagentoFlow.cs"),
         ("/rest/V1/carts/mine/totals", "src/Cybersole.Stores/Flows/MagentoFlow.cs"),
         ("/v1/buys", "src/Cybersole.Stores/Flows/GoatFlow.cs"),
+
+        // R1033: six paths the provenance tool counted that neither ledger held. None is new -- every one was already
+        // being sent -- so they belong in Sent rather than in a third list. The literals are copied from the source,
+        // not from the tool's display: R1032 recorded that display truncates a template to "{...}", and copying that
+        // made StillInItsFile report the path missing.
+        ("/api/ff-products/v1/products/{pid}/", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
+        ("/api/basket/v1/", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
+        ("/api/checkout/v1/basket/{basketId}/payment", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
+        ("https://api.nike.com/buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified", "src/Cybersole.Stores/Flows/NikeFlow.cs"),
+        ("/discount/", "src/Cybersole.Stores/Flows/StoreFlow.cs"),
+        ("/api/payments/", "src/Cybersole.Stores/Flows/StoreFlow.cs"),
     };
 
     /// <summary>
@@ -53,7 +64,10 @@ public sealed class EndpointEvidenceRatchetTests
         ("/view/resources/getUserInfo", "src/Cybersole.Stores/Flows/HybrisFlow.cs"),
     };
 
-    private const int SentCeiling = 10;
+    // R1033: ten was the count when this ledger was written, not a limit on what the replica may send. Reconciling
+    // against the provenance tool found six sent paths nobody had recorded, so the number moves to sixteen and the
+    // guard keeps its actual job: catching a seventh.
+    private const int SentCeiling = 16;
     private const int DocOnlyCeiling = 7;
 
     [Fact]

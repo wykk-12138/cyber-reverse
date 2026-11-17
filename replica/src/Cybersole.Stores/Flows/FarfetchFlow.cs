@@ -59,7 +59,7 @@ public class FarfetchFlow : StoreFlow
         var pid = ProductIdOf(c.Url);
         if (pid is null) return StepOutcome.Fail("farfetch: no product id in url");
 
-        var res = await GetAsync(c, Api(c, $"/api/ff-products/v1/products/{pid}/"),
+        var res = await GetAsync(c, Api(c, $"/api/ff-products/v1/products/{pid}/"),  // inferred: no image evidence (R297)
             "farfetch-product", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("farfetch product unreachable", retryable: true);
@@ -171,7 +171,7 @@ public class FarfetchFlow : StoreFlow
 
     public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
     {
-        var res = await GetAsync(c, Api(c, "/api/basket/v1/"), "farfetch-cart", ct)
+        var res = await GetAsync(c, Api(c, "/api/basket/v1/"), "farfetch-cart", ct)  // inferred: no image evidence (R294)
             .ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("farfetch basket unreachable", retryable: true);

@@ -649,7 +649,7 @@ public class NikeFlow : StoreFlow
     /// and why closing the gap needs ``auto_analysis_ready``.
     /// </summary>
     private string CartUrl() =>
-        $"https://api.nike.com/buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified";
+        $"https://api.nike.com/buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified";  // inferred: no image evidence (R294)
 
     private static string? StyleColorOf(string url)
     {

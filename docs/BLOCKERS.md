@@ -35437,3 +35437,97 @@ python tools/metrics_report.py -> 完整套件 exit 0    2243 / 0 / 0
 
 **→ 而 R764 那次是 `{`，R1016 那次是地址列 —— 三次的形状相同。
 → 所以下次动手前该问的是：**我用来切分的那个符号，在被切的东西里会不会合法地出现。****
+
+
+---
+
+## 457. **两份端点台账互不引用；那 6 条在工具的分类里无类可归**
+
+> R1033。**改 1 个测试文件 + 3 个源文件（5 处标注）。** 套件 **2243 通过 / 0 失败 / 0 跳过**。
+
+### 一、工具读的是**另一份**台账
+
+```
+endpoint-provenance.py:250
+LEDGER = os.path.join(os.path.dirname(ROOT), "replica", "docs", "ENDPOINT_PROVENANCE.md")
+LEDGER_CLASSES = 只认 `live` 与 `fixture`
+```
+
+| 台账 | 谁读它 | 条目数 | 本轮改动 |
+|---|---|---|---|
+| `tests/Cybersole.Tests/EndpointEvidenceRatchetTests.cs` | 那三个棘轮守卫 | `Sent` 10 + `DocumentedOnly` 7 = **17** | **加 6 条，绿** |
+| `replica/docs/ENDPOINT_PROVENANCE.md` | `endpoint-provenance.py` | `live` 1 · `fixture` 3 · `待定` 24 · `assembled` 21 | **未动** |
+
+**→ 我改了一份台账，而工具读另一份 ⇒ `registered in ledger: 29` 不变，`unknown` 仍是 12。
+→ 两份台账**互不引用** —— 没有一处代码或文档交叉引用它们。**
+
+### 二、而工具的台账只有四种分类，那 6 条**哪一种都不是**
+
+| 分类 | 定义 | 那 6 条 |
+|---|---|---|
+| `live` | 有真实响应证据 | **没有** |
+| `fixture` | 故意保留的不存在路径 | **不是**（在真的结账链里） |
+| `待定` | 既不在镜像也无响应证据 | 24 条，**不含那 6 条** |
+| `assembled` | 用流程自己的 origin 拼出来 | **部分**（`/discount/` · `/api/payments/`） |
+
+**→ 而 `ledger_classes()` 只把 `live` 与 `fixture` 算作已登记。
+→ 所以即使放进 `assembled`，工具**仍然**会报。
+→ 而 `BASELINE = 0` 的注释写着「R201: all 24 judged and registered」——
+  那句话对**当时那 24 条**是真的，而那 6 条**从来没进过那 24 条**。**
+
+### 三、而第一份台账确实做完了
+
+**5 处标注 + 6 条账 + `SentCeiling` 10 → 16，棘轮 3/3 绿、全量 2243 / 0 / 0。**
+
+**→ 用的是 R1032 那两条前置条件：
+  ① 整行锚点替换（不找 `//` 边界）—— 5 处一次成功，**没有再劈开 URL**。
+  ② 真实字面量（`https://api.nike.com/buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified`）
+     —— `StillInItsFile` 直接绿。
+→ 所以两条前置条件是**有效**的，而它们省下的正好是上一轮的三次回滚。**
+
+### 四、真正的结论：**那 6 条没有归宿，不是因为没人记，而是因为没有地方记**
+
+**→ 真的在用、真的无据、也不是故意保留的负例。
+→ 而台账的分类里没有「真的在用但无据」这一格 —— `待定` 的意思是「还没判」，不是「判过了就这样」。**
+
+**→ 所以下一步不是把它们塞进现有分类（那是把「没归宿」伪装成「有归宿」），
+  而是**加一格**（例如 `sent`），并让 `ledger_classes()` 认它。
+→ 而那一格的含义是精确的：**这个请求真的会发出去，而镜像里没有它**。**
+
+### 五、数字
+
+| 度量 | R1032 | R1033 |
+|---|---|---|
+| 套件 | 2243 / 0 | **2243 / 0 / 0** |
+| 产物陈旧度 | 5 / 4,199 | **5 / 4,199** |
+| 函数数 | 174,336 | **174,336** |
+| **棘轮 `Sent`** | 10 | **16** |
+| **棘轮守卫** | 3 绿（回滚后） | **3 绿（带 6 条新账）** |
+| **补标注** | 0（两次改坏） | **5 处，一次成功** |
+| **工具的 `unknown`** | 12 | **12（未变）** |
+| **端点台账份数** | 未注意 | **2（互不引用）** |
+| **工具的台账分类** | 未注意 | **4，且那 6 条无类可归** |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse\replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug  -> 已成功生成
+dotnet test --filter "FullyQualifiedName~EndpointEvidenceRatchet" -m:1 -> 3 通过
+python tools/endpoint-provenance.py                                 -> unknown 仍 12（读另一份台账）
+python tools/metrics_report.py -> 完整套件 exit 0  2243 / 0 / 0
+```
+
+### 七、仍然 Unknown
+
+- **那 6 条该继续发还是改成报告**：**需先有 `sent` 格**。
+
+### 八、教训
+
+**我上一轮把「补账」理解成「把条目写进台账」。而仓里有两份台账，我写进了没人读的那份。**
+
+**→ 而那不全是疏忽：`ENDPOINT_PROVENANCE.md` 在 `docs/`，测试在 `tests/` —— 两个地方，
+  两个名字，没有一处交叉引用。**
+
+**→ 所以「查一下有没有现成的」（AGENTS §2.7c）在这里该有个变体：
+  **查一下这个东西有没有**两个**现成的，而我要改的是哪一个。****

@@ -64,6 +64,10 @@ IDB 复核（str）：
 | `/fp?x-kpsdk-v=` | `0x06ab3db4` | 指纹端点的裸形式 |
 | `/prop.json` | `0x06ab5ccc` | **配置文档** |
 | `/prop.json?_=` | `0x06ab5cfc` | 同上，带 cache-buster |
+| **`/tl`** | `0x146AB9540` | **telemetry 端点** —— `Failed solving Kasada (TL)` 的 TL 就是它（§7） |
+
+> `/tl` 是**运行时拼接**的：`sub_141CF63D0(&'https://', host, ..., &'/tl')`（`0x1408f21fc`）。
+> 所以硬编码里只有 `/tl` 这一截，host 与 script id 前缀都由运行时给。
 
 **[Obs]** host 在二进制里是**空占位**：`https:///ips.js?&x-kpsdk`（`0x05e9fab0`）。
 也就是说**站点域名由运行时提供**，镜像里没有可抄的 host —— 这也解释了为什么"远端 API 方案"在原版里没有现成的 host 可复用。
@@ -205,38 +209,56 @@ Crocs-EU-Kasada-Version    Crocs-JP-Kasada-Version
 
 ---
 
-## 7. TL 阶段（已解出：`reload` 挑战）
+## 7. TL = `/tl` 端点（两轮拼出来的）
 
-**[Obs]** 两条几乎相同的函数（`sub_1408F0450` / `sub_1408F3AF0`，都是 `0x12f` 字节，只有字段偏移不同）：
+### 7.1 先看到的是结果（上一轮）
+
+两条几乎相同的函数（`sub_1408F0450` / `sub_1408F3AF0`，各 `0x12f` 字节，只有字段偏移不同）：
 
 ```c
 if (hasHeaders(headers, &off_14714B618 /* 'reload' */))
 {
     ct  = get(headers, &off_1471881C8);   this[88]  = ct;
     st  = get(headers, &off_1471882E0);   this[104] = st;
-    if (!this.timestamped) {              // 只记一次
-        this.timestamped = 1;
-        this[208] = now();                // 握手时刻
-    }
+    if (!this.timestamped) { this.timestamped = 1; this[208] = now(); }   // 只记一次
 }
 else
 {
-    report(&off_146D8A980 /* 'Failed solving Kasada (TL)' */,
-           &off_146A76FD0 /* '#FB4961' */);          // UI 用的红色
+    report(&off_146D8A980 /* 'Failed solving Kasada (TL)' */, &off_146A76FD0 /* '#FB4961' */);
 }
 ```
 
-**⇒ `TL` = 响应里出现 `reload` 头的那个阶段。** 有 `reload` 就继续（并首次记录握手时刻），
-没有就报 `Failed solving Kasada (TL)`。
+### 7.2 然后看到它打的是哪个端点（本轮）
+
+在生产 ct/dt/im/v 的那个状态机 `sub_1408F1C60` 里：
+
+```c
+v35 = sub_141CF63D0(&off_14704C208 /* 'https://' */, host, …, &off_146AB9540 /* '/tl' */);
+```
+
+同一个函数末尾挂着两条失败文案，**正好对应两条路**：
+
+```
+0x146D8A940  'Failed solving Kasada'      ← 本地路（本地算出头）/tl 失败
+0x146D8A5D8  'Failed getting Kasada'      ← 服务路 /tl 失败
+```
+
+### 7.3 合起来
+
+**`TL` = Kasada 的 `/tl` 端点**（telemetry）。本地路与服务路最后都要打它一次：
+
+```
+算出 ct/dt/im/v  →  POST https://<store>/<script-id>/tl
+                     content-type: application/octet-stream
+                  →  响应里有 'reload' 头？继续（并首次记录 workTime）
+                    没有？→ Failed solving Kasada (TL) / Failed getting Kasada
+```
 
 三个配套结论：
 
-1. **`st` 不是算的，是从响应头取的** —— 客户端只搬运。同一函数里顺手记了一个**本地时间戳**（`+208`），
-   两者配对才得到 `workTime`（01 §6）。
-2. **`Failed solving Kasada (TL)` 带 UI 颜色参数** `#FB4961` —— 这条文案是给界面直接渲染的，
-   所以它的措辞是**契约**，换实现时别改字。
-3. **`reload` 是 Kasada 的一种挑战类型**（页面要求重载再取一次），不是网络错误 ——
-   所以它算"阶段"而不是"失败"。
+1. **`st` 不是算的，是从响应头取的** —— 同函数里顺手记一个本地时间戳（`+208`），两者配对得到 `workTime`（§6）。
+2. **失败文案带 UI 颜色参数** `#FB4961` —— 它是给界面直接渲染的，措辞是**契约**，换实现别改字。
+3. **`reload` 是 `/tl` 的一种响应类型**（要求重载再取一次），不是网络错误 —— 所以它是"阶段"不是"失败"。
 
 ---
 

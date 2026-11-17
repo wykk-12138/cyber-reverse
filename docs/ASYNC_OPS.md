@@ -13820,3 +13820,82 @@ Stripe        SubmitOrderStripe · ProcessOrderStripe · GetStripePaymentIntent
 > 而**移出视野与解决，在台账里长得一样**。**
 > **→ 而这一轮的第二个教训：`(2.1)` 说明「N 条文案 ⇒ N 个阶段」是一个**假设**。
 > → 与 R1048 那条「撞到就算缺」是同一个错的另一面：**用计数代替结构。****
+
+
+### 「各家 captcha」第一次被枚举 —— 而其中**两家明确缺席**（R1054）
+
+**goal 的 ② 明列「Kasada / Cloudflare / DataDome / PerimeterX / Queue-it / **各家 captcha**」。
+前五家在 `VendorWiring`，而 captcha 一直没枚举过 —— R1053 把它们当成「3 个通用挑战类型」放在缺口表的边角。**
+
+### ① 6 个家族，各有变体
+
+| 家族 | 变体（取自属性与任务名） |
+|---|---|
+| **reCAPTCHA** | `Recaptcha` · `RecaptchaInvisible` · `RecaptchaV3` · `RecaptchaEnterprise` |
+| **hCaptcha** | `HCaptcha` · `HCaptchaInvisible` · `HCaptchaSpoof` |
+| **Cloudflare Turnstile** | `Turnstile` · `CloudflareTurnstile` · `LoopTurnstile` · `turnstileToken` |
+| **GeeTest** | `Geetest` · `GeetestV4` · `GeeTestTask` · `GeeTestTaskProxyLess` · `Geetest.html` · `GeetestV4.html` |
+| **Castle** | `get_Castle` |
+| **TrustDevice** | `TrustDeviceGen` · `TrustDeviceBotDOpen` · `static.trustdecision.com` |
+
+### ② 而两家**明确缺席**（有对照）
+
+```
+Funcaptcha / ArkoseLabs   0
+MTCaptcha                 0
+对照 kpsdk               17
+```
+
+**→ 所以「原版支持所有主流 captcha」是**错的**。
+→ 而这是**负结论**，它只有在对照成立时才有意义 —— 而对照是 `kpsdk 17`。**
+
+### ③ 而 provider **不是内建的** —— 那是 `UserThirdParty` 的正面依据
+
+`Cybersole.CaptchaProviders.CaptchaProvider` 的 9 个字段（24 条元数据命中）：
+
+```
+Priority · Name · Type · ApiKey · Balance · Count · Concurrency · BalanceSupported · IsFetchingBalance
+```
+
+**→ 那是一张**用户配置**的服务表**：每家有自己的 key、余额、并发、优先级，
+而 `Settings.CaptchaProvidersView` 带 `EnabledProviders` / `Add` / `Reorder` ⇒ 可启用、可排序。**
+
+**→ 所以原版 captcha 走**用户第三方**（`Solver.UserThirdParty`）。
+→ 而那让那个值**第一次有了正面依据**：此前它只靠「没有本地 solver」这个**缺席**来支撑。**
+**→ 而「缺席支撑一个值」与「结构支撑一个值」是完全不同的证据强度 —— 而这一轮拿到了后者。**
+
+### ④ 而 `Geetest.html` / `GeetestV4.html` 说明 GeeTest 有**两条路**
+
+**→ 页面内联（本地）+ `GeeTestTaskProxyLess`（第三方）。
+→ 与 R1025 的 queue-it「两种表面并存」同族：**一个家族可以两种方式都在。****
+
+### ⑤ 而我又踩了同一个坑：假数字
+
+**第一版生成器报 `provider metadata=0` —— 而它的正则 `CaptchaProviders\.CaptchaProvider\.[A-Za-z]` 匹配不到真实形状。
+→ 于是文档里写着「命中 0 条元数据」，而**下面却列了 9 个字段** —— 数字与内容自相矛盾。
+→ 真实形状是 `CaptchaProviders.CaptchaProvider,`（逗号），改成它之后 **24**。**
+
+**→ 那是 R1047 那次「解析器错 ⇒ 结论假」的同一个错，而这已经是**第三次**（R764 · R1047 · R1054）。
+→ 而这次的自相矛盾是自己暴露的：**0 条元数据不可能支撑 9 个字段**。**
+
+### ⑥ 数字
+
+| 度量 | R1053 | **R1054** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 产物陈旧度 | 3 / 650 | **3 / 650** |
+| 函数数 | 174,293 | **174,293** |
+| **captcha 家族** | 未知 | **6** |
+| **明确缺席** | 未知 | **2（Funcaptcha/Arkose · MTCaptcha）** |
+| **`CaptchaProvider` 元数据** | 未知 | **24 条 / 9 个字段** |
+| **`Solver.UserThirdParty` 的依据** | **缺席**（没有本地 solver） | **结构**（用户配置表 + ApiKey/Balance/Concurrency/Priority） |
+| **`docs/CAPTCHA_COVERAGE.md`** | 不存在 | **3,448 字节（生成）** |
+| **假数字** | — | **1（`0` 元数据 vs 9 字段）** |
+
+### 教训
+
+> **「缺席」与「结构」是两种证据，而它们对同一个结论的支撑强度不同。
+> → `UserThirdParty` 之前靠「没有本地 solver」—— 那是**排除法**，而排除法在 96.87% 无符号的产物里很弱。
+> → 这一轮拿到了那张**用户配置表**，于是同一个值从「排除了别的」变成「看见了它」。**
+> **→ 而第二个教训：`0 条元数据` 与 `9 个字段` 写在同一页上就是自相矛盾。
+> → 而那个矛盾是我自己排版排出来的 —— 它比任何测试都早地指出了正则错了。**

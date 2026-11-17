@@ -3800,3 +3800,57 @@ Stripe        9 个方法 + StripeFallbackHandler + StripeVersion "2025-08-27.ba
 | `PAYMENT_CHALLENGES.md` | — | **3,497 字节** |
 
 **纪律**：「归到另一张表」不是「记下来了」；「N 条文案 = N 个阶段」是一个会被 `(2.1)` 打破的假设。
+
+
+## R1054 —— **「各家 captcha」第一次被枚举：6 家 + 2 家明确缺席；`UserThirdParty` 有了结构依据**
+
+### 6 个家族
+
+| 家族 | 变体 |
+|---|---|
+| reCAPTCHA | `Recaptcha` · `Invisible` · `V3` · `Enterprise` |
+| hCaptcha | `HCaptcha` · `Invisible` · `Spoof` |
+| Cloudflare Turnstile | `Turnstile` · `CloudflareTurnstile` · `LoopTurnstile` · `turnstileToken` |
+| GeeTest | `Geetest` · `V4` · `GeeTestTask` · `…ProxyLess` · `Geetest.html` · `GeetestV4.html` |
+| Castle | `get_Castle` |
+| TrustDevice | `TrustDeviceGen` · `TrustDeviceBotDOpen` · `static.trustdecision.com` |
+
+### 而两家**明确缺席**（对照 `kpsdk 17` 成立）
+
+```
+Funcaptcha / ArkoseLabs   0        MTCaptcha   0
+```
+
+**⇒ 「原版支持所有主流 captcha」是**错的**。负结论只有在对照成立时才有意义。**
+
+### provider **不是内建的** —— `UserThirdParty` 的正面依据
+
+`CaptchaProvider` 9 个字段（**24** 条元数据）：
+`Priority · Name · Type · ApiKey · Balance · Count · Concurrency · BalanceSupported · IsFetchingBalance`
++ `CaptchaProvidersView` 的 `EnabledProviders` / `Add` / `Reorder`。
+
+**⇒ 用户配置的第三方服务表。`Solver.UserThirdParty` 此前只靠「没有本地 solver」这个**缺席**支撑，
+现在有**结构**支撑 —— 两者证据强度不同。**
+
+### 而 `Geetest.html` 说明 GeeTest 有**两条路**（本地内联 + 第三方 `…ProxyLess`），
+与 R1025 的 queue-it「两种表面」同族。
+
+### 而我又踩了假数字
+
+第一版报 `provider metadata=0`，而文档下面列了 **9 个字段** —— **自相矛盾**。
+正则 `CaptchaProviders\.CaptchaProvider\.[A-Za-z]` 匹配不到真实形状（`CaptchaProviders.CaptchaProvider,`，逗号），修后 **24**。
+**⇒ R764 · R1047 · R1054 第三次同一个错。**
+
+### 数字
+
+| 度量 | R1053 | **R1054** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 函数数 | 174,293 | **174,293** |
+| captcha 家族 | 未知 | **6** |
+| 明确缺席 | 未知 | **2** |
+| `CaptchaProvider` 元数据 | 未知 | **24 / 9 字段** |
+| `UserThirdParty` 依据 | **缺席** | **结构** |
+| `CAPTCHA_COVERAGE.md` | — | **3,448 字节** |
+
+**纪律**：「缺席」与「结构」是两种证据；而 `0 条元数据` 与 `9 个字段` 写在同一页上就是自相矛盾。

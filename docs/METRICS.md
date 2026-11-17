@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 21:28:02 +0800 |
+| 生成时间 | 2026-11-17 21:33:16 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -16,7 +16,7 @@
 
 > **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 3 个源文件比产物新（共 650 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`7:21:18 -- payment_challenges.py changed after the run`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`7:26:38 -- captcha_coverage.py changed after the run`。
 
 ## 摘要素值
 
@@ -54,7 +54,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 7:21:18 -- payment_challenges.py changed after the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 7:26:38 -- captcha_coverage.py changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -548,7 +548,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 7:21:18 -- payment_challenges.py changed after the run
+  mutation-fit-staleness: 7:26:38 -- captcha_coverage.py changed after the run
 
   The counts above are from 2026-11-17T14:06:23+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
@@ -564,7 +564,7 @@ D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c
 `exit 0` · 2258 通过 / 0 失败 / 0 跳过 / 2258 总计
 
 ```text
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\MethodPatchTableTests.cs(77,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\NavigatorCensusTests.cs(36,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(34,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(35,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
@@ -578,7 +578,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 2 m 24 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 2 m 31 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

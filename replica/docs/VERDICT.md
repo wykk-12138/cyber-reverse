@@ -56964,3 +56964,57 @@ public virtual Task<StepOutcome> PollQueueAsync(FlowContext c, CancellationToken
 > **一个 `=> Ok()` 的虚步骤读起来像「留给子类覆写」的位置，而它同时是一个**假的成功**。
 > 两者的差别只在**有没有人覆写它**。**
 > **而它从 R112 就是这样，没有任何东西指出它 —— 因为它长得像设计，不像缺陷。**
+
+
+---
+
+## 第 961 轮：36 个 `=> Ok()`，修了 SolveCaptcha；以及两次自我更正
+
+### 36 个空壳，全在结账路径上
+
+**GetCsrf · GetSession · CreateCart · GetCart · SubmitEmail · SubmitShippingMethod · GetShippingRates ·
+SubmitBilling · Login · CheckLogin · Register · SendTwoFactor · SolveCaptcha · EnterRaffle · PollRelease ·
+PollRestock · WaitForRelease · FindSlot · Fill · BuildDestination …**
+
+> **`=> Ok()` 读起来像「留给子类覆写」的位置。差别只在**有没有人覆写它**。**
+
+### `SolveCaptcha` 的证据最完整
+
+```
+https://api.solvecaptcha.com/in.php        提交
+https://api.solvecaptcha.com/res.php?key=  轮询
+<SubmitPat>d__11 · <SolveCaptcha>d__12 · <SubmitCaptcha>d__13
+```
+
+**实现：提交 → 取 taskId → 轮询到 deadline → token 写进 `AntiBotTokens["g-recaptcha-response"]` 与 `captchaToken`。**
+
+### 而 `CAPCHA_NOT_READY` 不是失败
+
+**「还没好」是正常路径；当失败会废掉每一次超过一轮轮询的求解。**
+
+**空应答判 `NotReady` 不判 `Failed`：那是传输失败，而「到 deadline 没解出来」才是 retryable 失败。**
+
+### 而这一轮我错了两次，两次都在「怎么查」
+
+**错一：PowerShell 手写字节循环报「`in.php` 不在产物」。Python 三行：`utf16=True` 全部在场。**
+**→ 不是产物缺东西，是我的搜索工具有**假阴性**（AGENTS.md §2.7b 反向不可用）。**
+
+**错二：我搜 `'SolveCaptcha' in 表文件` → False，写下「新步骤必须登记才可达」。
+再读 `Build()` 才发现它靠**反射扫描** `GetMethods()` —— 名字根本不会以字面量出现。**
+**→ 「必须登记」是错的（R870：动手前先读实现，别按名字猜结构）。**
+
+### 数字
+
+| 度量 | R960 | **R961** |
+|---|---|---|
+| 套件 | 2153 | **2173** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,909 | **173,909（未变）** |
+| 产物大小 | 54,706 KB | **54,720 KB（+14，新代码在场）** |
+| 空壳 `=> Ok()` | 36 | **35** |
+
+### 教训
+
+> **两次自我更正形状相同：**我用一个不可靠的检查得出一个听起来干净的结论**，
+> 而那个结论差一点进了 BACKLOG 当成事实。**
+> **检查工具本身也要被检查 —— 尤其是当它给出「没有」的时候。**

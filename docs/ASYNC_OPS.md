@@ -6326,3 +6326,84 @@ public virtual Task<StepOutcome> PollQueueAsync(FlowContext c, CancellationToken
 > 而这不是我造成的 —— 它在 R112 就是这样，而**没有任何东西指出它**。
 > **一个 `=> Ok()` 的虚步骤读起来像一个「留给子类覆写」的位置，而它同时是一个**假的成功**。
 > 两者的差别只在**有没有人覆写它**。**
+
+
+### 36 个 `=> Ok()`，而这一轮修了其中一个（R961）
+
+**R960 的下一步是数还有多少空壳。数出来是 **36 个**，而它们全是核心结账步骤：**
+
+```
+GetCsrf · GetSession · VerifySession · ScrapeVariantAvailability · CheckPriceLimit
+CreateCart · GetCart · EditLine · InitiateCheckout · SubmitEmail · SubmitShippingMethod
+GetShippingRates · SubmitBilling · Login · CheckLogin · Register · CompleteRegistration
+SendTwoFactor · GetScript · SubmitSensor · GetCaptcha · SolveCaptcha · EnterRaffle
+GetRaffleData · ScrapeRaffleForm · PollRelease · PollRestock · WaitForRelease · FindSlot
+GetReleaseFeed · LoadCountryData · ProcessResponse · Fill · GetStructureToken · BuildDestination
+```
+
+> **36 个假绿灯，全部在结账路径上。而这不是我造成的 —— 它们在 R112 就是这样。**
+> **而 `=> Ok()` 读起来像一个「留给子类覆写」的位置。差别只在**有没有人覆写它**。****
+
+### 而 `SolveCaptcha` 有最完整的证据
+
+```
+SolveCaptchaService
+<SubmitPat>d__11 · <SolveCaptcha>d__12 · <SubmitCaptcha>d__13
+https://api.solvecaptcha.com/in.php
+https://api.solvecaptcha.com/res.php?key=
+```
+
+**两个端点 + 三个连号状态机 —— 足够做真事，不只是报告成功。**
+
+### 而 `CAPCHA_NOT_READY` 不是失败
+
+**一个「还没好」的应答是**正常路径**。把它当失败会废掉**每一次超过一轮轮询的求解**。**
+**所以它单独分类，并且**回到同一个等待**。**
+
+> **而空应答（`null` / `""`）我判 `NotReady` 而不是 `Failed`：
+> 那是**传输失败**，不是服务拒绝。判 Failed 会让一次网络抖动废掉一个下一轮就好的求解。
+> 而循环本来就把「到 deadline 没解出来」变成 retryable 失败 —— 那才是那个判决该在的位置。****
+
+### 而这一轮我**错了两次**，两次都在「怎么查」上
+
+**错一：产物里没有新代码？**
+
+**我用 PowerShell 手写字节循环搜 UTF-16，得出 `api.solvecaptcha.com/in.php` **不在产物**。
+换成 Python 三行：**
+
+```
+api.solvecaptcha.com     utf16=True
+CAPCHA_NOT_READY         utf16=True
+captcha not solved       utf16=True
+QueueITAccepted          utf16=True
+```
+
+> **全部在场。所以不是产物缺东西，是**我的搜索工具有假阴性**。
+> 而这正是 AGENTS.md §2.7b 那条「反向不可用」：搜不到 ⇏ 没有。****
+
+**错二：`StepActionRunner` 不是一张手写表**
+
+**我读源码搜 `'SolveCaptcha' in 表文件` → False，然后写下「新步骤必须**登记**才可达」。**
+**再读 `Build()` 才发现它靠**反射扫描** `typeof(StoreFlow).GetMethods()`，名字**根本不会**以字面量出现。**
+
+> **所以「必须登记」是错的：所有 `*Async` + `Task<StepOutcome>` + 两参数的公开方法**自动**进表。
+> 而这正是 R870 那条：**动手之前先读实现，不要按名字猜结构。**
+> 而我这一轮**在写这条更正的同时**才去读 `Build()` —— 前一句已经写进记录了。****
+
+### 数字
+
+| 度量 | R960 | **R961** |
+|---|---|---|
+| 套件 | 2153 | **2173** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,909 | **173,909（未变 —— 全是内联 + 一个小状态机被并）** |
+| 产物大小 | 54,706 KB | **54,720 KB（+14 KB，新代码在场）** |
+| 空壳 `=> Ok()` | 36 | **35** |
+
+### 教训
+
+> **这一轮最贵的两条都不是 `SolveCaptcha` 的实现，是**两次自我更正**。
+> 一次是搜索工具有假阴性，一次是我按名字猜了一个反射表的结构。**
+> **而两次的形状相同：**我用一个不可靠的检查得出一个听起来干净的结论**，
+> 然后那个结论差一点进了 BACKLOG 当成事实。**
+> **检查工具本身也要被检查 —— 尤其是当它给出「没有」的时候。**

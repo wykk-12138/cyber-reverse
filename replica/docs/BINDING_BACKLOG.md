@@ -6676,3 +6676,37 @@ post 委托按网关声明的 `Func<...>` 形状构造；无网关时保持 `Not
 | `Softblock` 的处理差别 | 只有两条文案 |
 
 **纪律**：`=> Ok()` 读起来像设计，不像缺陷 —— 差别只在有没有人覆写它。
+
+
+## 优先级 ② — SolveCaptcha 从 `=> Ok()` 变真实现；空壳清单 36 → 35（R961，**+20 用例**）
+
+### 空壳清单（36 个，全在结账路径）
+
+**GetCsrf · GetSession · VerifySession · ScrapeVariantAvailability · CheckPriceLimit · CreateCart · GetCart ·
+EditLine · InitiateCheckout · SubmitEmail · SubmitShippingMethod · GetShippingRates · SubmitBilling · Login ·
+CheckLogin · Register · CompleteRegistration · SendTwoFactor · GetScript · SubmitSensor · GetCaptcha ·
+SolveCaptcha · EnterRaffle · GetRaffleData · ScrapeRaffleForm · PollRelease · PollRestock · WaitForRelease ·
+FindSlot · GetReleaseFeed · LoadCountryData · ProcessResponse · Fill · GetStructureToken · BuildDestination**
+
+### `Scripts/SolveCaptchaService.cs`
+
+**`SubmitUrl` · `PollUrlPrefix` · `NotReady` · `OkPrefix` · `TaskIdFrom` · `Poll` · `SubmitForm`**
+**+ `CaptchaPollKind`(NotReady/Solved/Failed) + `CaptchaPoll`**
+**`SolveCaptchaAsync`：提交 → taskId → 轮询 → token 落 `AntiBotTokens["g-recaptcha-response"]`**
+
+### 两次自我更正
+
+**① PowerShell 字节循环假阴性 → Python 正确搜索 `utf16=True`（§2.7b 反向不可用）**
+**② `StepActionRunner` 靠**反射**建表，名字不出现在源码 → 「必须登记」是错的（R870）**
+
+### 数字
+
+**套件 2153 → 2173 · 陈旧度 0/0 · 函数数 173,909（未变）· 产物 54,706 → 54,720 KB · 空壳 36 → **35****
+
+| 仍 Unknown | |
+|---|---|
+| 剩 35 个空壳各自的镜像证据 | 未取证 |
+| solvecaptcha 的参数名与应答格式 | 只有两个 URL 是字面量 |
+| `SubmitFields` 五个字段名 | **Inference**（服务文档，非本镜像） |
+
+**纪律**：检查工具本身也要被检查 —— 尤其当它给出「没有」的时候。

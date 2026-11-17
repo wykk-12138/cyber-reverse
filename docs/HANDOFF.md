@@ -1516,3 +1516,21 @@ MinRemainingSeconds 是要紧的那个：剩余几秒的通行证比没有更糟
 纪律：`=> Ok()` 读起来像设计不像缺陷 —— 差别只在有没有人覆写它。
 
 下一轮：扫还有多少个 `=> Ok()` 的空壳虚步骤（它们的数量决定下一个批次）。
+
+## R961 补充 — SolveCaptcha 变真实现；空壳 36 → 35（+20 用例，套件 2173）
+
+数出 36 个 `=> Ok()` 空壳虚步骤，全在结账路径（GetCsrf/GetSession/CreateCart/GetCart/SubmitEmail/SubmitShippingMethod/GetShippingRates/SubmitBilling/Login/Register/SolveCaptcha/EnterRaffle/PollRelease/…）。
+
+修了 SolveCaptcha：证据是 api.solvecaptcha.com 的 in.php + res.php 两个 URL 和三个连号状态机。
+实现：提交 → taskId → 轮询 → token 落 AntiBotTokens[g-recaptcha-response]。
+CAPCHA_NOT_READY = NotReady（正常路径）；空应答 = NotReady（传输失败）；ERROR_* = Failed。
+
+**两次自我更正**：
+① PowerShell 手写字节循环报「in.php 不在产物」→ Python 三行 utf16=True 全部在场（搜索工具假阴性）。
+② StepActionRunner 靠**反射**建表，名字不出现在源码 → 「必须登记才可达」是错的（R870）。
+
+数字：套件 2153 → 2173 · 陈旧度 0/0 · 函数数 173,909（未变）· 产物 54,706 → 54,720 KB · 空壳 36 → 35。
+
+纪律：检查工具本身也要被检查 —— 尤其当它给出「没有」的时候。
+
+下一轮：从剩 35 个空壳里挑一个证据最全的（GetCsrf 有 38 条字符串，是最多的）。

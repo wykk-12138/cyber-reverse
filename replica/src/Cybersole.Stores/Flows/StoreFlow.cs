@@ -1695,7 +1695,78 @@ public abstract class StoreFlow
     public virtual Task<StepOutcome> GetCaptchaAsync(FlowContext c, CancellationToken ct) => Ok();
     public virtual Task<StepOutcome> GetCheckoutCaptchaAsync(FlowContext c, CancellationToken ct)
         => GetCaptchaAsync(c, ct);
-    public virtual Task<StepOutcome> SolveCaptchaAsync(FlowContext c, CancellationToken ct) => Ok();
+    /// <summary>
+    /// Submits a captcha to the service the image names and polls until it answers, or until the deadline.
+    ///
+    /// <para>
+    /// R961. This was one of thirty-six steps that returned Ok without doing anything, so a flow that needed a captcha
+    /// solved was told it had been. The image carries the two endpoints -- in.php and res.php -- and three consecutive
+    /// state machines, which is enough to do the work rather than report it.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The not-ready answer is the normal path.</b> A poll that comes back CAPCHA_NOT_READY means the task is still
+    /// running, and treating it as a failure would break every solve that took longer than one poll. It is classified
+    /// separately and leads back into the wait.
+    /// </para>
+    /// </summary>
+    public virtual async Task<StepOutcome> SolveCaptchaAsync(FlowContext c, CancellationToken ct)
+    {
+        var apiKey = c.Session.Vars.GetValueOrDefault("captcha.apiKey");
+        var siteKey = c.Session.Vars.GetValueOrDefault("captcha.siteKey");
+        var pageUrl = c.Session.Vars.GetValueOrDefault("captcha.pageUrl") ?? c.Url;
+
+        if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(siteKey))
+            return StepOutcome.Fail("captcha key or site key missing", retryable: false);
+
+        var method = c.Session.Vars.GetValueOrDefault("captcha.method") ?? "userrecaptcha";
+
+        var submitted = await c.Http.PostFormAsync(
+            SolveCaptchaService.SubmitUrl,
+            SolveCaptchaService.SubmitForm(apiKey!, method, siteKey!, pageUrl),
+            new RequestOptions(),
+            ct).ConfigureAwait(false);
+
+        if (submitted.StatusCode is < 200 or >= 300)
+            return StepOutcome.Fail("captcha submit HTTP " + submitted.StatusCode, retryable: submitted.StatusCode is 429 or >= 500);
+
+        var taskId = SolveCaptchaService.TaskIdFrom(submitted.Body);
+        if (string.IsNullOrEmpty(taskId))
+            return StepOutcome.Fail("captcha service refused the task", retryable: false);
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(
+            c.Session.Vars.TryGetValue("captchaTimeout", out var ts) && int.TryParse(ts, out var secs) ? secs : 120);
+        var interval = TimeSpan.FromSeconds(
+            c.Session.Vars.TryGetValue("captchaPollSeconds", out var ps) && int.TryParse(ps, out var pss) ? pss : 5);
+
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            ct.ThrowIfCancellationRequested();
+            await Task.Delay(interval, ct).ConfigureAwait(false);
+
+            var polled = await c.Http.GetAsync(SolveCaptchaService.PollUrl(apiKey!, taskId!),
+                new RequestOptions(), ct).ConfigureAwait(false);
+
+            var poll = SolveCaptchaService.Poll(polled.StatusCode is < 200 or >= 300 ? null : polled.Body);
+
+            switch (poll.Kind)
+            {
+                case CaptchaPollKind.Solved:
+                    // the token goes where every captcha consumer already looks for it
+                    c.Session.AntiBotTokens["g-recaptcha-response"] = poll.Token!;
+                    c.Session.Vars["captchaToken"] = poll.Token!;
+                    return StepOutcome.Success();
+
+                case CaptchaPollKind.Failed:
+                    return StepOutcome.Fail("captcha service refused the solve", retryable: false);
+
+                case CaptchaPollKind.NotReady:
+                    break;   // still working: keep waiting rather than failing
+            }
+        }
+
+        return StepOutcome.Fail("captcha not solved within the deadline", retryable: true);
+    }
     public virtual async Task<StepOutcome> PollCaptchaAsync(FlowContext c, CancellationToken ct)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(

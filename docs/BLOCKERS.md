@@ -28548,3 +28548,71 @@ metrics_report.py                          -> 2153 通过 / 0 失败
 **一个 `=> Ok()` 的虚步骤读起来像「留给子类覆写」的位置，而它同时是一个假的成功。**
 
 **两者的差别只在有没有人覆写它。而它从 R112 就是这样，没有任何东西指出它 —— 因为它长得像设计。**
+
+
+---
+
+## 385. SolveCaptcha 从 `=> Ok()` 变真实现；空壳 36 → 35
+
+> R961。**改产品代码 +20 用例。** 套件 **2173 通过 / 0 失败 / 0 跳过**。
+
+### 一、空壳清单
+
+**36 个 `=> Ok()` 虚步骤，全在结账路径：GetCsrf · GetSession · CreateCart · GetCart · SubmitEmail ·
+SubmitShippingMethod · GetShippingRates · SubmitBilling · Login · CheckLogin · Register · SendTwoFactor ·
+SolveCaptcha · EnterRaffle · PollRelease · PollRestock · WaitForRelease · FindSlot · Fill · BuildDestination …**
+
+### 二、`SolveCaptcha` 的证据
+
+```
+https://api.solvecaptcha.com/in.php        提交
+https://api.solvecaptcha.com/res.php?key=  轮询
+<SubmitPat>d__11 · <SolveCaptcha>d__12 · <SubmitCaptcha>d__13
+```
+
+### 三、实现
+
+**提交 → `TaskIdFrom` → 轮询到 deadline → `Poll` 三分类 →
+token 写进 `AntiBotTokens["g-recaptcha-response"]` 与 `captchaToken`。**
+
+**`CAPCHA_NOT_READY` = NotReady（正常路径）；空应答 = NotReady（传输失败）；
+`ERROR_*` = Failed（服务拒绝）；deadline = retryable 失败。**
+
+### 四、两次自我更正
+
+**① PowerShell 手写字节循环报「`in.php` 不在产物」→ Python 三行 `utf16=True` 全部在场。
+   那是搜索工具的**假阴性**，不是产物缺东西（§2.7b 反向不可用）。**
+
+**② 搜 `'SolveCaptcha' in 表文件` → False，写下「新步骤必须登记才可达」。
+   再读 `Build()` 才发现靠**反射扫描** —— 名字不会以字面量出现。「必须登记」是错的（R870）。**
+
+### 五、数字
+
+| 度量 | R960 | R961 |
+|---|---|---|
+| 套件 | 2153 | **2173** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,909 | **173,909（未变）** |
+| 产物大小 | 54,706 KB | **54,720 KB** |
+| **空壳 `=> Ok()`** | 36 | **35** |
+
+### 六、验证
+
+```
+analysis/ida.py str SolveCaptcha          -> 两个 URL + 三个连号
+python: artifact.find(s.encode('utf-16-le')) -> api.solvecaptcha.com True
+test --filter SolveCaptchaServiceTests     -> 20 通过
+metrics_report.py                          -> 2173 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **剩 35 个空壳各自的镜像证据**：**Unknown** —— 未取证。
+- **solvecaptcha 的参数名与应答格式**：**Unknown** —— 只有两个 URL 是字面量。
+- **`SubmitFields` 五个字段名**：**Inference** —— 服务文档，非本镜像。
+
+### 八、教训
+
+**两次自我更正形状相同：用一个不可靠的检查得出一个听起来干净的结论，而那个结论差一点进了 BACKLOG 当成事实。**
+
+**检查工具本身也要被检查 —— 尤其是当它给出「没有」的时候。**

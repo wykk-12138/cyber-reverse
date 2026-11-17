@@ -2649,3 +2649,26 @@ id0→**是(Y)** · 「请稍候…」→**等** · **新框型「Database still
 纪律：**「修了两处」的满足感会让「还有几处」不被问出来。**
 
 下一轮：修那 4 处（`NikeFlow.cs:493` 的 `/delivery` 最急，它是运单步骤，必 404），并定位间歇失败。
+
+## R1013 补充 — **间歇失败不复现；Nike 无购物车端点（模型错）；修 `/delivery`；函数数未变已解释**
+
+**间歇失败**：五次跑中一次，之后三次全 0（含 metrics 精确 filter **2219/0/0**）。失败那次我在同时 publish
+⇒ 最可能构建服务器竞争。**不可复现 ≠ 已解决**，保留观察。
+
+**Nike 的完整 buy 面 7 条，全 checkouts 家族**：`checkout_previews/v3/` · `..._jobs/v3/` · `checkouts/v3/` ·
+`checkouts_jobs/v3/`（另 3 条同族）。而 **`buy/carts` 0 · `carts/v2` 0**。
+→ **Nike 没有购物车端点、没有订单端点**，只有一个 checkout 资源 + preview + jobs。
+→ 那 3 处「购物车」代码**是模型错不是拼错**。而 R87 那句「single `buy/checkouts/v3/` resource that each step
+writes to」被读成了「换 URL 前缀」，它说的是**模型**。
+
+**修了有据的一处**：`NikeFlow.cs:493` `/delivery` → `NikeEndpoints.Checkouts + CartId`。请求体保持原样。
+**另 3 处未修**：需行为改动（购物车 → checkout），要先确证 checkout 创建语义。
+
+**「函数数未变」现在解释了**：两次一致 ⇒ 规律 —— `NikeFlow` 的方法多已覆写且已在产物里，改身体不改函数数。
+而 R1002 的 `+342` 是**从零拉进一整族新类**。**两者不矛盾：改已可达的代码 vs 让不可达的代码变可达。**
+
+数字：metrics 2219/0/0 · 全套 2236/0/2 · 陈旧度 1 / 711 · 函数数 174,336 · Nike buy 端点 7 · 活代码 4 → 3。
+
+纪律：**问「这个 host 有什么」比问「这几个族有没有」更能说明该怎么办。**
+
+下一轮：取证 Nike checkout 的创建语义，改那 3 处（购物车 → checkout）。

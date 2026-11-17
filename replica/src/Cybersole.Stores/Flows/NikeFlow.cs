@@ -489,8 +489,20 @@ public class NikeFlow : StoreFlow
             },
         };
 
+        // R1013: this used to PUT to buy/orders/v2/US/{cart}/delivery, which the image does not contain -- zero hits,
+        // like the rest of that family. What it does contain, in address order, is the whole buy surface and nothing else:
+        //
+        //   0x147053c94  https://api.nike.com/buy/checkout_previews/v3/
+        //   0x147053d0c  https://api.nike.com/buy/checkout_previews_jobs/v3/
+        //   0x147053d8c  https://api.nike.com/buy/checkouts/v3/
+        //   0x147053df4  https://api.nike.com/buy/checkouts_jobs/v3/
+        //
+        // There is no cart endpoint and no order endpoint: buy/carts is zero hits and carts/v2 is zero. Nike's model is
+        // one checkout resource that every step writes to, which is what NikeEndpoints' header has said since R87. So
+        // the address becomes the resource the image names; the body stays what this workspace built, because the image
+        // does not say what a delivery write looks like and inventing a shape would be the same mistake in a new place.
         var res = await SendJsonAsync(c, HttpMethod.Put,
-            $"https://api.nike.com/buy/orders/v2/US/{c.Session.CartId}/delivery",
+            NikeEndpoints.Checkouts + c.Session.CartId,
             payload.ToString(Newtonsoft.Json.Formatting.None), "nike-delivery", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("nike delivery failed", retryable: true);

@@ -617,6 +617,28 @@ def main():
     for name in failed_names(trx):
         print("  FAILED: " + name)
 
+    # R982: criterion (e) says the mutation tests all fire, and until now that figure lived only in prose -- the one thing
+    # this project's conventions forbid. A full run takes about twelve minutes, so it cannot run inside metrics_report;
+    # what it can do is leave a dated result the metrics read and a freshness check beside it, so the number is a number
+    # with a timestamp rather than an impression. `tools/mutation_report.py` reads this file.
+    import json
+    fired = sum(1 for _n, v in results if v == "guard fired")
+    decorative = sum(1 for _n, v in results if "DECORATIVE" in v)
+    skipped = sum(1 for _n, v in results if v.startswith("SKIPPED"))
+    record = {
+        "ran_at": __import__("datetime").datetime.now(
+            __import__("datetime").timezone(__import__("datetime").timedelta(hours=8))).isoformat(timespec="seconds"),
+        "total": len(results),
+        "fired": fired,
+        "decorative": decorative,
+        "skipped": skipped,
+        "tree": state,
+    }
+    out = os.path.join(os.path.dirname(REPO), "analysis", "MUTATION_RESULT.json")
+    with io.open(out, "w", encoding="utf-8", newline="") as handle:
+        handle.write(json.dumps(record, indent=2, ensure_ascii=False) + "\n")
+    print("\nwrote " + out)
+
 
 if __name__ == "__main__":
     main()

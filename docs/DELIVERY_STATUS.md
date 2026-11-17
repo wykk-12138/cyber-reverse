@@ -24439,3 +24439,87 @@ python tools/metrics_report.py                    -> 完整套件 exit 0  2200 �
 而前者要改守卫，后者改了守卫就是把一条正确的守卫改坏。**
 
 **所以下一步永远是：先看代码有没有变。变了还绿 → 装饰性；没变 → 没有对象。**
+
+
+---
+
+## 406. **变异度量进 METRICS（36/36/0/0，staleness 0）**
+
+> R982。**+1 度量 +1 工具 + 结果文件。** 套件 **2200 通过 / 0 失败 / 0 跳过**。
+
+### 一、为什么拆成两半
+
+**判据 (e) 第二句要「变异测试全 fired」。R981 让它成立，而 `36 / 36` 只活在散文里 ——
+正是 §4 禁止的，也正是 R979 抓到的形状。**
+
+**但一次完整变异约 12 分钟，而 `metrics_report.py` 每轮都跑。塞进去它就不会被跑。
+→ `mutation-check.py` 写带日期的结果，`mutation_report.py` 读它 —— 与 `artifact_freshness.py` 同一安排。**
+
+### 二、结果文件（真实跑出来的）
+
+```json
+{"ran_at": "2026-11-17T12:25:02+08:00", "total": 36, "fired": 36,
+ "decorative": 0, "skipped": 0, "tree": "GREEN"}
+```
+
+### 三、METRICS 五行
+
+```
+| 变异套件（上次运行） — mutation-fit: total | 36 |
+| 变异套件（上次运行） — mutation-fit: fired | 36 |
+| 变异套件（上次运行） — mutation-fit: decorative | 0 |
+| 变异套件（上次运行） — mutation-fit: skipped | 0 |
+| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file is newer than the run |
+```
+
+### 四、staleness 字段改了两版
+
+**① 把 `docs/**` 算进「被改动的输入」→ **任何文档编辑都让 staleness 变正数** → 每轮都响 → 没人看。
+改成只看 `src` / `tests` / `tools`。**
+
+**② 把自己（`mutation_report.py`）算进去 → **改一次报告器就让报告失效** → 按名字排除
+（它只读结果文件，改它不可能改变任何一条变异的裁决）。**
+
+**两个方向都验过：**
+
+```
+排除自身后        staleness: 0
+造一个源码文件    staleness: 0:03:26 -- dummy_probe.py changed after the run
+删掉它           staleness: 0
+```
+
+### 五、诚实边界
+
+**做得到**：报上次运行的数，并报源码从那之后动没动。
+**做不到**：保证今天重跑给同样的数。**那正是「重跑」的用途，而工具的输出自己写着这一句。**
+
+### 六、数字
+
+| 度量 | R981 | R982 |
+|---|---|---|
+| 度量项数 | 14 | **15** |
+| 变异 fired / 总 | 36 / 36（散文里） | **36 / 36（METRICS 里）** |
+| staleness | 未测 | **0** |
+| 套件 | 2200 | **2200** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+
+### 七、验证
+
+```
+cd replica
+python tools/mutation-report  -> 见下
+python tools/mutation_report.py
+  -> mutation-fit-total: 36 / fired: 36 / decorative: 0 / skipped: 0 / staleness: 0
+python tools/metrics_report.py
+  -> 变异套件（上次运行） exit 0 {...}；完整套件 exit 0  2200 通过 / 0 失败 / 0 跳过
+```
+
+### 八、仍然 Unknown
+
+- **今天重跑会不会给同样的数**：**只有重跑能答** —— 工具输出自己写着这句话。
+
+### 九、教训
+
+**一个「陈旧度」字段第一次写会错两次：一次把不相干的算进来（每轮都响），一次把自己算进来（自我失效）。**
+
+**而两次的后果是同一种：告警响得太多，于是没人看 —— 那时它和不存在是一样的。**

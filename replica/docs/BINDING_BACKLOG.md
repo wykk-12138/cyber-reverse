@@ -7402,3 +7402,35 @@ fired 36 · decorative 0 · skipped 0 · restored GREEN
 **变异 36/36 · 套件 2200 · 陈旧度 0/0 · 函数数 173,952**
 
 **纪律**：先看代码有没有变。变了还绿 → 守卫装饰性；没变 → 守卫没有对象。
+
+
+## 判据 (e) — **变异度量进 METRICS：36 total / 36 fired / 0 decorative / 0 skipped，staleness 0**（R982，**+1 度量 +1 工具**）
+
+### 结构
+
+**`mutation-check.py` 末尾写 `analysis/MUTATION_RESULT.json`（带 `ran_at`）→ `tools/mutation_report.py` 读它。
+与 `artifact_freshness.py` 同一安排：数字带时间戳，陈旧被报出来而不是藏起来。**
+
+### METRICS 五行
+
+```
+mutation-fit: total 36 · fired 36 · decorative 0 · skipped 0
+mutation-fit: staleness: 0 -- no exercised file is newer than the run
+```
+
+### staleness 改了两版
+
+**① 把 `docs/**` 算进来 → 任何文档编辑都让 staleness 变正 → 每轮都响 → 没人看。改成只看 `src`/`tests`/`tools`。**
+**② 把自己算进来 → 改一次报告器就自我失效。按名字排除（它只读）。**
+
+**两方向都验过：排除后 0；造一个源码文件 → `0:03:26`；删掉 → 0。**
+
+### 数字
+
+**度量项 15 · 变异 36/36 · staleness 0 · 套件 2200 · 产物陈旧度 0/0**
+
+| 仍 Unknown | |
+|---|---|
+| 今天重跑会不会给同样的数 | 只有重跑能答（工具输出自己写着这句） |
+
+**纪律**：一个每轮都响的告警，和不存在是一样的。

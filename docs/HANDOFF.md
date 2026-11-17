@@ -1977,3 +1977,20 @@ R980 说 round 623 的守卫「对象为空」。这一轮的办法不是改守�
 纪律：先看代码有没有变。变了还绿 → 装饰性；没变 → 没有对象。
 
 下一轮：把变异度量（fired / decorative / skipped）注册进 METRICS —— 判据 (e) 需要一个能复算的数。
+
+## R982 补充 — **变异度量进 METRICS：36/36/0/0，staleness 0**（+1 度量 +1 工具，套件 2200）
+
+判据 (e) 第二句的 `36 / 36` 之前只活在散文里。一次完整变异约 12 分钟，塞进 `metrics_report.py` 会让它不被跑，
+所以拆成两半：`mutation-check.py` 写 `analysis/MUTATION_RESULT.json`（带 `ran_at`）→
+`tools/mutation_report.py` 读它。与 `artifact_freshness.py` 同一安排。
+
+METRICS 五行：`mutation-fit: total 36 / fired 36 / decorative 0 / skipped 0 / staleness 0`。
+
+**staleness 字段改了两版**：① 把 `docs/**` 算进来 → 任何文档编辑都让它变正 → 每轮都响 → 没人看；
+③ 把自己算进来 → 改一次报告器就自我失效 → 按名字排除。两方向都验过（排除后 0 / 造源码文件 → 0:03:26 / 删掉 → 0）。
+
+数字：度量项 15 · 变异 36/36 · staleness 0 · 套件 2200 · 产物陈旧度 0/0。
+
+纪律：**一个每轮都响的告警，和不存在是一样的。**
+
+下一轮：回到核心 —— 判据 (f) 的镜像→复刻件方向（`myshopify` 主机池 → 复刻差别名），或函数数那一刀按内容分。

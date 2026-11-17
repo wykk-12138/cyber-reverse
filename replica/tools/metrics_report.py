@@ -76,6 +76,13 @@ METRICS = [
      ["section-mass: original executable", "section-mass: replica executable", "section-mass: ratio"]),
     ("函数分布（.pdata 地址分桶）", ["tools/pdata_sections.py"],
      ["pdata: above boundary original", "pdata: above boundary replica", "pdata: last replica bucket"]),
+    # R982: criterion (e) says the mutation tests all fire, and that figure lived only in prose -- which is how the handoff
+    # block R979 caught came to quote a hundred-and-fifty-round-old suite total. A full mutation pass takes about twelve
+    # minutes and this wrapper is run every round, so it cannot be measured here. What it can do is read the dated record
+    # that pass writes and report how far the tree has moved since, so the number carries its own caveat.
+    ("变异套件（上次运行）", ["tools/mutation_report.py"],
+     ["mutation-fit: total", "mutation-fit: fired", "mutation-fit: decorative", "mutation-fit: skipped",
+      "mutation-fit: staleness"]),
 ]
 
 SCOPE_NOTE = "note: base-class inheritance is counted (by design since R343)"
@@ -146,6 +153,13 @@ def summary_bits(name_out, owned):
         "pdata: above boundary original": r"pdata-above-0x1C00000-original:\s*(\d+)",
         "pdata: above boundary replica": r"pdata-above-0x1C00000-replica:\s*(\d+)",
         "pdata: last replica bucket": r"pdata-last-replica-bucket:\s*(0x[0-9A-Fa-f]+)",
+        # R982: the mutation record, plus how stale it is. Staleness is the field that matters most -- without it the
+        # counts read as current when they may describe a tree several edits old.
+        "mutation-fit: total": r"mutation-fit-total:\s*(\d+)",
+        "mutation-fit: fired": r"mutation-fit-fired:\s*(\d+)",
+        "mutation-fit: decorative": r"mutation-fit-decorative:\s*(\d+)",
+        "mutation-fit: skipped": r"mutation-fit-skipped:\s*(\d+)",
+        "mutation-fit: staleness": r"mutation-fit-staleness:\s*(.+)",
     }
     for label, pattern in patterns.items():
         if label not in owned:

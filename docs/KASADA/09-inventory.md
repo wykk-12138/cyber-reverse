@@ -16,7 +16,7 @@
 | A1 | 内嵌 **Jint 4.17.0** 解释器（AOT 编译进产物） | `Jint, Version=4.17.0.0` `0x146dd37ac` · `EnableHostContractVerification` `0x146dd3aac` · 语句类族 `0x1434cb5dd` | 02 | ✅ |
 | A2 | 内嵌 **Acornima 1.7.0** 解析器 | `0x14315d5ef` | 02 | ✅ |
 | A3 | 内嵌 **DotNetBrowser 4.3.5** + Chromium 二进制提取 | `0x14315a15d` · `ChromiumBinariesExtractor` `0x1432bb1c5` · `.cybersole-chromium.xml` `0x14336a99f` | 03 | ✅ |
-| A4 | 浏览器指纹随机化：`GenRandomChrome` / `GenRandomIos` / `GenRandomSizedBrowser` / `GetRandomWebGLRenderer` / `IsChrome` | 池 `0x03448170`–`0x034481be` | 08 §1 | 🟡 |
+| A4 | 浏览器指纹随机化：`IsChrome` / `GetRandomWebGLRenderer` / `GenRandomSizedBrowser` / `GenRandomChrome` / `GenRandomIos` | `0x143448f70`（前三个连写）· `0x143448fae` · `0x143448fbe`；另有 `BCryptGenRandom` `0x146a44a68` —— **随机源是系统 CSPRNG** | 08 §1.5 · 10 §2.3 | ✅ |8 §1 | 🟡 |
 | A5 | **shim 的具体内容**（注入了哪些宿主 API） | 无 | — | **Unk**：Jint 侧只有引擎证据；shim 是运行时行为，静态产物里不可观察。02 §3 的清单来自**浏览器实测缺口**，不是原版 |
 
 ## B. 脚本获取与解析

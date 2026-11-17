@@ -2891,3 +2891,25 @@ flow 把**封禁页当商品页**。分支只在页面真写该串时触发 ⇒ 
 纪律：**同一个清单，数「缺谁」与分类「有什么」是两个不同的问题。**
 
 下一轮：查那条文案是否就是原版对 PerimeterX 的全部处置（若是，perimeterx 不该有 solver）。
+
+## R1023 补充 — **`PerimeterX` 有 5 条不是 4 条；`"Solving PerimeterX"` 推翻「只换代理」**（套件 2233）
+
+**第五条**：`0x146e9423c  Solving PerimeterX` —— **进行时**，说明原版**有求解动作**。
+而它与 `0x146e3e70c  PerimeterX block (Rotating proxy)` **并存** ⇒ **能解就解，解不了换代理**（R772 同形）。
+→ **R1022 那句「原版不解决它、复刻件不该写 solver」被推翻。**
+
+**为什么漏了**：R1022 的 `ida.py str "PerimeterX"` 返回 **n=5**，而我在临时脚本里写了 `matches[:4]` ——
+**没有理由的截断**。而用前四条建立的结论，其形状（「只有换代理文案」）恰好与截断后的输入一致，看起来可靠。
+
+**改**：台账 Evidence 4 → **5**。`Gap.NoPageMarker` 不变（它不是页面级串）。
+守卫改名 `TheInventoryEntryIsTheFiveClassifiedLiterals`。
+
+**而它引出一个真问题**：`State.DetectedOnly`（检测到但不处理）与 `"Solving PerimeterX"` 矛盾
+⇒ 该状态**可能错了**，错法与 R1018 同族（从「我们没实现」推出「镜像没有」）。
+→ 求解**怎么**做仍 Unknown，但「有没有」= **有**。
+
+数字：套件 2233/0/0 · 陈旧度 4 / 3,795 · 函数数 174,336 · 字面量 4 → **5** · `DetectedOnly` 存疑。
+
+纪律：**截断自己输出的那一刻，我同时决定了结论。**
+
+下一轮：定 `DetectedOnly` 该改成什么（`Solving PerimeterX` 的存在使它站不住）；或取证求解协议。

@@ -18,13 +18,23 @@ namespace Cybersole.Tests;
 /// </summary>
 public sealed class PerimeterXMarkerTests
 {
-    /// <summary>The inventory entry is exactly the four literals the classification rests on.</summary>
+    /// <summary>
+    /// The inventory entry is the five literals the classification rests on.
+    ///
+    /// <para>
+    /// R1023: it was four. The query behind R1022 took the first four matches of the display name and stopped, so it
+    /// never saw "Solving PerimeterX" at 0x146e9423c -- present progressive, and the one literal of the five that says
+    /// the original solves this vendor rather than only routing around it. That retracts R1022's guess that switching
+    /// proxies was its whole response.
+    /// </para>
+    /// </summary>
     [Fact]
-    public void TheInventoryEntryIsTheFourClassifiedLiterals()
+    public void TheInventoryEntryIsTheFiveClassifiedLiterals()
     {
         var vendor = AntiBotVendors.All.Single(v => v.Name == "PerimeterX");
 
-        Assert.Equal(new[] { "PerimeterX", "PerimeterX-Token", "PerimeterXHandler", "_pxHandler" },
+        Assert.Equal(
+            new[] { "PerimeterX", "PerimeterX-Token", "PerimeterXHandler", "_pxHandler", "Solving PerimeterX" },
             vendor.Evidence.ToArray());
     }
 

@@ -34421,3 +34421,88 @@ python tools/metrics_report.py -> 完整套件 exit 0  2233 / 0 / 0
 
 **→ 而第二种更少见：它需要把列出的条目**逐条分类**，而不是只数个数。
 → 而分类的结果正好是那个论断的内容。**
+
+
+---
+
+## 447. **`PerimeterX` 有 5 条不是 4 条；`"Solving PerimeterX"` 推翻「只换代理」的推断**
+
+> R1023。**改 2 个源文件 + 1 个测试文件。** 套件 **2233 通过 / 0 失败 / 0 跳过**。
+
+### 一、第五条
+
+```
+PerimeterX  n=5
+  0x143336731  "PerimeterXHandler
+  0x146e3e6dc  PerimeterX 
+  0x146e3e70c  PerimeterX block (Rotating proxy)
+  0x146e3e764  PerimeterX-Token
+  0x146e9423c  Solving PerimeterX          ← 这一条
+```
+
+**→ `"Solving PerimeterX"` 是**进行时** —— 原版**有一个求解动作**。
+→ 而它与 `"PerimeterX block (Rotating proxy)"` **并存**：**能解就解，解不了换代理。**
+
+**→ 所以 R1022 那句「原版不解决 PerimeterX，它绕过；若真是这样，复刻件不该给它写 solver」
+  **被推翻了** —— 复刻件**应该**有 solver，而那条文案只是**回退路径**。
+→ 而两个表面并存正是 R772 的教训。**
+
+### 二、而我为什么漏了它
+
+**R1022 我查的是 `ida.py str "PerimeterX"`，而 `n=5`。而我**只读了前四条**（`[:4]` 的截断）。
+→ 第五条在 `0x146e9423c`，与那四条相邻但地址差约 0x55 万 —— 打印时排第五。**
+
+**→ 这不是工具的问题，是我读输出时截断了自己。
+→ 而 `[:4]` 那个截断是我在临时脚本里随手写的 —— **没有理由的截断**。**
+
+### 三、所以台账补了第五条
+
+**`AntiBotVendors` 的 PerimeterX Evidence：4 → **5**，新增 `"Solving PerimeterX"`。
+
+→ 而它不是页面级串（那是复刻件自己的进度输出），所以 `Gap.NoPageMarker` **不变**。
+→ 而它 settle 的是另一件事：**这个厂商被**处理**，不只是被检测**。**
+
+### 四、而那引出一个真问题
+
+**`DetectedOnly` 的意思是「检测到但不处理」。而 `"Solving PerimeterX"` 说明镜像**有**处理。
+→ 那 `State.DetectedOnly` **可能是错的**，而它错的方式与 R1018 同族：
+  **从「我们没有实现」推出了「镜像没有」。**
+
+**→ 而求解动作**怎么**做的（走什么协议）仍然 Unknown。
+→ 但「有没有」这个问题现在有答案了：**有**。**
+
+### 五、数字
+
+| 度量 | R1022 | R1023 |
+|---|---|---|
+| 套件 | 2233 / 0 | **2233 / 0 / 0** |
+| 产物陈旧度 | 4 / 3,788 | **4 / 3,795** |
+| 函数数 | 174,336 | **174,336** |
+| **PerimeterX 的字面量** | 4（台账）· 5（镜像，我读了 4） | **5 · 5** |
+| **原版是否处理 PerimeterX** | Unknown（猜「只换代理」） | **是（`Solving PerimeterX`）** |
+| **`State.DetectedOnly` 是否成立** | 未质疑 | **存疑 —— 待重看** |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "PerimeterX"  -> {"n":5}（第五条 0x146e9423c "Solving PerimeterX"）
+cd replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug  -> 已成功生成
+dotnet test --filter "FullyQualifiedName~PerimeterXMarker" -m:1      -> 4 通过
+python tools/metrics_report.py -> 完整套件 exit 0  2233 / 0 / 0
+```
+
+### 七、仍然 Unknown
+
+- **PerimeterX 求解走什么协议**：**未取证**。
+- **`State.DetectedOnly` 该改成什么**：**待定**。
+
+### 八、教训
+
+**我在临时脚本里写了 `matches[:4]` —— 一个**没有理由的截断**，而它把唯一有行为意义的那条挡在外面。**
+
+**→ 而更坏的是：我用前四条建立了「原版不解决它」这个结论，而那个结论的形状
+  （「只有换代理文案」）恰好与截断后的输入一致，所以它看起来很可靠。**
+
+**→ 截断自己输出的那一刻，我同时决定了结论。**

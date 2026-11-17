@@ -123,13 +123,17 @@ public static class AntiBotVendors
             DataDomeSdk, DataDomeRelay, DataDomeSensor,
             "DataDomeKey", "DataDomeChallenge", "DatadomeSliderTask",
         }),
-        // R1022: all four are metadata, a cookie name, or this workspace's own wording -- none is a string that appears
-        // in a store's response body. That is what Gap.NoPageMarker means for this vendor, and it is why detection has to
-        // fall back on a marker the image does not carry. Recorded here so the next reader does not reach for these four
-        // expecting a page-level literal among them.
+        // R1023 adds the fifth literal, which R1022's note had left out because the query stopped at four matches of the
+        // display name. "Solving PerimeterX" (0x146e9423c) is present progressive: the original has a solving action for
+        // this vendor. That retracts R1022's guess that routing around a block was its whole response -- both literals
+        // are in the artifact, "PerimeterX block (Rotating proxy)" and "Solving PerimeterX", so the two paths coexist
+        // rather than one replacing the other, which is the same shape as R772's two surfaces.
+        //
+        // It is still not a page-level string, so Gap.NoPageMarker stands: it is a line of the workspace's own output,
+        // not something a store serves. What it does settle is that this vendor is handled, not merely detected.
         new Vendor("PerimeterX", new[]
         {
-            "PerimeterX", "PerimeterX-Token", "PerimeterXHandler", "_pxHandler",
+            "PerimeterX", "PerimeterX-Token", "PerimeterXHandler", "_pxHandler", "Solving PerimeterX",
         }),
         new Vendor("Akamai", new[]
         {

@@ -7186,3 +7186,32 @@ FindSlot · GetReleaseFeed · LoadCountryData · ProcessResponse · Fill · GetS
 | 第 16 个缺失类型是什么 | 输出截断 |
 
 **纪律**：检查工具按名字判存在，而名字可不同是目标里的自由度 —— 那个洞装着 5 个假缺口。
+
+
+## 判据 (a) — **核心类型缺失 1 → 0：写了 `ObservableDictionary<TKey,TValue>`**（R976，**+10 用例**）
+
+### 改动
+
+**`src/Cybersole.Core/Helpers/ObservableDictionary.cs`：
+`IDictionary` + `IReadOnlyDictionary` + `INotifyCollectionChanged` + `INotifyPropertyChanged`。
+替换已有键只发 `Item[]` 不发项集事件；移除携带旧对；`AddRange` 只对新增键通知；重复 `Add` 先抛后不通知。**
+
+### 两个守卫红了，都按规矩处理
+
+**① `UnsubscribedEventsTests` → 白名单登记两条契约事件（先例是 `CanExecuteChanged`）**
+**② `BindScopeGuardTests` → `KnownUnseenTypes` 5 → 6（第二个双泛型类型，`DECL` 抓不到）**
+
+### 而函数数不变
+
+**无人实例化它 → 被裁（R963/R967 规则）。所以是**尚未接线**，不是缺口。**
+
+### 数字
+
+**套件 2186 → 2196 · 陈旧度 0/0 · 函数数 173,952（未变）· 类型缺失 16 → **15** · 核心类型缺失 1 → **0**
+
+| 仍 Unknown | |
+|---|---|
+| 原版哪里用 `ObservableDictionary` | 未取证（需要能反编译的调用点） |
+| 复刻件该在哪里实例化它 | 未定 |
+
+**纪律**：守卫红了不是要绕过 —— 它要求一个理由，而理由给得出才是对的。

@@ -7377,3 +7377,65 @@ Ui.Views.Auth.LicenseControl               1  Authenticate
 > 所以那个 16 从一开始就**高估了 5 个**。**
 > **而它没被修正，因为检查工具按**名字**判存在，而**名字可以不同**是目标里明写的自由度。
 > 检查工具与目标条款之间有一个洞，而那个洞里装着 5 个假缺口。**
+
+
+### 唯一一个真缺失的核心类型写出来了，而**两个守卫立刻红了**（R976）
+
+**R975 把 16 分成 5 改名 + 1 真缺失 + 10 UI。这一轮写那 1 个。**
+
+### `ObservableDictionary<TKey,TValue>`（`src/Cybersole.Core/Helpers/`）
+
+**`IDictionary` + `IReadOnlyDictionary` + `INotifyCollectionChanged` + `INotifyPropertyChanged`。
+而注释里写了**为什么一个字典需要通知**：**
+
+> **集合可以按索引说「变了」；字典不能 —— 增删一个键改变了项集，而其他键的位置没动，
+> 所以按下标缓存的消费者无从 diff。**
+> **所以复刻件里用一个普通 `Dictionary<TKey,TValue>` 顶替它**不是改名，是行为变化** ——
+> 而以「视图不再更新」而不是「抛异常」的形式出现。**
+
+### 而两个守卫**立刻**抓到了它
+
+**① `UnsubscribedEventsTests`：「声明了、raise 了、没人听」**
+
+**我声明了 `CollectionChanged` 和 `PropertyChanged`，而仓里没人订阅 —— 那正是那个守卫要抓的。**
+
+> **而它的白名单里第一条是先例：**
+> `["CanExecuteChanged"] = "contract: ICommand requires it; Avalonia subscribes"`
+> **而这两条同形：接口**要求**声明它们，而订阅者会在 UI 里 —— 而 UI 是 YG 说不急的那一层。
+> 所以登记为契约事件，并写明「声明它们是契约；还没人听是工作的状态，不是坏掉的承诺」。**
+
+**② `BindScopeGuardTests`：`KnownUnseenTypes` 5 → 6**
+
+**`ObservableDictionary<TKey,TValue>` 是**第二个双泛型类型**，而 `bind_scope` 的 `DECL` 正则只匹配无类型参数的声明 ——
+所以它对 `bind_diff` 是「存在」、对 `bind_scope` 是「不可见」。**
+
+> **而那个守卫的注释写着「If this list shrinks, someone fixed DECL; if it grows, someone narrowed it.
+> Either way the test below fails and the change becomes deliberate.」**
+> **所以 5 → 6 是**按规矩改的**，并写明是因为新增了一个双泛型类型。****
+
+### 而函数数**不变**
+
+**`pdata-replica` 173,952 → 173,952。因为**没有任何东西实例化它**。**
+
+> **那是 R963/R967 已建立的规则在起作用：不可达的代码被裁。
+> 而 `ObservableDictionary` 现在就是「写好了、有 10 个用例、而产物里没有」——
+> **与 R965 发现的 34 个覆写同一种状态。**
+> **所以它不是缺口（类型存在性检查已通过），而是**尚未接线**。****
+
+### 数字
+
+| 度量 | R975 | **R976** |
+|---|---|---|
+| 套件 | 2186 | **2196** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952（未变 —— 无人实例化）** |
+| **类型缺失** | 16 | **15** |
+| **核心类型缺失** | 1 | **0** |
+
+### 教训
+
+> **写一个类型，两个守卫红了。而**两次都不是要绕过它们** ——
+> 它们问的都是对的问题（「这个事件有人听吗」「为什么这个类型 bind_scope 看不见」），
+> 而答案是「这是契约事件」和「它是双泛型」。**
+> **所以这一轮最有价值的不是那个类，是**两条守卫都要求一个理由，而我给得出**。
+> 如果给不出，那才是问题。**

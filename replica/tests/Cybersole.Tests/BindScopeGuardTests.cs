@@ -45,10 +45,13 @@ public sealed class BindScopeGuardTests
 {
     /// <summary>
     /// Types that are present per <c>bind_diff --type-presence</c> but that <c>bind_scope</c> never examines.
-    /// 3 positional records + 1 enum + 1 generic-arity type. If this list shrinks, someone fixed `DECL`; if it
+    /// 3 positional records + 1 enum + 2 generic-arity types. If this list shrinks, someone fixed `DECL`; if it
     /// grows, someone narrowed it. Either way the test below fails and the change becomes deliberate.
     /// </summary>
-    private const int KnownUnseenTypes = 5;
+    // R976 raised this from 5 to 6 by adding ObservableDictionary<TKey,TValue>, which is a second generic-arity type:
+    // bind_scope's DECL pattern matches a declaration with no type parameters, so a two-parameter type is present to
+    // bind_diff and invisible to bind_scope. The reconciliation below is what makes that visible rather than silent.
+    private const int KnownUnseenTypes = 6;
 
     private readonly ITestOutputHelper _out;
 

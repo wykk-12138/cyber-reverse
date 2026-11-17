@@ -50,6 +50,11 @@ public class UnsubscribedEventsTests
     private static readonly Dictionary<string, string> KnownUnsubscribed = new(StringComparer.Ordinal)
     {
         ["CanExecuteChanged"] = "contract: ICommand requires it; Avalonia subscribes",
+        // R976: ObservableDictionary exists to carry these two. The interface requires declaring them and nothing in this
+        // repository binds to a dictionary yet -- a subscriber would be UI, which was deferred. Declaring them is the
+        // contract; not listening yet is the state of the work, not a broken promise.
+        ["CollectionChanged"] = "contract: INotifyCollectionChanged requires it; a binding subscribes",
+        ["PropertyChanged"] = "contract: INotifyPropertyChanged requires it; a binding subscribes",
         ["Ticked"] = "extension: ClockService.Current is what callers read",
         ["Saved"] = "extension: ConfigurationStore.Saved; callers re-read the properties",
         ["SignedIn"] = "extension: AuthService exposes the state as a property",

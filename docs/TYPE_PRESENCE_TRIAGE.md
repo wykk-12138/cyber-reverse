@@ -14,7 +14,6 @@
 |---|---|---|
 | `CloudflareSolver` | **RENAMED** | `CaptchaProvider` declares all 9 member(s) — sole declaration match |
 | `Settings` | **RENAMED** | `GlobalSettings` declares all 34 member(s) — sole declaration match |
-| `ObservableDictionary` | **UNKNOWN (non-discriminative)** | best match `CaptchaProvider` in GlobalSettings.cs — 1/1 (100%) |
 | `Concurrency` | **RENAMED** | `ConcurrencySettings` declares all 3 member(s) — sole declaration match |
 | `ImapProvider` | **RENAMED** | `ImapMailProvider` in ImapMailProvider.cs — 4/4 (100%) documented; its doc comment names ImapProvider |
 | `ActionConfig` | **RENAMED** | `SmartActionStepConfig` in SmartActions.cs — 2/2 (100%) documented; its doc comment names ActionConfig |
@@ -29,4 +28,4 @@
 | `TaskCreatorCartView` | **UNKNOWN (non-discriminating match)** | best match `ProxyKeyBinds` in GlobalSettings.cs — 2/3 (67%) |
 | `TaskCreatorMainView` | **RENAMED** | `TaskCreatorView` declares all 4 member(s) — sole declaration match |
 
-判定合计：OUT_OF_SCOPE=2, RENAMED=6, STRUCTURAL=1, UNKNOWN (non-discriminating match)=1, UNKNOWN (non-discriminative)=6
+判定合计：OUT_OF_SCOPE=2, RENAMED=6, STRUCTURAL=1, UNKNOWN (non-discriminating match)=1, UNKNOWN (non-discriminative)=5

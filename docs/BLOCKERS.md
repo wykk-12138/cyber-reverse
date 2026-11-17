@@ -29657,3 +29657,68 @@ python -c "逐成员正则查 src" -> 8/8、4/4 全在
 **它没被修正，因为检查工具按名字判存在，而名字可不同是目标里明写的自由度。**
 
 **检查工具与目标条款之间有一个洞，而那个洞里装着 5 个假缺口。**
+
+
+---
+
+## 400. **核心类型缺失 1 → 0：写了 `ObservableDictionary<TKey,TValue>`**
+
+> R976。**改产品代码 +10 用例。** 套件 **2196 通过 / 0 失败 / 0 跳过**。
+
+### 一、改动
+
+**`src/Cybersole.Core/Helpers/ObservableDictionary.cs`：
+`IDictionary<TKey,TValue>` + `IReadOnlyDictionary<TKey,TValue>` + `INotifyCollectionChanged` + `INotifyPropertyChanged`。**
+
+**行为要点：**
+- **替换已有键 → 只发 `Item[]`，不发项集事件**（消费视图不该在每次编辑时重建）
+- **移除 → 事件携带旧对**（移除后查不到）
+- **重复 `Add` → 先抛 `ArgumentException`，不发通知**（没人该看到没发生的改变）
+- **`AddRange` → 只对新增键通知，不覆盖已存在的**
+- **`Clear` 空字典 → 不发通知**
+
+### 二、两个守卫红了，都按规矩处理
+
+**① `UnsubscribedEventsTests.NoEventIsDeclaredRaisedAndNeverListenedTo`**
+**→ 白名单登记 `CollectionChanged` / `PropertyChanged`，理由同先例 `CanExecuteChanged`（契约事件，订阅者在 UI）**
+
+**② `BindScopeGuardTests.ScopeMissesStayAtZeroAndTheExaminedSetReconciles`**
+**→ `KnownUnseenTypes` 5 → 6（第二个双泛型类型，`bind_scope` 的 `DECL` 只匹配无类型参数的声明）**
+
+### 三、而函数数不变
+
+**`pdata-replica` 173,952 → 173,952 —— 无人实例化它，被裁。**
+**所以它是**尚未接线**，不是缺口（R963/R967 的规则）。**
+
+### 四、数字
+
+| 度量 | R975 | R976 |
+|---|---|---|
+| 套件 | 2186 | **2196** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **类型缺失** | 16 | **15** |
+| **核心类型缺失** | 1 | **0** |
+
+### 五、验证
+
+```
+dotnet build Cybersole.Core           -> 0 error
+test --filter ObservableDictionaryTests -> 10 通过
+test --filter UnsubscribedEventsTests|BindScopeGuardTests -> 3 通过
+bind_diff.py --type-presence          -> 174 declared, 159 present, 15 absent
+func_count.py                         -> 173,952（未变）
+metrics_report.py                     -> 2196 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **原版哪里用 `ObservableDictionary`**：**Unknown** —— 未取证（需要能反编译的调用点）。
+- **复刻件该在哪里实例化它**：**Unknown** —— 未定。
+
+### 七、教训
+
+**写一个类型，两个守卫红了。而两次都不是要绕过它们 —— 它们问的都是对的问题
+（「这个事件有人听吗」「为什么 bind_scope 看不见」），而答案是「契约事件」和「双泛型」。**
+
+**最有价值的不是那个类，是两条守卫都要求一个理由，而我给得出。如果给不出，那才是问题。**

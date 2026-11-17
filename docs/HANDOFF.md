@@ -1838,3 +1838,22 @@ body 串抽样 5 个：`bstn: cart endpoint unknown` **True**，其余 4 个 Fal
 纪律：**检查工具按名字判存在，而名字可不同是目标里的自由度 —— 那个洞装着 5 个假缺口。**
 
 下一轮：查 `ObservableDictionary`2` 是否 BCL 现成类型（查 .NET 8 BCL 清单）+ 补读第 16 个。
+
+## R976 补充 — **核心类型缺失 1 → 0：写了 ObservableDictionary`2**（+10 用例，套件 2196）
+
+写了 `src/Cybersole.Core/Helpers/ObservableDictionary.cs`：IDictionary + IReadOnlyDictionary +
+INotifyCollectionChanged + INotifyPropertyChanged。替换已有键只发 Item[]；移除携带旧对；重复 Add 先抛后不通知；
+AddRange 只对新增键通知；Clear 空字典不发通知。
+
+**两个守卫立刻红了，都按规矩处理**：
+① `UnsubscribedEventsTests` → 白名单登记 CollectionChanged/PropertyChanged（先例是 CanExecuteChanged，契约事件）
+② `BindScopeGuardTests` → `KnownUnseenTypes` 5 → 6（第二个双泛型类型，DECL 只匹配无类型参数的声明）
+
+→ 函数数 173,952 **不变**：无人实例化它 → 被裁（R963/R967 规则）。所以是**尚未接线**，不是缺口。
+
+数字：套件 2186 → 2196 · 陈旧度 0/0 · 函数数 173,952 · 类型缺失 16 → **15** · 核心类型缺失 1 → **0**。
+
+纪律：守卫红了不是要绕过 —— 它要求一个理由，而理由给得出才是对的。
+
+下一轮：剩余 15 个类型缺失 = 10 UI + 5 改名（已核）。所以判据 a 的「类型缺失」实质已结案，
+下一步转回函数数（173,952 / 277,120）—— 用 rea 的 compare_functions 或 IDA 的类型清单对照。

@@ -57856,3 +57856,53 @@ Ui.Views.Auth.LicenseControl               1  Authenticate
 > **「类型缺失 16」里 5 个是改名，而改名在目标里是允许的 —— 所以那个 16 从一开始就**高估了 5 个**。**
 > **它没被修正，因为检查工具按**名字**判存在，而**名字可以不同**是目标里明写的自由度。
 > 检查工具与目标条款之间有一个洞，而那个洞里装着 5 个假缺口。**
+
+
+---
+
+## 第 976 轮：唯一一个真缺失的核心类型写出来了，而两个守卫立刻红了
+
+### `ObservableDictionary<TKey,TValue>`（`src/Cybersole.Core/Helpers/`）
+
+**`IDictionary` + `IReadOnlyDictionary` + `INotifyCollectionChanged` + `INotifyPropertyChanged`。**
+
+> **一个字典为什么需要通知：集合可以按索引说「变了」；字典不能 ——
+> 增删一个键改变了项集，而其他键的位置没动，按下标缓存的消费者无从 diff。**
+> **所以用普通 `Dictionary<TKey,TValue>` 顶替它不是改名，是行为变化 ——
+> 以「视图不再更新」而不是「抛异常」的形式出现。**
+
+### 两个守卫立刻抓到了它
+
+**① `UnsubscribedEventsTests`：「声明了、raise 了、没人听」**
+
+**我声明了两个事件而仓里没人订阅。而白名单里第一条是先例：
+`["CanExecuteChanged"] = "contract: ICommand requires it; Avalonia subscribes"`。
+这两条同形 —— 接口**要求**声明，订阅者在 UI 里（YG 说不急的那层）。
+→ 登记为契约事件，并写明「声明是契约；还没人听是工作的状态，不是坏掉的承诺」。**
+
+**② `BindScopeGuardTests`：`KnownUnseenTypes` 5 → 6**
+
+**`ObservableDictionary<TKey,TValue>` 是第二个双泛型类型，而 `bind_scope` 的 `DECL` 正则只匹配无类型参数的声明
+→ 对 `bind_diff` 存在、对 `bind_scope` 不可见。**
+**而那个守卫的注释写着「if it grows, someone narrowed it … the change becomes deliberate」→ 5→6 是按规矩改的。**
+
+### 而函数数不变
+
+**173,952 → 173,952，因为**没有任何东西实例化它**（R963/R967 的规则在起作用）。
+所以它不是缺口（类型存在性已通过），而是**尚未接线** —— 与 R965 发现的 34 个覆写同一种状态。**
+
+### 数字
+
+| 度量 | R975 | **R976** |
+|---|---|---|
+| 套件 | 2186 | **2196** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952（无人实例化）** |
+| **类型缺失** | 16 | **15** |
+| **核心类型缺失** | 1 | **0** |
+
+### 教训
+
+> **两个守卫红了，而两次都不是要绕过它们 —— 它们问的都是对的问题，
+> 而答案是「这是契约事件」和「它是双泛型」。**
+> **最有价值的不是那个类，是**两条守卫都要求一个理由，而我给得出**。如果给不出，那才是问题。**

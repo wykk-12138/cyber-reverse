@@ -13570,3 +13570,89 @@ Vercel         VercelBotIdSolver
 > **两轮都在同一个地方回滚 —— 而那说明我该交的不是第三次尝试，是**完整清单**。
 > → 而清单里最有价值的一行是第 9 项：它说明**第 1–8 项的正确形态取决于一个新厂商该不该进另外两张表**。
 > → 所以在答第 9 项之前，任何一次「把数字改绿」都是**为了让测试闭嘴**。**
+
+
+### 第 9 项**由代码答了**；而范围是 **11 处**，不是 9（R1051）
+
+**R1050 说第一步是答第 9 项（两个新行该不该进 `AntiBotVendors` 与 wall dispatch）。答了，而答案是**代码里写着的**。
+然后把 9 处都改了 —— 红了 6 个，其中 **3 处是清单里没有的**。**
+
+### ① 第 9 项的答案在 `AntiBotVendors` 自己的注释里
+
+**`NamedButNotHandled` 那段写着 Riskified 为什么在那里：**
+
+> 「Riskified 有三个 host 和四个 cookie，**而没有 handler**：`BuildRiskified` / `HandleRiskified` / `GetRiskified`
+> 都缺席，**不像 `BuildForterSessionId` 或 `GetKasada`** 对 `All` 里的厂商那样。」
+
+**→ 所以判据是**「有没有 handler 名字」**，而那是一个**可查的事实**，不是判断口味。**
+
+| 厂商 | handler 名字 | 判定 |
+|---|---|---|
+| `BotDeflector` | `SubmitBotDeflectorChallenge` · `SolveBotDeflectorPow` · `SolveBotDeflectorIcons` | **三个 ⇒ 进 `All`** |
+| `Vercel` | `VercelBotIdSolver` · `VercelChallengeHandler` | **两个 ⇒ 进 `All`** |
+
+**→ 而 `State.Wired` 是**另一个问题**：它的注释是「Detect → solve → store all exist」——**复刻件侧**。
+→ 复刻件没有这两个 solver ⇒ **`State.DetectedOnly`**（正是 R1025 给 queue-it 的读法：「recognised, with no solver here」）。
+→ 而 wall dispatch 只派 `Wired` ⇒ **不动**。
+
+**→ 所以第 9 项答完，而它把两处从「Wired」改成「DetectedOnly」，并把 `AntiBotVendors.All` 加了两个条目。**
+**→ 两张表**不矛盾**：一张答「镜像能不能」，一张答「复刻件能不能」。**
+
+### ② 而 9 处都改了，红了 6 个
+
+| 红 | 性质 |
+|---|---|
+| `TheCookieTableHasFiveAndImpervaIsNotOne` | 清单第 8 项（「五」→ 六） |
+| `FiveVendorsHaveCookiesAndPerimeterXIsOne` | 同上 |
+| `AntiBotProtocolTests.FiveVendorsHaveCookieFamilies` | 同上 |
+| **`AntiBotVendorTests.TheImageKnowsEightVendors`** | **第 10 处**：`All` 的数量被一个测试名钉着（8 → 10） |
+| **`WallDispatchTests.OnlyWiredWallsAreDispatched`** | **第 11 处（真问题）**：它大概要求每行都要么 `Wired` 要么被明确登记「不派发」 |
+| **`VendorWiringTests.TheGapsAreClassified`** | **第 11 处（真问题）**：新行的 `Gap` / `MarkerSource` 组合不在分类表里 |
+
+**→ 所以第 9 项答对了两处（`Wired` → `DetectedOnly`），而没有消掉那两个红 ——
+→ 说明它们的判据**不是**「是不是 Wired」，是别的东西，而那要读那两个测试的正文才知道。**
+
+### ③ 三次尝试的轨迹，而那本身是结论
+
+| 轮 | 估的范围 | 结果 |
+|---|---|---|
+| R1049 | **4 处** | 红 4（3 计数 + 1 真问题），回滚 |
+| R1050 | **9 处** | 红 5（3 计数 + 2 真问题），回滚 |
+| **R1051** | **9 处（含第 9 项）** | **红 6（3 计数 + 1 新计数 + 2 真问题），回滚** |
+
+**→ 三次都在同一处回滚，而每次的清单都**更长**而不是更短。
+→ 那说明：**这个仓的行数不是「一个数字」，而是被**若干测试名 + 若干分类表**共同钉着的，
+→ 而它们无法靠「想一遍」列全。**
+**→ 正确做法不是第四次尝试，是**先 grep 所有提到这批厂商或这个行数的测试**，一次看清全部钉子。**
+
+### ④ 而这就是本轮的交付
+
+**回滚后：`rows=7 · missing=7` · 套件 **2258 / 0 / 0** · 树绿（除生成的表）。**
+
+| 项 | 状态 |
+|---|---|
+| 第 9 项（该不该进两张表） | **答了 —— handler 名字判据，两个都进 `All`，`State` 为 `DetectedOnly`** |
+| 9 处改动 | 全部 applied 后又全部回滚 |
+| 新增的第 10 处 | **`TheImageKnowsEightVendors`（`All` 从 8 → 10）** |
+| 第 11 处（两个真问题） | `OnlyWiredWallsAreDispatched` · `TheGapsAreClassified` —— **要读正文才知道判据** |
+
+### ⑤ 数字
+
+| 度量 | R1050 | **R1051** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0（回滚后）** |
+| 函数数 | 174,293 | **174,293** |
+| **第 9 项** | 「待答」 | **答了（handler 判据）** |
+| **改了处数** | 5 | **7 patch / 9 处** |
+| **transient 红** | 5 | **6（4 计数 + 2 真问题）** |
+| **真实范围估计** | 9 | **11（其中 3 真问题）** |
+| **`VendorWiring` 行数** | 7 | **7（回滚）** |
+| **真厂商缺口** | 2 | **2（回滚）** |
+
+### 教训
+
+> **「列清单再改」在第三次失败了，而失败的方式一致：清单每次都少两处。
+> → 因为钉子不在一个地方 —— 有的在**测试名里**（`ThreeOfSeven` · `FiveVendors` · `TheImageKnowsEight`），
+> 有的在**分类表里**（`TheGapsAreClassified`），有的在**派发映射里**（`OnlyWiredWallsAreDispatched`）。**
+> **→ 而它们只有一样东西是共同的：都在说「你改了一处，我还有意见」。
+> → 所以下一次不是猜清单，是**让工具告诉我有几处** —— grep 出全部钉子，一次看完。**

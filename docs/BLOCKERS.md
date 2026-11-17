@@ -37085,3 +37085,57 @@ Vercel        VercelBotIdSolver · x-vercel-challenge-{token,solution,version}
 | **真实范围** | 「4 件事」 | **9 件事** |
 
 **纪律**：两轮在同一处回滚 ⇒ 该交的是完整清单，不是第三次尝试。
+
+---
+
+## 475. **第 9 项由代码答了；真实范围 11 处；三次尝试后回滚**
+
+
+## R1051 —— **第 9 项由代码答了；范围是 11 处不是 9；三次尝试后回滚**（套件 2258 绿）
+
+### 第 9 项的答案在 `AntiBotVendors` 自己的注释里
+
+**`NamedButNotHandled` 那段说 Riskified 在那里是因为 `Build/Handle/GetRiskified` **缺席**，
+「不像 `BuildForterSessionId` 或 `GetKasada`」⇒ **判据是「有没有 handler 名字」**。
+
+| 厂商 | handler | 判定 |
+|---|---|---|
+| `BotDeflector` | `SubmitBotDeflectorChallenge` · `SolveBotDeflectorPow` · `SolveBotDeflectorIcons` | **进 `All`** |
+| `Vercel` | `VercelBotIdSolver` · `VercelChallengeHandler` | **进 `All`** |
+
+**→ 而 `State.Wired` 是**复刻件侧**（Detect→solve→store 都要有）⇒ 复刻件无 solver ⇒ **`DetectedOnly`**。
+→ wall dispatch 只派 `Wired` ⇒ 不动。**两张表不矛盾：一张答镜像，一张答复刻件。**
+
+### 而 9 处全改后红了 6
+
+| 红 | 性质 |
+|---|---|
+| 三处「五」 | 清单第 8 项 |
+| **`TheImageKnowsEightVendors`** | **第 10 处**（`All` 8→10） |
+| **`OnlyWiredWallsAreDispatched`** | **第 11 处（真问题）** |
+| **`TheGapsAreClassified`** | **第 11 处（真问题）** |
+
+**⇒ 答对了两处（`Wired`→`DetectedOnly`）而变化没消掉那两个红 ⇒ 它们的判据不是「是不是 Wired」，要读正文。**
+
+### 三次尝试的轨迹
+
+| 轮 | 估 | 红 |
+|---|---|---|
+| R1049 | 4 | 4（3 计数 + 1 真） |
+| R1050 | 9 | 5（3 计数 + 2 真） |
+| **R1051** | 9 | **6（4 计数 + 2 真）** |
+
+**⇒ 每次清单都更长。钉子分散在**测试名**、**分类表**、**派发映射**三处，靠想列不全。**
+
+### 数字
+
+| 度量 | R1050 | **R1051** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 函数数 | 174,293 | **174,293** |
+| **第 9 项** | 待答 | **答了** |
+| **改了处数** | 5 | **7 patch / 9 处** |
+| **transient 红** | 5 | **6（4 计数 + 2 真）** |
+| **真实范围** | 9 | **11** |
+
+**纪律**：下一次不是猜清单，是**grep 出全部钉子，一次看完**。

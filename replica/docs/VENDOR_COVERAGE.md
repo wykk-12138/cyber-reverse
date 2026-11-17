@@ -30,7 +30,7 @@
 | **PayPal 3DS** | **9** | `0x146e93fb4` |
 | **captcha** | **1** | `0x146e94334` |
 | **proof of work** | **1** | `0x146e93f74` |
-| **checkpoint** | **1** | `0x146e94464` |
+| **checkpoint** | **0** | `—` |
 
 **注意形状差异**（AGENTS §2.7）：Kasada 从不以 `Solving` 出现 —— 它只在 `x-kpsdk-*` 头里；
 Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。
@@ -50,7 +50,7 @@ Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。
 | `perimeterx` | `DetectedOnly` | `Local` | False |
 | `queue-it` | `DetectedOnly` | `Local` | False |
 
-### 原版点名而台账里没有的（7）
+### 原版点名而台账里没有的（6）
 
 | 缺的 | 命中 | 类别 | 处置 |
 |---|---|---|---|
@@ -60,12 +60,11 @@ Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。
 | **PayPal 3DS** | 9 | payment | 九条分期文案（`(1)`…`(8)` 加无条件），是 3DS 流程的阶段，同样**不属于站点风控台账**。→ 归支付层。分期数本身是有用证据：3DS 有 8 个可观察阶段。 |
 | **captcha** | 1 | challenge | 通用验证码挑战，不是某个厂商 ⇒ 台账形状不建模，且不该建模。 |
 | **proof of work** | 1 | challenge | 通用 PoW 挑战，同上。注意镜像原文拼作 `challange` —— 保留拼写，不修正。 |
-| **checkpoint** | 1 | challenge | 通用检查点，同上。 |
 
 **→ 分成两类，而这是完成判据 (f) 要的「未覆盖的每条写为什么」：**
 
 - **真厂商缺口 2 个**（`BotDeflector` · `Vercel`）：`VendorWiring` 应该补行。
-- **不属于这张表的 5 个**（`Stripe challenge` · `PayPal 3DS` · `captcha` · `proof of work` · `checkpoint`）：它们不是站点风控厂商 —— 支付挑战归支付层，通用挑战类型是 `VendorWiring` 的形状不该建模的东西。
+- **不属于这张表的 4 个**（`Stripe challenge` · `PayPal 3DS` · `captcha` · `proof of work`）：它们不是站点风控厂商 —— 支付挑战归支付层，通用挑战类型是 `VendorWiring` 的形状不该建模的东西。
 
 **→ 这些是 `VendorWiring` 的缺口**：原版对它们有进度文案，说明原版确实走到那一步，
 而台账没有对应的行 ⇒ 按 (f)「未覆盖的每条写为什么」。

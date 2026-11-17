@@ -9110,3 +9110,49 @@ Unsupported Queue-it BotDeflector page · /softblock ·
 | `BotDeflector` 页是否另一套流程 | 未取证 |
 
 **纪律**：读一段输出时，把不回答我问题的那些行也读一遍。
+
+
+## 优先级 ② — **`-99` 不是 0（正则非法）；两层文案结构；加 `How` 列（RemoteApi 只有两家）**（R1026）
+
+### 判据缺陷
+
+**`ida.py str` 收正则 ⇒ `"Cloudflare Failed ("` 未转义 `(` 让正则非法 ⇒ 查询抛错 ⇒ 哨兵 `-99`。
+**六行 `-99` 不是「0 命中」**。修法 `re.escape()`；转义后六行全 `n=0`。**
+
+**→ R1015/R1016 那条第三次：一个「0」可以是假的，「-99」更坏 —— 它连查询都没跑成。**
+
+### 两层结构
+
+| 层 | 形 |
+|---|---|
+| 检测层 | `<Vendor> Failed` · `Blocked` · `block` · `(Rotating)` |
+| 求解层 | `Solving <Vendor> (...)` · `Failed Solving <Vendor> (...)`（带原因：no clearance · too many rounds · TL · SBSD · SDS · Softblock） |
+
+### 而 `API down (Contact staff)` 只有两家
+
+`Kasada API down (Contact staff)` · `Akamai API down (Contact Staff)` → **经远端服务解**；
+其余四家**本地解**（本地例程不会「挂」，它只是失败）。
+
+### 加 `How` 列（第 8 列）
+
+```csharp
+public enum How { None, Local, RemoteApi, Unknown }
+```
+
+`kasada` `akamai` = `RemoteApi` · `cloudflare` `datadome` `perimeterx` `queue-it` = `Local` ·
+`imperva` = `None`。`Unknown` 无使用者（留给将来）。
+
+### 4 条守卫
+
+`OnlyTheTwoWithAnOutageLineAreRemote`（**行序**）· `TheOthersSplitBetweenLocalAndNone` ·
+`NoRowClaimsUnknownYet` · `TheColumnDistinguishesTheTwo`
+
+### 数字
+
+**套件 2241（+4）· 陈旧度 4 / 3,859 · 函数数 174,336 · Row 列 7 → 8 · RemoteApi 2 · 行序坑 3 次**
+
+| 仍 Unknown | |
+|---|---|
+| kasada/akamai 的远端服务是哪个 | 未取证 |
+
+**纪律**：读到任何非正数，先问「这个查询跑成了吗」。

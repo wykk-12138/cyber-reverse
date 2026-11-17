@@ -11631,3 +11631,101 @@ akamai 是「镜像解它，我们没写」；queue-it 是「镜像解 softblock
 > **→ 而每次的反证据都在**同一个查询的输出里**（`DdInterstitialClient` · `Solving PerimeterX` ·
 > `Fetching Queue-it challenge`）—— 我只读了它在回答的那个问题。**
 > **→ 所以真正的纪律不是「别下结论」，是：**读一段输出时，把不回答我问题的那些行也读一遍**。**
+
+
+### `-99` 不是 0；而转义之后露出一个**两层结构**（R1026）
+
+**R1025 说下一轮做 `BotDeflector` 或 softblock 协议。改成了先做一件更基础的事：
+把七个 vendor 的**处置文案**一次问完（按 R1025 的教训，读不走我问题的那几行）。**
+
+### ① 而第一批查询里有六行 `n=-99` —— 那不是「没有」
+
+**`ida.py str` 收**正则**。而 `"Cloudflare Failed ("` 那个未转义的 `(` 让正则非法 ⇒ 查询抛错 ⇒
+我的哨兵值 `-99`。**
+
+**→ 而我差点把 `-99` 读成「0 命中」。
+→ 那是 R1015/R1016 那条的第三次：**一个「0」可以是假的，而「-99」更是** —— 它连查询都没跑成。**
+
+**→ 修法：`re.escape()`。转义之后六行全部 `n=0`，干净。**
+
+### ② 而转义之后露出一个**两层结构**
+
+```
+Failed Solving Cloudflare (   n=3    → no clearance · too many rounds
+Solving Cloudflare (          n=12
+Akamai Failed (               n=1    → Akamai Failed (Rotating)
+其余六家 Failed (             n=0
+```
+
+**→ 原版的失败文案分成两层：**
+
+| 层 | 形 | 例 |
+|---|---|---|
+| **检测层** | `<Vendor> Failed` · `Blocked` · `block` · `(Rotating)` | `Akamai Blocked (IP)` · `PerimeterX block (Rotating proxy)` · `Akamai block (Rotating...)` |
+| **求解层** | `Solving <Vendor> (...)` · `Failed Solving <Vendor> (...)` | `Solving Cloudflare (no clearance)` · `Failed solving Kasada (TL)` · `Solving Akamai (SBSD)` · `Error Solving Queue-it (Softblock)` |
+
+### ③ 而关键的那一条：`API down (Contact staff)` **只有两家**
+
+```
+Kasada API down (Contact staff)      0x146dda8dc
+Akamai API down (Contact Staff)      0x146b4010c
+Akamai API down (Contact staff)      0x146b40164
+```
+
+**→ 其余四家**没有**这条。
+→ 而一个 **API 会挂**，一个**本地例程不会** —— 它只是失败。**
+
+> **→ 所以 kasada 与 akamai 是**经远端服务解**，而 cloudflare / datadome / perimeterx / queue-it 是**本地解**。
+> → 那是一个新的、可验证的结构事实 —— 而它从「读了两层的文案」得到，不是从任何一句话推的。**
+
+### ④ 所以加第八列 `How`
+
+```csharp
+public enum How { None, Local, RemoteApi, Unknown }
+```
+
+| vendor | How | 依据 |
+|---|---|---|
+| **kasada** | **`RemoteApi`** | `Kasada API down (Contact staff)` 在镜像里 |
+| **akamai** | **`RemoteApi`** | `Akamai API down (Contact Staff)` + 两个 solver 模式 |
+| cloudflare | `Local` | 词汇是轮次与 clearance，无 outage 行 |
+| datadome | `Local` | `Solving DataDome (I)`，无 outage 行 |
+| perimeterx | `Local` | `Solving PerimeterX`，无 outage 行 |
+| queue-it | `Local` | `Error Solving Queue-it (Softblock)`，无 outage 行 |
+| **imperva** | **`None`** | 无解 — 与 R1021 一致 |
+
+**→ `Unknown` 存在但**无使用者** —— 那是给它**将来**用的（一个说不清的行该说 `Unknown` 而不是猜）。**
+
+### ⑤ 4 条守卫
+
+| 守卫 | 断言 |
+|---|---|
+| `OnlyTheTwoWithAnOutageLineAreRemote` | `RemoteApi` 恰好 = `{kasada, akamai}`（**行序**） |
+| `TheOthersSplitBetweenLocalAndNone` | `Local` = 四家 · `None` = `{imperva}` |
+| `NoRowClaimsUnknownYet` | 无行用 `Unknown` |
+| `TheColumnDistinguishesTheTwo` | `RemoteApi` 与 `Local` 都非空（列**有信息**） |
+
+### ⑥ 而**行序**那个坑我第三次撞上
+
+**`RemoteApi` 的期望值我第一版写 `{ "akamai", "kasada" }`（字母序），红了。
+→ 那是 R1009（`Wired` 行序）与 R1024（`Gaps` 行序）之后**第三次**。
+→ 所以这次我把「行序不是字母序」写进了断言旁边的注释，而不是只改对。**
+
+### ⑦ 数字
+
+| 度量 | R1025 | **R1026** |
+|---|---|---|
+| 套件 | 2237 / 0 | **2241 / 0 / 0（+4）** |
+| 产物陈旧度 | 4 / 3,835 | **4 / 3,859** |
+| 函数数 | 174,336 | **174,336** |
+| **`Row` 的列** | 7 | **8（+`How`）** |
+| **`RemoteApi` 厂商** | 未知 | **2（kasada · akamai）** |
+| **`n=-99` 的含义** | 未注意 | **查询失败（正则非法），不是 0** |
+| **行序坑** | 2 次 | **3 次（注释已记）** |
+
+### 教训
+
+> **`-99` 是我自己设的哨兵，而它掩盖的是一次**语法错误** —— 我差点把它读成「没有」。**
+> **→ 一个「0」可以是假阴性（R1015/R1016），而一个「-99」更坏：它连问题都没问出去。
+> → 而两者在输出里长得一样安静。**
+> **→ 所以读到任何非正数，第一个问题不是「所以是多少」，是「这个查询跑成了吗」。**

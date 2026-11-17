@@ -61230,3 +61230,71 @@ queue-it 是「镜像解 softblock，我们只等待」。两者都是「镜像�
 > → 而每次的反证据都在**同一个查询的输出里**（`DdInterstitialClient` · `Solving PerimeterX` ·
 > `Fetching Queue-it challenge`）—— 我只读了它在回答的那个问题。**
 > **→ 所以真正的纪律不是「别下结论」，是：**读一段输出时，把不回答我问题的那些行也读一遍**。**
+
+
+---
+
+## 第 1026 轮：`-99` 不是 0；而转义之后露出一个两层结构
+
+### ① 第一批查询有六行 `n=-99` —— 那不是「没有」
+
+**`ida.py str` 收正则，而 `"Cloudflare Failed ("` 里未转义的 `(` 让正则非法 ⇒ 查询抛错 ⇒ 哨兵 `-99`。**
+
+**→ 我差点把 `-99` 读成「0 命中」。那是 R1015/R1016 那条的第三次：
+**一个「0」可以是假的，「-99」更是** —— 它连查询都没跑成。
+→ 修法 `re.escape()`；转义后六行全部 `n=0`。**
+
+### ② 而转义之后露出一个**两层结构**
+
+| 层 | 形 | 例 |
+|---|---|---|
+| **检测层** | `<Vendor> Failed` · `Blocked` · `block` · `(Rotating)` | `Akamai Blocked (IP)` · `PerimeterX block (Rotating proxy)` |
+| **求解层** | `Solving <Vendor> (...)` · `Failed Solving <Vendor> (...)` | `Solving Cloudflare (no clearance)` · `Failed solving Kasada (TL)` · `Solving Akamai (SBSD)` |
+
+### ③ 而 `API down (Contact staff)` **只有两家**
+
+```
+Kasada API down (Contact staff)      0x146dda8dc
+Akamai API down (Contact Staff)      0x146b4010c
+Akamai API down (Contact staff)      0x146b40164
+```
+
+**→ 一个 API 会挂，一个本地例程不会 —— 它只是失败。
+→ 所以 kasada 与 akamai 是**经远端服务解**，其余四家是**本地解**。那是一个可验证的结构事实。**
+
+### ④ 加第八列 `How`
+
+```csharp
+public enum How { None, Local, RemoteApi, Unknown }
+```
+
+**kasada · akamai = `RemoteApi` · cloudflare · datadome · perimeterx · queue-it = `Local` ·
+imperva = `None`。`Unknown` 存在但无使用者 —— 给将来「说不清」的行用。**
+
+### ⑤ 4 条守卫
+
+`OnlyTheTwoWithAnOutageLineAreRemote` · `TheOthersSplitBetweenLocalAndNone` ·
+`NoRowClaimsUnknownYet` · `TheColumnDistinguishesTheTwo`
+
+### ⑥ 而**行序**那个坑我第三次撞上
+
+**期望值第一版写字母序，红了。R1009（`Wired`）· R1024（`Gaps`）之后第三次。
+→ 这次把「行序不是字母序」写进了断言旁的注释，而不是只改对。**
+
+### ⑦ 数字
+
+| 度量 | R1025 | **R1026** |
+|---|---|---|
+| 套件 | 2237 / 0 | **2241 / 0 / 0（+4）** |
+| 产物陈旧度 | 4 / 3,835 | **4 / 3,859** |
+| 函数数 | 174,336 | **174,336** |
+| **`Row` 的列** | 7 | **8（+`How`）** |
+| **`RemoteApi` 厂商** | 未知 | **2** |
+| **`n=-99` 的含义** | 未注意 | **查询失败，不是 0** |
+| **行序坑** | 2 次 | **3 次** |
+
+### 教训
+
+> **`-99` 是我自己设的哨兵，而它掩盖的是一次**语法错误**。一个「0」可以是假阴性，而一个「-99」更坏：
+> 它连问题都没问出去。而两者在输出里长得一样安静。**
+> **→ 读到任何非正数，第一个问题不是「所以是多少」，是「这个查询跑成了吗」。**

@@ -28975,3 +28975,111 @@ python tools/metrics_report.py -> 完整套件 exit 0  2237 / 0 / 0
   `Fetching Queue-it challenge`）—— 我只读了它在回答的那个问题。**
 
 **→ 所以真正的纪律不是「别下结论」，是：**读一段输出时，把不回答我问题的那些行也读一遍**。**
+
+
+---
+
+## 450. **`-99` 不是 0；两层文案结构；加 `How` 列**
+
+> R1026。**改 1 个源文件 + 加 1 个测试文件。** 套件 **2241 通过 / 0 失败 / 0 跳过**。
+
+### 一、第一批查询有六行 `n=-99` —— 那不是「没有」
+
+**`ida.py str` 收**正则**。而 `"Cloudflare Failed ("` 那个未转义的 `(` 让正则非法 ⇒ 查询抛错 ⇒
+  我的哨兵值 `-99`。**
+
+**→ 而我差点把 `-99` 读成「0 命中」。
+→ 那是 R1015/R1016 那条的第三次：**一个「0」可以是假的，而「-99」更是** —— 它连查询都没跑成。
+→ 修法：`re.escape()`。转义之后六行全部 `n=0`，干净。**
+
+### 二、转义之后露出一个**两层结构**
+
+```
+Failed Solving Cloudflare (   n=3    → no clearance · too many rounds
+Solving Cloudflare (          n=12
+Akamai Failed (               n=1    → Akamai Failed (Rotating)
+其余六家 Failed (             n=0
+```
+
+| 层 | 形 | 例 |
+|---|---|---|
+| **检测层** | `<Vendor> Failed` · `Blocked` · `block` · `(Rotating)` | `Akamai Blocked (IP)` · `PerimeterX block (Rotating proxy)` |
+| **求解层** | `Solving <Vendor> (...)` · `Failed Solving <Vendor> (...)` | `Solving Cloudflare (no clearance)` · `Failed solving Kasada (TL)` · `Solving Akamai (SBSD)` |
+
+### 三、而 `API down (Contact staff)` **只有两家**
+
+```
+Kasada API down (Contact staff)      0x146dda8dc
+Akamai API down (Contact Staff)      0x146b4010c
+Akamai API down (Contact staff)      0x146b40164
+```
+
+**→ 一个 **API 会挂**，一个**本地例程不会** —— 它只是失败。
+→ 所以 kasada 与 akamai 是**经远端服务解**，其余四家是**本地解**。**
+
+### 四、所以加第八列 `How`
+
+```csharp
+public enum How { None, Local, RemoteApi, Unknown }
+```
+
+| vendor | How | 依据 |
+|---|---|---|
+| **kasada** | **`RemoteApi`** | `Kasada API down (Contact staff)` |
+| **akamai** | **`RemoteApi`** | `Akamai API down (Contact Staff)` + 两个 solver 模式 |
+| cloudflare · datadome · perimeterx · queue-it | `Local` | 求解词汇是轮次/原因，无 outage 行 |
+| **imperva** | **`None`** | 无解（与 R1021 一致） |
+
+**→ `Unknown` 存在但**无使用者** —— 给将来「说不清」的行用。**
+
+### 五、4 条守卫
+
+| 守卫 | 断言 |
+|---|---|
+| `OnlyTheTwoWithAnOutageLineAreRemote` | `RemoteApi` 恰好 = `{kasada, akamai}`（**行序**） |
+| `TheOthersSplitBetweenLocalAndNone` | `Local` = 四家 · `None` = `{imperva}` |
+| `NoRowClaimsUnknownYet` | 无行用 `Unknown` |
+| `TheColumnDistinguishesTheTwo` | `RemoteApi` 与 `Local` 都非空 |
+
+### 六、而**行序**那个坑我第三次撞上
+
+**期望值第一版写 `{ "akamai", "kasada" }`（字母序），红了。
+→ 那是 R1009（`Wired` 行序）与 R1024（`Gaps` 行序）之后**第三次**。
+→ 这次把「行序不是字母序」写进了断言旁的注释，而不是只改对。**
+
+### 七、数字
+
+| 度量 | R1025 | R1026 |
+|---|---|---|
+| 套件 | 2237 / 0 | **2241 / 0 / 0（+4）** |
+| 产物陈旧度 | 4 / 3,835 | **4 / 3,859** |
+| 函数数 | 174,336 | **174,336** |
+| **`Row` 的列** | 7 | **8（+`How`）** |
+| **`RemoteApi` 厂商** | 未知 | **2（kasada · akamai）** |
+| **`n=-99` 的含义** | 未注意 | **查询失败（正则非法），不是 0** |
+
+### 八、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "Kasada Failed \("     -> {"n":0}
+python analysis/ida.py str "Akamai Failed \("     -> {"n":1}（Akamai Failed (Rotating)）
+python analysis/ida.py str "Kasada API down"       -> {"n":1}
+python analysis/ida.py str "Akamai API down"       -> {"n":2}
+cd replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug  -> 已成功生成
+dotnet test --filter "FullyQualifiedName~VendorSolvingMode|~Vendor" -m:1 -> 51 通过
+python tools/metrics_report.py -> 完整套件 exit 0  2241 / 0 / 0
+```
+
+### 九、仍然 Unknown
+
+- **kasada / akamai 的远端服务是哪个**：**未取证**。
+
+### 十、教训
+
+**`-99` 是我自己设的哨兵，而它掩盖的是一次**语法错误** —— 我差点把它读成「没有」。**
+
+**→ 一个「0」可以是假阴性（R1015/R1016），而一个「-99」更坏：它连问题都没问出去。
+→ 而两者在输出里长得一样安静。**
+**→ 所以读到任何非正数，第一个问题不是「所以是多少」，是「这个查询跑成了吗」。**

@@ -102,9 +102,33 @@ public static class VendorWiring
         NoPageMarker,
     }
 
+    /// <summary>
+    /// How the image solves a vendor, when it does.
+    ///
+    /// <para>
+    /// R1026. The image's outcome vocabulary splits in two: detection-layer lines are "&lt;Vendor&gt; Failed",
+    /// "Blocked", "block" and "(Rotating)", while solving-layer lines are "Solving &lt;Vendor&gt; (...)" and
+    /// "Failed Solving &lt;Vendor&gt; (...)" carrying a reason -- no clearance, too many rounds, TL, SBSD, SDS,
+    /// Softblock. Reading both families gives a third thing the audit did not have: only Kasada and Akamai carry
+    /// "&lt;Vendor&gt; API down (Contact staff)", which means those two are solved through a remote service and the
+    /// others locally. An API can go down; a local routine cannot, it just fails.
+    /// </para>
+    /// </summary>
+    public enum How
+    {
+        /// <summary>No solving step in the image.</summary>
+        None,
+        /// <summary>Solved in-process; the failure vocabulary describes rounds and clearance, not an outage.</summary>
+        Local,
+        /// <summary>Solved through a remote service; the vocabulary includes "API down (Contact staff)".</summary>
+        RemoteApi,
+        /// <summary>Not established, and this column says so rather than guessing.</summary>
+        Unknown,
+    }
+
     /// <summary>One row of the audit.</summary>
     public sealed record Row(string Vendor, string Marker, string? Cookie, State State, string Note,
-        MarkerSource MarkerFrom, Gap Gap);
+        MarkerSource MarkerFrom, Gap Gap, How How);
 
     /// <summary>The audit, in the order <c>DetectAsync</c> tests its markers.</summary>
     public static readonly IReadOnlyList<Row> Rows = new[]
@@ -114,11 +138,11 @@ public static class VendorWiring
             + "from cf-chl, which the image does not contain, to challenge-platform, which it carries twice as "
             + "/cdn-cgi/challenge-platform/ -- page-level, which is what DetectAsync reads. cf_clearance and __cf_bm "
             + "are in the image too but are cookie names, so they belong in the cookie column where cf_clearance sits.",
-            MarkerSource.ImageLiteral, Gap.None),
+            MarkerSource.ImageLiteral, Gap.None, How.Local),
 
         new Row("kasada", "kpsdk", "kpsdk", State.Wired,
             "R141: KasadaClearance runs the four-road strategy and writes the token",
-            MarkerSource.ImageLiteral, Gap.None),
+            MarkerSource.ImageLiteral, Gap.None, How.RemoteApi),
 
         // R1024: Akamai was missing from this audit while being the vendor the image documents most thoroughly --
         // analysis/endpoints.md lists twenty-five literals for it. Verified in this round, in address order:
@@ -139,7 +163,7 @@ public static class VendorWiring
             + "original both solves it and can route around it. This replica detects it and has no solver: the name turns "
             + "up in its source only inside fanatics' and casio's 403 messages. DetectedOnly is therefore a statement "
             + "about the replica, not about the artifact.",
-            MarkerSource.ImageLiteral, Gap.None),
+            MarkerSource.ImageLiteral, Gap.None, How.RemoteApi),
 
         new Row("imperva", "_Incapsula_Resource", null, State.DetectedOnly,
             "R1021: two independent sources agree the vendor is absent. None of six spellings is in the artifact "
@@ -147,13 +171,13 @@ public static class VendorWiring
             + "vendors, each carrying the literals that prove it -- does not list Imperva, nor does NamedButNotHandled. "
             + "The branch is kept as an extension so an Imperva wall on a store the original never covered is reported "
             + "rather than swallowed as a product page; it fires only on a page naming the resource.",
-            MarkerSource.Inferred, Gap.VendorAbsent),
+            MarkerSource.Inferred, Gap.VendorAbsent, How.None),
 
         new Row("datadome", "datadome", "datadome", State.Wired,
             "R996: DataDomeClearance runs the sensor at datadome.cybersole.io/sensor, narrates the image's four stages "
             + "and writes the datadome cookie. R141's correction stands -- SolveBotD proved the original solves it -- and "
             + "what was missing was the call, which now exists and which SolveDetectedWallAsync dispatches to.",
-            MarkerSource.ImageLiteral, Gap.None),
+            MarkerSource.ImageLiteral, Gap.None, How.Local),
 
         // R1022: Gap.NoPageMarker now has a second witness. AntiBotVendors has carried a PerimeterX entry since
         // before this audit, and none of its literals is a page-level string (R1023 added a fifth, "Solving PerimeterX",
@@ -178,7 +202,7 @@ public static class VendorWiring
             + "literals to this vendor when they are DataDome's -- DdInterstitialClient sits beside them -- so DetectAsync "
             + "now routes them to datadome and this row keeps px-captcha as the only marker it can claim, which the image "
             + "does not carry.",
-            MarkerSource.Inferred, Gap.NoPageMarker),
+            MarkerSource.Inferred, Gap.NoPageMarker, How.Local),
 
         // R1025: this row said NotAChallenge -- "a queue, not a wall: the correct handling is to wait" -- and the image
         // says otherwise in eight places. Verified this round:
@@ -201,7 +225,7 @@ public static class VendorWiring
             + "/challengeapi/queueitcaptcha/challenge/ and seven X-queueit-challange-* headers -- so waiting is part of "
             + "the handling rather than all of it. Rows earlier in this file called it NotAChallenge; that was reading "
             + "the waiting room as the whole vendor.",
-            MarkerSource.ImageLiteral, Gap.None),
+            MarkerSource.ImageLiteral, Gap.None, How.Local),
     };
 
     /// <summary>Vendors whose call chain is complete.</summary>

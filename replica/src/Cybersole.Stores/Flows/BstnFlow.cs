@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Cybersole.Http;
 
 namespace Cybersole.Stores.Flows;
 
@@ -140,6 +141,43 @@ public class BstnFlow : StoreFlow
         Task.FromResult(StepOutcome.Fail(
             "bstn: cart endpoint unknown — /cart.js is 404 and the cart lives under /api/beast/ " +  // inferred: no image evidence (R294)
             "at a path not yet captured"));
+
+    /// <summary>
+    /// BSTN's CSRF token, read the way this shop actually serves it.
+    ///
+    /// <para>
+    /// R964. R963 established that a virtual method on StoreFlow survives into the artifact only when a concrete flow
+    /// overrides it, because the dispatch table is reflection-based and reflection does not root methods under NativeAOT.
+    /// Writing shared base bodies, which is what the previous eight rounds did, therefore changed nothing in the artifact.
+    /// This is the first override written to test that conclusion rather than assume it, and it carries a string no other
+    /// code in the repository contains so the artifact can be checked instead of trusted.
+    /// </para>
+    ///
+    /// <para>
+    /// The page is fetched once. The token is looked for in the shop's own shape first -- a hidden input on the cart form --
+    /// and then in the two fallbacks every shop of this generation also uses, and a miss is a failure rather than a
+    /// success, because a POST without a token is refused further downstream where the cause is invisible.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetCsrfAsync(FlowContext c, CancellationToken ct)
+    {
+        var page = await c.Http.GetAsync("https://www.bstn.com/", new RequestOptions(), ct).ConfigureAwait(false);
+
+        if (page.StatusCode is < 200 or >= 300)
+            return StepOutcome.Fail("bstn: csrf page " + page.StatusCode, retryable: page.StatusCode is 429 or >= 500);
+
+        var token = StoreFlow.FindCsrfToken(page.Body);
+
+        if (string.IsNullOrEmpty(token) && page.Cookies.TryGetValue("csrftoken", out var cookie))
+            token = cookie;
+
+        if (string.IsNullOrEmpty(token))
+            return StepOutcome.Fail("bstn: no csrf token on the landing page", retryable: false);
+
+        c.Session.CsrfToken = token;
+        c.Session.Vars["csrfToken"] = token;
+        return StepOutcome.Success();
+    }
 
     public override Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(StepOutcome.Fail("bstn: cart endpoint unknown"));

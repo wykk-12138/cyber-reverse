@@ -6772,3 +6772,41 @@ FindSlot · GetReleaseFeed · LoadCountryData · ProcessResponse · Fill · GetS
 | 剩 34 个空壳里哪些该由 flow 覆写 | 需逐站取证 |
 
 **纪律**：一个指标能在你做错事的时候动，这是它最坏的性质。
+
+
+## 判据 (c) — 第一个按新策略写的覆写：+43，而规则收窄（R964，**+0 用例**）
+
+### 改动
+
+**`BstnFlow.GetCsrfAsync` 覆写：拉 `https://www.bstn.com/` → `FindCsrfToken` → 回退 `csrftoken` cookie**
+
+### 产物核对
+
+**`pdata-replica` 173,909 → **173,952（+43）** · 比 62.77% · 产物 54,741 KB**
+
+**串核对：`www.bstn.com` **True**；`bstn: csrf page` / `bstn: no csrf token on the landing page` False；
+`bstn: cart endpoint unknown`（同步覆写）True；`bstn: checkout endpoint unknown (Adyen)` False**
+
+### 规则收窄
+
+**① 零覆写 → 基类体必被裁（R963）**
+**② 有覆写 → 方法进产物，但**体内字符串按需保留，判据 Unknown****
+
+**→ 串在场证明「在」；串不在**不能**证明「不在」（§2.7b，踩在产物上）**
+
+### 修了一个钉住假成功的测例
+
+**`RunnerExecutesAnActionAndRecordsEveryStep` 的 fixture 从 `{}` 换成带 token 的页面
+—— 行为变了改夹具，不是形状变了改数字。**
+
+### 数字
+
+**套件 2186 / 0 / 0 · 陈旧度 0/0 · 函数数 173,952 · 比 62.77%**
+
+| 仍 Unknown | |
+|---|---|
+| 体内字符串按需保留的判据 | 未取证 |
+| 覆写两层的继承链是否算 | 未取证 |
+| 剩 34 个空壳里各站该覆写哪些 | 需逐站取证 |
+
+**纪律**：串不在不能证明不在 —— 这次踩在产物上。

@@ -23037,3 +23037,84 @@ python: exe.find('QueueITAccepted')              -> True
 前八轮都在往一个不改变产物的方向走，而每轮都有数字在动，让我以为方向对了。**
 
 **一个指标能在你做错事的时候动，这是它最坏的性质。**
+
+
+---
+
+## 388. 第一个按新策略写的覆写：+43，而规则要收窄
+
+> R964。**改产品代码 + 修一个测例夹具。** 套件 **2186 通过 / 0 失败 / 0 跳过**。
+
+### 一、改动
+
+**`BstnFlow.GetCsrfAsync` —— 第一个真正做事的覆写：
+拉 `https://www.bstn.com/` → `FindCsrfToken` → 回退 `csrftoken` cookie → 找不到判不可重试。**
+
+### 二、产物核对（两件事）
+
+**① 覆写确实让方法进产物：`173,909 → 173,952（+43）`，比 62.77%。**
+
+**② 而方法体里的报错串没进：**
+
+| 串 | 在产物 |
+|---|---|
+| `www.bstn.com` | **True** |
+| `bstn: csrf page ` | False |
+| `bstn: no csrf token on the landing page` | False |
+| `bstn: cart endpoint unknown`（同步覆写） | **True** |
+| `bstn: checkout endpoint unknown (Adyen)`（另一覆写） | False |
+
+### 三、R963 的规则收窄
+
+**① 零覆写 → 基类体必被裁（R963 三组对比）**
+**② 有覆写 → 方法进产物，但体内字符串**按需保留**，判据 Unknown**
+
+**所以「覆写」是**必要条件不是充分条件**（`GetCheckoutAsync` 也是覆写、串也不在）。**
+
+**→ 直接影响核对方法：串在场证明「在」；串不在**不能**证明「不在」（§2.7b，这次在产物上）。**
+
+### 四、修了一个钉住假成功的测例
+
+**`StepActionTests.RunnerExecutesAnActionAndRecordsEveryStep` 用 `TinyServer(_ => (200, "{}"))`
+跑 `CSRF-Generate` 期望 3 步全 OK；`GetCsrf` 现在找不到 token 会正确失败 → 它红在假成功消失上。**
+
+**处置：fixture 换成 `<input type="hidden" name="csrf_token" value="testtoken123456">`。
+测例仍在测「每步都跑、都被记录」，而不再顺手钉住一个假成功。**
+
+**这是「行为变了 → 改夹具」，不是「形状变了 → 改数字」。**
+
+### 五、数字
+
+| 度量 | R963 | R964 |
+|---|---|---|
+| 套件 | 2186 | **2186** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **函数数** | 173,909 | **173,952（+43）** |
+| **函数比** | 62.76% | **62.77%** |
+| 产物大小 | 54,724 KB | **54,741 KB** |
+| `GetCsrf` 覆写数 | 0 | **1** |
+
+### 六、验证
+
+```
+dotnet build Stores -c Debug                -> 0 error
+dotnet publish                              -> 54,741 KB
+func_count.py                               -> 173,952 (+43)
+probe_artifact.py: 'www.bstn.com'           -> utf16=True
+probe_artifact.py: 'bstn: csrf page '       -> utf16=False
+test --filter StepActionTests               -> 7 通过
+metrics_report.py                           -> 2186 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **体内字符串按需保留的判据**：**Unknown** —— 未取证。
+- **覆写两层的继承链是否算**：**Unknown** —— 未取证。
+- **剩 34 个空壳里各站该覆写哪些**：**Unknown** —— 需逐站取证。
+
+### 八、教训
+
+**「有覆写 → 进产物」让我高兴了十分钟；「但体内字符串按需保留」让我明白
+我刚才用来高兴的那个核对方法，在反方向上不成立。**
+
+**而这条规则 R963 就写过，我这一轮差点又用它反向下了结论。**

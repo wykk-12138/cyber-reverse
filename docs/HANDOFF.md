@@ -1577,3 +1577,25 @@ GetCsrfAsync 从 `=> Ok()` 写成真实现（四种 token 形状 + 四个 cookie
 纪律：**一个指标能在你做错事的时候动，这是它最坏的性质。**
 
 下一轮：按新策略挑一个站，把某个空壳步骤**覆写进具体 flow**（不是基类），并核对它的串进产物。
+
+## R964 补充 — 第一个按新策略写的覆写：+43，而规则收窄（套件 2186）
+
+照 R963 的策略做了第一个真覆写：`BstnFlow.GetCsrfAsync`（拉 www.bstn.com → FindCsrfToken → 回退 csrftoken cookie）。
+
+**产物核对两件事**：
+① 覆写确实让方法进产物：173,909 → **173,952（+43）**，比 62.77%，产物 54,741 KB。
+② 而方法体里的报错串**没进**：`www.bstn.com` True；`bstn: csrf page ` False；
+   `bstn: no csrf token on the landing page` False；`bstn: cart endpoint unknown`（同步覆写）True；
+   `bstn: checkout endpoint unknown (Adyen)`（另一覆写）False。
+
+**规则收窄两条**：① 零覆写 → 基类体必被裁；② 有覆写 → 方法进产物，但体内字符串**按需保留**，判据 Unknown。
+**→ 覆写是必要条件不是充分条件；串不在**不能**证明不在（§2.7b，这次踩在产物上）。**
+
+修了一个钉住假成功的测例：`RunnerExecutesAnActionAndRecordsEveryStep` 的 fixture 从 `{}` 换成带 token 的页面
+（行为变了改夹具，不是形状变了改数字）。
+
+数字：套件 2186 / 0 / 0 · 陈旧度 0/0 · 函数数 173,952 · 比 62.77% · GetCsrf 覆写数 0 → 1。
+
+纪律：串不在不能证明不在。
+
+下一轮：给第二个站写覆写（挑一个有真实端点证据的站），并核对 +43 这个量是否稳定。

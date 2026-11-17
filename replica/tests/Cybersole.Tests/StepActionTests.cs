@@ -102,7 +102,12 @@ public class StepActionTests
     [Fact]
     public async Task RunnerExecutesAnActionAndRecordsEveryStep()
     {
-        using var server = new TinyServer(_ => (200, "{}"));
+        // R964: the page now carries a token. Before this, GetCsrf returned success without looking at the response, so a
+        // body of "{}" was enough for this test to pass -- and that pass pinned the false success rather than the recording
+        // it means to check. A page with no token is now a failure, which is the point of the change, so the fixture
+        // supplies a real one and the test keeps checking what its name says: that every step runs and is recorded.
+        using var server = new TinyServer(_ =>
+            (200, "<form><input type=\"hidden\" name=\"csrf_token\" value=\"testtoken123456\"></form>"));
         using var http = new NetClient();
         var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/", TimeoutSeconds = 5 };
         var flow = new NoopFlow();

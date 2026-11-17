@@ -31931,3 +31931,98 @@ python tools/metrics_report.py               -> 完整套件 exit 0  2210 通过
 两个问题的答案不同，而更宽的那个更容易让人满意。**
 
 **→ 一个刚加上的字段就能抓住作者 —— 这是它值得加的最好证据。**
+
+
+---
+
+## 423. **METRICS 摘要加「时效警告（生成）」；变异已重跑（36/36）；产物仍陈旧且不能 publish**
+
+> R999。**改 `metrics_report.py` 一处 + 重跑变异。** 套件 **2210 通过 / 0 失败 / 0 跳过**。
+
+### 一、本来要去 publish，1.8 GB 挡住了
+
+**`Get-CimInstance Win32_OperatingSystem` → FreePhysicalMemory 1.8 GB。
+按纪律（< 2GB 只跑 `-m:1`）**不做 AOT publish**。查的过程中发现更要紧的事。**
+
+### 二、摘要区把两个过期的数排成当前值
+
+```
+| 函数数量（.pdata） — functions: replica .pdata | 173,952 |
+| 函数数量（.pdata） — functions: ratio | 62.77% |
+| 产物陈旧度 — source files newer than the artifact | 15 |
+| 产物陈旧度 — lines in those files | 10753 |
+| 变异套件（上次运行） — mutation-fit: staleness | 1:31:27 -- StoreFlow.cs changed after the run |
+```
+
+**→ `173,952` 就在「15 个源文件更新」正上方，中间只隔两行。
+→ 而 `artifact_freshness.py` 的注释早写着
+「While it is stale that ratio describes an older build, so it **must be labelled as such wherever it is quoted**」——
+摘要区没有做。
+→ 而 `mutation-fit: staleness` 写着 `1:31:27 -- StoreFlow.cs changed` —— 变异记录也过期了。
+→ **两个过期的数和一个当前套件数在同一列里，没有任何区分。****
+
+### 三、所以修的是生成器
+
+**`metrics_report.py` 在摘要表**之前**加一个自动生成的块，两条规则都从工具输出读：**
+
+```
+## 时效警告（生成）
+
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 15 个源文件比产物新（共 10753 行）。
+  它描述的是更旧的一次构建，不是当前源码。
+```
+
+- `source files newer than the artifact` ≠ 0 → 函数数那一行是陈旧的
+- 某个 `staleness` 字段不以 `0` 开头 → 那一组数来自过期运行
+
+### 四、而顺手把变异重跑了（不耗内存）
+
+```
+running 36 of 36
+fired 36 · decorative 0 · skipped 0 · restored GREEN
+ran_at 2026-11-17T14:06:23+08:00
+```
+
+**→ 重跑之后，警告块从**两条**降到**一条** —— 因为变异那条真的变成了 `0`。
+→ **这证明那个块不是装饰：它跟着数据走。一条警告消失，是因为被它警告的那件事真的被做了。**
+
+### 五、而剩下的那一条**修不了**
+
+**1.8 GB 可用 → AOT publish 会在这个内存下失败或拖垮机器。
+所以函数数仍是 `173,952`，仍来自一个 15 个源文件之前的产物。**
+
+**→ 这一轮的产出不是让它变 fresh，是让它**不再沉默**。
+→ 一个不能修的缺口，至少不能被当成当前值读。**
+
+### 六、数字
+
+| 度量 | R998 | R999 |
+|---|---|---|
+| 套件 | 2210 | **2210** |
+| **产物陈旧度** | 15 / 10,753 | **15 / 10,753（未变，不能 publish）** |
+| **变异陈旧度** | 1:31:27 | **0（已重跑）** |
+| 变异 fired / 总 | 36 / 36 | **36 / 36（新记录 14:06:23）** |
+| 函数数 | 173,952 | **173,952（陈旧，且现在被标注）** |
+| **METRICS 摘要的时效警告** | 无这一维 | **1 条（生成）** |
+
+### 七、验证
+
+```
+cd replica
+python tools/mutation-check.py        -> 36 of 36；fired 36 / decorative 0 / skipped 0；GREEN；wrote MUTATION_RESULT.json
+python tools/metrics_report.py        -> 完整套件 exit 0  2210 通过 / 0 失败 / 0 跳过
+python - 读 ../docs/METRICS.md 找「## 时效警告（生成）」
+  -> 一条：函数数量那一行来自一个陈旧的 .publish-aot（15 个源文件 / 10753 行）
+```
+
+### 八、仍然 Unknown
+
+- **今天的函数数是多少**：**Unknown** —— 需要 publish，而当前内存不够（1.8 GB < 2 GB）。
+
+### 九、教训
+
+**「所有文档引用 METRICS.md」这个规矩建立时，假设的是**表里的数都是当前的**。
+而其中两个不是，规矩就把一个过期的数**提成了权威**。**
+
+**→ 一个单一数字源的价值取决于它说清每个数的**时效**，而不取决于它集中。
+集中只是让它更容易被当成都对。**

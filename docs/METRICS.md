@@ -6,11 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 13:56:49 +0800 |
+| 生成时间 | 2026-11-17 15:33:36 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
 | 完整套件 | **2210 通过 / 0 失败 / 0 跳过 / 2210 总计** |
+
+## 时效警告（生成）
+
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 15 个源文件比产物新（共 10753 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -54,7 +58,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 1:31:27 -- StoreFlow.cs changed after the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file is newer than the run |
 
 ## 逐条命令与原始输出
 
@@ -368,7 +372,7 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 11:23:03
-newest source: src\Cybersole.Stores\Flows\StoreFlow.cs (2026-11-17 13:56:29)
+newest source: src\Cybersole.Stores\Flows\ShopifyFlow.cs (2026-11-17 14:03:24)
 source files newer than the artifact: 15
 lines in those files: 10753
 publish artifact state: stale
@@ -614,10 +618,9 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 1:31:27 -- StoreFlow.cs changed after the run
+  mutation-fit-staleness: 0 -- no exercised file is newer than the run
 
-  The counts above are from 2026-11-17T12:25:02+08:00 and the tree has moved since. They are a record of that run, not a
-  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
+  Every mutation fired, none was decorative and none was skipped at the time of that run.
 ```
 
 ### 完整套件
@@ -644,7 +647,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2210，已跳过:     0，总计:  2210，持续时间: 1 m 34 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2210，已跳过:     0，总计:  2210，持续时间: 1 m 42 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

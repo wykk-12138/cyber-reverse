@@ -8036,3 +8036,33 @@ Getting / Initialising / Solving / Submitting DataDome
 | `cf-chl` 是否真对 | 常识支持，镜像不支持 |
 
 **纪律**：一个刚加上的字段就能抓住写它的人。
+
+
+## 判据 (c)/(e) — **METRICS 摘要加「时效警告（生成）」：函数数来自陈旧产物、变异记录已重跑**（R999）
+
+### 缺陷
+
+**摘要表把 `173,952 / 62.77%` 排在 `15 个源文件更新` 的正上方而无标注；
+`mutation-fit: staleness` 写着 `1:31:27`。两个过期的数与一个当前套件数同列。
+
+`artifact_freshness.py` 自己的注释要求「must be labelled as such wherever it is quoted」，摘要区没做。**
+
+### 修
+
+**`metrics_report.py` 在摘要表前生成「时效警告」块，两条规则都从工具输出读：
+`source files newer` ≠ 0 → 函数数陈旧；某 `staleness` 不以 `0` 开头 → 那组数过期。**
+
+### 结果
+
+**重跑变异后（36/36 fired · 0 decorative · 0 skipped · ran 14:06:23），警告从 2 条降到 1 条。
+剩下那条是产物 —— 1.8 GB 下不能 publish，所以它**修不了，但不再沉默**。**
+
+### 数字
+
+**套件 2210 · 产物陈旧度 15 / 10,753（未变）· 变异陈旧度 0 · 变异 36/36 · 摘要警告 1 条**
+
+| 仍 Unknown | |
+|---|---|
+| 今天的函数数是多少 | **Unknown** —— 需 publish，而内存不够 |
+
+**纪律**：集中只让过期更容易被当成当前。

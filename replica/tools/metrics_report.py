@@ -309,6 +309,39 @@ def main(argv=None):
     else:
         lines.append("| 完整套件 | 本次跳过（`--skip-tests`） |")
     lines.append("")
+    # R999: two of the rows below measure an older tree, and the table gave no sign of it. The function count comes from
+    # .publish-aot, which artifact_freshness reports as stale, and the mutation counts carry their own staleness line.
+    # Both sat in the same column as live figures with nothing to separate them, so a reader had to already know which
+    # numbers age. This block says it once, above the table, and generates it rather than leaving it to whoever quotes the
+    # file next.
+    def _bit(title, label):
+        for r in results:
+            if r["title"] == title:
+                return (r["bits"] or {}).get(label, "?")
+        return "?"
+
+    warnings = []
+    for r in results:
+        for label, value in (r["bits"] or {}).items():
+            low = label.lower()
+            if low == "source files newer than the artifact" and str(value).strip() not in ("0", ""):
+                warnings.append(
+                    "**函数数量那一行来自一个陈旧的 `.publish-aot`**：有 %s 个源文件比产物新（共 %s 行）。"
+                    "它描述的是更旧的一次构建，不是当前源码。"
+                    % (value, _bit("产物陈旧度（.publish-aot vs src）", "lines in those files")))
+            if "staleness" in low and not str(value).startswith("0"):
+                warnings.append("**变异套件那一组数来自上一次运行，而它已经过期**：`%s`。" % str(value).strip())
+
+    if warnings:
+        lines.append("## 时效警告（生成）")
+        lines.append("")
+        for w in warnings:
+            lines.append("> " + w)
+            lines.append(">")
+        if lines[-1] == ">":
+            lines.pop()
+        lines.append("")
+
     lines.append("## 摘要素值")
     lines.append("")
     lines.append("| 指标 | 值 |")

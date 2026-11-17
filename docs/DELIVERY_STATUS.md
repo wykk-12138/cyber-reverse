@@ -28493,3 +28493,100 @@ python tools/metrics_report.py -> 完整套件 exit 0  2226 / 0 / 0
   到底差在哪。**
 **→ 而守卫里那两条**双向**的最要紧：一列说「没缺口」而另一列说「我编的」是自相矛盾，
   而加列的时候最容易只写一个方向的检查。**
+
+
+---
+
+## 445. **Imperva 双重缺席证据；`_Incapsula_Resource` 分支留作扩展**
+
+> R1021。**改 2 个源文件 + 加 1 个测试文件。** 套件 **2229 通过 / 0 失败 / 0 跳过**。
+
+### 一、第一个证据（R1019 已取）：六种拼写全 0
+
+```
+_Incapsula_Resource  0
+incap_ses            0
+visid_incap          0
+incapsula            0
+imperva              0
+nlbi_                0
+```
+
+### 二、第二个证据：`AntiBotVendors` 的台账里**没有它**
+
+**`AntiBotVendors.Vendor(name, Evidence)` 是一个**带证据清单**的厂商记录。**
+
+```
+All:                 DataDome · PerimeterX · Akamai · Kasada · TrustDecision · Cloudflare · Forter · Signifyd
+NamedButNotHandled:  Riskified
+imperva 出现次数:     0
+```
+
+**→ Imperva 连「被点名但未处理」都不算。
+→ 而那些条目**每条都带镜像 Evidence** —— 所以「Imperva 不在其中」意味着
+  **当初从镜像里提取厂商清单时它就没出现**。
+→ 两个来源在不同时间独立给出同一答案 —— AGENTS §2.7 第三条配套要的正是这个。**
+
+### 三、`Gap.VendorAbsent` 有双重支持
+
+**而它与 R1019 那个 `cf-chl` 的差别在**处置**：**
+
+| 串 | 镜像替代 | 处置 |
+|---|---|---|
+| `cf-chl` | `challenge-platform`（2） | **换掉** |
+| `_Incapsula_Resource` | **无** | **留作扩展** |
+
+### 四、而留的理由是**防御性**，不是惰性
+
+**一个 Imperva 墙如果出现在原版从未覆盖的站上，`DetectAsync` 会把它判成 `"none"`，
+于是 flow 会把**封禁页当商品页**处理 —— 那比多一条永不触发的分支坏得多。**
+
+**→ 而那条分支只在页面**真的写了** `_Incapsula_Resource` 时才触发，所以厂商缺席时它的成本是零。
+→ 而注释现在写明：`this branch is an extension, not the image's behaviour`。**
+
+### 五、3 条守卫
+
+| 守卫 | 断言 |
+|---|---|
+| `TheVendorInventoryDoesNotListImperva` | `All` 与 `NamedButNotHandled` 都不含 imperva |
+| `EveryListedVendorCarriesEvidence` | 台账里每个厂商都有非空 Evidence —— **那正是「缺席有意义」的前提** |
+| `TheBranchIsRecordedAsAnExtension` | 分支在、注释写明 extension、`Gap == VendorAbsent`、Note 含 two independent sources |
+
+**→ 第 2 条是那个论证的支点：一个**不带证据**的清单，缺席什么都说明不了。**
+
+### 六、数字
+
+| 度量 | R1020 | R1021 |
+|---|---|---|
+| 套件 | 2226 / 0 | **2229 / 0 / 0（+3）** |
+| 产物陈旧度 | 3 / 3,552 | **3 / 3,563** |
+| 函数数 | 174,336 | **174,336** |
+| **imperva 的独立证据数** | 1（六拼写全 0） | **2（+ 台账不含它）** |
+| **imperva 分支的处置** | 未说明 | **留作扩展，注释写明** |
+| **台账里带证据的厂商** | 8（未验证） | **8（守卫验证）** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "_Incapsula_Resource"  -> {"n":0}
+python analysis/ida.py str "incap_ses"            -> {"n":0}
+python analysis/ida.py str "nlbi_"                -> {"n":0}
+cd replica
+python - 读 src/Cybersole.Stores/Flows/AntiBotVendors.cs -> All 八条 · NamedButNotHandled 一条 · imperva 0
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug  -> 已成功生成
+dotnet test --filter "FullyQualifiedName~ImpervaAbsence" -m:1        -> 3 通过
+python tools/metrics_report.py -> 完整套件 exit 0  2229 / 0 / 0
+```
+
+### 八、仍然 Unknown
+
+- **imperva 是否真被原版处理**：**两个来源都说不** —— 但两者都不是否定证明。
+
+### 九、教训
+
+**「我没找到」与「它不在」之间的桥，是一条**第二条独立证据**。而这里它来得意外地便宜：
+一份早先为别的目的写的清单，恰好能回答这个问题。**
+
+**→ 而那份清单能回答它，只因为**每条都带证据** —— 一个不带证据的清单，缺席什么都说明不了。
+→ 所以「给每个条目留证据」这件事的价值，在于它让**将来的一个否定**变得可用。**

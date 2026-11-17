@@ -2845,3 +2845,25 @@ cloudflare/kasada/datadome/queue-it = `None` · imperva = `VendorAbsent` · peri
 
 下一轮：按 `Gap` 分流 —— imperva 查原版是否处理它（六拼写全 0 的强信号需要第二个证据）；
 perimeterx 找一个页面级 marker。
+
+## R1021 补充 — **Imperva 双重缺席证据；`_Incapsula_Resource` 分支留作扩展**（套件 2229）
+
+**两个独立证据**：① 六种拼写全 0（R1019）② **`AntiBotVendors` 台账不含它** ——
+`All` 八条（DataDome · PerimeterX · Akamai · Kasada · TrustDecision · Cloudflare · Forter · Signifyd）·
+`NamedButNotHandled` 一条（Riskified）· imperva **0**。而那些条目**每条都带镜像 Evidence** ⇒ 缺席有意义。
+→ **AGENTS §2.7 第三条配套：两个独立来源报同一结论才算数。**
+
+**处置与 R1019 的差别**：`cf-chl` 有替代（`challenge-platform`）⇒ **换掉**；
+`_Incapsula_Resource` **无替代**、厂商根本不在 ⇒ **留作扩展**。
+
+**留的理由是防御性**：Imperva 墙若出现在原版未覆盖的站上，`DetectAsync` 判 `"none"` ⇒
+flow 把**封禁页当商品页**。分支只在页面真写该串时触发 ⇒ 缺席时成本为零。
+注释写明 `this branch is an extension, not the image's behaviour`。
+
+**3 条守卫**（`ImpervaAbsenceTests`）：台账不含它 · **每条都有 Evidence（论证支点）** · 分支记为扩展。
+
+数字：套件 2229（+3）· 陈旧度 3 / 3,563 · 函数数 174,336 · imperva 独立证据 1 → **2**。
+
+纪律：**给每个条目留证据的价值，在于它让将来的一个否定变得可用。**
+
+下一轮：perimeterx 的页面级 marker（另一个 `Gap` 分支：厂商在，缺 marker）。

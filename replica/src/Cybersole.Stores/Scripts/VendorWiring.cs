@@ -121,7 +121,11 @@ public static class VendorWiring
             MarkerSource.ImageLiteral, Gap.None),
 
         new Row("imperva", "_Incapsula_Resource", null, State.DetectedOnly,
-            "the image names neither an Imperva cookie nor an Imperva host, and does not contain this marker either",
+            "R1021: two independent sources agree the vendor is absent. None of six spellings is in the artifact "
+            + "(_Incapsula_Resource, incap_ses, visid_incap, incapsula, imperva, nlbi_), and AntiBotVendors.All -- eight "
+            + "vendors, each carrying the literals that prove it -- does not list Imperva, nor does NamedButNotHandled. "
+            + "The branch is kept as an extension so an Imperva wall on a store the original never covered is reported "
+            + "rather than swallowed as a product page; it fires only on a page naming the resource.",
             MarkerSource.Inferred, Gap.VendorAbsent),
 
         new Row("datadome", "datadome", "datadome", State.Wired,

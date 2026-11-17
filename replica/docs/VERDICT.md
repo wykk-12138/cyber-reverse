@@ -60923,3 +60923,62 @@ perimeterx = `NoPageMarker`。**
 > 因为区别在注释里。**
 > **→ 加列成本是一个枚举加六个填值，收益是下一轮不必重推那两个 vendor 差在哪。**
 > **→ 而双向守卫最要紧：加列时最容易只写一个方向的检查。**
+
+
+---
+
+## 第 1021 轮：Imperva 的双重缺席证据；而那个分支留作扩展
+
+### ① 第一个证据（R1019 已取）：六种拼写全 0
+
+`_Incapsula_Resource` · `incap_ses` · `visid_incap` · `incapsula` · `imperva` · `nlbi_` —— 全 0。
+
+### ② 第二个证据：`AntiBotVendors` 台账里**没有它**
+
+```
+All:                 DataDome · PerimeterX · Akamai · Kasada · TrustDecision · Cloudflare · Forter · Signifyd
+NamedButNotHandled:  Riskified
+imperva 出现次数:     0
+```
+
+**→ 连「被点名但未处理」都不算。
+→ 而那些条目**每条都带镜像 Evidence** ⇒ 「Imperva 不在其中」意味着**当初提取时它就没出现**。
+→ 两个来源在不同时间独立给出同一答案 —— AGENTS §2.7 第三条配套要的正是这个。**
+
+### ③ 所以 `Gap.VendorAbsent` 比「我没找到」更强
+
+**而与 R1019 那个 `cf-chl` 的差别在处置：**
+- **`cf-chl`：有更好替代（`challenge-platform`）⇒ 换掉**
+- **`_Incapsula_Resource`：无替代，厂商根本不在 ⇒ 留作扩展**
+
+### ④ 留的理由是**防御性**
+
+**一个 Imperva 墙若出现在原版从未覆盖的站上，`DetectAsync` 会判成 `"none"`，
+于是 flow 把**封禁页当商品页** —— 那比多一条永不触发的分支坏得多。
+→ 分支只在页面真的写了 `_Incapsula_Resource` 时触发，厂商缺席时成本为零。
+→ 注释写明 `this branch is an extension, not the image's behaviour`。**
+
+### ⑤ 3 条守卫
+
+`TheVendorInventoryDoesNotListImperva` · **`EveryListedVendorCarriesEvidence`（论证的支点）** ·
+`TheBranchIsRecordedAsAnExtension`
+
+**→ 第 2 条是支点：一个**不带证据**的清单，缺席什么都说明不了。**
+
+### ⑥ 数字
+
+| 度量 | R1020 | **R1021** |
+|---|---|---|
+| 套件 | 2226 / 0 | **2229 / 0 / 0（+3）** |
+| 产物陈旧度 | 3 / 3,552 | **3 / 3,563** |
+| 函数数 | 174,336 | **174,336** |
+| **imperva 的独立证据数** | 1 | **2** |
+| **分支处置** | 未说明 | **留作扩展，注释写明** |
+| **带证据的厂商** | 8（未验证） | **8（守卫验证）** |
+
+### 教训
+
+> **「我没找到」与「它不在」之间的桥，是一条**第二条独立证据**。而这里它来得意外地便宜：
+> 一份早先为别的目的写的清单，恰好能回答这个问题。**
+> **→ 那份清单能回答它，只因为**每条都带证据** —— 一个不带证据的清单，缺席什么都说明不了。
+> → 所以「给每个条目留证据」的价值，在于它让**将来的一个否定**变得可用。**

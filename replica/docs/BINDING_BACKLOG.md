@@ -8908,3 +8908,41 @@ perimeterx = `NoPageMarker`。**
 | perimeterx 的页面级 marker | 镜像无 |
 
 **纪律**：一个词盖两件事，写表的人会以为已经记录了区别。
+
+
+## 优先级 ② — **Imperva 双重缺席证据；`_Incapsula_Resource` 分支留作扩展**（R1021）
+
+### 两个独立证据
+
+1. **六种拼写全 0**（R1019）：`_Incapsula_Resource` · `incap_ses` · `visid_incap` · `incapsula` · `imperva` · `nlbi_`
+2. **`AntiBotVendors` 台账不含它**：`All` 八条（DataDome · PerimeterX · Akamai · Kasada · TrustDecision ·
+   Cloudflare · Forter · Signifyd）· `NamedButNotHandled` 一条（Riskified）· imperva **0**
+   → 那些条目**每条都带镜像 Evidence** ⇒ 缺席有意义
+
+**→ AGENTS §2.7 第三条配套：两个独立来源报同一结论才算数。**
+
+### 处置与 R1019 的差别
+
+| 串 | 替代 | 处置 |
+|---|---|---|
+| `cf-chl` | `challenge-platform`（2） | **换掉** |
+| `_Incapsula_Resource` | 无 | **留作扩展** |
+
+**留的理由（防御性）**：Imperva 墙若出现在原版未覆盖的站上，`DetectAsync` 判 `"none"` ⇒
+flow 把**封禁页当商品页**。分支只在页面真写该串时触发 ⇒ 缺席时成本为零。
+**注释写明 `this branch is an extension, not the image's behaviour`。**
+
+### 3 条守卫（`ImpervaAbsenceTests`）
+
+`TheVendorInventoryDoesNotListImperva` · **`EveryListedVendorCarriesEvidence`** ·
+`TheBranchIsRecordedAsAnExtension`
+
+### 数字
+
+**套件 2229（+3）· 陈旧度 3 / 3,563 · 函数数 174,336 · imperva 独立证据 1 → 2 · 带证据厂商 8（守卫验证）**
+
+| 仍 Unknown | |
+|---|---|
+| imperva 是否真被原版处理 | 两个来源都说不 —— 但都不构成否定证明 |
+
+**纪律**：给每个条目留证据的价值，在于它让**将来的一个否定**变得可用。

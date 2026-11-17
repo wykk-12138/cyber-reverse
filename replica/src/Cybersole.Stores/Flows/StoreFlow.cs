@@ -386,6 +386,13 @@ public abstract class StoreFlow
             body.Contains("challenge-platform", StringComparison.OrdinalIgnoreCase) ? "cloudflare" :
             body.Contains("cf-chl", StringComparison.OrdinalIgnoreCase) ? "cloudflare" :
             body.Contains("kpsdk", StringComparison.OrdinalIgnoreCase) ? "kasada" :
+            // R1021: this branch is an extension, not the image's behaviour, and the row now says so. Two independent
+            // sources agree Imperva is absent: none of its six spellings is in the artifact (_Incapsula_Resource,
+            // incap_ses, visid_incap, incapsula, imperva, nlbi_ all zero), and AntiBotVendors.All -- eight vendors, each
+            // carrying the image literals that prove it -- does not list it, nor does NamedButNotHandled. The branch
+            // stays because an Imperva wall served by a store the original never covered would otherwise be reported as
+            // "none" and the flow would treat the block page as a product page; it fires only on a page that actually
+            // names the resource, so keeping it costs nothing when the vendor is absent.
             body.Contains("_Incapsula_Resource", StringComparison.OrdinalIgnoreCase) ? "imperva" :
             body.Contains("datadome", StringComparison.OrdinalIgnoreCase) ? "datadome" :
             // R1018 corrects R998. R998 was right that the image names geo.captcha-delivery.com and its /interstitial/

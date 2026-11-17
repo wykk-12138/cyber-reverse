@@ -11251,3 +11251,79 @@ perimeterx 是 `NoPageMarker`。**
 > 到底差在哪。**
 > **→ 而守卫里那两条**双向**的最要紧：一列说「没缺口」而另一列说「我编的」是自相矛盾，
 > 而加列的时候最容易只写一个方向的检查。**
+
+
+### Imperva 的双重缺席证据；而那个分支留作**扩展**（R1021）
+
+**R1020 说按 `Gap` 分流：imperva 查原版是否处理它。查了，而第二个证据来自**原版自己的风控台账**。**
+
+### ① 第一个证据（R1019 已取）：六种拼写全 0
+
+```
+_Incapsula_Resource  0
+incap_ses            0
+visid_incap          0
+incapsula            0
+imperva              0
+nlbi_                0
+```
+
+### ② 而第二个证据：`AntiBotVendors` 的台账里**没有它**
+
+**`AntiBotVendors.Vendor(name, Evidence)` 是一个**带证据清单**的厂商记录。
+`All` 里八条，`NamedButNotHandled` 里一条：**
+
+```
+All:                 DataDome · PerimeterX · Akamai · Kasada · TrustDecision · Cloudflare · Forter · Signifyd
+NamedButNotHandled:  Riskified
+imperva 出现次数:     0
+```
+
+**→ Imperva 连「被点名但未处理」都不算。**
+**→ 而那些条目**每条都带镜像 Evidence** —— 所以「Imperva 不在其中」意味着
+  **当初从镜像里提取厂商清单时它就没出现**。**
+
+**→ 两个来源（一次逐串查询、一份早先提取的清单）在不同时间独立地给出同一个答案。
+→ 而那正是 AGENTS §2.7 第三条配套要的东西：**两个独立来源报同一个结论才算数。****
+
+### ③ 所以 `Gap.VendorAbsent` 有**双重支持**，可以比「我没找到」更强
+
+**→ 而它与 R1019 那个 `cf-chl` 的差别在于处置：**
+- **`cf-chl`：镜像里有一个**更好的替代**（`challenge-platform`）⇒ **换掉**
+- **`_Incapsula_Resource`：镜像里**没有替代**，而那个厂商根本不在 ⇒ **留作扩展**
+
+### ④ 而留的理由是**防御性**，不是惰性
+
+**一个 Imperva 墙如果出现在原版从未覆盖的站上，`DetectAsync` 会把它判成 `"none"`，
+于是 flow 会把**封禁页当商品页**处理 —— 那比多一条永不触发的分支坏得多。**
+
+**→ 而那条分支只在页面**真的写了** `_Incapsula_Resource` 时才触发，所以厂商缺席时它的成本是零。
+→ 而注释现在写明：`this branch is an extension, not the image's behaviour`。**
+
+### ⑤ 3 条守卫
+
+| 守卫 | 断言 |
+|---|---|
+| `TheVendorInventoryDoesNotListImperva` | `All` 与 `NamedButNotHandled` 都不含 imperva |
+| `EveryListedVendorCarriesEvidence` | 台账里每个厂商都有非空 Evidence —— **那正是「缺席有意义」的前提** |
+| `TheBranchIsRecordedAsAnExtension` | 分支在、注释写明「extension」、`Gap == VendorAbsent`、Note 含「two independent sources」 |
+
+**→ 第 2 条是那个论证的支点：一个**不带证据**的清单，缺席什么都说明不了。**
+
+### ⑥ 数字
+
+| 度量 | R1020 | **R1021** |
+|---|---|---|
+| 套件 | 2226 / 0 | **2229 / 0 / 0（+3）** |
+| 产物陈旧度 | 3 / 3,552 | **3 / 3,563** |
+| 函数数 | 174,336 | **174,336** |
+| **imperva 的独立证据数** | 1（六拼写全 0） | **2（+ 台账不含它）** |
+| **imperva 分支的处置** | 未说明 | **留作扩展，注释写明** |
+| **台账里带证据的厂商** | 8（未验证） | **8（守卫验证）** |
+
+### 教训
+
+> **「我没找到」与「它不在」之间的桥，是一条**第二条独立证据**。而这里它来得意外地便宜：
+> 一份早先为别的目的写的清单，恰好能回答这个问题。**
+> **→ 而那份清单能回答它，只因为**每条都带证据** —— 一个不带证据的清单，缺席什么都说明不了。
+> → 所以「给每个条目留证据」这件事的价值，在于它让**将来的一个否定**变得可用。**

@@ -4102,3 +4102,63 @@ goal 要「每个函数功能相等」，而 R1045 证明 **96.87% 的函数是 
 | `BEHAVIOUR_COVERAGE.md` | — | **2,073 字节** |
 
 **纪律**：换问题时最容易丢的是口径；1968 与 2258 差 290，不说清就会去补不存在的测试。
+
+
+## R1060 —— **(e) 后半达成：36/36 变异 fired、staleness 0；两个差异标 Unknown 不猜**
+
+### 而工具自己要求重跑 —— 那是对的
+
+第一次读到的是**陈旧**的：
+```
+total 36 · fired 36 · decorative 0 · skipped 0 · tree GREEN
+staleness 7:52:15 -- behaviour_coverage.py changed after the run
+"They are a record of that run, not a statement about this one; re-run before quoting them as current."
+```
+**那是我造成的陈旧（我改了 `behaviour_coverage.py`）。直接引用就是引过期数字当现状。**
+
+### 重跑后（新鲜）
+
+```
+mutation-fit-total: 36 · fired: 36 · decorative: 0 · skipped: 0
+tree: GREEN · staleness: 0 -- no exercised file is newer than the run
+"Every mutation fired, none was decorative and none was skipped at the time of that run."
+```
+
+**⇒ (e) 的「变异测试全 fired」= **36/36 = 100%**。而 36 个 guard 各对应一条真实修过的缺陷
+（`round 290 -- a flow step loses its ordinal` · `round 623 -- the copy audit's detail loop goes back to the old predicate` …）。**
+
+### 两个差异 —— 我不猜
+
+```
+mutation-check restored tree: 2275 通过 / 0 失败 / 2 跳过 / 总计 2277
+metrics_report.py 完整套件:    2258 通过 / 0 失败 / 0 跳过 / 总计 2258      ← 差 19
+```
+
+**→ METRICS 注释说它**默认排除浏览器依赖用例**（R493）。而「19 与 2 跳过是否就是那批」**未验证 ⇒ Unknown**。
+→ **不写成「因为 R493 所以差 19」—— 那是听起来对的推断，而 R1044 教过零值/差值需要对照。**
+
+**而 `mutation-check.py` 的 exit code 是 **1**，而它打印的一切都是 GREEN ⇒ 那个矛盾**未解释**，标 Unknown。
+起点：`analysis/MUTATION_RESULT.json` 与 `mutation-check.py` 的返回路径。**
+
+### (e) 的状态
+
+| 子项 | 状态 |
+|---|---|
+| 套件绿 | **是（2258 / 0 / 0）** |
+| 变异测试全 fired | **是（36/36 · decorative 0 · skipped 0 · staleness 0）** |
+| 文档数字来自 METRICS | **是**（36/2277 来自 mutation 工具，各有其权威） |
+| 未解释 | **exit 1 · 差 19** |
+
+### 数字
+
+| 度量 | R1059 | **R1060** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 函数数 | 174,293 | **174,293** |
+| 变异总数 / fired | 未测 | **36 / 36（100%）** |
+| decorative / skipped | 未测 | **0 / 0** |
+| staleness | — | **0** |
+| restored tree 用例 | — | **2277** |
+| 与 METRICS 差 | — | **19 —— Unknown** |
+
+**纪律**：工具把「你的数字过期了」写在输出里，比任何纪律条文都有效。

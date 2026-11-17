@@ -7775,3 +7775,39 @@ c.Session.PaymentToken = "tok_" + Guid.NewGuid().ToString("N")[..24];
 | `GetToken`（16 字节 CSPRNG hex）是不是同形第二处 | 守卫没扫它（不同形），需单独取证 |
 
 **纪律**：删掉 + 全绿不是验证；验证是加一条会红的守卫并亲眼看它红一次。
+
+
+## 优先级 ①/③ — **`GetToken` = 接线缺口（三个名字都在原版）而非死代码；身体已改为报告；守卫加宽至索引器形状**（R992）
+
+### 观察
+
+```csharp
+GetTokenAsync      → Vars["token"] = 16 字节随机 hex
+CreateTokenAsync   → => GetTokenAsync
+GetAuthTokenAsync  → => GetTokenAsync    // 「Acquire an authorisation token specifically」
+```
+
+**接线状态：`Vars["token"]` 写入 1 / 读取 0 · 三个方法调用 0 · 不在任何步骤序列 · 字符串引用 0。**
+
+**原版：`recovered_method_names.txt` 有 CreateToken 行 453 · GetAuthToken 行 1269 · GetToken 行 1595
+→ **形状在、边缺失**（R955：unreachable code needs a call, not a rewrite）。**
+
+### 改了什么
+
+**身体从「造 16 字节 hex」改成 `Fail($"{Name}: no token source is known … will not invent a credential")`。
+理由：接线的人不该拿到会造值的身体；`GetAuthToken` 一旦接上，随机 hex 就变成「认证已完成」并流进请求。**
+
+### 守卫加宽
+
+**R991 的模式只匹配 `Token = <标识符>`；这里是 `Vars["token"] = <随机字节>`（索引器）→ 漏。
+加宽后两种形状都匹配。新增 `TheGenericTokenStepAlsoReports`。验过会红（放回 1 处 → 1 失败 2 通过 → 还原 → 3 通过）。**
+
+### 数字
+
+**套件 2208（+1）· 陈旧度 0/0 · 函数数 173,952 · 伪造通用/授权令牌 0 · 本地铸造凭据 0**
+
+| 仍 Unknown | |
+|---|---|
+| `GetToken` / `GetAuthToken` / `CreateToken` 在原版里被谁调用 | 名字定位不到代码，与 `HandleBlock` 同一堵墙 |
+
+**纪律**：「它不执行」只说明现在没问题，不说明它没问题。

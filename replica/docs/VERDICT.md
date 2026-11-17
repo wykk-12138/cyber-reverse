@@ -58938,3 +58938,82 @@ return StepOutcome.Fail(
 
 > **一个从没被执行过的缺陷，删掉它不会让任何用例变红 —— 而那正是它活了这么久的原因。
 > 所以「删掉 + 全绿」不是验证；验证是**加一条会红的守卫，并亲眼看它红一次**。**
+
+
+---
+
+## 第 992 轮：`GetToken` 不是死代码，是接线缺口 —— 而它的身体也不再伪造
+
+### ① 它是三合一的
+
+```csharp
+GetTokenAsync      → Vars["token"] = 16 字节随机 hex
+CreateTokenAsync   → => GetTokenAsync
+GetAuthTokenAsync  → => GetTokenAsync     // 注释：「Acquire an authorisation token specifically」
+```
+
+> **`GetAuthToken` 说它取授权令牌，而它调的是造随机 hex。授权令牌由服务器签发 —— 随机 hex 永远不是。
+> 这比 R991 那个更直接：那个叫「获取支付令牌」，这个明说「授权」。**
+
+### ② 而它完全没被接上
+
+```
+Vars["token"] 写入点 1（就是它自己）· 读取点 0
+三个方法的调用点 0（除两个别名互指）
+出现在步骤序列里：无（StoreFlowSteps.cs 无）
+字符串引用 "GetToken" / "CreateToken" / "GetAuthToken"：0
+```
+
+> **完全孤立：不执行、结果没人读。「不执行」正是它活了这么久的原因。**
+
+### ③ 而它**不是**死代码该删 —— 三个名字都在原版里
+
+```
+recovered_method_names.txt:  CreateToken 行 453 · GetAuthToken 行 1269 · GetToken 行 1595
+```
+
+> **→ 形状在、**边**缺失。R955 定过：「unreachable code needs a **call**, not a rewrite」。**
+> **→ 不删、不改名 —— 缺的是一个调用。而调用点需要原版证据，与 `HandleBlock` 同一堵墙。**
+
+### ④ 所以改的是身体
+
+```csharp
+return StepOutcome.Fail(
+    $"{Name}: no token source is known for this step -- it has never been wired into a flow, and this step will not "
+    + "invent a credential", retryable: true);
+```
+
+> **接线的人不该拿到一个会造值的身体。`GetAuthTokenAsync` 说它取授权令牌，
+> 而接上它的那一刻，随机 hex 就会变成「认证已完成」的信号 —— 那时它会**流进请求**，错误贵得多。**
+> **与 R991 同一条：不编造 fallback，缺少就以可诊断的方式缺。**
+
+### ⑤ 而守卫加宽了一格
+
+**R991 的守卫匹配 `Token = …`（左边是标识符），而这里是 `Vars["token"] = <随机字节>`（左边是**索引器**）→ 漏了。
+加宽后两者都匹配。**
+
+> **这与 `flow_work_audit` 那个委派漏洞是同一课：我预期的形状不是它唯一的形状。**
+
+**新增第 3 条用例 `TheGenericTokenStepAlsoReports`。**
+
+### ⑥ 守卫验过会红
+
+```
+把 Vars["token"] = 随机 hex 放回 1 处 → 失败: 1，通过: 2
+[FAIL] NoCredentialIsMintedLocally → 已还原 → 3 通过
+```
+
+### 数字
+
+| 度量 | R991 | **R992** |
+|---|---|---|
+| 套件 | 2207 | **2208（+1 用例）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| 伪造的通用/授权令牌 | 1（`GetToken`） | **0** |
+| 本地铸造凭据（含会话变量形状） | 未覆盖 | **0** |
+
+### 教训
+
+> **「它不执行」不能当成「它没问题」的证据 —— 它只说明**现在**没问题，
+> 而接上线的那一刻问题才开始，且那时已经没人记得看过它。**

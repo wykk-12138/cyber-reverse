@@ -2331,11 +2331,21 @@ public abstract class StoreFlow
     /// <summary>Acquire a generic token (payment / session / nonce).</summary>
     public virtual async Task<StepOutcome> GetTokenAsync(FlowContext c, CancellationToken ct)
     {
-        // A fresh opaque token, unique per task run.
-        var token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator
-            .GetBytes(16)).ToLowerInvariant();
-        c.Session.Vars["token"] = token;
-        return StepOutcome.Success();
+        // R992: this used to mint sixteen random bytes and store them as the token. Nothing reads that variable and nothing
+        // calls this method -- it appears in no step sequence, has no string reference and no caller -- so the fabrication
+        // never reached a request. That is also why it survived: an unwired step is never exercised, so nothing objected.
+        //
+        // It is not dead code to delete. The original carries all three of GetToken, CreateToken and GetAuthToken in its
+        // recovered method list, so the shape is right and the edge is what is missing. Round 955 settled the point:
+        // unreachable code needs a call, not a rewrite. But whoever adds that call should not be handed a body that
+        // invents a credential, because GetAuthTokenAsync says it acquires an authorisation token and an authorisation
+        // token is issued by the server. So the body now reports what it would need instead of making something up, on the
+        // same reasoning as GetPaymentTokenAsync above.
+        await Task.CompletedTask.ConfigureAwait(false);
+        return StepOutcome.Fail(
+            $"{Name}: no token source is known for this step -- it has never been wired into a flow, and this step will "
+            + "not invent a credential",
+            retryable: true);
     }
 
     public virtual Task<StepOutcome> CreateTokenAsync(FlowContext c, CancellationToken ct)

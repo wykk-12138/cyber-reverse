@@ -37,10 +37,18 @@ public class CredentialsAreObtainedNotInventedTests
     /// anti-forgery values legitimately come from a CSPRNG, so only names that name a credential the server must issue are
     /// covered, and <c>Gateways.cs</c>'s nonce minting is included because those nonces go to the gateway that accepts
     /// them rather than to a store that never saw them.
+    ///
+    /// <para>
+    /// R992 widened this to session variables. The first version matched only <c>Token =</c> assignments to a field, which
+    /// is why it passed while <c>GetTokenAsync</c> was storing sixteen random bytes under <c>Vars["token"]</c> -- a session
+    /// variable named like a credential, invisible to a pattern that expected an identifier on the left. Same lesson as
+    /// the delegation bug in flow_work_audit: the shape I expected was not the only shape it takes.
+    /// </para>
     /// </summary>
     private static readonly Regex Invented = new(
-        @"\b\w*(PaymentToken|AuthToken|AccessToken|CsrfToken|SessionToken)\w*\s*=\s*[^;]*\b(Guid\.NewGuid|RandomNumberGenerator)\b",
-        RegexOptions.Compiled);
+        @"(\b\w*(PaymentToken|AuthToken|AccessToken|CsrfToken|SessionToken)\w*\s*=\s*[^;]*\b(Guid\.NewGuid|RandomNumberGenerator)\b"
+        + @"|Vars\[\s*""[^""]*(token|nonce|secret|credential)[^""]*""\s*\]\s*=[^;]*\b(RandomNumberGenerator|Guid\.NewGuid)\b)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     [Fact]
     public void NoCredentialIsMintedLocally()
@@ -81,5 +89,19 @@ public class CredentialsAreObtainedNotInventedTests
         Assert.Contains("if (!string.IsNullOrEmpty(c.Session.PaymentToken)) return StepOutcome.Success();",
             text, StringComparison.Ordinal);
         Assert.Contains("will not invent one", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The generic token step carries the same rule as the payment one, and for a sharper reason: <c>GetAuthTokenAsync</c>
+    /// delegates here and says it acquires an authorisation token, which only the server can issue.
+    /// </summary>
+    [Fact]
+    public void TheGenericTokenStepAlsoReports()
+    {
+        var text = File.ReadAllText(Path.Combine(RepoRoot(), "src", "Cybersole.Stores", "Flows", "StoreFlow.cs"));
+
+        Assert.Contains("Task<StepOutcome> GetTokenAsync", text, StringComparison.Ordinal);
+        Assert.Contains("not invent a credential", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Vars[\"token\"] = token", text, StringComparison.Ordinal);
     }
 }

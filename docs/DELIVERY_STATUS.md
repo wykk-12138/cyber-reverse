@@ -25384,3 +25384,126 @@ python tools/metrics_report.py                 -> 完整套件 exit 0  2207 通�
 **一个从没被执行过的缺陷，删掉它不会让任何用例变红 —— 而那正是它活了这么久的原因。**
 
 **所以「删掉 + 全绿」不能当成验证；验证是**加一条会红的守卫，并亲眼看它红一次**。**
+
+
+---
+
+## 416. **`GetToken` = 接线缺口而非死代码；身体已改为报告；守卫加宽至索引器形状**
+
+> R992。**改 `StoreFlow.GetTokenAsync` 一处 + 加宽守卫 + 加 1 用例。** 套件 **2208 通过 / 0 失败 / 0 跳过**。
+
+### 一、它是三合一的
+
+```csharp
+GetTokenAsync        → Vars["token"] = 16 字节随机 hex
+CreateTokenAsync     → => GetTokenAsync
+GetAuthTokenAsync    → => GetTokenAsync     // 注释：「Acquire an authorisation token specifically」
+```
+
+**→ `GetAuthToken` 说它在「取授权令牌」，而它调的是造随机 hex。
+→ 授权令牌由服务器签发 —— 随机 hex 永远不是。
+→ 这比 R991 那个更直接：那个至少叫「获取支付令牌」，这个明说「授权」。**
+
+### 二、而它完全没被接上
+
+```
+Vars["token"] 的写入点: 1（就是它自己）；读取点: 0
+GetTokenAsync / GetAuthTokenAsync / CreateTokenAsync 的调用点: 0（除两个别名互指）
+出现在步骤序列里: 无（StoreFlowSteps.cs 无）
+字符串形式引用: 0
+```
+
+**→ 完全孤立：不执行、结果也没人读。
+→ 「不执行」正是它活了这么久的原因 —— 与 R991 同一机制，只是更彻底。**
+
+### 三、而它**不是**死代码该删
+
+```
+replica/docs/baseline/recovered_method_names.txt:
+  CreateToken  行 453
+  GetAuthToken 行 1269
+  GetToken     行 1595
+```
+
+**→ 三个名字都在原版里 → 形状在、**边**缺失。
+→ R955：「code is reachable or not, and unreachable code needs a **call**, not a rewrite」。
+→ 所以不删、不改名 —— 缺的是一个调用；而调用点需要原版证据，与 `HandleBlock` 是同一堵墙。**
+
+### 四、所以改的是身体
+
+```csharp
+// 改前
+var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+c.Session.Vars["token"] = token;
+return StepOutcome.Success();
+
+// 改后
+return StepOutcome.Fail(
+    $"{Name}: no token source is known for this step -- it has never been wired into a flow, and this step will not "
+    + "invent a credential", retryable: true);
+```
+
+**→ 接线的人不该拿到一个会造值的身体。
+→ `GetAuthTokenAsync` 说它取授权令牌，而接上它的那一刻，随机 hex 就会变成「认证已完成」的信号，
+而那时它会**流进请求** —— 错误的代价比现在高得多。
+→ 与 R991 同一条原则：不编造 fallback，缺少就以可诊断的方式缺。**
+
+### 五、守卫加宽了一格（它原来漏掉了这个形状）
+
+**R991 的模式：`\w*(PaymentToken|…)\w*\s*=\s*[^;]*\b(Guid\.NewGuid|RandomNumberGenerator)\b`
+—— 要求**左边是标识符**。
+
+**这里是 `Vars["token"] = <随机字节>` —— 左边是**索引器**，所以漏过去了。加宽后两种形状都匹配：**
+
+```
+Vars\[\s*""[^""]*(token|nonce|secret|credential)[^""]*""\s*\]\s*=[^;]*\b(RandomNumberGenerator|Guid\.NewGuid)\b
+```
+
+**→ 这与 `flow_work_audit` 那个委派漏洞是同一课：**我预期的形状不是它唯一的形状**。**
+
+**并新增第 3 条用例 `TheGenericTokenStepAlsoReports`：方法必须还在、必须含「not invent a credential」、
+且源码里不许再出现 `Vars["token"] = token`。**
+
+### 六、守卫验过会红
+
+```
+把 Vars["token"] = 随机 hex 放回 1 处
+失败!  - 失败: 1，通过: 2，总计: 3
+[xUnit.net] Cybersole.Tests.CredentialsAreObtainedNotInventedTests.NoCredentialIsMintedLocally [FAIL]
+exit=1
+已还原 → 3 通过
+```
+
+### 七、数字
+
+| 度量 | R991 | R992 |
+|---|---|---|
+| 套件 | 2207 | **2208（+1 用例）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| 伪造的支付令牌 | 0 | **0** |
+| **伪造的通用/授权令牌** | 1（`GetToken`） | **0** |
+| 本地铸造凭据（含会话变量形状） | 未覆盖索引器 | **0** |
+
+### 八、验证
+
+```
+cd replica
+python tools/snapshot.py                       -> 321 files
+dotnet test --filter "FullyQualifiedName~CredentialsAreObtainedNotInvented" -m:1  -> 3 通过
+  （把 Vars["token"] = 随机 hex 放回 1 处 -> 1 失败 2 通过 -> 还原 -> 3 通过）
+python tools/metrics_report.py                 -> 完整套件 exit 0  2208 通过 / 0 失败 / 0 跳过
+```
+
+### 九、仍然 Unknown
+
+- **`GetToken` / `GetAuthToken` / `CreateToken` 在原版里被谁调用**：**Unknown** ——
+  名字定位不到代码，与 `HandleBlock` 同一堵墙（字符串无 xref，MethodTable 未通）。
+
+### 十、教训
+
+**同一个「不执行所以没人反对」的机制，在 R991 那里是兜底从没被走到，在这里是步骤从没被接上 ——
+后者更彻底：连「走到它」这件事都不存在。**
+
+**而两者的身体都是伪造的。所以「它不执行」不能当成「它没问题」的证据 ——
+它只说明**现在**没问题，而接上线的那一刻问题才开始，且那时已经没人记得看过它。**

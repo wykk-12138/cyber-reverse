@@ -120,8 +120,18 @@ public static class VendorWiring
         None,
         /// <summary>Solved in-process; the failure vocabulary describes rounds and clearance, not an outage.</summary>
         Local,
-        /// <summary>Solved through a remote service; the vocabulary includes "API down (Contact staff)".</summary>
-        RemoteApi,
+        /// <summary>
+        /// Solved through a service the original runs itself. Evidenced by a host under cybersole.io or
+        /// cybersole.workers.dev: cf-solver.cybersole.io with its /v1/warm endpoint, cloudflare-jsd-gen on the Worker,
+        /// datadome.cybersole.io/sensor.
+        /// </summary>
+        Relay,
+        /// <summary>
+        /// Solved by calling a third party that can be down, which is what "&lt;Vendor&gt; API down (Contact staff)"
+        /// says. Kasada and Akamai carry that line and carry no relay host, so R1026's single RemoteApi value was
+        /// covering two different arrangements.
+        /// </summary>
+        ThirdPartyApi,
         /// <summary>Not established, and this column says so rather than guessing.</summary>
         Unknown,
     }
@@ -138,11 +148,11 @@ public static class VendorWiring
             + "from cf-chl, which the image does not contain, to challenge-platform, which it carries twice as "
             + "/cdn-cgi/challenge-platform/ -- page-level, which is what DetectAsync reads. cf_clearance and __cf_bm "
             + "are in the image too but are cookie names, so they belong in the cookie column where cf_clearance sits.",
-            MarkerSource.ImageLiteral, Gap.None, How.Local),
+            MarkerSource.ImageLiteral, Gap.None, How.Relay),
 
         new Row("kasada", "kpsdk", "kpsdk", State.Wired,
             "R141: KasadaClearance runs the four-road strategy and writes the token",
-            MarkerSource.ImageLiteral, Gap.None, How.RemoteApi),
+            MarkerSource.ImageLiteral, Gap.None, How.ThirdPartyApi),
 
         // R1024: Akamai was missing from this audit while being the vendor the image documents most thoroughly --
         // analysis/endpoints.md lists twenty-five literals for it. Verified in this round, in address order:
@@ -163,7 +173,7 @@ public static class VendorWiring
             + "original both solves it and can route around it. This replica detects it and has no solver: the name turns "
             + "up in its source only inside fanatics' and casio's 403 messages. DetectedOnly is therefore a statement "
             + "about the replica, not about the artifact.",
-            MarkerSource.ImageLiteral, Gap.None, How.RemoteApi),
+            MarkerSource.ImageLiteral, Gap.None, How.ThirdPartyApi),
 
         new Row("imperva", "_Incapsula_Resource", null, State.DetectedOnly,
             "R1021: two independent sources agree the vendor is absent. None of six spellings is in the artifact "
@@ -177,7 +187,7 @@ public static class VendorWiring
             "R996: DataDomeClearance runs the sensor at datadome.cybersole.io/sensor, narrates the image's four stages "
             + "and writes the datadome cookie. R141's correction stands -- SolveBotD proved the original solves it -- and "
             + "what was missing was the call, which now exists and which SolveDetectedWallAsync dispatches to.",
-            MarkerSource.ImageLiteral, Gap.None, How.Local),
+            MarkerSource.ImageLiteral, Gap.None, How.Relay),
 
         // R1022: Gap.NoPageMarker now has a second witness. AntiBotVendors has carried a PerimeterX entry since
         // before this audit, and none of its literals is a page-level string (R1023 added a fifth, "Solving PerimeterX",

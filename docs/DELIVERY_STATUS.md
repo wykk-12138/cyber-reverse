@@ -29083,3 +29083,117 @@ python tools/metrics_report.py -> 完整套件 exit 0  2241 / 0 / 0
 **→ 一个「0」可以是假阴性（R1015/R1016），而一个「-99」更坏：它连问题都没问出去。
 → 而两者在输出里长得一样安静。**
 **→ 所以读到任何非正数，第一个问题不是「所以是多少」，是「这个查询跑成了吗」。**
+
+
+---
+
+## 451. **`RemoteApi` 盖了两件事：自建中继与调第三方**
+
+> R1027。**改 1 个源文件 + 1 个测试文件。** 套件 **2243 通过 / 0 失败 / 0 跳过**。
+
+### 一、镜像里原版**自己跑**几个服务
+
+```
+solver.cybersole     n=3
+  0x1434563e6  SolverUrl<https://cf-solver.cybersole.io      ← 字段名与常量值粘连
+  0x14705c6fc  https://cf-solver.cybersole.io
+  0x14705c754  https://cf-solver.cybersole.io/v1/warm        ← 预热端点
+
+cybersole.workers.dev  n=4
+  cloudflare-jsd-gen · forter · hcaptcha-cache · proxy-data
+datadome.cybersole    n=2
+  datadome.cybersole.io/  ·  /sensor
+api.cybersole         n=2
+  https://api.cybersole.io  ·  /connect/app
+```
+
+**→ 所以 cloudflare 与 datadome 是**经原版自建的服务**解的 —— R1026 把它们标成 `How.Local`，
+  而 **R1026 的判据（「失败词汇里有 `API down`」）是充分不必要条件**。**
+
+### 二、两个信号**从不共现**
+
+| vendor | 有中继 host | 有 `API down` |
+|---|---|---|
+| cloudflare | **是**（`cf-solver` · `jsd-gen`） | 否 |
+| datadome | **是**（`/sensor`） | 否 |
+| kasada | 否 | **是** |
+| akamai | 否 | **是** |
+
+**→ 一个 `RemoteApi` 值盖住了两组**互斥**的事实。
+→ 而那正是 R1020 那次（`Inferred` 盖两件事）的同一形状 —— **只是那次我上上轮刚修过它。****
+
+### 三、所以拆成五个值
+
+```csharp
+public enum How { None, Local, Relay, ThirdPartyApi, Unknown }
+```
+
+| vendor | How | 依据 |
+|---|---|---|
+| **cloudflare** | **`Relay`** | `cf-solver.cybersole.io` + `/v1/warm` · `cloudflare-jsd-gen…workers.dev/api` |
+| **datadome** | **`Relay`** | `datadome.cybersole.io/sensor` |
+| **kasada** | **`ThirdPartyApi`** | `API down (Contact staff)`，无中继 host |
+| **akamai** | **`ThirdPartyApi`** | `API down (Contact Staff)`，无中继 host |
+| perimeterx | `Local` | `Solving PerimeterX`，无中继无 outage |
+| queue-it | `Local` | `Error Solving Queue-it (Softblock)`，同 |
+| imperva | `None` | 无解 |
+
+**→ `API down, contact staff` 只在**别人的** API 会挂时才有意义 —— 那是这个值存在的理由。**
+
+### 四、6 条守卫
+
+| 守卫 | 断言 |
+|---|---|
+| `OnlyTheTwoWithAnOutageLineCallAThirdParty` | `ThirdPartyApi` = `{kasada, akamai}` |
+| `TheTwoWithARelayHostUseIt` | `Relay` = `{cloudflare, datadome}` |
+| `TheRestAreLocalOrNone` | `Local` = `{perimeterx, queue-it}` · `None` = `{imperva}` |
+| **`RelayAndThirdPartyAreDisjoint`** | **无行同时满足「Relay」与「Note 含 API down」** |
+| `NoRowClaimsUnknownYet` | 无行用 `Unknown` |
+| `TheColumnDistinguishesTheCases` | 至少四种取值在用 |
+
+**→ 第 4 条是**那个观察的可执行形式**：两个信号从不共现，所以一个列不能诚实地同时装它们。**
+
+### 五、而这一轮有一个 `-99` 没解开
+
+**`ida.py str "cybersole.io"` 转义后仍 `-99`，而手动跑 `"cybersole"` 成功（`n=40`，4629 字节）。
+→ 所以 `-99` 有**第二个成因**，而这次我没定论。
+→ 按 R1026 的纪律：标 **Unknown**，不写成「没有」。**
+
+### 六、数字
+
+| 度量 | R1026 | R1027 |
+|---|---|---|
+| 套件 | 2241 / 0 | **2243 / 0 / 0（+2）** |
+| 产物陈旧度 | 4 / 3,859 | **4 / 3,869** |
+| 函数数 | 174,336 | **174,336** |
+| **`How` 取值数** | 4 | **5** |
+| **`Relay` 厂商** | — | **2（cloudflare · datadome）** |
+| **`ThirdPartyApi` 厂商** | — | **2（kasada · akamai）** |
+| **原版自建服务 host** | 未知 | **7** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "cf-solver"            -> {"n":3}
+python analysis/ida.py str "jsd-gen"              -> {"n":1}
+python analysis/ida.py str "datadome.cybersole"   -> {"n":2}
+python analysis/ida.py str "cybersole.workers.dev" -> {"n":4}
+cd replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug  -> 已成功生成
+dotnet test --filter "FullyQualifiedName~VendorSolvingMode" -m:1   -> 6 通过
+python tools/metrics_report.py -> 完整套件 exit 0  2243 / 0 / 0
+```
+
+### 八、仍然 Unknown
+
+- **`cybersole.io` 查询的 `-99` 第二成因**：**未定**。
+- **relay 的协议（`/v1/warm` 之后是什么）**：**未取证**。
+
+### 九、教训
+
+**R1026 的判据是从一条**症状**（`API down`）反推一个**机制**（远端解），而那条症状只覆盖一种机制。**
+
+**→ 而更刺眼的是：**R1020 我刚为 `Inferred` 拆过一次列，R1026 又在 `RemoteApi` 上重犯。**
+**→ 所以那个教训不是「一个词别盖两件事」，而是：**每次新加一个枚举值，先问它能不能被两个
+  互斥的事实同时满足**。**

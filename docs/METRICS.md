@@ -6,17 +6,17 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 18:03:59 +0800 |
+| 生成时间 | 2026-11-17 18:08:17 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2241 通过 / 0 失败 / 0 跳过 / 2241 总计** |
+| 完整套件 | **2243 通过 / 0 失败 / 0 跳过 / 2243 总计** |
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 4 个源文件比产物新（共 3859 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 4 个源文件比产物新（共 3869 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`3:57:23 -- VendorSolvingModeTests.cs changed after the run`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`4:01:38 -- VendorSolvingModeTests.cs changed after the run`。
 
 ## 摘要素值
 
@@ -41,7 +41,7 @@
 | 函数数量（.pdata） — functions: replica .pdata | 174,336 |
 | 函数数量（.pdata） — functions: ratio | 62.91% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 4 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 3859 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 3869 |
 | 核心覆盖：store 宿主 — hosts with a path | 39 |
 | 核心覆盖：store 宿主 — store hosts | 15 |
 | 核心覆盖：store 宿主 — store hosts matched | 15 |
@@ -60,7 +60,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 3:57:23 -- VendorSolvingModeTests.cs changed after the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 4:01:38 -- VendorSolvingModeTests.cs changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -374,9 +374,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 16:48:40
-newest source: src\Cybersole.Stores\Scripts\VendorWiring.cs (2026-11-17 18:03:16)
+newest source: src\Cybersole.Stores\Scripts\VendorWiring.cs (2026-11-17 18:07:48)
 source files newer than the artifact: 4
-lines in those files: 3859
+lines in those files: 3869
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -620,7 +620,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 3:57:23 -- VendorSolvingModeTests.cs changed after the run
+  mutation-fit-staleness: 4:01:38 -- VendorSolvingModeTests.cs changed after the run
 
   The counts above are from 2026-11-17T14:06:23+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
@@ -633,7 +633,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2241 通过 / 0 失败 / 0 跳过 / 2241 总计
+`exit 0` · 2243 通过 / 0 失败 / 0 跳过 / 2243 总计
 
 ```text
   正在确定要还原的项目…
@@ -650,7 +650,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2241，已跳过:     0，总计:  2241，持续时间: 1 m 34 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2243，已跳过:     0，总计:  2243，持续时间: 1 m 28 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

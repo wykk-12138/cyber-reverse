@@ -61298,3 +61298,73 @@ imperva = `None`。`Unknown` 存在但无使用者 —— 给将来「说不清�
 > **`-99` 是我自己设的哨兵，而它掩盖的是一次**语法错误**。一个「0」可以是假阴性，而一个「-99」更坏：
 > 它连问题都没问出去。而两者在输出里长得一样安静。**
 > **→ 读到任何非正数，第一个问题不是「所以是多少」，是「这个查询跑成了吗」。**
+
+
+---
+
+## 第 1027 轮：`RemoteApi` 盖了两件事 —— 自建中继与调第三方
+
+### ① 镜像里原版自己跑几个服务
+
+```
+cf-solver.cybersole.io  ·  /v1/warm              ← cloudflare 的 solver
+cloudflare-jsd-gen.cybersole.workers.dev/api     ← JSD = JS Detection
+datadome.cybersole.io/  ·  /sensor
+forter.cybersole.workers.dev/ · hcaptcha-cache… · proxy-data…
+api.cybersole.io  ·  /connect/app
+```
+
+**→ cloudflare 与 datadome 是**经原版自建的服务**解的 —— R1026 标成 `How.Local`，**错**。
+→ **R1026 的判据（「失败词汇有 `API down`」）是充分不必要条件。**
+
+### ② 而两个信号**从不共现**
+
+| vendor | 中继 host | `API down` |
+|---|---|---|
+| cloudflare · datadome | **是** | 否 |
+| kasada · akamai | 否 | **是** |
+
+**→ 一个 `RemoteApi` 值盖住两组**互斥**的事实 —— 与 R1020 那次同形，
+而那次我**上上轮刚修过。****
+
+### ③ 拆成五个值
+
+```csharp
+public enum How { None, Local, Relay, ThirdPartyApi, Unknown }
+```
+
+**cloudflare · datadome = `Relay`（自建）· kasada · akamai = `ThirdPartyApi`（会 down 的别人的 API）·
+perimeterx · queue-it = `Local` · imperva = `None`。**
+
+**→ `API down, contact staff` 只在**别人的** API 会挂时才有意义 —— 那是这个值存在的理由。**
+
+### ④ 6 条守卫，其中一条是那次观察本身
+
+`OnlyTheTwoWithAnOutageLineCallAThirdParty` · `TheTwoWithARelayHostUseIt` · `TheRestAreLocalOrNone` ·
+**`RelayAndThirdPartyAreDisjoint`** · `NoRowClaimsUnknownYet` · `TheColumnDistinguishesTheCases`
+
+**→ 第 4 条是观察的可执行形式：两个信号从不共现，一个列不能诚实地同时装它们。**
+
+### ⑤ 而这一轮有一个 `-99` 没解开
+
+**`ida.py str "cybersole.io"` 转义后仍 `-99`，而手动跑 `"cybersole"` 成功（`n=40`，4629 字节）。
+→ `-99` 有**第二个成因**，这次没定论 ⇒ 标 **Unknown**。**
+
+### ⑥ 数字
+
+| 度量 | R1026 | **R1027** |
+|---|---|---|
+| 套件 | 2241 / 0 | **2243 / 0 / 0（+2）** |
+| 产物陈旧度 | 4 / 3,859 | **4 / 3,869** |
+| 函数数 | 174,336 | **174,336** |
+| **`How` 取值数** | 4 | **5** |
+| **`Relay` · `ThirdPartyApi`** | — | **2 · 2** |
+| **原版自建服务 host** | 未知 | **7** |
+| **`cybersole.io` 的 `-99`** | — | **Unknown** |
+
+### 教训
+
+> **R1026 的判据是从一条**症状**（`API down`）反推一个**机制**（远端解），而那条症状只覆盖一种机制。
+> → 更刺眼的是：**R1020 我刚为 `Inferred` 拆过一次列，R1026 又在 `RemoteApi` 上重犯。**
+> → 所以那个教训不是「一个词别盖两件事」，而是：**每次新加一个枚举值，先问它能不能被两个
+> 互斥的事实同时满足**。**

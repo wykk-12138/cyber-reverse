@@ -9156,3 +9156,49 @@ public enum How { None, Local, RemoteApi, Unknown }
 | kasada/akamai 的远端服务是哪个 | 未取证 |
 
 **纪律**：读到任何非正数，先问「这个查询跑成了吗」。
+
+
+## 优先级 ② — **`RemoteApi` 拆成 `Relay` 与 `ThirdPartyApi`；原版自建 7 个服务 host**（R1027）
+
+### 证据：原版自己跑服务
+
+```
+cf-solver.cybersole.io  ·  /v1/warm        ← SolverUrl 字段 · cloudflare solver
+cloudflare-jsd-gen.cybersole.workers.dev/api
+datadome.cybersole.io/  ·  /sensor
+forter.cybersole.workers.dev/ · hcaptcha-cache… · proxy-data…
+api.cybersole.io  ·  /connect/app
+```
+
+### 两个信号互斥
+
+| vendor | 中继 host | `API down` |
+|---|---|---|
+| cloudflare · datadome | **是** | 否 |
+| kasada · akamai | 否 | **是** |
+
+**→ 一个 `RemoteApi` 盖住两组互斥事实（R1020 同形，而那次刚修过）。**
+
+### 拆
+
+```csharp
+public enum How { None, Local, Relay, ThirdPartyApi, Unknown }
+```
+
+`cloudflare` `datadome` = `Relay` · `kasada` `akamai` = `ThirdPartyApi` ·
+`perimeterx` `queue-it` = `Local` · `imperva` = `None`。
+
+### 6 条守卫
+
+含 **`RelayAndThirdPartyAreDisjoint`**（观察的可执行形式）与 `TheColumnDistinguishesTheCases`。
+
+### 数字
+
+**套件 2243（+2）· 陈旧度 4 / 3,869 · 函数数 174,336 · How 4 → 5 值 · 自建 host 7 个**
+
+| 仍 Unknown | |
+|---|---|
+| `ida.py str "cybersole.io"` 的 `-99` 第二成因 | 未定 |
+| relay 的协议（`/v1/warm` 之后是什么） | 未取证 |
+
+**纪律**：每次新加枚举值，先问它能不能被两个互斥的事实同时满足。

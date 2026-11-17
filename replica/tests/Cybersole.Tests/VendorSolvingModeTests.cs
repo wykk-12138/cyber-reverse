@@ -5,68 +5,84 @@ using Xunit;
 namespace Cybersole.Tests;
 
 /// <summary>
-/// R1026: the image's outcome vocabulary splits into a detection layer and a solving layer, and reading both gives a
-/// fact the audit did not have.
+/// R1027: R1026's single RemoteApi value was covering two different arrangements, and the second is not the first.
 ///
 /// <para>
-/// Detection lines are "&lt;Vendor&gt; Failed", "Blocked", "block", "(Rotating)". Solving lines are
-/// "Solving &lt;Vendor&gt; (...)" and "Failed Solving &lt;Vendor&gt; (...)" with a reason attached -- no clearance, too
-/// many rounds, TL, SBSD, SDS, Softblock. Only Kasada and Akamai also carry "&lt;Vendor&gt; API down (Contact staff)",
-/// and an API can go down while a local routine cannot: it simply fails. So those two are solved through a remote
-/// service and the rest in-process.
+/// R1026 reasoned from "the failure vocabulary includes API down (Contact staff)" to "this vendor is solved remotely",
+/// and found exactly Kasada and Akamai. That is a real signal and it is not the only kind of remote solving: the image
+/// also runs services of its own, named cf-solver.cybersole.io with a /v1/warm endpoint, cloudflare-jsd-gen on the
+/// Worker, and datadome.cybersole.io/sensor. Cloudflare and DataDome use those and carry no outage line, because an
+/// outage line is what you write when somebody else's API can fail.
+/// </para>
+///
+/// <para>
+/// So the column splits. Relay means the original routes through a service it owns. ThirdPartyApi means it calls one it
+/// does not, and is the only case where "API down, contact staff" makes sense. A vendor with neither is Local.
 /// </para>
 /// </summary>
 public sealed class VendorSolvingModeTests
 {
-    /// <summary>Exactly two vendors are solved through a service, and they are the two with an outage line.</summary>
+    /// <summary>The two with an outage line call somebody else, and they are the only ones.</summary>
     [Fact]
-    public void OnlyTheTwoWithAnOutageLineAreRemote()
+    public void OnlyTheTwoWithAnOutageLineCallAThirdParty()
     {
-        var remote = VendorWiring.Rows
-            .Where(r => r.How == VendorWiring.How.RemoteApi)
+        // Row order, not alphabetical -- this repository has caught me on that three times.
+        var thirdParty = VendorWiring.Rows
+            .Where(r => r.How == VendorWiring.How.ThirdPartyApi)
             .Select(r => r.Vendor)
             .ToList();
 
-        // Row order, not alphabetical -- the third time this repository has caught me on that, after R1009 and R1024.
-        Assert.Equal(new[] { "kasada", "akamai" }, remote);
+        Assert.Equal(new[] { "kasada", "akamai" }, thirdParty);
     }
 
-    /// <summary>The rest that are solved are solved locally, and imperva is not solved at all.</summary>
+    /// <summary>
+    /// The two with a host under cybersole.io or on the Worker go through the original's own service.
+    /// </summary>
     [Fact]
-    public void TheOthersSplitBetweenLocalAndNone()
+    public void TheTwoWithARelayHostUseIt()
     {
-        var local = VendorWiring.Rows
-            .Where(r => r.How == VendorWiring.How.Local)
-            .Select(r => r.Vendor)
-            .ToList();
-        var none = VendorWiring.Rows
-            .Where(r => r.How == VendorWiring.How.None)
+        var relay = VendorWiring.Rows
+            .Where(r => r.How == VendorWiring.How.Relay)
             .Select(r => r.Vendor)
             .ToList();
 
-        Assert.Equal(new[] { "cloudflare", "datadome", "perimeterx", "queue-it" }, local);
+        Assert.Equal(new[] { "cloudflare", "datadome" }, relay);
+    }
+
+    /// <summary>The rest are solved in-process, and imperva is not solved at all.</summary>
+    [Fact]
+    public void TheRestAreLocalOrNone()
+    {
+        var local = VendorWiring.Rows.Where(r => r.How == VendorWiring.How.Local).Select(r => r.Vendor).ToList();
+        var none = VendorWiring.Rows.Where(r => r.How == VendorWiring.How.None).Select(r => r.Vendor).ToList();
+
+        Assert.Equal(new[] { "perimeterx", "queue-it" }, local);
         Assert.Equal(new[] { "imperva" }, none);
     }
 
     /// <summary>
-    /// Nothing claims Unknown. That value exists so a future row can say it does not know, and a test that allowed it
-    /// to appear silently would defeat the point of having it.
+    /// No row has both a relay host and an outage line, which is the observation that forced the split: the two signals
+    /// never co-occur, so one column could not honestly hold both.
     /// </summary>
+    [Fact]
+    public void RelayAndThirdPartyAreDisjoint()
+    {
+        Assert.DoesNotContain(VendorWiring.Rows,
+            r => r.How == VendorWiring.How.Relay && r.Note.Contains("API down"));
+    }
+
+    /// <summary>Unknown exists for a future row that cannot tell; nothing claims it yet.</summary>
     [Fact]
     public void NoRowClaimsUnknownYet()
     {
         Assert.DoesNotContain(VendorWiring.Rows, r => r.How == VendorWiring.How.Unknown);
     }
 
-    /// <summary>
-    /// RemoteApi and Local have to disagree about at least one vendor, or the column is not carrying information.
-    /// </summary>
+    /// <summary>The column carries information only if more than one value is in use.</summary>
     [Fact]
-    public void TheColumnDistinguishesTheTwo()
+    public void TheColumnDistinguishesTheCases()
     {
-        var remote = VendorWiring.Rows.Count(r => r.How == VendorWiring.How.RemoteApi);
-        var local = VendorWiring.Rows.Count(r => r.How == VendorWiring.How.Local);
-
-        Assert.True(remote > 0 && local > 0, "the column must have both values in use");
+        var kinds = VendorWiring.Rows.Select(r => r.How).Distinct().Count();
+        Assert.True(kinds >= 4, "expected at least four distinct solving modes among seven rows, saw " + kinds);
     }
 }

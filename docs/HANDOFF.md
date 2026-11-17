@@ -2986,3 +2986,24 @@ cloudflare/datadome/perimeterx/queue-it = `Local` · imperva = `None` · `Unknow
 纪律：**读到任何非正数，先问「这个查询跑成了吗」。**
 
 下一轮：kasada/akamai 的远端服务是哪个（`API down` 说明是第三方 solver，找它的 host）。
+
+## R1027 补充 — **`RemoteApi` 拆成 `Relay` 与 `ThirdPartyApi`；原版自建 7 个服务 host**（套件 2243）
+
+**证据**：`cf-solver.cybersole.io` + `/v1/warm`（`SolverUrl` 字段）· `cloudflare-jsd-gen.cybersole.workers.dev/api` ·
+`datadome.cybersole.io/sensor` · `forter`/`hcaptcha-cache`/`proxy-data` workers · `api.cybersole.io`。
+→ **cloudflare 与 datadome 走**自建中继**，而 R1026 标成 `How.Local` —— 错。**
+
+**两个信号互斥**：cloudflare/datadome 有中继 host 无 `API down`；kasada/akamai 反之。
+→ **一个 `RemoteApi` 盖住两组互斥事实 —— R1020 同形，而那次我上上轮刚修过。**
+
+**拆**：`How { None, Local, Relay, ThirdPartyApi, Unknown }`。
+cloudflare/datadome = `Relay` · kasada/akamai = `ThirdPartyApi` · perimeterx/queue-it = `Local` · imperva = `None`。
+**6 条守卫**，含 **`RelayAndThirdPartyAreDisjoint`**（观察的可执行形式）。
+
+**一个 `-99` 没解开**：`str "cybersole.io"` 转义后仍 -99，而 `str "cybersole"` 成功（n=40）⇒ 第二成因未定 ⇒ **Unknown**。
+
+数字：套件 2243（+2）· 陈旧度 4 / 3,869 · 函数数 174,336 · How 4 → **5** 值 · 自建 host **7** 个。
+
+纪律：**每次新加枚举值，先问它能不能被两个互斥的事实同时满足。**
+
+下一轮：relay 的协议（`cf-solver.cybersole.io/v1/warm` 之后是什么）—— 那是 cloudflare 求解的核心。

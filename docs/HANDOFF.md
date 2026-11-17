@@ -2561,3 +2561,24 @@ id0→**是(Y)** · 「请稍候…」→**等** · **新框型「Database still
 纪律：**自造键名有稳定成因 —— 编译得过、读起来对，没有机制会质疑它。**
 
 下一轮：扫「所有 `Vars[...]` 键名对镜像查一遍」—— 那能一次性找出还有几个自造键名。
+
+## R1009 补充 — **326 个会话键扫完：152 在 · 159 不在（97 带点是表示方式差异）；`lastStatus` 从来不在产物里**（套件 2219，未改产品代码）
+
+**`analysis/vars_key_provenance.py`**（两阶段，输出 `analysis/VARS_KEY_PROVENANCE.md`）。
+**而第一阶段失效**：`settled by the sample: 0` —— 换行匹配对抽样格式不对，326 个全走 IDB（约 15 分钟）。
+
+结果：**326 键 · 152 在 · 159 不在（带点 97 / 不带点 62）· 15 未解析。**
+
+**三分类**：① 97 个带点键（`adyen.*`/`kasada.*`/`paypal.*`）—— 原版用**字段**不用字符串键，absent **正常**
+② 5 个真自造（`lastStatus`/`lastBody`/`sensorKeys`/`paymentMethodsUrl`/`antibot.solver`）
+③ 约 50 个待判（`orderProcessed`/`totalMinor` 像镜像语义）
+
+**最重的一条：`lastStatus` 两编码皆 0 —— R993 说的「活通道」从来不在产物里。**
+→ R1006 悬案有答案：**消息层读的通道本身不存在**，不是消息层被裁。
+→ 「活通道」两个意思（复刻件内部活 vs 产物里存在）被混用 —— 而混用会让「接上」看起来像小事。
+
+数字：套件 2219 · 陈旧度 1 / 2,671 · 函数数 174,336 · 键 326 / 152 / 159 / 15。
+
+纪律：**把 159 当成 159 个待修是错的。**
+
+下一轮：判那约 50 个不带点键（`orderProcessed`/`paymentStarted`/`totalMinor`/`transactionAmount` 优先）。

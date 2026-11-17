@@ -27247,3 +27247,101 @@ python tools/metrics_report.py  -> 套件 2219 · 陈旧度 1 / 2,671 · 函数�
 而 `paymentMethodsUrl` 从写下那天起活到 R1008 才被查。**
 
 **→ 所以守卫钉的不是名字，是「这个名字没被搜过」这件事的说法。**
+
+
+---
+
+## 433. **326 个会话键扫完：152 在 · 159 不在（97 带点是表示方式差异）；`lastStatus` 从来不在产物里**
+
+> R1009。**新增 1 个分析工具；未改产品代码。** 套件 **2219 通过 / 0 失败 / 0 跳过**。
+
+### 一、工具
+
+**`analysis/vars_key_provenance.py`：两阶段 —— 抽样 `pe_strings.txt` 命中即证明存在
+（§2.7b：反向不可用），剩下用 `analysis/ida.py str` 查 IDB（两向权威）。
+输出 `analysis/VARS_KEY_PROVENANCE.md`。**
+
+### 二、而第一阶段完全失效
+
+```
+distinct keys: 326   settled by the sample: 0   to ask the IDB: 326
+absent: 159   present-after-IDB: 152   unresolved: 15
+```
+
+**→ `settled by the sample: 0` —— 我的 `"\n" + key + "\n"` 匹配对抽样文件的格式不对，
+所以第一阶段一个都没 settle，326 个全部逐串问 IDB（约 15 分钟）。
+→ 两阶段设计里第一阶段是死的，等于只做了一阶段。这是一个应当记下的实现缺陷。**
+
+### 三、159 个 absent 分成两类，性质**完全不同**
+
+| 类 | 数 | 说明 |
+|---|---|---|
+| **带点（模块命名空间）** | **97** | `adyen.*` · `kasada.*` · `paypal.*` · `stripe.*` · `square.*` · `viva.*` · `kasada.*` … |
+| 不带点 | 62 | 混合 |
+
+**带点那 97 个：原版**不需要**把 `adyen.merchantAccount` 写成字符串 —— 它用**字段**。
+所以 absent 对它们**完全正常**，不是缺陷。
+→ `adyen.merchantAccount` 尤其说明问题：复刻件用一个字符串键存商户号，而原版有一个字段。
+这是**表示方式**的差异，不是缺一个键。**
+
+**不带点那 62 个是混合：**
+
+| 明显自造 / 内部 | 可能是镜像的 |
+|---|---|
+| `lastBody`（R1006 加的）· `lastStatus` · `sensorKeys` · `paymentMethodsUrl` · `antibot.solver` | `orderProcessed` · `paymentStarted` · `totalMinor` · `transactionAmount` |
+
+### 四、而最重的一条：`lastStatus` 从来就不在产物里
+
+**`lastStatus` 是 R993 说的「活通道：5 写入 / 4 读取」。而它在镜像里两编码皆 0，**从来不在**。
+`lastBody`（R1006 加的）同样。**
+
+**→ R1006 那个悬案（「消息层写对了却没进产物」）有了答案：
+它读的那个通道**本身不存在**。不是消息层被裁，是它的输入不在。
+→ 而 R993 说「活通道」时的判据是「复刻件内部有人写有人读」，**不是「产物里真的存在」**。
+两个「活」不是一回事。**
+
+### 五、所以这一轮的产出是**一个分类**，不是 159 个缺陷
+
+1. **97 个带点键：表示方式差异**（原版用字段，我们用字符串键）—— 不是缺陷
+2. **5 个真自造**：`lastStatus` · `lastBody` · `sensorKeys` · `paymentMethodsUrl` · `antibot.solver`
+3. **约 50 个待判** —— 有些像镜像语义，需要逐个取证
+
+**把 159 当成 159 个待修是错的。**
+
+### 六、数字
+
+| 度量 | R1008 | R1009 |
+|---|---|---|
+| 套件 | 2219 | **2219（未改代码）** |
+| 产物陈旧度 | 1 / 2,671 | **1 / 2,671** |
+| 函数数 | 174,336 | **174,336** |
+| **会话键总数** | 未测 | **326** |
+| **在镜像里** | 未测 | **152** |
+| **不在** | 未测（已知 2） | **159（带点 97 / 不带点 62）** |
+| **未解析** | — | **15** |
+| **第一阶段有效性** | 设计为快路径 | **0 / 326（失效）** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/vars_key_provenance.py
+  -> distinct keys: 326 · settled by the sample: 0 · to ask the IDB: 326
+  -> absent: 159 · present-after-IDB: 152 · unresolved: 15
+  -> wrote analysis/VARS_KEY_PROVENANCE.md
+cd replica && python tools/metrics_report.py -> 套件 2219 · 陈旧度 1 / 2,671 · 函数数 174,336
+```
+
+### 八、仍然 Unknown
+
+- **约 50 个不带点键里哪些是镜像的**：**待逐个取证**。
+- **15 个未解析**：**Unknown** —— IDB 未答。
+- **`lastStatus` 该换成什么**：**Unknown** —— 原版用字段，而复刻件没有那个字段。
+
+### 九、教训
+
+**「活通道」这句话有两个意思：在复刻件内部有人写有人读，和在产物里真的存在。
+R993 用的是第一个意思，而它被读成了第二个 —— 于是「把它接上」看起来像一件小事。**
+
+**→ 而这一轮的扫描把那个混淆一次性摊开了：326 个键里 159 个不在产物里，
+而其中一个正是那条「活通道」。**

@@ -3330,3 +3330,29 @@ inline 323/33 · 已登记 33 · 未登记 **0** · exit 0）· 原版侧 **Unkn
 纪律：**「可复算」要求文档与产生它的东西之间有活连接。**
 
 下一轮：publish 清陈旧度；随后回到 ① 的实质工作（端点基或风控求解协议）。
+
+## R1042 补充 — **14 个 Unknown 分三种状态；Nike 付款有 3 条实名路由；`/api/beast` 无据**（套件 2258）
+
+**陈旧度 1/217 → 0/0**（publish + 轮转）。
+
+**三种状态**：Farfetch 7 处**无线索** · Bstn 4 处**有候选**（`/api/beast` · `(Adyen)`）·
+Nike 3 处**镜像里有名字**。
+
+**线索结果**：
+```
+/api/beast       0     ⇒ Bstn 那条注释**无据**（指向不存在的路径）
+adyen            167   ⇒ AdyenHandler · _adyenEU/UK/JP/AU · Adyen3DS · get_AdyenClientKey
+rpc/payment/pay  3     ⇒ /initiatePayment · /submitAdyenDetails · /capturePayPalPaymentByChannelTransactionNo
+buy/orders       0     ⇒ Nike 结账链上一步先断
+```
+
+**而接线被 R48 挡住**：接 `initiatePayment` 只把失败点挪到 shipping ⇒ 不动代码，三条路由记下备用。
+
+**操作教训**：`if (Test-Path $p -and ...)` 语法错 ⇒ 校验**静默没跑**，而删除/移动照旧执行。
+结果对是因为路径由 `(Get-Location)` 构造，不是校验。**「校验存在但没执行」比没有校验更坏。**
+
+数字：套件 2258/0/0 · 陈旧度 **0/0** · 函数数 174,293 · Unknown 14（7+4+3）· Nike 付款路由 **3** · `buy/orders` **0**。
+
+纪律：**「未覆盖的每条写为什么」要求每条都读一遍消息 —— 消息里有能不能动手的全部信息。**
+
+下一轮：`buy/orders/v2`（Nike 链第一步）的真实路由 —— 那是解开 3 个 Unknown 的钥匙。

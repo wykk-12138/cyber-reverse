@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 19:11:22 +0800 |
+| 生成时间 | 2026-11-17 19:15:21 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,8 +14,6 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 1 个源文件比产物新（共 217 行）。它描述的是更旧的一次构建，不是当前源码。
->
 > **变异套件那一组数来自上一次运行，而它已经过期**：`5:04:48 -- CoreCoverageDocumentTests.cs changed after the run`。
 
 ## 摘要素值
@@ -40,8 +38,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 174,293 |
 | 函数数量（.pdata） — functions: ratio | 62.89% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 1 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 217 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
 | 核心覆盖：store 宿主 | （未解析，见下方原始输出） |
 | 核心覆盖：vendor 宿主 — vendor hosts carrying a path | 12 |
 | 核心覆盖：vendor 宿主 — vendors named somewhere in src | 12 |
@@ -369,14 +367,11 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-17 18:55:03
+publish artifact mtime: 2026-11-17 19:15:08
 newest source: src\Cybersole.Stores\Flows\FarfetchFlow.cs (2026-11-17 18:59:34)
-source files newer than the artifact: 1
-lines in those files: 217
-publish artifact state: stale
-
-  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
-  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
+source files newer than the artifact: 0
+lines in those files: 0
+publish artifact state: current
 ```
 
 ### 核心覆盖：store 宿主
@@ -447,18 +442,18 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 56158208 bytes ===
+=== REPLICA  image base 0x140000000  file 56158720 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
   .text      0x1000       0xFDCB8      1035776      X
   .managed   0xFE000      0x1B903A8    27862016     X
-  hydrated   0x1B91000    0x2AA09E8    0            RW
-  .rdata     0x2AA1000    0x42173D6    24601600     R
+  hydrated   0x1B91000    0x2AA0AF8    0            RW
+  .rdata     0x2AA1000    0x42174D6    24602112     R
   .data      0x4218000    0x430EA18    223744       RW
   .pdata     0x430F000    0x450D858    2091520      R
   _RDATA     0x450E000    0x450E0F4    512          R
   .rsrc      0x450F000    0x455A7E7    309248       R
-  .reloc     0x455B000    0x4562E90    32768        R
+  .reloc     0x455B000    0x4562E84    32768        R
 
   section-mass-replica-executable: 28897792
   section-mass-ratio: 55.90%
@@ -594,7 +589,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 1 m 25 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 1 m 32 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

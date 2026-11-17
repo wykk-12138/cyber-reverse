@@ -30580,3 +30580,111 @@ python tools/metrics_report.py -> 完整套件 exit 0  2258 / 0 / 0
 
 **→ 所以 (f) 这一项真正的交付不是那张表，是**那个脚本加那 4 条守卫**。
 → 而它们让「表是新的」这件事可被机器检查，而不是靠我记得重跑。**
+
+
+---
+
+## 466. **14 个 Unknown 不是一样难；Nike 付款有三条实名路由**
+
+> R1042。**未改代码（publish + 取证）。** 套件 **2258 通过 / 0 失败 / 0 跳过**。
+> **产物陈旧度 1 / 217 → 0 / 0。**
+
+### 一、14 处不是同一种「不知道」
+
+| flow | 数 | 消息里有什么 |
+|---|---|---|
+| **Farfetch** | 7 | 只说「原版有 Farfetch checkout，我们不知道 transport」—— **无线索** |
+| **Bstn** | 4 | 第 1 条说「cart lives under `/api/beast`」· 第 3 条说「(Adyen)」—— **有线索** |
+| **Nike** | 3 | 说「the image names `/rpc/payment/pay/initiatePayment`」—— **镜像里确实有名字** |
+
+**→ 所以「14 个未知」这个计数掩盖了三种状态：彻底无线索（7）· 有候选（2）· 镜像里有名字（3）。**
+
+### 二、而三条线索查下来的结果
+
+```
+/api/beast        n=0      ← Bstn 自己的消息说 cart 在那儿，而镜像里**零次**
+adyen             n=167    ← 整套 Adyen 词汇：AdyenHandler · _adyenEU/UK/JP/AU · Adyen3DS · get_AdyenClientKey
+rpc/payment/pay   n=3      ← **三条实名路由**
+                             /rpc/payment/pay/initiatePayment
+                             /rpc/payment/pay/submitAdyenDetails
+                             /rpc/payment/pay/capturePayPalPaymentByChannelTransactionNo
+buy/orders        n=0      ← 而 Nike 结账链的**上一步**：零次
+```
+
+**→ 两个结论：**
+1. **Bstn 那条消息里的 `/api/beast` 是**它自己的**说法，镜像里 0 ⇒ 那条注释本身无据。
+   → 而那是一条**待在注释里很久的假线索** —— 它把下一个人指向一个不存在的路径。**
+2. **Nike 的付款不是「未取证」**：镜像里有三条实名路由，含 `submitAdyenDetails`。
+   → 而 `NikeFlow.SubmitPaymentAsync` 的报告写着「the image names /rpc/payment/pay/initiatePayment」——
+   **那句话是对的，而它仍然报告，因为**上一步**（`buy/orders/v2`）是 0。**
+
+### 三、而为什么不现在就把 Nike 的付款接上
+
+**Nike 的结账链是 `SubmitShipping → GetPaymentMethods → SubmitPayment`。
+→ 而 `buy/orders/v2`（shipping 那步）在镜像里 **0 次**，`buy/orders` 也 **0 次**。
+→ 所以接上 `initiatePayment` 只是把失败点从「payment 未取证」挪到「shipping 未取证」——
+→ **那正是 R48 的裁决：「换一个猜测只是移动失败，不是消除失败」。**
+
+**→ 所以本轮**不动代码**：那三条路由被记下来，等 `buy/orders/v2` 有据时它们就是现成的。**
+
+### 四、而本轮还有一件**操作上的**事要记
+
+**轮转三个 publish 目录时，我写的路径校验是：**
+
+```powershell
+if (Test-Path $p -and $p -notlike "$root\.publish-aot*") { ... }
+```
+
+**→ PowerShell 需要 `(Test-Path $p) -and ...`，而那个写法**静默失败**（报 NamedParameterNotFound），
+→ 于是**校验没跑，而删除与移动照旧执行了。**
+
+**→ 结果是对的（三个路径都由 `(Get-Location)` 构造，本来就对），但那是**运气**，不是校验。
+→ 而 AGENTS 那条「删除前先核实解析后的绝对路径」正是为此 —— 校验存在而没执行，比没有校验更坏，
+  因为它让人以为检查过了。**
+
+**→ 而验证：`.publish-aot` 19:15（新）· `.publish-aot-prev` 18:55（旧）· 无 `-new` · exe 在。**
+
+### 五、数字
+
+| 度量 | R1041 | R1042 |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| **产物陈旧度** | 1 / 217 | **0 / 0** |
+| 函数数 | 174,293 | **174,293** |
+| **报告 Unknown 的步骤** | 14 | **14（分成 7+4+3 三种状态）** |
+| **`/api/beast` 在镜像里** | 未查 | **0 ⇒ Bstn 那条注释无据** |
+| **`adyen` 词汇** | 未查 | **167 条** |
+| **Nike 付款路由** | 「0 条」 | **3 条实名** |
+| **Nike `buy/orders`** | 未查 | **0 ⇒ 上一步先断** |
+| **路径校验是否执行** | — | **否（语法错，静默）** |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "/api/beast" --limit 600        -> {"n":0}
+python analysis/ida.py str "adyen" --limit 600             -> {"n":167}
+python analysis/ida.py str "rpc/payment/pay" --limit 600   -> {"n":3}
+python analysis/ida.py str "buy/orders" --limit 600        -> {"n":0}
+cd replica
+Get-ChildItem -Directory -Filter ".publish-aot*"  -> .publish-aot 19:15 · .publish-aot-prev 18:55
+python tools/metrics_report.py -> 完整套件 exit 0  2258 / 0 / 0 · 陈旧度 0 / 0
+```
+
+### 七、仍然 Unknown
+
+- **`buy/orders/v2` 的真实路由**：待取证（Nike 链的第一步）。
+- **Farfetch 的 transport**：无线索。
+
+### 八、教训
+
+**「14 个未知」是一个**计数**，而计数把三种状态压成了一个大数字：
+  彻底无线索的 7 个、有候选的 2 个、镜像里有名字的 3 个。**
+
+**→ 而压平之后，那 3 个「其实有名字」的看起来和那 7 个一样无望。**
+
+**→ 所以「未覆盖的每条写为什么」不只是写字 —— 它要求**每条都读一遍消息**，
+  因为消息里藏着下一轮能不能动手的全部信息。**
+
+**→ 另一条：`if (Test-Path $p -and ...)` 语法错让校验静默失效而破坏性操作照旧执行。
+  校验存在但没跑，比没有校验更坏 —— 它让人以为检查过了。**

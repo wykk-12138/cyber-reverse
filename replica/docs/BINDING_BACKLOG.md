@@ -7667,3 +7667,44 @@ store hosts matched: 15        store hosts unmatched: 0
 | vendor 段 20 个 unmatched 里多少是真未实现 | 段口径不同（vendor 只搜 `Scripts/`），分不开 |
 
 **纪律**：默认规则的错只朝一个方向犯 —— 新东西被算进多数那类。
+
+
+## 判据 (f) — **两列统一分母：vendor 未覆盖 20 → 6，全是支付网关；假匹配 1 → 0**（R989）
+
+### 缺陷
+
+**`registry_ids()` 已返回 `all_src`，而 vendor 段另有 `scripts_text()` 只读 `Scripts/*.cs`
+→ 判据 (f) 两列在**不同分母**下量出来。**
+
+### 修
+
+**`scr = all_src.lower()`（共用同一份文本）。**
+
+### 结果
+
+```
+vendor 24：matched 18 · unmatched 6
+```
+
+| 未覆盖 6 个 | 类别 |
+|---|---|
+| midtrans · gpayments · mollie · cybersource · touchtech · airwallex | **支付网关（优先级 ①）** |
+
+**→ 风控厂商（优先级 ②）**全部 matched**：cloudflare · kasada · datadome · perimeterx · queue-it ·
+aycd · captcha · eshopworld · wdprapps · disney · global-e · vivapayments · paypal · adyen · klaviyo ·
+braintree · sibs · vipps。**
+
+### 顺手修的假匹配
+
+**`registerdisney.go.com` 匹配在标签 `go` 上（`go.com` 的注册标签）。
+成因：分桶用整串 host、匹配用注册标签。改成「被 vendor 提示词打桶的 host 用那个提示词当标识」→ 经 `disney` 匹配。**
+
+### 数字
+
+**套件 2205（未动测试）· 陈旧度 0/0 · 函数数 173,952 · store 15/0 · vendor unmatched 6 · 假匹配 0**
+
+| 仍 Unknown | |
+|---|---|
+| 那 6 个支付网关在复刻件里是否真缺 | `matched` 只说名字出现过，不说实现 |
+
+**纪律**：两列放一张表 ≠ 两列在回答同一个问题。

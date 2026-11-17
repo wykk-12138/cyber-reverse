@@ -58718,3 +58718,68 @@ store hosts matched: 15    store hosts unmatched: 0
 > **默认规则的错永远朝一个方向犯：新东西被算进多数那一类，于是没人看得见。
 > 十二个支付网关在「27 个店」里待了很多轮，而它们每一行都写着 `matched` ——
 > 一个错的分母会让每一行都看起来是对的。**
+
+
+---
+
+## 第 989 轮：两列同一个分母后，vendor 未覆盖从 20 降到 6，全是支付网关
+
+### ① 缺陷：两列用两个分母
+
+**`registry_ids()` 已返回 `all_src`（整个 `src`），而 vendor 段另有 `scripts_text()` 只读 `Scripts/*.cs`。**
+
+> **判据 (f) 的两列因此在不同分母下量出来：store 问「源码里有没有」，vendor 问「Scripts 里有没有」。
+> 而 kasada / datadome / perimeterx 的实现本来就不全在 `Scripts/`。**
+
+### ② 改法：`scr = all_src.lower()`
+
+### ③ 结果：vendor 24 → matched 18 / unmatched 6
+
+| host | 标签 |
+|---|---|
+| `app.midtrans.com` | midtrans |
+| `degica.as1.gpayments.net` | gpayments |
+| `ecommerce-gateway.mollie.com` | mollie |
+| `flex.cybersource.com` | cybersource |
+| `retry.touchtechpayments.com` | touchtech |
+| `threeds.airwallex.com` | airwallex |
+
+> **六个全是支付网关，一个风控厂商都没有。
+> → 优先级 ②（风控）的 vendor 覆盖**完整**：cloudflare · kasada · datadome · perimeterx · queue-it ·
+> aycd · captcha · eshopworld · wdprapps · disney · global-e · vivapayments · paypal · adyen · klaviyo ·
+> braintree · sibs · vipps 全 matched。
+> → 那 6 个属于**下单链路**（优先级 ①）。**
+> **这是判据 (f) 第一次给出**可分类**的「未覆盖」：6 条，每条都写着它属于哪一类。**
+
+### ④ 统一分母顺手暴露一个假匹配
+
+**`registerdisney.go.com` 匹配在标签 `go` 上 —— 而 `go` 几乎出现在源码各处。**
+
+**成因：分桶用整串 host（含 `disney`），匹配用注册标签（`go.com` → `go`）。
+两步对「哪个 token 是名字」看法不同。**
+
+**修：被 vendor 提示词打桶的 host 用**那个提示词**当标识 → 现在经 `disney` 匹配，假匹配 0。**
+
+> **这正是 R988 docstring 写的风险「a short label can match by accident」——
+> 它真的发生了一次，而条件是**分桶与匹配用不同 token**，那句话没说到这一层。**
+
+### ⑤ 仍然诚实的部分
+
+**`matched` 两列同义：「这个名字在源码里出现过」。不是「这个站能用」。
+输出末尾的 NOTE 一直这么写着。**
+
+### 数字
+
+| 度量 | R988 | **R989** |
+|---|---|---|
+| 套件 | 2205 | **2205（未动测试）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| store matched / unmatched | 15 / 0 | **15 / 0** |
+| **vendor unmatched** | 20（口径不同，不可读） | **6（全是支付网关）** |
+| **假匹配** | 1（`go`） | **0** |
+
+### 教训
+
+> **「两列数字放在一张表里」不等于「两列在回答同一个问题」。
+> 而一个口径不同的分母，会让一列看起来只是「覆盖得差」，而不是「量错了」。**

@@ -2126,3 +2126,23 @@ bigcommerce · touchtechpayments · airwallex · klaviyo · ibm。
 纪律：**默认规则的错只朝一个方向犯 —— 新东西被算进多数那类，于是没人看得见。**
 
 下一轮：给「store 桶里不许出现支付标签」加一条守卫；并核 vendor 段口径（只搜 `Scripts/`）那个 Unknown。
+
+## R989 补充 — **两列统一分母：vendor 未覆盖 20 → 6（全是支付网关）；假匹配 1 → 0**（套件 2205）
+
+R988 留的 Unknown 解决了：vendor 段原用 `scripts_text()`（只读 `Scripts/`），而 store 段用整个 `src`。
+改成共用 `all_src` 之后，**vendor 24 → matched 18 / unmatched 6**：
+midtrans · gpayments · mollie · cybersource · touchtech · airwallex —— **六个全是支付网关，无一是风控厂商**。
+
+→ 优先级 ②（风控）vendor 覆盖**完整**：cloudflare · kasada · datadome · perimeterx · queue-it · aycd ·
+captcha · eshopworld · wdprapps · disney · global-e · vivapayments · paypal · adyen · klaviyo ·
+braintree · sibs · vipps 全 matched。那 6 个属于**下单链路**（优先级 ①）。
+
+**顺手修一个假匹配**：`registerdisney.go.com` 匹配在标签 `go` 上。
+成因：分桶用整串 host（含 `disney`）、匹配用注册标签（`go.com` → `go`）。
+改成「被 vendor 提示词打桶的 host 用那个提示词当标识」→ 经 `disney` 匹配，假匹配 0。
+
+数字：套件 2205（未动测试）· 陈旧度 0/0 · 函数数 173,952 · store 15/0 · vendor unmatched 6 · 假匹配 0。
+
+纪律：**两列放一张表 ≠ 两列在回答同一个问题。**
+
+下一轮：核那 6 个支付网关在复刻件里是否真缺（`matched` 只说名字出现过，不说实现）；或给 store 桶加防支付标签的守卫。

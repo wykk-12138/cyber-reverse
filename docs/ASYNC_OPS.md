@@ -8434,3 +8434,84 @@ store hosts unmatched:  0
 > 新东西被算进多数那一类，于是没人看得见。**
 > **十二个支付网关在「27 个店」里待了很多轮，而它们每一个的输出行都写着 `matched` ——
 > 一个错的分母会让每一行都看起来是对的。**
+
+
+### 两列换成同一个分母后，vendor 的未覆盖从 **20** 降到 **6**，而 6 个全是支付网关（R989）
+
+**R988 留了一个 Unknown：vendor 段只搜 `Scripts/`，store 段搜整个 `src`，所以 24 个里 20 个 `unmatched`
+读不出任何覆盖率结论。这一轮把两段的分母统一，那个数变成可读的。**
+
+### ① 缺陷：两列用两个分母
+
+**`registry_ids()` 已经返回 `all_src`（整个 `src` 的文本），而 vendor 段另有一个 `scripts_text()`，只读 `Scripts/*.cs`。**
+
+> **于是判据 (f) 那两列是**在不同分母下**量出来的：
+> store 那列「源码里有没有这个名字」，vendor 那列「Scripts 目录里有没有这个名字」。
+> 而 `kasada` / `datadome` / `perimeterx` 的实现本来就不全在 `Scripts/`。**
+
+### ② 改法：共用 `all_src`
+
+```python
+# 改前
+scr = scripts_text().lower()
+# 改后
+scr = all_src.lower()
+```
+
+### ③ 结果
+
+```
+vendor 24 个 host：matched 18 · unmatched 6
+```
+
+**而 6 个 unmatched 是：**
+
+| host | 标签 |
+|---|---|
+| `app.midtrans.com` | midtrans |
+| `degica.as1.gpayments.net` | gpayments |
+| `ecommerce-gateway.mollie.com` | mollie |
+| `flex.cybersource.com` | cybersource |
+| `retry.touchtechpayments.com` | touchtech |
+| `threeds.airwallex.com` | airwallex |
+
+> **六个**全都是支付网关**，一个风控厂商都没有。**
+> **→ 优先级 ②（风控对抗）的 vendor 覆盖是**完整的**：
+> cloudflare · kasada · datadome · perimeterx · queue-it · aycd · turnstile/captcha · eshopworld ·
+> wdprapps · disney · global-e · vivapayments · paypal · adyen · klaviyo · braintree · sibs · vipps —— 全 matched。**
+> **→ 而那 6 个属于**下单链路**（优先级 ①），不是风控。**
+
+**这是判据 (f) 第一次给出**可分类**的「未覆盖」：6 条，每一条都写着它是哪一类。**
+
+### ④ 而统一分母顺手暴露一个假匹配
+
+**改完后 `registerdisney.go.com` 匹配在标签 `go` 上 —— 而 `go` 出现在源码里几乎所有地方。**
+
+**成因：分桶用**整串 host**（含 `disney` → 进 vendor 桶），匹配用**注册标签**（`go.com` 的标签是 `go`）。
+两个步骤对「哪个 token 是这个 host 的名字」看法不同。**
+
+**修：被 vendor 提示词打了桶的 host，用**那个提示词**当它的标识。改完 `registerdisney.go.com` 经 `disney` 匹配。**
+
+> **而这条正是 R988 的 docstring 早就写着的风险：「a short label can match by accident」。
+> 它真的发生了一次，而它发生的条件是**分桶与匹配用不同的 token** —— 那句话没说到这一层。**
+
+### ⑤ 仍然诚实的部分
+
+**`matched` 现在两列同义：「这个名字在源码里出现过」。
+它不是「这个站能用」也不是「这个厂商接上了」—— 输出末尾的 NOTE 一直这么写着。**
+
+### 数字
+
+| 度量 | R988 | **R989** |
+|---|---|---|
+| 套件 | 2205 | **2205（未动测试）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| store matched / unmatched | 15 / 0 | **15 / 0** |
+| **vendor unmatched（统一分母后）** | 20（口径不同，不可读） | **6（全是支付网关）** |
+| **假匹配** | 1（`go`） | **0** |
+
+### 教训
+
+> **「两列数字放在一张表里」不等于「两列在回答同一个问题」。
+> 而一个口径不同的分母，会让一列看起来只是「覆盖得差」，而不是「量错了」。**

@@ -148,12 +148,22 @@ def main():
 
     ids, flows, all_src = registry_ids()
     flow_names = {f.lower().replace("flow", "") for f in flows}
-    scr = scripts_text().lower()
+    # R989: this used to read scripts_text(), a separate function that walked only Scripts/. The store section searched all
+    # of src and the vendor section searched one directory, so the two columns of criterion (f)'s table were measured
+    # against different denominators -- and twenty of twenty-four vendor rows came out unmatched partly because their
+    # matches live outside Scripts/. Both sections now search the same text, which is what makes the vendor column readable
+    # as coverage at all.
+    scr = all_src.lower()
 
     stores, vendors = [], []
     for host, count in sorted(names.items()):
         low = host.lower()
-        (vendors if any(v in low for v in VENDOR_HINTS) else stores).append((host, count, label(host)))
+        hint = next((v for v in VENDOR_HINTS if v in low), None)
+        # R989: when a vendor hint is what put the host in the vendor bucket, that hint is its identity. Using the
+        # registrable label instead made registerdisney.go.com match by the label "go" -- the registrable label of go.com --
+        # and "go" appears all over the source, so a Disney registration host was reported as covered by accident. The
+        # bucketing and the matching test now agree on which token names the host.
+        (vendors if hint else stores).append((host, count, hint or label(host)))
 
     print("hosts with a path: %d  (store %d, vendor %d)"
           % (len(names), len(stores), len(vendors)))

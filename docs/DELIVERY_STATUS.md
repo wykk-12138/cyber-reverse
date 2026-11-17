@@ -25060,3 +25060,107 @@ python tools/metrics_report.py         -> 核心覆盖：store 宿主 exit 0 {st
 
 **十二个支付网关在「27 个店」里待了很多轮，而它们每一个输出行都写着 `matched` ——
 一个错的分母会让每一行都看起来是对的。**
+
+
+---
+
+## 413. **两列统一分母：vendor 未覆盖 20 → 6（全是支付网关）；假匹配 1 → 0**
+
+> R989。**改 `core_coverage.py` 两处。** 套件 **2205 通过 / 0 失败 / 0 跳过**。
+
+### 一、缺陷：判据 (f) 的两列用两个分母
+
+**`registry_ids()` 已经返回 `all_src`（整个 `src` 的文本），
+而 vendor 段另有一个 `scripts_text()`，只读 `Scripts/*.cs`。**
+
+**→ store 那列问「源码里有没有这个名字」，vendor 那列问「Scripts 目录里有没有」。
+→ 而 `kasada` / `datadome` / `perimeterx` 的实现本来就不全在 `Scripts/`。**
+
+```python
+# 改前
+scr = scripts_text().lower()
+# 改后
+scr = all_src.lower()
+```
+
+### 二、结果
+
+```
+vendor 24 个 host：matched 18 · unmatched 6
+```
+
+| 未覆盖的 6 个 | 标签 | 类别 |
+|---|---|---|
+| `app.midtrans.com` | midtrans | 支付网关 |
+| `degica.as1.gpayments.net` | gpayments | 支付网关 |
+| `ecommerce-gateway.mollie.com` | mollie | 支付网关 |
+| `flex.cybersource.com` | cybersource | 支付网关 |
+| `retry.touchtechpayments.com` | touchtech | 支付网关 |
+| `threeds.airwallex.com` | airwallex | 支付网关 |
+
+**→ 六个**全是支付网关**，一个风控厂商都没有。
+→ 优先级 ②（风控对抗）的 vendor 覆盖是**完整的**：
+cloudflare · kasada · datadome · perimeterx · queue-it · aycd · captcha · eshopworld · wdprapps ·
+disney · global-e · vivapayments · paypal · adyen · klaviyo · braintree · sibs · vipps —— 全 matched。
+→ 那 6 个属于**下单链路**（优先级 ①），不是风控。**
+
+**→ 这是判据 (f) 第一次给出**可分类**的「未覆盖」：6 条，每条都写着它属于哪一类。**
+
+### 三、统一分母顺手暴露一个假匹配
+
+**改完后 `registerdisney.go.com` 匹配在标签 `go` 上 —— 而 `go` 几乎出现在源码各处。**
+
+**成因：分桶用**整串 host**（含 `disney` → 进 vendor 桶），
+匹配用**注册标签**（`go.com` 的注册标签是 `go`）。**两步对「哪个 token 是名字」看法不同。**
+
+**修：被 vendor 提示词打了桶的 host，用**那个提示词**当标识。**
+
+```python
+hint = next((v for v in VENDOR_HINTS if v in low), None)
+(vendors if hint else stores).append((host, count, hint or label(host)))
+```
+
+**→ `registerdisney.go.com` 现在经 `disney` 匹配，假匹配 0。**
+
+**→ 这正是 R988 docstring 写的风险「a short label can match by accident」。
+它真的发生了一次，而条件是**分桶与匹配用不同 token** —— 那句话没说到这一层。**
+
+### 四、仍然诚实的部分
+
+**`matched` 现在两列同义：「这个名字在源码里出现过」。
+不是「这个站能用」，也不是「这个厂商接上了」—— 输出末尾的 NOTE 一直这么写着。**
+
+### 五、数字
+
+| 度量 | R988 | R989 |
+|---|---|---|
+| 套件 | 2205 | **2205（未动测试）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| store matched / unmatched | 15 / 0 | **15 / 0** |
+| **vendor unmatched** | 20（口径不同，不可读） | **6（全是支付网关）** |
+| **假匹配** | 1（`go`） | **0** |
+
+### 六、验证
+
+```
+cd replica
+python tools/core_coverage.py
+  -> hosts with a path: 39 (store 15, vendor 24)
+     store hosts matched: 15 / unmatched: 0
+     vendor 段：matched 18 / unmatched 6（midtrans gpayments mollie cybersource touchtech airwallex）
+     registerdisney.go.com -> matched … disney
+python tools/metrics_report.py
+  -> 核心覆盖：store 宿主 exit 0 {store hosts 15, matched 15, unmatched 0}
+     完整套件 exit 0  2205 通过 / 0 失败 / 0 跳过
+```
+
+### 七、仍然 Unknown
+
+- **那 6 个支付网关在复刻件里是否真缺**：**Unknown** —— `matched` 只说名字出现过，不说实现。
+
+### 八、教训
+
+**「两列数字放在一张表里」不等于「两列在回答同一个问题」。**
+
+**而一个口径不同的分母，会让一列看起来只是「覆盖得差」，而不是「量错了」。**

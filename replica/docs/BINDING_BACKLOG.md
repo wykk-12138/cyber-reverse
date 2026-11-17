@@ -7848,3 +7848,42 @@ GetAuthTokenAsync  → => GetTokenAsync    // 「Acquire an authorisation token 
 | `DetectAsync` 接上没有 | 未查 —— 优先级 ② 的实质内容 |
 
 **纪律**：「不可得」和「我没找到」是两个结论。
+
+
+## 优先级 ② — **墙接线 2/6 Wired；4 个缺口分三类；R989「覆盖完整」撤回**（R994）
+
+### `VendorWiring.cs`（R140/R141）早有一张表
+
+| vendor | state |
+|---|---|
+| cloudflare · kasada | **Wired**（R140 / R141） |
+| imperva | DetectedOnly（镜像无 cookie 无 host） |
+| datadome | HostWithoutProtocol（`datadome.cybersole.io` 有，协议无） |
+| perimeterx | DetectedOnly（「token header exists, no `_px` cookie」） |
+| queue-it | NotAChallenge（**队列不是墙，正确处置是等**） |
+
+**守卫已存在：`VendorWiringTests.cs:37-54` · `WallDispatchTests.cs:67-68`（2 与 4）。**
+
+### 撤回 R989
+
+**R989「优先级 ② vendor 覆盖完整（12/12 matched）」—— `vendor_coverage` 答的是「名字出现过」，
+`VendorWiring` 答的是「链条完整」，2/6。撤回。**
+
+### 优先级 ② 的剩余
+
+| 墙 | 缺什么 |
+|---|---|
+| imperva | 证据 |
+| datadome | 协议 |
+| perimeterx | 证据 |
+| queue-it | 等待策略 |
+
+### 数字
+
+**套件 2208（未改代码）· 陈旧度 0/0 · 函数数 173,952 · 墙 2/6 Wired · 缺口 4（2 证据 / 1 协议 / 1 非墙）**
+
+| 仍 Unknown | |
+|---|---|
+| imperva / perimeterx 在镜像里的 cookie 家族 | 未取证 |
+
+**纪律**：`where_is` 查名字；「这件事有没有一张表」是另一种查法。

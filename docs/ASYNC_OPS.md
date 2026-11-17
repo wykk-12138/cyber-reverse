@@ -8909,3 +8909,96 @@ HandleResponseAsync   → 完整状态码表（下面）
 > R985 的证据（原版字符串里没有状态码分类）是对的，而它的**结论范围**被我扩大了 ——
 > 从「原版里看不到」变成了「这里没有」。**
 > **而一次 `where_is` 就能把范围收回来。**
+
+
+### R989 那句「优先级 ② 的 vendor 覆盖是**完整的**」是**错的** —— 6 个墙里只有 2 个接通（R994）
+
+**R993 说下一轮查 `DetectAsync` 接上没有。查的过程中发现那张表**早就在仓里**，
+而它说的事与我在 R989 的结论相反。**
+
+### ① 仓里有一张完整的墙接线审计表
+
+**`src/Cybersole.Stores/Scripts/VendorWiring.cs`（R140/R141 建立）：**
+
+| vendor | marker（检测） | cookie | **state** |
+|---|---|---|---|
+| cloudflare | `cf-chl` / `server: cloudflare` | `cf_clearance` | **Wired**（R140） |
+| kasada | `kpsdk` | `kpsdk` | **Wired**（R141） |
+| imperva | `_Incapsula_Resource` | 无 | **DetectedOnly** |
+| datadome | `datadome` | `datadome` | **HostWithoutProtocol** |
+| perimeterx | `px-captcha` | 无 | **DetectedOnly** |
+| queue-it | `queue-it` | `queue-it-set-cookie` | **NotAChallenge** |
+
+**而四个缺口各自有**不同**的原因，不是同一类：**
+
+- **imperva**：镜像里既没有 Imperva 的 cookie，也没有 Imperva 的 host
+- **datadome**：host 有（`datadome.cybersole.io`），**协议**没有
+- **perimeterx**：注释写「deliberately blank: a token header exists, no `_px` cookie does」
+- **queue-it**：**不是墙而是队列** —— 正确处置是**等**，不是求解
+
+### ② 所以我在 R989 的结论错了
+
+**R989 写：「优先级 ②（风控对抗）的 vendor 覆盖是**完整的**：cloudflare · kasada · datadome ·
+perimeterx · queue-it · aycd · … 全 matched」。**
+
+> **那个 12/12 来自 `vendor_coverage.py`，它答的是「这个厂商的名字在源码里出现过」。**
+> **而 `VendorWiring` 答的是「检测 → 求解 → 存回，链条完整」。**
+> **→ 两个问题的答案分别是 12/12 和 **2/6**。**
+> **→ 而我把前者的答案写成了后者的结论 —— 这是同一个「名字出现 ≠ 接上」的错误，
+> 只是这一层比 R989 修的那层更高：那一轮我修的是「两列用不同分母」，
+> 这一轮发现其中一列问的根本不是这个问题。****
+
+### ③ 而这个错误**已经被钉住了**，只是钉在另一个文件里
+
+```
+tests/Cybersole.Tests/VendorWiringTests.cs:37   Assert.Equal(6, VendorWiring.Rows.Count);
+VendorWiringTests.cs:38                         Assert.Equal(new[] { "cloudflare", "kasada" }, VendorWiring.Wired);
+VendorWiringTests.cs:48                         Assert.Equal(new[] { "imperva", "datadome", "perimeterx", "queue-it" }, …);
+WallDispatchTests.cs:67-68                      Assert.Equal(new[] { "cloudflare", "kasada" }, …); Assert.Equal(4, Gaps.Count);
+```
+
+**→ 2 与 4 这两个数**已经有守卫**。所以「不知道」不是仓库的问题，是我没查。**
+
+### ④ 而最刺的一件事：`VendorWiring.AuditRule` 早就写出了一句总结
+
+```csharp
+public const string AuditRule =
+    "detection and storage are cheap and were already present; the call between them is the work";
+```
+
+**而 R992 的 `GetToken`（步骤存在、没有调用）与 R993 的 `HandleResponseAsync`
+（分类表存在、不在执行路径上）—— 正是「检测和存储在、中间那个调用不在」。**
+
+> **仓库在 R140 就把这句话写成了常量，并让测试钉住它。
+> 而我在 R992–R993 花了三轮「发现」它。**
+> **→ `where_is` 的纪律（R870，五次踩坑后立）在这里失效了三轮：
+> 我查的都是**单个名字**（`GetToken` / `HandleResponseAsync` / `Detect`），
+> 而没有查「这件事有没有一张表」。**
+
+### ⑤ 所以优先级 ② 的真实剩余是**4 个墙**，而它们不是同一种活
+
+| 墙 | 要做什么 | 缺什么 |
+|---|---|---|
+| imperva | 先在镜像里找到 cookie 家族或 host | **证据**，不是代码 |
+| datadome | 写协议（host 已有） | 协议 —— 同 Cloudflare R140 之前的状态 |
+| perimeterx | 先确认有没有 `_px` cookie | **证据** |
+| queue-it | **不求解，等** | 一个等待策略，不是 solver |
+
+> **→ 这比「12/12 全 matched」有用得多：它把「4 个缺口」分成「缺证据」与「缺代码」两类。**
+
+### 数字
+
+| 度量 | R993 | **R994** |
+|---|---|---|
+| 套件 | 2208 | **2208（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **墙的接线** | 未测 | **2 / 6 Wired** |
+| **墙的缺口** | 未测 | **4（2 缺证据 · 1 缺协议 · 1 不是墙）** |
+| **R989「vendor 覆盖完整」** | 已写 | **撤回** |
+
+### 教训
+
+> **`where_is` 查的是**名字**。而「这件事有没有一张表」是另一种查法，
+> 而那张表可能早就把答案、原因分类、以及一句话总结都写好了。**
+> **三轮的代价：我以为自己在发现，其实在重新发现。**

@@ -59089,3 +59089,82 @@ HandleResponseAsync → 完整状态码表
 > **「不可得」和「我没找到」是两个不同的结论，而我上一轮把它们写成了同一个。
 > R985 的证据是对的，而它的**结论范围**被我扩大了 —— 从「原版里看不到」变成「这里没有」。
 > 一次 `where_is` 就能把范围收回来。**
+
+
+---
+
+## 第 994 轮：R989 那句「优先级 ② vendor 覆盖完整」是错的 —— 6 个墙只有 2 个接通
+
+### ① 仓里有一张完整的墙接线表
+
+**`src/Cybersole.Stores/Scripts/VendorWiring.cs`（R140/R141）：**
+
+| vendor | marker | cookie | **state** |
+|---|---|---|---|
+| cloudflare | `cf-chl` / `server` | `cf_clearance` | **Wired**（R140） |
+| kasada | `kpsdk` | `kpsdk` | **Wired**（R141） |
+| imperva | `_Incapsula_Resource` | 无 | **DetectedOnly** |
+| datadome | `datadome` | `datadome` | **HostWithoutProtocol** |
+| perimeterx | `px-captcha` | 无 | **DetectedOnly** |
+| queue-it | `queue-it` | `queue-it-set-cookie` | **NotAChallenge** |
+
+**四个缺口各有**不同**原因：imperva 既无 cookie 也无 host · datadome 有 host 无协议 ·
+perimeterx「deliberately blank: a token header exists, no `_px` cookie does」·
+queue-it **不是墙而是队列，正确处置是等**。**
+
+### ② 所以 R989 的结论错了
+
+**R989：「优先级 ② 的 vendor 覆盖是**完整的**……全 matched」。**
+**那个 12/12 来自 `vendor_coverage.py`，它答「名字在源码里出现过」；`VendorWiring` 答「链条完整」。
+两个答案是 12/12 和 **2/6**。**
+
+> **这是「名字出现 ≠ 接上」的同一个错误，只是高一层：
+> R989 修的是「两列用不同分母」，这一轮发现其中一列问的根本不是这个问题。**
+
+### ③ 而这个错误早已被钉住，只是钉在另一个文件
+
+```
+VendorWiringTests.cs:37-48   Assert.Equal(6, Rows.Count); Wired == {cloudflare, kasada}
+                             Gaps == {imperva, datadome, perimeterx, queue-it}
+WallDispatchTests.cs:67-68   同上 + Assert.Equal(4, Gaps.Count)
+```
+
+**→ 2 与 4 已有守卫。「不知道」不是仓库的问题，是我没查。**
+
+### ④ 最刺的一件事
+
+```csharp
+public const string AuditRule =
+    "detection and storage are cheap and were already present; the call between them is the work";
+```
+
+**而 R992 的 `GetToken`、R993 的 `HandleResponseAsync` —— 正是「检测和存储在、中间那个调用不在」。
+仓库在 R140 就把这句话写成了常量并让测试钉住，而我在 R992–R993 花了三轮「发现」它。**
+
+> **`where_is` 的纪律（R870）失效了三轮：我查的都是**单个名字**，
+> 没查「这件事有没有一张表」。**
+
+### ⑤ 优先级 ② 的真实剩余：4 个墙，不是同一种活
+
+| 墙 | 缺什么 |
+|---|---|
+| imperva | **证据**（cookie 家族 / host） |
+| datadome | **协议**（host 已有） |
+| perimeterx | **证据**（有没有 `_px` cookie） |
+| queue-it | **等待策略**，不是 solver |
+
+### 数字
+
+| 度量 | R993 | **R994** |
+|---|---|---|
+| 套件 | 2208 | **2208（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **墙的接线** | 未测 | **2 / 6 Wired** |
+| **墙的缺口** | 未测 | **4（2 缺证据 · 1 缺协议 · 1 不是墙）** |
+
+### 教训
+
+> **`where_is` 查的是**名字**。「这件事有没有一张表」是另一种查法 ——
+> 而那张表可能早就把答案、原因分类、以及一句话总结都写好了。
+> 三轮的代价：我以为自己在发现，其实在重新发现。**

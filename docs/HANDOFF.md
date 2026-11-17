@@ -2236,3 +2236,26 @@ cf-chl / kpsdk / _Incapsula_Resource / datadome / px-captcha / queue-it —— *
 纪律：**「不可得」和「我没找到」是两个结论。**
 
 下一轮：查 `DetectAsync` 接上没有 —— 那是优先级 ② 最实质的一块。
+
+## R994 补充 — **墙接线 2/6 Wired；R989「优先级 ② 覆盖完整」撤回**（套件 2208，未改代码）
+
+`src/Cybersole.Stores/Scripts/VendorWiring.cs`（R140/R141）**早有完整审计表**：
+cloudflare **Wired** · kasada **Wired** · imperva DetectedOnly · datadome HostWithoutProtocol ·
+perimeterx DetectedOnly · queue-it NotAChallenge。**2/6 接通，4 个缺口各有不同原因。**
+
+→ **R989「优先级 ② vendor 覆盖完整（12/12）」撤回**：`vendor_coverage` 答「名字出现过」，
+`VendorWiring` 答「链条完整」，12/12 与 2/6。这是「名字出现 ≠ 接上」的同一错误，只是高一层。
+
+而 2 与 4 已被 `VendorWiringTests.cs:37-54` 与 `WallDispatchTests.cs:67-68` 钉住 → 「不知道」不是仓库的问题。
+
+**最刺的是 `VendorWiring.AuditRule`：**
+「detection and storage are cheap and were already present; the call between them is the work」
+—— 正是 R992/R993 花三轮「发现」的形状。仓库 R140 就写成了常量。
+
+优先级 ② 的剩余：imperva 缺**证据** · datadome 缺**协议** · perimeterx 缺**证据** · queue-it 缺**等待策略**。
+
+数字：套件 2208（未改代码）· 陈旧度 0/0 · 函数数 173,952 · 墙 2/6 · 缺口 4（2 证据 / 1 协议 / 1 非墙）。
+
+纪律：**`where_is` 查名字；「这件事有没有一张表」是另一种查法。**
+
+下一轮：按这张表做 — datadome 的协议（唯一「缺代码」的那一格），或 imperva / perimeterx 的 cookie 取证。

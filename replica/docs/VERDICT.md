@@ -59602,3 +59602,73 @@ ran_at 2026-11-17T14:06:23+08:00
 > **「改对了源码」与「改动了产物」是两件事，而它们在某几轮里长得一模一样：
 > 两种情况下套件都绿、两个文件都变了。
 > → 区分它们只需要一件事：**在产物里搜你写的那句话**。而这件事我做了三轮才第一次做。**
+
+
+---
+
+## 第 1001 轮：加了 4 个网关，publish 成功，而产物里一个都没进
+
+### ① 做的事
+
+**`Gateways.cs` 追加 4 个网关（约 250 行）+ `CreateDefault()` 注册：**
+
+| 网关 | 镜像给的端点 |
+|---|---|
+| `MollieGateway` | `ecommerce-gateway.mollie.com/api/v1/public/core/payments/poll` |
+| `GmoGateway` | `degica.as1.gpayments.net/api/v2/brw/info/result?transId=` |
+| `TouchtechGateway` | `retry.touchtechpayments.com/api/v1/:select` |
+| `MidtransGateway` | `app.midtrans.com/snap/v1|v2/transactions` |
+
+**构建成功 · 60 条网关/支付用例通过 · 4 条新守卫通过。镜像只给一条路径的步骤报
+「endpoint not captured」，不编路径（R823/R991 同一条原则）。**
+
+### ② 而 publish 之后，产物里一个都不在
+
+**4 个 host 串全 absent，`not captured` 也 absent，函数数 173,994 → **173,994 不动**。**
+
+### ③ 而判别性的那一组解释了一切
+
+| 串 | 新 | 旧 |
+|---|---|---|
+| `api.stripe.com` · `paypal.com` | **IN** | IN |
+| `api.sibspayments.com` · `squareup` · `unzer` · `omise` · `adyen` | absent | absent |
+| **`PaymentGatewayRegistry`** | **absent** | absent |
+
+> **`PaymentGatewayRegistry.CreateDefault()` **没有任何代码调用它** → 整族网关是死代码，全被裁。
+> 连既有 9 个里的 7 个也不在。Stripe 与 PayPal 从**别处**可达（UI 的支付方式枚举）。**
+
+### ④ R1000 那条规则要**收紧一格**
+
+**我上一轮写「给它一个真实调用点」。而 `Register(new MollieGateway())` **看起来**就是调用点 ——
+它在 `CreateDefault()` 里，是一句普通构造调用。而它没让任何东西进产物。**
+
+> **→ 真正的判据不是「有没有调用语句」，是「**从入口能不能走到**」。
+> 与 R963（反射不 root 方法）同一族但不同因：那次是**调用方式**不可见，这次是**调用链**不可达。
+> → 两者的检验方法相同：**在产物里搜。**
+
+### ⑤ 这解释了优先级 ① 那 4 个真缺为什么补不上
+
+**它们不是「缺一个类」，是「缺一条从 flow 到 registry 的可达路径」。
+而既有 9 个里 7 个也不在产物里 —— **整个支付层在产物里几乎不存在**。**
+
+**→ 正确的修复是 R1000 的第二条路：让**具体的 flow** 覆写支付步骤，
+在覆写里直接调 `registry.Resolve(id)?.AuthorizeAsync(c, ct)`。那样调用链从 flow 出发，可达。**
+
+### ⑥ 数字
+
+| 度量 | R1000 | **R1001** |
+|---|---|---|
+| 套件 | 2210 | **2214（+4 网关守卫）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0（已 publish）** |
+| **函数数** | 173,994 | **173,994（不动）** |
+| 函数比 | 62.79% | **62.79%（不动）** |
+| 新增网关类 | 0 | **4** |
+| **其中进了产物** | — | **0** |
+| **既有 9 个网关在产物里** | 未测 | **2（Stripe · PayPal）** |
+
+### 教训
+
+> **「我给它加了调用点」这句话可以完全为真，而不改变产物一个字节 ——
+> 因为那个调用点在一条没人走的路上。
+> → 唯一不会骗人的检验是产物本身：搜它，或者数它。
+> 而我在 R1000 才第一次做，这一轮就靠它否掉了自己。**

@@ -6,11 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 15:40:04 +0800 |
+| 生成时间 | 2026-11-17 15:54:02 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2210 通过 / 0 失败 / 0 跳过 / 2210 总计** |
+| 完整套件 | **2214 通过 / 0 失败 / 0 跳过 / 2214 总计** |
+
+## 时效警告（生成）
+
+> **变异套件那一组数来自上一次运行，而它已经过期**：`1:42:28 -- UnmatchedGatewaysTests.cs changed after the run`。
 
 ## 摘要素值
 
@@ -54,7 +58,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file is newer than the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 1:42:28 -- UnmatchedGatewaysTests.cs changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -367,8 +371,8 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-17 15:39:34
-newest source: src\Cybersole.Stores\Flows\ShopifyFlow.cs (2026-11-17 14:03:24)
+publish artifact mtime: 2026-11-17 15:52:57
+newest source: src\Cybersole.Stores\Payments\Gateways.cs (2026-11-17 15:47:50)
 source files newer than the artifact: 0
 lines in those files: 0
 publish artifact state: current
@@ -389,7 +393,7 @@ registry identifiers: 82   flow types: 35
 
 store hosts
   matched api-search.dickssportinggoods.com         1 paths  dickssportinggoods
-  matched api.nike.com                              4 paths  nike, nikegs
+  matched api.nike.com                              4 paths  nikegs, nike
   matched api.tobe-official.jp                      1 paths  in src
   matched auth.casio-intl.com                       1 paths  casio, casio
   matched authenticate.riotgames.com                1 paths  riotgames
@@ -401,18 +405,18 @@ store hosts
   matched payments.dickssportinggoods.com           2 paths  dickssportinggoods
   matched prod-hk-actapi.popmart.com                2 paths  popmart
   matched www.goat.com                              9 paths  goat
-  matched www.nike.com                              1 paths  nike, nikegs
+  matched www.nike.com                              1 paths  nikegs, nike
   matched www.vans.com                              6 paths  in src
 
 vendor hosts
   matched api.braintreegateway.com                  2 paths  braintree
   matched api.sibspayments.com                      1 paths  sibspayments
   matched api.vipps.no                              1 paths  vipps
-  unmatched app.midtrans.com                          2 paths  midtrans
+  matched app.midtrans.com                          2 paths  midtrans
   matched challenges.cloudflare.com                 1 paths  cloudflare
   matched checkoutshopper-live.adyen.com            2 paths  adyen
-  unmatched degica.as1.gpayments.net                  1 paths  gpayments
-  unmatched ecommerce-gateway.mollie.com              1 paths  mollie
+  matched degica.as1.gpayments.net                  1 paths  gpayments
+  matched ecommerce-gateway.mollie.com              1 paths  mollie
   unmatched flex.cybersource.com                      1 paths  cybersource
   matched inbox-api.aycd.io                         3 paths  aycd
   matched payments-panel.production.eshopworld.com  3 paths  eshopworld
@@ -420,7 +424,7 @@ vendor hosts
   matched paymentsheet-ent.wdprapps.disney.com      3 paths  wdprapps
   matched registerdisney.go.com                     1 paths  disney
   matched retailer-shopifypayments-api.production.eshopworld.com  2 paths  eshopworld
-  unmatched retry.touchtechpayments.com               1 paths  touchtech
+  matched retry.touchtechpayments.com               1 paths  touchtech
   matched static-forms.klaviyo.com                  1 paths  klaviyo
   unmatched threeds.airwallex.com                     1 paths  airwallex
   matched web-dsy.global-e.com                      1 paths  global-e
@@ -611,9 +615,10 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 0 -- no exercised file is newer than the run
+  mutation-fit-staleness: 1:42:28 -- UnmatchedGatewaysTests.cs changed after the run
 
-  Every mutation fired, none was decorative and none was skipped at the time of that run.
+  The counts above are from 2026-11-17T14:06:23+08:00 and the tree has moved since. They are a record of that run, not a
+  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
 ```
 
 ### 完整套件
@@ -623,24 +628,24 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2210 通过 / 0 失败 / 0 跳过 / 2210 总计
+`exit 0` · 2214 通过 / 0 失败 / 0 跳过 / 2214 总计
 
 ```text
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\MethodPatchTableTests.cs(77,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\NavigatorCensusTests.cs(36,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(34,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(35,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(109,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(34,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(35,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SizePaletteTests.cs(24,9): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SportsshoesFlowTests.cs(128,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StepActionTests.cs(293,89): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\UnmatchedGatewaysTests.cs(58,78): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
   Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2210，已跳过:     0，总计:  2210，持续时间: 1 m 23 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2214，已跳过:     0，总计:  2214，持续时间: 1 m 44 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

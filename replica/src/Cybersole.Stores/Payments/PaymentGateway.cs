@@ -65,6 +65,11 @@ public sealed class PaymentGatewayRegistry
         r.Register(new PaynamicsGateway());
         r.Register(new SibsGateway());
         r.Register(new PayPalGateway());
+        // R1001: the four payment hosts the coverage table listed as unmatched, each with the endpoint the image gave it.
+        r.Register(new MollieGateway());
+        r.Register(new GmoGateway());
+        r.Register(new TouchtechGateway());
+        r.Register(new MidtransGateway());
         return r;
     }
 }

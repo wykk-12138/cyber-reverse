@@ -32126,3 +32126,109 @@ python - 在两个 exe 的字节里搜
 
 **区分它们只需要一件事：**在产物里搜你写的那句话**。
 而这件事我做了三轮才第一次做。**
+
+
+---
+
+## 425. **4 个网关已写但零个进产物：`CreateDefault()` 无调用者，整族被裁**
+
+> R1001。**新增 4 个网关类（约 250 行）+ 1 处注册 + 4 条守卫。** 套件 **2214 通过 / 0 失败 / 0 跳过**。
+
+### 一、做的事
+
+**`src/Cybersole.Stores/Payments/Gateways.cs` 追加 4 个网关，`PaymentGatewayRegistry.CreateDefault()` 里注册：**
+
+| 网关 | 镜像给的端点 |
+|---|---|
+| `MollieGateway` | `ecommerce-gateway.mollie.com/api/v1/public/core/payments/poll` |
+| `GmoGateway` | `degica.as1.gpayments.net/api/v2/brw/info/result?transId=` |
+| `TouchtechGateway` | `retry.touchtechpayments.com/api/v1/:select` |
+| `MidtransGateway` | `app.midtrans.com/snap/v1|v2/transactions` |
+
+**每个网关四个方法，与既有 9 个同形。镜像只给一条路径的，其余步骤报「endpoint not captured」，不编路径
+（R823/R991 的同一条原则）。`MidtransGateway.SnapPaths` 记两个 Snap 版本。**
+**构建成功 · 60 条网关/支付用例通过 · 4 条新守卫（`UnmatchedGatewaysTests`）通过。**
+
+### 二、而 publish 之后，产物里一个都不在
+
+| 串 | 新 `.publish-aot` | 旧 |
+|---|---|---|
+| `ecommerce-gateway.mollie.com` | **absent** | absent |
+| `degica.as1.gpayments.net` | **absent** | absent |
+| `retry.touchtechpayments.com` | **absent** | absent |
+| `app.midtrans.com` | **absent** | absent |
+| `not captured` | **absent** | absent |
+
+**→ 函数数也**一个都没动**：173,994 → 173,994。**
+
+### 三、而判别性的那一组解释了一切
+
+| 串 | 新 | 旧 |
+|---|---|---|
+| `api.stripe.com` · `paypal.com` | **IN** | IN |
+| `api.sibspayments.com` · `squareup` · `unzer` · `omise` · `adyen` | absent | absent |
+| **`PaymentGatewayRegistry`** | **absent** | absent |
+| `CreateDefault` | IN（别处的同名方法） | IN |
+
+**→ `PaymentGatewayRegistry` 这个名字不在产物里
+→ 所以 `PaymentGatewayRegistry.CreateDefault()` **没有任何代码调用它**
+→ 整族网关是死代码，全被裁 —— 连既有那 9 个里的 7 个也不在
+→ Stripe 与 PayPal 的 host 串从**别处**可达（大概是 UI 的支付方式枚举），所以它们留着**
+
+### 四、所以 R1000 那条规则要收紧一格
+
+**R1000 写：「给它一个真实调用点（像 `DataDomeClearance` 被 `SolveDetectedWallAsync` 直接调）」。
+而 `Register(new MollieGateway())` **看起来**就是一个调用点 —— 它在 `CreateDefault()` 里，
+那是一句普通的构造调用。而它没让任何东西进产物。**
+
+**→ 真正的判据不是「有没有调用语句」，是「**从入口能不能走到**」。
+→ `CreateDefault()` 自己没人调，所以它里面的调用不计。
+→ 这与 R963 那条（反射不 root 方法）是同一族但不同因：
+**那次是调用方式不可见，这次是调用链不可达。**
+→ 两者共同的检验方法完全相同：**在产物里搜。** 而这一步让两种都现形。**
+
+### 五、这解释了优先级 ① 那 4 个真缺为什么一直补不上
+
+**它们不是「缺一个类」，是「缺一条从 flow 到 registry 的可达路径」。
+而既有 9 个网关里 7 个也不在产物里 —— **整个支付层在产物里几乎不存在**。**
+
+**→ 正确的修复是 R1000 的第二条路：让**具体的 flow** 覆写支付步骤，
+在覆写里直接调 `registry.Resolve(id)?.AuthorizeAsync(c, ct)`。那样调用链从 flow 出发，可达。**
+
+### 六、数字
+
+| 度量 | R1000 | R1001 |
+|---|---|---|
+| 套件 | 2210 | **2214（+4 网关守卫）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0（已 publish）** |
+| **函数数** | 173,994 | **173,994（不动）** |
+| 函数比 | 62.79% | **62.79%（不动）** |
+| 新增网关类 | 0 | **4** |
+| **其中进了产物** | — | **0** |
+| **既有 9 个网关在产物里** | 未测 | **2（Stripe · PayPal）** |
+
+### 七、验证
+
+```
+cd replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug   -> 已成功生成
+dotnet test --filter "FullyQualifiedName~Gateway|FullyQualifiedName~Payment" -m:1      -> 60 通过
+dotnet test --filter "FullyQualifiedName~UnmatchedGatewaysTests" -m:1                  -> 4 通过
+dotnet publish src/Cybersole.Ui/Cybersole.Ui.csproj -c Release -r win-x64 -p:PublishAot=true -p:StripSymbols=true -o .publish-aot-new --nologo  -> exit 0，45 秒
+轮换后 python tools/metrics_report.py -> functions: replica 173,994（未变）· source files newer 0 · 套件 2214
+python - 在 .publish-aot 字节里搜 4 个 host 串 -> 全 absent；PaymentGatewayRegistry absent；
+        api.stripe.com / paypal.com IN；sibspayments / squareup / unzer / omise / adyen absent
+```
+
+### 八、仍然 Unknown
+
+- **哪个 flow 该承载这 4 个网关**：**Unknown** —— 需要 host↔flow 对照取证。
+- **`CreateDefault()` 在原版里是否有调用者**：**Unknown** —— 未取证。
+
+### 九、教训
+
+**「我给它加了调用点」这句话可以完全为真，而不改变产物一个字节 ——
+因为那个调用点在一条没人走的路上。**
+
+**→ 唯一不会骗人的检验是产物本身：搜它，或者数它。
+而我在 R1000 才第一次做，这一轮就靠它否掉了自己。**

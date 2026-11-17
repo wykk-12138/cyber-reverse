@@ -2391,3 +2391,26 @@ datadome 走不到任何 solver。**`Wired` 的意思是「检测→求解→存
 纪律：**区分「改对源码」与「改动产物」只需在产物里搜你写的那句话 —— 我三轮后才第一次做。**
 
 下一轮：按新规则做核心 —— 给步骤真实调用点或让 flow 覆写它（优先级 ① 的 4 个真缺端点最合这条）。
+
+## R1001 补充 — **4 个网关已写但零个进产物：`CreateDefault()` 无调用者，整族被裁**（套件 2214）
+
+按 R1000 的规则①（真实调用点）做了：`Gateways.cs` 追加 4 个网关（Mollie / GMO / Touchtech / Midtrans，250 行），
+`PaymentGatewayRegistry.CreateDefault()` 注册 → 13 个。构建成功、60 条支付用例 + 4 条新守卫通过。
+
+**而 publish 后：4 个 host 串全 absent，函数数 173,994 → 173,994 不动。**
+判别组：**`PaymentGatewayRegistry` 这个名字不在产物里** → `CreateDefault()` 没人调 → 整族死代码被裁。
+→ 连既有 9 个里 **7 个也不在**（`sibspayments`/`squareup`/`unzer`/`omise`/`adyen` 全 absent），
+只有 `api.stripe.com` / `paypal.com` IN（从 UI 的支付方式枚举可达）。
+**→ 整个支付层在产物里几乎不存在。**
+
+**规则收紧**：「注册」不是「接线」，「接线」不是「可达」。真正的判据是**从入口能不能走到**。
+与 R963（反射不 root 方法）同一族但不同因：那次是调用方式不可见，这次是调用链不可达。
+
+**正确方向**：让**具体 flow 覆写支付步骤**，在覆写里直接调 `registry.Resolve(id)?.AuthorizeAsync(c, ct)`
+—— 调用链从 flow 出发才可达（R1000 的第二条路）。
+
+数字：套件 2214 · 陈旧度 0/0 · 函数数 173,994（不动）· 新增 4 类 / 进产物 **0** · 既有在产物里 2/9。
+
+纪律：**「我给它加了调用点」可以为真而不改变产物一个字节。**
+
+下一轮：取证 host↔flow 对照（哪个 flow 该承载 Mollie/GMO/Touchtech/Midtrans），然后让那个 flow 覆写支付步骤并直接调 registry —— 否则第 5 个网关也一样进不去。

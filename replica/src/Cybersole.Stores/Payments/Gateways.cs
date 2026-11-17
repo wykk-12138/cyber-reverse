@@ -763,3 +763,198 @@ public sealed class PayPalGateway : IPaymentGateway
         return AuthorizeAsync(c, ct);
     }
 }
+
+/// <summary>
+/// Mollie — <c>ecommerce-gateway.mollie.com</c>. R1001.
+///
+/// <para>
+/// The image names exactly one path for this host: <c>/api/v1/public/core/payments/poll</c>. So the poll is written and
+/// the two steps the image says nothing about report that instead of guessing a shape. That is the rule R823 set for the
+/// token fallback and R991 applied to the payment token: a made-up endpoint fails later, at the server, and arrives there
+/// disguised as the store rejecting us.
+/// </para>
+/// </summary>
+public sealed class MollieGateway : IPaymentGateway
+{
+    private const string ApiHost = "https://ecommerce-gateway.mollie.com";
+
+    public string Id => "mollie";
+    public string Name => "Mollie";
+
+    public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(PaymentResult.Fail(
+            "mollie: tokenise endpoint not captured — the image names only /api/v1/public/core/payments/poll"));
+
+    public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
+    {
+        var body = new JObject
+        {
+            ["amount"] = GatewayHttp.MinorUnits(c),
+            ["currency"] = c.Session.Vars.TryGetValue("currency", out var cur) ? cur : "EUR",
+        };
+
+        var res = await GatewayHttp.PostAsync(c, $"{ApiHost}/api/v1/public/core/payments/poll", body,
+            "mollie-poll", ct).ConfigureAwait(false);
+
+        if (res is null) return PaymentResult.Fail("mollie: poll failed");
+
+        var status = res["status"]?.ToString();
+        var id = res["id"]?.ToString() ?? res["paymentId"]?.ToString();
+        if (!string.IsNullOrEmpty(id)) c.Session.PaymentMethodId = id;
+
+        return string.Equals(status, "paid", StringComparison.OrdinalIgnoreCase)
+            ? PaymentResult.Success(id)
+            : res["redirectUrl"] is { } url
+                ? PaymentResult.Action(url.ToString(), id ?? string.Empty)
+                : PaymentResult.Fail($"mollie: status {status}");
+    }
+
+    public Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct) =>
+        AuthorizeAsync(c, ct);
+}
+
+/// <summary>
+/// GMO Payment Gateway — <c>degica.as1.gpayments.net</c>. R1001.
+///
+/// <para>
+/// One path in the image: <c>/api/v2/brw/info/result?transId=</c>, a result lookup keyed by transaction id. So this
+/// gateway's useful step is the lookup, and it needs a transaction id the rest of the flow has to supply.
+/// </para>
+/// </summary>
+public sealed class GmoGateway : IPaymentGateway
+{
+    private const string ApiHost = "https://degica.as1.gpayments.net";
+
+    public string Id => "gmo";
+    public string Name => "GMO";
+
+    public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(PaymentResult.Fail(
+            "gmo: tokenise endpoint not captured — the image names only /api/v2/brw/info/result"));
+
+    public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
+    {
+        // The lookup is keyed by the transaction the flow recorded; without one there is nothing to ask about.
+        var transId = c.Session.Vars.TryGetValue("gmo.transId", out var t) ? t : c.Session.PaymentMethodId;
+        if (string.IsNullOrEmpty(transId))
+            return PaymentResult.Fail("gmo: no transaction id to look up");
+
+        var res = await GatewayHttp.PostAsync(c,
+            $"{ApiHost}/api/v2/brw/info/result?transId={Uri.EscapeDataString(transId)}",
+            new JObject(), "gmo-result", ct).ConfigureAwait(false);
+
+        if (res is null) return PaymentResult.Fail("gmo: result lookup failed");
+
+        var result = res["result"]?.ToString() ?? res["status"]?.ToString();
+        return string.Equals(result, "success", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(result, "000", StringComparison.Ordinal)
+            ? PaymentResult.Success(transId)
+            : PaymentResult.Fail($"gmo: result {result}");
+    }
+
+    public Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct) =>
+        AuthorizeAsync(c, ct);
+}
+
+/// <summary>
+/// Touchtech — <c>retry.touchtechpayments.com</c>. R1001.
+///
+/// <para>
+/// One path in the image: <c>/api/v1/:select</c>. The colon is part of the captured literal rather than a route
+/// parameter this workspace can fill, so it is sent verbatim and the comment says so — inventing a substitution would be
+/// a guess dressed as a protocol.
+/// </para>
+/// </summary>
+public sealed class TouchtechGateway : IPaymentGateway
+{
+    private const string ApiHost = "https://retry.touchtechpayments.com";
+
+    public string Id => "touchtech";
+    public string Name => "Touchtech";
+
+    public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(PaymentResult.Fail(
+            "touchtech: tokenise endpoint not captured — the image names only /api/v1/:select"));
+
+    public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
+    {
+        var body = new JObject
+        {
+            ["amount"] = GatewayHttp.MinorUnits(c),
+            ["currency"] = c.Session.Vars.TryGetValue("currency", out var cur) ? cur : "EUR",
+        };
+
+        // ":select" is the image's own spelling; it is sent as captured rather than resolved.
+        var res = await GatewayHttp.PostAsync(c, $"{ApiHost}/api/v1/:select", body, "touchtech-select", ct)
+            .ConfigureAwait(false);
+
+        if (res is null) return PaymentResult.Fail("touchtech: select failed");
+
+        var id = res["id"]?.ToString() ?? res["paymentId"]?.ToString();
+        if (!string.IsNullOrEmpty(id)) c.Session.PaymentMethodId = id;
+
+        return res["redirectUrl"] is { } url
+            ? PaymentResult.Action(url.ToString(), id ?? string.Empty)
+            : string.IsNullOrEmpty(id)
+                ? PaymentResult.Fail("touchtech: no payment id")
+                : PaymentResult.Success(id);
+    }
+
+    public Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct) =>
+        AuthorizeAsync(c, ct);
+}
+
+/// <summary>
+/// Midtrans — <c>app.midtrans.com</c>. R1001.
+///
+/// <para>
+/// Two paths in the image, <c>/snap/v1/transactions</c> and <c>/snap/v2/transactions</c>. Snap creates a hosted payment
+/// session and answers with a token and a redirect, which is what AuthorizeAsync reports. The v2 path is preferred
+/// because it is the later of the two the image names; v1 stays recorded here so a store that needs it can switch.
+/// </para>
+/// </summary>
+public sealed class MidtransGateway : IPaymentGateway
+{
+    private const string ApiHost = "https://app.midtrans.com";
+    private const string SnapV1 = "/snap/v1/transactions";
+    private const string SnapV2 = "/snap/v2/transactions";
+
+    public string Id => "midtrans";
+    public string Name => "Midtrans";
+
+    public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
+        Task.FromResult(PaymentResult.Fail(
+            "midtrans: tokenise is the Snap session itself — call AuthorizeAsync, which creates it"));
+
+    public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
+    {
+        var body = new JObject
+        {
+            ["transaction_details"] = new JObject
+            {
+                ["order_id"] = c.Session.Vars.TryGetValue("orderId", out var oid) ? oid : Guid.NewGuid().ToString("N"),
+                ["gross_amount"] = GatewayHttp.MinorUnits(c),
+            },
+        };
+
+        var res = await GatewayHttp.PostAsync(c, $"{ApiHost}{SnapV2}", body, "midtrans-snap", ct)
+            .ConfigureAwait(false);
+
+        if (res is null) return PaymentResult.Fail("midtrans: snap session failed");
+
+        var token = res["token"]?.ToString();
+        var redirect = res["redirect_url"]?.ToString();
+        if (!string.IsNullOrEmpty(token)) c.Session.PaymentMethodId = token;
+
+        if (!string.IsNullOrEmpty(redirect)) return PaymentResult.Action(redirect!, token ?? string.Empty);
+        return string.IsNullOrEmpty(token)
+            ? PaymentResult.Fail("midtrans: no token")
+            : PaymentResult.Success(token);
+    }
+
+    public Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct) =>
+        AuthorizeAsync(c, ct);
+
+    /// <summary>Both Snap versions the image names, so a store needing the older one does not have to be re-captured.</summary>
+    public static IReadOnlyList<string> SnapPaths => new[] { SnapV1, SnapV2 };
+}

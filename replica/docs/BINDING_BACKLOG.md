@@ -8104,3 +8104,39 @@ Getting / Initialising / Solving / Submitting DataDome
 | `+42` 具体是哪 42 个函数 | 布局独立，地址分桶不能本地化（R969） |
 
 **纪律**：区分「改对源码」与「改动产物」只需在产物里搜你写的那句话 —— 我三轮后才第一次做。
+
+
+## 优先级 ①/判据 (c) — **4 个网关已写但**零个进产物**：`CreateDefault()` 无调用者，整族被裁**（R1001）
+
+### 写了什么
+
+**`Gateways.cs` +250 行：`MollieGateway` · `GmoGateway` · `TouchtechGateway` · `MidtransGateway`，
+各四方法，端点取自镜像；只给一条路径的步骤报「endpoint not captured」不编。**
+**`PaymentGatewayRegistry.CreateDefault()` 里注册 → 13 个。**
+
+### 产物验证（否定）
+
+**4 个 host 串全 absent · `PaymentGatewayRegistry` absent · 函数数 173,994 不动。**
+**而 `api.stripe.com` / `paypal.com` IN，`sibspayments` / `squareup` / `unzer` / `omise` / `adyen` absent
+→ 既有 9 个里 **7 个也不在产物里** → 整个支付层几乎不存在。**
+
+### 规则收紧（R1000 之上）
+
+**「注册」不是「接线」，「接线」不是「可达」。
+真正的判据是**从入口能不能走到** `CreateDefault()`，而它没人调。**
+
+### 正确的修复方向
+
+**让**具体 flow** 覆写支付步骤，在覆写里直接调 `registry.Resolve(id)?.AuthorizeAsync(c, ct)` ——
+调用链从 flow 出发才可达（R1000 的第二条路）。**
+
+### 数字
+
+**套件 2214 · 陈旧度 0/0 · 函数数 173,994（不动）· 新增 4 类 / 进产物 0 · 既有 9 个在产物里 2**
+
+| 仍 Unknown | |
+|---|---|
+| 哪个 flow 该承载这 4 个网关 | 未取证（需 host↔flow 对照） |
+| `CreateDefault()` 在原版里是否有调用者 | 未取证 |
+
+**纪律**：「我给它加了调用点」可以为真而不改变产物一个字节。

@@ -8946,3 +8946,46 @@ flow 把**封禁页当商品页**。分支只在页面真写该串时触发 ⇒ 
 | imperva 是否真被原版处理 | 两个来源都说不 —— 但都不构成否定证明 |
 
 **纪律**：给每个条目留证据的价值，在于它让**将来的一个否定**变得可用。
+
+
+## 优先级 ② — **PerimeterX 是 Imperva 的镜像情形；台账条目是第二个证人**（R1022）
+
+### 两个 Gap 各有两个证人
+
+| | imperva（`VendorAbsent`） | perimeterx（`NoPageMarker`） |
+|---|---|---|
+| 证据 1 | 六拼写全 **0** | `px-captcha` **0**（cookie 名 4 条有） |
+| 证据 2 | **台账不含它** | **台账条目有 4 条** |
+
+**→ 同一份台账：看它**没列谁**证明缺席；看它**列了什么**证明在场而缺一类字面量。**
+
+### 四条逐条分类（无一是页面级串）
+
+| 字面量 | 命中 | 性质 |
+|---|---|---|
+| `PerimeterX` | 5 | 复刻件自己的文案（`"PerimeterX block (Rotating proxy)"`） |
+| `PerimeterX-Token` | 1 | cookie / header 名 |
+| `PerimeterXHandler` | 1 | 类名（反射元数据） |
+| `_pxHandler` | 1 | 字段 / 方法名 |
+
+### 而那条文案是**行为证据**
+
+**`"PerimeterX block (Rotating proxy)"` 说的是**换代理** ⇒ 原版遇到过 PerimeterX 封禁，
+而应对是**绕过**不是**解挑战**。与 `State.DetectedOnly` 一致。**
+
+**→ 待查：若原版真的只换代理，复刻件不该给 perimeterx 写 solver。**
+
+### 4 条守卫
+
+`TheInventoryEntryIsTheFourClassifiedLiterals` · **`NoneOfTheFourIsAPageLevelLiteral`** ·
+`TheRowRecordsTheGapAsAMissingPageMarker` · `BothGapKindsHaveALiveExample`
+
+### 数字
+
+**套件 2233（+4）· 陈旧度 4 / 3,788 · 函数数 174,336 · 双证人 Gap 分支 1 → 2 · 页面级 marker 确认无**
+
+| 仍 Unknown | |
+|---|---|
+| 那条文案是否就是原版对 PerimeterX 的**全部**处置 | 待查 |
+
+**纪律**：同一个清单，数「缺谁」与分类「有什么」是两个不同的问题。

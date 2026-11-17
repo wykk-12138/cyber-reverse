@@ -2867,3 +2867,27 @@ flow 把**封禁页当商品页**。分支只在页面真写该串时触发 ⇒ 
 纪律：**给每个条目留证据的价值，在于它让将来的一个否定变得可用。**
 
 下一轮：perimeterx 的页面级 marker（另一个 `Gap` 分支：厂商在，缺 marker）。
+
+## R1022 补充 — **PerimeterX 是 Imperva 的镜像情形；台账条目是第二个证人**（套件 2233）
+
+**两个 Gap 各有两个证人**：
+- imperva `VendorAbsent`：六拼写全 0 + **台账不含它**
+- perimeterx `NoPageMarker`：`px-captcha` 0（cookie 名 4 条有）+ **台账条目有 4 条**
+→ **同一份台账：看它没列谁证明缺席；看它列了什么证明在场而缺一类字面量。**
+
+**四条逐条分类（无一是页面级串）**：`PerimeterX` 5 命中（复刻件自己的文案）· `PerimeterX-Token` 1（cookie 名）·
+`PerimeterXHandler` 1（类名）· `_pxHandler` 1（字段名）。
+→ 没有一条会在商店的**响应体**里出现 ⇒ `NoPageMarker` 两源支持。
+
+**而那条文案是行为证据**：`"PerimeterX block (Rotating proxy)"` 说的是**换代理** ⇒
+原版遇到过 PerimeterX 封禁，应对是**绕过**不是**解挑战**，与 `DetectedOnly` 一致。
+→ **待查**：若原版真的只换代理，复刻件不该给 perimeterx 写 solver。
+
+**4 条守卫**（`PerimeterXMarkerTests`）：条目就是那四条 · **`NoneOfTheFourIsAPageLevelLiteral`（分类的可执行形式）** ·
+三列一致 · 两种 Gap 各一活例子。
+
+数字：套件 2233（+4）· 陈旧度 4 / 3,788 · 函数数 174,336 · 双证人 Gap 分支 1 → **2**。
+
+纪律：**同一个清单，数「缺谁」与分类「有什么」是两个不同的问题。**
+
+下一轮：查那条文案是否就是原版对 PerimeterX 的全部处置（若是，perimeterx 不该有 solver）。

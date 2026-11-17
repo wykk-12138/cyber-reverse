@@ -123,6 +123,10 @@ public static class AntiBotVendors
             DataDomeSdk, DataDomeRelay, DataDomeSensor,
             "DataDomeKey", "DataDomeChallenge", "DatadomeSliderTask",
         }),
+        // R1022: all four are metadata, a cookie name, or this workspace's own wording -- none is a string that appears
+        // in a store's response body. That is what Gap.NoPageMarker means for this vendor, and it is why detection has to
+        // fall back on a marker the image does not carry. Recorded here so the next reader does not reach for these four
+        // expecting a page-level literal among them.
         new Vendor("PerimeterX", new[]
         {
             "PerimeterX", "PerimeterX-Token", "PerimeterXHandler", "_pxHandler",

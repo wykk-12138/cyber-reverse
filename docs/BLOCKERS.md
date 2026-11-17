@@ -34333,3 +34333,91 @@ python tools/metrics_report.py -> 完整套件 exit 0  2229 / 0 / 0
 
 **→ 而那份清单能回答它，只因为**每条都带证据** —— 一个不带证据的清单，缺席什么都说明不了。
 → 所以「给每个条目留证据」这件事的价值，在于它让**将来的一个否定**变得可用。**
+
+
+---
+
+## 446. **PerimeterX 是 Imperva 的镜像情形；台账条目是第二个证人**
+
+> R1022。**改 2 个源文件 + 加 1 个测试文件。** 套件 **2233 通过 / 0 失败 / 0 跳过**。
+
+### 一、两个 `Gap` 的对照现在都有第二个证人
+
+| | **imperva**（`VendorAbsent`） | **perimeterx**（`NoPageMarker`） |
+|---|---|---|
+| 第一个证人 | 六种拼写全 **0** | `px-captcha` **0**（cookie 名 4 条有） |
+| **第二个证人** | **`AntiBotVendors.All` 不含它** | **`AntiBotVendors` 的 PerimeterX 条目有 4 条** |
+| 含义 | 厂商**不在**产物里 | 厂商**在**，而没有页面级串 |
+
+**→ 同一份台账，一个用于证明**缺席**，一个用于证明**在场但缺某类字面量**。
+→ 两者都以「每条都带证据」为前提。**
+
+### 二、而 PerimeterX 那四条，逐条都不是页面级串
+
+| 字面量 | 命中 | 性质 |
+|---|---|---|
+| `PerimeterX` | 5 | **复刻件自己的文案** —— `"PerimeterX block (Rotating proxy)"` 是 Cybersole **弹给用户**的 |
+| `PerimeterX-Token` | 1 | cookie / header 名 |
+| `PerimeterXHandler` | 1 | **类名**（反射元数据，UTF-8） |
+| `_pxHandler` | 1 | 字段 / 方法名 |
+
+**→ 四条里**没有一条**会在一个商店的**响应体**里出现。
+→ 那正是 `Gap.NoPageMarker` 的精确含义，而现在它有两个来源支持。**
+
+### 三、而 `"PerimeterX block (Rotating proxy)"` 是**行为证据**
+
+**它是本次会话里**唯一**一条带厂商名的用户可见文案。而它说的是「换代理」——
+**那说明原版遇到过 PerimeterX 的封禁，而它的应对是**换代理**，不是解挑战。**
+
+**→ 那与 `State.DetectedOnly`（检测到但不处理）**一致**。
+→ 而「那是巧合还是当初就这么定的」**未查，标 Unknown**。
+→ 而它值得查：若原版真的只是换代理，那复刻件也不该给 perimeterx 写 solver。**
+
+### 四、4 条守卫
+
+| 守卫 | 断言 |
+|---|---|
+| `TheInventoryEntryIsTheFourClassifiedLiterals` | 台账条目就是那四条 |
+| **`NoneOfTheFourIsAPageLevelLiteral`** | 四条都不含 `px-captcha` / `captcha-delivery` / `/interstitial/` / `block` |
+| `TheRowRecordsTheGapAsAMissingPageMarker` | `Gap` / `MarkerFrom` / `Marker` 三者一致 |
+| `BothGapKindsHaveALiveExample` | 两种 `Gap` 各有一个活例子 |
+
+**→ 第 2 条是这次分类的可执行形式：它断言那四条**不是**页面级串，
+  而那正是「缺页面级 marker」这个论断的内容。**
+
+### 五、数字
+
+| 度量 | R1021 | R1022 |
+|---|---|---|
+| 套件 | 2229 / 0 | **2233 / 0 / 0（+4）** |
+| 产物陈旧度 | 3 / 3,563 | **4 / 3,788** |
+| 函数数 | 174,336 | **174,336** |
+| **有第二个证人的 `Gap` 分支** | **1**（imperva） | **2（+ perimeterx）** |
+| **PerimeterX 的页面级 marker** | 未知 | **确认无（4 条逐一分类）** |
+| **`"PerimeterX block (Rotating proxy)"` 的含义** | 未注意 | **记为行为证据，待查** |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "px-captcha"          -> {"n":0}
+python analysis/ida.py str "PerimeterX"          -> {"n":5}（含 "PerimeterX block (Rotating proxy)"）
+python analysis/ida.py str "PerimeterXHandler"   -> {"n":1}
+python analysis/ida.py str "_pxHandler"          -> {"n":1}
+cd replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug  -> 已成功生成
+dotnet test --filter "FullyQualifiedName~PerimeterXMarker" -m:1      -> 4 通过
+python tools/metrics_report.py -> 完整套件 exit 0  2233 / 0 / 0
+```
+
+### 七、仍然 Unknown
+
+- **那条文案是否就是原版对 PerimeterX 的全部处置**：**待查** —— 若是，复刻件不该给它写 solver。
+
+### 八、教训
+
+**同一份台账能做两件相反的事：证明一个厂商**不在**（看它没列谁），
+和证明一个厂商**在而缺某样东西**（看它列了什么）。第二种用法我上一轮没想到。**
+
+**→ 而第二种更少见：它需要把列出的条目**逐条分类**，而不是只数个数。
+→ 而分类的结果正好是那个论断的内容。**

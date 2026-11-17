@@ -134,6 +134,18 @@ public static class VendorWiring
             + "what was missing was the call, which now exists and which SolveDetectedWallAsync dispatches to.",
             MarkerSource.ImageLiteral, Gap.None),
 
+        // R1022: Gap.NoPageMarker now has a second witness. AntiBotVendors has carried a PerimeterX entry since
+        // before this audit, with four literals, and none of them is a page-level string:
+        //
+        //   PerimeterX        five hits, and what they are is the workspace's own narration -- "PerimeterX block
+        //                     (Rotating proxy)" is what Cybersole shows a user, not what a store serves
+        //   PerimeterX-Token  a cookie or header name
+        //   PerimeterXHandler a class name, i.e. reflection metadata
+        //   _pxHandler        a field or method name
+        //
+        // So the vendor is present and nothing in it can be grepped out of a response body. px-captcha is this
+        // workspace's word for the interstitial and the image does not carry it, which is why the row is Inferred and
+        // why the gap is NoPageMarker rather than VendorAbsent: the vendor is handled, the page marker is missing.
         new Row("perimeterx", "px-captcha", null, State.DetectedOnly,
             "R998 corrects R997's own row. The cookie evidence is real -- _px3, _pxvid and PerimeterX-Token are image "
             + "literals, and the image carries a PerimeterXHandler plus 'PerimeterX block (Rotating proxy)' -- but the marker "

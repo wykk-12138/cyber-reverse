@@ -2311,3 +2311,24 @@ datadome 走不到任何 solver。**`Wired` 的意思是「检测→求解→存
 纪律：**一个标签的改善不等于工作的进展** —— R995 那个 state 是对的，而它一个字都没让墙过去。
 
 下一轮：imperva 或 perimeterx 的 cookie 取证（剩下两个缺口都是「缺证据」）；或 publish 一次把函数数刷新。
+
+## R997 补充 — **六行 marker 加出处列：4 ImageLiteral · 2 Inferred（cloudflare · imperva）**（套件 2210）
+
+探针：`kpsdk` 17 · `queue-it` 13 · `datadome` 15 · `_px3` 在 —— 四个真串；
+**`cf-chl` 0 · `_Incapsula_Resource` 0** —— 两个是**我们自己编的**。
+→ 而 **Cloudflare 是已声明 `Wired` 的那一格**：它的检测标记是我们写的不是抄的。
+→ `cf-chl` 能工作因为真实挑战页里有它 —— 但那是**常识**，不是镜像证据。
+
+**PerimeterX 更正**：`_px3` · `_pxvid` · `PerimeterX-Token` · `PerimeterXHandler` ·
+「PerimeterX block (Rotating proxy)」全在。旧 note「no `_px` cookie does」错。
+那句「block (Rotating proxy)」说明原版把**被封与轮换代理**连起来 —— 那是行为不是 token 名。
+
+加了一列：`MarkerSource { ImageLiteral, Inferred }`，`Row` 多一个参数，六行各补。
+守卫 `TheMarkerColumnSaysWhereEachMarkerCameFrom` 钉住 `Inferred == {cloudflare, imperva}`
+（测试没法重探二进制，所以钉集合；改动它得重跑 `ida.py str` 并在里面找到东西）。
+
+数字：套件 2210（+1 守卫）· 陈旧度 0/0 · 函数数 173,952 · 墙 3/6 · marker 出处 6/6 · Inferred 2。
+
+纪律：**判据 (d) 要的不是「有证据」，是「每条写着它的证据是什么」。**
+
+下一轮：publish 一次刷新函数数（已多轮未 publish）；或查 `px-captcha` 是否也在镜像里（我只验了 `_px3`）。

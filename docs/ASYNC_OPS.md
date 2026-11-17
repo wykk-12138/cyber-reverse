@@ -9216,3 +9216,89 @@ if (vendor == "datadome")
 > 而当我把 ProtocolUnrecorded 那种状态写出来之后，它看起来已经很像做完了 —— 一个更准确的名字
 > 会让缺口显得更小。**
 > **→ 一个标签的改善不等于工作的进展。R995 那个 state 是对的，而它一个字都没让墙过去。**
+
+
+### 六个检测标记里**两个不在镜像里** —— 而 `cf-chl` 是其中一个（R997）
+
+**R996 说下一轮取 imperva / perimeterx 的证据。取了，而它顺手翻出一个比那两个缺口更大的问题。**
+
+### ① 六行标记，逐个探
+
+| vendor | marker | 镜像命中 | 结论 |
+|---|---|---|---|
+| kasada | `kpsdk` | **17** | ✓ 真串 |
+| queue-it | `queue-it` | **13** | ✓ 真串 |
+| datadome | `datadome` | **15** | ✓ 真串 |
+| perimeterx | `px-captcha` | （`_px3` 在，见下） | ✓ |
+| **cloudflare** | **`cf-chl`** | **0** | ✗ **我们自己编的** |
+| **imperva** | **`_Incapsula_Resource`** | **0** | ✗ **我们自己编的** |
+
+> **而 Cloudflare 是**已声明 `Wired`** 的那一格。
+> 也就是说：我们检测 Cloudflare 与 Imperva 的方式是**写出来的**，不是**抄下来的**。**
+> **`cf-chl` 能工作，因为真实 Cloudflare 挑战页里确实有它 —— 但那是**常识**，不是镜像证据。
+> 而一张 `Wired` 的行读起来像是抄来的。**
+
+### ② 而 PerimeterX 的比我们记的多得多
+
+```
+0x1434ab609  _px3                              ← 「no _px cookie does」是错的
+0x146f609b4  __pxvid   0x146f64474  _pxvid
+0x146e3e764  PerimeterX-Token                  ← token header（这条我们有）
+0x143336731  "PerimeterXHandler                ← 一个 Handler 类
+0x146e3e70c  PerimeterX block (Rotating proxy) ← **封锁 + 代理轮换**
+```
+
+> **最后那句是这一轮的信息量所在：它说明原版把「被 PX 封」与**轮换代理**连起来处理。
+> 那不是 token 名字，是**行为**。**
+> **→ 而 `VendorWiring` 的 note 写着「deliberately blank: a token header exists, no `_px` cookie does」——
+> 两处都错：`_px3` 在，而且不止一个 token header。**
+> **→ 状态仍是 `DetectedOnly`（我们没有那个调用），但那不是「镜像里什么都没有」。**
+
+### ③ 所以这一轮加的是**一列出处**，不是又改一个名字
+
+**判据 (d)：每条 claim 要有 authority。而那张表的 marker 列**没有表明它是抄的还是写的**。**
+
+**新增：**
+
+```csharp
+public enum MarkerSource { ImageLiteral, Inferred }
+public sealed record Row(…, State State, string Note, MarkerSource MarkerFrom);
+```
+
+**六行各补一个：三个 `ImageLiteral`（kpsdk / queue-it / datadome）+ perimeterx 也是 `ImageLiteral`（`_px3` 在），
+两个 `Inferred`（cloudflare / imperva）。**
+
+### ④ 而守卫钉住的是**哪两个**，不是**几个**
+
+```csharp
+Assert.Equal(new[] { "cloudflare", "imperva" }, inferred);
+```
+
+> **测试没法重新探二进制，所以它钉住探针已经确立的**集合**。
+> 要改动它，得重跑 `python analysis/ida.py str <marker>` 并在里面找到东西。**
+
+### ⑤ 而 imperva 那行现在说得更全
+
+**旧 note：「the image names no Imperva cookie and no Imperva host」
+新 note：「the image names neither an Imperva cookie nor an Imperva host, **and does not contain this marker either**」**
+
+> **后半句是新的，也是要紧的：不只是「没有 cookie 和 host」，而是**连我们用来检测它的那串都不在镜像里**。
+> 所以 imperva 这条分支**整条**是我们自己写的，而它至今没被触发过（因为没有站用 Imperva）。**
+
+### ⑥ 数字
+
+| 度量 | R996 | **R997** |
+|---|---|---|
+| 套件 | 2209 | **2210（+1 守卫）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952（未 publish）** |
+| 墙 Wired | 3 / 6 | **3 / 6（未变）** |
+| **marker 列有出处的行** | 0 / 6 | **6 / 6** |
+| **`Inferred` 标记** | 未测 | **2（cloudflare · imperva）** |
+
+### 教训
+
+> **「检测用的标记」和「镜像里的串」是两件事，而那张表把它们写在同一个格子里。
+> 一个 `Wired` 的行因此读起来像抄的 —— 而它的一半是编的。**
+> **→ 判据 (d) 要求的不是「有证据」，是「**每条**写着它的证据是什么」。
+> 我给六个厂商写了六行 note，而最要紧的那一列没有出处。**

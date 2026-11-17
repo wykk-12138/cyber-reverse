@@ -60,31 +60,61 @@ public static class VendorWiring
         OriginalSolvesProtocolUnrecorded,
     }
 
+    /// <summary>
+    /// Where a row's detection marker came from. R997 added this because two of the six markers turned out not to be in the
+    /// image at all, and the table gave no way to tell.
+    ///
+    /// <para>
+    /// The distinction is criterion (d)'s: every claim carries its authority. <c>kpsdk</c>, <c>queue-it</c> and
+    /// <c>datadome</c> are literals the image contains -- seventeen, thirteen and fifteen times respectively. Neither
+    /// <c>cf-chl</c> nor <c>_Incapsula_Resource</c> appears anywhere in it, so those two rows describe a detector this
+    /// workspace wrote, not one it copied. Cloudflare's happens to work because <c>cf-chl</c> is what a real Cloudflare
+    /// challenge page contains -- but that is general knowledge, not evidence from the artifact, and the table should say
+    /// so rather than let a Wired row look as though it were transcribed.
+    /// </para>
+    /// </summary>
+    public enum MarkerSource
+    {
+        /// <summary>The image contains this literal.</summary>
+        ImageLiteral,
+        /// <summary>This workspace chose this marker; the image does not carry it.</summary>
+        Inferred,
+    }
+
     /// <summary>One row of the audit.</summary>
-    public sealed record Row(string Vendor, string Marker, string? Cookie, State State, string Note);
+    public sealed record Row(string Vendor, string Marker, string? Cookie, State State, string Note,
+        MarkerSource MarkerFrom);
 
     /// <summary>The audit, in the order <c>DetectAsync</c> tests its markers.</summary>
     public static readonly IReadOnlyList<Row> Rows = new[]
     {
         new Row("cloudflare", "cf-chl / server: cloudflare", "cf_clearance", State.Wired,
-            "R140: CloudflareClearance runs the service→in-bot ladder and writes the cookie"),
+            "R140: CloudflareClearance runs the service→in-bot ladder and writes the cookie",
+            MarkerSource.Inferred),
 
         new Row("kasada", "kpsdk", "kpsdk", State.Wired,
-            "R141: KasadaClearance runs the four-road strategy and writes the token"),
+            "R141: KasadaClearance runs the four-road strategy and writes the token",
+            MarkerSource.ImageLiteral),
 
         new Row("imperva", "_Incapsula_Resource", null, State.DetectedOnly,
-            "the image names no Imperva cookie and no Imperva host"),
+            "the image names neither an Imperva cookie nor an Imperva host, and does not contain this marker either",
+            MarkerSource.Inferred),
 
         new Row("datadome", "datadome", "datadome", State.Wired,
             "R996: DataDomeClearance runs the sensor at datadome.cybersole.io/sensor, narrates the image's four stages "
             + "and writes the datadome cookie. R141's correction stands -- SolveBotD proved the original solves it -- and "
-            + "what was missing was the call, which now exists and which SolveDetectedWallAsync dispatches to."),
+            + "what was missing was the call, which now exists and which SolveDetectedWallAsync dispatches to.",
+            MarkerSource.ImageLiteral),
 
         new Row("perimeterx", "px-captcha", null, State.DetectedOnly,
-            "deliberately blank: a token header exists, no _px cookie does"),
+            "R997 corrects the note: _px3, _pxvid and PerimeterX-Token are all image literals, and the image carries a "
+            + "PerimeterXHandler plus the line 'PerimeterX block (Rotating proxy)' -- so a blocker that rotates proxies was "
+            + "recorded, which is behaviour rather than a token name. What this workspace has not written is the call.",
+            MarkerSource.ImageLiteral),
 
         new Row("queue-it", "queue-it", "queue-it-set-cookie", State.NotAChallenge,
-            "a queue, not a wall: the correct handling is to wait, not to solve"),
+            "a queue, not a wall: the correct handling is to wait, not to solve",
+            MarkerSource.ImageLiteral),
     };
 
     /// <summary>Vendors whose call chain is complete.</summary>

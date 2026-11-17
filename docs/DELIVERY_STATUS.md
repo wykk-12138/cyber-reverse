@@ -25969,3 +25969,125 @@ python tools/metrics_report.py                                          -> 完�
 一个更准确的名字会让缺口显得更小。**
 
 **→ 一个标签的改善不等于工作的进展。R995 那个 state 是对的，而它一个字都没让墙过去。**
+
+
+---
+
+## 421. **六行 marker 加出处列：4 个 ImageLiteral · 2 个 Inferred（cloudflare · imperva）**
+
+> R997。**改 `VendorWiring.cs` + 1 条守卫。** 套件 **2210 通过 / 0 失败 / 0 跳过**。
+
+### 一、探针结果
+
+| vendor | marker | 镜像命中 | 结论 |
+|---|---|---|---|
+| kasada | `kpsdk` | **17** | ✓ |
+| queue-it | `queue-it` | **13** | ✓ |
+| datadome | `datadome` | **15** | ✓ |
+| perimeterx | `px-captcha` | `_px3` 在 | ✓ |
+| **cloudflare** | **`cf-chl`** | **0** | ✗ **自造** |
+| **imperva** | **`_Incapsula_Resource`** | **0** | ✗ **自造** |
+
+**→ 六行 marker 里两个不在镜像里，而 **Cloudflare 是已声明 `Wired`** 的那一格。
+→ 我们检测 Cloudflare 与 Imperva 的方式是**写出来的**，不是**抄下来的**。
+→ `cf-chl` 能工作，因为真实 Cloudflare 挑战页里确实有它 —— 但那是**常识**，不是镜像证据。
+→ 而一张 `Wired` 的行读起来像是抄来的。**
+
+### 二、而 PerimeterX 的比我们记的多得多
+
+```
+0x1434ab609  _px3                              ← 「no _px cookie does」是错的
+0x146f609b4  __pxvid   0x146f64474  _pxvid
+0x146e3e764  PerimeterX-Token
+0x143336731  "PerimeterXHandler                ← 一个 Handler 类
+0x146e3e70c  PerimeterX block (Rotating proxy) ← 封锁 + 代理轮换
+```
+
+**→ 最后那句是这一轮的信息量所在：原版把「被 PX 封」与**轮换代理**连起来处理。
+那不是 token 名字，是**行为**。
+→ 旧 note「deliberately blank: a token header exists, no `_px` cookie does」两处都错。
+→ 状态仍是 `DetectedOnly`（我们没有那个调用），但那不是「镜像里什么都没有」。**
+
+### 三、所以加的是**一列出处**
+
+**判据 (d)：每条 claim 要有 authority。而 marker 列**没有表明它是抄的还是写的**。**
+
+```csharp
+public enum MarkerSource
+{
+    /// <summary>The image contains this literal.</summary>
+    ImageLiteral,
+    /// <summary>This workspace chose this marker; the image does not carry it.</summary>
+    Inferred,
+}
+
+public sealed record Row(string Vendor, string Marker, string? Cookie, State State, string Note,
+    MarkerSource MarkerFrom);
+```
+
+**六行各补：4 个 `ImageLiteral`（kpsdk · queue-it · datadome · px-captcha）+ 2 个 `Inferred`（cloudflare · imperva）。**
+
+### 四、守卫钉住的是**哪两个**
+
+```csharp
+[Fact]
+public void TheMarkerColumnSaysWhereEachMarkerCameFrom()
+{
+    var inferred = VendorWiring.Rows
+        .Where(r => r.MarkerFrom == VendorWiring.MarkerSource.Inferred)
+        .Select(r => r.Vendor).ToList();
+    Assert.Equal(new[] { "cloudflare", "imperva" }, inferred);
+    …
+}
+```
+
+**→ 测试没法重新探二进制，所以它钉住探针已经确立的**集合**。
+→ 要改动它，得重跑 `python analysis/ida.py str <marker>` 并在里面找到东西。**
+
+### 五、imperva 那行说得更全
+
+**旧：「the image names no Imperva cookie and no Imperva host」
+新：「… **and does not contain this marker either**」**
+
+**→ 后半句是新的，也是要紧的：不只是「没有 cookie 和 host」，而是**连我们用来检测它的那串都不在镜像里**。
+→ 所以 imperva 这条分支**整条**是我们自己写的，而它至今没被触发过（没有站用 Imperva）。**
+
+### 六、数字
+
+| 度量 | R996 | R997 |
+|---|---|---|
+| 套件 | 2209 | **2210（+1 守卫）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952（未 publish）** |
+| 墙 Wired | 3 / 6 | **3 / 6（未变）** |
+| **marker 列有出处的行** | 0 / 6 | **6 / 6** |
+| **`Inferred` 标记** | 未测 | **2（cloudflare · imperva）** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str cf-chl                -> {"n":0}
+python analysis/ida.py str _Incapsula_Resource   -> {"n":0}
+python analysis/ida.py str kpsdk                 -> {"n":17}
+python analysis/ida.py str _px3                  -> {"n":1}
+python analysis/ida.py str "PerimeterX"          -> 5 条，含 PerimeterXHandler / PerimeterX block (Rotating proxy)
+cd replica
+python tools/snapshot.py                                          -> 322 files
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug -> 已成功生成
+dotnet test --filter "FullyQualifiedName~VendorWiringTests" -m:1   -> 9 通过
+python tools/metrics_report.py                                    -> 完整套件 exit 0  2210 通过 / 0 失败 / 0 跳过
+```
+
+### 八、仍然 Unknown
+
+- **imperva 的正确检测标记**：**Unknown** —— 镜像里没有，未找到替代。
+- **`cf-chl` 是否真的对**：**常识支持**（真实挑战页含它），**镜像不支持**。
+
+### 九、教训
+
+**「检测用的标记」和「镜像里的串」是两件事，而那张表把它们写在同一个格子里。
+一个 `Wired` 的行因此读起来像抄的 —— 而它的一半是编的。**
+
+**→ 判据 (d) 要求的不是「有证据」，是「**每条**写着它的证据是什么」。
+我给六个厂商写了六行 note，而最要紧的那一列没有出处。**

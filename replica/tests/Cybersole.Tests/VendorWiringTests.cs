@@ -87,6 +87,35 @@ public sealed class VendorWiringTests
         }
     }
 
+    /// <summary>
+    /// R997: two of the six detection markers are not in the image, and the table now says which.
+    ///
+    /// <para>
+    /// kpsdk, queue-it and datadome are image literals -- seventeen, thirteen and fifteen occurrences. cf-chl and
+    /// _Incapsula_Resource appear nowhere in it, so the Cloudflare and Imperva detectors were written here rather than
+    /// transcribed. Cloudflare works because cf-chl is what a real challenge page carries, but that is general knowledge
+    /// and not evidence from the artifact, and a Wired row must not read as though it had been copied.
+    /// </para>
+    ///
+    /// <para>
+    /// This test cannot re-probe the binary, so it pins the set that the probe established. Changing it means re-running
+    /// <c>python analysis/ida.py str &lt;marker&gt;</c> and finding something there.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void TheMarkerColumnSaysWhereEachMarkerCameFrom()
+    {
+        var inferred = VendorWiring.Rows
+            .Where(r => r.MarkerFrom == VendorWiring.MarkerSource.Inferred)
+            .Select(r => r.Vendor)
+            .ToList();
+
+        Assert.Equal(new[] { "cloudflare", "imperva" }, inferred);
+
+        foreach (var row in VendorWiring.Rows)
+            _out.WriteLine($"{row.Vendor,-12} {row.MarkerFrom,-14} {row.Marker}");
+    }
+
     /// <summary>The audit's cookie column agrees with the protocol table.</summary>
     [Fact]
     public void TheCookieColumnAgreesWithTheProtocolTable()

@@ -59329,3 +59329,75 @@ if (vendor is not ("cloudflare" or "kasada")) return StepOutcome.Success();   //
 
 > **一个标签的改善不等于工作的进展。R995 那个 state 是对的，而它一个字都没让墙过去。
 > 更准确的名字会让缺口显得更小 —— 这正是名字与工作之间最容易混的一步。**
+
+
+---
+
+## 第 997 轮：六个检测标记里两个不在镜像里 —— 而 `cf-chl` 是其中一个
+
+### ① 六行标记逐个探
+
+| vendor | marker | 镜像命中 | 结论 |
+|---|---|---|---|
+| kasada | `kpsdk` | **17** | ✓ |
+| queue-it | `queue-it` | **13** | ✓ |
+| datadome | `datadome` | **15** | ✓ |
+| perimeterx | `px-captcha` | `_px3` 在 | ✓ |
+| **cloudflare** | **`cf-chl`** | **0** | ✗ **编的** |
+| **imperva** | **`_Incapsula_Resource`** | **0** | ✗ **编的** |
+
+> **而 Cloudflare 是已声明 `Wired` 的那一格。
+> 我们检测 Cloudflare 与 Imperva 的方式是**写出来的**，不是**抄下来的**。
+> `cf-chl` 能工作因为真实挑战页里有它 —— 但那是**常识**，不是镜像证据。而一张 `Wired` 的行读起来像抄的。**
+
+### ② 而 PerimeterX 的比我们记的多得多
+
+```
+_px3 · __pxvid · _pxvid · PerimeterX-Token · "PerimeterXHandler
+PerimeterX block (Rotating proxy)          ← 封锁 + 代理轮换
+```
+
+> **最后那句是信息量所在：原版把「被 PX 封」与**轮换代理**连起来 —— 那不是 token 名字，是**行为**。
+> 旧 note「deliberately blank: a token header exists, no `_px` cookie does」两处都错。
+> 状态仍是 `DetectedOnly`（没有那个调用），但那不是「镜像里什么都没有」。**
+
+### ③ 加的是**一列出处**，不是又改一个名字
+
+```csharp
+public enum MarkerSource { ImageLiteral, Inferred }
+public sealed record Row(…, State State, string Note, MarkerSource MarkerFrom);
+```
+
+**六行各补：4 个 `ImageLiteral`（kpsdk / queue-it / datadome / px-captcha）+ 2 个 `Inferred`（cloudflare / imperva）。**
+
+### ④ 守卫钉住的是**哪两个**
+
+```csharp
+Assert.Equal(new[] { "cloudflare", "imperva" }, inferred);
+```
+
+**测试没法重探二进制，所以钉住探针确立的集合；改动它得重跑 `ida.py str <marker>` 并在里面找到东西。**
+
+### ⑤ imperva 那行说得更全了
+
+**新 note 加了「and does not contain this marker either」——
+不只是没有 cookie 和 host，而是**连检测标记都不在镜像里**。所以那条分支**整条**是自造的，
+而它至今没被触发（没有站用 Imperva）。**
+
+### ⑥ 数字
+
+| 度量 | R996 | **R997** |
+|---|---|---|
+| 套件 | 2209 | **2210（+1 守卫）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952（未 publish）** |
+| 墙 Wired | 3 / 6 | **3 / 6（未变）** |
+| **marker 列有出处的行** | 0 / 6 | **6 / 6** |
+| **`Inferred` 标记** | 未测 | **2** |
+
+### 教训
+
+> **「检测用的标记」和「镜像里的串」是两件事，而那张表把它们写在同一个格子里。
+> 一个 `Wired` 的行因此读起来像抄的 —— 而它的一半是编的。
+> → 判据 (d) 要的不是「有证据」，是「**每条**写着它的证据是什么」。
+> 我给六个厂商写了六行 note，而最要紧的那一列没有出处。**

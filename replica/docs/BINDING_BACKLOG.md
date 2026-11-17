@@ -7963,3 +7963,41 @@ Getting / Initialising / Solving / Submitting DataDome
 | DataDome relay 的凭据与字段顺序 | 无凭据 |
 
 **纪律**：一个标签的改善不等于工作的进展。
+
+
+## 判据 (d)/优先级 ② — **六行 marker 加出处列：4 个 ImageLiteral · 2 个 Inferred（cloudflare · imperva）**（R997）
+
+### 探针结果
+
+| marker | 镜像命中 |
+|---|---|
+| `kpsdk` | 17 ✓ |
+| `queue-it` | 13 ✓ |
+| `datadome` | 15 ✓ |
+| `_px3`（perimeterx） | 在 ✓ |
+| **`cf-chl`（cloudflare）** | **0 ✗ 自造** |
+| **`_Incapsula_Resource`（imperva）** | **0 ✗ 自造** |
+
+**→ `Wired` 的 Cloudflare 那一行，检测标记是我们写的不是抄的。**
+
+### PerimeterX 更正
+
+**`_px3` · `__pxvid` · `_pxvid` · `PerimeterX-Token` · `PerimeterXHandler` ·
+「PerimeterX block (Rotating proxy)」全在镜像里 → 旧 note「no `_px` cookie does」错。
+状态仍 `DetectedOnly`（调用未写），但那不是「镜像里空的」。**
+
+### 改了什么
+
+- `VendorWiring.cs`：新增 `MarkerSource { ImageLiteral, Inferred }`；`Row` 加一列；六行各补；perimeterx / imperva note 更正
+- `VendorWiringTests.cs`：新增 `TheMarkerColumnSaysWhereEachMarkerCameFrom`（钉住集合 = {cloudflare, imperva}）
+
+### 数字
+
+**套件 2210（+1 守卫）· 陈旧度 0/0 · 函数数 173,952 · 墙 3/6 · marker 出处 6/6 · Inferred 2**
+
+| 仍 Unknown | |
+|---|---|
+| imperva 的正确检测标记 | 镜像里没有，未找到 |
+| cf-chl 是否真对（真实挑战页有，但非镜像证据） | 常识支持，镜像不支持 |
+
+**纪律**：判据 (d) 要的不是「有证据」，是「每条写着它的证据是什么」。

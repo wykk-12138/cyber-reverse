@@ -1,116 +1,181 @@
-"""Which vendor hosts the image carries have any counterpart in the replica.
+"""Generate docs/VENDOR_COVERAGE.md -- the original's risk-vendor list against VendorWiring's rows.
 
-WHY THIS EXISTS: criterion (f) asks for the original's store and risk-vendor list against Registry.cs and Flows/Scripts.
-R917 measured the store half and R918 through R920 closed it. The vendor half was never measured -- core_coverage.py
-prints vendor rows but only as a by-product of the store question, and it judges them by a single substring test against
-Scripts/ alone.
+Completion criterion (f) asks for the vendor list to be taken from the binary and reconciled row by row against the
+replica. R1040-R1045 showed the store catalogue cannot be had that way, but the vendor list can: the original names its
+own solvers in user-facing progress text, and that family is data, not symbols.
 
-So this asks the vendor question properly: for each of the twelve vendor hosts, is there a file or a literal that names
-the service anywhere in src, and what is it called. The answer is a table of present/absent with a file for each
-present one, so criterion (f) has the second column it was missing.
+Why a generator rather than a document: R1030 recorded that append-only lists fossilise, R1041 that hand-written tables
+drift from the tools that produce them. This re-probes the image and re-reads VendorWiring on every run.
 
-The judgement is a name search, and R730 says names are not the same as reading code. It is used only to say "nothing in
-the replica mentions this service", which a search can establish, and never to say "this service is handled correctly".
+Controls: the family is only an inventory if vendors known to be present appear in it. kpsdk and datadome are probed
+alongside, and their counts are printed first so a zero beneath them can be read.
+
+Run: python tools/vendor_coverage.py   (writes docs/VENDOR_COVERAGE.md)
 """
 
 import io
 import json
 import os
 import re
-from collections import Counter
+import subprocess
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO = os.path.dirname(ROOT)
+OUT = os.path.join(ROOT, "docs", "VENDOR_COVERAGE.md")
+WIRING = os.path.join(ROOT, "src", "Cybersole.Stores", "Scripts", "VendorWiring.cs")
+
+# The image's own vocabulary. Each vendor needs its own probe because the wording differs per vendor -- Kasada never
+# appears in the Solving family at all, and Queue-it only ever appears in an error line, which is exactly the kind of
+# shape difference AGENTS 2.7 warns about.
+VENDORS = [
+    ("Akamai", r"Solving Akamai \("),
+    ("BotDeflector", r"Solving BotDeflector"),
+    ("Cloudflare", r"Solving Cloudflare \("),
+    ("DataDome", r"Solving DataDome \("),
+    ("Kasada", r"kpsdk"),
+    ("PerimeterX", r"Solving PerimeterX"),
+    ("Queue-it", r"Solving Queue-it"),
+    ("Vercel", r"Solving Vercel"),
+    ("Stripe challenge", r"Solving Stripe challenge"),
+    ("PayPal 3DS", r"Solving PayPal 3DS"),
+    ("captcha", r"Solving captcha \("),
+    ("proof of work", r"Solving POW challange"),
+    ("checkpoint", r"Solving checkpoint"),
+]
+
+CONTROLS = [("kpsdk", r"kpsdk"), ("datadome", r"datadome")]
 
 
-ROOT = r"D:\projects\cyber-reverse"
-INVENTORY = os.path.join(ROOT, "analysis", ".coverage-paths.txt")
-import importlib.util as _ilu
-_spec = _ilu.spec_from_file_location("comment_split", os.path.join(ROOT, "replica", "tools", "comment_split.py"))
-comment_split = _ilu.module_from_spec(_spec)
-_spec.loader.exec_module(comment_split)
-
-VENDOR_HINTS = (
-    "cloudflare", "kasada", "datadome", "perimeterx", "queue-it", "queueit", "recaptcha", "hcaptcha",
-    "akamai", "aycd", "turnstile", "captcha", "paypal", "stripe", "adyen", "paynamics", "eshopworld",
-    "global-e", "vivapayments", "wdprapps", "disney", "purpledotprice", "purpledot",
-)
-
-# the service name to look for in src, per vendor host
-SERVICE = {
-    "challenges.cloudflare.com": ("Cloudflare", ("cloudflare",)),
-    "checkoutshopper-live.adyen.com": ("Adyen", ("adyen",)),
-    "inbox-api.aycd.io": ("AYCD", ("aycd", "inbox-api")),
-    "payments-panel.production.eshopworld.com": ("eShopWorld", ("eshopworld",)),
-    "paymentsheet-ent.wdprapps.disney.com": ("Disney", ("disney", "wdprapps")),
-    "registerdisney.go.com": ("Disney", ("disney", "registerdisney")),
-    "retailer-shopifypayments-api.production.eshopworld.com": ("eShopWorld", ("eshopworld", "shopifypayments")),
-    "web-dsy.global-e.com": ("Global-e", ("global-e", "global_e")),
-    "webservices.global-e.com": ("Global-e", ("global-e", "global_e")),
-    "www.paypal.com": ("PayPal", ("paypal",)),
-    "www.vivapayments.com": ("Viva", ("viva",)),
-    "www.purpledotprice.com": ("PurpleDot", ("purpledot",)),
-}
+def probe(pattern, limit=600):
+    p = subprocess.run(
+        [sys.executable, os.path.join(REPO, "analysis", "ida.py"), "str", pattern, "--limit", str(limit)],
+        cwd=REPO, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    try:
+        return json.loads((p.stdout or "").strip())
+    except Exception:
+        m = re.search(r"\{.*\}", p.stdout or "", re.S)
+        return json.loads(m.group(0)) if m else {"n": 0, "matches": []}
 
 
-def rows():
-    raw = io.open(INVENTORY, encoding="utf-8-sig", errors="replace").read()
-    doc = json.loads(raw)
-    out = doc.get("stdout") or doc.get("result") or ""
-    for line in out.splitlines():
-        if line.startswith("F\t"):
-            parts = line.split("\t")
-            if len(parts) >= 3 and parts[1] not in ("-", ""):
-                yield parts[1].strip(), parts[2].strip()
+def wiring_rows():
+    """Each row is `new Row("vendor", "marker", cookie, State.X, ... Solver.Y, bool)`.
 
-
-def sources():
-    """Every non-comment source line, keyed by file, so a hit names a file rather than a byte offset."""
-    for dp, _dirs, fs in os.walk(os.path.join(ROOT, "replica", "src")):
-        if os.sep + "obj" + os.sep in dp or os.sep + "bin" + os.sep in dp:
+    R1047: the first version looked for `Vendor.X` and found nothing, then reported all thirteen image vendors as
+    missing -- a wrong parser producing a confident false inventory, which is the R764 shape. The vendor is a plain
+    lowercase string, so the split is on the constructor and each block is parsed for its state, solver and relay.
+    """
+    text = io.open(WIRING, encoding="utf-8", errors="replace").read()
+    rows = []
+    for block in text.split("new Row(")[1:]:
+        m = re.match(r'\s*"([a-z0-9\-]+)"', block)
+        if not m:
             continue
-        for fn in fs:
-            if not fn.endswith(".cs"):
-                continue
-            p = os.path.join(dp, fn)
-            try:
-                text = io.open(p, encoding="utf-8", errors="replace").read()
-            except OSError:
-                continue
-            # R925: strip comments before searching. R915 fixed this in the two method-coverage tools after a doc
-            # comment made SubmitWebRtc look implemented; the same fault appeared here, where a comment in VivaPayments
-            # mentioning Disney made Disney's hosts look named in a file about a different vendor. A name in prose is
-            # not a name in code.
-            yield os.path.relpath(p, os.path.join(ROOT, "replica")), comment_split.strip_comments(text)
+        vendor = m.group(1)
+        head = block[:1200]
+        state = re.search(r"State\.(\w+)", head)
+        solver = re.search(r"Solver\.(\w+)", head)
+        relay = re.search(r"Solver\.\w+,\s*(true|false)", head)
+        rows.append((vendor,
+                     state.group(1) if state else "?",
+                     solver.group(1) if solver else "?",
+                     relay.group(1) == "true" if relay else None))
+    return rows
 
 
 def main():
-    hosts = Counter(h for h, _p in rows())
-    vendors = {h: c for h, c in hosts.items() if any(v in h.lower() for v in VENDOR_HINTS)}
+    controls = [(name, probe(pat).get("n", -1)) for name, pat in CONTROLS]
+    control_ok = all(n > 0 for _, n in controls)
 
-    files = list(sources())
-    print("vendor hosts carrying a path: %d" % len(vendors))
-    print("")
-    print("%-58s %3s  %-12s %s" % ("host", "pt", "service", "named in"))
-    present = absent = 0
-    for host in sorted(vendors):
-        service, needles = SERVICE.get(host, (host, (host.split(".")[-2],)))
-        hits = [rel for rel, text in files
-                if any(n in text.lower() for n in needles)]
-        # the inventory file itself and the tool that reads it are not the replica implementing anything
-        hits = [h for h in hits if not h.endswith("core_coverage.py")]
-        state = "yes" if hits else "NO"
-        if hits:
-            present += 1
-        else:
-            absent += 1
-        print("%-58s %3d  %-12s %-4s %s" % (host, vendors[host], service, state,
-                                            ", ".join(sorted(set(h.split(os.sep)[-1] for h in hits))[:3]) or "-"))
+    found = []
+    for name, pattern in VENDORS:
+        d = probe(pattern)
+        n = d.get("n", -1)
+        addr = (d.get("matches") or [{}])[0].get("addr", "")
+        found.append((name, pattern, n, addr))
 
-    print("")
-    print("vendor hosts carrying a path: %d" % len(vendors))
-    print("vendors named somewhere in src: %d" % present)
-    print("vendors absent from src: %d" % absent)
-    print("NOTE: 'yes' means some source file contains the service's name. It does not mean the integration is complete")
-    print("      or correct -- a constant naming a host and a working flow are different things.")
+    rows = wiring_rows()
+    if not rows:
+        print("  !! parsed zero wiring rows -- refusing to publish a table that would claim every vendor is missing")
+        return 2
+
+    wired = {r[0] for r in rows}
+    missing = []
+    for name, pattern, n, addr in found:
+        if n <= 0:
+            continue
+        stem = re.sub(r"[^a-z]", "", name.lower())[:5]
+        if not any(stem in k for k in wired):
+            missing.append((name, n, addr))
+
+    lines = []
+    add = lines.append
+    add("# 风控厂商覆盖表（生成物 —— 不要手改）")
+    add("")
+    add("由 `python tools/vendor_coverage.py` 生成。完成判据 (f) 的风控一半：")
+    add("**原版清单从二进制取证 ↔ `VendorWiring` 逐条对**。")
+    add("")
+    add("## 一、对照是否成立")
+    add("")
+    add("| 对照串 | 命中 |")
+    add("|---|---|")
+    for name, n in controls:
+        add("| `%s` | **%d** |" % (name, n))
+    add("")
+    add("**→ 对照%s。**" % ("成立，下方的零可读" if control_ok else "不成立 —— 下方的零不可读，本表作废"))
+    add("")
+    add("## 二、原版在进度文案里点名的求解对象")
+    add("")
+    add("**取证依据**：原版对用户显示 `Solving <X>` 形式的进度文案，那是**它自己写的**清单，"
+        "而不是我们的分类。")
+    add("")
+    add("| 厂商/挑战 | 命中 | 首条地址 |")
+    add("|---|---|---|")
+    for name, pattern, n, addr in found:
+        add("| **%s** | **%d** | `%s` |" % (name, n, addr or "—"))
+    add("")
+    add("**注意形状差异**（AGENTS §2.7）：Kasada 从不以 `Solving` 出现 —— 它只在 `x-kpsdk-*` 头里；")
+    add("Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。")
+    add("**所以「用同一个前缀扫全体」会漏掉两家**，这也是每个厂商单独一条查询的原因。")
+    add("")
+    add("## 三、与 `VendorWiring` 的对账")
+    add("")
+    add("`VendorWiring` 现有 **%d** 行：" % len(rows))
+    add("")
+    add("| Vendor | State | Solver | Relayed |")
+    add("|---|---|---|---|")
+    for name, state, solver, relayed in rows:
+        add("| `%s` | `%s` | `%s` | %s |" % (name, state, solver, relayed))
+    add("")
+    add("### 原版点名而台账里没有的（%d）" % len(missing))
+    add("")
+    if missing:
+        add("| 缺的 | 命中 | 地址 |")
+        add("|---|---|---|")
+        for name, n, addr in missing:
+            add("| **%s** | %d | `%s` |" % (name, n, addr))
+    else:
+        add("（无）")
+    add("")
+    add("**→ 这些是 `VendorWiring` 的缺口**：原版对它们有进度文案，说明原版确实走到那一步，")
+    add("而台账没有对应的行 ⇒ 按 (f)「未覆盖的每条写为什么」。")
+    add("")
+    add("## 四、边界")
+    add("")
+    add("- **有文案不等于有 solver**：文案说明原版走到那一步，而它交给第三方、自建还是内联，"
+        "要另找证据（`VendorWiring.Solver` 那一列就是在记这件事）。")
+    add("- **没有文案不等于没处理**：Kasada 与 Queue-it 都已经证明这一点（形状不同）。")
+    add("- **对照只能证明「查得到」**：前缀查询 > 0 不等于该厂商在所有站上都启用。")
+    add("")
+
+    io.open(OUT, "w", encoding="utf-8", newline="").write("\n".join(lines))
+    print("  wrote docs/VENDOR_COVERAGE.md")
+    print("  controls ok=%s  vendors named=%d  wiring rows=%d  missing=%d"
+          % (control_ok, sum(1 for f in found if f[2] > 0), len(rows), len(missing)))
+    for name, n, addr in missing:
+        print("    missing: %-18s n=%-3d %s" % (name, n, addr))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

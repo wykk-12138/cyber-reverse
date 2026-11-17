@@ -3449,3 +3449,80 @@ functions 321,244 · sub_* 311,203 (96.87%) · 其余 10,041 全是 C++ CRT 符�
 纪律：**名字没有 authority 时，要说清为什么它不需要，而不只是「查不到」。**
 
 下一轮：② 风控 —— `Solving Akamai (SBSD)/(SDS)` 与 queue-it softblock 的求解协议（带对照查文案族）。
+
+
+## R1047 —— **未完成（内存耗尽，YG 要求重启）** · 生成器已修好，套件**未跑**
+
+> **状态：partial。** 生成器可用、表已生成、`git` 待提交。**全量套件没有跑完** ——
+> AGENTS §2.6：「没跑成」既不等于通过也不等于失败，所以这一轮**不能**记成绿。
+
+### 做了什么
+
+1. **取证**：原版在**进度文案**里点名自己解什么 —— `Solving <X>` 族 **36** 条（前缀查询），
+   那就是 (f) 要的风控清单，从二进制取到了：
+
+   ```
+   Solving Akamai ( · (SBSD) · (SDS)        Solving PerimeterX
+   Solving BotDeflector icons · proof of work    Solving Vercel
+   Solving Cloudflare ( ×9 阶段               Solving Stripe challenge
+   Solving DataDome (I)                      Solving PayPal 3DS (1)…(8)
+   Error Solving Queue-it (Softblock)        Solving captcha ( · challenge (S) · checkpoint · POW
+   ```
+
+2. **新生成器** `replica/tools/vendor_coverage.py` → `replica/docs/VENDOR_COVERAGE.md`，
+   每次运行重探 13 个厂商 + 2 个对照（`kpsdk` 17 · `datadome` 15），并对账 `VendorWiring` 的 **7** 行。
+
+3. **结果**：`controls ok=True · vendors named=13 · wiring rows=7 · missing=7`
+
+   | 缺的 | 命中 | 性质 |
+   |---|---|---|
+   | `BotDeflector` | 2 | **真厂商缺口** |
+   | `Vercel` | 2 | **真厂商缺口** |
+   | `Stripe challenge` | 1 | **真缺口（支付挑战）** |
+   | `PayPal 3DS` | 9 | **真缺口（支付挑战）** |
+   | `captcha` | 1 | 挑战类型，`VendorWiring` 形状不建模 |
+   | `proof of work` | 1 | 同上 |
+   | `checkpoint` | 1 | 同上 |
+
+   **→ 所以 7 个里 4 个是真缺口，3 个是形状不匹配。**
+
+### 而我这一轮踩了一个坑（已修，但值得记）
+
+**第一版解析器找 `Vendor.X`，而真实形状是 `new Row("cloudflare", ...)` 小写字符串 ⇒ 解析到 0 行，
+于是把 13 个厂商**全**报成「缺」。**
+→ **那是 R764 那个形状的又一次：解析器错 ⇒ 结论假，而且假得很有说服力。**
+→ 修法：按 `new Row(` 切块，每块解析 `State.X` / `Solver.Y` / 尾随 bool；
+**并加了一条 `rows == 0` 就拒绝出表**的保护（`return 2`），因为空解析不该产出任何清单。
+
+**第二个坑**：我用 `Set-Content` 无编码写回，把 UTF-8 文件写成了 GBK ⇒ `SyntaxError: Non-UTF-8`。
+→ 已用 `write` 工具整份重写。**教训：不拿 PowerShell 对源码做文本手术。**
+
+### 数字
+
+| 度量 | R1046 | **R1047** |
+|---|---|---|
+| 套件 | 2258 / 0 | **未跑 —— 内存耗尽，重启前不跑** |
+| 函数数 | 174,293 | **未重测** |
+| 产物陈旧度 | 0 / 0 | **未重测**（本轮只加了 tools/ 与 docs/） |
+| **`Solving` 族前缀命中** | 未查 | **36** |
+| **原版点名的求解对象** | 未知 | **13** |
+| **`VendorWiring` 行数** | 7（记录） | **7（已解析验证）** |
+| **真厂商缺口** | 未知 | **4**（BotDeflector · Vercel · Stripe challenge · PayPal 3DS） |
+| **形状不匹配的 3 个** | — | captcha · proof of work · checkpoint |
+| **对照** | — | **成立（17 / 15）** |
+| **`docs/VENDOR_COVERAGE.md`** | 不存在 | **已生成（UTF-8）** |
+
+### 重启后第一步
+
+```
+cd D:\projects\cyber-reverse\replica
+python tools\vendor_coverage.py          # 确认 rows=7 · missing=7
+python tools\metrics_report.py           # 跑全量，确认套件仍 2258/0/0
+```
+
+**→ 若套件绿，则 R1047 收尾；若不绿，按红的守卫改数字或回滚。**
+**→ 然后按 (f) 给那 4 个真缺口逐条写「为什么未覆盖」—— 而 `BotDeflector` 是 R1022 就记过的第二个 flow 候选。**
+
+### 纪律
+
+**内存不足时先停构建。** 而「未跑」要写「未跑」，不能因为「上次是绿的」就当作绿。

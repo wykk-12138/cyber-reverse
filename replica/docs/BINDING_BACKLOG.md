@@ -7811,3 +7811,40 @@ GetAuthTokenAsync  → => GetTokenAsync    // 「Acquire an authorisation token 
 | `GetToken` / `GetAuthToken` / `CreateToken` 在原版里被谁调用 | 名字定位不到代码，与 `HandleBlock` 同一堵墙 |
 
 **纪律**：「它不执行」只说明现在没问题，不说明它没问题。
+
+
+## 优先级 ①/③ — **状态码分类两份并存，409 上冲突；`HandleResponseAsync` 未接上**（R993）
+
+### Observation
+
+| 位置 | 在步骤序列 | 调用点 | 409 |
+|---|---|---|---|
+| `HandleResponseAsync`（`StoreFlow.cs:349`） | **无** | **0** | **可重试** |
+| `ClassifyCheckoutFailure`（`StoreFlowRunner.cs:262`） | **在用** | 有 | **Declined** |
+
+**`ClassifyCheckoutFailure` 有注释说明理由（「A 409 (sold out during checkout) is the same story」），
+`HandleResponseAsync` 没有。**
+
+**`Vars["lastStatus"]` 是活通道：5 写入 / 4 读取（含 `StoreFlowRunner:293`）。**
+
+### 处置（本轮未做，需先定哪份表对）
+
+**接上 `HandleResponseAsync` 会让 409 从 Declined 变可重试 = 重试已卖出的东西。
+→ 必须先把 409 对齐，再谈接线。**「改哪一份」需要证据，不是偏好。
+
+### 更正 R985
+
+**R985「原版状态码分类字符串层不可得」仍对，但它被我扩大成「这里没有」。
+复刻件里有两份；`HISTORY.md` R12 那条描述的就是 `HandleResponseAsync`。
+缺的不是原版证据，是一次 `where_is`。**
+
+### 数字
+
+**套件 2208（未改代码）· 陈旧度 0/0 · 函数数 173,952 · 分类器 2 份 · 冲突码 1（409）**
+
+| 仍 Unknown | |
+|---|---|
+| 两份表哪一份对 | 需证据（镜像侧状态码语义） |
+| `DetectAsync` 接上没有 | 未查 —— 优先级 ② 的实质内容 |
+
+**纪律**：「不可得」和「我没找到」是两个结论。

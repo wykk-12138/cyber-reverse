@@ -59017,3 +59017,75 @@ return StepOutcome.Fail(
 
 > **「它不执行」不能当成「它没问题」的证据 —— 它只说明**现在**没问题，
 > 而接上线的那一刻问题才开始，且那时已经没人记得看过它。**
+
+
+---
+
+## 第 993 轮：状态码分类有两份，而它们在 409 上给出相反结论
+
+### ① 这两个不像 `GetToken`
+
+```csharp
+RefreshSessionAsync → 真 GET origin，写 Vars["lastStatus"]，按 IsSuccess 判
+HandleResponseAsync → 完整状态码表
+```
+
+**没有伪造，有实质内容。`Vars["lastStatus"]` 是活的：5 写入 / 4 读取，`StoreFlowRunner:293` 也在读。**
+
+### ② 而分类有两份，只有一份在执行路径上
+
+| 位置 | 在步骤序列 | 调用点 |
+|---|---|---|
+| `HandleResponseAsync`（`StoreFlow.cs:349`） | **无** | **0** |
+| `ClassifyCheckoutFailure`（`StoreFlowRunner.cs:262`） | **在用**（读同一变量） | 有 |
+
+### ③ 冲突只有一个码，但是最要紧的那个
+
+**`ClassifyCheckoutFailure` 的注释：**
+
+> 「A 422 means the store understood the request and rejected it — retrying costs time and
+> can burn the account. A 409 (sold out during checkout) is the same story.」
+
+**而 `HandleResponseAsync` 把 409 判成**可重试**。**
+
+> **409 = 结账途中售罄。判可重试会重试一件已经卖掉的东西 —— 正是注释说「会烧账号」的那一类。
+> → 所以接上它是**危险**的；接之前必须先把 409 对齐。
+> → 这与 R992 的 `GetToken` 相反：那个该接，这个不该直接接。**
+
+### ④ 而这更正了 R985
+
+**R985 说「原版状态码分类在字符串层不可得」—— 那句仍对（原版看不到）。
+但我当时没查**复刻件里有没有**，答案是两份。**
+
+> **`HISTORY.md` R12 那条「401/403 可重试 vs 422 不可」描述的就是 `HandleResponseAsync`。
+> 那条记录是对的，只是我一直没找到它在哪个文件。
+> → 我说「不可得」时，缺的不是原版证据，是**一次 `where_is`**。**
+
+### ⑤ 这一轮没有接上它
+
+**接上会让 409 从 Declined 变成可重试。要先决定哪一份表对 ——
+而 `ClassifyCheckoutFailure` 那份**有注释说明理由**，`HandleResponseAsync` 那份**没有**。
+→ 记 BLOCKERS，不自己决定。**
+
+### ⑥ 顺手看到（未追）
+
+**`HandleResponseAsync` 下面紧挨着 `DetectAsync`（`StoreFlow.cs:368`）——
+从 body/headers 识别 anti-bot vendor：`cf-chl`→cloudflare · `kpsdk`→kasada ·
+`_Incapsula_Resource`→imperva · `datadome` · `px-captcha`→perimeterx · `queue-it`。
+那是优先级 ② 的实质内容。接上没有、与 vendor 12/12 什么关系 —— 未查。**
+
+### 数字
+
+| 度量 | R992 | **R993** |
+|---|---|---|
+| 套件 | 2208 | **2208（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **状态码分类器** | 未测 | **2 份（1 份未接上）** |
+| **冲突码** | 未测 | **1（409）** |
+
+### 教训
+
+> **「不可得」和「我没找到」是两个不同的结论，而我上一轮把它们写成了同一个。
+> R985 的证据是对的，而它的**结论范围**被我扩大了 —— 从「原版里看不到」变成「这里没有」。
+> 一次 `where_is` 就能把范围收回来。**

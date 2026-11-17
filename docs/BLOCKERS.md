@@ -31250,3 +31250,116 @@ python tools/metrics_report.py                 -> 完整套件 exit 0  2208 通�
 
 **而两者的身体都是伪造的。所以「它不执行」不能当成「它没问题」的证据 ——
 它只说明**现在**没问题，而接上线的那一刻问题才开始，且那时已经没人记得看过它。**
+
+
+---
+
+## 417. **状态码分类两份并存，409 冲突；`HandleResponseAsync` 未接上**
+
+> R993。**只取证，未改代码。** 套件 **2208（R992 的记录仍有效）**。
+
+### 一、这两个不像 `GetToken`
+
+```csharp
+RefreshSessionAsync → 真 GET origin，写 Vars["lastStatus"]，按 IsSuccess 判
+HandleResponseAsync → 完整状态码表
+```
+
+**→ 没有伪造，有实质内容。
+→ `Vars["lastStatus"]` 是**活通道**：5 个写入者 · 4 个读取者，`StoreFlowRunner.cs:293` 也在读它。**
+
+### 二、而分类有两份，只有一份在执行路径上
+
+| 位置 | 在步骤序列 | 调用点 |
+|---|---|---|
+| `HandleResponseAsync`（`StoreFlow.cs:349`） | **无** | **0** |
+| `ClassifyCheckoutFailure`（`StoreFlowRunner.cs:262`） | **在用**（`LastStatus(ctx)` 读同一变量） | 有 |
+
+**两份的表：**
+
+| 码 | `HandleResponseAsync` | `ClassifyCheckoutFailure` |
+|---|---|---|
+| 200/201/204 · 3xx | Success | — |
+| 400 | Fail 不可重试 | Error |
+| 401 / 403 | Fail **可重试** | Error |
+| 404 | Fail 不可重试 | Error |
+| **409** | **Fail 可重试** | **Declined（终止）** |
+| 422 | Fail 不可重试 | **Declined** |
+| 429 | Fail 可重试 | Error |
+| 5xx · 其它 | Fail 可重试 | Error |
+
+### 三、冲突只有一个码，但是最要紧的那个
+
+**`ClassifyCheckoutFailure` 的注释自己写着：**
+
+> 「A 422 means the store understood the request and rejected it — retrying costs time and can burn the account.
+>  A 409 (sold out during checkout) is the same story.」
+
+**而 `HandleResponseAsync` 把 409 判成**可重试**。**
+
+**→ 409 = 结账途中售罄。判可重试会**重试一件已经卖掉的东西**，而那正是注释说「会烧账号」的那一类。
+→ 所以把它接上是**危险**的：接之前必须先把 409 对齐。
+→ **这与 R992 的 `GetToken` 相反 —— 那个该接、这个不该直接接。****
+
+### 四、而这更正了 R985
+
+**R985 说「原版状态码分类在字符串层不可得」。那句仍然对（原版看不到）。
+但我当时没查**复刻件里有没有**，而答案是：有两份。**
+
+**→ `HISTORY.md` R12 那条「状态码分类（401/403 可重试 vs 422 不可）」描述的就是 `HandleResponseAsync`。
+→ 那条记录是对的，只是我一直没找到它在哪个文件。
+→ **我说「不可得」的时候，缺的不是原版证据，是一次 `where_is`。****
+
+### 五、这一轮**没有**接上它
+
+**接上 `HandleResponseAsync` 会让 409 从「Declined」变成「可重试」。
+那需要先决定哪一份表对 —— 而 `ClassifyCheckoutFailure` 那份**有注释说明理由**，
+`HandleResponseAsync` 那份**没有**。**
+
+**→ 正确的动作是：先把 `HandleResponseAsync` 的 409 改成不可重试（与有理由的那份对齐），然后才谈接线。
+→ 「改哪一份」需要证据，不是偏好 —— 本轮没取到，记 BLOCKERS，不自己决定。**
+
+### 六、顺手看到（未追）
+
+**`HandleResponseAsync` 下面就紧挨着 `DetectAsync`（`StoreFlow.cs:368`），
+从 body / headers 识别 anti-bot vendor：**
+
+```
+cf-chl            → cloudflare      kpsdk              → kasada
+_Incapsula_Resource → imperva       datadome           → datadome
+px-captcha        → perimeterx      queue-it           → queue-it
+```
+
+**→ 那是优先级 ② 的实质内容。它接上没有、与 `vendor_coverage` 的 12/12 是什么关系 —— 本轮未查。**
+
+### 七、数字
+
+| 度量 | R992 | R993 |
+|---|---|---|
+| 套件 | 2208 | **2208（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **状态码分类器** | 未测 | **2 份（1 份未接上）** |
+| **两份之间的冲突码** | 未测 | **1（409）** |
+
+### 八、验证
+
+```
+cd replica
+python - 扫 src 找 RefreshSessionAsync / HandleResponseAsync 的 DEF 与 CALL -> 各 1 个 DEF，0 个 CALL
+python - 扫 StoreFlowSteps.cs -> 两个名字都不在里面
+python - 扫 Vars["lastStatus"] -> 5 写入 / 4 读取
+python - 读 src/Cybersole.Stores/Flows/StoreFlow.cs:349-367 与 StoreFlowRunner.cs:258-275
+```
+
+### 九、仍然 Unknown
+
+- **两份表哪一份对**：**Unknown** —— 需要镜像侧的状态码语义证据。
+- **`DetectAsync` 接上没有**：**Unknown** —— 未查；它是优先级 ② 的实质内容。
+
+### 十、教训
+
+**「不可得」和「我没找到」是两个不同的结论，而我上一轮把它们写成了同一个。**
+
+**R985 的证据（原版字符串里没有状态码分类）是对的，而它的**结论范围**被我扩大了 ——
+从「原版里看不到」变成了「这里没有」。而一次 `where_is` 就能把范围收回来。**

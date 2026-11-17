@@ -2210,3 +2210,29 @@ braintree · sibs · vipps 全 matched。那 6 个属于**下单链路**（优�
 
 下一轮：核 `RefreshSessionAsync` / `HandleResponseAsync`（HANDOFF 记的另两个「真死步骤」）是否同形；
 或回到优先级 ② —— 风控 vendor 全 matched 之后，核「matched 不等于接上」。
+
+## R993 补充 — **状态码分类两份并存，409 冲突；`HandleResponseAsync` 未接上**（套件 2208，未改代码）
+
+`HandleResponseAsync`（`StoreFlow.cs:349`）与 `ClassifyCheckoutFailure`（`StoreFlowRunner.cs:262`）
+读同一个 `Vars["lastStatus"]`，各自有一份状态码表，而**只有后者在执行路径上**
+（前者不在任何步骤序列、无调用点）。
+
+**两份只在一个码上冲突，而那是 409：**
+`ClassifyCheckoutFailure` → **Declined（终止）**，注释写着「A 409 (sold out during checkout) is the same story」；
+`HandleResponseAsync` → **可重试**。
+→ 409 = 结账途中售罄，判可重试会重试一件已卖出的东西。**所以接上它是危险的；接之前必须先对齐 409。**
+
+**而这也更正 R985**：「原版状态码分类字符串层不可得」仍对，但它被我扩大成「这里没有」。
+复刻件里有两份；`HISTORY.md` R12 那条描述的就是 `HandleResponseAsync`。**缺的不是原版证据，是一次 `where_is`。**
+
+**未接上的理由**：`ClassifyCheckoutFailure` 那份有注释说明理由，`HandleResponseAsync` 那份没有；
+「改哪一份」需要证据而非偏好 → 记 BLOCKERS。
+
+顺手看到未追：`HandleResponseAsync` 下面紧挨 `DetectAsync`（`StoreFlow.cs:368`），从 body/headers 识别
+cf-chl / kpsdk / _Incapsula_Resource / datadome / px-captcha / queue-it —— **优先级 ② 的实质内容**。
+
+数字：套件 2208（未改代码）· 陈旧度 0/0 · 函数数 173,952 · 分类器 2 份 · 冲突码 1（409）。
+
+纪律：**「不可得」和「我没找到」是两个结论。**
+
+下一轮：查 `DetectAsync` 接上没有 —— 那是优先级 ② 最实质的一块。

@@ -37969,3 +37969,59 @@ gap                 102,836
 
 **纪律**：「下一步做什么」本身也需要检查 —— 有没有一个直接测量能替掉我在推的东西？
 而测量设计的关键是**同源**（链接而非复制），因为漂移会让 delta 失去意义。
+
+---
+
+## 491. **字符串探针上限 500 条，零是窗口的属性**
+
+
+## R1067 —— **字符串探针上限 500 条，所以它的零是窗口的属性**
+
+### 第一步错在 pattern
+
+```
+Cybersole\.            500 条，全是短串（Cybersole.dll · Cybersole.Core …）
+,Cybersole.Core\.      4 条，形状出现：…AccountGrid,Cybersole.AccountGroup!Getter
+,Cybersole.Stores\.    **0**   ← 我假设的程序集名不存在；真名就是 `Cybersole`
+```
+
+### 第二步查出硬上限
+
+```
+--limit 6 → n=6        --limit 5000 → n=**500**
+```
+
+**⇒ 500 是**硬上限**，不在 `ida.py`（它只透传）⇒ 在 IDA 插件侧。
+⇒ `ida.py str` 返回**永远 ≤500 条 = 抽样**。**
+
+### 而那让「原版 0 类型」有正确读法
+
+**不是正则错（对 `,Cybersole.AccountGroup!Getter` 是匹配的），而是**窗口里没那种形状** —— 被短串占满。
+⇒ R816「先问来源是全量还是抽样」的**第五次**，而这次是**测**出来的（前四次靠推理）。**
+
+### 修法是拒绝发布
+
+`business_types.py` 在 `orig` 空时 `return 2`，并打印：
+```
+REFUSED: … the probe is capped at 500 strings.
+A zero here means the sample missed, not that the image has no such types.
+Shard the query by prefix before publishing anything from this tool.
+```
+
+### 下一步：分片绕开上限
+
+26 个首字母 × 500 = 13,000 条，够覆盖 `,Cybersole.` 的真实规模。
+
+### 数字
+
+| 度量 | R1066 | **R1067** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 函数数 | 174,258 / 277,094 | **同** |
+| 复刻件业务类型 | 未测 | **648 / 53 命名空间** |
+| 原版业务类型 | — | **未知（窗口只给 500 短串）** |
+| `ida.py str` 上限 | 未测 | **500 硬上限** |
+| 程序集名 | 假设 Core/Stores | **就是 `Cybersole`** |
+| `business_types.py` 的 0 | — | **拒绝发布** |
+
+**纪律**：「零」的第三种来源 —— 不是空集、不是错轴，是**窗口太窄**。区分物是 **limit 的扫描**。

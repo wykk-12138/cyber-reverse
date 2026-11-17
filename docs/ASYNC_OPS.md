@@ -6112,3 +6112,103 @@ ChooseGateway(available, preferred, blocked)
 > R957 修了取值集合，而它的形状（一个常量）仍然是编的。**
 > **而两次我都以为改对了 —— 因为两次我都只改了**被上一个错误直接指出的那一样东西**。
 > 而那个错误的下层还有一层，它长得不像错误，因为它是**一个数组**。**
+
+
+### 一条描述符给出十个 RPC 步骤，而复刻件**缺三个**（R958）
+
+**R957 说「下一步反编译 `RpcGetPaymentMethods` 看返回形状」。查了 —— 而反编译这条路**先断了**，
+而断掉的地方给出了更好的东西。**
+
+### 反编译为什么走不通
+
+```
+ida.py funcs RpcGetPaymentMethods  -> 不过滤，从头返回所有 sub_XXXX
+ida.py xrefs 0x14337ca41            -> xref_count: 0
+```
+
+**NativeAOT **剥掉了符号名**（只有 `sub_140xxxxxx`），而那串描述符是**反射表里的类型名**，
+所以没有任何代码引用它 —— `xrefs` 为空。**
+
+> **所以「按名字找函数再反编译」在这个二进制上不成立。而这一条之前从没被明确记下来。****
+
+### 而那条描述符本身就是证据
+
+```
+d__169 RpcLogin              d__174 RpcCalculateShipping
+d__170 RpcFindProduct        d__175 RpcValidateBuyRule
+d__171 RpcCheckStock         d__176 RpcCreateOrder
+d__172 RpcFetchAddress       d__177 RpcGetPaymentMethods
+d__173 RpcCreateAddress      d__178 RpcSubmitCard
+```
+
+**十个连号 —— 一个 RPC 面，而且**有序**。**
+
+### 而逐条对完，缺三个
+
+| 镜像 | 复刻件 |
+|---|---|
+| RpcLogin · RpcFindProduct | `Login` · `FindProduct` ✅ |
+| RpcFetchAddress · RpcCreateAddress | `BuildDestination` · `SubmitAddress` ✅（改名） |
+| RpcCalculateShipping | `GetShippingRates` ✅（改名） |
+| RpcCreateOrder · RpcSubmitCard | `SubmitOrder`/`PlaceOrder` · `SubmitPayment` ✅（改名） |
+| **RpcCheckStock** | **无** |
+| **RpcValidateBuyRule** | **无** |
+| **RpcGetPaymentMethods** | **无** |
+
+> **而三个都不是同义词：
+> `CheckStock` 在订单存在**之前**问库存（页面的刮取是**页面说了什么**，这个是问店的库存服务，两者会不一致）；
+> `ValidateBuyRule` 是**店自己的购买政策检查**（限量、地区、额度）；
+> `GetPaymentMethods` 是**回答这家店提供哪些支付方式** —— 而 R957 正是因为不知道这个，才编了一个常量数组。****
+
+### 所以三个都写成了有实体的步骤
+
+**不是 `=> NotSupported` 的空壳 —— 每个都有真实分支：**
+
+- **`CheckStockAsync`**：取 sku → 打库存 URL → 404/410 判缺货 → 非 2xx 判可重试 →
+  **body 里找 `"available":false` / `"inStock":false`**（"200 不等于可买"）
+- **`ValidateBuyRuleAsync`**：POST 政策 URL → 非 2xx 时**判不可重试**
+  （重试一个政策决定只是把同一个问题再问一遍）
+- **`GetPaymentMethodsAsync`**：取 URL → 解析出 offered → **交给 R957 的 `ChooseGateway`** →
+  把选中项写回 `paymentGatewayName`。**这才是让 R957 那个选择函数有意义的调用点。**
+- **`ParsePaymentMethodNames`**：在 `id`/`code`/`type`/`name`/`method` 五种字段名里找引号值，
+  **不假设 schema**，找不到就返回空。
+
+### 而构建崩了两次，两次都不是源码的问题
+
+```
+第一次: ilc 退出 -1073740791 (0xC0000409)
+第二次: LNK1136: 无效或损坏的文件  (Cybersole.Ui.obj)
+```
+
+**第二次是第一次留下的坏 `.obj`。而连 `native` 目录一起删都不够 ——
+要把 `src\Cybersole.Ui\obj` 与 `bin` **整个删掉**，才重发成功。**
+
+> **所以「LNK1136 读起来像源码坏了」是假的：它是**崩溃的残留**，
+> 而残留比崩溃活得更久、更像一个真错误。****
+
+### 而一个守卫红了，而它自己的注释说了该怎么做
+
+**`FlowSequenceTests.OnePopMartImageStepIsDispatchable` 断言 `map.Count == 176`。
+我加了三个虚步骤 → 179。**
+
+> **而那个测例的注释写着：「the fix is to write the new number in and say which step arrived —
+> never to delete the assertion」。所以改了数字并写明三个步骤到了。**
+> **而 `implementable` 仍是 8 —— 三个新步骤名都不在 PopMart 的 24 个名字里，与 `FindProductInstore` 同样的分裂。**
+
+### 数字
+
+| 度量 | R957 | **R958** |
+|---|---|---|
+| 套件 | 2115 | **2129** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **函数数** | 173,824 | **173,866（+42）** |
+| **函数比** | 62.73% | **62.75%** |
+| 产物大小 | 54,692 KB | **54,706 KB** |
+| 分派表 | 176 | **179** |
+
+### 教训
+
+> **这一轮想要的证据（`RpcGetPaymentMethods` 的返回形状）**没拿到**，
+> 而拿到的是一条更强的：那个二进制**不给名字**，所以「按名字反编译」整个方法在这个目标上不成立。**
+> **而这一条比一次成功的反编译值钱 —— 它关掉了一条我会反复尝试的路，
+> 同时把注意力推到唯一能用的东西上：**连号描述符里的顺序**。**

@@ -56806,3 +56806,69 @@ ChooseGateway(available, preferred, blocked)
 > R957 修了取值集合，而它的**形状**（一个常量）仍然是编的。**
 > **两次我都以为改对了 —— 因为两次我都只改了**被上一个错误直接指出的那一样东西**。
 > 而错误的下层还有一层，它长得不像错误，因为它是**一个数组**。**
+
+
+---
+
+## 第 958 轮：一条描述符给出十个 RPC 步骤，复刻件缺三个
+
+### 反编译这条路先断了
+
+```
+ida.py funcs RpcGetPaymentMethods  -> 不过滤，从头返回所有 sub_XXXX
+ida.py xrefs 0x14337ca41            -> xref_count: 0
+```
+
+**NativeAOT 剥掉了符号名（只有 `sub_140xxxxxx`），而那条描述符是反射表里的类型名，
+所以没有代码引用它 —— `xrefs` 为空。**
+
+> **所以「按名字找函数再反编译」在这个二进制上不成立。**
+
+### 而描述符本身是更强的证据
+
+```
+169 RpcLogin · 170 RpcFindProduct · 171 RpcCheckStock · 172 RpcFetchAddress · 173 RpcCreateAddress
+174 RpcCalculateShipping · 175 RpcValidateBuyRule · 176 RpcCreateOrder
+177 RpcGetPaymentMethods · 178 RpcSubmitCard
+```
+
+**十个连号，有序。逐条对完复刻件缺三个：`CheckStock` · `ValidateBuyRule` · `GetPaymentMethods`。**
+
+> **三个都不是同义词：`CheckStock` 在订单之前问店的库存服务（与页面刮取会不一致）；
+> `ValidateBuyRule` 是店自己的政策检查；`GetPaymentMethods` 是**回答这家店提供哪些支付方式** ——
+> 而 R957 正因不知此才编了常量数组。**
+
+### 三个都写成了有实体的步骤
+
+- **`CheckStockAsync`**：404/410 缺货 · 非 2xx 可重试 · body 找 `"available":false`/`"inStock":false`（200 ≠ 可买）
+- **`ValidateBuyRuleAsync`**：非 2xx 判**不可重试**（重试政策决定只是再问一遍）
+- **`GetPaymentMethodsAsync`**：解析 offered → 交 `ChooseGateway` → 写回 `paymentGatewayName`
+- **`ParsePaymentMethodNames`**：五种字段名找引号值，不假设 schema
+
+### 构建崩两次，都不是源码问题
+
+**`ilc` 0xC0000409 → `LNK1136`（坏 .obj）。删 `native` 不够，要把 `obj` 与 `bin` 整个删掉。**
+
+> **LNK1136 读起来像源码坏了，而它是**崩溃的残留** —— 残留比崩溃活得更久、更像真错误。**
+
+### 一个守卫红了，而它的注释说了该怎么做
+
+**`map.Count == 176` → 179。注释写着「write the new number in and say which step arrived —
+never to delete the assertion」。`implementable` 仍是 8（三个新名不在 PopMart 24 个里）。**
+
+### 数字
+
+| 度量 | R957 | **R958** |
+|---|---|---|
+| 套件 | 2115 | **2129** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **函数数** | 173,824 | **173,866（+42）** |
+| **函数比** | 62.73% | **62.75%** |
+| 产物大小 | 54,692 KB | **54,706 KB** |
+| 分派表 | 176 | **179** |
+
+### 教训
+
+> **想要的证据没拿到，而拿到的是「这个二进制不给名字，按名字反编译整个方法不成立」——
+> 那比一次成功反编译值钱：它关掉了一条我会反复尝试的路，
+> 同时把注意力推到唯一能用的东西上：连号描述符里的顺序。**

@@ -6585,3 +6585,39 @@ post 委托按网关声明的 `Func<...>` 形状构造；无网关时保持 `Not
 | 偏好/封禁设置的真实类型 | 只有名字 |
 
 **纪律**：错误的下层还有一层，它长得不像错误，因为它是一个数组。
+
+
+## 判据 (a)/① — 三个 RPC 步骤补上；按名字反编译不成立（R958，**+14 用例**）
+
+### 反编译路断
+
+**`funcs` 不过滤 · `xrefs` 空（符号被剥，描述符在反射表里）→ 按名字找函数不成立。**
+
+### 描述符给的十步
+
+**169 Login · 170 FindProduct · 171 CheckStock · 172 FetchAddress · 173 CreateAddress ·
+174 CalculateShipping · 175 ValidateBuyRule · 176 CreateOrder · 177 GetPaymentMethods · 178 SubmitCard**
+
+**缺三个：`CheckStock` · `ValidateBuyRule` · `GetPaymentMethods`**
+
+### 补上的三个（有实体，非空壳）
+
+**`CheckStockAsync`（404/410/非2xx/body 双标志）· `ValidateBuyRuleAsync`（非2xx 不可重试）·
+`GetPaymentMethodsAsync`（解析→ChooseGateway→写回）· `ParsePaymentMethodNames`（五字段不假设 schema）**
+
+### 构建残留
+
+**`ilc` 0xC0000409 → `LNK1136`（坏 .obj）；删 `native` 不够，要删整个 `obj`+`bin`。**
+
+### 数字
+
+**套件 2115 → 2129 · 陈旧度 0/0 · 函数数 173,824 → **173,866（+42）** · 比 62.75% ·
+产物 54,692 → 54,706 KB · 分派表 176 → 179**
+
+| 仍 Unknown | |
+|---|---|
+| `RpcGetPaymentMethods` 的返回形状 | 按名字反编译不成立 |
+| 10 个 RPC 的参数与返回 | 同上 |
+| `ValidateBuyRule` 的 body 形状 | 只知道要 POST |
+
+**纪律**：残留比崩溃活得更久、更像真错误。

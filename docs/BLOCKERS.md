@@ -28356,3 +28356,80 @@ metrics_report.py                 -> 2115 通过 / 0 失败
 **两次我都以为改对了 —— 因为两次我都只改了被上一个错误直接指出的那一样东西。**
 
 **而错误的下层还有一层，它长得不像错误，因为它是一个数组。**
+
+
+---
+
+## 382. 三个 RPC 步骤补上；按名字反编译不成立
+
+> R958。**改产品代码 +14 用例。** 套件 **2129 通过 / 0 失败 / 0 跳过**。
+
+### 一、反编译路断
+
+```
+ida.py funcs RpcGetPaymentMethods -> 不过滤，从头返回 sub_XXXX
+ida.py xrefs 0x14337ca41           -> xref_count: 0
+```
+
+**NativeAOT 剥符号；描述符在反射表里，无代码引用 → 按名字找函数不成立。**
+
+### 二、描述符给的十步（有序）
+
+```
+169 RpcLogin · 170 RpcFindProduct · 171 RpcCheckStock · 172 RpcFetchAddress · 173 RpcCreateAddress
+174 RpcCalculateShipping · 175 RpcValidateBuyRule · 176 RpcCreateOrder · 177 RpcGetPaymentMethods · 178 RpcSubmitCard
+```
+
+**缺三个：`CheckStock` · `ValidateBuyRule` · `GetPaymentMethods`**
+
+### 三、三个都有实体
+
+- **`CheckStockAsync`**：404/410 = 缺货；非 2xx 可重试；body 找 `"available":false`/`"inStock":false`
+- **`ValidateBuyRuleAsync`**：非 2xx → **不可重试**
+- **`GetPaymentMethodsAsync`**：解析 offered → `ChooseGateway` → 写回 `paymentGatewayName`
+- **`ParsePaymentMethodNames`**：`id`/`code`/`type`/`name`/`method` 五字段，不假设 schema
+
+### 四、构建崩塌两次
+
+**`ilc` 退出 `-1073740791`（0xC0000409）→ `LNK1136: 无效或损坏的文件`。
+删 `native` 不够，要删整个 `src\Cybersole.Ui\obj` 与 `bin`，才重发成功 54,706 KB。**
+
+**LNK1136 是崩溃的残留，不是源码问题。**
+
+### 五、一个守卫红了
+
+**`FlowSequenceTests.OnePopMartImageStepIsDispatchable`：`map.Count` 176 → **179**。
+按它自己的注释改数字并写明三个步骤到了。`implementable` 仍 8。**
+
+### 六、数字
+
+| 度量 | R957 | R958 |
+|---|---|---|
+| 套件 | 2115 | **2129** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **函数数** | 173,824 | **173,866（+42）** |
+| **函数比** | 62.73% | **62.75%** |
+| 产物大小 | 54,692 KB | **54,706 KB** |
+| **分派表** | 176 | **179** |
+
+### 七、验证
+
+```
+analysis/ida.py xrefs 0x14337ca41  -> xref_count: 0
+analysis/ida.py str RpcGetPaymentMethods -> 十个连号
+test --filter MissingRpcStepsTests       -> 14 通过
+test --filter FlowSequenceTests          -> 7 通过
+metrics_report.py                        -> 2129 通过 / 0 失败
+```
+
+### 八、仍然 Unknown
+
+- **`RpcGetPaymentMethods` 的返回形状**：**Unknown** —— 按名字反编译不成立。
+- **10 个 RPC 的参数与返回**：**Unknown** —— 同上。
+- **`ValidateBuyRule` 的 body 形状**：**Unknown** —— 只知道要 POST。
+
+### 九、教训
+
+**想要的证据没拿到，拿到的是一条更硬的：这个二进制不给名字。**
+
+**那比一次成功反编译值钱 —— 它关掉了一条我会反复尝试的路。**

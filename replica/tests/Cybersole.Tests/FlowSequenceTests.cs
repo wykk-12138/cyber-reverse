@@ -120,7 +120,9 @@ public class FlowSequenceTests
         // eighteen in the payment class, and Pop Mart's twenty-four names do not include it, so implementable stays
         // at eight for the third time in a row. Three additions that raise the map and not the coverage is the
         // finding, not an accident of counting -- the image's step vocabulary is wider than any one flow's sequence.
-        Assert.Equal(176, map.Count);
+        // R958 added three RPC steps -- CheckStock, ValidateBuyRule and GetPaymentMethods -- taken from the
+        // ten-ordinal descriptor the image carries, so the map goes from 176 to 179.
+        Assert.Equal(179, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
         Assert.Equal(8, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");

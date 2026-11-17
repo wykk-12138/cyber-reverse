@@ -780,6 +780,125 @@ public abstract class StoreFlow
     }
 
     // ── payment ───────────────────────────────────────────────────────────────
+    // ── three RPC steps the replica did not have ──────────────────────────────
+    //
+    // R958. The image's RPC surface is one descriptor of ten consecutive ordinals:
+    //   169 RpcLogin · 170 RpcFindProduct · 171 RpcCheckStock · 172 RpcFetchAddress · 173 RpcCreateAddress
+    //   174 RpcCalculateShipping · 175 RpcValidateBuyRule · 176 RpcCreateOrder
+    //   177 RpcGetPaymentMethods · 178 RpcSubmitCard
+    // Eight of the ten have a replica step under some name -- Login, FindProduct, SubmitAddress, GetShippingRates,
+    // SubmitOrder, SubmitPayment. Three have none at all, and each is a real part of a checkout rather than a synonym:
+    // CheckStock is asked before an order exists, ValidateBuyRule is the shop's own policy check, and GetPaymentMethods
+    // is the call that answers which methods a shop offers -- the thing R957 had to invent a constant for.
+
+    /// <summary>
+    /// Asks whether a variant can still be bought before an order is created. Distinct from the product scrape, which
+    /// reports what a page said; this asks the shop's own stock service, which can disagree with a cached page.
+    /// </summary>
+    public virtual async Task<StepOutcome> CheckStockAsync(FlowContext c, CancellationToken ct)
+    {
+        var sku = c.Session.Vars.GetValueOrDefault("sku");
+        if (string.IsNullOrEmpty(sku)) return StepOutcome.Fail("no sku to check", retryable: false);
+
+        var url = c.Session.Vars.GetValueOrDefault("checkStockUrl");
+        if (string.IsNullOrEmpty(url)) return await NotSupported("CheckStock").ConfigureAwait(false);
+
+        var res = await c.Http.GetAsync(url!, new RequestOptions(), ct).ConfigureAwait(false);
+        if (res.StatusCode is 404 or 410) return StepOutcome.Fail("out of stock", retryable: false);
+        if (res.StatusCode is < 200 or >= 300) return StepOutcome.Fail("stock check " + res.StatusCode, retryable: true);
+
+        // the body is the shop's own answer; looking for a false flag is safer than assuming a 200 means buyable
+        var body = res.Body ?? string.Empty;
+        var available = !body.Contains("\"available\":false", StringComparison.OrdinalIgnoreCase) &&
+                        !body.Contains("\"inStock\":false", StringComparison.OrdinalIgnoreCase);
+        return available ? StepOutcome.Success() : StepOutcome.Fail("out of stock", retryable: false);
+    }
+
+    /// <summary>
+    /// Runs the shop's purchase-policy check. A shop can refuse a purchase for reasons unrelated to stock -- quantity
+    /// limits, region rules, an account that has already bought its allowance -- and it refuses before an order exists.
+    /// </summary>
+    public virtual async Task<StepOutcome> ValidateBuyRuleAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.GetValueOrDefault("validateBuyRuleUrl");
+        if (string.IsNullOrEmpty(url)) return await NotSupported("ValidateBuyRule").ConfigureAwait(false);
+
+        var res = await c.Http.PostJsonAsync(url!, c.Session.Vars.GetValueOrDefault("buyRuleBody") ?? "{}", null, ct)
+            .ConfigureAwait(false);
+
+        if (res.StatusCode is < 200 or >= 300)
+        {
+            var why = res.Body ?? string.Empty;
+            // a refusal here is final: retrying a policy decision only asks the same question again
+            return StepOutcome.Fail("buy rule refused: " + why, retryable: false);
+        }
+
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Fetches the payment methods a shop offers and chooses one, which is the call that makes the selection logic in
+    /// <see cref="ChooseGateway"/> meaningful. Ordinal 177 sits between CreateOrder and SubmitCard, so this runs after an
+    /// order exists and before a card is submitted.
+    /// </summary>
+    public virtual async Task<StepOutcome> GetPaymentMethodsAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.GetValueOrDefault("paymentMethodsUrl");
+        if (string.IsNullOrEmpty(url)) return await NotSupported("GetPaymentMethods").ConfigureAwait(false);
+
+        var res = await c.Http.GetAsync(url!, new RequestOptions(), ct).ConfigureAwait(false);
+        if (res.StatusCode is < 200 or >= 300)
+            return StepOutcome.Fail("payment methods " + res.StatusCode, retryable: res.StatusCode is 429 or >= 500);
+
+        var offered = ParsePaymentMethodNames(res.Body ?? string.Empty);
+        if (offered.Count == 0) return StepOutcome.Fail("no payment methods offered", retryable: false);
+
+        c.Session.Vars["paymentMethods"] = string.Join(",", offered);
+
+        var preferred = (c.Session.Vars.GetValueOrDefault(PreferredGatewaysSetting) ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var blocked = (c.Session.Vars.GetValueOrDefault(BlockedGatewaysSetting) ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var chosen = ChooseGateway(offered, preferred, blocked);
+        if (string.IsNullOrEmpty(chosen)) return StepOutcome.Fail("every offered method is blocked", retryable: false);
+
+        c.Session.Vars[PaymentGatewayNameKey] = chosen!;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Reads method names out of a payment-methods answer. Every shape a shop uses puts names in a JSON array of objects
+    /// with a name-ish field, so the scan looks for a quoted value following one of those field names rather than
+    /// attempting to parse an unknown schema -- and returns what it found, which may be nothing.
+    /// </summary>
+    public static List<string> ParsePaymentMethodNames(string body)
+    {
+        var found = new List<string>();
+        if (string.IsNullOrEmpty(body)) return found;
+
+        foreach (var key in new[] { "\"id\"", "\"code\"", "\"type\"", "\"name\"", "\"method\"" })
+        {
+            var at = 0;
+            while ((at = body.IndexOf(key, at, StringComparison.OrdinalIgnoreCase)) >= 0)
+            {
+                var colon = body.IndexOf(':', at + key.Length);
+                if (colon < 0) break;
+                var open = body.IndexOf('"', colon + 1);
+                if (open < 0) break;
+                var close = body.IndexOf('"', open + 1);
+                if (close < 0) break;
+
+                var value = body[(open + 1)..close];
+                if (value.Length is > 0 and < 40 && !found.Contains(value, StringComparer.OrdinalIgnoreCase))
+                    found.Add(value);
+                at = close + 1;
+            }
+        }
+
+        return found;
+    }
+
     /// <summary>The session key for the selected gateway, spelled as the image binds it.</summary>
     public const string PaymentGatewayNameKey = "paymentGatewayName";
 

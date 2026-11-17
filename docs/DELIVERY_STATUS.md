@@ -23342,3 +23342,72 @@ metrics_report.py                    -> 2186 通过 / 0 失败
 ### 八、教训
 
 **阴性对照通过只证明搜不到不存在的东西，不证明搜得到存在的东西。**
+
+
+---
+
+## 392. 属性无影响（第二次确认）；body 串核对**原理上只能读一半**
+
+> R968。**只取证。** 套件 **2186 通过 / 0 失败 / 0 跳过**。
+
+### 一、观测表
+
+| 串 | 编码 | 在产物 |
+|---|---|---|
+| `bstn: cart endpoint unknown` | body UTF-16 | **True** |
+| `bstn: checkout endpoint unknown (Adyen)` | body UTF-16 | False |
+| `nike: no kasada script loaded` | body UTF-16 | False |
+| `popmart-orders` | body UTF-16 | False |
+| `shopify: no profile to fill from` | body UTF-16 | False |
+| `GetCsrfAsync` · `GetCartAsync` · `StoreFlow` | name UTF-8 | **全 True** |
+
+**`pdata-replica` 仍 173,952。**
+
+### 二、两条并存
+
+**方法元数据在（179/179）→ 反射表能建；方法体大部分被裁（4/5）→
+`MethodInfo` 存在、`Invoke` 能调、而**被调到的体可能已经不在了**。**
+
+### 三、核对方法的极限
+
+**两个都是同一个类里的同步表达式体 `Task.FromResult(StepOutcome.Fail(...))`，
+一个在、一个不在 → 「同步/async」不是解释、「覆写与否」也不是。**
+
+**而 R964 已证字符串会被拆开存 → **「不在」这一向在原理上不可用**。**
+
+**所以这张表只能读正向：在 → 在；不在 → 什么都不能说。**
+
+### 四、下一轮的具体目标
+
+**62.77% 需要一个**分布**：把两边 `.pdata` 按地址段切开，看缺口集中在哪些段。
+**这个工具还没有，本轮立此目标。****
+
+### 五、数字
+
+| 度量 | R967 | R968 |
+|---|---|---|
+| 套件 | 2186 | **2186** |
+| 函数数 | 173,952 | **173,952** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 产物大小 | 54,728 KB | **54,728 KB** |
+| 名字 UTF-8 | 179/179 | **179/179** |
+| body UTF-16 抽样 | — | **1 / 5** |
+
+### 六、验证
+
+```
+python -c "..." 查 8 个串（5 body UTF-16 + 3 name UTF-8）
+  -> 名字全 True；body 仅 'bstn: cart endpoint unknown' True
+func_count.py -> 173,952
+metrics_report.py -> 2186 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **body 串「不在」的真实比例**：**Unknown** —— 工具在原理上答不了。
+- **62.77% 缺口的分布**：**Unknown** —— 需新工具。
+
+### 八、教训
+
+**方向对了也不够 —— 被查的东西本身会被拆开存，于是「不在」这一向在原理上就不可用，
+不是还没来得及验证。**

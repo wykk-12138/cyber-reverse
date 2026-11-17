@@ -2776,3 +2776,26 @@ if "{" in value or value.endswith("/"):
 纪律：**一个站可以在镜像里只有名字；那时照实报告是唯一没有在发明的做法。**
 
 下一轮：换到别的站（Farfetch 已封口为 Unknown）；或重新看优先级 ② 的风控面。
+
+## R1018 补充 — **镜像那四条 `captcha-delivery` 是 DataDome 的，不是 PerimeterX 的**（套件 2222）
+
+**R998 验对了两条**：`captcha-delivery` **4** 命中（`geo.captcha-delivery.com` · `/` · `/interstitial/` ·
+`?initialCid=`）· `px-captcha` **0**。「four literals in all」**精确正确**。
+
+**而它把归属搞错**：同一个查询里还有 `0x1435260cb  (DdInterstitialClient` —— **`Dd` = DataDome**，
+而 `geo.captcha-delivery.com` 就是 **DataDome 的 CAPTCHA host** ⇒ 那四条是 datadome 的，
+而 R998 算给了 perimeterx 并让 `DetectAsync` **优先**测。
+
+**分支顺序掩盖了它**：`384 datadome → datadome` 排在 `388 captcha-delivery → perimeterx` 前面 ⇒
+自带 `datadome` 字样的页面在 384 就被认出。**唯一被改变的是「DataDome interstitial 只报 host 不报厂商名」——
+那正是 CAPTCHA 墙的页面**，原来判成 perimeterx 并交给**错厂商的 solver**。
+
+**修**：`captcha-delivery` → `datadome`；perimeterx 只剩 `px-captcha`（Inferred 不变）。
+**加 3 条守卫** `CaptchaDeliveryAttributionTests`（归属 / 保留自己的 marker / 证据必须在源码里被引）。
+
+数字：套件 2222（+3）· 陈旧度 3 / 3,522 · 函数数 174,336 · 归属 perimeterx → **datadome** · 误判页面类型已消除。
+
+纪律：**一条 claim 可以逐字成立而结论是错的 —— 派出错误只需要问「这个 host 是谁的」。**
+而 `DdInterstitialClient` 就在我自己的输出里，我第一遍只看了那四条 URL。
+
+下一轮：perimeterx 的页面级 marker（镜像只有 cookie 名）；或继续 ② 的 imperva（7 种拼写全 0，已确证不在）。

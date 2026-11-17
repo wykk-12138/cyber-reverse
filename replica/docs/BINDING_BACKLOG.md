@@ -8778,3 +8778,48 @@ not in pool: 40 → 39      unknown: 11 → 10
 | discount 打哪 | 候选 `cart/update.js`，无证据 |
 
 **纪律**：一个站可以在镜像里只有名字；那时照实报告是唯一没有在发明的做法。
+
+
+## 优先级 ② — **`captcha-delivery` 归 datadome 而非 perimeterx（R998 的归属错）**（R1018）
+
+### R998 验对了两条
+
+```
+captcha-delivery n=4（geo.captcha-delivery.com · / · /interstitial/ · ?initialCid=）
+px-captcha       n=0
+```
+
+**→ 「four literals in all」精确正确。**
+
+### 而它把归属搞错
+
+```
+0x1435260cb  (DdInterstitialClient     ← Dd = DataDome
+```
+
+**→ `geo.captcha-delivery.com` 是 **DataDome** 的 CAPTCHA host ⇒ 那四条是 datadome 的。**
+
+### 分支顺序掩盖了它
+
+```
+384  datadome → datadome         ← 先
+388  captcha-delivery → perimeterx  ← 后，而它是 datadome 的
+```
+
+**→ 唯一被改变的是「DataDome interstitial 只报 host 不报厂商名」—— **那正是 CAPTCHA 墙的页面**。
+→ 原来判成 perimeterx 并交给错厂商的 solver。**
+
+### 修
+
+**`captcha-delivery` → `datadome`；perimeterx 只剩 `px-captcha`（Inferred 不变）。
+3 条守卫 `CaptchaDeliveryAttributionTests`。**
+
+### 数字
+
+**套件 2222（+3）· 陈旧度 3 / 3,522 · 函数数 174,336 · 归属 perimeterx → datadome · 误判页面类型已消除**
+
+| 仍 Unknown | |
+|---|---|
+| perimeterx 的页面级 marker | 镜像无（只有 cookie 名） |
+
+**纪律**：一条 claim 可以逐字成立而结论是错的 —— 派出错误只需要问「这个 host 是谁的」。

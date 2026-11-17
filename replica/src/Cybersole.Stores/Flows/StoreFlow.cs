@@ -382,10 +382,17 @@ public abstract class StoreFlow
             body.Contains("kpsdk", StringComparison.OrdinalIgnoreCase) ? "kasada" :
             body.Contains("_Incapsula_Resource", StringComparison.OrdinalIgnoreCase) ? "imperva" :
             body.Contains("datadome", StringComparison.OrdinalIgnoreCase) ? "datadome" :
-            // R998: the image names geo.captcha-delivery.com and its /interstitial/ path, four literals, and never
-            // px-captcha. Testing the marker the artifact actually carries is worth more than testing the one this
-            // workspace wrote from general knowledge, so both are accepted and the image's comes first.
-            body.Contains("captcha-delivery", StringComparison.OrdinalIgnoreCase) ? "perimeterx" :
+            // R1018 corrects R998. R998 was right that the image names geo.captcha-delivery.com and its /interstitial/
+            // path -- four literals, verified -- and right that px-captcha appears nowhere. What it got wrong is whose
+            // marker that is. captcha-delivery is DataDome's challenge host: the image carries DdInterstitialClient
+            // (0x1435260cb) beside it, and the datadome row's own sensor URL is DataDome's. So the four literals belong
+            // to datadome, and testing them before datadome's own name was a misattribution.
+            //
+            // The order above hid it. A page carrying the literal "datadome" is caught one line earlier, so the only
+            // path this changes is a DataDome interstitial that names its host and not its vendor -- which is exactly
+            // the page a CAPTCHA wall serves. That page used to be classified perimeterx and handed to a solver for the
+            // wrong vendor.
+            body.Contains("captcha-delivery", StringComparison.OrdinalIgnoreCase) ? "datadome" :
             body.Contains("px-captcha", StringComparison.OrdinalIgnoreCase) ? "perimeterx" :
             body.Contains("queue-it", StringComparison.OrdinalIgnoreCase) ? "queue-it" :
             headers.Contains("cloudflare", StringComparison.OrdinalIgnoreCase) ? "cloudflare" :

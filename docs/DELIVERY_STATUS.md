@@ -28191,3 +28191,113 @@ python tools/metrics_report.py                                      -> 完整套
 
 **→ 而 Farfetch 的情况说明：一个站可以在镜像里只有**名字**。
 → 那时「照实报告」不是保守，是**唯一没有在发明的做法**。**
+
+
+---
+
+## 442. **镜像那四条 `captcha-delivery` 是 DataDome 的，不是 PerimeterX 的**
+
+> R1018。**改 2 个源文件 + 加 1 个测试文件。** 套件 **2222 通过 / 0 失败 / 0 跳过**。
+
+### 一、先说验对了的
+
+**R998 声称「`geo.captcha-delivery.com` 与 `/interstitial/` 路径，共四条字面量」，而 `px-captcha` 一次不出现。
+逐条查证：**
+
+```
+captcha-delivery  n=4
+  0x1470689dc  https://geo.captcha-delivery.com
+  0x147068a34  https://geo.captcha-delivery.com/
+  0x147068a8c  https://geo.captcha-delivery.com/interstitial/
+  0x147068b04  https://geo.captcha-delivery.com/interstitial/?initialCid=
+px-captcha        n=0
+```
+
+**→ 「four literals in all」**精确正确**。`px-captcha` 确证 0。R998 的这两条都对。**
+
+### 二、而它把**归属**搞错了
+
+**同一个查询里还有一条它没引用的：**
+
+```
+0x1435260cb  (DdInterstitialClient
+```
+
+**→ `Dd` = **DataDome**。而 `geo.captcha-delivery.com` 就是 **DataDome 的 CAPTCHA host**。
+→ 所以那四条字面量是 **datadome 的**，而 R998 把它们算给了 **perimeterx**，
+  并让 `DetectAsync` **优先**测它们。**
+
+### 三、而分支顺序**掩盖**了这个错
+
+```
+381  cf-chl              → cloudflare
+382  kpsdk               → kasada
+383  _Incapsula_Resource → imperva
+384  datadome            → datadome      ← 排在前面
+388  captcha-delivery    → perimeterx   ← 而这是 datadome 的 host
+389  px-captcha          → perimeterx
+390  queue-it            → queue-it
+```
+
+**→ 一个自带 `datadome` 字样的页面在 **384** 就被认出 ⇒ 388 的错**看不出来**。
+→ 而**唯一会被它改变的那类页面**是：一个 DataDome 的 **interstitial**，
+  **只报出 host 而不报出厂商名**。→ **而那正是 CAPTCHA 墙 serve 的那种页面。**
+
+**→ 那个页面原来被判成 `perimeterx`，然后交给**错误厂商的 solver**。
+→ 而「大多数情况对」正是这类错误能活下来的方式。**
+
+### 四、改了什么
+
+```csharp
+body.Contains("captcha-delivery", StringComparison.OrdinalIgnoreCase) ? "datadome" :
+body.Contains("px-captcha", StringComparison.OrdinalIgnoreCase) ? "perimeterx" :
+```
+
+**→ `captcha-delivery` 归 `datadome`；`perimeterx` 只剩 `px-captcha`（镜像无，
+  但仍是它唯一能主张的页面级标记，而 `MarkerFrom = Inferred` 如实写着）。**
+
+**→ 并更新 `VendorWiring` 那行注释：R1018 说明 R998 的归属已改。**
+
+**→ 加 3 条守卫（`CaptchaDeliveryAttributionTests`）：**
+
+1. `captcha-delivery` 必须路由到 `datadome`，且 perimeterx 分支**不再**主张它
+2. `px-captcha` 仍是 perimeterx 的标记，且审计行写明归属已改
+3. 更正所依据的证据必须在源码里被引（`DdInterstitialClient` 与 `0x1435260cb`）
+
+### 五、数字
+
+| 度量 | R1017 | R1018 |
+|---|---|---|
+| 套件 | 2219 / 0 | **2222 / 0 / 0（+3 归属守卫）** |
+| 产物陈旧度 | 2 / 3,365 | **3 / 3,522** |
+| 函数数 | 174,336 | **174,336** |
+| **`captcha-delivery` 的归属** | **perimeterx（错）** | **datadome（对）** |
+| **会被误判的页面类型** | DataDome interstitial（只报 host） | **已消除** |
+| **perimeterx 的 marker** | `px-captcha`（Inferred） | 不变，且注释写明 |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "captcha-delivery"  -> {"n":4}（4 条，含 ?initialCid=）
+python analysis/ida.py str "px-captcha"        -> {"n":0}
+python analysis/ida.py str "interstitial"      -> {"n":4}（含 0x1435260cb "(DdInterstitialClient"）
+cd replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug   -> 已成功生成
+dotnet test --filter "FullyQualifiedName~CaptchaDeliveryAttribution" -m:1 -> 3 通过
+dotnet test --filter "FullyQualifiedName~Wall|FullyQualifiedName~VendorWiring" -m:1 -> 31 通过
+python tools/metrics_report.py -> 完整套件 exit 0  2222 / 0 / 0
+```
+
+### 七、仍然 Unknown
+
+- **perimeterx 的页面级 marker**：**镜像无** —— 只有 cookie 名（`_px3` · `_pxvid` · `PerimeterX-Token`）。
+
+### 八、教训
+
+**一条 claim 可以逐字成立而结论是错的。R998 的四条字面量、零命中的 `px-captcha`、
+「镜像里有一个可用的标记」—— 每句都对，而它把那个标记算给了错的厂商。**
+
+**→ 而派出这个错误只需要一个它没做的动作：问「这个 host 是**谁**的」。
+→ 而 `DdInterstitialClient` 就紧挨在那四个地址旁边的那个查询里 —— 它出现在我的输出里，
+  而我第一遍读的时候只看了那四条 URL。**

@@ -110,8 +110,10 @@ public static class VendorWiring
             "R998 corrects R997's own row. The cookie evidence is real -- _px3, _pxvid and PerimeterX-Token are image "
             + "literals, and the image carries a PerimeterXHandler plus 'PerimeterX block (Rotating proxy)' -- but the marker "
             + "in this column, px-captcha, appears nowhere in it. R997 labelled the row ImageLiteral by checking the cookie "
-            + "column instead of the marker column. The image does carry a usable marker: geo.captcha-delivery.com and its "
-            + "/interstitial/ path, four literals in all, which DetectAsync now also tests.",
+            + "column instead of the marker column. R1018 then found R998 had attributed the image's four captcha-delivery "
+            + "literals to this vendor when they are DataDome's -- DdInterstitialClient sits beside them -- so DetectAsync "
+            + "now routes them to datadome and this row keeps px-captcha as the only marker it can claim, which the image "
+            + "does not carry.",
             MarkerSource.Inferred),
 
         new Row("queue-it", "queue-it", "queue-it-set-cookie", State.NotAChallenge,

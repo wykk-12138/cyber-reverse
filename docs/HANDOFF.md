@@ -2540,3 +2540,24 @@ id0→**是(Y)** · 「请稍候…」→**等** · **新框型「Database still
 纪律：**「两次读数矛盾」有第三种解释 —— 两次问的不是同一个问题。**
 
 下一轮：用新工具重验 R1004 的 `adyen`/`commercehub` 计数（两编码并查），然后继续优先级 ①。
+
+## R1008 补充 — **R1004 读数确认；`paymentMethodsUrl` 是第二个自造键名**（套件 2219）
+
+**R1004 重验成立**（新工具双编码 + sha256）：`adyen` **utf-16-le 19** · `commercehub` **17** ·
+`CommerceHub` **utf-8 1** · 而 `CybersoleECOM`/`encryptedCardNumber`/`tokenUUID`/`/api/v1/sale`/`checkoutshopper` **全 0**。
+→ `Id`/`Name` 在产物、`AuthorizeAsync` 方法体不在。**新事实：同一类里 id 是 UTF-16LE、Name 是 UTF-8。**
+
+**优先级 ① 上找到第二例自造键名**：`Vars["paymentMethodsUrl"]` 镜像 **0 命中**。
+（R956 修过 `paymentGateway` 是第一例。）
+而镜像里步骤**是真的**：`RpcGetPaymentMethods` 带**两个 lambda**，ordinal **177** 与源码注释一致。
+**缺的是**路由** —— 而 R958（NativeAOT 下按名反编译不成立）⇒ 不可得。**
+
+改动：`GetPaymentMethodsAsync` 注释写明三点（键名自造 / 步骤与 ordinal 真 / 路由不可得且零覆写被裁）；
+新增守卫 `ThePaymentMethodsURLKeyIsRecordedAsInvented`。
+**守卫判据不是「名字对不对」（它不对），是「读源码的人会不会以为它被搜过」。**
+
+数字：套件 2219（+1）· 陈旧度 1 / 2,671（只改注释）· 函数数 174,336 · 已知自造键名 2。
+
+纪律：**自造键名有稳定成因 —— 编译得过、读起来对，没有机制会质疑它。**
+
+下一轮：扫「所有 `Vars[...]` 键名对镜像查一遍」—— 那能一次性找出还有几个自造键名。

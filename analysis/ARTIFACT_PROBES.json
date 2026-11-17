@@ -62,6 +62,83 @@
     "reservation failed",
     "decoy"
    ]
+  },
+  {
+   "artifact": {
+    "path": ".publish-aot/Cybersole.Ui.exe",
+    "sha256": "36c16b3b3fd536d23cf4920603afc7761729a505ed4e0975de38444912891409",
+    "bytes": 56183808,
+    "mtime": "2026-11-17T16:26:54"
+   },
+   "strings": [
+    {
+     "string": "adyen",
+     "utf-16-le": 19,
+     "utf-8": 0,
+     "present": true
+    },
+    {
+     "string": "Adyen",
+     "utf-16-le": 2,
+     "utf-8": 1,
+     "present": true
+    },
+    {
+     "string": "commercehub",
+     "utf-16-le": 17,
+     "utf-8": 0,
+     "present": true
+    },
+    {
+     "string": "CommerceHub",
+     "utf-16-le": 0,
+     "utf-8": 1,
+     "present": true
+    },
+    {
+     "string": "CybersoleECOM",
+     "utf-16-le": 0,
+     "utf-8": 0,
+     "present": false
+    },
+    {
+     "string": "encryptedCardNumber",
+     "utf-16-le": 0,
+     "utf-8": 0,
+     "present": false
+    },
+    {
+     "string": "tokenUUID",
+     "utf-16-le": 0,
+     "utf-8": 0,
+     "present": false
+    },
+    {
+     "string": "/api/v1/sale",
+     "utf-16-le": 0,
+     "utf-8": 0,
+     "present": false
+    },
+    {
+     "string": "checkoutshopper-live.adyen.com",
+     "utf-16-le": 0,
+     "utf-8": 0,
+     "present": false
+    }
+   ],
+   "present": [
+    "adyen",
+    "Adyen",
+    "commercehub",
+    "CommerceHub"
+   ],
+   "absent": [
+    "CybersoleECOM",
+    "encryptedCardNumber",
+    "tokenUUID",
+    "/api/v1/sale",
+    "checkoutshopper-live.adyen.com"
+   ]
   }
  ]
 }

@@ -32883,3 +32883,110 @@ R1006 我把它读成「其中一次错了」，而它其实是「其中一次�
 
 **→ 一个带身份的读数工具之所以值得写，不是因为它更准 ——
 是因为它让「问的是不是同一个问题」变成一件**看得见**的事。**
+
+
+---
+
+## 432. **R1004 读数确认；`paymentMethodsUrl` 是第二个自造键名**
+
+> R1008。**改 1 处注释 + 1 条守卫。** 套件 **2219 通过 / 0 失败 / 0 跳过**。
+
+### 一、重验 R1004（新工具，双编码 + sha256）
+
+```
+artifact  .publish-aot/Cybersole.Ui.exe
+sha256    36c16b3b3fd536d23cf4920603afc7761729a505ed4e0975de38444912891409
+
+  adyen                          utf-16-le 19   utf-8 0   yes
+  Adyen                          utf-16-le  2   utf-8 1   yes
+  commercehub                    utf-16-le 17   utf-8 0   yes
+  CommerceHub                    utf-16-le  0   utf-8 1   yes
+  CybersoleECOM                           0         0   no
+  encryptedCardNumber                     0         0   no
+  tokenUUID                               0         0   no
+  /api/v1/sale                            0         0   no
+  checkoutshopper-live.adyen.com          0         0   no
+```
+
+**→ R1004 的结论**成立**：`Id` / `Name` 属性在产物里，`AuthorizeAsync` 的方法体串一个都不在。
+→ 而它给出一条更细的事实：**同一个类**里，小写 id 是 **UTF-16LE**（19/17），
+  大写 Name 是 **UTF-8**（1）。所以「哪种编码」连在**一个类型内部**都不统一。**
+
+### 二、而优先级 ① 上找到同一类错误的第二例
+
+**`GetPaymentMethodsAsync` 读 `Vars["paymentMethodsUrl"]`。查镜像：**
+
+```
+paymentMethodsUrl   0 命中
+```
+
+**→ 那个键名**不在镜像里**，是自造的。
+→ R956 修过的 `paymentGateway`（→ `_paymentGatewayName`）是**第一个**，这是第二个。
+→ 两者同形：一个能编译、读起来正确的名字，所以没人会怀疑它。
+  差别在于这一个**没有替代名可得**。**
+
+### 三、而镜像里那个步骤是真的，连 ordinal 都对
+
+```
+0x14337f4a9  (RpcGetPaymentMethodsg
+0x1433800e6  <<RpcGetPaymentMethods>b__177_0<<RpcGetPaymentMethods>b__177_1g   ← 两个 lambda
+0x14337f4c9  RpcSubmitCardg
+0x14338012e  .<RpcSubmitCard>b__178_2g
+```
+
+**→ `RpcGetPaymentMethods` 是真实状态机，带**两个** lambda；`RpcSubmitCard` 带一个。
+→ `177` 与 `StoreFlow.cs` 注释里的 `177 RpcGetPaymentMethods` **对得上** —— 那条注释是对的。
+→ 缺的不是步骤、不是 ordinal，是**路由**。而 R958 已确立「按名字反编译在 NativeAOT 下不成立」，
+  所以路由目前**不可得**，不是「没找到」。**
+
+### 四、所以这一轮改的是「让它可见」
+
+**`GetPaymentMethodsAsync` 的注释现在写明三件事：**
+
+1. `paymentMethodsUrl` 在镜像里两编码皆 0 —— 这个键名是自造的
+2. 镜像有那个步骤（`RpcGetPaymentMethods` + 两 lambda），ordinal 177 对得上
+3. **路由不可得**，且 R963 意味着零覆写 → 这个方法整个被裁
+
+**并加守卫 `ThePaymentMethodsURLKeyIsRecordedAsInvented`：钉住「键名在、注释在、
+且『No flow overrides this method today』在」。**
+
+**→ 守卫的判据不是「这个名字对不对」（它不对），而是「读源码的人会不会以为它被搜过」。**
+
+### 五、数字
+
+| 度量 | R1007 | R1008 |
+|---|---|---|
+| 套件 | 2218 | **2219（+1 自造键名守卫）** |
+| 产物陈旧度 | 0 / 0 | **1 / 2,671（只改了注释）** |
+| 函数数 | 174,336 | **174,336** |
+| 函数比 | 62.91% | **62.91%** |
+| **R1004 读数** | 需重验 | **确认（双编码 + sha256）** |
+| **已知自造键名** | 1（`paymentGateway`，R956 已修） | **2（+`paymentMethodsUrl`，无替代名）** |
+
+### 六、验证
+
+```
+cd replica
+python tools/artifact_probe.py --strings adyen Adyen commercehub CommerceHub CybersoleECOM encryptedCardNumber tokenUUID "/api/v1/sale" checkoutshopper-live.adyen.com
+  -> adyen utf-16-le 19 yes · commercehub 17 yes · 后缀串全 0
+cd ../ && python analysis/ida.py str RpcGetPaymentMethods  -> {"n":5}，含两 lambda
+python analysis/ida.py str paymentMethodsUrl              -> {"n":0}
+cd replica
+dotnet test --filter "FullyQualifiedName~PaymentGatewayNamingTests" -m:1  -> 5 通过
+python tools/metrics_report.py  -> 套件 2219 · 陈旧度 1 / 2,671 · 函数数 174,336
+```
+
+### 七、仍然 Unknown
+
+- **`RpcGetPaymentMethods` 的路由**：**不可得** —— R958 确立 NativeAOT 下按名反编译不成立。
+- **还有多少自造键名未查**：**未扫** —— 需要一个「把所有 `Vars[...]` 键名对镜像查一遍」的扫法。
+
+### 八、教训
+
+**「自造键名」不是一次性的失误，它有一个**稳定的成因**：
+一个编译得过、读起来对的名字，没有任何机制会质疑它。**
+
+**→ 而唯一能发现它的动作是**去镜像里查那个名字** —— 那一步 R956 做过一次，
+而 `paymentMethodsUrl` 从写下那天起活到 R1008 才被查。**
+
+**→ 所以守卫钉的不是名字，是「这个名字没被搜过」这件事的说法。**

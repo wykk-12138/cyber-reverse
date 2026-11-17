@@ -60073,3 +60073,64 @@ antibot          utf-16-le 3   utf-8 0   yes
 > R1006 我读成「其中一次错了」，而它其实是「其中一次只查了一半」。
 > → 一个带身份的读数工具之所以值得写，不是因为它更准 ——
 > 是因为它让「问的是不是同一个问题」变成一件**看得见**的事。**
+
+
+---
+
+## 第 1008 轮：R1004 的读数被确认；而 `paymentMethodsUrl` 是第二个自造键名
+
+### ① 重验 R1004（双编码 + sha256）
+
+```
+adyen            utf-16-le 19   utf-8 0   yes
+commercehub      utf-16-le 17   utf-8 0   yes
+CommerceHub      utf-16-le 0    utf-8 1   yes
+CybersoleECOM · encryptedCardNumber · tokenUUID · /api/v1/sale · checkoutshopper  全 0
+```
+
+**→ R1004 成立：`Id`/`Name` 在产物，`AuthorizeAsync` 的方法体串全不在。**
+**→ 新细事实：同一个类里小写 id 是 UTF-16LE、大写 Name 是 UTF-8 —— 「哪种编码」连在一个类型内部都不统一。**
+
+### ② 优先级 ① 上找到同一类错误的**第二例**
+
+**`GetPaymentMethodsAsync` 读 `Vars["paymentMethodsUrl"]` —— 镜像 **0 命中**，那个键名是自造的。**
+
+**R956 修过的 `paymentGateway` 是第一个，这是第二个。两者同形：能编译、读起来对，所以没人怀疑。
+差别是这一个**没有替代名可得**。**
+
+### ③ 而镜像里那个步骤是真的，连 ordinal 都对
+
+```
+(RpcGetPaymentMethodsg
+<<RpcGetPaymentMethods>b__177_0<<RpcGetPaymentMethods>b__177_1g   ← 两个 lambda
+RpcSubmitCardg  .<RpcSubmitCard>b__178_2g
+```
+
+**→ `RpcGetPaymentMethods` 是真实状态机，带**两个** lambda；`177` 与源码注释里的 ordinal **对得上**。
+→ 缺的不是步骤、不是 ordinal，是**路由**。而 R958 已确立 NativeAOT 下按名反编译不成立 ⇒ **路由不可得**。**
+
+### ④ 所以改的是「让它可见」，不是「修好它」
+
+**`GetPaymentMethodsAsync` 的注释现在写明：① 键名两编码皆 0，是自造的 ② 镜像有那个步骤且 ordinal 对
+③ 路由不可得，且零覆写 ⇒ 方法被裁。**
+
+**并加守卫 `ThePaymentMethodsURLKeyIsRecordedAsInvented`。**
+
+> **→ 守卫的判据不是「这个名字对不对」（它不对），而是「读源码的人会不会以为它被搜过」。**
+
+### ⑤ 数字
+
+| 度量 | R1007 | **R1008** |
+|---|---|---|
+| 套件 | 2218 | **2219（+1）** |
+| 产物陈旧度 | 0 / 0 | **1 / 2,671（只改注释）** |
+| 函数数 | 174,336 | **174,336** |
+| **R1004 读数** | 需重验 | **确认** |
+| **已知自造键名** | 1（已修） | **2（+`paymentMethodsUrl`，无替代名）** |
+
+### 教训
+
+> **「自造键名」不是一次性失误，它有一个**稳定的成因**：一个编译得过、读起来对的名字，没有任何机制会质疑它。
+> → 唯一能发现它的动作是**去镜像里查那个名字** —— R956 做过一次，
+> 而 `paymentMethodsUrl` 从写下那天活到 R1008 才被查。
+> → 守卫钉的不是名字，是「这个名字没被搜过」这件事的说法。**

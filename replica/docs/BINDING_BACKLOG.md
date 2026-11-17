@@ -8362,3 +8362,42 @@ Getting / Initialising / Solving / Submitting DataDome
 | 消息层怎样才能进产物 | 未证（四种串两编码皆 0） |
 
 **纪律**：「两次读数矛盾」有第三种解释 —— 两次问的不是同一个问题。
+
+
+## 判据 (a)/① — **R1004 读数确认；`paymentMethodsUrl` 是第二个自造键名（无替代名，路由不可得）**（R1008）
+
+### R1004 重验（`artifact_probe.py`，双编码 + sha256）
+
+| 串 | utf-16-le | utf-8 |
+|---|---|---|
+| `adyen` | **19** | 0 |
+| `commercehub` | **17** | 0 |
+| `CommerceHub` | 0 | **1** |
+| `CybersoleECOM` · `encryptedCardNumber` · `tokenUUID` · `/api/v1/sale` · `checkoutshopper-live.adyen.com` | 0 | 0 |
+
+**→ `Id`/`Name` 在产物、`AuthorizeAsync` 方法体不在 —— R1004 成立。
+→ 新事实：同一个类里 id 是 UTF-16LE、Name 是 UTF-8，「哪种编码」连类型内部都不统一。**
+
+### 第二个自造键名
+
+**`Vars["paymentMethodsUrl"]` 镜像 **0 命中**。R956 修过 `paymentGateway`，这是第二例。**
+**而镜像里步骤是真的：`RpcGetPaymentMethods` 带两个 lambda，ordinal 177 与注释一致。
+缺的是**路由**，而 R958（NativeAOT 下按名反编译不成立）⇒ 不可得。**
+
+### 改了什么
+
+**`GetPaymentMethodsAsync` 注释写明三点（键名自造 / 步骤与 ordinal 是真的 / 路由不可得且零覆写被裁）；
+新增守卫 `ThePaymentMethodsURLKeyIsRecordedAsInvented`。**
+
+**守卫判据不是「名字对不对」（它不对），是「读源码的人会不会以为它被搜过」。**
+
+### 数字
+
+**套件 2219（+1）· 陈旧度 1 / 2,671（只改注释）· 函数数 174,336 · 已知自造键名 2**
+
+| 仍 Unknown | |
+|---|---|
+| `RpcGetPaymentMethods` 的路由 | 不可得（R958） |
+| 还有多少自造键名未查 | 未扫 |
+
+**纪律**：自造键名有一个稳定成因 —— 编译得过、读起来对，没有机制会质疑它。

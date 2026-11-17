@@ -961,6 +961,22 @@ public abstract class StoreFlow
     /// Fetches the payment methods a shop offers and chooses one, which is the call that makes the selection logic in
     /// <see cref="ChooseGateway"/> meaningful. Ordinal 177 sits between CreateOrder and SubmitCard, so this runs after an
     /// order exists and before a card is submitted.
+    ///
+    /// <para>
+    /// <b>R1008: the key this reads is not the image's.</b> <c>paymentMethodsUrl</c> appears nowhere in the artifact --
+    /// both encodings, zero hits -- so the session variable is a name this workspace made up. The image does have the
+    /// step: <c>RpcGetPaymentMethods</c> is a real state machine with two lambdas beside it, and ordinal 177 matches the
+    /// comment above. What the image does not supply is that method's route, and R958 established that decompiling by
+    /// name does not work under NativeAOT, so the route is currently unobtainable rather than merely unfound.
+    /// </para>
+    ///
+    /// <para>
+    /// So the honest states here are: the step and its ordinal are the image's, the dispatching logic is the replica's,
+    /// and the address is nobody's. The body below returns <c>NotSupported</c> whenever no flow supplies a URL, which is
+    /// the same refusal <c>GetPaymentGateway</c> and the token step settled on. No flow overrides this method today, so
+    /// per R963 it is trimmed out of the artifact entirely -- the missing route and the missing call are separate faults
+    /// and this round fixes neither, it records both.
+    /// </para>
     /// </summary>
     public virtual async Task<StepOutcome> GetPaymentMethodsAsync(FlowContext c, CancellationToken ct)
     {

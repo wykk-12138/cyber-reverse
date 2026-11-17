@@ -59,6 +59,32 @@ public class PaymentGatewayNamingTests
         Assert.Contains("had been invented rather than searched for", doc);
     }
 
+    /// <summary>
+    /// R1008: the second invented key, recorded instead of quietly living on.
+    ///
+    /// <para>
+    /// <c>paymentMethodsUrl</c> is absent from the artifact in both encodings. It arrived the same way
+    /// <c>paymentGateway</c> did -- a name that compiles and reads correctly, so nothing questions it. The difference is
+    /// that this one has no replacement available: ordinal 177 exists as <c>RpcGetPaymentMethods</c> with two lambdas,
+    /// but its route does not come out of a NativeAOT binary by name (R958). So the name stays, and this test makes it
+    /// visible rather than leaving a reader to assume it was searched for.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void ThePaymentMethodsURLKeyIsRecordedAsInvented()
+    {
+        var doc = System.IO.File.ReadAllText(System.IO.Path.Combine(RepoRoot(),
+            "src", "Cybersole.Stores", "Flows", "StoreFlow.cs"));
+
+        // the key is still used, and the source says so in words a reader cannot miss
+        Assert.Contains("paymentMethodsUrl", doc);
+        Assert.Contains("the key this reads is not the image's", doc);
+        Assert.Contains("unobtainable rather than merely unfound", doc);
+
+        // and the step it belongs to is still the one with no overrides, which is why it is trimmed
+        Assert.Contains("No flow overrides this method today", doc);
+    }
+
     /// <summary>The captcha token is recorded beside the gateway name because the image keeps them adjacent.</summary>
     [Fact]
     public void TheCaptchaTokenSitsBesideTheGateway()

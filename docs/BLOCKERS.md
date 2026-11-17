@@ -28616,3 +28616,77 @@ metrics_report.py                          -> 2173 通过 / 0 失败
 **两次自我更正形状相同：用一个不可靠的检查得出一个听起来干净的结论，而那个结论差一点进了 BACKLOG 当成事实。**
 
 **检查工具本身也要被检查 —— 尤其是当它给出「没有」的时候。**
+
+
+---
+
+## 386. GetCsrf 变真实现；**并发现步骤体不进产物**
+
+> R962。**改产品代码 +13 用例。** 套件 **2186 通过 / 0 失败 / 0 跳过**。
+
+### 一、改动
+
+**`GetCsrfAsync`：隐藏 input（两种属性顺序）· meta · JSON 字段 · `data-*` · 四个 cookie 名 ·
+八字下限 · 找不到判 `retryable: false`。`FindCsrfToken` 公开静态。**
+
+**镜像证据：`GetCsrf` 在约二十个不同 ordinal 上（d__14 · d__22 · d__23 · d__24 · d__26 · d__28 ·
+d__31 · d__32 · d__33 · d__35 · d__39 · d__40 · d__50 …）→ 每家店自己读自己的 token。**
+
+### 二、而这一轮的真正发现
+
+**DLL 里字符串全在，AOT 产物里没有。查十二个标记串：**
+
+| 在产物 | 不在产物 |
+|---|---|
+| `QueueITAccepted` · `Initiliazing Queue-it` | `.queue-it.net` · `queueMinRemaining` |
+| `api.solvecaptcha.com` · `CAPCHA_NOT_READY` | `queue not passed within the deadline` |
+| `out of stock` | `captcha not solved within the deadline` |
+| | `no csrf token on the page` · `csrftoken` · `SubmitPayment:` |
+
+**在产物的五个都是**静态类 const**。**
+
+### 三、所以那三段增量是什么
+
+**R955 +43 · R958 +42 · R960 +43 —— 我三次都归因成「接线让步骤体进产物」。**
+
+**而登记串显示步骤体**不在**产物 → 那个归因**未证明**。**
+
+**更可能：静态协议类变得可达。但这一层我没取证，标 Unknown，不标 Inference。**
+
+### 四、为什么这重要
+
+**如果步骤体不进产物，「把 `=> Ok()` 写成真实现」**不改变函数数** —— 而我一直拿函数数当进展指标。**
+
+**源码是对的、编译过、能测。但尺子量不到那个东西。**
+
+### 五、数字
+
+| 度量 | R961 | R962 |
+|---|---|---|
+| 套件 | 2173 | **2186** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,909 | **173,909（未变）** |
+| 产物大小 | 54,720 KB | **54,724 KB** |
+| **空壳 `=> Ok()`** | 35 | **34** |
+
+### 六、验证
+
+```
+dotnet build Stores -c Release                    -> 0 错误
+python: dll.find('no csrf token on the page')     -> utf16=True
+python: exe.find('no csrf token on the page')     -> utf16=False   ← 关键
+python: exe.find('QueueITAccepted')               -> utf16=True
+python: exe.find('out of stock')                  -> utf16=True
+test --filter CsrfTokenTests                      -> 13 通过
+metrics_report.py                                 -> 2186 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **哪些步骤体进产物、依据什么**：**Unknown** —— 反射不 root 方法这一点已知，具体判据未取证。
+- **函数数增量的真实来源**：**疑似静态协议类可达，未证明** —— 明确标记为未证明。
+- **剩 34 个空壳各自的证据**：**Unknown** —— 未取证。
+
+### 八、教训
+
+**一个指标连续三轮不动、而我连续三轮都给了一个动听的原因 —— 那本身就是那个指标在说「你归错了因」。**

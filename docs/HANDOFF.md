@@ -1534,3 +1534,22 @@ CAPCHA_NOT_READY = NotReady（正常路径）；空应答 = NotReady（传输失
 纪律：检查工具本身也要被检查 —— 尤其当它给出「没有」的时候。
 
 下一轮：从剩 35 个空壳里挑一个证据最全的（GetCsrf 有 38 条字符串，是最多的）。
+
+## R962 补充 — GetCsrf 变真实现；**并发现步骤体不进产物**（+13 用例，套件 2186）
+
+GetCsrfAsync 从 `=> Ok()` 写成真实现（四种 token 形状 + 四个 cookie 名 + 八字下限）。
+镜像证据：GetCsrf 在约二十个不同 ordinal 上（d__14/d__22/d__23/d__24/d__26/d__28/d__31/d__32/d__33/d__35/d__39/d__40/d__50…）→ 每家店自己读自己的 token。
+
+**而真正重要的发现**：DLL 里字符串全在，AOT 产物里没有。查十二个标记串 —— 五在七不在。
+在产物的都是静态类 const（QueueITAccepted / Initiliazing Queue-it / api.solvecaptcha.com / CAPCHA_NOT_READY / out of stock）；不在的是 StoreFlow 的步骤体串（SubmitPayment: / csrftoken / no csrf token on the page / queue not passed… / captcha not solved… / .queue-it.net / queueMinRemaining）。
+
+→ 所以 R955 +43 / R958 +42 / R960 +43 那三次「接线让步骤体进产物」的归因**未证明**；
+  更可能是静态协议类变得可达，但这一层未取证，标 Unknown。
+
+→ **函数数这把尺子量不到「步骤体进产物」这件事**，而我一直拿它当进展指标。
+
+数字：套件 2173 → 2186 · 陈旧度 0/0 · 函数数 173,909（未变）· 产物 54,720 → 54,724 KB · 空壳 35 → 34。
+
+纪律：一个指标连续三轮不动而每轮都有动听的归因 —— 那本身说明归因错了。
+
+下一轮：取证「哪些步骤体进产物、依据什么」（这是把尺子修好的前提）；在此之前不再用函数数当单轮进展判据。

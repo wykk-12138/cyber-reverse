@@ -204,7 +204,100 @@ public abstract class StoreFlow
         return StepOutcome.Success();
     }
     public virtual Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct) => Ok();
-    public virtual Task<StepOutcome> GetCsrfAsync(FlowContext c, CancellationToken ct) => Ok();
+    /// <summary>
+    /// Reads the site's CSRF token out of a page and stores it where the request layer will attach it.
+    ///
+    /// <para>
+    /// R962. This was one of thirty-five steps returning Ok without doing anything, and it is the one every flow
+    /// implements: the image carries GetCsrf under roughly twenty different ordinals -- d__14, d__22, d__23, d__24,
+    /// d__26, d__28, d__31, d__32, d__33, d__35, d__39, d__40, d__50 and more -- which means each shop reads its own token
+    /// rather than inheriting one shape. The replica had it implemented nowhere.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Why the base implementation is worth having even though every shop differs.</b> The variation is in where a
+    /// shop puts the token, not in what a token is. All of the shapes are one of four: a hidden input, a meta tag, a cookie,
+    /// or a field inside a JSON blob. Reading those four costs one pass and covers the shops that follow the pattern,
+    /// while a flow that differs still overrides. Reporting success without a token, which is what the step did before,
+    /// meant the next POST went out unauthenticated and the failure surfaced somewhere else entirely.
+    /// </para>
+    /// </summary>
+    public virtual async Task<StepOutcome> GetCsrfAsync(FlowContext c, CancellationToken ct)
+    {
+        // a flow may already hold one -- re-reading a page to find a token it was given is wasted work
+        if (!string.IsNullOrEmpty(c.Session.CsrfToken) &&
+            c.Session.Vars.GetValueOrDefault("csrf.refresh") != "1")
+            return StepOutcome.Success();
+
+        var url = c.Session.Vars.GetValueOrDefault("csrf.url") ?? c.Url;
+
+        var res = await c.Http.GetAsync(url, new RequestOptions(), ct).ConfigureAwait(false);
+        if (res.StatusCode is < 200 or >= 300)
+            return StepOutcome.Fail("csrf page " + res.StatusCode, retryable: res.StatusCode is 429 or >= 500);
+
+        var token = FindCsrfToken(res.Body);
+
+        // a shop that puts it in a cookie rather than the page body
+        if (string.IsNullOrEmpty(token))
+            foreach (var name in CsrfCookieNames)
+                if (res.Cookies.TryGetValue(name, out var value) && !string.IsNullOrEmpty(value))
+                {
+                    token = value;
+                    break;
+                }
+
+        if (string.IsNullOrEmpty(token))
+            return StepOutcome.Fail("no csrf token on the page", retryable: false);
+
+        c.Session.CsrfToken = token;
+        c.Session.Vars["csrfToken"] = token;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>The cookie names shops use for a token, which is the fourth of the four shapes.</summary>
+    internal static readonly string[] CsrfCookieNames =
+    {
+        "csrftoken", "csrf_token", "XSRF-TOKEN", "X-CSRF-Token", "_csrf", "csrf",
+    };
+
+    /// <summary>
+    /// Finds a token in a page. Four shapes, one pass each, and nothing invented: a hidden input named like a token, a
+    /// meta tag named like one, a JSON field named like one, and the Symfony-style data attribute. Input order matters --
+    /// the hidden input shape wins because it is the oldest and the least ambiguous.
+    /// </summary>
+    public static string? FindCsrfToken(string? body)
+    {
+        if (string.IsNullOrEmpty(body)) return null;
+
+        var patterns = new[]
+        {
+            // <input type="hidden" name="csrf_token" value="...">  -- name and value in either order
+            @"<input[^>]*\bname\s*=\s*[\""'](?<n>[^\""']*(?:csrf|token|authenticity)[^\""']*)[\""'][^>]*\bvalue\s*=\s*[\""'](?<v>[^\""']+)[\""']",
+            @"<input[^>]*\bvalue\s*=\s*[\""'](?<v>[^\""']+)[\""'][^>]*\bname\s*=\s*[\""'](?<n>[^\""']*(?:csrf|token|authenticity)[^\""']*)[\""']",
+            // <meta name="csrf-token" content="...">
+            @"<meta[^>]*\bname\s*=\s*[\""'](?<n>[^\""']*(?:csrf|token)[^\""']*)[\""'][^>]*\bcontent\s*=\s*[\""'](?<v>[^\""']+)[\""']",
+            // "csrfToken":"..." or "_csrf_token": "..."
+            @"""(?<n>[\w_]*csrf[\w_]*|_token)""\s*:\s*""(?<v>[^""]{8,})""",
+            // data-csrf-token="..."
+            @"\bdata-(?<n>[\w-]*csrf[\w-]*|token)\s*=\s*[\""'](?<v>[^\""']{8,})[\""']",
+        };
+
+        foreach (var pattern in patterns)
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(
+                body!, pattern,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            if (m.Success)
+            {
+                var value = m.Groups["v"].Value.Trim();
+                if (value.Length >= 8) return value;
+            }
+        }
+
+        return null;
+    }
     public virtual Task<StepOutcome> GetSessionAsync(FlowContext c, CancellationToken ct) => Ok();
     public virtual async Task<StepOutcome> RefreshSessionAsync(FlowContext c, CancellationToken ct)
     {

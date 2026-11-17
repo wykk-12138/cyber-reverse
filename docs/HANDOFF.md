@@ -4629,3 +4629,49 @@ ida.py health → ConnectionRefusedError    port 13337 → False    ida processe
 | **IDA** | 可用 | **退出，需重新拉起** |
 
 **纪律**：「只在原版」看起来像缺口清单，实际是一份**命名对照表**。不查就会去「补」13 个已经存在的东西（R815 的形状）。
+
+
+## R1070 —— **IDA 重新拉起：3 个框，按规程点，`status: ok`**
+
+### 实测框序
+
+| 序 | 标题 | 动作 | 不照做的后果 |
+|---|---|---|---|
+| 1 | 「请确认」unpacked-version | **Proceed with unpacked base** | **Restore packed base 会丢掉 321,244 个函数的分析** |
+| 2 | 「请确认」id0-not-closed | **是(&Y)** | 否(N) ⇒ 下次仍报 |
+| 3 | 「请稍候...」 | **等，不点** | 点了会打断 repair/升级 |
+
+**没有**出现第 4 种「Database still contains inconsistencies」（R719 那次有，动作**确定**）
+⇒ **框数取决于 IDB 上次怎么退出**。
+
+### 「等」是有度量的
+
+```
++60s    cpu=45s  mem=**413 MB**   端口 False
++180s   cpu=53s  mem=**1978 MB**  端口 **True**
+```
+
+**⇒ 「等」的判据不是时间，是**内存爬到 IDB 量级 + 端口 True**。**
+
+### 而 `PROXY: MISSING` 不是阻塞项
+
+doctor 同时报 `PROXY: MISSING` 与 `VERDICT: ready` —— 因为 `analysis/ida.py` 是**直连插件**的过渡件，不经代理。
+验证：`{"status":"ok","idb_path":"…Cybersole.exe.i64"}` · `control kpsdk n=2`。
+
+### 而「停下等 YG」是兜底
+
+goal 条件是「REFUSED **且框已清**」⇒ **框还在就是规程没走完，那时该点框，不该停。**
+
+### 数字
+
+| 度量 | R1069 | **R1070** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| IDA 进程 | 0 | **1** |
+| 端口 13337 | REFUSED | **True** |
+| `ida.py health` | 异常 | **`status: ok`** |
+| 装载内存 | — | **1978 MB** |
+| 框数 | — | **3** |
+| `PROXY: MISSING` | — | **仍在，不影响 `ida.py`** |
+
+**纪律**：「等」需要一个可读的度量；「停下等 YG」是兜底，不是第一反应。

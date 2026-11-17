@@ -3264,3 +3264,22 @@ Farfetch **3** 条证据 · 我的拼写错 **2** 个（同族第三次）。
 纪律：**对照也要问「我用的拼写对吗」；精确串只能找到它被写成的那种拼写。**
 
 下一轮：publish 清陈旧度；或找 Farfetch 的 transport（配置/运行时）。
+
+## R1039 补充 — **池按字母序（邻近≠分组）；`ida.py` 早有 `--limit`/`call`/`py`**（套件 2254，未改代码）
+
+**那一片不是站表**：`FamilyName` · `Fan Rewards Signup` · `Farfetch` · `Farfetch Checkout` ·
+`Faroe Islands`（国家）· `Faroese`（语言）· `Fashion District (PA)`（商场）混排 ⇒ **字母序**。
+→ `Farfetch` 与 `Faroe Islands` 相邻是**字母巧合**，不是语义分组。
+→ 否掉「地址邻近 ⇒ 同一张表」；`Farfetch`/`Farfetch Checkout` 仍是**2 条独立证据**（站名 + 结账步骤），
+但不证明是表、不给域名或路由。
+
+**而 `ida.py` 早就有**：`str <p> [--limit N]`（**R817 就是为这个加的**）· `call <tool> '<json>'` ·
+`py "<IDAPython>"`。本轮用 `py` 枚举了 **315** 条池条目。
+→ **R1024 的「撞 40 上限 ⇒ 只能窄查」过时**；答案是 `--limit`。而那句注释就在 82 行的文件里，
+**我七轮读了它三次。**
+
+数字：套件 2254/0/0（未改代码）· 陈旧度 1 / 217 · 函数数 174,293 · 池条目 **315** · 池字母序 **是**。
+
+纪律：**别推断工具与数据的形状 —— 读它们。**
+
+下一轮：publish 清陈旧度；或换回优先级 ①（Farfetch 的 transport 需要配置/运行时证据，非字符串可得）。

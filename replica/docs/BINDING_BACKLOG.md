@@ -9664,3 +9664,42 @@ farfetch 3  → "Farfetch" ×2 · **"Farfetch Checkout"**       farfetch.com 0
 | 产物需重 publish（1 文件陈旧） | 待收尾 |
 
 **纪律**：对照也要问「我用的拼写对吗」；精确串只能找到它被写成的那种拼写。
+
+
+## 判据 (f) 的方法学 — **池按字母序（邻近≠分组）；`ida.py` 早有 `--limit`/`call`/`py`**（R1039）
+
+### ① 池按字母序
+
+```
+FamilyName · Fan Rewards Signup · Fantasy World · Farfetch · Farfetch Checkout
+Faroe Islands · Faroese · Faroese (Faroe Islands) · Fashion District (PA)
+```
+
+**→ 站名、国家名、语言名混排 ⇒ `Farfetch` 与 `Faroe Islands` 相邻是**字母巧合**。
+→ 否掉「地址邻近 ⇒ 同一张表」。**
+
+### ② `Farfetch` / `Farfetch Checkout` 仍是 2 条独立证据
+
+**证明站名 + 结账步骤存在；不证明是表，不提供域名/路由。**
+
+### ③ 工具能力（一直可用，我漏了）
+
+```
+analysis/ida.py str <pattern> [--limit N]      ← R817 加的
+analysis/ida.py call <tool> '<json>'           ← 通用透传
+analysis/ida.py py "<IDAPython>" [--timeout N] ← one-off（本轮用它枚举 315 条）
+```
+
+**→ R1024 的「撞 40 上限 ⇒ 只能窄查」**过时**；答案是 `--limit`。
+→ 我在 82 行文件里三次读过那行注释。**
+
+### 数字
+
+**套件 2254/0/0（未改代码）· 陈旧度 1 / 217 · 函数数 174,293 · 池条目 315 · 池字母序 是**
+
+| 仍 Unknown | |
+|---|---|
+| Farfetch 的 transport | 未找到（需配置/运行时） |
+| 产物需重 publish（1 文件） | 待收尾 |
+
+**纪律**：**别推断工具与数据的形状 —— 读它们。**

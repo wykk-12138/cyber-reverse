@@ -1,0 +1,315 @@
+146d8d03c	Failed to register frozen object segment for the module.
+146d8d154	Failed to remove old package '
+146d8d23c	Failed to resolve host: {0}
+146d8d28c	Failed to resolve the destination host to an IPv4 address.
+146d8d31c	Failed to retrieve OIDC configuration from 
+146d8d38c	Failed to send RPC request: 
+146d8d534	Failed to start Chromium process.
+146d8d6dc	Failed to tokenise card (MONEI)
+146d8d734	Failed to unsubscribe from NavigationController events
+146d8d7bc	Failed to unsubscribe from OnPaint stream: {0}
+146d8d834	Failed to update indexed property
+146d8d88c	Failed to update property or field
+146d8d8ec	Failed to wait for vblank, Exception: 
+146d8d954	Failed to write text to clipboard: {Error}
+146d8d9c4	Failed with unknown status code 
+146d8da1c	Failed: 
+146d8da44	FailedCount
+146d8da74	FailedReceipt
+146d8daa4	FailedResult
+146d8dad4	FailedToSendInvocation
+146d8db1c	Failure has occurred while loading a type.
+146d8db8c	Failure while resending messages after a reconnect.
+146d8dc0c	Fairfield Commons (OH)
+146d8dc54	Faiyum
+146d8dc7c	FakeDisplay
+146d8dcac	FakedBrowser
+146d8dcdc	FakedOS
+146d8dd04	FakedResolution
+146d8dd3c	Falkirk
+146d8dd64	Fallback
+146d8dd8c	FallbackGetMember not implemented
+146d8dde4	FallbackSetMember not implemented
+146d8de3c	FallbackValue
+146d8de6c	False
+146d8de8c	Familiar
+146d8deb4	Family 3.0
+146d8dee4	Family Mart
+146d8df14	FamilyId
+146d8df3c	FamilyName
+146d8df6c	Fan Rewards Signup
+146d8dfac	Fantasy World
+146d8dfdc	Farfetch
+146d8e004	Farfetch Checkout
+146d8e05c	Faroe Islands
+146d8e08c	Faroese
+146d8e0b4	Faroese (Faroe Islands)
+146d8e0fc	Fashion District (PA)
+146d8e13c	Fashion Outlets Chicago
+146d8e184	Fashion Place
+146d8e1b4	Fashion Show
+146d8e204	Fast Preload
+146d8e234	Fastly-ShareCount
+146d8e26c	Fat Brain Toys UK
+146d8e2a4	Favicon
+146d8e2cc	FboSkiaSurface
+146d8e324	Fear Of God
+146d8e354	Feature
+146d8e37c	Feature is not supported for remote machines.
+146d8e3ec	Feature requires a process identifier.
+146d8e454	FeatureSupport
+146d8e48c	Features
+146d8e4d4	February
+146d8e4fc	Federated States of Micronesia
+146d8e554	FederationActiveAuthUrl
+146d8e59c	FederationMetadataUrl
+146d8e5dc	FederationProtocol
+146d8e63c	Feedback-Id
+146d8e66c	FeedbackType
+146d8e69c	Feenturm.de
+146d8e6ec	Feliciotto Taormina
+146d8e72c	Fenwick
+146d8e754	FepChargeCompleteActionForm, '
+146d8e7ac	Fermanagh
+146d8e7d4	Fermo
+146d8e7f4	Ferrara
+146d8e81c	FetchBalance
+146d8e84c	Fetched access token from host 
+146d8e8a4	Fetching BotDeflector challenge
+146d8e8fc	Fetching BotDeflector icons
+146d8e94c	Fetching BotDetect challenge
+146d8e99c	Fetching PayPal details
+146d8e9e4	Fetching Payment Info
+146d8ea24	Fetching Queue-it challenge
+146d8ea74	Fetching address
+146d8eaac	Fetching alias
+146d8eae4	Fetching captcha challenge
+146d8eb34	Fetching config
+146d8eb6c	Fetching coupons
+146d8eba4	Fetching dates
+146d8ebdc	Fetching details
+146d8ec14	Fetching form
+146d8ec44	Fetching form fields
+146d8ec84	Fetching instance discovery from the network from host 
+146d8ed0c	Fetching location
+146d8ed44	Fetching orders
+146d8ed7c	Fetching orders (2)
+146d8edbc	Fetching password page
+146d8ee04	Fetching pop now products
+146d8ee4c	Fetching promotions
+146d8ee8c	Fetching rates
+146d8eec4	Fetching release data
+146d8ef04	Fetching results
+146d8ef3c	Fetching results 
+146d8ef74	Fetching sitekey
+146d8efac	Fetching tasks
+146d8efe4	Fetching time slot
+146d8f3a4	Field
+146d8f3c4	Field '{0}.{1}' is not defined for type '{2}'
+146d8f434	Field '{0}.{1}' not found.
+146d8f484	Field at index '
+146d8f4bc	Field containing names '
+146d8f504	Field not found: '{0}'.
+146d8f54c	Field number 
+146d8f57c	Field numbers must be positive integers.
+146d8f5e4	Field with message or enum type missing type_name.
+146d8f664	Field with name '
+146d8f69c	Field with primitive type has type_name.
+146d8f704	FieldDescriptorProto.oneof_index is out of range for type 
+146d8f874	FieldPresence
+146d8f8a4	Fields
+146d8f8cc	Fields:
+146d8f914	Figures
+146d8f95c	Fiji Standard Time
+146d8f99c	Fiji Summer Time
+146d8f9d4	Fiji Time
+146d8fa1c	File = 
+146d8fa44	File doesn't exist or is a directory: 
+146d8faac	File doesn't exist.
+146d8faec	File name
+146d8fb14	File name: '{0}'
+146d8fb4c	File not found...
+146d8fb84	File was read but contents were invalid
+146d8fbec	FileContents
+146d8fc1c	FileDescriptor for 
+146d8fc5c	FileGroupDescriptorW
+146d8fc9c	FileLoad_FileName
+146d8fcd4	FileLoad_FusionLog
+146d8fd14	FileName
+146d8fd3c	FileNotFound_FileName
+146d8fd7c	FileNotFound_FusionLog
+146d8fdc4	FilePath
+146d8fdec	FilePickerFileType
+146d8fe2c	FileProvider
+146d8fe5c	FileValue
+146d8fe84	Filename
+146d8feac	Files
+146d8fecc	Files = 
+146d8fef4	Filipino (Philippines)
+146d8ff5c	FillMode
+146d8ff84	FillRule
+146d8ffac	FilledSmallSquare;
+146d8ffec	FilledVerySmallSquare;
+146d90034	Filter
+146d9005c	Filter = 
+146d90084	Filter error
+146d90144	FilterBox
+146d9016c	FilterButton
+146d9019c	FilterCondition
+146d901d4	FilterDescription
+146d9020c	FilterIcon
+146d9023c	FilterInputEntry
+146d90274	FilterMenu
+146d902a4	FilterMode
+146d902d4	FilterRow
+146d902fc	FilterTextEdit
+146d90334	Filtered AT by preferred alias returning 
+146d9039c	FilteredStream
+146d903d4	Filtering AT by environment
+146d90424	Filtering AT by home account id
+146d9047c	Filtering AT by preferred environment 
+146d904e4	Filtering AT by tenant id
+146d9052c	Filtering AT by user assertion: 
+146d90584	Filtering AT by user-provided cache key: 
+146d905ec	Filtering RT by client id
+146d90634	Filtering RT by family id
+146d9067c	Filtering RT by home account id
+146d906d4	Filtering RT by user assertion: 
+146d9072c	Filtering RT by user-provided cache key: 
+146d90794	Filtering RTs by additional key components
+146d90894	Filtering by additional key components
+146d908fc	Filtering by scopes
+146d9093c	Filtering by token type
+146d90984	Filtering out RTs that have additional key components
+146d90a04	Filtering out tokens that have additional key components
+146d90a8c	Filters
+146d90ab4	FiltersSelector
+146d90aec	Final Mouse
+146d90b1c	FinalUrl
+146d90b44	Final_Punctuation
+146d90b7c	FinalizationRegistry
+146d90bbc	Finalize
+146d90c04	Find Product
+146d90cdc	Find hCaptcha Frame
+146d90d1c	Find location
+146d90d4c	Find product
+146d90d7c	Find slot
+146d90da4	FindBar
+146d90dcc	FindClosestMatchingMode failed
+146d90e24	FindColumn
+146d90e54	FindFramePhase: exhausted 
+146d90ea4	FindFramePhase: found hCaptcha iframe at attempt 
+146d90f1c	FindFramePhase: iframe not found yet, attempt 
+146d90f94	FindFramePhase: no active captcha, stopping at attempt 
+146d9101c	FindNext
+146d91044	FindNextIconPath
+146d9107c	FindPrevious
+146d910ac	FindPreviousIconPath
+146d910ec	FindRequestId
+146d9111c	FindResultReceived { findResult = { SelectedMatch=
+146d9119c	FindText
+146d911c4	Finding address
+146d911fc	Finding draw
+146d9122c	Finding event
+146d9125c	Finding store
+146d9128c	Finesse
+146d912b4	Fingerprint
+146d912e4	Fingerprint.template.json
+146d9132c	FingerprintDetails
+146d9136c	FingerprintingTime
+146d913ac	Finished 
+146d913d4	Finished deserializing {0}
+146d91424	Finished deserializing {0} with converter {1}.
+146d9149c	Finished offsite payment: 
+146d914ec	Finished serializing {0}
+146d91534	Finished serializing {0} with converter {1}.
+146d915a4	Finishline
+146d915d4	Finishline / JD Sports
+146d9161c	Finist
+146d91644	Finland
+146d9166c	Finnish
+146d91694	Finnish (Finland)
+146d916cc	FireBeforeunload
+146d91704	Firebrick
+146d9172c	Firefox/
+146d91754	Firefox_102
+146d91784	Firefox_104
+146d917b4	Firefox_105
+146d917e4	Firefox_106
+146d91814	Firefox_108
+146d91844	Firefox_110
+146d91874	Firefox_117
+146d918a4	Firefox_120
+146d918d4	Firefox_123
+146d91904	Firefox_132
+146d91934	Firefox_133
+146d91964	Firefox_135
+146d91994	Firefox_146_PSK
+146d919cc	Firefox_147
+146d919fc	Firefox_147_PSK
+146d91a34	Firefox_148
+146d91a64	Firenze
+146d91a8c	First 
+146d91ab4	First Colony Mall
+146d91aec	First argument of delegate must be CallSite
+146d91e9c	FirstColumn
+146d91ecc	FirstDayOfWeek
+146d91f04	FirstEntry
+146d91f34	FirstName
+146d91f5c	FirstReconnectRetryDelayNull
+146d91fac	Firstname
+146d91fd4	Fiscal Code
+146d92004	Fiserv/redirect/
+146d9205c	FixedElementField
+146d92094	FixedFeatures
+146d920c4	FlagsAttribute
+146d920fc	Flatspot
+146d92124	Flevoland
+146d9214c	Flintshire
+146d9217c	Flipside Gaming
+146d921b4	Float
+146d921d4	Float16Array
+146d92204	Float32Array
+146d92234	Float64Array
+146d92264	Floating Cards
+146d9229c	Floor
+146d922bc	FloralWhite
+146d922ec	Florida
+146d92314	Florina
+146d9235c	FlowDirection
+146d9238c	FluentButtonSpinnerRepeatButton
+146d923e4	FluentCalendarButton
+146d92424	FluentCalendarDatePickerButton
+146d9247c	FluentDataGridRowGroupExpanderButtonTheme
+146d924e4	FluentDatePickerFlyoutButton
+146d92534	FluentDateTimePickerButton
+146d92584	FluentDateTimePickerDownButton
+146d925dc	FluentDateTimePickerItem
+146d92624	FluentDateTimePickerUpButton
+146d92674	FluentDrawnCaptionButton
+146d926bc	FluentExpanderToggleButtonDownTheme
+146d9271c	FluentExpanderToggleButtonLeftTheme
+146d9277c	FluentExpanderToggleButtonRightTheme
+146d927dc	FluentExpanderToggleButtonTheme
+146d92834	FluentExpanderToggleButtonUpTheme
+146d9288c	FluentMenuItemIconTheme
+146d928d4	FluentMenuScrollViewer
+146d9291c	FluentScrollBarLineButton
+146d92964	FluentScrollBarPageButton
+146d929ac	FluentScrollBarThumb
+146d929ec	FluentSliderHorizontalRepeatButton
+146d92a4c	FluentSliderThumbTheme
+146d92a94	FluentSliderVerticalRepeatButton
+146d92aec	FluentSplitButtonComponent
+146d92b3c	FluentTextBoxButton
+146d92b7c	FluentTextBoxToggleButton
+146d92c6c	FluentTheme.Palettes only supports Light and Dark variants.
+146d92cfc	FluentTimePickerFlyoutButton
+146d92d4c	FluentTopLevelMenuItem
+146d92d94	FluentTreeViewExpandCollapseChevron
+146d92df4	Flush failed: 
+146d92ef4	Flyout
+146d92f1c	FlyoutBase
+146d92f4c	FlyoutBorderThemeBrush
+146d92f94	FlyoutBorderThemePadding
+146d92fdc	FlyoutBorderThemeThickness

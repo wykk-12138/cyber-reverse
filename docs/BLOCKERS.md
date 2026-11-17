@@ -32777,3 +32777,109 @@ python tools/metrics_report.py -> 套件 2218 · 陈旧度 0/0 · 函数数 174,
 我拿三次不同 publish 的读数当一条时间线用，于是其中任何一次读错都会变成一个「事实」进入论证。**
 
 **→ 而这一轮能发现它，是因为我**又查了一遍**同样几个串 —— 不是因为方法更好。**
+
+
+---
+
+## 431. **`tools/artifact_probe.py` 建立；一击推翻 R1006 的自我否证（原因是只查 UTF-16LE）**
+
+> R1007。**新增 1 个工具；未改产品代码。** 套件 **2218 通过 / 0 失败 / 0 跳过**。
+
+### 一、工具与它的理由
+
+**`replica/tools/artifact_probe.py`：每次探测记录**产物身份**（sha256 / 字节数 / mtime），
+两种编码**并查**，结果追加到 `analysis/ARTIFACT_PROBES.json`（保留最近 200 次）。**
+
+**文件头写明为什么现成的够不到（AGENTS.md §1 规则 2）：
+`where_is.py` 答复刻件源码，`analysis/ida.py str` 答原版数据库，`pe_triage.py` 答布局 ——
+没有一个是「这个字面量在**这个**二进制里吗，是**哪一个**二进制答的」。**
+
+### 二、第一次跑的输出
+
+```
+artifact  .publish-aot/Cybersole.Ui.exe
+sha256    36c16b3b3fd536d23cf4920603afc7761729a505ed4e0975de38444912891409
+bytes     56183808   mtime 2026-11-17T16:26:54
+
+  string              utf-16-le   utf-8   present
+  StoreFlowRunner             0       1   yes
+  GuardAsync                  0       2   yes
+  lastStatus                  0       0   no
+  lastBody                    0       0   no
+  reservation failed          0       0   no
+  decoy                       0       0   no
+  antibot                      3       0   yes
+```
+
+### 三、决定性：`StoreFlowRunner` 与 `GuardAsync` **在**产物里，以 **UTF-8** 形式
+
+**→ R1006 只查了 **UTF-16LE**，所以报 absent。
+→ 所以「R1002 记 IN、R1006 记 absent」**不是产物变了，也不是 R1002 读错** ——
+  是 R1006 那次只查了一半编码。**
+
+**→ 而 R967 早已立规：「反射元数据（类型/方法名）是 **UTF-8**；字符串字面量是 **UTF-16LE**。
+  查错一种会给出一个自信的「没有」。」**
+
+**→ 我在 R1006 违反了它，然后把这个假阴性当成「读数矛盾」，
+进而写了一条自我否证，还撤回了 R1002 一条本来正确的结论。
+→ 而新工具第一次运行就把它纠正了 —— 因为它**同时**查两种编码，而我的手写探测只查一种。**
+
+### 四、而消息层那四个串两种编码都是 0 —— 那部分是**真的**
+
+| 串 | UTF-16LE | UTF-8 |
+|---|---|---|
+| `lastStatus` · `lastBody` · `reservation failed` · `decoy` | 0 | 0 |
+
+**→ R1006 的另一半结论对：消息层**确实**没进产物。
+→ 而这一半现在有了带产物身份的读数支撑，不再是我的印象。**
+
+### 五、三个结论的最终状态
+
+| R1006 说的 | 现在 |
+|---|---|
+| `StoreFlowRunner` / `GuardAsync` absent | **错 —— 在，UTF-8** |
+| 「R1002 的可达性结论撤回」 | **撤回该撤回 —— R1002 的 IN 是对的** |
+| 消息层没进产物 | **对，且现在有产物身份作证** |
+| 「读数为何矛盾」Unknown | **已知：只查一种编码** |
+
+### 六、而同一份产物里两种编码并存
+
+**`GuardAsync` 是 UTF-8（2 次），`antibot` 是 UTF-16LE（3 次）—— 同一个文件。**
+
+**→ 「用哪种编码查」不是可以被默认值替掉的事，它是**每次都要问**的事。
+→ 而工具现在强制同时查两种并存两列，那比一条纪律更难违反。**
+
+### 七、数字
+
+| 度量 | R1006 | R1007 |
+|---|---|---|
+| 套件 | 2218 | **2218（未改产品代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 174,336 | **174,336** |
+| 函数比 | 62.91% | **62.91%** |
+| **带产物身份的读数** | 0（手写探测） | **全部（新工具）** |
+| **R1002 可达性结论** | R1006 撤回 | **恢复（IN 是对的）** |
+| **消息层进产物** | 否（一种编码） | **否（两种编码，sha256 背书）** |
+
+### 八、验证
+
+```
+cd replica
+python tools/artifact_probe.py --strings StoreFlowRunner GuardAsync lastStatus lastBody "reservation failed" decoy antibot
+  -> StoreFlowRunner utf-8 1 yes · GuardAsync utf-8 2 yes · antibot utf-16-le 3 yes
+  -> lastStatus / lastBody / reservation failed / decoy 两编码皆 0
+  -> 记录写入 analysis/ARTIFACT_PROBES.json（带 sha256 36c16b3b…）
+python tools/metrics_report.py -> 套件 2218 · 陈旧度 0/0 · 函数数 174,336
+```
+
+### 九、仍然 Unknown
+
+- **消息层怎样才能进产物**：**Unknown** —— 四个串两种编码皆 0，机制未证。
+
+### 十、教训
+
+**「两次读数矛盾」有第三种解释：**两次问的不是同一个问题**。
+R1006 我把它读成「其中一次错了」，而它其实是「其中一次只查了一半」。**
+
+**→ 一个带身份的读数工具之所以值得写，不是因为它更准 ——
+是因为它让「问的是不是同一个问题」变成一件**看得见**的事。**

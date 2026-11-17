@@ -1,0 +1,67 @@
+{
+ "runs": [
+  {
+   "artifact": {
+    "path": ".publish-aot/Cybersole.Ui.exe",
+    "sha256": "36c16b3b3fd536d23cf4920603afc7761729a505ed4e0975de38444912891409",
+    "bytes": 56183808,
+    "mtime": "2026-11-17T16:26:54"
+   },
+   "strings": [
+    {
+     "string": "StoreFlowRunner",
+     "utf-16-le": 0,
+     "utf-8": 1,
+     "present": true
+    },
+    {
+     "string": "GuardAsync",
+     "utf-16-le": 0,
+     "utf-8": 2,
+     "present": true
+    },
+    {
+     "string": "lastStatus",
+     "utf-16-le": 0,
+     "utf-8": 0,
+     "present": false
+    },
+    {
+     "string": "lastBody",
+     "utf-16-le": 0,
+     "utf-8": 0,
+     "present": false
+    },
+    {
+     "string": "reservation failed",
+     "utf-16-le": 0,
+     "utf-8": 0,
+     "present": false
+    },
+    {
+     "string": "decoy",
+     "utf-16-le": 0,
+     "utf-8": 0,
+     "present": false
+    },
+    {
+     "string": "antibot",
+     "utf-16-le": 3,
+     "utf-8": 0,
+     "present": true
+    }
+   ],
+   "present": [
+    "StoreFlowRunner",
+    "GuardAsync",
+    "antibot"
+   ],
+   "absent": [
+    "lastStatus",
+    "lastBody",
+    "reservation failed",
+    "decoy"
+   ]
+  }
+ ]
+}

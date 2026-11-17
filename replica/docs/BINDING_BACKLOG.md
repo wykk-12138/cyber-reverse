@@ -8323,3 +8323,42 @@ Getting / Initialising / Solving / Submitting DataDome
 | 消息层怎样才能进产物 | 未证 |
 
 **纪律**：产物读数是观测 —— 观测要有稳定的对象和记录。
+
+
+## 判据 (c) — **`tools/artifact_probe.py` 建立；一击推翻 R1006 的自我否证（原因是只查 UTF-16LE）**（R1007）
+
+### 工具
+
+**`replica/tools/artifact_probe.py`：每次探测记录产物 sha256 / bytes / mtime，两种编码并查，
+追加到 `analysis/ARTIFACT_PROBES.json`（保留最近 200 次）。**
+
+### 第一次跑的结果
+
+| 串 | UTF-16LE | UTF-8 | present |
+|---|---|---|---|
+| `StoreFlowRunner` | 0 | **1** | **yes** |
+| `GuardAsync` | 0 | **2** | **yes** |
+| `antibot` | **3** | 0 | yes |
+| `lastStatus` · `lastBody` · `reservation failed` · `decoy` | 0 | 0 | no |
+
+**→ R1002 的 IN 是对的；R1006 的 absent 是假阴性（只查 UTF-16LE）。**
+**→ 消息层不在产物是真的（两种编码都 0，sha256 = 36c16b3b…）。**
+
+### 三个结论的最终状态
+
+| R1006 说的 | 现在 |
+|---|---|
+| `StoreFlowRunner`/`GuardAsync` absent | **错 —— 在，UTF-8** |
+| 「R1002 可达性撤回」 | **撤回该撤回** |
+| 消息层没进产物 | **对** |
+| 「读数为何矛盾」Unknown | **已知：只查一种编码** |
+
+### 数字
+
+**套件 2218 · 陈旧度 0/0 · 函数数 174,336 · 带身份读数 全部 · R1002 结论 恢复**
+
+| 仍 Unknown | |
+|---|---|
+| 消息层怎样才能进产物 | 未证（四种串两编码皆 0） |
+
+**纪律**：「两次读数矛盾」有第三种解释 —— 两次问的不是同一个问题。

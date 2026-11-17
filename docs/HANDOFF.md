@@ -2521,3 +2521,22 @@ id0→**是(Y)** · 「请稍候…」→**等** · **新框型「Database still
 纪律：**产物读数是观测 —— 观测要有稳定的对象和记录。**
 
 下一轮：先设计一条**稳定的**产物读数方法（同一文件 + 存快照 + 记录 sha256），再重验 R1002/R1004 两条结论。
+
+## R1007 补充 — **`tools/artifact_probe.py` 建立；一击推翻 R1006 的自我否证**（套件 2218，未改产品代码）
+
+新工具 `replica/tools/artifact_probe.py`：每次探测记录**产物身份**（sha256/bytes/mtime），**两种编码并查**，
+追加到 `analysis/ARTIFACT_PROBES.json`。
+
+**第一次跑就推翻了 R1006**：
+`StoreFlowRunner` **utf-8 1 → present** · `GuardAsync` **utf-8 2 → present** · `antibot` utf-16-le 3 → present
+→ **我 R1006 只查 UTF-16LE，所以报 absent。R1002 的 IN 是**对的**，那条撤回**撤回**。**
+→ 而 R967 早已立规：反射元数据是 UTF-8、字面量是 UTF-16LE，查错一种会给自信的「没有」—— 我在 R1006 违反了它。
+
+**而消息层四个串两编码皆 0**（`lastStatus`/`lastBody`/`reservation failed`/`decoy`）—— **那部分结论对**，
+且现在有 sha256 = 36c16b3b… 背书。
+
+数字：套件 2218 · 陈旧度 0/0 · 函数数 174,336 · 带身份读数 全部 · R1002 结论 **恢复**。
+
+纪律：**「两次读数矛盾」有第三种解释 —— 两次问的不是同一个问题。**
+
+下一轮：用新工具重验 R1004 的 `adyen`/`commercehub` 计数（两编码并查），然后继续优先级 ①。

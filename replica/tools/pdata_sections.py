@@ -186,6 +186,19 @@ def main():
     for pct, k, o, r in worst[:5]:
         print("    0x%-12X %5.1f%%   original %-8s replica %s" % (k * bucket, pct, format(o, ","), format(r, ",")))
 
+    # R977: criterion (c) should read these from one place. R969 measured the boundary by eye and then wrote it into three
+    # documents; these three labels make it a number another run can reproduce.
+    #
+    # The keys of oh/rh are bucket INDICES, not addresses -- the first cut of this compared an index against 0x1C00000 and
+    # dutifully reported zero in both images. Compare in address space, which is what the boundary is stated in.
+    boundary = 0x1C00000
+    above_o = sum(v for k, v in oh.items() if k * bucket >= boundary)
+    above_r = sum(v for k, v in rh.items() if k * bucket >= boundary)
+    print()
+    print("  pdata-above-0x1C00000-original: %d" % above_o)
+    print("  pdata-above-0x1C00000-replica: %d" % above_r)
+    print("  pdata-last-replica-bucket: 0x%X" % (max(rh) * bucket))
+
     print()
     print("  Buckets are compared by density, not by identity: the two images are laid out independently, so equal")
     print("  counts in a bucket do not mean the same code. This says where the gap sits and nothing about why.")

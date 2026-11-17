@@ -69,6 +69,13 @@ METRICS = [
     # coverage table the criterion asks for comes out of the single number source instead of being assembled by hand.
     ("核心覆盖：store 宿主", ["tools/core_coverage.py"], ["hosts with a path", "store hosts", "store hosts matched", "store hosts unmatched", "vendor hosts"]),
     ("核心覆盖：vendor 宿主", ["tools/vendor_coverage.py"], ["vendor hosts carrying a path", "vendors named somewhere in src", "vendors absent from src"]),
+    # R977: criterion (c) is "artifact-level comparison recomputable". func_count answers how many, and those two answer
+    # how much and where -- figures R969 through R972 measured by hand and then quoted from prose, which is how a number
+    # drifts. Both were already tools; nothing here is new capability, only registration.
+    ("可执行段体量", ["tools/pe_sections.py"],
+     ["section-mass: original executable", "section-mass: replica executable", "section-mass: ratio"]),
+    ("函数分布（.pdata 地址分桶）", ["tools/pdata_sections.py"],
+     ["pdata: above boundary original", "pdata: above boundary replica", "pdata: last replica bucket"]),
 ]
 
 SCOPE_NOTE = "note: base-class inheritance is counted (by design since R343)"
@@ -132,6 +139,13 @@ def summary_bits(name_out, owned):
         # R932: artifact freshness, so the function ratio is never quoted as current without this beside it.
         "source files newer than the artifact": r"source files newer than the artifact:\s*(\d+)",
         "lines in those files": r"lines in those files:\s*(\d+)",
+        # R977: the two figures that make criterion (c)'s comparison complete. Prefixed so no other script can own them.
+        "section-mass: original executable": r"section-mass-original-executable:\s*(\d+)",
+        "section-mass: replica executable": r"section-mass-replica-executable:\s*(\d+)",
+        "section-mass: ratio": r"section-mass-ratio:\s*([\d.]+%)",
+        "pdata: above boundary original": r"pdata-above-0x1C00000-original:\s*(\d+)",
+        "pdata: above boundary replica": r"pdata-above-0x1C00000-replica:\s*(\d+)",
+        "pdata: last replica bucket": r"pdata-last-replica-bucket:\s*(0x[0-9A-Fa-f]+)",
     }
     for label, pattern in patterns.items():
         if label not in owned:

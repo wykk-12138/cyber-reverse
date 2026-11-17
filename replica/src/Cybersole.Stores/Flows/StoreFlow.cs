@@ -1145,12 +1145,23 @@ public abstract class StoreFlow
         => SubmitPaymentAsync(c, ct);
     public virtual async Task<StepOutcome> GetPaymentTokenAsync(FlowContext c, CancellationToken ct)
     {
-        // Prefer whatever the platform already minted; otherwise issue a client-side token.
+        // Prefer whatever the platform already minted; every flow that can tokenise fills this in itself.
         if (!string.IsNullOrEmpty(c.Session.PaymentToken)) return StepOutcome.Success();
 
-        c.Session.PaymentToken = "tok_" + Guid.NewGuid().ToString("N")[..24];
-        c.Session.Vars["paymentToken"] = c.Session.PaymentToken!;
-        return StepOutcome.Success();
+        // R991: this used to invent one -- `"tok_" + Guid.NewGuid().ToString("N")[..24]` -- and return success. That is the
+        // thing the comment on Shopify's GetCsrf forbids, for the reason round 823 gave there: a token the server never
+        // issued makes every request carrying it invalid, so the failure moves from here to whichever call happens to send
+        // it, where it arrives disguised as a rejection from the store.
+        //
+        // The guard above is why the fabrication almost never ran: FootsitesFlow reads the id out of the tokenise response,
+        // MagentoFlow reads the token, ShopifyFlow reads the id, and Gateways.cs mints four kinds through their real
+        // endpoints. This method is the fallback for a flow that reached payment without any of that, and a fallback that
+        // fabricates is worse than one that stops. Nothing is lost by failing here -- a made-up token would have failed
+        // against the server anyway, later and less legibly.
+        await Task.CompletedTask.ConfigureAwait(false);
+        return StepOutcome.Fail(
+            $"{Name}: no payment token available -- no tokenising step ran for this flow, and this step will not invent one",
+            retryable: true);
     }
     public virtual async Task<StepOutcome> GetPaymentPageAsync(FlowContext c, CancellationToken ct)
     {

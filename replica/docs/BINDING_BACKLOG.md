@@ -7743,3 +7743,35 @@ c.Session.PaymentToken = "tok_" + Guid.NewGuid().ToString("N")[..24];
 | `GetPaymentTokenAsync` 有无 override 真的调端点 | 未核（virtual，各 flow 可覆写） |
 
 **纪律**：「未覆盖」是混合类别 —— 做不到 / 没做 / 指标看不见 / 做了个假的，四者同名。
+
+
+## 优先级 ①/判据 (f) — **伪造的支付令牌已删；+2 守卫（验过会红）；本地铸造凭据全 src = 0**（R991）
+
+### 改了什么
+
+**`StoreFlow.GetPaymentTokenAsync` 的兜底从 `PaymentToken = "tok_" + Guid.NewGuid()…` 改成
+`Fail($"{Name}: no payment token available … will not invent one", retryable: true)`。**
+
+**理由：R823 —— 服务器未签发的令牌会让每个带它的请求被判无效；伪造只是把失败挪到下游，
+在那里它长得像「店方拒绝了我」。**
+
+**而它**从没被 override**，真令牌来自五处：`FootsitesFlow:353` · `MagentoFlow:806` · `ShopifyFlow:477` ·
+`StoreFlow:1398/1474/1550` · `Gateways.cs` ×4。**
+
+### 守卫（`CredentialsAreObtainedNotInventedTests`，2 用例）
+
+1. `NoCredentialIsMintedLocally` —— 全 `src` 不许有 `Token = …Guid.NewGuid|RandomNumberGenerator`
+2. `TheFallbackReportsRatherThanInvends` —— 该方法必须还在、仍短路于真令牌、含「will not invent one」
+   （**防「用删除来修」**）
+
+**验过会红：手动放回 1 处 → `[FAIL] NoCredentialIsMintedLocally` → 还原 → 通过。**
+
+### 数字
+
+**套件 2207（+2）· 陈旧度 0/0 · 函数数 173,952 · 伪造令牌 0 · 本地铸造凭据 0**
+
+| 仍 Unknown | |
+|---|---|
+| `GetToken`（16 字节 CSPRNG hex）是不是同形第二处 | 守卫没扫它（不同形），需单独取证 |
+
+**纪律**：删掉 + 全绿不是验证；验证是加一条会红的守卫并亲眼看它红一次。

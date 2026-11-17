@@ -2167,3 +2167,24 @@ braintree · sibs · vipps 全 matched。那 6 个属于**下单链路**（优�
 
 下一轮：删掉 `GetPaymentTokenAsync` 的伪造令牌并让它调 `/flex/v2/tokens`（或写成显式 Fail + 原因），
 同时核有无 override 真的调了端点。
+
+## R991 补充 — **伪造的支付令牌已删；+2 守卫（验过会红）**（套件 2207）
+
+`GetPaymentTokenAsync` 有 **0 个 override**，真令牌来自五处（`FootsitesFlow:353` 提 `"id"` ·
+`MagentoFlow:806` 提 `"token"` · `ShopifyFlow:477` · `StoreFlow:1398/1474/1550` · `Gateways.cs` ×4）。
+→ 那个 `Guid.NewGuid()` 只是**兜底**，而它会让「某个 flow 少写了一步」变成**假装成功**。
+
+改成 `Fail($"{Name}: no payment token available … will not invent one", retryable: true)`。
+理由直接引 R823：未签发的令牌让每个带它的请求被判无效；伪造只是把失败挪到下游、并伪装成被店方拒绝。
+
+**而删掉它，全量套件一条都没红**（2222 通过 / 0 失败）→ 说明**没有任何用例覆盖那条兜底路径**。
+所以产出不是删了三行，是加了两条守卫：
+`NoCredentialIsMintedLocally`（全 src 不许 `Token = …Guid.NewGuid`）·
+`TheFallbackReportsRatherThanInvends`（该方法必须还在、仍短路、含「will not invent one」—— 防「用删除来修」）。
+**验过会红**：手动放回 1 处 → `[FAIL]` → 还原 → 通过。
+
+数字：套件 2207（+2）· 陈旧度 0/0 · 函数数 173,952 · 伪造令牌 0 · 本地铸造凭据 0。
+
+纪律：**删掉 + 全绿不是验证；验证是加一条会红的守卫并亲眼看它红一次。**
+
+下一轮：核 `GetToken`（16 字节 CSPRNG hex）是不是同形第二处 —— 守卫没扫它（不同形）。

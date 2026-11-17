@@ -58860,3 +58860,81 @@ c.Session.PaymentToken = "tok_" + Guid.NewGuid().ToString("N")[..24];   // 不�
 > **「未覆盖」是**混合类别**：「做不到」「没做」「做了但指标看不见」「做了个假的」都叫 `unmatched`。
 > 只按这一个词去补，会写六个支付网关客户端 —— 而其中一个的活儿已经干完（指标看不见），
 > 另一个的活儿是**先把自己伪造的那个值删掉**。**
+
+
+---
+
+## 第 991 轮：伪造的支付令牌删了 —— 而删掉它没让任何用例红
+
+### ① 先确认它从没被 override
+
+```
+GetPaymentToken 的 override: 0 处
+```
+
+**而真会拿到令牌的地方另有五处：`FootsitesFlow:353`（提 `"id"`）· `MagentoFlow:806`（提 `"token"`）·
+`ShopifyFlow:477`（提 `"id"`）· `StoreFlow:1398/1474/1550` · `Payments/Gateways.cs` ×4。**
+
+> **那个伪造只是兜底 —— 方法开头短路于真令牌。它从没被走到，因为没有 flow 会「走到支付却没有令牌」……
+> 除非某个 flow 少写了一步，而那时它会**假装成功**。**
+
+### ② 改法：兜底从「造值」改成「显式失败」
+
+```csharp
+return StepOutcome.Fail(
+    $"{Name}: no payment token available -- no tokenising step ran for this flow, and this step will not invent one",
+    retryable: true);
+```
+
+**理由直接引 R823：服务器未签发的令牌会让每个带它的请求被判无效。
+伪造只是把失败**从这一步挪到下游**，在那里它长得像「店方拒绝了我」。**
+
+### ③ 而全量套件没有一条用例因此变红
+
+```
+改前 2222 通过（Speed!=Slow）   改后 完整套件 2207 通过 / 0 失败 / 0 跳过
+```
+
+**（口径不同：`metrics_report.py` 按 R493 排除六个浏览器依赖类。）**
+
+> **删掉一个伪造实现而套件全绿，读起来像「这改动没影响」。实际含义是
+> **没有任何用例覆盖那条兜底路径** —— 它从没被执行过。
+> 而「从没被执行」正是它活到现在的原因。
+> → 所以真正的产出不是删了那三行，是**加了两条守卫**。**
+
+### ④ 两条守卫方向相反
+
+**`CredentialsAreObtainedNotInventedTests`（2 用例）：**
+
+1. `NoCredentialIsMintedLocally` —— 扫整个 `src`，`Token = …Guid.NewGuid|RandomNumberGenerator` 一处不许有
+2. `TheFallbackReportsRatherThanInvends` —— 该方法必须**还在**、必须**仍短路于真令牌**、必须含「will not invent one」
+
+> **② 防「用删除来修」：删掉一个**该报告缺失**的步骤，会让缺口从「有诊断的失败」变成「不存在」。**
+
+### ⑤ 守卫验过会红
+
+```
+临时把伪造放回 1 处 → 失败: 1
+[FAIL] CredentialsAreObtainedNotInventedTests.NoCredentialIsMintedLocally
+已还原
+```
+
+### ⑥ 仍然敞着的
+
+**`GetToken`（`HISTORY.md` R12：「16 字节 CSPRNG hex」）是同形第二处，而守卫**没扫它** ——
+它是随机 hex，与 `Guid.NewGuid` 不同形。要单独取证它签发的是什么令牌。**
+
+### 数字
+
+| 度量 | R990 | **R991** |
+|---|---|---|
+| 套件 | 2205 | **2207（+2 守卫）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| 伪造的支付令牌 | 1 处 | **0** |
+| **本地铸造的凭据（全 src）** | 未测 | **0** |
+
+### 教训
+
+> **一个从没被执行过的缺陷，删掉它不会让任何用例变红 —— 而那正是它活了这么久的原因。
+> 所以「删掉 + 全绿」不是验证；验证是**加一条会红的守卫，并亲眼看它红一次**。**

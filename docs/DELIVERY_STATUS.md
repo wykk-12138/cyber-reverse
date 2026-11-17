@@ -25270,3 +25270,117 @@ python - 读 src/Cybersole.Stores/Flows/StoreFlow.cs:1146 与 1572-1597
 
 **只按这一个词去补，我会写六个支付网关客户端 —— 而其中一个的活儿已经干完了（只是指标看不见），
 另一个的活儿是**先把自己伪造的那个值删掉**。**
+
+
+---
+
+## 415. **伪造的支付令牌已删；+2 守卫（验过会红）**
+
+> R991。**改 `StoreFlow.GetPaymentTokenAsync` 一处 + 加 2 守卫。** 套件 **2207 通过 / 0 失败 / 0 跳过**。
+
+### 一、先确认它从没被 override
+
+```
+GetPaymentToken 的 override: 0 处
+```
+
+**而真会拿到令牌的地方另有五处：**
+
+| 位置 | 怎么拿的 |
+|---|---|
+| `FootsitesFlow.cs:353` | 从响应提 `"id"` |
+| `MagentoFlow.cs:806` | 从响应提 `"token"` |
+| `ShopifyFlow.cs:477` | 从响应提 `"id"` |
+| `StoreFlow.cs:1398 / 1474 / 1550` | 已有值 |
+| `Payments/Gateways.cs` ×4 | 真网关端点签发 |
+
+**→ 那个伪造**只是兜底**：方法开头短路于真令牌 `if (Session.PaymentToken 非空) return Success()`。
+→ 它从没被走到，因为没有 flow 会「走到支付却没有令牌」—— **除非某个 flow 少写了一步，而那时它会假装成功。****
+
+### 二、改了什么
+
+```csharp
+// 改前
+c.Session.PaymentToken = "tok_" + Guid.NewGuid().ToString("N")[..24];
+c.Session.Vars["paymentToken"] = c.Session.PaymentToken!;
+return StepOutcome.Success();
+
+// 改后
+return StepOutcome.Fail(
+    $"{Name}: no payment token available -- no tokenising step ran for this flow, and this step will not invent one",
+    retryable: true);
+```
+
+**→ 理由直接引 R823：服务器未签发的令牌会让每个带它的请求被判无效。
+→ 伪造只是把失败**从这一步挪到某个下游调用**，而在那里它长得像「店方拒绝了我」。**
+
+### 三、而全量套件**没有一条用例因此变红**
+
+```
+改前 2222 通过 / 0 失败 / 2 跳过   （Speed!=Slow）
+改后 完整套件 2207 通过 / 0 失败 / 0 跳过
+```
+
+**（2207 与 2222 口径不同：`metrics_report.py` 按 R493 排除六个浏览器依赖类。）**
+
+**→ 删掉一个伪造实现而套件全绿，读起来像「这个改动没有影响」。
+→ 实际含义是：**没有任何用例覆盖那条兜底路径** —— 它从没被执行过。
+→ 而「从没被执行」正是它活到现在的原因。
+→ **所以这一轮真正的产出不是删了那三行，是加了两条守卫。****
+
+### 四、两条守卫，方向相反
+
+**`CredentialsAreObtainedNotInventedTests`（2 用例）：**
+
+1. **`NoCredentialIsMintedLocally`** —— 扫整个 `src`：
+   `\w*(PaymentToken|AuthToken|AccessToken|CsrfToken|SessionToken)\w*\s*=\s*[^;]*\b(Guid\.NewGuid|RandomNumberGenerator)\b`
+   一处都不许有
+2. **`TheFallbackReportsRatherThanInvends`** —— `GetPaymentTokenAsync` 必须**还在**、
+   必须**仍短路于真令牌**、且必须含「will not invent one」
+
+**→ ② 那条是防「用删除来修」：把一个**该报告缺失**的步骤删掉，
+会让缺口从「有诊断的失败」变成「不存在」。**
+
+### 五、而守卫**验过会红**（R981 立的规矩）
+
+**手动把伪造放回 1 处 → 跑 → 还原：**
+
+```
+临时把伪造放回 1 处
+失败!  - 失败: 1，通过: 1，已跳过: 0，总计: 2
+[xUnit.net 00:00:00.62] Cybersole.Tests.CredentialsAreObtainedNotInventedTests.NoCredentialIsMintedLocally [FAIL]
+exit=1
+已还原
+```
+
+### 六、数字
+
+| 度量 | R990 | R991 |
+|---|---|---|
+| 套件 | 2205 | **2207（+2 守卫）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| 伪造的支付令牌 | 1 处 | **0** |
+| **本地铸造的凭据（全 src）** | 未测 | **0** |
+
+### 七、验证
+
+```
+cd replica
+python tools/snapshot.py                       -> 321 files
+dotnet test --filter "Speed!=Slow" -m:1        -> 2222 通过 / 0 失败 / 2 跳过
+dotnet test --filter "FullyQualifiedName~CredentialsAreObtainedNotInventedTests" -m:1  -> 2 通过
+  （把伪造放回 1 处 -> 1 失败 1 通过 -> 还原 -> 2 通过）
+python tools/metrics_report.py                 -> 完整套件 exit 0  2207 通过 / 0 失败 / 0 跳过
+```
+
+### 八、仍然 Unknown
+
+- **`GetToken`（`HISTORY.md` R12 表：「16 字节 CSPRNG hex」）是不是同形第二处**：**Unknown** ——
+  这一轮的守卫**没有**扫它，因为它是随机 hex 而非 `Guid.NewGuid`，形状不同。要单独取证它签发的是什么令牌。
+
+### 九、教训
+
+**一个从没被执行过的缺陷，删掉它不会让任何用例变红 —— 而那正是它活了这么久的原因。**
+
+**所以「删掉 + 全绿」不能当成验证；验证是**加一条会红的守卫，并亲眼看它红一次**。**

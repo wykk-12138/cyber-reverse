@@ -16,6 +16,13 @@ namespace Cybersole.Stores.Flows;
 /// succeed as a no-op (the step is optional for most stores) or fail explicitly
 /// when the step is mandatory for a store that did not override it.
 /// </summary>
+// R967. StepActionRunner.Build walks typeof(StoreFlow).GetMethods, and R966 found that none of the 179 step names
+// reaches the published artifact -- so the table is built empty there and every path that runs a step by name is
+// dead in the image while working in a Debug build. This attribute is the instruction to the trimmer that the
+// reflection is deliberate: keep this type's public instance methods, names included. Without it the trimmer
+// removes what it cannot see being called, and by-name dispatch is exactly a call it cannot see.
+[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
 public abstract class StoreFlow
 {
     public abstract string Id { get; }

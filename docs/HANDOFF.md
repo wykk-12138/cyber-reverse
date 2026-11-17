@@ -1638,3 +1638,24 @@ GetCsrfAsync 从 `=> Ok()` 写成真实现（四种 token 形状 + 四个 cookie
 纪律：找出这件事的不是新工具，是换一个不依赖字符串的问法。
 
 下一轮：让派发**不依赖反射**（把 Invokers 改成编译期字面量表，或给 StoreFlow 加 [DynamicallyAccessedMembers]），然后看函数数是否跳。
+
+## R967 补充 — **步骤名 179/179 在场（UTF-8）；R966 倒掉；属性无效果**（套件 2186）
+
+① 给 `StoreFlow` 加 `[DynamicallyAccessedMembers(PublicMethods)]`：函数数 173,952 **不变**，产物 +4 KB。
+
+② **而检查本身是坏的**：补阳性对照发现 —— 反射元数据（类型名/方法名）存 **UTF-8**，
+   字符串字面量存 **UTF-16**。`StoreFlow`/`StepActionRunner`/`GetCsrfAsync` 只 UTF-8；
+   `'bstn: cart endpoint unknown'` 只 UTF-16；`Main`/`Initialize` 两编码都在；`NoSuchTypeAtAll` 都不在。
+
+→ 用 UTF-8 重查 179 个步骤名：**179 / 179 全在**（UTF-16 下 0）。
+
+→ **R966 倒掉**：`Invokers` 不是空的，「派发在 AOT 下失效」是假的。假因是我搜了 UTF-16。
+
+→ 而**阴性对照通过是最危险的地方**：它只证明「搜不到不存在的东西」，不证明「搜得到存在的东西」。
+   两者在编码不同时会分开，于是「全都不在」被读成结论而非警报。
+
+数字：套件 2186 · 函数数 173,952 · 陈旧度 0/0 · 产物 54,728 KB · 步骤名 UTF-8 179/179。
+
+纪律：检查要两向对照 —— 一个已知在、一个已知不在。
+
+下一轮：用 UTF-16 重新核对那 34 个覆写的 body 串（这次编码是对的），然后找 62.77% 缺口的新候选。

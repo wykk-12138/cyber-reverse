@@ -205,6 +205,8 @@ public static class StepActionRunner
         var map = new Dictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>>(
             StringComparer.OrdinalIgnoreCase);
 
+        // R967: GetMethods on a type annotated with DynamicallyAccessedMembers.PublicMethods is a request the trimmer
+        // understands, which is what keeps the table populated in the published image rather than only in a Debug build.
         foreach (var m in typeof(StoreFlow).GetMethods(
                      System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
         {

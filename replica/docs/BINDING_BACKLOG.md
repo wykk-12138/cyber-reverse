@@ -6879,3 +6879,32 @@ FindSlot · GetReleaseFeed · LoadCountryData · ProcessResponse · Fill · GetS
 | `Invokers` 空是不是缺口的全部原因 | 未证明 |
 
 **纪律**：找出这件事的不是新工具，是换一个不依赖字符串的问法。
+
+
+## 判据 (c) — **步骤名 179/179 在场（UTF-8）；R966 倒掉；属性无效果**（R967）
+
+### 编码
+
+**反射元数据（类型名、方法名）= **UTF-8**；字符串字面量 = **UTF-16**。**
+**阳性对照：`Main`/`Initialize` 两编码都在；`StoreFlow`/`StepActionRunner`/`GetCsrfAsync` 只 UTF-8；
+`'bstn: cart endpoint unknown'` 只 UTF-16；`NoSuchTypeAtAll` 两编码都不在。**
+
+### 结论
+
+**UTF-8 下 179 / 179 步骤名在场 → `Invokers` **不是**空的 → R966「派发在 AOT 下失效」**倒掉**。**
+
+### 属性
+
+**`[DynamicallyAccessedMembers(PublicMethods)]` 加到 `StoreFlow`：函数数不变、产物 +4 KB。
+**属性是否真的没效果 — Unknown**（检查曾经看不见它，现在看得见了但仍报 False，因方法名本来就在）。**
+
+### 数字
+
+**套件 2186 · 函数数 173,952 · 陈旧度 0/0 · 产物 54,728 KB · 步骤名 UTF-8 179/179**
+
+| 仍 Unknown | |
+|---|---|
+| 62.77% 缺口的真实位置 | R966 的候选倒了，**未找到新候选** |
+| 那 34 个覆写的 body 是否真的在产物里 | body 串是 UTF-16，需重新核对 |
+
+**纪律**：阴性对照通过只证明搜不到不存在的东西，不证明搜得到存在的东西。

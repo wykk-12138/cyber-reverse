@@ -7627,3 +7627,43 @@ core_coverage 的 27 个 store host        -> 无 bstn（goat / hbx / popmart / 
 **套件 2205（未改代码）· 陈旧度 0/0 · 函数数 173,952 · 覆写 185/真 180/占位 5 · 不在原版的站点 flow 1**
 
 **纪律**：27 个 host 与 35 个 flow 类型一直是两个数，我把它们读成了一个。
+
+
+## 判据 (f) — **store 分母 27 → 15：十二个支付/身份/表单网关被算成店**（R988）
+
+### 缺陷
+
+**`core_coverage.py` 用 `VENDOR_HINTS` 手写名单分桶，**名单之外默认 store**。
+名单只有风控厂商 + paypal/stripe/adyen/paynamics，于是十二个支付网关落进 store 桶：**
+braintreegateway · sibspayments · vipps · midtrans · gpayments · mollie · cybersource ·
+bigcommerce · touchtechpayments · airwallex · klaviyo · ibm
+
+### 修
+
+**`VENDOR_HINTS` 补上十二个标签（`riotgames` 特意不补 —— 它既是身份 host，registry 里也有 store flow）。**
+
+### 结果
+
+```
+改前: store 27, vendor 12      改后: store 15, vendor 24
+store hosts matched: 15        store hosts unmatched: 0
+```
+
+**→ 覆盖率不变（0 unmatched），分母变诚实。**
+
+### 而 METRICS 两个 vendor 数不是矛盾
+
+| 工具 | 分母 | 值 |
+|---|---|---|
+| `core_coverage.py` vendor 桶 | 支付+风控+基础设施 | 24 |
+| `vendor_coverage.py` | 风险厂商 | 12 |
+
+### 数字
+
+**套件 2205 · 陈旧度 0/0 · 函数数 173,952 · store 分母 15 / matched 15 / unmatched 0**
+
+| 仍 Unknown | |
+|---|---|
+| vendor 段 20 个 unmatched 里多少是真未实现 | 段口径不同（vendor 只搜 `Scripts/`），分不开 |
+
+**纪律**：默认规则的错只朝一个方向犯 —— 新东西被算进多数那类。

@@ -30715,3 +30715,91 @@ python tools/core_coverage.py                  -> store hosts 27, store hosts ma
 而 `core_coverage` 的 27/27 与 35 个 flow 类型**一直是两个数**，我把它们读成了一个。**
 
 **校验它只需一次 `ida.py str`。**
+
+
+---
+
+## 412. **store 分母 27 → 15：十二个支付/身份/表单网关被算成「店」**
+
+> R988。**改 `VENDOR_HINTS` 一处。** 套件 **2205 通过 / 0 失败 / 0 跳过**。
+
+### 一、缺陷成因
+
+**`core_coverage.py` 分 store / vendor 两桶，判据是 host 标签在不在手写的 `VENDOR_HINTS` 里。
+名单只有风控厂商（cloudflare / kasada / datadome / perimeterx / queue-it / recaptcha / hcaptcha /
+akamai / aycd / turnstile）加大支付三家（paypal / stripe / adyen）、eshopworld / global-e /
+vivapayments / wdprapps / disney / purpledotprice。**
+
+**→ **名单之外默认就是 store**。于是十二个落进去了：**
+
+```
+api.braintreegateway.com      api.sibspayments.com       api.vipps.no
+app.midtrans.com              degica.as1.gpayments.net   ecommerce-gateway.mollie.com
+flex.cybersource.com          payments.bigcommerce.com   retry.touchtechpayments.com
+threeds.airwallex.com         static-forms.klaviyo.com   www.ibm.com
+```
+
+### 二、改了什么
+
+**`VENDOR_HINTS` 补十二个标签：`braintree` `sibspayments` `vipps` `midtrans` `gpayments`
+`mollie` `cybersource` `bigcommerce` `touchtech` `airwallex` `klaviyo` `ibm`。**
+
+**`riotgames` 特意**没有**补：`authenticate.riotgames.com` 是身份 host，
+但 registry 里**也有**一个 `riotgames` store flow —— **移走会把这个配对藏起来，而不是修好一个标签。**
+
+### 三、结果
+
+```
+改前: hosts with a path: 39  (store 27, vendor 12)
+改后: hosts with a path: 39  (store 15, vendor 24)
+
+store hosts matched:   15
+store hosts unmatched:  0
+```
+
+**→ 覆盖率不变（0 unmatched），分母变诚实。
+→ 判据 (f) 要的是「原版**站点**清单」，不是「**主机**清单」。**
+
+### 四、而 METRICS 里两个 vendor 数字不是矛盾
+
+| 工具 | 分母 | 值 |
+|---|---|---|
+| `core_coverage.py` 的 vendor 桶 | 支付 + 风控 + 平台基础设施 host | **24** |
+| `vendor_coverage.py`（METRICS 项目读它） | **风险厂商**（cloudflare / kasada / …） | **12** |
+
+**→ 两个工具各自一致，「vendor」不是同一个概念。
+→ 若没查就当成矛盾去改，会把一个正确的工具改坏 —— R980 的同一课。**
+
+### 五、数字
+
+| 度量 | R987 | R988 |
+|---|---|---|
+| 套件 | 2205 | **2205（未动测试）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **判据 (f) store 分母** | 27 | **15** |
+| **store matched / unmatched** | 27 / 0 | **15 / 0** |
+| **core_coverage vendor 桶** | 12 | **24** |
+
+### 六、验证
+
+```
+cd replica
+python tools/core_coverage.py          -> hosts with a path: 39 (store 15, vendor 24)
+                                          store hosts matched: 15 / unmatched: 0
+python tools/metrics_report.py         -> 核心覆盖：store 宿主 exit 0 {store hosts 15, matched 15, unmatched 0}
+                                          完整套件 exit 0  2205 通过 / 0 失败 / 0 跳过
+```
+
+### 七、仍然 Unknown
+
+- **vendor 段 20 个 unmatched 里多少是真未实现**：**Unknown** —— store 段搜整个 `src`，
+  vendor 段只搜 `Scripts/`，两段口径不同，输出里没写这一点，所以那个数读不出覆盖率。
+
+### 八、教训
+
+**「名单之外的默认是 store」是一条**默认规则**，而默认规则的错永远朝一个方向犯：
+新东西被算进多数那一类，于是没人看得见。**
+
+**十二个支付网关在「27 个店」里待了很多轮，而它们每一个输出行都写着 `matched` ——
+一个错的分母会让每一行都看起来是对的。**

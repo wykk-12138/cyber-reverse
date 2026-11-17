@@ -2104,3 +2104,25 @@ METRICS 五行：`mutation-fit: total 36 / fired 36 / decorative 0 / skipped 0 /
 纪律：**27 个 host 与 35 个 flow 类型一直是两个数，我把它们读成了一个。**
 
 下一轮：按 R986 的守卫继续 —— 或者核其余 34 个 flow 与 27 个 host 的对应关系（35 vs 27 的差是 8）。
+
+## R988 补充 — **store 分母 27 → 15：十二个支付网关被算成「店」**（套件 2205）
+
+`core_coverage.py` 用 `VENDOR_HINTS` 手写名单分 store/vendor，**名单之外默认 store**。
+而名单只有风控厂商 + paypal/stripe/adyen/paynamics，于是十二个落进 store 桶：
+braintreegateway · sibspayments · vipps · midtrans · gpayments · mollie · cybersource ·
+bigcommerce · touchtechpayments · airwallex · klaviyo · ibm。
+
+补齐之后：**store 27 → 15，vendor 12 → 24，store matched 15 / unmatched 0**。
+→ 覆盖率不变，**分母变诚实**。判据 (f) 要的是「原版站点清单」，不是「主机清单」。
+
+`riotgames` 特意没补：`authenticate.riotgames.com` 是身份 host，但 registry 里**也有** riotgames store flow，
+移走会藏起那个配对。
+
+**METRICS 的两个 vendor 数不是矛盾**：`core_coverage` 的 vendor 桶（支付+风控+基础设施）= 24，
+`vendor_coverage.py` 的风险厂商 = 12。两个工具各自一致，「vendor」不是同一概念 —— 没查就当成矛盾改，会改坏它。
+
+数字：套件 2205 · 陈旧度 0/0 · 函数数 173,952 · store 分母 15 / matched 15 / unmatched 0。
+
+纪律：**默认规则的错只朝一个方向犯 —— 新东西被算进多数那类，于是没人看得见。**
+
+下一轮：给「store 桶里不许出现支付标签」加一条守卫；并核 vendor 段口径（只搜 `Scripts/`）那个 Unknown。

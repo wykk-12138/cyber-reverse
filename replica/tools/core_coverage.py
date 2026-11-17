@@ -38,6 +38,18 @@ VENDOR_HINTS = (
     # /api/v1/products/preorder-state?api_key=...&handle= -- so the host asks a vendor whether a product is on
     # preorder rather than serving a store of its own.
     "purpledotprice", "purpledot",
+    # R988: the list above was written from the risk vendors and the three big payment providers, and stopped there. Every
+    # other payment, identity and form host therefore fell into the "store" bucket by default, because the split is a
+    # label test and an unlisted label is a store. That made the store count 27 when twelve of those hosts sell nothing:
+    # braintree, sibspayments, vipps, midtrans, gpayments, mollie, cybersource, bigcommerce, touchtechpayments,
+    # airwallex and klaviyo. Criterion (f) asks for the original's *store* list, so a denominator padded with payment
+    # gateways makes the coverage figure describe something other than what it says.
+    "braintree", "sibspayments", "vipps", "midtrans", "gpayments", "mollie", "cybersource",
+    "bigcommerce", "touchtech", "airwallex", "klaviyo",
+    # www.ibm.com appears once and serves an asset, not a catalogue; it is named here rather than left to inflate the
+    # store count by one. riotgames is deliberately NOT added: authenticate.riotgames.com is an identity host, but the
+    # registry also carries a riotgames store flow, and moving the host would hide that pairing rather than fix a label.
+    "ibm",
 )
 
 # second-level labels that carry no identity

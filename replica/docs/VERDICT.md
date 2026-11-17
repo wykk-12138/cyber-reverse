@@ -58655,3 +58655,66 @@ ida.py str bstn.com  -> 0
 > **R986 我把「复刻件的 35 个 flow」默认成了「原版那些站」。
 > `core_coverage` 的 27/27 与 35 个 flow 类型一直是两个数，而我把它们读成了一个。
 > 校验它只需一次 `ida.py str`。**
+
+
+---
+
+## 第 988 轮：判据 (f) 的 store 分母虚高 12 —— 十二个支付网关被算成「店」
+
+### ① 分类靠一份手写名单，而名单不完整
+
+**`core_coverage.py` 分 store / vendor 两桶，判据是标签在不在 `VENDOR_HINTS` 里。
+而那份名单是从**风控厂商**加**三个大支付**写的（cloudflare … adyen … purpledot）。**
+
+> **名单之外**默认就是 store** —— 因为判据是「有没有被列进 vendor」。
+> 于是十二个支付/身份/表单网关全被算成「店」：
+> braintreegateway · sibspayments · vipps · midtrans · gpayments · mollie ·
+> cybersource · bigcommerce · touchtechpayments · airwallex · klaviyo · ibm。**
+
+### ② 补上之后
+
+```
+改前: store 27, vendor 12
+改后: store 15, vendor 24
+store hosts matched: 15    store hosts unmatched: 0
+```
+
+> **分母小了十二，分子一个没少 —— 覆盖率没变，**诚实度变了**。
+> 判据 (f) 要的是「原版**站点**清单」，不是「**主机**清单」。**
+
+### ③ 特意没动的一个
+
+**`authenticate.riotgames.com` 留在 store 桶** —— 它是身份 host，但 registry 里**也有** `riotgames` store flow。
+**移走会藏起那个配对，而不是修好一个标签。**
+
+### ④ 而 METRICS 里两个 vendor 数字不是矛盾
+
+| 工具 | 分母 | 值 |
+|---|---|---|
+| `core_coverage.py` vendor 桶 | 支付 + 风控 + 基础设施 host | **24** |
+| `vendor_coverage.py`（METRICS 读） | 风险厂商 | **12** |
+
+> **两个工具各自一致，而「vendor」不是同一个概念。
+> 如果没查就当成矛盾去改，会把一个正确的工具改坏（R980 同一课）。**
+
+### ⑤ 仍然敞着的
+
+**vendor 段只搜 `Scripts/`，store 段搜整个 `src` —— 两段口径不同，输出没写。
+所以 24 个里 20 个 `unmatched` 不能读出任何覆盖率结论。记 Unknown。**
+
+### 数字
+
+| 度量 | R987 | **R988** |
+|---|---|---|
+| 套件 | 2205 | **2205（未动测试）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **judge (f) store 分母** | 27 | **15** |
+| **store matched / unmatched** | 27 / 0 | **15 / 0** |
+| **core_coverage vendor 桶** | 12 | **24** |
+
+### 教训
+
+> **默认规则的错永远朝一个方向犯：新东西被算进多数那一类，于是没人看得见。
+> 十二个支付网关在「27 个店」里待了很多轮，而它们每一行都写着 `matched` ——
+> 一个错的分母会让每一行都看起来是对的。**

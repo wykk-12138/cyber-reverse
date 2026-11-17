@@ -42,6 +42,40 @@
 
 ---
 
+## 2.5 怎么查「谁用了这个字符串」（本轮推翻 R1044 的一半）
+
+R1044 记的结论是「池字符串 xref 恒为 0」。**那条只对字符数据成立。**
+
+NativeAOT 的字符串字面量布局是：
+
+```
+[ MethodTable*  8 ][ length  4 ][ UTF-16 chars … ]
+  ↑ 对象头 = chars - 12
+```
+
+`ida.py str` 返回的是 **chars 的起始地址**，所以对它查 xref 永远是 0。
+**把地址减 12 再查 xref，就能找到使用它的代码。**
+
+实测（本轮）：
+
+```
+str 得到 https://kasada.hypersolutions.co/botid  @ 0x14706ebfc
+xrefs 0x14706ebfc                → 0（chars）
+xrefs 0x14706ebf0（= -12）       → 1 → 代码 0x14111cc16，函数 sub_14111CB10（0x294 字节）
+```
+
+反编译那个函数，就拿到了 HyperSolutions 请求的**全部头名**（04 §2.6）。
+
+同一手法可解出任意字符串对象的引用。**要点**：
+
+- `&off_XXXX` 这种操作数**本身就是对象头**，不需要二次解引用；
+- 读字符：`length = get_dword(obj+8)`，`chars = get_bytes(obj+12, length*2)` 按 UTF-16LE 解；
+- `0x14111CB10` 与 `0x1411483E0` **大小都是 0x294** —— 同尺寸的兄弟函数通常只差一两个常量，
+  找到第一个就别只反编译它。
+
+
+---
+
 ## 3. 命令总表（按结论分组）
 
 ```powershell

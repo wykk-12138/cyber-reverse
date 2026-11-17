@@ -67,7 +67,8 @@
 | E5 | `IKasadaSolver` / `KasadaSolveRequest` / `KasadaSolveResult` | `0x1433216f6` / `0x1433218dc` / `0x143321733` | 04 §1 | ✅ |
 | E6 | `KasadaCdSolver`（服务通道上的 cd 实现） | `0x143321dfa` | 04 §1 · 08 §5 | ✅ |
 | E7 | 同一服务商的另两个端点（Akamai / TrustDecision）—— **用于划边界** | `akm.hypersolutions.co/{pixel,sbsd,v2/sensor}` · `trustdecision.hypersolutions.co/{decode,payload,sign}` | 07 §2.1 | ✅ |
-| E8 | **`/botid` 与 `/payload` 的请求/响应 JSON 形状** | 无 | — | **Unk**：只有 URL 与字段名，没有 body 结构 |
+| E8 | **`/payload` 与 `/botid` 的请求形状** | 反编译 `sub_14111CB10`（botid）/ `sub_1411483E0`（payload），见 04 §2.6：`POST` + `X-Type: kasada` + `X-Upstream-{Url,Method,Headers}` + `X-User-Id` + `X-Client-Version` + `content-encoding: zstd`；200/401/403 三档 | 04 §2.6 | ✅ |
+| E8b | `/payload` 的状态文案 = **`Getting Kasada (1)`** ⇒ `Getting Kasada (n)` 就是打这个端点 | `0x146da1778`（`/botid` 那条是 `0x146da1588` = `Getting BotID`） | 04 §2.6 | ✅ |
 | E9 | protobuf 的 solver 指令协议（`stage` / `ReceiveHeaders` / `target`） | 字段表 `0x143459xxx` · base64 样本池 `0x06f96c3c` | 04 §2 | 🟡（Inf） |
 | E10 | `BotID` 族（`BotIdHandler` / `Getting BotID` / `BotID API down (Contact staff)`） | `0x143330b4e` · `0x146da1594` · `0x146b609ac` | — | ⬜ **待挖**：是不是 Kasada 的 botid，还是通用能力 |
 

@@ -87,14 +87,76 @@ Base64 解出来头部是：
 
 1. **`Kasada API down (Contact staff)` 里的 "API" 就是这两个端点** ——
    "Contact staff" 是给运营看的：服务挂了得找服务商，客户端无解。这解释了为什么它是 `Contact staff` 而不是"重试"。
-2. **`KasadaCdSolver` 大概率就是"走 `/payload` 的那个"**（[Inf]）—— 名字里的 cd 对应 `x-kpsdk-cd`，
-   而 `/payload` 正是收 payload 的端点。`/botid` 应该对应 `ct`/身份侧。
-3 **[Unk] 请求体形状没有** —— 只有 URL 与字段名 `kasadaRequest`，没有 body 结构。
-   要拿到得反编译 `HyperSolutionsSolver` 的调用点。
+2. **`KasadaCdSolver` 就是走 `/payload` 的那个**（已由状态文案坐实，见 §2.6）。
+3. **[Unk] 已消**：请求形状已在 §2.6 解出。
 
 > **别把两种 host 混了**：`https:///ips.js?&x-kpsdk`（空 host，**店铺**提供脚本）与
 > `https://kasada.hypersolutions.co/*`（**服务商**的 solver 端点）是两件完全不同的事。
 > 01 §2.1 的"host 是空占位"只对前者成立。
+
+---
+
+## 2.6 协议解出来了：HyperSolutions 是**代理式转发**（[Obs]，本轮）
+
+两条 URL 各自被一个函数构造请求，两个函数大小都是 `0x294`，结构逐行相同，只有两处不同：
+
+| 函数 | 端点 | 状态文案 |
+|---|---|---|
+| `sub_14111CB10` | `https://kasada.hypersolutions.co/botid` | `Getting BotID` |
+| `sub_1411483E0` | `https://kasada.hypersolutions.co/payload` | **`Getting Kasada (1)`** |
+
+**第二个是决定性的**：`Getting Kasada (1)` 正是 05 §4 里"api 第 1 次尝试"的文案 ——
+所以 **`Getting Kasada (n)` 就是在打 `/payload`**，`KasadaCdSolver` 的身份至此确定。
+
+### 2.6.1 请求形状（逐字，从伪代码的字段写入还原）
+
+```http
+POST https://kasada.hypersolutions.co/payload
+content-encoding: zstd
+X-Type:            kasada
+X-Upstream-Url:    <店铺自己的 Kasada 端点，例如 https://www.nike.com/<id>/fp?x-kpsdk-v=…>
+X-Upstream-Method: <上游方法名>
+X-Upstream-Headers: <上游请求头的 JSON>
+X-User-Id:         <license / 账号 id>
+X-Client-Version:  <客户端版本>
+```
+
+| 头 | 证据（String 对象地址） |
+|---|---|
+| `X-Upstream-Url` | `0x146f2e098` |
+| `X-Upstream-Method` | `0x146f2e060` |
+| `X-Upstream-Headers` | `0x146f2e020` |
+| `X-Type` = `kasada` | `0x146f2dfc0` · 值 `0x1470ae4b8` |
+| `X-User-Id` | `0x146f2e0d0` |
+| `X-Client-Version` | `0x146f2d8b8` |
+| `content-encoding` = `zstd` | `0x146fd6628` · 值 `0x14718f7c8` |
+| 方法 `POST` | `0x146e34db8` |
+| 响应字段 `StatusInfo` | `0x146e9b830` |
+
+### 2.6.2 响应与状态码
+
+伪代码里注册了三个状态码处理器：
+
+```
+200  → 正常路径，读 StatusInfo
+401  → 鉴权失败（Key 无效）
+403  → 鉴权失败（Key 过期 / 无权限）
+```
+
+**[Inf]** `401` 与 `403` 分开注册，说明服务商对"没这个 key"和"key 不能做这件事"给了不同的码 ——
+自建同类服务时照抄这个区分，客户端才能给出不同提示（换 key vs 充值）。
+
+### 2.6.3 这套协议的性质：**代理式转发**
+
+`X-Upstream-Url` / `X-Upstream-Method` / `X-Upstream-Headers` 三件套的含义很清楚：
+**客户端把"要访问哪个 Kasada 端点、用什么方法、带什么头"打包发给服务商，服务商替它去请求，再把结果压回来。**
+
+这解释了为什么：
+- 客户端不需要知道 Kasada 的加密细节（服务商算）；
+- 但客户端**必须**知道店铺的 script id 与版本（那是 `X-Upstream-Url` 的一部分）；
+- 响应是 `zstd` 压缩（Kasada 的 payload 本身很大，一百多 KB 起）。
+
+**代价**：每次解题都要一次网络往返，且服务商能看到你的所有目标 URL —— 这也解释了为什么它是**旁路**而不是默认路。
 
 ---
 

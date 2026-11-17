@@ -9376,3 +9376,42 @@ Sent (10)  ·  DocumentedOnly (7)  ·  SentCeiling = 10
 | 12 条里几条两边都没登记 | 需逐条对表 |
 
 **纪律**：工具输出的 `baseline` 不等于仓的验收标准 —— 后者可能在测试文件里。
+
+
+## 判据 (f) — **账差 6 个路径；而补账脚本用 `//` 找注释边界把 URL 劈开（已回滚）**（R1032）
+
+### 6 个真正没有账的路径
+
+```
+/api/ff-products/v1/products/{pid}/     Farfetch
+/api/basket/v1/                         Farfetch（DocOnly 只有 /api/basket/v1/items）
+/api/checkout/v1/basket/{id}/payment    Farfetch
+api.nike.com/buy/carts/v2/...           Nike
+/discount/                              StoreFlow
+/api/payments/                          StoreFlow
+```
+
+**另外 3 类（5 处出现）已登记，被误算进「12」。**
+**→ `SentCeiling = 10` 是**账的记录**不是预算；调 16 是把已存在的债务记上，不是放宽。**
+
+### 两个前置条件（机械的，必须先写下）
+
+| 条件 | 原因 |
+|---|---|
+| 补标注不能用 `if "//" in line` | `https://` 里的 `//` 会被当注释起点，劈开 URL |
+| 账要写**真实**字面量 | 工具显示截断成 `{...}`；要 grep 原文 |
+
+### 而同轮两次回滚都是守卫救的
+
+`EveryUnbackedEndpointIsStillInItsFile` 两次报 `the path is gone` —— 一次因 URL 被劈，一次因抄了截断。
+
+### 数字
+
+**套件 2243/0/0（已回滚）· 陈旧度 5 / 4,199 · 函数数 174,336 · 未登记 12（6 路径）· 真缺口 6 ·
+误算 3 类 · 净改动 0**
+
+| 仍 Unknown | |
+|---|---|
+| 那 6 条是否该继续发（还是像 Nike 那样改报告） | 需先记账再判 |
+
+**纪律**：动手前先问 —— 我用来切分的那个符号，在被切的东西里会不会合法地出现。

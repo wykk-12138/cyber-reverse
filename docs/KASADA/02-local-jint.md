@@ -29,6 +29,67 @@
 
 ---
 
+## 1.5 原版自己的流程骨架（[Obs]，本轮从伪代码读出）
+
+这不是推理了 —— 是 `sub_1408F28B0`（一个 async 状态机）的伪代码顺序：
+
+```c
+// ① 响应头里已经带了 ct？
+if (hasHeaders(resp, &off_1471881C8 /* x-kpsdk-ct */))
+    rec[11] = readHeader(resp, &off_1471881C8);        // 有就直接用
+else
+{
+    // ② 没有 —— 从页面 HTML 里把脚本找出来
+    doc  = this.field16.field16;                        // 已拿到的文档
+    sel  = get(doc,  &off_147153CA8);                   //  'script[src*='ips.js']'
+    src  = get(sel,  &off_1471620F8);                   //  'src'
+    ua   = get(request, &off_1471795D0);                //  'user-agent'
+    // ③ 带着 UA 去算（异步，结果回填 rec）
+    awaiter = sub_1408EFAB0(rec, /*a2*/ 0, ua, 0, 1);
+}
+```
+
+三个字符串全部解出（对象头即 `off_XXX` 本身）：
+
+| 操作数 | 字符串 |
+|---|---|
+| `off_147153CA8` | **`script[src*='ips.js']`** |
+| `off_1471620F8` | `src` |
+| `off_1471795D0` | **`user-agent`** |
+| `off_14710E630` | `payload` |
+| `off_146DDA8A8` | `Kasada`（显示名；小写 `kasada` 是另一个常量） |
+
+**两条由此升级的证据**：
+
+1. **01 §2.3 的「从 HTML 里找脚本」从 [Inf] 升成 [Obs]** —— 原版用的就是这个 CSS 选择器，
+   连选择器形态都抄到了（`script[src*='ips.js']`，子串匹配，不要求精确路径）。
+2. **`user-agent` 是算 token 的输入之一** —— 01 §3.1 里"token 与 UA 绑定"从 [Inf] 升成 [Obs]。
+   移植时这条不能省：换 UA 而不重算，等于告诉 Kasada 这是一次不可能的组合。
+
+### 1.5.1 `Reset` 与记录槽位（[Obs]）
+
+`sub_1408EF930` 就是 `Reset`：注册一个新对象，然后清空六个槽位 ——
+
+```c
+a1[7]  = 0;   a1[11] = 0;   // 11 = x-kpsdk-ct
+a1[13] = 0;   a1[14] = 0;
+a1[15] = 0;   a1[16] = 0;   // 15 = x-kpsdk-h, 16 = x-kpsdk-cd
+```
+
+**槽位表**（与 08 §9.1 的设头函数一致）：
+
+| 槽位 | 头 |
+|---|---|
+| `rec[7]` | （未定） |
+| `rec[11]` | `x-kpsdk-ct` |
+| `rec[13]` / `rec[14]` | （未定） |
+| `rec[15]` | `x-kpsdk-h` |
+| `rec[16]` | **`x-kpsdk-cd`** |
+
+`Reset` 一次清掉全部 —— 说明这六个是"一次握手的整体"，不能部分复用。
+
+---
+
 ## 2. 为什么这条路能撑 100 个任务并发
 
 | | Jint | Chromium（DotNetBrowser / CDP） |

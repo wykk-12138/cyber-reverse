@@ -378,6 +378,12 @@ public abstract class StoreFlow
         var headers = c.Session.Vars.TryGetValue("server", out var server) ? server : string.Empty;
 
         var vendor =
+            // R1019: cf-chl is in the image zero times, and it was the first test in this chain. The image does carry
+            // challenge-platform twice (Cloudflare's /cdn-cgi/challenge-platform/ path, which is page-level) and
+            // cf_clearance twice and __cf_bm once -- but those last two are cookie names, and this reads a response
+            // body, so the marker has to be the path. cf-chl stays as a fallback because an interstitial served by
+            // another edge may still spell it that way.
+            body.Contains("challenge-platform", StringComparison.OrdinalIgnoreCase) ? "cloudflare" :
             body.Contains("cf-chl", StringComparison.OrdinalIgnoreCase) ? "cloudflare" :
             body.Contains("kpsdk", StringComparison.OrdinalIgnoreCase) ? "kasada" :
             body.Contains("_Incapsula_Resource", StringComparison.OrdinalIgnoreCase) ? "imperva" :

@@ -110,7 +110,10 @@ public sealed class VendorWiringTests
             .Select(r => r.Vendor)
             .ToList();
 
-        Assert.Equal(new[] { "cloudflare", "imperva", "perimeterx" }, inferred);
+        // R1019 moved cloudflare out of this set: cf-chl is in the image zero times, while challenge-platform is
+        // there twice as /cdn-cgi/challenge-platform/. That is what "re-run the probe and find something there"
+        // looks like, which is the condition this paragraph sets.
+        Assert.Equal(new[] { "imperva", "perimeterx" }, inferred);
 
         foreach (var row in VendorWiring.Rows)
             _out.WriteLine($"{row.Vendor,-12} {row.MarkerFrom,-14} {row.Marker}");

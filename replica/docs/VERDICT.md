@@ -60795,3 +60795,72 @@ body.Contains("px-captcha", ...) ? "perimeterx" :
 > **→ 而派出这个错误只需要一个它没做的动作：问「这个 host 是**谁**的」。**
 > **→ 而 `DdInterstitialClient` 就紧挨在那四个地址旁边的那个查询里 —— 它出现在我的输出里，
 > 而我第一遍读的时候只看了那四条 URL。**
+
+
+---
+
+## 第 1019 轮：六个 vendor 的 marker 一次问完 —— 而第一个就是自造的
+
+### ① 台账（19 个拼写，全部问 IDB）
+
+| vendor | 拼写 | n |
+|---|---|---|
+| **cloudflare** | **`cf-chl`** | **0** |
+| | `cf_clearance` · `cloudflare` · `__cf_bm` · `challenge-platform` | 2 · 40 · 1 · **2** |
+| kasada | `kpsdk` · `x-kpsdk-ct/cd/st` · `kasada` | 17 · 1/1/1 · 40 |
+| **imperva** | 6 拼写 | **全 0** |
+| datadome | `datadome` · `geo.captcha-delivery.com` | 15 · 4 |
+| **perimeterx** | **`px-captcha`** | **0** |
+| | `_px3` · `_pxvid` · `PerimeterX-Token` · `PerimeterXHandler` | 1 · 2 · 1 · 1 |
+| queue-it | `queue-it` · `queue-it-set-cookie` · `queueit` | 13 · 1 · 24 |
+
+### ② 而 **`cf-chl` 是 0**，而它是 `DetectAsync` 的**第一个**分支
+
+**→ 检测链条的**第一个**判断用的就是自造串。
+→ 镜像里有 `challenge-platform` 两处（`/cdn-cgi/challenge-platform/`，**页面级**）；
+  `cf_clearance` 与 `__cf_bm` 是 **cookie 名**，而 `DetectAsync` 读的是**响应体**。
+→ 所以正确的页面级 marker 是 `challenge-platform`。**
+
+### ③ 改了什么
+
+```csharp
+body.Contains("challenge-platform", ...) ? "cloudflare" :
+body.Contains("cf-chl", ...) ? "cloudflare" :          // 降为后备
+```
+
+**→ `VendorWiring` cloudflare 行：marker 改 `challenge-platform`，`MarkerFrom` `Inferred` → **`ImageLiteral`**。**
+
+### ④ 而守卫**抓住了**我
+
+**`TheMarkerColumnSaysWhereEachMarkerCameFrom` 钉着 `Inferred == {cloudflare, imperva, perimeterx}`，
+改完就红了 —— 那正是它的设计（注释写着「Changing it means re-run the probe and find something there」）。
+→ 我做了那件事（`challenge-platform` n=2），集合改成 `{imperva, perimeterx}`，理由写进注释。**
+
+**→ 现在 `Inferred` = 2，`ImageLiteral` = 4。**
+
+### ⑤ 而两个 `Inferred` 的性质不同
+
+| vendor | marker | 镜像 | 性质 |
+|---|---|---|---|
+| **imperva** | `_Incapsula_Resource` | **0**（6 拼写全 0） | **整站风控不在镜像里** |
+| **perimeterx** | `px-captcha` | **0** | **只有 cookie 名，无页面级 marker** |
+
+**→ 那个区别现在只在注释里，台账里看不出来 —— 下一轮该把它变成字段或第二张表。**
+
+### ⑥ 数字
+
+| 度量 | R1018 | **R1019** |
+|---|---|---|
+| 套件 | 2222 / 0 | **2222 / 0 / 0** |
+| 产物陈旧度 | 3 / 3,522 | **3 / 3,531** |
+| 函数数 | 174,336 | **174,336** |
+| **已验证的 marker 拼写** | 6 | **19** |
+| **`Inferred` 数** | 3 | **2** |
+| **检测链第一个串** | `cf-chl`（0） | **`challenge-platform`（2）** |
+
+### 教训
+
+> **R1018 花三轮才发现一个归属错，形状是「自造串」。这一轮把「自造串」当问题一次问完，第一个分支就中。
+> → 那个错从 R140 起就在那里 —— 因为 `cf-chl` 读起来太像真东西（所有 Cloudflare 文档都那么写），
+> 而它确实**曾经**是。**
+> **→ 「看起来对」是这类错误的唯一保护色，而唯一的解法是把每个串都问一遍镜像。**

@@ -2799,3 +2799,29 @@ if "{" in value or value.endswith("/"):
 而 `DdInterstitialClient` 就在我自己的输出里，我第一遍只看了那四条 URL。
 
 下一轮：perimeterx 的页面级 marker（镜像只有 cookie 名）；或继续 ② 的 imperva（7 种拼写全 0，已确证不在）。
+
+## R1019 补充 — **六个 vendor 的 19 个 marker 拼写全问完：`cf-chl` 0 命中而它是检测链第一个分支**（套件 2222）
+
+**台账要点**：
+- **cloudflare**：`cf-chl` **0** · `cf_clearance` 2 · `cloudflare` 40 · `__cf_bm` 1 · `challenge-platform` **2**
+- kasada：`kpsdk` 17 · `x-kpsdk-ct/cd/st` 各 1 · `kasada` 40
+- **imperva**：6 拼写**全 0**（确证不在镜像里）
+- datadome：`datadome` 15 · `geo.captcha-delivery.com` 4
+- **perimeterx**：`px-captcha` **0** · `_px3` 1 · `_pxvid` 2 · `PerimeterX-Token` 1 · `PerimeterXHandler` 1
+- queue-it：`queue-it` 13 · `queue-it-set-cookie` 1 · `queueit` 24
+
+**修**：`DetectAsync` 第一分支 `cf-chl`（0）→ **`challenge-platform`（2，页面级）**，`cf-chl` 降后备。
+→ `cf_clearance`/`__cf_bm` 是 **cookie 名**，不进响应体检测。
+→ `VendorWiring` cloudflare 行 `MarkerFrom` `Inferred` → **`ImageLiteral`**。
+
+**守卫抓住了我**：`TheMarkerColumnSaysWhereEachMarkerCameFrom` 钉 `Inferred == {cloudflare, imperva, perimeterx}`，
+改完红了。按它的注释重跑 probe 后改为 `{imperva, perimeterx}`。**现在 Inferred 2 / ImageLiteral 4。**
+
+**两个 Inferred 性质不同**：imperva = 厂商不在镜像里；perimeterx = 厂商在但没有页面级 marker。
+→ 那个区别只在注释里 ⇒ **下一轮该变成字段或第二张表。**
+
+数字：套件 2222/0/0 · 陈旧度 3 / 3,531 · 函数数 174,336 · 已验证拼写 6 → 19 · Inferred 3 → 2。
+
+纪律：**「看起来对」是自造串的唯一保护色 —— 解法是把每个串都问一遍镜像。**
+
+下一轮：把那两个 Inferred 的**不同原因**变成结构（字段或第二张表）。

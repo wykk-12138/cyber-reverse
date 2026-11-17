@@ -88,9 +88,12 @@ public static class VendorWiring
     /// <summary>The audit, in the order <c>DetectAsync</c> tests its markers.</summary>
     public static readonly IReadOnlyList<Row> Rows = new[]
     {
-        new Row("cloudflare", "cf-chl / server: cloudflare", "cf_clearance", State.Wired,
-            "R140: CloudflareClearance runs the service→in-bot ladder and writes the cookie",
-            MarkerSource.Inferred),
+        new Row("cloudflare", "challenge-platform", "cf_clearance", State.Wired,
+            "R140: CloudflareClearance runs the service→in-bot ladder and writes the cookie. R1019 moved the marker "
+            + "from cf-chl, which the image does not contain, to challenge-platform, which it carries twice as "
+            + "/cdn-cgi/challenge-platform/ -- page-level, which is what DetectAsync reads. cf_clearance and __cf_bm "
+            + "are in the image too but are cookie names, so they belong in the cookie column where cf_clearance sits.",
+            MarkerSource.ImageLiteral),
 
         new Row("kasada", "kpsdk", "kpsdk", State.Wired,
             "R141: KasadaClearance runs the four-road strategy and writes the token",

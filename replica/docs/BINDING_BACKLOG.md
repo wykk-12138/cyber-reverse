@@ -8823,3 +8823,46 @@ px-captcha       n=0
 | perimeterx 的页面级 marker | 镜像无（只有 cookie 名） |
 
 **纪律**：一条 claim 可以逐字成立而结论是错的 —— 派出错误只需要问「这个 host 是谁的」。
+
+
+## 优先级 ② — **六个 vendor 的 19 个 marker 拼写全问完：`cf-chl` 0 命中而它是检测链第一个分支**（R1019）
+
+### 台账
+
+| vendor | 有据 | 无据 |
+|---|---|---|
+| cloudflare | `cf_clearance` 2 · `cloudflare` 40 · `__cf_bm` 1 · `challenge-platform` **2** | **`cf-chl` 0** |
+| kasada | `kpsdk` 17 · `x-kpsdk-ct/cd/st` 各 1 · `kasada` 40 | — |
+| imperva | **无** | 6 拼写全 0 |
+| datadome | `datadome` 15 · `geo.captcha-delivery.com` 4 | `dd_cookie` · `datadome-sensor` 0 |
+| perimeterx | `_px3` 1 · `_pxvid` 2 · `PerimeterX-Token` 1 · `PerimeterXHandler` 1 | `px-captcha` 0 · `px-ct` 0 |
+| queue-it | `queue-it` 13 · `queue-it-set-cookie` 1 · `queueit` 24 | — |
+
+### 修
+
+**`DetectAsync` 第一分支 `cf-chl`（0）→ `challenge-platform`（2，页面级）；`cf-chl` 降为后备。
+`VendorWiring` cloudflare 行 `MarkerFrom` `Inferred` → `ImageLiteral`。**
+**→ `cf_clearance` / `__cf_bm` 是 cookie 名，不进响应体检测（`cf_clearance` 本就在 cookie 列）。**
+
+### 守卫抓住了我
+
+**`TheMarkerColumnSaysWhereEachMarkerCameFrom` 钉 `Inferred == {cloudflare, imperva, perimeterx}`，改完红了。**
+**→ 按它的注释重跑 probe（`challenge-platform` n=2）后改为 `{imperva, perimeterx}`。**
+
+### 两个 Inferred 性质不同
+
+- **imperva**：6 拼写全 0 ⇒ **整站风控不在镜像里**
+- **perimeterx**：`px-captcha` 0，而 cookie 名 4 条有 ⇒ **厂商在，但没有页面级 marker**
+
+**→ 那个区别只在注释里 ⇒ 下一轮该变成字段或第二张表。**
+
+### 数字
+
+**套件 2222/0/0 · 陈旧度 3 / 3,531 · 函数数 174,336 · 已验证拼写 6 → 19 · Inferred 3 → 2 · 链首串 `cf-chl`(0) → `challenge-platform`(2)**
+
+| 仍 Unknown | |
+|---|---|
+| perimeterx 的页面级 marker | 镜像无 |
+| imperva 是否真被原版处理 | 无任何字面量 |
+
+**纪律**：「看起来对」是自造串的唯一保护色 —— 解法是把每个串都问一遍镜像。

@@ -4883,3 +4883,40 @@ python analysis/ida.py str "Solving PayPal 3DS" --limit 4     ← **我传了 4*
 | `n` 键歧义 | 未识别 | **识别，下一轮一行** |
 
 **纪律**：「写下来」不保证「不再犯」；把接口改成读不错的，才保证。
+
+## R1075 —— **把 `n` 的歧义修掉：`returned` / `saturated` / `total` 三个键，三条命令验过**
+
+### 改了什么
+
+`analysis/ida.py str` 不再把插件的 `n` 原样透出（`n` 是**返回条数**，R1067 已查明）。
+现在报四个键：
+
+| 键 | 含义 |
+|---|---|
+| `returned` | 实际回来的条数 |
+| `limit` | 本次上限 |
+| `saturated` | 撞没撞上限 —— **为 true 时这个数不能当总数** |
+| `total` | 未饱和时是真总数；饱和时是 `at least N (saturated -- raise --limit)` |
+
+`n` 保留，向后兼容。**改的是接口，不是备忘录** —— 前五次「写下来」都没挡住下一次误读
+（R816 → R764 → R1054 → R1067 → R1073/74）。
+
+### 验证（IDA 就绪：`status: ok` · `hexrays_ready: true` · `strings_cache_size: 324895`）
+
+```powershell
+python analysis/ida.py str kpsdk --limit 4
+→ returned: 4 · saturated: true · total: "at least 4 (saturated -- raise --limit)"   ✅ 预期饱和
+python analysis/ida.py str kpsdk --limit 500
+→ returned: 17 · saturated: false · total: 17                                        ✅ 对上 R1044/R1053/R1073 的 17
+python analysis/ida.py str "Solving PayPal 3DS" --limit 600
+→ returned: 9 · saturated: false · total: 9                                          ✅ 对上 R1053 的 9
+```
+
+三条全过 ⇒ 提交（连同 `analysis/record_r1074.py` 的删除）。
+
+### 数字
+
+**各项度量均未变** —— 本轮只改了一个只读工具的**输出形状**，没碰复刻件源码，
+`docs/METRICS.md` 不需要重跑。
+
+**纪律**：一个数能被引用，前提是接口能说清它是「全量」还是「撞了上限」。

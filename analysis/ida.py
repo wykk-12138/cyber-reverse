@@ -72,7 +72,23 @@ def main(argv):
         limit = 40
         if '--limit' in rest:
             limit = int(rest[rest.index('--limit') + 1])
-        print(call('find_regex', {'pattern': rest[0], 'limit': limit}))
+        # R1075: the plugin answers with a key called `n`, which is how many strings came BACK, not how many matched.
+        # R1067 established that by sweeping the limit, and R1073 then read a limit of 4 as a total of 4 anyway --
+        # the fifth time here that a sample was read as a census. Writing it down did not stop it, so the interface is
+        # fixed instead: `returned` says what arrived, `saturated` says whether the cap was hit, and `total` is a real
+        # total only when the reply is unsaturated. A saturated result cannot be quoted as a count.
+        raw = call('find_regex', {'pattern': rest[0], 'limit': limit})
+        try:
+            obj = json.loads(raw)
+            hits = obj.get('matches') or []
+            obj['returned'] = len(hits)
+            obj['limit'] = limit
+            obj['saturated'] = len(hits) >= limit
+            obj['total'] = len(hits) if len(hits) < limit else 'at least %d (saturated -- raise --limit)' % len(hits)
+            obj['n'] = obj.get('n', len(hits))
+            print(json.dumps(obj))
+        except Exception:
+            print(raw)
     elif cmd == 'call':
         # generic passthrough: python analysis/ida.py call <tool> '<json args>'
         print(call(rest[0], json.loads(rest[1]) if len(rest) > 1 else {}))

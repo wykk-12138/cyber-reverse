@@ -8205,3 +8205,46 @@ Getting / Initialising / Solving / Submitting DataDome
 **套件 2214 · 陈旧度 0/0 · 函数数 174,336 · 主 host IN 11 · 次 host 全无 7 · 整个不在 2**
 
 **纪律**：「进了产物」要说到类、方法、还是那一行 —— 粗的那个听起来完成了更多。
+
+
+## 判据 (c) — **Adyen/CommerceHub 在产物里，被裁的是方法体；id 假设被否掉**（R1004）
+
+### 否掉 R1003 的 id 假设
+
+**`Id = "adyen"` / `"commercehub"` · `Resolve` 用 `OrdinalIgnoreCase` · `ChooseGateway` 返回商店提供的名字
+→ `"adyen"` 能命中 → **不是 id 的问题**。**
+
+### 非 host 特征串：全 absent
+
+**`CybersoleECOM` · `encryptedCardNumber` · `tokenUUID` · `/api/v1/sale` · `commercehub.sessionId` → 全 absent。**
+
+### 短串计数：把它们翻回来
+
+**`adyen` UTF-16 **x19** · `commercehub` **x17** · `square` x10 · `omise` x52**
+**→ 类与前两个方法在，`AuthorizeAsync` 的方法体被裁。**
+
+### 三次读数都高估了裁剪
+
+| 说法 | 出处 |
+|---|---|
+| 「整个支付层几乎不存在」 | R1001 ✗ |
+| 「9 个网关进了产物」 | R1002 偏粗 |
+| 「Adyen/CommerceHub 整个不在」 | R1003 ✗ |
+
+**→ 都把**方法体**的缺席读成**类/层**的缺席。**
+
+### 方法体被裁的两个原因
+
+- **Adyen**：`AuthorizeAsync` 里无 host 串（`ShopperHost` 在 `CompleteActionAsync`/`TokenizeAsync`），调 `Encrypt(...)`
+- **CommerceHub**：`Host(c)` **从 session Vars 读**，`DefaultHost` 常量只在被裁分支里
+
+### 数字
+
+**套件 2214 · 陈旧度 0/0 · 函数数 174,336 · id 在产物 13/13 · `AuthorizeAsync` 体在 11 · 长串全无 2**
+
+| 仍 Unknown | |
+|---|---|
+| 触发「只留签名」裁剪的具体机制 | 未证 |
+| `Host(c)` 从 Vars 读的 host 是否正确 | 需原版证据 |
+
+**纪律**：「在不在产物里」对长串和对类型名是两个问题 —— 我一直用一个答案回答两个。

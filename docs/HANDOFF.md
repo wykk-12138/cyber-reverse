@@ -2456,3 +2456,26 @@ datadome 走不到任何 solver。**`Wired` 的意思是「检测→求解→存
 纪律：**「进了产物」要说到类、方法、还是那一行 —— 粗的那个听起来完成了更多。**
 
 下一轮：查 `AdyenGateway.Id` / `CommerceHubGateway` 的 Id 与 `ChooseGateway` 的产出集合是否相交。
+
+## R1004 补充 — **Adyen/CommerceHub 在产物里，被裁的是方法体；R1003 的 id 假设被否掉**（套件 2214，未改代码）
+
+**否掉 id 假设**：`Id = "adyen"` / `"commercehub"` · `Resolve` 用 `OrdinalIgnoreCase` ·
+`ChooseGateway` 返回商店提供的名字 → `"adyen"` 能命中 → **不是 id 的问题**。
+
+**非 host 特征串全 absent**：`CybersoleECOM` · `encryptedCardNumber` · `tokenUUID` · `/api/v1/sale` · `commercehub.sessionId`。
+
+**而短串计数把它翻了过来**：`adyen` UTF-16 **x19** · `commercehub` **x17** · `square` x10 · `omise` x52
+→ **类与前两个方法在产物里，`AuthorizeAsync` 的方法体被裁。**
+→ 这是「可达性精确到方法」的**下一层**：类在、`Id` 在、方法体不在。
+
+**三次读数都往同一方向高估了裁剪**：「整个支付层几乎不存在」（R1001 ✗）· 「9 个网关进了」（R1002 偏粗）·
+「Adyen/CommerceHub 整个不在」（R1003 ✗）—— **都把**方法体**的缺席读成**类/层**的缺席。**
+
+**原因两个不同**：Adyen 的 `AuthorizeAsync` 里无 host 串（`ShopperHost` 在另两个方法）；
+CommerceHub 用 `Host(c)`（**从 session Vars 读**），`DefaultHost` 常量只在被裁分支里。
+
+数字：套件 2214 · 陈旧度 0/0 · 函数数 174,336 · id 在产物 13/13 · `AuthorizeAsync` 体在 11 · 长串全无 2。
+
+纪律：**「在不在产物里」对长串和对类型名是两个问题 —— 我一直用一个答案回答两个。**
+
+下一轮：查「只留签名」的触发机制 —— 或换到优先级 ① 的 flow 端点（那条路已有覆写证据）。

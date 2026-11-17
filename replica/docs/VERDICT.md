@@ -59792,3 +59792,68 @@ var outcome = await registered.AuthorizeAsync(c, ct).ConfigureAwait(false);
 > **「进了产物」要说到**哪一层**：类、方法、还是那一行。
 > 我在 R1002 说「9 个网关进了」，实际是「9 个网关的**一个方法**进了」。
 > → 两个记录都「对」，只是粒度不同 —— 而粗的那个听起来完成了更多。**
+
+
+---
+
+## 第 1004 轮：Adyen 与 CommerceHub **在**产物里 —— 被裁的是方法体
+
+### ① 先否掉 id 假设
+
+**`AdyenGateway.Id = "adyen"` · `CommerceHubGateway.Id = "commercehub"` ·
+`Resolve` 的字典是 `OrdinalIgnoreCase` · `ChooseGateway` 返回商店页提供名字中的一项。**
+
+> **→ `"adyen"` 能命中。所以 id 不是原因，R1003 那个假设错了。**
+
+### ② 用非 host 特征串验，仍全 absent
+
+| 串 | 新产物 |
+|---|---|
+| `adyen: no card` · `adyen.merchantAccount` · `CybersoleECOM` · `encryptedCardNumber` | **全 absent** |
+| `commercehub: sale failed` · `tokenUUID` · `/api/v1/sale` | **全 absent** |
+
+### ③ 而短串计数把它翻了过来
+
+```
+adyen        UTF-16 x19     commercehub  UTF-16 x17
+square       UTF-16 x10     omise        UTF-16 x52
+```
+
+> **`adyen` 出现 19 次、`commercehub` 17 次 —— 它们**在**产物里，而长串一个都不在。
+> → 类被保留（`Id` 可达），`AuthorizeAsync` 的**方法体被裁**。
+> → 「可达性精确到方法」的**下一层**：类在、`Id` 在、方法体不在。**
+
+### ④ 三次读数都往同一方向高估了裁剪
+
+| 说法 | 出处 | 准不准 |
+|---|---|---|
+| 「整个支付层几乎不存在」 | R1001 | **不准** |
+| 「9 个网关进了产物」 | R1002 | 偏粗（是 9 个的 `AuthorizeAsync`） |
+| 「Adyen / CommerceHub 整个不在」 | R1003 | **不准** |
+
+**→ 三次都是把一个**方法体**的缺席读成一个**类**或一个**层**的缺席。**
+
+### ⑤ 方法体被裁的两个原因不同
+
+**Adyen**：`AuthorizeAsync` 里没有 host 串（`ShopperHost` 在别的两个方法里），它调 `Encrypt(...)` 与运行时 URL。
+**CommerceHub**：用 `Host(c)` —— **从 session Vars 读 host** 的私有方法，所以 `DefaultHost` 常量只在被裁的分支里。
+
+> **→ 两者都不是「不可达」，而是被裁到只剩签名。触发机制本轮未证 → Unknown。**
+
+### 数字
+
+| 度量 | R1003 | **R1004** |
+|---|---|---|
+| 套件 | 2214 | **2214（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 174,336 | **174,336** |
+| **id 在产物的网关** | 未测 | **13 / 13** |
+| **`AuthorizeAsync` 体在产物的网关** | 记作 11 | **11** |
+| **长串全无、id 却在** | 记作 2「整个不在」 | **2（Adyen · CommerceHub）** |
+
+### 教训
+
+> **同一个方向的错误我犯了三次：把方法体的缺席读成类的缺席。
+> 而这次的判别手段是**短串计数** —— 长串 absent 只说明那一段代码不在，
+> 短串计数才说明那个类型的**名字**还在不在。**
+> **→ 「在不在产物里」对长串和对类型名是两个问题，而我一直用一个答案回答两个。**

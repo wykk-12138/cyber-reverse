@@ -26688,3 +26688,109 @@ python tools/metrics_report.py -> 套件 2214 · 陈旧度 0/0 · 函数数 174,
 我在 R1002 说「9 个网关进了」，实际是「9 个网关的**一个方法**进了」。**
 
 **→ 两个记录都「对」，只是粒度不同 —— 而粗的那个听起来完成了更多。**
+
+
+---
+
+## 428. **Adyen/CommerceHub 在产物里，被裁的是方法体；R1003 的 id 假设被否掉**
+
+> R1004。**未改代码，只取证。** 套件 **2214 通过 / 0 失败 / 0 跳过**。
+
+### 一、先否掉 id 假设
+
+```csharp
+AdyenGateway.Id        => "adyen"
+CommerceHubGateway.Id  => "commercehub"
+// PaymentGatewayRegistry.Resolve: 字典 new(StringComparer.OrdinalIgnoreCase)
+// ChooseGateway: 返回 available（Vars["paymentMethods"]，商店页提供的名字）里的一项
+```
+
+**→ `Resolve` 大小写不敏感，`"adyen"` 能命中 → **id 不是原因，R1003 那个假设错了。**
+
+### 二、用非 host 的特征串验，仍然全 absent
+
+| 串 | 新产物 |
+|---|---|
+| `adyen: no card` · `adyen.merchantAccount` · `CybersoleECOM` · `encryptedCardNumber` | **全 absent** |
+| `commercehub: sale failed` · `commercehub.sessionId` · `tokenUUID` · `/api/v1/sale` | **全 absent** |
+
+### 三、而短串的计数把它翻了过来
+
+```
+adyen        UTF-16 x19   UTF-8 x0
+commercehub  UTF-16 x17   UTF-8 x0
+CommerceHub  UTF-16 x0    UTF-8 x1
+square       UTF-16 x10   UTF-8 x7
+omise        UTF-16 x52   UTF-8 x89
+paynamics    UTF-16 x7    UTF-8 x0
+```
+
+**→ `adyen` 出现 **19 次**、`commercehub` **17 次** —— 它们**在**产物里。
+→ 而它们的长串一个都不在。
+→ 所以类被保留（`Id` 可达），`AuthorizeAsync` 的**方法体被裁**。
+→ 这是「可达性精确到方法」的**下一层**：**类在、`Id` 在、方法体不在。****
+
+### 四、三次读数都往同一方向高估了裁剪
+
+| 说法 | 出处 | 准不准 |
+|---|---|---|
+| 「整个支付层在产物里几乎不存在」 | R1001 | **不准** |
+| 「9 个网关进了产物」 | R1002 | 偏粗（是 9 个的 `AuthorizeAsync`） |
+| 「Adyen / CommerceHub 整个不在」 | R1003 | **不准** |
+
+**→ 三次都是把一个**方法体**的缺席读成一个**类**或一个**层**的缺席。**
+
+### 五、方法体被裁的两个原因不同
+
+**`AdyenGateway.AuthorizeAsync`** 里没有 host 串 —— `ShopperHost`
+（`checkoutshopper-live.adyen.com`）在 `CompleteActionAsync` / `TokenizeAsync` 里，
+而 `AuthorizeAsync` 调的是 `Encrypt(...)` 与运行时构造的 URL。
+
+**`CommerceHubGateway.AuthorizeAsync`** 用 `Host(c)`，而 `Host(c)` 是**从 session Vars 读 host** 的私有方法：
+
+```csharp
+var res = await GatewayHttp.PostAsync(c, $"{Host(c)}/api/v1/sale", body, "commercehub-sale", ct);
+```
+
+**所以 `DefaultHost`（`commercehub-secure-data-capture.fiservapps.com`）这个常量只在某个分支里被引用，
+而那个分支被裁。两者都不是「不可达」，而是被裁到只剩签名。**
+
+### 六、数字
+
+| 度量 | R1003 | R1004 |
+|---|---|---|
+| 套件 | 2214 | **2214（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 174,336 | **174,336** |
+| 函数比 | 62.91% | **62.91%** |
+| **id 在产物的网关** | 未测 | **13 / 13** |
+| **`AuthorizeAsync` 体在产物的网关** | 记作 11 | **11** |
+| **长特征串全无、id 却在的网关** | 记作 2「整个不在」 | **2（Adyen · CommerceHub）** |
+
+### 七、验证
+
+```
+cd replica
+python - 读 AdyenGateway.Id -> "adyen"；CommerceHubGateway.Id -> "commercehub"
+python - 读 PaymentGatewayRegistry.Resolve -> 字典 StringComparer.OrdinalIgnoreCase
+python - 读 ChooseGateway -> 返回 available 里的一项
+python - 在 .publish-aot 搜 'CybersoleECOM' / 'encryptedCardNumber' / 'tokenUUID' / '/api/v1/sale' -> 全 absent
+python - 计数 'adyen'.encode('utf-16-le') -> 19；'commercehub' -> 17
+python tools/metrics_report.py -> 套件 2214 · 陈旧度 0/0 · 函数数 174,336
+```
+
+### 八、仍然 Unknown
+
+- **触发「只留签名」裁剪的具体机制**：**Unknown** —— 是接口派发的类型集合、还是方法体里某个
+  `RequiresUnreferencedCode`，本轮未证。
+- **`CommerceHubGateway.Host(c)` 从 Vars 读的 host 是否正确**：**Unknown** —— 需原版证据。
+
+### 九、教训
+
+**同一个方向的错误我犯了三次：**把方法体的缺席读成类的缺席**。**
+
+**而这次的判别手段是**短串计数** —— 长串 absent 只说明那一段代码不在，
+短串计数才说明那个类型的**名字**还在不在。**
+
+**→ 「在不在产物里」这句话，对长串和对类型名是两个不同的问题，
+而我一直用一个答案回答两个。**

@@ -6,17 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 21:58:48 +0800 |
+| 生成时间 | 2026-11-17 22:31:09 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
 | 完整套件 | **2258 通过 / 0 失败 / 0 跳过 / 2258 总计** |
-
-## 时效警告（生成）
-
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 4 个源文件比产物新（共 889 行）。它描述的是更旧的一次构建，不是当前源码。
->
-> **变异套件那一组数来自上一次运行，而它已经过期**：`7:52:15 -- behaviour_coverage.py changed after the run`。
 
 ## 摘要素值
 
@@ -40,8 +34,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 174,293 |
 | 函数数量（.pdata） — functions: ratio | 62.89% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 4 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 889 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
 | 核心覆盖：store 宿主 | （未解析，见下方原始输出） |
 | 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
 | 可执行段体量 — section-mass: original executable | 51695104 |
@@ -54,7 +48,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 7:52:15 -- behaviour_coverage.py changed after the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file is newer than the run |
 
 ## 逐条命令与原始输出
 
@@ -367,14 +361,11 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-17 19:15:08
-newest source: src\Cybersole.Core\Settings\GlobalSettings.cs (2026-11-17 21:44:26)
-source files newer than the artifact: 4
-lines in those files: 889
-publish artifact state: stale
-
-  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
-  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
+publish artifact mtime: 2026-11-17 22:30:56
+newest source: src\Cybersole.Stores\Flows\ShopifyFlow.cs (2026-11-17 22:16:53)
+source files newer than the artifact: 0
+lines in those files: 0
+publish artifact state: current
 ```
 
 ### 核心覆盖：store 宿主
@@ -435,8 +426,8 @@ C:\Python312\python.exe tools/pe_sections.py
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
   .text      0x1000       0xFDCB8      1035776      X
-  .managed   0xFE000      0x1B903A8    27862016     X
-  hydrated   0x1B91000    0x2AA0AF8    0            RW
+  .managed   0xFE000      0x1B903E8    27862016     X
+  hydrated   0x1B91000    0x2AA0B48    0            RW
   .rdata     0x2AA1000    0x42174D6    24602112     R
   .data      0x4218000    0x430EA18    223744       RW
   .pdata     0x430F000    0x450D858    2091520      R
@@ -474,27 +465,27 @@ pdata bucket histogram (bucket = 0x100000 bytes)
   0x400000       5,791      5,925       102.3%
   0x500000       2,057      3,864       187.8%
   0x600000       1,074      3,457       321.9%
-  0x700000       3,411      3,476       101.9%
+  0x700000       3,411      3,475       101.9%
   0x800000       4,076      2,517        61.8%
-  0x900000       3,556      3,444        96.9%
-  0xA00000       3,178      5,272       165.9%
-  0xB00000       3,227      5,904       183.0%
-  0xC00000       3,982      7,287       183.0%
-  0xD00000       3,921      7,048       179.8%
+  0x900000       3,556      3,445        96.9%
+  0xA00000       3,178      5,271       165.9%
+  0xB00000       3,227      5,905       183.0%
+  0xC00000       3,982      7,284       182.9%
+  0xD00000       3,921      7,051       179.8%
   0xE00000       3,371      4,911       145.7%
   0xF00000       7,792      4,153        53.3%
-  0x1000000      5,626      8,935       158.8%
+  0x1000000      5,626      8,934       158.8%
   0x1100000      2,020      9,830       486.6%
-  0x1200000      2,046      9,855       481.7%
-  0x1300000      5,065      9,504       187.6%
-  0x1400000      10,107     9,704        96.0%
-  0x1500000      11,107     9,517        85.7%
+  0x1200000      2,046      9,854       481.6%
+  0x1300000      5,065      9,503       187.6%
+  0x1400000      10,107     9,706        96.0%
+  0x1500000      11,107     9,518        85.7%
   0x1600000      2,864      8,883       310.2%
   0x1700000      2,242      9,924       442.6%
   0x1800000      4,058      7,087       174.6%
   0x1900000      4,506      5,566       123.5%
-  0x1A00000      2,310      7,324       317.1%
-  0x1B00000      6,033      5,206        86.3%
+  0x1A00000      2,310      7,323       317.0%
+  0x1B00000      6,033      5,207        86.3%
   0x1C00000      6,218      0             0.0%
   0x1D00000      6,893      0             0.0%
   0x1E00000      5,418      0             0.0%
@@ -548,10 +539,9 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 7:52:15 -- behaviour_coverage.py changed after the run
+  mutation-fit-staleness: 0 -- no exercised file is newer than the run
 
-  The counts above are from 2026-11-17T14:06:23+08:00 and the tree has moved since. They are a record of that run, not a
-  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
+  Every mutation fired, none was decorative and none was skipped at the time of that run.
 ```
 
 ### 完整套件
@@ -565,10 +555,10 @@ D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c
 
 ```text
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\NavigatorCensusTests.cs(36,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(109,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(34,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(35,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(109,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SizePaletteTests.cs(24,9): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SportsshoesFlowTests.cs(128,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StepActionTests.cs(293,89): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
@@ -578,7 +568,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 2 m 15 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 1 m 40 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

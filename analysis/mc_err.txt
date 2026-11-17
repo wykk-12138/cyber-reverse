@@ -1,2 +1,0 @@
-D:\projects\cyber-reverse\replica\tools\mutation-check.py:162: SyntaxWarning: invalid escape sequence '\C'
-  "find": '<EmbeddedResource Include="Engine\Cybersole.Engine.Popmart.html" LogicalName="Cybersole.Engine.Popmart.html" />',

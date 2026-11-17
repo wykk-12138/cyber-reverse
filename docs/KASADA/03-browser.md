@@ -25,6 +25,48 @@
 
 ---
 
+### 1.5 浏览器池：存在性确证，行为静态不可得（[Obs] + Unk）
+
+这是**唯一一块"知道它存在、但读不到它怎么写"**的能力。写清边界，免得后来者反复尝试。
+
+| 符号 | 真 VA | 含义 |
+|---|---|---|
+| `_browsersLock` | `0x143447e14` | 浏览器集合的锁 |
+| `_creating` | `0x143447e22` | 正在创建的浏览器 |
+| `_browsers` | `0x143447a64` | 浏览器集合 |
+| `_browserSemaphore` | `0x143447a72` | **信号量 —— 并发上限就在这里** |
+| `BrowserCount` | `0x143447a57` | 池大小 |
+| `ClaimBrowser@` | `0x143447a33` | 借一个 |
+| `MarkAvailable@` | `0x143447db8` | 用完归还 |
+| `ReplaceBrowser@` | `0x143447dd2` | 坏的就换掉 |
+| `SolveTimeoutMs` | `0x143447dfd` | 单个求解超时 |
+| `<RunWithTimeout>d__18` | `0x143447e78` | 带超时地跑 |
+| `get_Healthy` / `set_Healthy` | `0x1434480b2` / `0x1434480be` | 健康标记 |
+| `SetProxy@` | `0x143448143` | 换代理 |
+| `DeleteCookies` | `0x143448162` | 清 cookie |
+| `MultiPartTlds` | `0x1434481c9` | 多段 TLD 处理 |
+| `<LoopTurnstile>d__20` / `<SetCookies>d__22` | `0x143447ea4` 同片 | 循环过 Turnstile / 设 cookie |
+
+**这些名字已经回答了最早那个问题** ——「100 个任务为什么占用不高」：
+
+```
+_browserSemaphore + BrowserCount + ClaimBrowser / MarkAvailable / ReplaceBrowser
+```
+
+⇒ **浏览器是池化的，且用信号量限流**；任务并发数是"任务数"，不是"浏览器数"。
+
+**为什么读不到实现**（三条路都试过）：
+
+| 路 | 做法 | 结果 |
+|---|---|---|
+| A | 对成员名的字符串对象头（`chars_va - 12`）查 xref | **恒为 0** —— 元数据成员名不是 `System.String` 实例，是反射表的紧凑编码 |
+| B | 按 NUL 切分元数据区 | 失败：该区是打包 blob，切出来是碎片 |
+| C | 用 IDA 字符串表按地址窗口枚举 | **只能拿到类型名，拿不到成员名** —— NativeAOT 把类型名表与成员名表**分区域存**（`0x14332xxxx` 类型名区，`0x14344xxxx` 成员名区） |
+
+**⇒ 这一层要靠动态观察**（跑起来看它开几个浏览器、信号量初值多少）。静态侧到此为止。
+
+---
+
 ## 2. 零依赖替代：手写 CDP 客户端
 
 如果你的项目不想背一个商业组件，用**机器上已装的 Chrome/Edge** + CDP 能达到同样效果。骨架：

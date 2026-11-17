@@ -60,8 +60,8 @@
 | D2 | 过 Turnstile 循环 `<LoopTurnstile>d__20` | 池 `0x034470a4` | 08 §1.5 | 🟡 |
 | D3 | 鼠标/点击：`MoveMouse` · `MoveMouseAndClickAsync` · `MoveMouseAndClickWithoutTrajectoryAsync` | `0x143448170` · `0x14348bf91` · `0x14348bf44` | 08 §1.5 | ✅ |
 | D4 | 屏幕级输入：`PressMouseOnScreenAsync` / `ReleaseMouseOnScreenAsync` / `PressKeyAsync` / `SuppressInput` | 池 `0x0348bfc5` 片 | 08 §1.5 | 🟡 |
-| D5 | cookie / 代理：`SetCookies` / `DeleteCookies` / `SetProxy` / `MultiPartTlds` | 池 `0x034470a4`–`0x034473c9` | — | 🟡 |
-| D6 | 浏览器池：`_browsersLock` / `_creating` / `get_Healthy` / `<RunWithTimeout>d__18` | 池 `0x03447014` 片 | — | 🟡 |
+| D5 | cookie / 代理：`SetCookies` / `DeleteCookies` / `SetProxy` / `MultiPartTlds` | 池 `0x034470a4`–`0x034473c9`（真 VA 见 03 §4） | 03 §4 | ⬜ **静态不可得**：这五个是**元数据成员名**，对象头 xref 恒为 0（第 5 轮验证），无法从静态侧定位实现 |
+| D6 | 浏览器池：`_browsersLock` / `_creating` / `get_Healthy` / `<RunWithTimeout>d__18` / `_browserSemaphore` | 池 `0x03447014` 片（真 VA 见 03 §4） | 03 §4 | ⬜ **静态不可得**（同上）；但**存在性已确证**：`_browserSemaphore` 证明浏览器是池化 + 限流的 |
 | D7 | 从网络头嗅探 token 的时序（`_headersTcs`） | 池 `0x0344742e` | 03 §3 | ✅ |
 
 ## E. 远端服务 —— **HyperSolutions**（本轮新挖，之前整套漏掉）

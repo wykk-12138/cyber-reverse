@@ -127,6 +127,35 @@ def main():
 INLINE = re.compile(r'"(https?://[^"\s]{8,}|/[a-z0-9][A-Za-z0-9_\-./{}$:?=&%]{6,})"')
 
 
+_POOL_LINES = None
+
+
+def pool_lines(pool):
+    """The pool's strings, with the address column stripped, computed once.
+
+    R1016. Two mistakes lived here. `value in pool` searches the file's flat text, so it answers "does
+    this appear anywhere", not "is this a string" -- fine for a hit, useless for a prefix. And the pool's
+    lines are `0x<addr>  <string>`, not bare strings, so a startswith against a URL never matched while
+    the address column was in the way: the first version of this function stripped whitespace only and
+    the prefix rule silently matched nothing at all.
+    """
+    global _POOL_LINES
+    if _POOL_LINES is None or _POOL_LINES[0] is not pool:
+        strings = set()
+        for line in pool.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            # "0x0705312c  https://api.nike.com/product_feed/threads/v2?fields="
+            if line.startswith("0x"):
+                parts = line.split("  ", 1)
+                if len(parts) == 2:
+                    line = parts[1]
+            strings.add(line)
+        _POOL_LINES = (pool, strings)
+    return _POOL_LINES[1]
+
+
 def proven(value, pool):
     """Is this literal, in any reasonable spelling, present in the pool?
 
@@ -135,6 +164,15 @@ def proven(value, pool):
     contains as <c>cart/add.js</c>; judging only the slash-prefixed spelling produced false
     "invented" reports (R128's lesson: a wrong checker makes you fix correct code). The path after
     the host is checked too, so a known host plus a known path both count.
+    </para>
+
+    <para>
+    R1016 refinement. A static prefix is a fragment, and the image carries the full string: the replica
+    writes <c>product_feed/threads/v2/</c> where the constant is <c>product_feed/threads/v2?fields=</c>.
+    Equality therefore reports a false absence. The rule added here is that a fragment counts as
+    evidenced when some pool line starts with it -- which is the actual claim a prefix makes, that the
+    image names something beginning this way. A fragment under twelve characters is still not counted,
+    because a short prefix starts plenty of unrelated strings.
     </para>
     """
     if value in pool:
@@ -149,6 +187,14 @@ def proven(value, pool):
             return True
         if slash > 0 and rest[slash:].lstrip("/") in pool:
             return True
+
+    # the fragment rule: does any image string begin with this prefix?
+    for candidate in (value, bare, value.rstrip("/"), bare.rstrip("/")):
+        if len(candidate) < 12:
+            continue
+        for line in pool_lines(pool):
+            if line.startswith(candidate):
+                return True
     return False
 
 

@@ -2727,3 +2727,28 @@ if "{" in value or value.endswith("/"):
 纪律：**一个「0」可以同时是真的和没用的 —— 只要定义域排除了缺陷所在的那一类。**
 
 下一轮：判那 11 个（先修假阳性判定，再逐个对镜像）。
+
+## R1016 补充 — **池行带地址列 ⇒ 前缀规则一次没生效；修完 11 → 10，10 个经 IDB 全 0 命中**
+
+**第一版前缀规则加对了，跑起来什么都没变**（仍 11，`NikeFlow.cs:235` 还在）⇒ 它**一次都没命中**。
+**原因**：`pe_strings.txt` 的行是 `0x地址  串`：
+`'0x0705312c  https://api.nike.com/product_feed/threads/v2?fields='`
+→ `line.strip()` 保留地址列 ⇒ `startswith(URL)` 永不成立。
+→ 而 `value in pool`（全文子串）一直对 ⇒ **「相等」路径好，「前缀」路径死，两条输出混在一份报告里。**
+
+**修第二版**（剥掉 `0x…  ` 前缀）后再跑：`not in pool 40 → 39` · `unknown 11 → 10`，
+而消失的正是 `NikeFlow.cs:235` —— **R1015 预测的假阳性，自己消失了。**
+
+**剩 10 个逐个问 IDB：六个不同前缀**全** 0 命中**：
+`/api/ff-products/v1/products` · `/api/basket/v1` · `/api/checkout/v1/basket` ·
+`buy/carts/v2` · `/discount` · `/api/payments`。
+→ **10 行全是自造**：Farfetch ×7 · Nike ×1 · StoreFlow ×2。
+→ 而 `/discount` 与 `/api/payments` 是通用词，我原以为会命中 —— 0 说明那两个打点也自造。
+
+**工具红着 10 是准确状态**：10 个经 IDB 定性为不存在 ⇒ 真缺陷，不是待判 ⇒ 仍不登记进 ledger。
+
+数字：套件 2219/0 · 函数数 174,336 · 内联字面量 328 · 不在池 39 · 未登记 10 · IDB 定性 10/10 全 0。
+
+纪律：**判据修好后输出没变，先问它测过没有。**
+
+下一轮：取证 Farfetch 与 Shopify 的真实端点，改那 10 处。

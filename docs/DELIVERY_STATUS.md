@@ -27965,3 +27965,110 @@ python tools/metrics_report.py -> 完整套件 exit 0  2219 / 0 / 0
 → 我读了那份输出五行，从来没问过「它扫了哪些」。**
 
 **→ 而 R1010 的教训（判据有定义域）刚在上一轮立过，这一轮就在它自己身上又遇见一次。**
+
+
+---
+
+## 440. **池行带地址列 ⇒ 前缀规则一次没生效；修完 11 → 10，10 个经 IDB 全 0 命中**
+
+> R1016。**改 1 个工具。** 套件 **2219 通过 / 0 失败**（未改产品代码）。
+
+### 一、第一版前缀规则：加对了，跑起来什么都没变
+
+**`proven()` 只做**完全相等**判定，而 `product_feed/threads/v2/` 对镜像的
+`product_feed/threads/v2?fields=` 不相等 —— 所以加一条「池里有串**以此前缀开头**」。**
+
+**→ 跑完仍是 **11**，而 `NikeFlow.cs:235` 还在。
+→ 所以那条规则一次都没命中。**
+
+### 二、原因：`pe_strings.txt` 的行是 `0x地址  串`，不是裸串
+
+```
+RAW: '0x0705312c  https://api.nike.com/product_feed/threads/v2?fields='
+```
+
+**→ 我用 `line.strip()` 建集合，地址列跟着留下来。
+→ 于是 `startswith("https://…")` 在问「这一行以 URL 开头吗」，而行以 `0x0705…` 开头 —— **永不成立**。**
+
+**→ 而 `proven()` 里原来的 `value in pool` 一直是对的，因为那是**全文子串**搜索，地址列不影响它。
+→ **所以「相等」路径好，「前缀」路径死** —— 而两条路径的输出混在同一份报告里，
+  看起来像「前缀规则证明它们真的不在」。**
+
+### 三、修第二版：剥掉地址列
+
+```python
+if line.startswith("0x"):
+    parts = line.split("  ", 1)
+    if len(parts) == 2:
+        line = parts[1]
+```
+
+**→ 再跑：`not in pool 40 → 39` · `unknown 11 → 10`，而消失的正是 `NikeFlow.cs:235`。
+→ 那个假阳性**上一轮就预测到了**，而这一轮它自己消失了 —— 那是修对了的判据。**
+
+### 四、剩下 10 个，逐个问 IDB：**全部真的不存在**
+
+| 前缀 | IDB | n |
+|---|---|---|
+| `/api/ff-products/v1/products` | **NOT IN IMAGE** | 0 |
+| `/api/basket/v1` | **NOT IN IMAGE** | 0 |
+| `/api/checkout/v1/basket` | **NOT IN IMAGE** | 0 |
+| `buy/carts/v2` | **NOT IN IMAGE** | 0 |
+| `/discount` | **NOT IN IMAGE** | 0 |
+| `/api/payments` | **NOT IN IMAGE** | 0 |
+
+**→ 所以那 10 行**全是自造的**：Farfetch ×7 · Nike ×1 · StoreFlow ×2。
+→ 而 `/discount` 与 `/api/payments` 让我意外 —— 那是**通用词**，我原以为会命中。
+  0 命中说明那两个打点也是自造的。**
+
+### 五、工具现在红着 10，而那是准确的状态
+
+**→ 10 个都经 IDB 定性为不存在，所以它们**不是**假阳性、**不是**待判 —— 是**真的缺陷**。
+→ 而把 10 个登记进 ledger 会把真缺陷写进白名单 ⇒ 仍然不登记。
+→ 修法与 Nike 那 4 处同类：需要知道每个站的**真实**端点，而那要取证。留作下一轮。**
+
+### 六、数字
+
+| 度量 | R1015 | R1016 |
+|---|---|---|
+| 套件 | 2219 / 0 | **2219 / 0（未改产品代码）** |
+| 函数数 | 174,336 | **174,336** |
+| **扫到的内联字面量** | 328 | **328** |
+| **不在池里** | 40 | **39** |
+| **未登记（真缺陷）** | 11 | **10** |
+| **其中经 IDB 定性** | 1（另 10 未判） | **10（全 0 命中）** |
+| **假阳性** | 1（预测） | **1（已消除）** |
+| **工具两处缺陷** | 插值跳过 | **+ 池行带地址列** |
+
+### 七、验证
+
+```
+cd replica
+python tools/endpoint-provenance.py
+  -> inline URL/path literals: 328 · not in pool: 39 · registered in ledger: 29
+  -> unknown (invented and unregistered): 10 · baseline: 0
+  -> FAIL: 10 unregistered inline endpoints, above the 0 baseline
+cd ..
+python analysis/ida.py str "/api/ff-products/v1/products"  -> {"n":0}
+python analysis/ida.py str "/api/basket/v1"                -> {"n":0}
+python analysis/ida.py str "/api/checkout/v1/basket"       -> {"n":0}
+python analysis/ida.py str "buy/carts/v2"                  -> {"n":0}
+python analysis/ida.py str "/discount"                     -> {"n":0}
+python analysis/ida.py str "/api/payments"                 -> {"n":0}
+cd replica && python tools/metrics_report.py -> 完整套件 exit 0  2219 / 0 / 0
+```
+
+### 八、仍然 Unknown
+
+- **Farfetch 的真实端点**：**待取证**。
+- **Shopify `/discount` 与 `/api/payments` 的真实形**：**待取证**。
+
+### 九、教训
+
+**一个修好的判据如果**没有输出变化**，那不是「确认了原结论」，是「新判据没生效」。**
+
+**→ 而我第一版前缀规则跑完没变化时，第一反应是「所以它们真的不在」——
+而正确的反应是「这条规则**测过**吗」。**
+
+**→ 那是 R1015 那条教训的同一层：一个「0」可以是真的和没用的。这次它是**没用的 0**，
+而我都没有先问它有没有生效。**

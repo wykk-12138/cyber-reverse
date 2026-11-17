@@ -33512,3 +33512,92 @@ python tools/metrics_report.py                                      -> 完整套
 
 **→ 上一轮取的是「这几个族有没有」，得到「没有」；这一轮取的是「那这个 host 有什么」，
 得到「只有一个 checkout 资源」。后者才说明了该怎么办。**
+
+
+---
+
+## 438. **撤回 R1012/R1013 的两次地址替换：R48 早已裁决「换猜是移动失败」**
+
+> R1014。**改 1 个源文件（两处回滚）。** 套件 **2219 通过 / 0 失败**（metrics filter）· 全套 **2236 / 0 / 2**。
+
+### 一、R48 的裁决原文
+
+**`NikeFlow.CartUrl()`（656-682，R48 写的）：**
+
+> **「Not changed, deliberately. The original's fourteen checkout steps share those five URLs,
+> which means most of them write to one checkout resource rather than hitting fourteen endpoints;
+> without the decompiled step bodies there is no way to tell which of `checkouts/v3` and
+> `checkout_previews/v3` carries the add. **Swapping one guess for another would move the failure,
+> not remove it.」**
+
+### 二、而我 R1012 与 R1013 做的正是它拒绝的事
+
+| 轮 | 我做了什么 | 依据 |
+|---|---|---|
+| R1012 | `GetPaymentMethodsAsync` 的地址改成 `NikeEndpoints.Checkouts` | 「每个 step 都写它」 |
+| R1013 | `/delivery` 的地址改成 `NikeEndpoints.Checkouts` | 同一句 |
+
+**→ 而「每个 step 都写它」是**真**的，而它**不决定**哪个 step 写什么。
+→ 而那句注释自己说「no way to tell which of the two carries the add」。**
+
+### 三、而交换猜测**比 404 更坏**
+
+**旧地址（`buy/orders/v2/...`）**只能** 404，而它**说得出来**。
+新地址（`checkouts/v3/{id}`）会返回 **200 或一个关于 payload 的错误** ——
+**而那时错误消息不再指向「地址不存在」。**
+
+**→ 一条「nike payment methods HTTP 200，但没有付款方式」读起来像**商店不支持刷卡**，
+  而真相是**我们在读一个不承载那份数据的资源**。
+→ 那是 R823/R991/R1001/R1011 那条原则的**同一次违反**，只是这次披着「有据替换」的外衣。**
+
+### 四、回滚
+
+**`/delivery` 与 `payment-methods` 都改成 `Fail(..., retryable: false)`，并在文本里点名三个候选资源
+（`checkout_previews/v3` · `checkouts/v3` · 两者的 jobs），让下一次从那里开始而不是从零。**
+
+**而**保留**的是两件从来不是猜测的事：**
+
+1. **那个覆写本身** —— 它让步骤不再被裁（R963），那与地址无关
+2. **候选资源清单** —— 镜像真的只有那五个
+
+### 五、而这一轮真正的产出是**一条被遵守的既有裁决**
+
+**R48 那条注释存在了 900 多轮，而我在 R1012/R1013 两轮里**没有读它** ——
+尽管我**改的就是它下面的那个文件**。**
+
+**→ 而那与 R995 那次同形：答案早就在仓里，而我先动手。
+→ 两次都是「读到手边的文件」这一步没做。**
+
+### 六、数字
+
+| 度量 | R1013 | R1014 |
+|---|---|---|
+| 套件 | 2219 / 0 | **2219 / 0 / 0** |
+| 全套 | 2236 / 0 / 2 | **2236 / 0 / 2** |
+| 产物陈旧度 | 1 / 711 | **1 / 681（净减 30 行）** |
+| 函数数 | 174,336 | **174,336** |
+| **Nike 里「有据替换」的地址** | 2 | **0（两处都改回报告）** |
+| **Nike 里打不存在族的活代码** | 3 | **3（未动，且现在有理由不动）** |
+| **引用 R48 裁决的地方** | 0 | **2 处（两段的注释都指向它）** |
+
+### 七、验证
+
+```
+cd replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug  -> 已成功生成
+dotnet test --filter "FullyQualifiedName~Nike" -m:1                 -> 47 通过
+python tools/metrics_report.py                                      -> 完整套件 exit 0  2219 / 0 / 0
+python - 读 src/Cybersole.Stores/Flows/NikeFlow.cs 656-682          -> R48 的裁决原文
+```
+
+### 八、仍然 Unknown
+
+- **哪个 step 打哪个资源**：**Unknown** —— 需反编译步骤体，而那在 NativeAOT 下按名不可得（R958）。
+
+### 九、教训
+
+**「有据」有两种：证据说明**这个地址存在**，和证据说明**这个 step 用这个地址**。
+我这两轮满足的是第一种，而它不够 —— 而我把它当成了第二种。**
+
+**→ 而区分它们的成本是**读那段代码旁边的注释**。R48 已经替我把这笔账算过了，
+而我改那个文件时没读它下面那一屏。**

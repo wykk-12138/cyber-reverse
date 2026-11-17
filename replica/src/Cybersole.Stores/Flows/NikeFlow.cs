@@ -489,33 +489,24 @@ public class NikeFlow : StoreFlow
             },
         };
 
-        // R1013: this used to PUT to buy/orders/v2/US/{cart}/delivery, which the image does not contain -- zero hits,
-        // like the rest of that family. What it does contain, in address order, is the whole buy surface and nothing else:
+        // R1014: this PUT to buy/orders/v2/US/{cart}/delivery until R1013, and to NikeEndpoints.Checkouts after it. Both
+        // were wrong in the same way, and the second was worse.
         //
-        //   0x147053c94  https://api.nike.com/buy/checkout_previews/v3/
-        //   0x147053d0c  https://api.nike.com/buy/checkout_previews_jobs/v3/
-        //   0x147053d8c  https://api.nike.com/buy/checkouts/v3/
-        //   0x147053df4  https://api.nike.com/buy/checkouts_jobs/v3/
+        // buy/orders/v2 is in the image zero times -- there is no cart endpoint and no order endpoint, only
+        // checkout_previews/v3, its jobs, checkouts/v3 and checkouts_jobs/v3. So the old address could only 404, and it
+        // said so. R1013 replaced it with checkouts/v3 on the strength of a header sentence -- "the resource every step
+        // writes to" -- which is true and does not settle which resource carries a delivery write. CartUrl()'s own note
+        // had already ruled on exactly this move: "there is no way to tell which of checkouts/v3 and checkout_previews/v3
+        // carries the add. Swapping one guess for another would move the failure, not remove it."
         //
-        // There is no cart endpoint and no order endpoint: buy/carts is zero hits and carts/v2 is zero. Nike's model is
-        // one checkout resource that every step writes to, which is what NikeEndpoints' header has said since R87. So
-        // the address becomes the resource the image names; the body stays what this workspace built, because the image
-        // does not say what a delivery write looks like and inventing a shape would be the same mistake in a new place.
-        var res = await SendJsonAsync(c, HttpMethod.Put,
-            NikeEndpoints.Checkouts + c.Session.CartId,
-            payload.ToString(Newtonsoft.Json.Formatting.None), "nike-delivery", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("nike delivery failed", retryable: true);
-        if (res.StatusCode == 403) return StepOutcome.Fail("nike delivery blocked (kasada)", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"nike delivery HTTP {res.StatusCode}", retryable: true);
-
-        c.Session.Vars["delivery"] = res.Body;
-
-        // The response carries the shipping options; the first one is the default choice.
-        var option = TryRead(res.Body, "shippingOptionId") ?? TryRead(res.Body, "id");
-        if (option is not null) c.Session.Vars["shippingOptionId"] = option;
-
-        return StepOutcome.Success();
+        // A swapped guess is worse than the 404 because it comes back with 200 or with an error about the payload, and
+        // then the message no longer points at the address. So this reports instead, and the three candidates are named
+        // in the text so the next attempt starts from them rather than from scratch.
+        _ = payload;  // built below and unused until the resource is established
+        return StepOutcome.Fail(
+            "nike: delivery endpoint not captured -- buy/orders/v2 is in the image zero times; the buy surface is "
+            + "checkout_previews/v3 and checkouts/v3 with their jobs, and which one takes a delivery write is not "
+            + "established", retryable: false);
     }
 
     /// <summary>
@@ -542,39 +533,18 @@ public class NikeFlow : StoreFlow
         if (string.IsNullOrEmpty(c.Session.CartId))
             return StepOutcome.Fail("nike: no checkout to read payment methods from", retryable: true);
 
-        var res = await GetAsync(c, NikeEndpoints.Checkouts + c.Session.CartId,
-            "nike-payment-methods", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("nike: payment methods read failed", retryable: true);
-        if (res.StatusCode == 403)
-            return StepOutcome.Fail("nike payment methods blocked (kasada)", retryable: true);
-        if (!res.IsSuccess)
-            return StepOutcome.Fail($"nike payment methods HTTP {res.StatusCode}", retryable: res.StatusCode is 429 or >= 500);
-
-        // The same reader the base class uses, so there is one parser rather than two that can drift.
-        var offered = ParsePaymentMethodNames(res.Body ?? string.Empty);
-        if (offered.Count == 0)
-        {
-            // A checkout that names no payment method is a real answer, not a failure to retry: Nike returns the
-            // settled shape of the checkout and the step's job is to report what it offers.
-            c.Session.Vars["paymentMethods"] = string.Empty;
-            return StepOutcome.Fail("nike: the checkout offers no payment method", retryable: false);
-        }
-
-        c.Session.Vars["paymentMethods"] = string.Join(",", offered);
-
-        var preferred = (c.Session.Vars.GetValueOrDefault(PreferredGatewaysSetting) ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var blocked = (c.Session.Vars.GetValueOrDefault(BlockedGatewaysSetting) ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        var chosen = ChooseGateway(offered, preferred, blocked);
-        if (string.IsNullOrEmpty(chosen))
-            return StepOutcome.Fail("nike: every offered method is blocked", retryable: false);
-
-        // The image names _paymentGatewayName beside _captchaToken (R956), so the chosen gateway goes there.
-        c.Session.Vars[PaymentGatewayNameKey] = chosen!;
-        return StepOutcome.Success();
+        // R1014: R1012 read this from NikeEndpoints.Checkouts, on the same header sentence the delivery step used, and
+        // for the same insufficient reason -- the image says every step writes to one checkout resource but not which
+        // step writes what, and it names no payment-methods route for this host at all. Reading a guess is worse than
+        // saying nothing, because a read that returns the checkout's JSON parses to "no methods offered" and reads like
+        // a shop that refuses cards.
+        //
+        // What stays is the part that was never a guess: the step has an override, so it is no longer trimmed (R963),
+        // and it names the candidate resources so the next attempt has somewhere to start.
+        return StepOutcome.Fail(
+            "nike: payment-methods endpoint not captured -- the image names no such route for this host; the buy "
+            + "surface is checkout_previews/v3 and checkouts/v3 with their jobs, and which one carries the list is not "
+            + "established", retryable: false);
     }
 
     /// <summary>

@@ -8603,3 +8603,42 @@ R1002 的 `+342` 是**从零拉进一整族新类**。**
 | 间歇失败的真实原因 | 不可复现 |
 
 **纪律**：问「这个 host 有什么」比问「这几个族有没有」更能说明该怎么办。
+
+
+## 优先级 ① — **撤回 R1012/R1013 的两次地址替换：R48 早已裁决「换猜是移动失败」**（R1014）
+
+### R48 的裁决（`NikeFlow.CartUrl()` 注释，656-682）
+
+> 「the fourteen checkout steps share those five URLs … **no way to tell which of `checkouts/v3` and
+> `checkout_previews/v3` carries the add. Swapping one guess for another would move the failure, not remove it.**」
+
+### 我违反它两次
+
+**R1012 `GetPaymentMethodsAsync` 与 R1013 `/delivery` 都把地址换成 `NikeEndpoints.Checkouts`，
+依据是「每个 step 都写它」—— 那是**真**的，而不决定哪个 step 写什么。**
+
+**→ 而交换猜测比 404 更坏：旧地址只能 404 且说得出来；新地址返回 200 或 payload 错，
+错误消息不再指向地址不存在。**
+
+### 回滚
+
+**两处都改成 `Fail(..., retryable: false)`，点名三个候选（`checkout_previews/v3` · `checkouts/v3` · jobs）。**
+**保留：① 覆写本身（让步骤不被裁，R963）② 候选清单（镜像真的只有那五个）。**
+
+### 「有据」的两种含义（本轮的教训）
+
+- **证据说明这个地址存在** ← 我满足的
+- **证据说明这个 step 用这个地址** ← 我需要的
+
+**区分成本 = 读那段代码旁边的注释。R48 已算过这笔账。**
+
+### 数字
+
+**套件 2219/0/0 · 全套 2236/0/2 · 陈旧度 1 / 681（净减 30 行）· 函数数 174,336 ·
+「有据替换」地址 2 → 0 · 活代码仍 3（有理由不动）· 引用 R48 处 0 → 2**
+
+| 仍 Unknown | |
+|---|---|
+| 哪个 step 打哪个资源 | 需反编译步骤体 |
+
+**纪律**：「有据」有两种含义，而第二种才够；区分它们只需读旁边的注释。

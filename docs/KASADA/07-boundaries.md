@@ -104,6 +104,22 @@ VercelChallengeHandler                            0x143337de3
 
 ---
 
+## 2.3 `rpc.dom` 是 DotNetBrowser 的，不是 Kasada 的（本轮新增）
+
+池里那四段 base64（`0x06f96b1c` 等）解出来有**两套互不相干的东西**：
+
+| 名字 | 归属 | 判据 |
+|---|---|---|
+| `evaluation_result` · `CreateArrayBuffer` · `PaintDialog`（包名 `.rpc.dom` / `.rpc`） | **DotNetBrowser**（渲染进程 RPC） | 包名是 `rpc.dom`；`CreateArrayBuffer` / `PaintDialog` 是浏览器宿主概念；DotNetBrowser 内部就是 protobuf IPC |
+| `stage` · `ReceiveHeaders` · `target`（无包名，嵌套在同一个 DescriptorProto 里） | **Kasada solver 指令** | 与 05 状态机的阶段一一对应；`target` 指要解的目标 URL（04 §2.5 的 `X-Upstream-Url` 同源） |
+
+**为什么会混在一起**：它们都是 AOT 编译进来的 `.proto` descriptor 片段，落进同一片只读数据，
+池按地址排序时相邻。**相邻不等于同一件事** —— 这条与 §2.2 的 `0x4AAAAAA` 是同一个坑。
+
+**判据**：看**包名**。带 `rpc.` 前缀的属 DotNetBrowser；无包名且字段名是 `stage`/`target` 的属 solver。
+
+---
+
 ## 3. 四个已经踩过的误判（写下来是为了不再犯）
 
 ### 3.1 把 `GenerateSbsd` / `GetSbsdData` 当成 Kasada 的步骤

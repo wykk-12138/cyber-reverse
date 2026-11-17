@@ -19,7 +19,43 @@
 
 ---
 
-## 2. 服务通道是 protobuf（[Obs]）
+## 2. 服务通道是 protobuf（[Obs]，本轮从实物解出）
+
+镜像里存着**四段 40 字符的 base64**（池 `0x06f96b1c` / `6bac` / `6c3c` / `6ccc`），
+全部以 `bnNl` 开头 —— 解码是 `nse`，即 `...respo` **`nse`** 的尾巴。
+它们是一份 **`.proto` 的 `FileDescriptorProto`** 序列化后被定长截断的碎片。
+
+补 padding 解码后按 protobuf wire format 读：
+
+```
+0x06f96b1c  12 36 | 0a 11 "evaluation_result" | 18 01 | 20 01 | 28 0b 32 19 ".rpc.dom.Eval"
+            → MethodDescriptorProto { name: "evaluation_result", … output_type: ".rpc.dom.Eval…" }
+
+0x06f96bac  12 4d | 0a 11 "CreateArrayBuffer" | 12 1d ".rpc.CreateArrayBuf"
+            → MethodDescriptorProto { name: "CreateArrayBuffer", input_type: ".rpc.CreateArrayBuf…" }
+
+0x06f96c3c  42 07 | 0a 05 "stage" | 22 e3 05 |
+              0a 0e "ReceiveHeaders" | 12 1a | 0a 06 "target" | 18 01 | 20 01
+            → DescriptorProto { field[8] = {name:"stage"},
+                                nested_type[4] = {name:"ReceiveHeaders",
+                                                  field[2] = {name:"target", …}} }
+
+0x06f96ccc  42 07 | 0a 05 "stage" | 22 e6 01 |
+              0a 0b "PaintDialog" | 12 1c | 0a 06 "target" | 18 01 | 20 01 | 28 0b | 32 …
+            → DescriptorProto { field[8] = {name:"stage"},
+                                nested_type[4] = {name:"PaintDialog", …} }
+```
+
+**由此确定的四件事**：
+
+1. **`stage` 是外层消息的一个字段（field 8）** —— 之前是 [Inf]，现在是 [Obs]。
+2. **`ReceiveHeaders` 是嵌套消息类型**，它有一个 `target` 字段（field 2）带两个标志位（各 = 1）。
+3. **`PaintDialog` 与 `ReceiveHeaders` 是同级嵌套类型** —— 同一个外层消息下并列。
+4. **`rpc.dom` 那半边不是 Kasada 的**：`evaluation_result` / `CreateArrayBuffer` / `PaintDialog`
+   属于 **`rpc.dom` 包**，是 **DotNetBrowser 自己的渲染进程 RPC**，与 solver 指令无关（见 07 §2.3）。
+
+**⇒ 服务通道的形状**：一个带 `stage` 判别的信封，内嵌 `ReceiveHeaders` / `PaintDialog` 等具体消息。
+`stage` 决定载荷是哪一种 —— 这正是 05 状态机里那些阶段切换的线上表示。
 
 字段表（`0x034590` 一带连续命中，逐字）：
 

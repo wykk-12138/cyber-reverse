@@ -8442,3 +8442,46 @@ Getting / Initialising / Solving / Submitting DataDome
 | 15 个未解析 | IDB 未答 |
 
 **纪律**：「活通道」有两个意思，混用会让「接上」看起来像小事。
+
+
+## 判据 (a)/① — **键名判据有定义域：159 个 absent 里约 154 个不可判且不需修**（R1010）
+
+### 四种形态全 0
+
+```
+orderProcessed / paymentStarted / totalMinor / transactionAmount / deviceProfiled / sizeLine
+selectedRate / discountApplied      全部 bare=0  _field=0  get_Pascal=0  content==0
+```
+
+**→ 全 0 不说明它们错 —— 说明这个问法对这一类**不适用**。**
+
+### 定义域
+
+**原版没有 `Vars` 字典，它用**字段**，字段名不必与我们的键名相同。
+→ 判据只对**协议层**名字有判定力（`kpsdk` / `datadome` / `paymentGatewayName` / URL / cookie 名）。
+→ 对**内部状态管理**的名字没有判定力。**
+**→ 与 R730「不再写前缀分类器」同一课。**
+
+### 159 的读法
+
+| 类 | 数 | 判据适用 |
+|---|---|---|
+| 带点 `adyen.*` | 97 | **否** |
+| 驼峰内部状态 | ~57 | **否** |
+| **协议层名字** | **5** | **是** |
+
+**5 个里只有 `paymentMethodsUrl` 该判（端点必须来自镜像，R1008 已记）；另 4 个是我们自己的通道名，缺失正常。**
+
+### 152 present 的含义
+
+**那 152 个是协议层名字（token 键 / cookie 名 / 请求字段）→「抄来的都在，自己起的不在」—— 应有的样子。**
+
+### 数字
+
+**套件 2219 · 陈旧度 1 / 2,671 · 函数数 174,336 · absent 159（154 不可判 / 5 可判 / 1 需修且已记）**
+
+| 仍 Unknown | |
+|---|---|
+| 原版用什么字段名承载这些状态 | 需类型级证据；NativeAOT 下按名不可得（R958） |
+
+**纪律**：判据在某一层不适用时，它的输出形状和「全都是缺陷」一模一样。

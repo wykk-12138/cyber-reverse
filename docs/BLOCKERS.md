@@ -33088,3 +33088,102 @@ R993 用的是第一个意思，而它被读成了第二个 —— 于是「把�
 
 **→ 而这一轮的扫描把那个混淆一次性摊开了：326 个键里 159 个不在产物里，
 而其中一个正是那条「活通道」。**
+
+
+---
+
+## 434. **键名判据有定义域：159 个 absent 里约 154 个不可判且不需修**
+
+> R1010。**未改代码，只判定判据的适用范围。** 套件 **2219 通过 / 0 失败 / 0 跳过**。
+
+### 一、按 R956 的教训换成四种形态再查
+
+```
+orderProcessed      bare=0  _field=0  get_OrderProcessed=0  content=orderProcessed=0
+paymentStarted      bare=0  _field=0  get_PaymentStarted=0  content=paymentStarted=0
+totalMinor          bare=0  _field=0  get_TotalMinor=0      content=totalMinor=0
+transactionAmount   bare=0  _field=0  get_TransactionAmount=0 content=transactionAmount=0
+deviceProfiled      bare=0  _field=0  get_DeviceProfiled=0  content=deviceProfiled=0
+sizeLine            bare=0  _field=0  get_SizeLine=0        content=sizeLine=0
+selectedRate        bare=0  _field=0  get_SelectedRate=0    content=selectedRate=0
+discountApplied     bare=0  _field=0  get_DiscountApplied=0 content=discountApplied=0
+```
+
+**→ 全 0。四种形态一个都没有。
+→ 而全 0 **不说明它们错了** —— 它说明这个问法对这一类**不适用**。**
+
+### 二、为什么它不适用
+
+**原版**没有** `Vars` 这个字典。它把状态放在**字段**里，而字段叫什么**不必与我们的键名相同** ——
+我们的 `orderProcessed` 在原版里可能是 `_orderDone`、可能是 `_placed`、可能是别的东西，
+而「这个名字在镜像里吗」对**任何一个**候选都只会答 0。**
+
+**→ 所以「键名对镜像」这个判据有一个**定义域**：
+→ 它只对**协议层**的名字有判定力 —— 那些名字是从镜像里抄来的
+  （`kpsdk` / `datadome` / `paymentGatewayName` / URL / cookie 名），所以**这个名字**必须出现在镜像里。
+→ 而对**内部状态管理**的名字，它没有判定力，因为原版在那一层用的是另一种机制。**
+
+**→ 这是 R730「不再写前缀分类器」的同一课：
+**一个判据在某一层不适用时，用它得出的结论是假的。****
+
+### 三、所以 159 个的正确读法
+
+| 类 | 数 | 判据适用？ | 说明 |
+|---|---|---|---|
+| 带点（`adyen.*` 等） | 97 | **否** | 我们发明的命名空间约定，原版没有这套约定 |
+| 驼峰内部状态 | ~57 | **否** | 原版用字段，字段名不必相同 |
+| **协议层名字** | **5** | **是** | `paymentMethodsUrl` · `sensorKeys` · `lastStatus` · `lastBody` · `antibot.solver` |
+
+**那 5 个里，**只有 `paymentMethodsUrl` 是该判的** —— 它是**端点**，而端点必须来自镜像。
+另外 4 个是**我们自己的通道名**，原版不需要它们，所以「不在镜像里」**正常**。
+→ 而 `paymentMethodsUrl` R1008 已经处理过（记为自造、路由不可得）。**
+
+### 四、152 个 present 的含义现在清楚了
+
+**那 152 个是**协议层的名字** —— 从镜像里抄来的（token 键、cookie 名、请求字段）。
+→ 所以「152 在 / 159 不在」不是「一半对一半错」，
+→ 而是**「抄来的都在，自己起的不在」** —— 而那正是应有的样子。**
+
+### 五、这一轮没有改代码，因为结论是「不需要修」
+
+**R1009 把 159 摆成一个待办清单的形状。而这一轮说：那 159 个里**约 154 个不需要任何人做什么** ——
+它们是我们自己的状态管理，而它本来就该有我们自己的名字。**
+
+**→ 唯一留下的是 `paymentMethodsUrl`（已记）与一个真问题：
+  「原版用什么字段名承载这些状态」。而那需要**类型级**证据（字段表），不是字符串级。
+→ 而 vtable/字段表在 NativeAOT 下按名不可得（R958）—— 所以它是 Unknown，不是待办。**
+
+### 六、数字
+
+| 度量 | R1009 | R1010 |
+|---|---|---|
+| 套件 | 2219 | **2219（未改代码）** |
+| 产物陈旧度 | 1 / 2,671 | **1 / 2,671** |
+| 函数数 | 174,336 | **174,336** |
+| 会话键 absent | 159 | **159（97 不可判 / 57 不可判 / 5 可判）** |
+| **其中需要修** | 记为待判 ~50 | **1（`paymentMethodsUrl`，R1008 已记）** |
+| **判据的定义域** | 未讨论 | **协议层名字（152 个），不含内部状态** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str orderProcessed        -> {"n":0}
+python analysis/ida.py str _orderProcessed       -> {"n":0}
+python analysis/ida.py str get_OrderProcessed    -> {"n":0}
+（paymentStarted / totalMinor / transactionAmount / deviceProfiled / sizeLine / selectedRate /
+  discountApplied 同形，全部 0）
+cd replica && python tools/metrics_report.py -> 套件 2219 · 陈旧度 1 / 2,671 · 函数数 174,336
+```
+
+### 八、仍然 Unknown
+
+- **原版用什么字段名承载这些状态**：**Unknown** —— 需类型级证据；NativeAOT 下按名不可得（R958）。
+
+### 九、教训
+
+**一个判据在某一层不适用时，用它得出的结论是假的 —— 而它的**输出形状**
+（「159 个不在」）看起来和「159 个都是缺陷」一模一样。**
+
+**→ 上一轮我把一个清单交给了下一轮，而这一轮的第一件事本该是问
+「这个清单上的东西**该不该**满足这个判据」。**

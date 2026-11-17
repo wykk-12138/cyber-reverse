@@ -36979,3 +36979,56 @@ python tools/metrics_report.py -> 完整套件 exit 0  2258 / 0 / 0 · 陈旧度
 
 **→ 所以 (f) 那句「未覆盖的每条写为什么」不是形式要求 ——
   它要求的是**每条先定类别**，因为「为什么未覆盖」的答案随类别完全不同。**
+
+---
+
+## 473. **两个厂商都定了 Local（有据）；补行因 4 个守卫回滚**
+
+
+## R1049 —— **两个厂商都定了 `Local`（有据）；补行因 4 个守卫回滚，任务转下一轮**（套件 2258 绿）
+
+### 取证（决定性）
+
+```
+BotDeflector  <SubmitBotDeflectorChallenge>d__38 · <SolveBotDeflectorPow>d__39 · <SolveBotDeflectorIcons>d__40
+              _passed0_botDeflectorFingerprint
+Vercel        VercelBotIdSolver · x-vercel-challenge-{token,solution,version}
+              SubmitPath /.well-known/vercel/security/request-challenge · _vcrcs · SupportedVersion
+```
+
+**⇒ 两个都是原版**自解**（`Solver.Local` / `Relayed false`），不是 `Unknown`。**
+→ 而那是 R1048「无第三方指向不等于自建」的正面回答：这次**有**指向，指向**原版自己**。
+
+### 而补行回滚了
+
+加两行后 `rows=9 · missing=5`（真缺口归零），但套件红 **4**：
+
+| 测试 | 性质 |
+|---|---|
+| `ThreeOfSevenAreWired`（名字就写七分之三） | **形状**（7→9、3→5） |
+| `TheRestAreLocalOrNone` | **形状**（枚举） |
+| `TheTwoAxesAreIndependent` | **形状**（枚举） |
+| `TheCookieColumnAgreesWithTheProtocolTable` | **真问题**：`_vcrcs` 没在协议表里登记 |
+
+**→ 前三个改数字；第四个是**真判断**（`_vcrcs` 该进协议表，还是该行 cookie 设 `null`），不该顺手做。
+→ 预算不够 ⇒ `git checkout` 回滚，套件回 **2258 / 0 / 0**。**
+
+### 下一轮四步（都已定位）
+
+1. `BotDeflector` 加行（marker `BotDeflector` · cookie `null` · `Wired` · `ImageLiteral` · `Gap.None` · `Local` · false）
+2. `Vercel` 加行（marker `x-vercel-challenge-token` · cookie `_vcrcs` · 同上）
+3. 改 3 个守卫的数字/枚举（`ThreeOfSevenAreWired` 7→9、3→5；另两个加两个名字）
+4. **先定第 4 个**：`_vcrcs` 进协议表，或把该行 cookie 设 `null`
+
+### 数字
+
+| 度量 | R1048 | **R1049** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 陈旧度 | 0 / 0 | **1 / 277**（回滚但 mtime 更新） |
+| 函数数 | 174,293 | **174,293** |
+| **两个 Solver** | 未定 | **都是 `Local`（有据）** |
+| **台账行数** | 7 | **7（回滚）** |
+| **加行时的红** | — | **4（3 形状 + 1 真问题）** |
+
+**纪律**：拿到证据与改进去是两件事。硬塞代码再改守卫而不看清第 4 个，就是 R1031 那次回滚的形状。

@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 20:19:08 +0800 |
+| 生成时间 | 2026-11-17 20:28:26 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,7 +14,9 @@
 
 ## 时效警告（生成）
 
-> **变异套件那一组数来自上一次运行，而它已经过期**：`6:12:25 -- vendor_coverage.py changed after the run`。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 1 个源文件比产物新（共 277 行）。它描述的是更旧的一次构建，不是当前源码。
+>
+> **变异套件那一组数来自上一次运行，而它已经过期**：`6:21:56 -- VendorWiring.cs changed after the run`。
 
 ## 摘要素值
 
@@ -38,8 +40,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 174,293 |
 | 函数数量（.pdata） — functions: ratio | 62.89% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 1 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 277 |
 | 核心覆盖：store 宿主 | （未解析，见下方原始输出） |
 | 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
 | 可执行段体量 — section-mass: original executable | 51695104 |
@@ -52,7 +54,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 6:12:25 -- vendor_coverage.py changed after the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 6:21:56 -- VendorWiring.cs changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -366,10 +368,13 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 19:15:08
-newest source: src\Cybersole.Stores\Flows\FarfetchFlow.cs (2026-11-17 18:59:34)
-source files newer than the artifact: 0
-lines in those files: 0
-publish artifact state: current
+newest source: src\Cybersole.Stores\Scripts\VendorWiring.cs (2026-11-17 20:28:19)
+source files newer than the artifact: 1
+lines in those files: 277
+publish artifact state: stale
+
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -545,7 +550,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 6:12:25 -- vendor_coverage.py changed after the run
+  mutation-fit-staleness: 6:21:56 -- VendorWiring.cs changed after the run
 
   The counts above are from 2026-11-17T14:06:23+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
@@ -561,13 +566,13 @@ D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c
 `exit 0` · 2258 通过 / 0 失败 / 0 跳过 / 2258 总计
 
 ```text
-  正在确定要还原的项目…
-D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-  所有项目均是最新的，无法还原。
-  Cybersole.Core -> D:\projects\cyber-reverse\replica\src\Cybersole.Core\bin\Debug\net8.0\Cybersole.Core.dll
-  Cybersole.Http -> D:\projects\cyber-reverse\replica\src\Cybersole.Http\bin\Debug\net8.0\Cybersole.Http.dll
-D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr
-  Cybersole.Services -> D:\projects\cyber-reverse\replica\src\Cybersole.Services\bin\Debug\net8.0\Cybersole.Services.dll
+D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Flows\StoreFlow.cs(2173,44): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Cybersole.Stores.csproj]
+D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Flows\StoreFlow.cs(2315,44): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Cybersole.Stores.csproj]
+D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Flows\StoreFlow.cs(2338,44): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Cybersole.Stores.csproj]
+D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Flows\StoreFlow.cs(2366,44): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Cybersole.Stores.csproj]
+D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Flows\StoreFlow.cs(2478,44): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Cybersole.Stores.csproj]
+D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Flows\StoreFlow.cs(2491,44): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Cybersole.Stores.csproj]
+D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Flows\StoreFlow.cs(2508,44): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\projects\cyber-reverse\replica\src\Cybersole.Stores\Cybersole.Stores.csproj]
   Cybersole.Stores -> D:\projects\cyber-reverse\replica\src\Cybersole.Stores\bin\Debug\net8.0\Cybersole.Stores.dll
   Cybersole.Ui -> D:\projects\cyber-reverse\replica\src\Cybersole.Ui\bin\Debug\net8.0\Cybersole.Ui.dll
   Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
@@ -575,7 +580,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 2 m 33 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 2 m 31 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

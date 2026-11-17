@@ -181,15 +181,38 @@ Crocs-EU-Kasada-Version    Crocs-JP-Kasada-Version
 
 ---
 
-## 7. TL 阶段
+## 7. TL 阶段（已解出：`reload` 挑战）
 
-**[Obs]** 有一条专门的失败文案：
+**[Obs]** 两条几乎相同的函数（`sub_1408F0450` / `sub_1408F3AF0`，都是 `0x12f` 字节，只有字段偏移不同）：
 
+```c
+if (hasHeaders(headers, &off_14714B618 /* 'reload' */))
+{
+    ct  = get(headers, &off_1471881C8);   this[88]  = ct;
+    st  = get(headers, &off_1471882E0);   this[104] = st;
+    if (!this.timestamped) {              // 只记一次
+        this.timestamped = 1;
+        this[208] = now();                // 握手时刻
+    }
+}
+else
+{
+    report(&off_146D8A980 /* 'Failed solving Kasada (TL)' */,
+           &off_146A76FD0 /* '#FB4961' */);          // UI 用的红色
+}
 ```
-Failed solving Kasada (TL)     0x146d8a98c
-```
 
-**[Unk]** `TL` 的展开没有证据。可以确定的只有：它是 local solve 路径里的**一个可独立失败的阶段**，所以重试策略要能区分"整体失败"和"卡在 TL"。
+**⇒ `TL` = 响应里出现 `reload` 头的那个阶段。** 有 `reload` 就继续（并首次记录握手时刻），
+没有就报 `Failed solving Kasada (TL)`。
+
+三个配套结论：
+
+1. **`st` 不是算的，是从响应头取的** —— 客户端只搬运。同一函数里顺手记了一个**本地时间戳**（`+208`），
+   两者配对才得到 `workTime`（01 §6）。
+2. **`Failed solving Kasada (TL)` 带 UI 颜色参数** `#FB4961` —— 这条文案是给界面直接渲染的，
+   所以它的措辞是**契约**，换实现时别改字。
+3. **`reload` 是 Kasada 的一种挑战类型**（页面要求重载再取一次），不是网络错误 ——
+   所以它算"阶段"而不是"失败"。
 
 ---
 

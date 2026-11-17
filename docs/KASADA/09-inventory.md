@@ -47,7 +47,9 @@
 | C8b | **负结论**：已读代码里没有写 `rec[16]` 的地方（只读、只被 Reset 清零） | `sub_1408F2CD0` · `sub_1408EF930` | 08 §10.2 | ✅（负结论，需更大范围对照） |
 | C8c | 上游请求构造器（带 ct/dt/im/v + user-agent，注册 200） | `sub_1408EFC50`（0x2c5） | 08 §9.1 | ✅ |
 | C8d | Kasada 的第三方解法**只有 HyperSolutions 一家**（`JeviSolver` 属 Akamai，不是第二家） | `JeviSolver` `0x143321d3a` vs `AkamaiGeneratorJevi` `0x1432364c3` | 08 §10.4 | ✅ |
-| C9 | `TL` 阶段的语义 | `Failed solving Kasada (TL)` `0x146d8a98c` | 01 §7 | **Unk** |
+| C9 | **`TL` 的语义** | `sub_1408F0450` / `sub_1408F3AF0`（各 0x12f）：响应里有 `'reload'` 就继续并首次记握手时刻，没有就报 `Failed solving Kasada (TL)`（UI 色 `#FB4961`） | 01 §7 | ✅ **结案** |
+| C9a | `st` / `fc` / `h` 的写入点（都是从响应头取） | `st`→+104 · `fc`→+112 · `h`→+120，见 `sub_1408F0450` / `sub_1408F05E0` | 08 §11 | ✅ |
+| C9b | **统一结论：客户端不算，只搬运** | 九个头逐条写入点全表 | 08 §11 | ✅ |
 | C10 | `Reset`（重置握手状态） | `<Reset>b__44_0` `0x14345a9ac` · `<Reset>b__30_0` `0x14345add0` | 05 §1 | ✅ |
 
 ## D. 挑战流程 —— 真浏览器侧

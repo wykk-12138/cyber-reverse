@@ -110,7 +110,7 @@ public sealed class VendorWiringTests
             .Select(r => r.Vendor)
             .ToList();
 
-        Assert.Equal(new[] { "cloudflare", "imperva" }, inferred);
+        Assert.Equal(new[] { "cloudflare", "imperva", "perimeterx" }, inferred);
 
         foreach (var row in VendorWiring.Rows)
             _out.WriteLine($"{row.Vendor,-12} {row.MarkerFrom,-14} {row.Marker}");

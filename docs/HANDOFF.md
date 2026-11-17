@@ -2332,3 +2332,19 @@ datadome 走不到任何 solver。**`Wired` 的意思是「检测→求解→存
 纪律：**判据 (d) 要的不是「有证据」，是「每条写着它的证据是什么」。**
 
 下一轮：publish 一次刷新函数数（已多轮未 publish）；或查 `px-captcha` 是否也在镜像里（我只验了 `_px3`）。
+
+## R998 补充 — **perimeterx 标记改 Inferred；`DetectAsync` 改用镜像里的 `captcha-delivery`（5/6 有据）**（套件 2210）
+
+**R997 标错了一列**：`px-captcha` 镜像 **0** 命中，而 `_px3` 是 **cookie** 列的东西。
+我标 `ImageLiteral` 时看的是「这个厂商有镜像证据吗」，而那一列问的是「**这个格子里的串**在镜像里吗」。
+→ `Inferred` 现为 **3 个**：cloudflare · imperva · **perimeterx**。
+
+**而镜像里有一个可用的标记**：`captcha-delivery` **4** 命中（`geo.captcha-delivery.com` · `/` · `/interstitial/`）。
+→ `DetectAsync` 新增 `captcha-delivery` 分支，**排在 `px-captcha` 之前**。
+→ 检测能力实际变强：之前只靠一个镜像里不存在的串，现在先测镜像里那个。
+
+数字：套件 2210 · 陈旧度 0/0 · 函数数 173,952（未 publish）· 墙 3/6 · Inferred 3 · **有据标记 5/6**。
+
+纪律：**一个刚加上的字段就能抓住写它的人 —— 这是它值得加的最好证据。**
+
+下一轮：publish 一次刷新函数数（已多轮未 publish）；或 imperva 的标记（5/6 里最后那个没据的）。

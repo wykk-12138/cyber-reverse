@@ -376,6 +376,10 @@ public abstract class StoreFlow
             body.Contains("kpsdk", StringComparison.OrdinalIgnoreCase) ? "kasada" :
             body.Contains("_Incapsula_Resource", StringComparison.OrdinalIgnoreCase) ? "imperva" :
             body.Contains("datadome", StringComparison.OrdinalIgnoreCase) ? "datadome" :
+            // R998: the image names geo.captcha-delivery.com and its /interstitial/ path, four literals, and never
+            // px-captcha. Testing the marker the artifact actually carries is worth more than testing the one this
+            // workspace wrote from general knowledge, so both are accepted and the image's comes first.
+            body.Contains("captcha-delivery", StringComparison.OrdinalIgnoreCase) ? "perimeterx" :
             body.Contains("px-captcha", StringComparison.OrdinalIgnoreCase) ? "perimeterx" :
             body.Contains("queue-it", StringComparison.OrdinalIgnoreCase) ? "queue-it" :
             headers.Contains("cloudflare", StringComparison.OrdinalIgnoreCase) ? "cloudflare" :

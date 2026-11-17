@@ -59401,3 +59401,65 @@ Assert.Equal(new[] { "cloudflare", "imperva" }, inferred);
 > 一个 `Wired` 的行因此读起来像抄的 —— 而它的一半是编的。
 > → 判据 (d) 要的不是「有证据」，是「**每条**写着它的证据是什么」。
 > 我给六个厂商写了六行 note，而最要紧的那一列没有出处。**
+
+
+---
+
+## 第 998 轮：R997 标错了一列 —— 而镜像里有一个更好的 PerimeterX 标记
+
+### ① 我验的是 cookie 列，而 `ImageLiteral` 说的是 marker 列
+
+| 探测 | 命中 |
+|---|---|
+| **`px-captcha`**（marker 列） | **0** |
+| `_px3`（cookie 列） | 1 |
+
+> **R997 我查了 `_px3` 就标了 `ImageLiteral`，而那一列说的是**marker**。
+> `px-captcha` 在镜像里一次都不出现 → `Inferred` 集合是 **3 个**：cloudflare · imperva · **perimeterx**。
+> **而 `MarkerSource` 存在的理由，正是抓到写它的人。**
+
+### ② 而镜像里有一个**可用**的 PerimeterX 标记
+
+```
+https://geo.captcha-delivery.com
+https://geo.captcha-delivery.com/
+https://geo.captcha-delivery.com/interstitial/
+```
+
+**`captcha-delivery` 命中 4 次 —— `geo.captcha-delivery.com` 是 PerimeterX 的挑战域。**
+
+> **我们一直在测一个自造的串，而镜像里有一个 host 级、更可靠的标记。
+> 这不是「缺证据」：证据一直在，只是没去找。
+> R997 说「`_px3` 在所以 `ImageLiteral`」—— 那句把**cookie 的存在**当成了**标记的存在**。**
+
+### ③ 改了三处
+
+1. `VendorWiring.cs` — perimeterx → `Inferred`；note 写明 `geo.captcha-delivery.com` 才是镜像里的标记
+2. `StoreFlow.DetectAsync` — 加 `captcha-delivery` 分支，**排在 `px-captcha` 之前**
+3. `VendorWiringTests.cs` — `Inferred` → `{cloudflare, imperva, perimeterx}`
+
+### ④ 而 `DetectAsync` 的检测能力实际变强了
+
+| 之前 | 现在 |
+|---|---|
+| `px-captcha`（镜像 0 命中） | `captcha-delivery`（镜像 4 命中）**优先**，`px-captcha` 后备 |
+
+> **不只是修标注 —— 它让 PerimeterX 的检测**真的可能命中**。之前那条分支只能靠一个镜像里不存在的串。**
+
+### ⑤ 数字
+
+| 度量 | R997 | **R998** |
+|---|---|---|
+| 套件 | 2210 | **2210** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952（未 publish）** |
+| 墙 Wired | 3 / 6 | **3 / 6（未变）** |
+| **`Inferred` 标记** | 2 | **3（+perimeterx）** |
+| **`DetectAsync` 里镜像有据的标记** | 4 / 6 | **5 / 6** |
+
+### 教训
+
+> **一列「出处」写下去的第一件事，是暴露**写它的人**没按那一列的定义去填。
+> 我标 `ImageLiteral` 时看的是「这个厂商有镜像证据吗」，而那一列问的是「**这个格子里的串**在镜像里吗」。
+> → 两个问题答案不同，而更宽的那个更容易让人满意。
+> 一个刚加上的字段就能抓住作者 —— 这是它值得加的最好证据。**

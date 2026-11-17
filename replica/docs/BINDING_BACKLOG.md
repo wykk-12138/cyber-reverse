@@ -8001,3 +8001,38 @@ Getting / Initialising / Solving / Submitting DataDome
 | cf-chl 是否真对（真实挑战页有，但非镜像证据） | 常识支持，镜像不支持 |
 
 **纪律**：判据 (d) 要的不是「有证据」，是「每条写着它的证据是什么」。
+
+
+## 判据 (d)/优先级 ② — **perimeterx 标记改 Inferred；`DetectAsync` 改用镜像里的 `captcha-delivery`**（R998）
+
+### 探针
+
+| 探测 | 命中 |
+|---|---|
+| `px-captcha`（marker 列） | **0** |
+| `_px3`（cookie 列） | 1 |
+| **`captcha-delivery`** | **4**（`geo.captcha-delivery.com` · `/` · `/interstitial/`） |
+
+**→ R997 标 `ImageLiteral` 时看的是 cookie 列；那一列说的是 marker。`Inferred` 现为 3 个。**
+
+### 改了什么
+
+1. `VendorWiring.cs` — perimeterx → `MarkerSource.Inferred`，note 写明镜像里真正的标记
+2. `StoreFlow.DetectAsync` — 新增 `captcha-delivery` 分支，**排在 `px-captcha` 之前**
+3. `VendorWiringTests.cs` — `Inferred` → `{cloudflare, imperva, perimeterx}`
+
+### 效果
+
+**PerimeterX 的检测从「只靠一个镜像里不存在的串」变成「先测镜像里那个」。
+`DetectAsync` 里镜像有据的标记 4/6 → 5/6。**
+
+### 数字
+
+**套件 2210 · 陈旧度 0/0 · 函数数 173,952 · 墙 3/6 · Inferred 3 · 有据标记 5/6**
+
+| 仍 Unknown | |
+|---|---|
+| imperva 的正确标记 | 镜像里未找到 |
+| `cf-chl` 是否真对 | 常识支持，镜像不支持 |
+
+**纪律**：一个刚加上的字段就能抓住写它的人。

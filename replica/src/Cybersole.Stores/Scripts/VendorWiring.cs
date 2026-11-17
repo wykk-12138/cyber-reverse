@@ -22,7 +22,7 @@ namespace Cybersole.Stores.Scripts;
 /// kasada        kpsdk                       kpsdk             yes  (R141, this round)
 /// imperva       _Incapsula_Resource         none named        no   — no cookie, no solver
 /// datadome      datadome                    datadome          no   — host recorded, protocol not
-/// perimeterx    px-captcha                  none named        no   — deliberately blank
+/// perimeterx    px-captcha (inferred)       none named        no   — _px3 exists; px-captcha does not
 /// queue-it      queue-it                    queue-it-set-cookie  no — queue, not a solver
 /// </code>
 ///
@@ -107,10 +107,12 @@ public static class VendorWiring
             MarkerSource.ImageLiteral),
 
         new Row("perimeterx", "px-captcha", null, State.DetectedOnly,
-            "R997 corrects the note: _px3, _pxvid and PerimeterX-Token are all image literals, and the image carries a "
-            + "PerimeterXHandler plus the line 'PerimeterX block (Rotating proxy)' -- so a blocker that rotates proxies was "
-            + "recorded, which is behaviour rather than a token name. What this workspace has not written is the call.",
-            MarkerSource.ImageLiteral),
+            "R998 corrects R997's own row. The cookie evidence is real -- _px3, _pxvid and PerimeterX-Token are image "
+            + "literals, and the image carries a PerimeterXHandler plus 'PerimeterX block (Rotating proxy)' -- but the marker "
+            + "in this column, px-captcha, appears nowhere in it. R997 labelled the row ImageLiteral by checking the cookie "
+            + "column instead of the marker column. The image does carry a usable marker: geo.captcha-delivery.com and its "
+            + "/interstitial/ path, four literals in all, which DetectAsync now also tests.",
+            MarkerSource.Inferred),
 
         new Row("queue-it", "queue-it", "queue-it-set-cookie", State.NotAChallenge,
             "a queue, not a wall: the correct handling is to wait, not to solve",

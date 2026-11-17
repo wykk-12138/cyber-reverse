@@ -40,6 +40,8 @@
 | C5 | 挑战应答的量：`Answers` / `Duration` / `ServerTime` / `RemoteServerTime` | `get_Answers` `0x14344884a` · `RemoteServerTime` `0x143448a03`（其余同族） | 08 §1–2 | ✅ |
 | C6 | cd 生成原语：`Sha256Hex` / `HashDifficulty` / `GetOffset` / `RandomAddSubtract` / `GetCdHeader` | `0x143448c9a` / `0x143448cab` / `0x143448d40` / `0x143448d2d` / `0x143448d52` | 08 §1 | ✅ |
 | C7 | `SolveAsync`（`d__3`）主流程 | `<SolveAsync>d__3` = **`0x143448a28`**；全族另有 `d__1` `0x14344b31d` · `d__19` `0x14345b8df` · `d__20` `0x143447c43` · `d__8/9/10/11` `0x143366xxx`（2Captcha/CapSolver 等打码服务） | 08 §4 | 🟡（只有成员表） |
+| C7a | **请求侧落地**：`rec[16]→cd`、`rec[11]→ct`、`rec[15]→h`、`sub_1408EF620(rec)→v` | `sub_1408F2CD0`（0x382，async）· 头对象头表见 01 §3.0 | 08 §9.1 | ✅ |
+| C7b | **响应侧落地**：Api 路的 cd/ct/dt/dv 全部来自服务商响应头 | `sub_141148770`（0x3d0）· ct→+16 · dt→+24 · im→+32 · dv→+40 | 08 §9.2 | ✅ |
 | C8 | **cd 的算法公式**（难度判定式、随机加减作用域、输出编码） | 无 | 08 §4/§7 | **Unk**：需反编译 `SolveAsync` 的 `MoveNext` |
 | C9 | `TL` 阶段的语义 | `Failed solving Kasada (TL)` `0x146d8a98c` | 01 §7 | **Unk** |
 | C10 | `Reset`（重置握手状态） | `<Reset>b__44_0` `0x14345a9ac` · `<Reset>b__30_0` `0x14345add0` | 05 §1 | ✅ |

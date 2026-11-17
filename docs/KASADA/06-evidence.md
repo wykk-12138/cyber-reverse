@@ -97,6 +97,24 @@ python analysis\disp32_scan_any.py <obj_va>  # IDA 未建引用时，全字节�
 顺带解释了本轮早先一个困惑：我第一版脚本发现"所有 slot 都指向 `0x144DB6A40`"，
 以为是解引用错了 —— **那其实是 MethodTable 的地址**，`names_at.py` 直接把它印出来，一眼就分得清。
 
+### 2.5.2 `str` 的一个脆弱点：小 limit 会退化（复算前必读）
+
+`analysis/ida.py str` 调 `find_regex`，把结果 `json.loads` 后补上 `returned` / `saturated` / `total`。
+**但若某条匹配串含真实控制字节（如 `0x0b`），`json.loads` 失败，函数 fallback 成 `print(raw)`** ——
+输出里就只有 `{"n": …, "matches": […], "cursor": …}`，**没有 `total` / `saturated`**。
+
+实测（同一条命令，只差 limit）：
+
+```
+python analysis\ida.py str Kasada --limit 3      → 退化成原样输出（前 3 条里有 "Kasada\x0b"）
+python analysis\ida.py str Kasada --limit 400    → total=57  saturated=False  returned=57   ✓
+```
+
+**⇒ 复算本 dossier 里任何计数时，用足够大的 limit（大于预期命中数），不要用小 limit 抽样。**
+理由：小 limit 恰好把含控制字符的那几条拉进返回集，于是拿不到 `total`；
+而且更坏的是 —— **拿到 `"n": 3` 会让人以为总数是 3**，这正是 R1075 想防的那个错。
+
+
 
 
 ---

@@ -37195,3 +37195,55 @@ missing: Stripe challenge · PayPal 3DS · captcha · proof of work · checkpoin
 | 判成「真问题」的 | 2 | **0** |
 
 **纪律**：三轮猜测（4→9→11）都不如一次查询。而**测试名里的数字是一个钉子** —— 改了行为没改名字，名字就成了假话。
+
+---
+
+## 477. **「归支付层」是没被记下来的缺口；两条支付挑战已量化**
+
+
+## R1053 —— **「归支付层」是没被记下来的缺口；两条支付挑战已量化；套件 2258 绿**
+
+### ① 而「归支付层」的漏洞
+
+`where_is PayPal3DS` 与 `where_is StripeChallenge` 都 **no hit** ⇒ R1048 说「归支付层」是**对的**，
+而那一层**不存在** ⇒ **「不属于这张表」当时掩盖了「属于另一张不存在的表」。**
+**→ 移出视野与解决，在台账里长得一样。**
+
+### ② 取证：两条的规格
+
+```
+PayPal 3DS   (1) (2) **(2.1)** (3) (4) (5) (6) (7) (8)   ← 9 条；**(2.1) 是 2 之后的子阶段**
+3DS 状态机    Submit3DS · Process3DS · Waiting3DS · Complete3DS     ← 4 态
+PayPal solver <SolvePayPal3DS> · <SolvePayPalHosted3DS>              ← 2（普通 + Hosted）
+Stripe        9 个方法 + StripeFallbackHandler + StripeVersion "2025-08-27.basil"
+```
+
+**⇒ R1048 的「8 个可观察阶段」**错了**：`(2.1)` 打破「N 条 = N 阶段」这个假设 ⇒ **9 个阶段**。**
+
+### ③ 而「名字出现」≠「实现」—— 又踩一次
+
+| 标记 | 出现在 | 性质 |
+|---|---|---|
+| `PayPal3DS` | `WallSolving.cs:20` | 风控侧提到名字 |
+| `CreateStripePaymentMethod` | `DemandwareStepMap.cs:32` · `RetailFlows.cs:1214` | 步骤映射表引用 |
+| `StripeChallenge` / `Submit3DS` | — | **完全缺失** |
+
+**⇒ 第一版文档那句「一条都没有」是错的；现在生成器报**位置 + 性质**，不报布尔值。**
+
+### ④ 四份覆盖文档各答一问
+
+`CORE_COVERAGE`（flow/端点/站清单）· `VENDOR_COVERAGE`（风控逐条对）·
+`FINGERPRINT_VOCAB`（指纹名字有据否）· **`PAYMENT_CHALLENGES`（支付挑战规模与缺口）**。
+
+### 数字
+
+| 度量 | R1052 | **R1053** |
+|---|---|---|
+| 套件 | 2257 / 1（flaky） | **2258 / 0 / 0 绿** |
+| 陈旧度 | 3 / 650 | **3 / 650** |
+| 函数数 | 174,293 | **174,293** |
+| 3DS 阶段 | 「8」（错） | **9** |
+| 复刻件实现 | 未查 | **0 处** |
+| `PAYMENT_CHALLENGES.md` | — | **3,497 字节** |
+
+**纪律**：「归到另一张表」不是「记下来了」；「N 条文案 = N 个阶段」是一个会被 `(2.1)` 打破的假设。

@@ -28295,3 +28295,64 @@ metrics_report.py                  -> 2101 通过 / 0 失败
 **这一轮函数数没动，而它是这几轮里最值钱的之一 —— 因为上一轮那 43 个函数建立在一个编出来的键名上。**
 
 **「数动了」和「做对了」又一次分开 —— 这次分开在同一段代码上，隔了一轮。**
+
+
+---
+
+## 381. 网关选择改成过滤函数；四个编出来的名字删掉
+
+> R957。**改产品代码 +14 用例。** 套件 **2115 通过 / 0 失败 / 0 跳过**。
+
+### 一、R956 的残留
+
+**`PaymentGateways = {viva, disney, purpledot, eshopworld}` —— 四个名字也是编的。**
+
+### 二、镜像的机制
+
+```
+PreferredGateways · blockedGateways · RpcGetPaymentMethods · ParsePaymentMethods · IsWalletOnly
+```
+
+**→ 网关不是常量，是这家店返回的东西被两个设置过滤。**
+
+### 三、改成
+
+**`ChooseGateway(available, preferred, blocked)`：偏好顺序胜出 · 没偏好取第一个未封禁 · 全禁/空 → null**
+
+**`IsWalletOnly`：`applepay` 与 `apple_pay` 两种拼法都查。**
+
+### 四、函数数不动
+
+**小的同步方法 → 内联 → `.pdata` 不增（R951 一致）。**
+
+### 五、数字
+
+| 度量 | R956 | R957 |
+|---|---|---|
+| 套件 | 2101 | **2115** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,824 | **173,824** |
+| 产物大小 | 54,692 KB | **54,692 KB** |
+
+### 六、验证
+
+```
+analysis/ida.py str gateways       -> Gateways / blockedGateways / PaymentGateways / PreferredGateways
+analysis/ida.py str paymentMethods -> RpcGetPaymentMethods / ParsePaymentMethods
+test --filter GatewaySelectionTests -> 12 通过
+metrics_report.py                 -> 2115 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **`RpcGetPaymentMethods` 的返回形状**：**Unknown** —— 未反编译。
+- **`ParsePaymentMethods` 解析什么**：**Unknown** —— 只有名字。
+- **偏好/封禁设置的真实类型**：**Unknown** —— 只有名字。
+
+### 八、教训
+
+**两轮，同一个错两次：修了键名留着取值集合；修了取值集合留着它的形状（一个常量）。**
+
+**两次我都以为改对了 —— 因为两次我都只改了被上一个错误直接指出的那一样东西。**
+
+**而错误的下层还有一层，它长得不像错误，因为它是一个数组。**

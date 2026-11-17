@@ -1453,3 +1453,19 @@ R955 的 `paymentGateway` 是我编的。镜像里是 `_paymentGateway`（字段
 纪律：paymentGateway 与 paymentGatewayName 只差四个字符 —— 而读者不会怀疑。
 
 下一轮：接另外三个网关（PurpleDot/EshopWorld/GlobalECheckout），或查 PaymentGateways 的真实取值。
+
+## R957 补充 — 网关选择改成过滤函数；四个编出来的名字删掉（+14 用例，套件 2115）
+
+R956 修了键名却把 `PaymentGateways = {viva, disney, purpledot, eshopworld}` 留着 —— 那四个名字也是编的。
+镜像的机制是：PreferredGateways / blockedGateways 两个设置 + RpcGetPaymentMethods 取 + ParsePaymentMethods 解析 + IsWalletOnly 分类 → 网关不是常量，是这家店返回的东西被两个设置过滤。
+
+改成 ChooseGateway(available, preferred, blocked)：偏好顺序胜出 · 没偏好取第一个未封禁 · 全禁/空 → null。
+IsWalletOnly 同时查 applepay 与 apple_pay。
+
+函数数不动（小的同步方法被内联，与 R951 一致）—— 价值在把四轮前那 43 个函数依附的选择逻辑换成了有证据的。
+
+数字：套件 2101 → 2115 · 陈旧度 0/0 · 函数数 173,824 · 产物 54,692 KB。
+
+纪律：错误的下层还有一层，它长得不像错误，因为它是一个数组。
+
+下一轮：反编译 RpcGetPaymentMethods 看返回形状（唯一能定 ParsePaymentMethods 的途径）。

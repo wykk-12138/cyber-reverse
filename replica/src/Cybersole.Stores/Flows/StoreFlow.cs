@@ -787,10 +787,57 @@ public abstract class StoreFlow
     public const string CaptchaTokenKey = "captchaToken";
 
     /// <summary>
-    /// The gateways the image names as a collection. Recorded as a set rather than a switch arm per name, because the
-    /// image has <c>PaymentGateways</c> plural -- one store may accept several.
+    /// The two settings the image uses to choose among a shop's payment methods: an ordered preference and a set of
+    /// exclusions.
+    ///
+    /// <para>
+    /// R957. R956 replaced an invented key with the image's names but left a hard-coded list of four gateways, which was
+    /// the same mistake one layer down. Searching for how selection actually works found these instead: the image has
+    /// <c>PreferredGateways</c> and <c>blockedGateways</c> as settings, <c>RpcGetPaymentMethods</c> to fetch what a shop
+    /// offers, <c>ParsePaymentMethods</c> to read the answer, and <c>IsWalletOnly</c> to classify one kind. So the set of
+    /// gateways is not a constant at all -- it is whatever the shop returns, filtered by two settings.
+    /// </para>
     /// </summary>
-    internal static readonly string[] PaymentGateways = { "viva", "disney", "purpledot", "eshopworld" };
+    public const string PreferredGatewaysSetting = "PreferredGateways";
+
+    /// <inheritdoc cref="PreferredGatewaysSetting"/>
+    public const string BlockedGatewaysSetting = "blockedGateways";
+
+    /// <summary>
+    /// Chooses one method from what a shop offers. Preference order wins, blocked always loses, and an empty preference
+    /// list means take the first unblocked one rather than none -- a shop that offers payment must not fail because the
+    /// user expressed no preference.
+    /// </summary>
+    public static string? ChooseGateway(IReadOnlyList<string> available, IReadOnlyList<string> preferred,
+                                       IReadOnlyList<string> blocked)
+    {
+        if (available is null || available.Count == 0) return null;
+
+        var blockedSet = new HashSet<string>(blocked ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var wanted in preferred ?? Array.Empty<string>())
+            foreach (var offered in available)
+                if (string.Equals(wanted, offered, StringComparison.OrdinalIgnoreCase) && !blockedSet.Contains(offered))
+                    return offered;
+
+        foreach (var offered in available)
+            if (!blockedSet.Contains(offered))
+                return offered;
+
+        return null;
+    }
+
+    /// <summary>
+    /// True when a method is a wallet, which the image classifies separately because a wallet needs no card.
+    /// </summary>
+    public static bool IsWalletOnly(string? method) =>
+        method is not null && (
+            method.Contains("paypal", StringComparison.OrdinalIgnoreCase) ||
+            method.Contains("applepay", StringComparison.OrdinalIgnoreCase) ||
+            method.Contains("apple_pay", StringComparison.OrdinalIgnoreCase) ||
+            method.Contains("googlepay", StringComparison.OrdinalIgnoreCase) ||
+            method.Contains("google_pay", StringComparison.OrdinalIgnoreCase) ||
+            method.Contains("wallet", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Payment submission dispatches to whichever gateway the session named, and returns NotSupported when none was
@@ -821,7 +868,24 @@ public abstract class StoreFlow
     {
         // R956: the image names this field _paymentGatewayName, and _captchaToken sits beside it. My first version
         // invented "paymentGateway" -- close enough to compile and not what the original calls it.
+        // R957: the gateway is chosen from what the shop offers, filtered by the two settings, rather than switched on
+        // against a fixed list. A session may still name one explicitly, and that wins because it was chosen by a person.
         var gateway = c.Session.Vars.TryGetValue(StoreFlow.PaymentGatewayNameKey, out var named) ? named : null;
+        if (string.IsNullOrEmpty(gateway))
+        {
+            var offered = c.Session.Vars.GetValueOrDefault("paymentMethods")
+                ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                ?? Array.Empty<string>();
+            var preferred = c.Session.Vars.GetValueOrDefault("PreferredGateways")
+                ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                ?? Array.Empty<string>();
+            var blocked = c.Session.Vars.GetValueOrDefault("blockedGateways")
+                ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                ?? Array.Empty<string>();
+
+            gateway = ChooseGateway(offered, preferred, blocked);
+        }
+
         if (string.IsNullOrEmpty(gateway)) return await NotSupported("SubmitPayment").ConfigureAwait(false);
 
         var card = c.Session.Vars.GetValueOrDefault("cardNumber") ?? string.Empty;

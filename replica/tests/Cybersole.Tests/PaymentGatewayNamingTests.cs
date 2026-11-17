@@ -33,21 +33,14 @@ public class PaymentGatewayNamingTests
     }
 
     /// <summary>
-    /// The gateway collection exists because the image has PaymentGateways plural -- one store may accept several, so a
-    /// set is the right shape rather than a single value.
+    /// R957 removed the fixed gateway array: the image fetches what a shop offers rather than keeping a list, so the
+    /// constant that used to exist here must not come back.
     /// </summary>
     [Fact]
-    public void TheGatewaysAreACollection()
+    public void TheGatewayCollectionIsNoLongerAConstant()
     {
-        var gateways = (string[])typeof(StoreFlow)
-            .GetField("PaymentGateways", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-            .GetValue(null)!;
-
-        Assert.Equal(4, gateways.Length);
-        Assert.Contains("viva", gateways);
-        Assert.Contains("disney", gateways);
-        Assert.Contains("purpledot", gateways);
-        Assert.Contains("eshopworld", gateways);
+        Assert.Null(typeof(StoreFlow).GetField("PaymentGateways",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static));
     }
 
     /// <summary>

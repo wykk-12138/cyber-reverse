@@ -6557,3 +6557,31 @@ post 委托按网关声明的 `Func<...>` 形状构造；无网关时保持 `Not
 | `paymentFlexibility*` 三个名字的用途 | 未解 |
 
 **纪律**：`paymentGateway` 与 `paymentGatewayName` 只差四个字符 —— 而读者不会怀疑。
+
+
+## 判据 (a)/① — 网关选择改成过滤函数（R957，**改产品代码 +14 用例**）
+
+### 镜像证据
+
+**`PreferredGateways` · `blockedGateways` · `RpcGetPaymentMethods` · `ParsePaymentMethods` · `IsWalletOnly`**
+
+### 改动
+
+**`ChooseGateway(available, preferred, blocked)` · `IsWalletOnly`（两种拼法） ·
+`PreferredGatewaysSetting`/`BlockedGatewaysSetting` · 派发先取 session 名、否则调 chooser**
+
+### 删掉了
+
+**`PaymentGateways` 常量数组（四个编出来的名字）**
+
+### 数字
+
+**套件 2101 → 2115 · 陈旧度 0/0 · 函数数 173,824（未变，内联）· 产物 54,692 KB**
+
+| 仍 Unknown | |
+|---|---|
+| `RpcGetPaymentMethods` 的返回形状 | 未反编译 |
+| `ParsePaymentMethods` 解析什么 | 只有名字 |
+| 偏好/封禁设置的真实类型 | 只有名字 |
+
+**纪律**：错误的下层还有一层，它长得不像错误，因为它是一个数组。

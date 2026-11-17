@@ -28690,3 +28690,93 @@ metrics_report.py                                 -> 2186 通过 / 0 失败
 ### 八、教训
 
 **一个指标连续三轮不动、而我连续三轮都给了一个动听的原因 —— 那本身就是那个指标在说「你归错了因」。**
+
+
+---
+
+## 387. **产物保留规则定下来了：有覆写才进产物**（推翻八轮主张）
+
+> R963。**只取证，未改代码。** 套件 **2186 通过 / 0 失败 / 0 跳过** 保持不变。
+
+### 一、三组对比
+
+**① 构造是活的：**
+
+```
+Program.cs   : StoreModuleCatalog.RegisterAll(registry);      (在 OnFrameworkInitializationCompleted 里)
+Registry.cs  : foreach (var module in CreateAll()) registry.Register(module);
+```
+
+**→ 35 个 flow 都被构造 → **被裁的不是构造，是方法体**。**
+
+**② 同一类里一对一错：**
+
+| 串 | 位置 | 在产物 |
+|---|---|---|
+| `bstn: cart endpoint unknown` | `BstnFlow.GetCartAsync`（**唯一覆写**） | **True** |
+| `bstn: order endpoint unknown` | `BstnFlow` 其它 | False |
+
+**③ 零覆写的基类步骤体全不在：**
+
+| 串 | 来源 | 在产物 |
+|---|---|---|
+| `queueMinRemaining` | R960 `PollQueueAsync` | False |
+| `captcha not solved within the deadline` | R961 `SolveCaptchaAsync` | False |
+| `no csrf token on the page` | R962 `GetCsrfAsync` | False |
+| `SubmitPayment:` | R955 `SubmitPaymentAsync` | False |
+| `QueueITAccepted` · `api.solvecaptcha.com` · `out of stock` | 静态类 const | **True** |
+
+### 二、规则
+
+**`StoreFlow` 的虚方法只在**有覆写**时保留。零覆写的基类体被裁 ——
+派发表靠 `MethodInfo.Invoke`，而**反射在 NativeAOT 下不 root 方法**。**
+
+### 三、这推翻了八轮的进展主张
+
+**R955 / R958 / R960 的 +43 / +42 / +43，我当时都归因成「接线让步骤体进产物」。**
+
+**按这条规则，那个归因是错的：那些增量来自静态协议类变得可达。**
+
+**明确记为**更正**，不是补充。**
+
+### 四、正确的策略
+
+**每个 flow 覆写它真正需要的步骤。** 理由两条：
+
+1. **必然进产物**（有覆写）
+2. **镜像就是如此** —— `GetCsrf` 在约二十个 ordinal 上各一份，`SubmitPayment` 每个支付类一份，
+   **原版没有一个「大家共用的基类实现」**
+
+**所以「写基类默认实现」不仅不改变产物，它也不像原版。**
+
+### 五、数字
+
+| 度量 | R962 | R963 |
+|---|---|---|
+| 套件 | 2186 | **2186** |
+| 函数数 | 173,909 | **173,909** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 空壳 `=> Ok()` | 34 | **34** |
+| **规则** | Unknown | **有覆写才保留** |
+
+### 六、验证
+
+```
+grep RegisterAll                -> Program.cs (OnFrameworkInitializationCompleted) + Registry.cs
+python: exe.find('bstn: cart endpoint unknown')  -> True
+python: exe.find('bstn: order endpoint unknown') -> False
+python: exe.find('queueMinRemaining')            -> False
+python: exe.find('QueueITAccepted')              -> True
+```
+
+### 七、仍然 Unknown
+
+- **覆写的判定粒度**：**Unknown** —— 继承链两层是否也算，未取证。
+- **剩 34 个空壳里哪些该由 flow 覆写**：**Unknown** —— 需逐站取证。
+
+### 八、教训
+
+**这一轮一行代码都没改，而它是这几轮里最有价值的一轮。
+前八轮都在往一个不改变产物的方向走，而每轮都有数字在动，让我以为方向对了。**
+
+**一个指标能在你做错事的时候动，这是它最坏的性质。**

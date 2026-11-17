@@ -6478,3 +6478,86 @@ DLL 里字符串**全在**，AOT 产物里**没有**。于是查了十二个标�
 > 而它是在**我本该庆祝 34 个空壳变 33 个的时候**发现的。**
 > **一个指标连续三轮不动，而我连续三轮都给了一个动听的原因 ——
 > 那本身就是那个指标在说「你归错了因」。**
+
+
+### 那把尺子修好了：**被覆写的步骤体进产物，零覆写的不进**（R963）
+
+**R962 说「哪些步骤体进产物 Unknown」。这一轮用一组对比把它定下来。**
+
+### 三个观察，逐条可复算
+
+**① `RegisterAll` 在启动路径上**
+
+```
+Program.cs: StoreModuleCatalog.RegisterAll(registry);
+Registry.cs: foreach (var module in CreateAll()) registry.Register(module);
+```
+
+**它在 `App.OnFrameworkInitializationCompleted` 里 —— **必然执行**。所以 35 个 flow 都被构造。**
+
+> **所以被裁的不是「构造」，是**方法体**。**
+
+**② 同一个类里两个方法，一个在、一个不在**
+
+```
+BstnFlow.GetCartAsync 里: "bstn: cart endpoint unknown"      -> utf16=True
+BstnFlow 里:              "bstn: order endpoint unknown"     -> utf16=False
+```
+
+**而 `BstnFlow.GetCartAsync` 是**全仓唯一一处覆写**（R962 数过：`GetCart` 覆写 1 处，其余 7 个抽样步骤 0 处）。**
+
+**③ 零覆写的基类步骤体全都不在**
+
+```
+queueMinRemaining                          -> False   (R960 PollQueueAsync)
+captcha not solved within the deadline     -> False   (R961 SolveCaptchaAsync)
+no csrf token on the page                  -> False   (R962 GetCsrfAsync)
+SubmitPayment:                             -> False   (R955 SubmitPaymentAsync)
+```
+
+**而它们的静态依赖类的 const **都在**：`QueueITAccepted` · `Initiliazing Queue-it` ·
+`api.solvecaptcha.com` · `CAPCHA_NOT_READY` · `out of stock` 全部 True。**
+
+### 所以规则是
+
+> **`StoreFlow` 的虚方法只在**有覆写**时保留。零覆写的基类体被裁掉 ——
+> 因为派发表靠 `MethodInfo.Invoke`，而**反射在 NativeAOT 下不 root 方法**。**
+> **而静态类里的 const 因为被**某个**保留方法读，就留下了。**
+
+### 而这意味着什么
+
+**R955–R962 八轮的动作是「把零覆写的基类步骤写成真实现」。**
+**按这条规则，那个动作**不改变产物** —— 而它一直是那八轮的进展主张。**
+
+> **所以那三段 +42/+43/+43 的真实来源是**静态协议类变得可达**，
+> 而它们变得可达的原因是**某个**保留方法读了它们 —— 不是因为我写了步骤体。**
+> **而 R955 那句「+43 来自支付派发」、R960 那句「+43 来自 PollQueue」都是同一类归因错误。****
+
+### 那正确的策略是什么
+
+**两条，都是「让真实调用存在」：**
+
+1. **每个 flow 覆写它真正需要的步骤** —— 那既符合镜像（`GetCsrf` 在二十个 ordinal 上各一份），
+   又**必然**进产物
+2. **或者给基类步骤加**真实调用点**（不是反射）**
+
+> **第 1 条才是镜像本身的样子：镜像里 `GetCsrf` 二十份、`SubmitPayment` 每个支付类一份 ——
+> **原版也没有一个「大家共用的基类实现」**。
+> 所以「写基类默认实现」这个做法不仅不改变产物，**它也不像原版**。****
+
+### 数字
+
+| 度量 | R962 | **R963** |
+|---|---|---|
+| 套件 | 2186 | **2186（本轮只取证，未改代码）** |
+| 函数数 | 173,909 | **173,909** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 空壳 `=> Ok()` | 34 | **34** |
+| **规则** | Unknown | **有覆写才保留（Observation，三组对比）** |
+
+### 教训
+
+> **这一轮一行代码都没改，而它是这几轮里最有价值的一轮。
+> 因为前八轮都在往一个**不改变产物**的方向走，而每轮都有数字在动，让我以为方向对了。**
+> **而数字确实在动 —— 动的是别的东西。**
+> **一个指标能在你做错事的时候动，这是它最坏的性质。**

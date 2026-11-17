@@ -1553,3 +1553,27 @@ GetCsrfAsync 从 `=> Ok()` 写成真实现（四种 token 形状 + 四个 cookie
 纪律：一个指标连续三轮不动而每轮都有动听的归因 —— 那本身说明归因错了。
 
 下一轮：取证「哪些步骤体进产物、依据什么」（这是把尺子修好的前提）；在此之前不再用函数数当单轮进展判据。
+
+## R963 补充 — **产物保留规则定下来了：有覆写才进产物**（只取证，未改代码，套件 2186）
+
+三组对比：
+① `Program.cs → RegisterAll → CreateAll()` 在 `OnFrameworkInitializationCompleted` 里 → 35 个 flow 都构造
+   → **被裁的不是构造，是方法体**。
+② `BstnFlow.GetCartAsync`（全仓**唯一覆写**）的串 `bstn: cart endpoint unknown` = **True**；
+   同类未覆写方法的串 `bstn: order endpoint unknown` = False。
+③ 零覆写基类步骤体串全 False（`queueMinRemaining` / `captcha not solved…` / `no csrf token on the page` /
+   `SubmitPayment:`）；其静态依赖类 const 全 True（`QueueITAccepted` / `api.solvecaptcha.com` / `out of stock`）。
+
+**规则**：`StoreFlow` 虚方法只在**有覆写**时保留 —— 派发表靠 `MethodInfo.Invoke`，反射在 NativeAOT 下不 root 方法。
+
+**这推翻了八轮主张**：R955/R958/R960 的 +43/+42/+43 都归因成「接线让步骤体进产物」，那是错的；
+增量来自静态协议类可达。明确记为更正。
+
+**新策略**：每个 flow 覆写它真正需要的步骤 —— 既必然进产物，也**正是镜像的样子**
+（`GetCsrf` 约二十份、`SubmitPayment` 每支付类一份，原版没有共用基类实现）。
+
+数字：套件 2186（未变）· 函数数 173,909（未变）· 陈旧度 0/0 · 空壳 34（未变）。
+
+纪律：**一个指标能在你做错事的时候动，这是它最坏的性质。**
+
+下一轮：按新策略挑一个站，把某个空壳步骤**覆写进具体 flow**（不是基类），并核对它的串进产物。

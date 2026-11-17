@@ -3243,3 +3243,24 @@ not-in-pool **41 → 33** · unknown **0** · KnownPlaceholders **5 → 12** · 
 纪律：**先问判据的定义域，再相信它的零。**
 
 下一轮：做那个对照查询；它决定 Farfetch 的处置是否要撤回。
+
+## R1038 补充 — **对照推翻 R1036：Farfetch 在镜像里（`Farfetch Checkout`）⇒ 未覆盖不是多余**（套件 2254）
+
+**对照**：`nike.com` 40 · `footlocker.com` 8 · `supreme.com` 6 · `mywarhammer.com` 6 · `mattel.com` 10
+⇒ 域名**通常**可见。而我以为的两个反例都是**我拼错**：`zalando.` → `ZalandoAndroidMobile`；
+`asos.com` → `ASOS Sample Sale`。
+
+**裸词查询翻转结论**：`farfetch` **3** 条 —— `"Farfetch"` ×2 · **`"Farfetch Checkout"`**；`farfetch.com` 仍 0。
+⇒ 原版**确实**有此站且有结账流程 ⇒ R1036 的「原版从不提到」**错**，错因是只查两个**精确串**。
+
+**性质修正**：站**有** · 缺的是 **transport** · 性质是**未覆盖**（不是多余）· 那 −43 个函数**仍正确**。
+**flow 保留 · 步骤仍报告 · 43 函数不恢复。**
+
+**而我的守卫过严一次**：禁止文件引用被撤回的话 ⇒ **撤回无法被写下**。收窄成两条正向断言。
+
+数字：套件 2254（+2）· 陈旧度 1 / 217 · 函数数 174,293 · 比例 62.89% · 门 unknown 0 ·
+Farfetch **3** 条证据 · 我的拼写错 **2** 个（同族第三次）。
+
+纪律：**对照也要问「我用的拼写对吗」；精确串只能找到它被写成的那种拼写。**
+
+下一轮：publish 清陈旧度；或找 Farfetch 的 transport（配置/运行时）。

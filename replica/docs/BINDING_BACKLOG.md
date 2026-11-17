@@ -9619,3 +9619,48 @@ dotnet publish src/Cybersole.Ui -c Release -r win-x64 -p:PublishAot=true -p:UseS
 | `FarfetchFlow` 去留 | **待 YG**（与上面那条耦合） |
 
 **纪律**：先问判据的定义域，再相信它的零。
+
+
+## 判据 (f) — **对照推翻 R1036：Farfetch 在镜像里（`Farfetch Checkout`）⇒ 未覆盖不是多余**（R1038）
+
+### 对照
+
+```
+nike.com 40 · footlocker.com 8 · supreme.com 6 · mywarhammer.com 6 · mattel.com 10   ← 域名通常可见
+zalando → ZalandoAndroidMobile · asos → ASOS Sample Sale                            ← 我的两个"反例"是拼写错
+```
+
+### 裸词查询翻转结论
+
+```
+farfetch 3  → "Farfetch" ×2 · **"Farfetch Checkout"**       farfetch.com 0
+```
+
+**→ 原版**确实**有此站且有结账流程 ⇒ R1036 的「原版从不提到」是错的。
+→ 错因：只查 `farfetch.com` + `api.farfetch.com` 两个**精确串**。
+
+### 性质修正
+
+| | R1036 | R1038 |
+|---|---|---|
+| 站 | 没有 | **有** |
+| 缺 | 整站 | **transport** |
+| 性质 | 多余 | **未覆盖** |
+| −43 函数 | 代价 | **仍正确** |
+
+**flow 保留 · 步骤仍报告 · 43 函数不恢复。**
+
+### 而我的守卫过严一次
+
+**禁止引用被撤回的话 ⇒ 撤回无法被写下。收窄成两条正向断言。**
+
+### 数字
+
+**套件 2254（+2）· 陈旧度 1 / 217 · 函数数 174,293 · 比例 62.89% · 门 unknown 0 · Farfetch 3 条证据**
+
+| 仍 Unknown | |
+|---|---|
+| Farfetch 的 transport 是什么 | 需配置或运行时证据 |
+| 产物需重 publish（1 文件陈旧） | 待收尾 |
+
+**纪律**：对照也要问「我用的拼写对吗」；精确串只能找到它被写成的那种拼写。

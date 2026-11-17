@@ -23,11 +23,25 @@ namespace Cybersole.Stores.Flows;
 /// usual storefront <c>Accept: application/json</c>.
 /// </summary>
 /// <summary>
-/// R1036: this flow has no support in the image. Probing for its domain, for its API host, for the product prefix and
-/// for the basket and checkout prefixes returns zero on every one, so its host, its endpoints and its checkout chain
-/// were all written without evidence. Every step now reports instead of sending.
-/// Whether the flow should exist at all is a question for the owner; keeping it as a reporting stub means the
-/// workspace no longer pretends it can buy from a store the original never mentions.
+/// R1038 retracts R1036's conclusion. That round probed "farfetch.com", "api.farfetch.com" and the API prefixes, found
+/// zero on every one, and wrote here that the original never mentions the store. It does:
+///
+///   0x14338eadc  Farfetch
+///   0x146d8dfdc  Farfetch
+///   0x146d8e004  Farfetch Checkout
+///
+/// A bare-word probe finds all three, and "Farfetch Checkout" is the original naming a checkout flow for this store. So
+/// the store is supported; what is absent is this workspace's knowledge of its transport -- the domain and the seven
+/// API routes return zero at every spelling tried.
+///
+/// Which makes Farfetch a gap rather than an addition: the original has the flow, this replica does not know how to
+/// speak to it. The seven steps report for that reason and no other. R1036's forty-three trimmed functions stay
+/// trimmed, because they served requests that were invented; the flow itself stays.
+///
+/// The lesson behind the retraction is worth keeping beside the code: the control that exposed it found that domains
+/// usually are literals -- nike.com, footlocker.com, supreme.com, mywarhammer.com and mattel.com all appear -- and also
+/// that my first counter-examples were misspellings, since zalando is present as ZalandoAndroidMobile and asos as
+/// "ASOS Sample Sale". A precise string finds only the spellings it was written for.
 /// </summary>
 public class FarfetchFlow : StoreFlow
 {
@@ -66,7 +80,7 @@ public class FarfetchFlow : StoreFlow
         // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
         // had no evidence behind it; R1011 settled what to do when that is true.
         return StepOutcome.Fail(
-            "farfetch: product endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
+            "farfetch: product endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
     }
 
     public override Task<StepOutcome> FindVariantAsync(FlowContext c, CancellationToken ct)
@@ -140,7 +154,7 @@ public class FarfetchFlow : StoreFlow
         // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
         // had no evidence behind it; R1011 settled what to do when that is true.
         return StepOutcome.Fail(
-            "farfetch: add-to-cart endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
+            "farfetch: add-to-cart endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
     }
 
     public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
@@ -148,7 +162,7 @@ public class FarfetchFlow : StoreFlow
         // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
         // had no evidence behind it; R1011 settled what to do when that is true.
         return StepOutcome.Fail(
-            "farfetch: basket endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
+            "farfetch: basket endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
     }
 
     public override async Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct)
@@ -156,7 +170,7 @@ public class FarfetchFlow : StoreFlow
         // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
         // had no evidence behind it; R1011 settled what to do when that is true.
         return StepOutcome.Fail(
-            "farfetch: checkout endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
+            "farfetch: checkout endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
     }
 
     public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
@@ -164,7 +178,7 @@ public class FarfetchFlow : StoreFlow
         // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
         // had no evidence behind it; R1011 settled what to do when that is true.
         return StepOutcome.Fail(
-            "farfetch: shipping endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
+            "farfetch: shipping endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
     }
 
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
@@ -172,7 +186,7 @@ public class FarfetchFlow : StoreFlow
         // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
         // had no evidence behind it; R1011 settled what to do when that is true.
         return StepOutcome.Fail(
-            "farfetch: payment endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
+            "farfetch: payment endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
     }
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
@@ -180,7 +194,7 @@ public class FarfetchFlow : StoreFlow
         // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
         // had no evidence behind it; R1011 settled what to do when that is true.
         return StepOutcome.Fail(
-            "farfetch: place-order endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
+            "farfetch: place-order endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
     }
 
     /// <summary>

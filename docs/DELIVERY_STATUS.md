@@ -30189,3 +30189,110 @@ python tools/metrics_report.py
 
 **→ 而反例很容易找（配置驱动的站名），所以那不是吹毛求疵 —— 那是 R1016 那条的又一次：
   先问这个判据的定义域，再相信它的零。**
+
+
+---
+
+## 462. **对照查询推翻 R1036；Farfetch 是「未覆盖」而不是「多余」**
+
+> R1038。**改 1 个 flow + 1 个测试文件。** 套件 **2254 通过 / 0 失败 / 0 跳过**。
+> 端点门 `unknown` 0 · exit 0。
+
+### 一、对照：已知支持的站，名字在不在池里
+
+```
+nike.com         40 (AT CAP)   → accounts.nike.com · api.nike.com
+footlocker.com    8            → images.footlocker.com · www.footlocker.com
+supreme.com       6            → eu/jp/shop.supreme.com
+mywarhammer.com   6            → login.mywarhammer.com
+mattel.com       10            → creations.mattel.com
+```
+
+**→ 域名字面量**通常**在池里 ⇒ R1036 那个前提「域名以字面量出现」**大体成立**。**
+**→ 而两个我以为的反例都是**我拼错了**：`zalando.` 带点查不到 `ZalandoAndroidMobile`；
+  `asos.com` 查不到 `ASOS Sample Sale`。**
+
+### 二、而裸词查询把结论翻了过来
+
+```
+farfetch        3  → 0x14338eadc "Farfetch" · 0x146d8dfdc "Farfetch" · **0x146d8e004 "Farfetch Checkout"**
+farfetch.com    0
+ff-products     0
+```
+
+**→ `Farfetch` 与 **`Farfetch Checkout` 都在镜像里** ⇒ 原版**确实**有这个站，而且**有结账流程**。
+→ 所以 R1036 那句「原版从不提到这个站」**是错的**，而它之所以错，是因为我只查了
+  **`farfetch.com` 与 `api.farfetch.com`** 两个精确串。**
+
+**→ 那与本轮两次拼写错误是**同一个错的第三次**：
+  **精确串只能找到它被写成的那种拼写。****
+
+### 三、所以 Farfetch 的性质变了
+
+| | R1036 说 | R1038 修正 |
+|---|---|---|
+| 这个站 | **镜像里没有** | **镜像里有（`Farfetch Checkout`）** |
+| 缺什么 | 整站 | **transport**（域名与 7 条 API 路由，任何拼写都是 0） |
+| 性质 | **多余（addition）** | **未覆盖（gap）** |
+| 那 −43 个函数 | 「停止假装」的代价 | **仍然正确** —— 它们服务于编造的请求 |
+
+**→ 而那正是 goal 完成判据 (f) 要的形态：「未覆盖的每条写为什么」。
+→ Farfetch 现在有一条合格的记录：**原版有结账流程，我们不知道它怎么说话。****
+
+### 四、改了什么
+
+**类头从「原版从不提到」改成三段：R1036 的结论被撤回、三条字的地址、
+  以及「域名通常可见而我的反例是拼写错」。
+7 条消息从 `the image carries no farfetch.com` 改成
+  `the original has a Farfetch checkout, this workspace does not know its transport`。**
+
+**→ 而那让 flow **保留**、步骤**仍然报告**、而那 43 个函数**不恢复** —— 三件事各归其位。**
+
+### 五、而我写的守卫**过严**了一次
+
+**第一版守卫里有两条：禁止文件引用被撤回的那句话（`the original never mentions`）、
+  禁止出现 `/api/ff-products`。**
+
+**→ 第一条让**撤回无法被写下来** —— 一条守卫不能禁止它保护的那段注释引用它要撤回的话。
+→ 收窄成两条正向断言（`Farfetch Checkout` 在 · `does not know its transport` 在）。**
+
+### 六、数字
+
+| 度量 | R1037 | R1038 |
+|---|---|---|
+| 套件 | 2252 / 0 | **2254 / 0 / 0（+2）** |
+| 产物陈旧度 | 0 / 0 | **1 / 217**（本轮改了 flow） |
+| 函数数 | 174,293 | **174,293（不变）** |
+| 比例 | 62.89% | **62.89%** |
+| **端点门 `unknown`** | 0 | **0** |
+| **Farfetch 在镜像里** | 「否」（错） | **是（3 条，含 `Farfetch Checkout`）** |
+| **Farfetch 的性质** | 多余 | **未覆盖** |
+| **对照的已知站** | 未做 | **5 个全在** |
+| **我的拼写错误** | — | **2 个（zalando / asos），同族第三次** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "farfetch"          -> {"n":3}（含 "Farfetch Checkout"）
+python analysis/ida.py str "farfetch\.com"     -> {"n":0}
+python analysis/ida.py str "nike\.com"         -> {"n":40}（对照：域名可见）
+python analysis/ida.py str "zalando"           -> {"n":4}（我的旧反例是拼写错）
+cd replica
+python tools/endpoint-provenance.py            -> unknown 0 · exit 0
+python tools/metrics_report.py -> 完整套件 exit 0  2254 / 0 / 0
+```
+
+### 八、仍然 Unknown
+
+- **Farfetch 的 transport 是什么**：**需配置或运行时证据**。
+- **产物需重新 publish**（1 文件陈旧）：待收尾。
+
+### 九、教训
+
+**这一轮最有价值的一步不是那个查询，是**先做对照**。**
+
+**→ 若没有对照，我会停在一个正好相反的结论上，而那个结论**看起来**被一次干净的零支持。**
+
+**→ 而对照本身也差点骗我：我挑的两个反例都是我拼错的。
+→ 所以对照也要问「我用的拼写对吗」—— 而那次我查了变体，才没把 zalando 和 asos 记成缺席。**

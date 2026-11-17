@@ -519,19 +519,35 @@ public class NikeFlow : StoreFlow
         var card = c.Card;
         if (card?.Number is null) return StepOutcome.Fail("nike: no card");
 
-        // 1. ask Nike for a payment session
-        var initiate = await GetAsync(c,
-            $"https://api.nike.com/buy/orders/v2/US/{c.Session.CartId}/initiatePayment",
-            "nike-initiate-payment", ct).ConfigureAwait(false);
+        // R1011: this step used to POST to buy/orders/v2/.../initiatePayment and PUT to .../payment. Neither family
+        // exists. `NikeEndpoints`' own header has said so since R87 -- it records that the replica was calling two URL
+        // families the binary does not contain -- and the two literals survived anyway, inside an override, which means
+        // they are compiled into the artifact and would go out on the wire.
+        //
+        // What the image does name, in address order:
+        //   0x147053d8c  https://api.nike.com/buy/checkouts/v3/                     one resource every step writes to
+        //   0x147053c94  https://api.nike.com/buy/checkout_previews/v3/             the preview half
+        //   0x146ab768c  /rpc/payment/pay/initiatePayment                           an RPC form, host not paired
+        //   0x146aafe84  /InitiatePayment                                           a controller name
+        //
+        // So the operation is real and its address is not established: the RPC path has no host literal beside it, and
+        // pairing it with api.nike.com would be the join-two-seen-fragments mistake `EndpointProvenanceTests` was
+        // written to stop. Reporting that is worth more than sending a request that can only 404 -- the old code turned
+        // a missing endpoint into "nike initiatePayment HTTP 404", which reads like the store refusing us.
+        return StepOutcome.Fail(
+            "nike: payment endpoint not captured -- the image names /rpc/payment/pay/initiatePayment without a host "
+            + "and buy/checkouts/v3 as the resource, while buy/orders/v2 (what this step used) is in it zero times",
+            retryable: false);
+    }
 
-        if (initiate is null) return StepOutcome.Fail("nike initiatePayment failed", retryable: true);
-        if (initiate.StatusCode == 403)
-            return StepOutcome.Fail("nike payment blocked (kasada)", retryable: true);
-        if (!initiate.IsSuccess)
-            return StepOutcome.Fail($"nike initiatePayment HTTP {initiate.StatusCode}", retryable: true);
-
-        var paymentToken = TryRead(initiate.Body, "paymentToken") ?? TryRead(initiate.Body, "token");
-        if (paymentToken is not null) c.Session.Vars["nikePaymentToken"] = paymentToken;
+    /// <summary>
+    /// The card-attaching half, kept for when the address is established. Unused today; see the note in
+    /// <see cref="SubmitPaymentAsync"/> for why.
+    /// </summary>
+    private async Task<StepOutcome> AttachCardAsync(FlowContext c, CancellationToken ct)
+    {
+        var card = c.Card;
+        if (card?.Number is null) return StepOutcome.Fail("nike: no card");
 
         // 2. attach the card
         var payload = new JObject

@@ -27444,3 +27444,119 @@ cd replica && python tools/metrics_report.py -> 套件 2219 · 陈旧度 1 / 2,6
 
 **→ 上一轮我把一个清单交给了下一轮，而这一轮的第一件事本该是问
 「这个清单上的东西**该不该**满足这个判据」。**
+
+
+---
+
+## 435. **Nike 付款的两个端点镜像 0 命中，改成报告（覆写 ⇒ 原本真的会发出去）**
+
+> R1011。**改 1 个源文件。** 套件 **2219 通过 / 0 失败 / 0 跳过**（47 条 Nike 用例全过）。
+
+### 一、缺陷
+
+**`NikeEndpoints.cs:8-10`（R87 写）：「the replica's Nike flow was calling **two URL families the binary
+does not contain at all** — `buy/carts/v2/…` and `buy/orders/v2/…`」**
+
+**而 `NikeFlow.cs:524` 与 `561` **仍在用**它们，而且在一个**覆写**里
+（`public override async Task<StepOutcome> SubmitPaymentAsync`，514 行）。
+→ R1002 证明了**覆写进产物** ⇒ 那两条是**会被发出去的请求**。**
+
+### 二、镜像查证
+
+```
+buy/orders/v2        0
+buy/carts/v2         0
+buy/checkouts/v3     1   → 0x147053d8c  https://api.nike.com/buy/checkouts/v3/
+checkout_previews    2   → 0x147053c94 · 0x147053d0c
+initiatePayment      3   → 0x146ab768c  /rpc/payment/pay/initiatePayment
+                           0x146aafe84  /InitiatePayment
+                           0x1470a4014  initiatePayment
+```
+
+**→ 操作是真的（`initiatePayment` 三处），而**地址不成立**：
+RPC 形那条只是一个**路径**，旁边没有 host 字面量。**
+
+### 三、所以修法不是猜一个替换
+
+**把 `/rpc/payment/pay/initiatePayment` 与 `api.nike.com` 拼起来，正是
+`EndpointProvenanceTests` 专门禁掉的那个动作
+（「an endpoint was invented by joining a host seen in one literal to a path」）—— 那会是**第六次**同类发明。**
+
+**→ 而旧代码做的是更坏的一件事：它把一个**不存在的端点**变成一个像商店拒绝我们的错误：
+「nike initiatePayment HTTP 404」。**
+
+### 四、改了什么
+
+```csharp
+var card = c.Card;
+if (card?.Number is null) return StepOutcome.Fail("nike: no card");
+
+// R1011: 这一步骤原来 POST 到 buy/orders/v2/.../initiatePayment、PUT 到 .../payment。两族都不存在。
+// NikeEndpoints 的文件头从 R87 起就写着这件事，而两个字面量活下来了 ——
+// 而且活在一个覆写里，意味着它们被编进产物、会走到网线上。
+//
+// 镜像里确实有的，按地址序：
+//   0x147053d8c  https://api.nike.com/buy/checkouts/v3/     每个步骤都写的那个资源
+//   0x147053c94  https://api.nike.com/buy/checkout_previews/v3/
+//   0x146ab768c  /rpc/payment/pay/initiatePayment           RPC 形，host 未配对
+//   0x146aafe84  /InitiatePayment                           控制器名
+//
+// 所以操作是真的、地址不成立。报告这一点比发一个只能 404 的请求更值 ——
+// 旧代码把一个缺失的端点变成了 "nike initiatePayment HTTP 404"，读起来像商店拒绝了。
+return StepOutcome.Fail(
+    "nike: payment endpoint not captured -- the image names /rpc/payment/pay/initiatePayment without a host "
+    + "and buy/checkouts/v3 as the resource, while buy/orders/v2 (what this step used) is in it zero times",
+    retryable: false);
+```
+
+**并从原来的打点代码里切出一个 `private async Task<StepOutcome> AttachCardAsync(...)`（未调用），
+注释写明「kept for when the address is established」—— **代码留证**，不是留活路径。**
+
+**→ 这不破坏任何能工作的东西：那两条请求**本来就必 404**。**
+
+### 五、这是同一条原则的第四次
+
+| 轮 | 形状 |
+|---|---|
+| R823 | CSRF GUID 兜底（编一个 token） |
+| R991 | 伪造的支付令牌 `"tok_" + Guid.NewGuid()` |
+| R1001 | 4 个网关端点只给一条路径，其余报「not captured」 |
+| **R1011** | **Nike 付款打两个不存在的端点 → 改成报告** |
+
+**共同点：一个**看起来在工作**的东西，其实是把「我不知道」写成「它拒绝了我」。**
+
+### 六、数字
+
+| 度量 | R1010 | R1011 |
+|---|---|---|
+| 套件 | 2219 | **2219（47 条 Nike 用例通过）** |
+| 产物陈旧度 | 1 / 2,671 | **2 / 2,7xx（NikeFlow.cs 改）** |
+| 函数数 | 174,336 | **174,336（未 publish）** |
+| **Nike 里打不存在端点的活请求** | **2** | **0** |
+| **`AttachCardAsync`** | 不存在 | **存在但未调用（留证）** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "buy/orders/v2"      -> {"n":0}
+python analysis/ida.py str "buy/carts/v2"       -> {"n":0}
+python analysis/ida.py str "buy/checkouts/v3"   -> {"n":1}（0x147053d8c）
+python analysis/ida.py str initiatePayment      -> {"n":3}（含 /rpc/payment/pay/initiatePayment）
+cd replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug   -> 已成功生成
+dotnet test --filter "FullyQualifiedName~Nike" -m:1                  -> 47 通过
+python tools/metrics_report.py                                       -> 套件 2219
+```
+
+### 八、仍然 Unknown
+
+- **Nike 付款的 host**：**Unknown** —— 镜像只给路径不给 host。
+
+### 九、教训
+
+**一份文件头注释写下「这两族不在二进制里」之后，那两行**又活了 900 多轮**。**
+
+**→ 注释不是守卫；守卫要能被**跑**。
+→ 而这一轮能发现它，是因为我在找一个**别的**东西（ordinal 57 的端点）时读到了那个文件头。
+→ 那说明「按顺序查 backlog」不如「顺着一条线索读到手边的文件」。**

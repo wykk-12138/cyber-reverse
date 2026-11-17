@@ -10414,3 +10414,88 @@ discountApplied     bare=0  _field=0  get_DiscountApplied=0 content=discountAppl
 > （「159 个不在」）看起来和「159 个都是缺陷」一模一样。**
 > **→ 上一轮我把一个清单交给了下一轮，而这一轮的第一件事本该是问
 > 「这个清单上的东西**该不该**满足这个判据」。**
+
+
+### Nike 的付款步骤一直在打**两个镜像里不存在的端点**（R1011）
+
+**R1010 说下一轮回核心。回的第一步是查 Nike 的 `GetPaymentMethods`（ordinal 57），
+而查的过程中撞到一件更重的事。**
+
+### ① `NikeEndpoints` 的头注释早就说了，而那两行**活到了现在**
+
+**`NikeEndpoints.cs:8-10`（R87 写的）：**
+
+> 「the replica's Nike flow was calling **two URL families the binary does not contain at all** —
+> <c>buy/carts/v2/…</c> and <c>buy/orders/v2/…</c>」
+
+**而 `NikeFlow.cs:524` 与 `561` **仍在用** `buy/orders/v2/…/initiatePayment` 与 `…/payment`。
+→ 而它们在一个**覆写**里（`public override async Task<StepOutcome> SubmitPaymentAsync`，514 行）
+→ 而 R1002 恰恰证明了**覆写会进产物** —— 所以那两条是**会被发出去的**。**
+
+### ② 而镜像查证：两个族都是 0
+
+```
+buy/orders/v2        0
+buy/carts/v2         0
+buy/checkouts/v3     1   → 0x147053d8c  https://api.nike.com/buy/checkouts/v3/
+checkout_previews    2   → 0x147053c94 / 0x147053d0c
+initiatePayment      3   → 0x146ab768c  /rpc/payment/pay/initiatePayment
+                           0x146aafe84  /InitiatePayment
+                           0x1470a4014  initiatePayment
+```
+
+**→ 操作是真的（`initiatePayment` 三处），而**地址不成立**：
+RPC 形那条只是一个**路径**，旁边没有 host 字面量。**
+
+### ③ 所以修法不是猜一个替换
+
+**把 `/rpc/payment/pay/initiatePayment` 与 `api.nike.com` 拼起来，正是
+`EndpointProvenanceTests` 专门禁掉的那个动作（「an endpoint was invented by joining a host seen in
+one literal to a path」）—— 那会是**第六次**同类发明。**
+
+**→ 而旧代码做的是更坏的一件事：它把一个**不存在的端点**变成一个像商店拒绝我们的错误：
+「nike initiatePayment HTTP 404」。**
+
+### ④ 改了什么
+
+**`SubmitPaymentAsync` 改成报告，并列出镜像里真正的三个候选：**
+
+```csharp
+return StepOutcome.Fail(
+    "nike: payment endpoint not captured -- the image names /rpc/payment/pay/initiatePayment without a host "
+    + "and buy/checkouts/v3 as the resource, while buy/orders/v2 (what this step used) is in it zero times",
+    retryable: false);
+```
+
+**而把原来打不存在端点的两段移进一个 `AttachCardAsync`（`private`，未使用），
+注释写明「kept for when the address is established」—— 那是**代码留证**，不是留活路径。**
+
+**→ 这不破坏任何能工作的东西：那两条请求**本来就必 404**。**
+
+### ⑤ 而这与 R823/R991/R1001 是同一条原则的第四次
+
+| 轮 | 形状 |
+|---|---|
+| R823 | CSRF GUID 兜底（编一个 token） |
+| R991 | 伪造的支付令牌 `"tok_" + Guid.NewGuid()` |
+| R1001 | 4 个网关端点只给一条路径，其余报「not captured」 |
+| **R1011** | **Nike 付款打两个不存在的端点 → 改成报告** |
+
+**共同点：一个**看起来在工作**的东西，其实是把「我不知道」写成「它拒绝了我」。**
+
+### ⑥ 数字
+
+| 度量 | R1010 | **R1011** |
+|---|---|---|
+| 套件 | 2219 | **2219（未改测试）** |
+| 产物陈旧度 | 1 / 2,671 | **2 / 2,7xx（NikeFlow.cs 改）** |
+| 函数数 | 174,336 | **174,336（未 publish）** |
+| **Nike 里打不存在端点的活请求** | **2** | **0** |
+| **`AttachCardAsync`** | 不存在 | **存在但未调用（留证）** |
+
+### 教训
+
+> **一份文件头注释写下「这两族不在二进制里」之后，那两行**又活了 900 多轮**。
+> → 注释不是守卫；守卫要能被**跑**。**
+> **→ 而这一轮能发现它，是因为我在找一个**别的**东西（ordinal 57 的端点）时读到了那个文件头。
+> → 那说明「按顺序查 backlog」不如「顺着一条线索读到手边的文件」。**

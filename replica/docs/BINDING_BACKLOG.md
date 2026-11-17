@@ -8485,3 +8485,37 @@ selectedRate / discountApplied      全部 bare=0  _field=0  get_Pascal=0  conte
 | 原版用什么字段名承载这些状态 | 需类型级证据；NativeAOT 下按名不可得（R958） |
 
 **纪律**：判据在某一层不适用时，它的输出形状和「全都是缺陷」一模一样。
+
+
+## 优先级 ① — **Nike 付款的两个端点镜像 0 命中，改成报告；`AttachCardAsync` 留证**（R1011）
+
+### 缺陷
+
+**`NikeFlow.SubmitPaymentAsync`（**覆写** ⇒ 进产物）打 `buy/orders/v2/…/initiatePayment` 与 `…/payment`。
+而 `NikeEndpoints.cs:8-10`（R87）早写着这两族「the binary does not contain at all」。**
+
+**镜像查证：`buy/orders/v2` **0** · `buy/carts/v2` **0** · `buy/checkouts/v3` **1** ·
+`checkout_previews` **2** · `initiatePayment` **3**（`/rpc/payment/pay/initiatePayment` 无 host · `/InitiatePayment`）。**
+
+### 改了什么
+
+**`SubmitPaymentAsync` 改成 `Fail("nike: payment endpoint not captured -- …", retryable: false)`，
+列出三个候选；原两段移进 `private AttachCardAsync`（未调用，留证）。**
+
+**不拼 host + path（`EndpointProvenanceTests` 禁的发明）；不破坏能工作的东西（那两条本来就必 404）。**
+
+### 这是同一原则第四次
+
+**R823 CSRF 兜底 · R991 伪造令牌 · R1001 四网关报 not captured · R1011 本条。**
+**共同点：把「我不知道」写成「它拒绝了我」。**
+
+### 数字
+
+**套件 2219（47 条 Nike 用例通过）· 陈旧度 2 / 2,7xx · 函数数 174,336（未 publish）·
+Nike 打不存在端点的活请求 2 → 0**
+
+| 仍 Unknown | |
+|---|---|
+| Nike 付款的 host | 镜像只给路径不给 host |
+
+**纪律**：注释不是守卫；守卫要能被跑。

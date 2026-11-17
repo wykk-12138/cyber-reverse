@@ -22747,3 +22747,61 @@ metrics_report.py                  -> 2147 通过 / 0 失败
 **名字告诉你有一家厂商；字段列表告诉你它怎么判、判什么、为什么不能等到零。**
 
 **一个线索的价值取决于它离行为有多近。**
+
+
+---
+
+## 384. `PollQueueAsync` 从 `=> Ok()` 变成真判定
+
+> R960。**改产品代码 +6 用例。** 套件 **2153 通过 / 0 失败 / 0 跳过**。
+
+### 一、发现
+
+```csharp
+public virtual Task<StepOutcome> PollQueueAsync(FlowContext c, CancellationToken ct) => Ok();
+```
+
+**命中排队页的流程认为自己通过了排队 —— 没看任何东西。**
+
+### 二、现在
+
+1. **`IsQueueHost` 前置**（不是队列宿主直接成功）
+2. **循环到 deadline**，每轮 `Verdict(status, hasPass)`
+3. **`Passed` 但剩余短于 `queueMinRemaining` → 继续等**
+4. **超时 = `retryable: true` 失败**
+
+**第 4 条是正题：超时不是成功。**
+
+### 三、设置
+
+**`queueTimeout`(120s) · `queuePollMs`(2000) · `queueMinRemaining`(30s) · `queuePassSeconds`(300) —— 值标 Inference**
+
+### 四、数字
+
+| 度量 | R959 | R960 |
+|---|---|---|
+| 套件 | 2147 | **2153** |
+| 产物陈旧度 | 1 / 119 | **0 / 0** |
+| **函数数** | 173,866 | **173,909（+43）** |
+| **函数比** | 62.75% | **62.76%** |
+
+### 五、验证
+
+```
+grep 'PollQueueAsync.*=> Ok()' StoreFlow.cs -> 无
+test --filter PollQueueWiringTests         -> 6 通过
+func_count.py                              -> 173,909 (+43)
+metrics_report.py                          -> 2153 通过 / 0 失败
+```
+
+### 六、仍然 Unknown
+
+- **四个设置的镜像真值**：**Unknown** —— 只有字段名。
+- **排队页的轮询语义**：**Unknown** —— 未取证。
+- **`Softblock` 的处理差别**：**Unknown** —— 只有两条文案。
+
+### 七、教训
+
+**一个 `=> Ok()` 的虚步骤读起来像「留给子类覆写」的位置，而它同时是一个假的成功。**
+
+**两者的差别只在有没有人覆写它。而它从 R112 就是这样，没有任何东西指出它 —— 因为它长得像设计。**

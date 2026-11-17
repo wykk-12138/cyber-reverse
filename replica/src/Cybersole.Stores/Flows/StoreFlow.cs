@@ -1,3 +1,4 @@
+using Cybersole.Stores.Scripts;
 using Cybersole.Stores.Actions;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -1760,7 +1761,88 @@ public abstract class StoreFlow
             : StepOutcome.Success();
     }
     public virtual Task<StepOutcome> ScrapeRaffleFormAsync(FlowContext c, CancellationToken ct) => Ok();
-    public virtual Task<StepOutcome> PollQueueAsync(FlowContext c, CancellationToken ct) => Ok();
+    /// <summary>
+    /// Waits out a queue. The step existed as a bare Ok, which reported success without looking at anything -- so a flow
+    /// that hit a waiting room believed it had passed one.
+    ///
+    /// <para>
+    /// R960. The decision comes from QueueItProtocol, whose field list R959 recovered from the image: a host marker, the
+    /// accepted-cookie prefix with its hash, a validity window, and a minimum remaining. The minimum is the part that
+    /// matters here. A pass about to expire is worse than none, because the request it authorises is refused after the
+    /// queue has already been left -- so this waits while the remaining validity is under the margin the image names.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Why a bounded loop rather than a sleep.</b> A wait whose length is unknown must still terminate, so the loop
+    /// polls until the deadline and returns a retryable failure when it runs out. Returning success on timeout would be
+    /// the same lie the bare Ok told.
+    /// </para>
+    /// </summary>
+    public virtual async Task<StepOutcome> PollQueueAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.GetValueOrDefault("queueUrl") ?? c.Url;
+        if (!QueueItProtocol.IsQueueHost(new Uri(url, UriKind.RelativeOrAbsolute).IsAbsoluteUri
+                ? new Uri(url).Host
+                : c.Url))
+            return StepOutcome.Success();   // not a queue surface, nothing to wait for
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(
+            c.Session.Vars.TryGetValue("queueTimeout", out var ts) && int.TryParse(ts, out var secs) ? secs : 120);
+
+        var minRemaining = TimeSpan.FromSeconds(
+            c.Session.Vars.TryGetValue("queueMinRemaining", out var mr) && int.TryParse(mr, out var mrs) ? mrs : 30);
+
+        var interval = TimeSpan.FromMilliseconds(
+            c.Session.Vars.TryGetValue("queuePollMs", out var pm) && int.TryParse(pm, out var pms) ? pms : 2000);
+
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var res = await c.Http.GetAsync(url, new RequestOptions(), ct).ConfigureAwait(false);
+
+            var hasPass = res.Cookies.Keys.Any(QueueItProtocol.IsAcceptedCookie) ||
+                          c.Session.Cookies.Keys.Any(QueueItProtocol.IsAcceptedCookie) ||
+                          res.Body.Contains(QueueItProtocol.AcceptedCookiePrefix, StringComparison.Ordinal);
+
+            var verdict = QueueItProtocol.Verdict(res.StatusCode, hasPass);
+
+            switch (verdict)
+            {
+                case QueueVerdict.Passed:
+                    // the pass exists, but a pass with seconds left is worse than none
+                    var expires = DateTimeOffset.UtcNow.AddSeconds(
+                        c.Session.Vars.TryGetValue("queuePassSeconds", out var qs) && int.TryParse(qs, out var qss)
+                            ? qss
+                            : 300);
+
+                    if (QueueItProtocol.IsUsable(expires, DateTimeOffset.UtcNow, minRemaining))
+                    {
+                        c.Emit(QueueItProtocol.Describe(verdict), "queue");
+                        return StepOutcome.Success();
+                    }
+
+                    // short pass: keep waiting rather than spend it on a request that will be refused
+                    break;
+
+                case QueueVerdict.Banned:
+                    c.Emit(QueueItProtocol.Describe(verdict), "queue");
+                    return StepOutcome.Fail("queue banned", retryable: true);
+
+                case QueueVerdict.RetryLater:
+                    c.Emit(QueueItProtocol.Describe(verdict), "queue");
+                    break;
+
+                case QueueVerdict.Failed:
+                    return StepOutcome.Fail("queue surface answered " + res.StatusCode, retryable: true);
+            }
+
+            await Task.Delay(interval, ct).ConfigureAwait(false);
+        }
+
+        // out of time is a retryable failure, not a success -- the bare Ok this replaced said otherwise
+        return StepOutcome.Fail("queue not passed within the deadline", retryable: true);
+    }
     public virtual Task<StepOutcome> PollReleaseAsync(FlowContext c, CancellationToken ct) => Ok();
     public virtual Task<StepOutcome> PollRestockAsync(FlowContext c, CancellationToken ct) => Ok();
     public virtual Task<StepOutcome> WaitForReleaseAsync(FlowContext c, CancellationToken ct) => Ok();

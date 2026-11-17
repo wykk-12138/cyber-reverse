@@ -1501,3 +1501,18 @@ MinRemainingSeconds 是要紧的那个：剩余几秒的通行证比没有更糟
 纪律：一个线索的价值取决于它离行为有多近。
 
 下一轮：重发消除陈旧度；或查 CookieValiditySeconds 的实际数值与排队轮询间隔。
+
+## R960 补充 — PollQueueAsync 从 `=> Ok()` 变成真判定（+6 用例，套件 2153）
+
+发现 PollQueueAsync 是 `=> Ok()` —— 命中排队页的流程认为自己通过了排队，没看任何东西。
+
+现在：IsQueueHost 前置 · 循环到 deadline · Verdict 分类 · 剩余时间不足则继续等 · **超时 = retryable 失败**。
+超时不是成功 —— 把超时说成成功的步骤比报错的步骤难查得多（下游拿到假绿灯）。
+
+设置：queueTimeout(120s) · queuePollMs(2000) · queueMinRemaining(30s) · queuePassSeconds(300) —— 值标 Inference。
+
+数字：套件 2147 → 2153 · 陈旧度 1/119 → **0/0** · 函数数 173,866 → **173,909（+43）** · 比 62.76%。
+
+纪律：`=> Ok()` 读起来像设计不像缺陷 —— 差别只在有没有人覆写它。
+
+下一轮：扫还有多少个 `=> Ok()` 的空壳虚步骤（它们的数量决定下一个批次）。

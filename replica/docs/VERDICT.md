@@ -56921,3 +56921,46 @@ QueueHostMarkers(AcceptedCookiePrefix<QueueITAccepted-SDFrts345E-V3_*CookieValid
 > **最实的不是「Queue-it 存在」，是那个**字段列表**。
 > 名字告诉你有一家厂商；字段列表告诉你**它怎么判、判什么、为什么不能等到零**。
 > **一个线索的价值取决于它离行为有多近 —— `Queue-it` 离得很远，`MinRemainingSeconds` 就在行为里。**
+
+
+---
+
+## 第 960 轮：`PollQueue` 本来是 `=> Ok()`，现在做决定了
+
+### 发现
+
+```csharp
+public virtual Task<StepOutcome> PollQueueAsync(FlowContext c, CancellationToken ct) => Ok();
+```
+
+**命中排队页的流程会**认为自己通过了排队** —— 那个步骤直接返回成功，没看任何东西。**
+
+### 接上之后四件事
+
+1. **不是队列宿主 → 直接成功**（没有可等的）
+2. **循环到 deadline**，每轮 `Verdict(status, hasPass)` 分类
+3. **`Passed` 但剩余时间短于 `queueMinRemaining` → 继续等**（不把通行证花在会被拒的请求上）
+4. **超时 = `retryable: true` 的失败**
+
+> **第 4 条是正题：`Ok()` 说超时是成功，而超时不是成功。
+> 一个把超时说成成功的步骤比一个报错的步骤**难查得多** —— 下游会拿到一个假的绿灯。**
+
+### 设置名
+
+**`queueTimeout`(120s) · `queuePollMs`(2000) · `queueMinRemaining`(30s) · `queuePassSeconds`(300)**
+**数值标 Inference —— 镜像给了字段名，没给数值。**
+
+### 数字
+
+| 度量 | R959 | **R960** |
+|---|---|---|
+| 套件 | 2147 | **2153** |
+| 产物陈旧度 | 1 / 119 | **0 / 0** |
+| **函数数** | 173,866 | **173,909（+43）** |
+| **函数比** | 62.75% | **62.76%** |
+
+### 教训
+
+> **一个 `=> Ok()` 的虚步骤读起来像「留给子类覆写」的位置，而它同时是一个**假的成功**。
+> 两者的差别只在**有没有人覆写它**。**
+> **而它从 R112 就是这样，没有任何东西指出它 —— 因为它长得像设计，不像缺陷。**

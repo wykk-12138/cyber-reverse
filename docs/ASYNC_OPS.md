@@ -10748,3 +10748,87 @@ that each step writes to」）—— 而它被读成了「换一下 URL 前缀�
 > 我这两轮满足的是第一种，而它不够 —— 而我把它当成了第二种。**
 > **→ 而区分它们的成本是**读那段代码旁边的注释**。R48 已经替我把这笔账算过了，
 > 而我改那个文件时没读它下面那一屏。**
+
+
+### 端点扫描器**跳过所有插值模板** —— 修掉之后一次查出 11 个（R1015）
+
+**R1014 说下一轮换一个站。而 R1014 自己的教训是「读到手边的文件」——
+所以换之前先跑现成的 `endpoint-provenance.py`，问它为什么没抓到 Nike 那 4 处。**
+
+### ① 答案在 165 行，而且它**明确写了**
+
+```python
+for m in INLINE.finditer(body):
+    value = m.group(1)
+    # skip interpolated templates and obvious fragments
+    if "{" in value or value.endswith("/"):
+        continue
+```
+
+**→ 带 `{` 的值被**明确跳过**，注释说那是「interpolated templates」。
+→ 而 Nike 那 4 处**全是** `$"https://api.nike.com/buy/orders/v2/US/{c.Session.CartId}/delivery"` 这个形。**
+
+> **→ 所以工具的「invented: 0」是**真的**（对它的定义域），而 Nike 的缺陷**在界外**。
+> → 这是 R1010「判据有定义域」的**第二次** —— 而这次在代码里，有行号。**
+
+### ② 修法：插值模板的前缀是一个可以判的主张
+
+**`$".../buy/orders/v2/US/{cart}/delivery"` 对 `".../buy/orders/v2/US/"` 提出了一个主张，
+而那个主张要么在镜像里，要么不在。**
+**→ 而一个**只到 host** 的前缀不是主张（`https://api.nike.com/` 什么都不断言），所以不管它。**
+
+**实现：`static_prefix()` 取第一个 `{` 之前的部分；只在它带路径时才判；
+并且结尾的 `/` 单独查（`proven(x) or proven(x.rstrip('/'))`）。**
+
+### ③ 而修完后，一次查出 **11 个**
+
+```
+inline URL/path literals: 268 → 328      （多扫到 60 个）
+not in pool:              29 → 40
+unknown (unregistered):    0 → 11        baseline 0 → FAIL
+```
+
+| 文件 | 行 | 前缀 |
+|---|---|---|
+| FarfetchFlow.cs | 62 | `/api/ff-products/v1/products/{…}` |
+| FarfetchFlow.cs | 174 | `/api/basket/v1/` |
+| FarfetchFlow.cs | 201 · 207 · 237 · 272 · 289 | `/api/checkout/v1/basket/{…}` |
+| NikeFlow.cs | 235 | `https://api.nike.com/product_feed/threads/v2/` |
+| NikeFlow.cs | 652 | `https://api.nike.com/buy/carts/v2/{…}` |
+| StoreFlow.cs | 768 | `/discount/` |
+| StoreFlow.cs | 1272 | `/api/payments/` |
+
+### ④ 而 11 个**不是** 11 个缺陷 —— 那是 R1010 的教训
+
+**Nike 那 2 个我已经知道真假：**
+- `:652 buy/carts/v2/{…}` —— **确实不存在**（镜像 0 命中，R1013 已证）
+- `:235 product_feed/threads/v2/` —— 那在 `NikeEndpoints.ProductFeedThreads` 里是**镜像有的**，
+  而这里报 absent 是因为**结尾 `/` 与 `?fields=` 的形不同** ⇒ **可能是假阳性**
+
+**→ 所以这 11 个是**待判清单**，而其中至少 1 个已经看出是假阳性。**
+
+### ⑤ 而**不登记进 ledger**
+
+**`BASELINE = 0` 与 `ledger_classes()` 是一个**收紧守卫**的设计：任何新的 absent 端点都要先被判过才能登记。
+把 11 个直接登记进去，就等于把「我们不知道」写进白名单 —— 那正是这个工具存在的反面。**
+
+**→ 所以工具现在**红着**（`FAIL: 11 unregistered inline endpoints`），而那是正确的状态：它报出了一个真的待办。
+→ 而它不影响套件（`metrics_report.py` 跑的是 dotnet test，不是这个脚本）。**
+
+### ⑥ 数字
+
+| 度量 | R1014 | **R1015** |
+|---|---|---|
+| 套件 | 2219 / 0 | **2219 / 0**（未改产品代码） |
+| 函数数 | 174,336 | **174,336** |
+| **扫描到的内联字面量** | 268 | **328（+60，插值模板进来了）** |
+| **判为不在池里** | 29 | **40** |
+| **未登记的** | **0**（假的 0） | **11（真的待判）** |
+| **`endpoint-provenance.py` 退出码** | 0 | **1（红，且应当红）** |
+
+### 教训
+
+> **一个「invented: 0」的守卫可以同时是真的和没用的 —— 只要它的定义域排除了缺陷所在的那一类。
+> → 而排除是**写在一行 `continue` 里的**，注释还坦白说了「skip interpolated templates」。
+> → 我读了那份输出五行，从来没问过「它扫了哪些」。**
+> **→ 而 R1010 的教训（判据有定义域）刚在上一轮立过，这一轮就在它自己身上又遇见一次。**

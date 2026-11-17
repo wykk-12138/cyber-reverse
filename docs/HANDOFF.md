@@ -2697,3 +2697,33 @@ writes to」被读成了「换 URL 前缀」，它说的是**模型**。
 教训：**「有据」有两种 —— 这个地址存在，和这个 step 用这个地址。我满足的是第一种。**
 
 下一轮：换一个站（那 3 处已封口，理由写清）；或取证 Nike 的 checkout 步骤体（R958 说按名不可得）。
+
+## R1015 补充 — **端点扫描器跳过所有插值模板（一行 continue）；修掉后一次查出 11 个待判**
+
+**盲区在 `endpoint-provenance.py` 第 165-167 行，而且明确写了**：
+```python
+# skip interpolated templates and obvious fragments
+if "{" in value or value.endswith("/"):
+    continue
+```
+→ Nike 那 4 处**全是**插值模板 ⇒ 全在界外 ⇒ 工具的「invented: 0」**是真的但没用**。
+→ **R1010「判据有定义域」的第二次，这次在代码里，有行号。**
+
+**修法**：`static_prefix()` 取第一个 `{` 之前；只在带路径时判；`proven(x) or proven(x.rstrip('/'))`。
+只到 host 的前缀不管（它什么都不断言）。
+
+**修完后**：`inline literals 268 → 328` · `not in pool 29 → 40` · `unknown 0 → 11` · 工具**退出码 1**。
+11 个分布：`FarfetchFlow.cs` ×7 · `NikeFlow.cs` ×2 · `StoreFlow.cs` ×2。
+
+**已能判的 2 个**：`NikeFlow.cs:652 buy/carts/v2/{…}` **确实不存在**；
+`NikeFlow.cs:235 product_feed/threads/v2/` 在 `NikeEndpoints.ProductFeedThreads` 里**镜像有** ⇒ **疑似假阳性**
+（结尾 `/` 与 `?fields=` 形不同）。
+
+**不登记进 ledger**：`BASELINE = 0` 是收紧守卫；登记 11 个等于把「不知道」写进白名单。
+→ 工具**红着是正确状态**；不影响套件（metrics 跑 dotnet test）。
+
+数字：套件 2219/0 · 函数数 174,336 · 内联字面量 328 · 不在池 40 · 未登记 11 · 工具退出码 1。
+
+纪律：**一个「0」可以同时是真的和没用的 —— 只要定义域排除了缺陷所在的那一类。**
+
+下一轮：判那 11 个（先修假阳性判定，再逐个对镜像）。

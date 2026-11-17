@@ -8642,3 +8642,54 @@ R1002 的 `+342` 是**从零拉进一整族新类**。**
 | 哪个 step 打哪个资源 | 需反编译步骤体 |
 
 **纪律**：「有据」有两种含义，而第二种才够；区分它们只需读旁边的注释。
+
+
+## 判据 (c)/(f) — **端点扫描器跳过所有插值模板（一行 continue）；修掉后一次查出 11 个待判**（R1015）
+
+### 盲区
+
+```python
+# skip interpolated templates and obvious fragments
+if "{" in value or value.endswith("/"):
+    continue
+```
+
+**→ Nike 那 4 处全是插值模板 ⇒ 全在界外 ⇒ 工具的「invented: 0」是真的但没用（R1010 定义域的第二次，这次有行号）。**
+
+### 修法
+
+**`static_prefix()` 取第一个 `{` 之前；只在带路径时判；`proven(x) or proven(x.rstrip('/'))`。
+只到 host 的前缀不管（它什么都不断言）。**
+
+### 而修完后
+
+```
+inline literals: 268 → 328    not in pool: 29 → 40    unknown: 0 → 11    baseline 0 → FAIL
+```
+
+| 文件 | 行 |
+|---|---|
+| `FarfetchFlow.cs` | 62 · 174 · 201 · 207 · 237 · 272 · 289 |
+| `NikeFlow.cs` | 235 · 652 |
+| `StoreFlow.cs` | 768 · 1272 |
+
+### 两个已能判的
+
+- `NikeFlow.cs:652` `buy/carts/v2/{…}` —— **确实不存在**（镜像 0 命中）
+- `NikeFlow.cs:235` `product_feed/threads/v2/` —— 那在 `NikeEndpoints.ProductFeedThreads` 里**镜像有**，
+  报 absent 是**结尾 `/` 与 `?fields=` 形不同** ⇒ **疑似假阳性**
+
+### 不登记进 ledger
+
+**`BASELINE = 0` 是收紧守卫；把 11 个登记进去等于把「不知道」写进白名单。**
+**→ 工具现在红着，那是正确状态；不影响套件（metrics 跑 dotnet test）。**
+
+### 数字
+
+**套件 2219/0 · 函数数 174,336 · 内联字面量 268 → 328 · 不在池 29 → 40 · 未登记 0 → 11 · 工具退出码 1**
+
+| 仍 Unknown | |
+|---|---|
+| 那 11 个里哪些真不存在 | 待逐个判（1 个疑似假阳性） |
+
+**纪律**：一个「0」可以同时是真的和没用的 —— 只要定义域排除了缺陷那一类。

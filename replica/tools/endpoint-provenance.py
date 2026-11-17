@@ -152,6 +152,23 @@ def proven(value, pool):
     return False
 
 
+def static_prefix(value):
+    """The part of an interpolated template before its first hole.
+
+    R1015. Until this round the scan skipped every value containing "{" as an "interpolated template",
+    which meant the whole class of $"...{x}..." literals was never judged at all. Nike's four
+    buy/orders/v2 calls are all that shape, so the tool reported "invented: 0" while four live requests
+    pointed at a family the image does not contain -- a true answer to a narrower question (R1010's
+    domain lesson, this time with a line number).
+
+    The prefix is what can be judged: $"https://api.nike.com/buy/orders/v2/US/{cart}/delivery" makes a
+    claim about ".../buy/orders/v2/US/", and that claim is either in the image or it is not. A prefix
+    that merely ends on a host is not a claim, so it is left alone.
+    """
+    hole = value.find("{")
+    return value if hole < 0 else value[:hole]
+
+
 def inline_scan(pool):
     """Every URL-shaped string literal anywhere in the flows, constants or not."""
     total = 0
@@ -162,13 +179,25 @@ def inline_scan(pool):
         body = io.open(os.path.join(FLOWS, name), encoding="utf-8", errors="replace").read()
         for m in INLINE.finditer(body):
             value = m.group(1)
-            # skip interpolated templates and obvious fragments
-            if "{" in value or value.endswith("/"):
-                continue
+            # A path ending in "/" is a prefix by construction, so it can be judged; it used to be skipped.
             total += 1
-            if not proven(value, pool):
+            if "{" not in value:
+                if not proven(value, pool):
+                    line = body[:m.start()].count("\n") + 1
+                    invented.append((name, line, value))
+                continue
+
+            # Interpolated: judge the static prefix, and only when it names more than a host.
+            prefix = static_prefix(value)
+            if "://" in prefix:
+                after_host = prefix.split("://", 1)[1]
+                if "/" not in after_host:
+                    continue
+            if len(prefix) < 12:
+                continue
+            if not proven(prefix, pool) and not proven(prefix.rstrip("/"), pool):
                 line = body[:m.start()].count("\n") + 1
-                invented.append((name, line, value))
+                invented.append((name, line, prefix + "{...}"))
     return total, invented
 
 

@@ -110,8 +110,9 @@ Kasada-Mobile-Fallback              0x146dda96c    移动降级 token
 
 | 文案 | 含义 | 该做什么 |
 |---|---|---|
-| `Getting Kasada (1)` → `(2)` | 服务在重试，编号递增 | 继续等，别插手 |
-| `Failed getting Kasada (Rotating)` | 服务失败 **且代理在换** | 不要立刻重发 —— 代理换了，旧 token 全废 |
+| `Getting Kasada (1)` | **走服务商**（HyperSolutions `/payload`）—— 不是"第 1 次重试" | 按 Api 路的超时处理 |
+| `Getting Kasada (2)` | **直连店铺自己的 Kasada 端点**（带全套 Chrome 头）—— 不是"第 2 次重试" | 按本地路的超时处理 |
+| `Failed getting Kasada (Rotating)` | getting 失败 **且代理在换** | 不要立刻重发 —— 代理换了，旧 token 全废 |
 | `Failed solving Kasada` | 本机算失败 | 补 shim / 换浏览器路；**不要**重发同一份脚本 |
 | `Failed solving Kasada (TL)` | 本机在 TL 阶段失败 | 同上，但可以只重跑该阶段 |
 | `Kasada API down (Contact staff)` | 服务不可达 | 切回本地路；**不要**无限重试服务 |

@@ -38,7 +38,7 @@
 | C3 | `GetWorkTime` 握手耗时 | `d__35`/`d__50` · `_kasadaWorkTime` `0x14345aa92` | 01 §6 · 05 §2 | ✅ |
 | C4 | 传感器：`GenerateSensor` / `GetSensor` / `SubmitSensor` / `GetSensorData` | `GenerateSensor` 7 条 `0x143311103` 一带 · `GetSensorData` 8 条 `0x14331b944` 一带 | 02 §1 | ✅ |
 | C5 | 挑战应答的量：`Answers` / `Duration` / `ServerTime` / `RemoteServerTime` | `get_Answers` `0x14344884a` · `RemoteServerTime` `0x143448a03`（其余同族） | 08 §1–2 | ✅ |
-| C6 | cd 生成原语：`Sha256Hex` / `HashDifficulty` / `GetOffset` / `RandomAddSubtract` / `GetCdHeader` | `0x143448c9a` / `0x143448cab` / `0x143448d40` / `0x143448d2d` / `0x143448d52` | 08 §1 | ✅ |
+| C6 | ~~cd 生成原语~~ → **归属已改判：`Sha256Hex` / `HashDifficulty` / `GetOffset` / `RandomAddSubtract` 属 Akamai 的 PoW；只有 `GetCdHeader` 属 Kasada** | `0x143448c9a` / `0x143448cab` / `0x143448d40` / `0x143448d2d`（Akamai 侧）· `GetCdHeader` `0x143448d52`（Kasada 侧） | 08 §10.3 | ✅ **已改判** |
 | C7 | `SolveAsync`（`d__3`）主流程 | `<SolveAsync>d__3` = **`0x143448a28`**；全族另有 `d__1` `0x14344b31d` · `d__19` `0x14345b8df` · `d__20` `0x143447c43` · `d__8/9/10/11` `0x143366xxx`（2Captcha/CapSolver 等打码服务） | 08 §4 | 🟡（只有成员表） |
 | C7a | **请求侧落地**：`rec[16]→cd`、`rec[11]→ct`、`rec[15]→h`、`sub_1408EF620(rec)→v` | `sub_1408F2CD0`（0x382，async）· 头对象头表见 01 §3.0 | 08 §9.1 | ✅ |
 | C7b | **响应侧落地**：Api 路的 cd/ct/dt/dv 全部来自服务商响应头 | `sub_141148770`（0x3d0）· ct→+16 · dt→+24 · im→+32 · dv→+40 | 08 §9.2 | ✅ |

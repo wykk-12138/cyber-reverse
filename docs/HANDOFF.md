@@ -2825,3 +2825,23 @@ if "{" in value or value.endswith("/"):
 纪律：**「看起来对」是自造串的唯一保护色 —— 解法是把每个串都问一遍镜像。**
 
 下一轮：把那两个 Inferred 的**不同原因**变成结构（字段或第二张表）。
+
+## R1020 补充 — **`Gap` 列：把两个 `Inferred` 的相反原因变成结构**（套件 2226）
+
+**问题**：imperva 与 perimeterx 都标 `Inferred`，而含义相反 ——
+imperva **厂商不在产物里**（六拼写全 0），perimeterx **厂商在但无页面级字面量**（cookie 名 4 条有）。
+→ 下一步动作相反，而读者扫表只看到一个词。
+
+**解**：`public enum Gap { None, VendorAbsent, NoPageMarker }`，`Row` 第 7 列。
+cloudflare/kasada/datadome/queue-it = `None` · imperva = `VendorAbsent` · perimeterx = `NoPageMarker`。
+**不并进 `MarkerSource`**：那枚举回答封闭问题，并入「为什么不是」会污染所有 `MarkerFrom == ImageLiteral` 的判断。
+
+**4 条守卫**（`VendorGapTests`）：两行原因 · **`NoGapImpliesAnImageLiteral`（双向一）** ·
+**`AGapImpliesAnInferredMarker`（双向二）** · 能按原因分组。
+
+数字：套件 2226（+4）· 陈旧度 3 / 3,552 · 函数数 174,336 · Row 列 6 → **7** · Inferred 可分辨原因 0 → **2**。
+
+纪律：**一个词盖两件事，写表的人会以为已经记录了区别（因为区别在注释里）。**
+
+下一轮：按 `Gap` 分流 —— imperva 查原版是否处理它（六拼写全 0 的强信号需要第二个证据）；
+perimeterx 找一个页面级 marker。

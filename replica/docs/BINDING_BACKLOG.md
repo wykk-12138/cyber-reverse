@@ -8866,3 +8866,45 @@ px-captcha       n=0
 | imperva 是否真被原版处理 | 无任何字面量 |
 
 **纪律**：「看起来对」是自造串的唯一保护色 —— 解法是把每个串都问一遍镜像。
+
+
+## 优先级 ② — **`Gap` 列：把两个 `Inferred` 的相反原因变成结构**（R1020）
+
+### 问题
+
+**imperva 与 perimeterx 都标 `Inferred`，而含义相反：**
+
+| vendor | 镜像 | 含义 | 下一步 |
+|---|---|---|---|
+| imperva | 六拼写全 **0** | **厂商不在产物里** | 查原版是否处理它 |
+| perimeterx | `px-captcha` 0，cookie 名 4 条有 | **厂商在，无页面级字面量** | 找一个响应体里能查的 marker |
+
+**→ 一个词盖两件事，读者无法据表行动。**
+
+### 解
+
+```csharp
+public enum Gap { None, VendorAbsent, NoPageMarker }
+```
+
+**`Row` 第 7 列。cloudflare/kasada/datadome/queue-it = `None`；imperva = `VendorAbsent`；
+perimeterx = `NoPageMarker`。**
+
+**不并进 `MarkerSource`**：那枚举回答封闭问题（是/不是镜像的），并入「为什么不是」会污染所有
+`MarkerFrom == ImageLiteral` 的判断。
+
+### 4 条守卫（`VendorGapTests`）
+
+`TheTwoInferredRowsSayWhyTheyAreInferred` · **`NoGapImpliesAnImageLiteral`（双向之一）** ·
+**`AGapImpliesAnInferredMarker`（双向之二）** · `TheAuditCanBeGroupedByReason`
+
+### 数字
+
+**套件 2226（+4）· 陈旧度 3 / 3,552 · 函数数 174,336 · Row 列 6 → 7 · Inferred 可分辨原因 0 → 2**
+
+| 仍 Unknown | |
+|---|---|
+| imperva 是否被原版处理 | 六拼写全 0，是强信号不等于否定 |
+| perimeterx 的页面级 marker | 镜像无 |
+
+**纪律**：一个词盖两件事，写表的人会以为已经记录了区别。

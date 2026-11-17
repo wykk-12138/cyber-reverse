@@ -81,9 +81,30 @@ public static class VendorWiring
         Inferred,
     }
 
+    /// <summary>
+    /// Why a row's marker is not the image's, when it is not.
+    ///
+    /// <para>
+    /// R1020 splits what one value used to hold. Two rows are <see cref="MarkerSource.Inferred"/> for opposite reasons:
+    /// imperva appears in the artifact under none of its six spellings, so there is no vendor to look for; perimeterx is
+    /// present, with four cookie-side literals, and simply has nothing page-level to grep for. Reporting both as
+    /// "inferred" made a vendor that is missing look like a vendor whose marker this workspace happened to choose, and
+    /// the difference decides what the next move is.
+    /// </para>
+    /// </summary>
+    public enum Gap
+    {
+        /// <summary>The marker is the image's, so there is no gap.</summary>
+        None,
+        /// <summary>The vendor itself appears nowhere in the artifact, under any spelling.</summary>
+        VendorAbsent,
+        /// <summary>The vendor is in the artifact, but no page-level literal names it.</summary>
+        NoPageMarker,
+    }
+
     /// <summary>One row of the audit.</summary>
     public sealed record Row(string Vendor, string Marker, string? Cookie, State State, string Note,
-        MarkerSource MarkerFrom);
+        MarkerSource MarkerFrom, Gap Gap);
 
     /// <summary>The audit, in the order <c>DetectAsync</c> tests its markers.</summary>
     public static readonly IReadOnlyList<Row> Rows = new[]
@@ -93,21 +114,21 @@ public static class VendorWiring
             + "from cf-chl, which the image does not contain, to challenge-platform, which it carries twice as "
             + "/cdn-cgi/challenge-platform/ -- page-level, which is what DetectAsync reads. cf_clearance and __cf_bm "
             + "are in the image too but are cookie names, so they belong in the cookie column where cf_clearance sits.",
-            MarkerSource.ImageLiteral),
+            MarkerSource.ImageLiteral, Gap.None),
 
         new Row("kasada", "kpsdk", "kpsdk", State.Wired,
             "R141: KasadaClearance runs the four-road strategy and writes the token",
-            MarkerSource.ImageLiteral),
+            MarkerSource.ImageLiteral, Gap.None),
 
         new Row("imperva", "_Incapsula_Resource", null, State.DetectedOnly,
             "the image names neither an Imperva cookie nor an Imperva host, and does not contain this marker either",
-            MarkerSource.Inferred),
+            MarkerSource.Inferred, Gap.VendorAbsent),
 
         new Row("datadome", "datadome", "datadome", State.Wired,
             "R996: DataDomeClearance runs the sensor at datadome.cybersole.io/sensor, narrates the image's four stages "
             + "and writes the datadome cookie. R141's correction stands -- SolveBotD proved the original solves it -- and "
             + "what was missing was the call, which now exists and which SolveDetectedWallAsync dispatches to.",
-            MarkerSource.ImageLiteral),
+            MarkerSource.ImageLiteral, Gap.None),
 
         new Row("perimeterx", "px-captcha", null, State.DetectedOnly,
             "R998 corrects R997's own row. The cookie evidence is real -- _px3, _pxvid and PerimeterX-Token are image "
@@ -117,11 +138,11 @@ public static class VendorWiring
             + "literals to this vendor when they are DataDome's -- DdInterstitialClient sits beside them -- so DetectAsync "
             + "now routes them to datadome and this row keeps px-captcha as the only marker it can claim, which the image "
             + "does not carry.",
-            MarkerSource.Inferred),
+            MarkerSource.Inferred, Gap.NoPageMarker),
 
         new Row("queue-it", "queue-it", "queue-it-set-cookie", State.NotAChallenge,
             "a queue, not a wall: the correct handling is to wait, not to solve",
-            MarkerSource.ImageLiteral),
+            MarkerSource.ImageLiteral, Gap.None),
     };
 
     /// <summary>Vendors whose call chain is complete.</summary>

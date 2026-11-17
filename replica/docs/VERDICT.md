@@ -60864,3 +60864,62 @@ body.Contains("cf-chl", ...) ? "cloudflare" :          // 降为后备
 > → 那个错从 R140 起就在那里 —— 因为 `cf-chl` 读起来太像真东西（所有 Cloudflare 文档都那么写），
 > 而它确实**曾经**是。**
 > **→ 「看起来对」是这类错误的唯一保护色，而唯一的解法是把每个串都问一遍镜像。**
+
+
+---
+
+## 第 1020 轮：一个值装了两件相反的事 —— 现在分成一列
+
+### ① 那两行说的是两件不同的事
+
+| vendor | marker | 镜像 | 真实含义 |
+|---|---|---|---|
+| **imperva** | `_Incapsula_Resource` | **0**（六种拼写全 0） | **这个厂商在产物里完全不存在** |
+| **perimeterx** | `px-captcha` | **0**（cookie 名 4 条有） | **这个厂商在，但没有页面级字面量** |
+
+**→ 两者都是 `Inferred`，而要做的下一件事**相反**：
+imperva 要查原版是否处理它；perimeterx 要给一个确实被处理的东西找页面级 marker。
+→ 而一个读者扫那张表只看到 `Inferred` 一个词。**
+
+### ② 所以加了一列，而不是改那个枚举
+
+```csharp
+public enum Gap { None, VendorAbsent, NoPageMarker }
+```
+
+**→ `MarkerSource` 保持两个值（它回答「这个串是不是镜像的」）；`Gap` 回答「如果不是，为什么」。**
+**→ 六行：cloudflare · kasada · datadome · queue-it = `None`；imperva = `VendorAbsent`；
+perimeterx = `NoPageMarker`。**
+
+**→ 不并进 `MarkerSource` 的理由：那枚举已在回答一个封闭问题，把「为什么不是」并进去会让每个
+`MarkerFrom == ImageLiteral` 的判断都得想一下它是否也开始编码原因。**
+
+### ③ 4 条守卫钉住两列一致
+
+| 守卫 | 断言 |
+|---|---|
+| `TheTwoInferredRowsSayWhyTheyAreInferred` | imperva=`VendorAbsent` · perimeterx=`NoPageMarker` · 其余 `None` |
+| `NoGapImpliesAnImageLiteral` | `Gap.None` ⇒ `ImageLiteral` |
+| `AGapImpliesAnInferredMarker` | 反方向 |
+| `TheAuditCanBeGroupedByReason` | 能在一处按原因分组 |
+
+**→ 第 2、3 条是**双向**的：一列说「没缺口」而另一列说「我编的」不可能同时成立。
+→ 第 4 条保证那一列**有用** —— 只能在注释里读到的列还是注释。**
+
+### ④ 数字
+
+| 度量 | R1019 | **R1020** |
+|---|---|---|
+| 套件 | 2222 / 0 | **2226 / 0 / 0（+4）** |
+| 产物陈旧度 | 3 / 3,531 | **3 / 3,552** |
+| 函数数 | 174,336 | **174,336** |
+| **`Row` 的列** | 6 | **7（+`Gap`）** |
+| **`Inferred` 的可分辨原因** | 0 | **2** |
+| **两列一致性守卫** | 0 | **4（双向）** |
+
+### 教训
+
+> **一张表里一个词盖住两件事，读表的人就没法据它行动 —— 而写表的人会以为自己已经记录了区别，
+> 因为区别在注释里。**
+> **→ 加列成本是一个枚举加六个填值，收益是下一轮不必重推那两个 vendor 差在哪。**
+> **→ 而双向守卫最要紧：加列时最容易只写一个方向的检查。**

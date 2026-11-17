@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 12:28:41 +0800 |
+| 生成时间 | 2026-11-17 12:39:25 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2200 通过 / 0 失败 / 0 跳过 / 2200 总计** |
+| 完整套件 | **2203 通过 / 0 失败 / 0 跳过 / 2203 总计** |
 
 ## 摘要素值
 
@@ -54,7 +54,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file is newer than the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 0:13:57 -- BlockIsNotTheAbsenceOfSuccessTests.cs changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -614,9 +614,10 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 0 -- no exercised file is newer than the run
+  mutation-fit-staleness: 0:13:57 -- BlockIsNotTheAbsenceOfSuccessTests.cs changed after the run
 
-  Every mutation fired, none was decorative and none was skipped at the time of that run.
+  The counts above are from 2026-11-17T12:25:02+08:00 and the tree has moved since. They are a record of that run, not a
+  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
 ```
 
 ### 完整套件
@@ -626,7 +627,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2200 通过 / 0 失败 / 0 跳过 / 2200 总计
+`exit 0` · 2203 通过 / 0 失败 / 0 跳过 / 2203 总计
 
 ```text
   正在确定要还原的项目…
@@ -643,7 +644,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2200，已跳过:     0，总计:  2200，持续时间: 1 m 36 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2203，已跳过:     0，总计:  2203，持续时间: 1 m 28 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

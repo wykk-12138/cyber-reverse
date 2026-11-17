@@ -24618,3 +24618,89 @@ python -c "读 analysis/flows.txt 按 utf-16-le 解码，数 HandleBlock/HandleR
 **「相邻」这件事第一次配了校准项：第 2 组就是「两兄弟都在、它不在」的对照。**
 
 **没有那个对照，「相邻」会被读成「伴生」，而错的方向会一直带到实现里。**
+
+
+---
+
+## 408. **23 处 `!res.IsSuccess` → Blocked：把 404/500 当封锁；+3 守卫**
+
+> R984。**加 3 个守卫，未改那 23 处。** 套件 **2203 通过 / 0 失败 / 0 跳过**。
+
+### 一、测量
+
+**29 处 `Blocked`。把「Blocked 行」往上找最近的 `if`，23 处是同一个条件：**
+
+```
+23 ×  if (!res.IsSuccess)
+```
+
+**而：**
+
+```csharp
+// src/Cybersole.Http/TlsProfile.cs
+public bool IsSuccess => StatusCode is >= 200 and < 400;
+```
+
+**→ `!res.IsSuccess` 对 **404 和 500 都成立**。
+→ 「商品页没了」与「站方在拒绝我」在这 23 处是**同一件事**。**
+
+### 二、而集中的那一处把两者分开
+
+| 位置 | 判据 | 404 的结果 |
+|---|---|---|
+| `StoreFlowRunner`（集中） | `401` / `429` / `!anti.Ok` | **不是 Blocked** |
+| 23 个 module（分散） | `!res.IsSuccess` | **Blocked** |
+
+**→ 两半互相矛盾，而错的那一半是数量多的那一半。
+→ 一个把「下架」报成「被封」的监控，比什么都不报更坏 —— 它把真的 drop 藏在「我被封了」的故事后面。**
+
+### 三、与未结案项 #2 同一类
+
+**#2：长度守卫用 `body.Length` 决定「有没有货」。
+本条：用 `!IsSuccess` 决定「有没有被封」。**
+
+**两条的形状一样：**用一个与目标现象无关的量，去决定那个现象**，而两条都是**误报**方向。**
+
+### 四、这一轮加守卫，不改那 23 处
+
+**`BlockIsNotTheAbsenceOfSuccessTests`（3 用例）：**
+
+1. `TheSuccessTestIsStillWhatSuccessMeans` —— `IsSuccess` 仍是 `>= 200 and < 400`
+   （**定义一改，下面的数就不再有意义**）
+2. `NobodyNewTreatsAFailedResponseAsABlock` —— 混淆点**不得超过** 23，失败时列出新的是哪一处
+3. `TheCountIsNotStaleInTheOtherDirection` —— 数量**必须等于** 23
+   （**减少了也要改常数并说明换成了什么，防止常数变成过时的上界**）
+
+**没改那 23 处的理由：改它意味着逐站决定「404 对该站应该意味着什么」，
+而那需要镜像侧证据，这一轮没取到。**
+
+### 五、数字
+
+| 度量 | R983 | R984 |
+|---|---|---|
+| 套件 | 2200 | **2203** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| 变异 36/36 | 是 | **是**（记录仍有效；新增代码未进变异集） |
+| **`!IsSuccess`→Blocked 的点** | 未测 | **23** |
+
+### 六、验证
+
+```
+cd replica
+python - 扫 src 找 Blocked 行并上溯最近的 if -> 23 × if (!res.IsSuccess)
+dotnet test --filter "FullyQualifiedName~BlockIsNotTheAbsenceOfSuccessTests" -m:1  -> 3 通过
+python tools/metrics_report.py  -> 完整套件 exit 0  2203 通过 / 0 失败 / 0 跳过
+```
+
+### 七、仍然 Unknown
+
+- **404 / 500 在各站应判什么**：**Unknown** —— 需镜像侧证据。
+- **原版 `HandleBlock` 是否就是这一层**：**Unknown** —— 无 xref，MethodTable 路线未通。
+
+### 八、教训
+
+**「不一致」这个说法在没有数字的时候是软的。一旦变成「23 处对 3 处」，就有了明确的下一步。**
+
+**而这一轮真正的收获是：那 30 处的**共同点**不是一个共享判据，
+而是一行**复制了 23 遍的代码**。**

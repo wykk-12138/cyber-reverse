@@ -6,15 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 15:33:36 +0800 |
+| 生成时间 | 2026-11-17 15:40:04 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
 | 完整套件 | **2210 通过 / 0 失败 / 0 跳过 / 2210 总计** |
-
-## 时效警告（生成）
-
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 15 个源文件比产物新（共 10753 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -36,10 +32,10 @@
 | 数据文件名对照 — datafiles: original-on-disk not in replica | 0 |
 | 数据文件名对照 — datafiles: replica-only | 2 |
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
-| 函数数量（.pdata） — functions: replica .pdata | 173,952 |
-| 函数数量（.pdata） — functions: ratio | 62.77% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 15 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 10753 |
+| 函数数量（.pdata） — functions: replica .pdata | 173,994 |
+| 函数数量（.pdata） — functions: ratio | 62.79% |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
 | 核心覆盖：store 宿主 — hosts with a path | 39 |
 | 核心覆盖：store 宿主 — store hosts | 15 |
 | 核心覆盖：store 宿主 — store hosts matched | 15 |
@@ -49,8 +45,8 @@
 | 核心覆盖：vendor 宿主 — vendors named somewhere in src | 12 |
 | 核心覆盖：vendor 宿主 — vendors absent from src | 0 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 28835328 |
-| 可执行段体量 — section-mass: ratio | 55.78% |
+| 可执行段体量 — section-mass: replica executable | 28841984 |
+| 可执行段体量 — section-mass: ratio | 55.79% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 0 |
 | 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1B00000 |
@@ -354,8 +350,8 @@ C:\Python312\python.exe tools/func_count.py
 ```text
 function count (non-leaf, from .pdata):
   pdata-original: 277,120
-  pdata-replica: 173,952
-  pdata-ratio: 62.77%
+  pdata-replica: 173,994
+  pdata-ratio: 62.79%
   .pdata holds one RUNTIME_FUNCTION per non-leaf function: it excludes inlined and trimmed code, so this
   compares function mass between the two images and does not establish function-level equality.
 ```
@@ -371,14 +367,11 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-17 11:23:03
+publish artifact mtime: 2026-11-17 15:39:34
 newest source: src\Cybersole.Stores\Flows\ShopifyFlow.cs (2026-11-17 14:03:24)
-source files newer than the artifact: 15
-lines in those files: 10753
-publish artifact state: stale
-
-  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
-  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
+source files newer than the artifact: 0
+lines in those files: 0
+publish artifact state: current
 ```
 
 ### 核心覆盖：store 宿主
@@ -396,7 +389,7 @@ registry identifiers: 82   flow types: 35
 
 store hosts
   matched api-search.dickssportinggoods.com         1 paths  dickssportinggoods
-  matched api.nike.com                              4 paths  nikegs, nike
+  matched api.nike.com                              4 paths  nike, nikegs
   matched api.tobe-official.jp                      1 paths  in src
   matched auth.casio-intl.com                       1 paths  casio, casio
   matched authenticate.riotgames.com                1 paths  riotgames
@@ -408,7 +401,7 @@ store hosts
   matched payments.dickssportinggoods.com           2 paths  dickssportinggoods
   matched prod-hk-actapi.popmart.com                2 paths  popmart
   matched www.goat.com                              9 paths  goat
-  matched www.nike.com                              1 paths  nikegs, nike
+  matched www.nike.com                              1 paths  nike, nikegs
   matched www.vans.com                              6 paths  in src
 
 vendor hosts
@@ -501,21 +494,21 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 56040960 bytes ===
+=== REPLICA  image base 0x140000000  file 56052736 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
-  .text      0x1000       0xFD508      1033728      X
-  .managed   0xFE000      0x1B817E8    27801600     X
-  hydrated   0x1B82000    0x2A87B28    0            RW
-  .rdata     0x2A88000    0x41F1EB6    24551424     R
-  .data      0x41F2000    0x42E8378    223232       RW
-  .pdata     0x42E9000    0x44E6820    2087424      R
-  _RDATA     0x44E7000    0x44E70F4    512          R
-  .rsrc      0x44E8000    0x45337E7    309248       R
-  .reloc     0x4534000    0x453BE50    32768        R
+  .text      0x1000       0xFD5B8      1033728      X
+  .managed   0xFE000      0x1B83148    27808256     X
+  hydrated   0x1B84000    0x2A8AA30    0            RW
+  .rdata     0x2A8B000    0x41F61B6    24556032     R
+  .data      0x41F7000    0x42ED418    223232       RW
+  .pdata     0x42EE000    0x44EBA18    2087936      R
+  _RDATA     0x44EC000    0x44EC0F4    512          R
+  .rsrc      0x44ED000    0x45387E7    309248       R
+  .reloc     0x4539000    0x4540E5C    32768        R
 
-  section-mass-replica-executable: 28835328
-  section-mass-ratio: 55.78%
+  section-mass-replica-executable: 28841984
+  section-mass-ratio: 55.79%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
   code does: the replica links a different BCL and Avalonia, so part of the difference is not its own.
@@ -533,7 +526,7 @@ C:\Python312\python.exe tools/pdata_sections.py
 ```text
 pdata bucket histogram (bucket = 0x100000 bytes)
   original: 277,120 functions, image base 0x140000000
-  replica : 173,952 functions, image base 0x140000000
+  replica : 173,994 functions, image base 0x140000000
 
   range from     original   replica    replica/original
   ----------------------------------------------------
@@ -543,28 +536,28 @@ pdata bucket histogram (bucket = 0x100000 bytes)
   0x300000       2,213      3,548       160.3%
   0x400000       5,791      5,925       102.3%
   0x500000       2,057      3,864       187.8%
-  0x600000       1,074      3,412       317.7%
-  0x700000       3,411      3,485       102.2%
-  0x800000       4,076      2,461        60.4%
+  0x600000       1,074      3,418       318.2%
+  0x700000       3,411      3,487       102.2%
+  0x800000       4,076      2,459        60.3%
   0x900000       3,556      3,522        99.0%
-  0xA00000       3,178      5,296       166.6%
-  0xB00000       3,227      5,883       182.3%
-  0xC00000       3,982      7,324       183.9%
-  0xD00000       3,921      6,967       177.7%
-  0xE00000       3,371      4,967       147.3%
-  0xF00000       7,792      4,287        55.0%
-  0x1000000      5,626      9,007       160.1%
-  0x1100000      2,020      9,969       493.5%
-  0x1200000      2,046      9,730       475.6%
-  0x1300000      5,065      9,491       187.4%
-  0x1400000      10,107     9,645        95.4%
-  0x1500000      11,107     9,642        86.8%
-  0x1600000      2,864      8,764       306.0%
-  0x1700000      2,242      9,974       444.9%
-  0x1800000      4,058      6,982       172.1%
-  0x1900000      4,506      5,538       122.9%
-  0x1A00000      2,310      7,429       321.6%
-  0x1B00000      6,033      4,683        77.6%
+  0xA00000       3,178      5,294       166.6%
+  0xB00000       3,227      5,870       181.9%
+  0xC00000       3,982      7,334       184.2%
+  0xD00000       3,921      6,966       177.7%
+  0xE00000       3,371      4,970       147.4%
+  0xF00000       7,792      4,264        54.7%
+  0x1000000      5,626      9,015       160.2%
+  0x1100000      2,020      9,954       492.8%
+  0x1200000      2,046      9,748       476.4%
+  0x1300000      5,065      9,497       187.5%
+  0x1400000      10,107     9,657        95.5%
+  0x1500000      11,107     9,599        86.4%
+  0x1600000      2,864      8,799       307.2%
+  0x1700000      2,242      9,965       444.5%
+  0x1800000      4,058      6,980       172.0%
+  0x1900000      4,506      5,543       123.0%
+  0x1A00000      2,310      7,420       321.2%
+  0x1B00000      6,033      4,739        78.6%
   0x1C00000      6,218      0             0.0%
   0x1D00000      6,893      0             0.0%
   0x1E00000      5,418      0             0.0%
@@ -633,21 +626,21 @@ D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c
 `exit 0` · 2210 通过 / 0 失败 / 0 跳过 / 2210 总计
 
 ```text
-  正在确定要还原的项目…
-D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-  所有项目均是最新的，无法还原。
-  Cybersole.Core -> D:\projects\cyber-reverse\replica\src\Cybersole.Core\bin\Debug\net8.0\Cybersole.Core.dll
-  Cybersole.Http -> D:\projects\cyber-reverse\replica\src\Cybersole.Http\bin\Debug\net8.0\Cybersole.Http.dll
-D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr
-  Cybersole.Services -> D:\projects\cyber-reverse\replica\src\Cybersole.Services\bin\Debug\net8.0\Cybersole.Services.dll
-  Cybersole.Stores -> D:\projects\cyber-reverse\replica\src\Cybersole.Stores\bin\Debug\net8.0\Cybersole.Stores.dll
-  Cybersole.Ui -> D:\projects\cyber-reverse\replica\src\Cybersole.Ui\bin\Debug\net8.0\Cybersole.Ui.dll
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\MethodPatchTableTests.cs(77,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\NavigatorCensusTests.cs(36,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(34,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(35,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(109,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SizePaletteTests.cs(24,9): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SportsshoesFlowTests.cs(128,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StepActionTests.cs(293,89): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
   Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2210，已跳过:     0，总计:  2210，持续时间: 1 m 42 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2210，已跳过:     0，总计:  2210，持续时间: 1 m 23 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

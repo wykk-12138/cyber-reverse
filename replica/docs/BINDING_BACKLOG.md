@@ -6810,3 +6810,38 @@ FindSlot · GetReleaseFeed · LoadCountryData · ProcessResponse · Fill · GetS
 | 剩 34 个空壳里各站该覆写哪些 | 需逐站取证 |
 
 **纪律**：串不在不能证明不在 —— 这次踩在产物上。
+
+
+## 判据 (a)/(c) — **34 个空壳全部有覆写；R962/R963 的覆写数全错**（R965，**只取证**）
+
+### 正确正则
+
+**`override\s+(?:async\s+)?Task<StepOutcome>\s+<Step>Async`（旧版漏 `async`）**
+
+### 34 个步骤的覆写数
+
+**`ScrapeVariantAvailability` 13 · `GetCsrf` 4 · `CreateCart`/`EditLine`/`InitiateCheckout`/`SubmitEmail`/
+`GetShippingRates` 3 · `SubmitBilling`/`Login`/`SubmitSensor`/`GetCaptcha`/`WaitForRelease` 2 ·
+其余约 20 个 1 · **零覆写 0 个****
+
+### 更正
+
+**R962「35 个空壳、零覆写」→ 覆写数全错（假阴性）**
+**R963「零覆写 → 必被裁」→ 前提不存在；「`BstnFlow.GetCartAsync` 唯一覆写」也是假阴性**
+**R964「+43 覆写让方法进产物」→ 仍成立（直接观测）**
+
+### 新问题
+
+**既然都有覆写，为什么只有 62.77%？→ 缺口**不在「有没有实现**上。**
+**要查：这些覆写进产物了吗；62.77% 的缺口在哪一层。**
+
+### 数字
+
+**套件 2186（未变）· 函数数 173,952（未变）· 陈旧度 0/0 · 零覆写空壳 34 → 0**
+
+| 仍 Unknown | |
+|---|---|
+| 那 34 个覆写是否都进产物 | 未逐个核对 |
+| 62.77% 缺口在哪一层 | 未查（本轮才提出这个问题） |
+
+**纪律**：第二十二次「假设太窄」。而这次漏的两个字是 `async`。

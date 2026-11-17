@@ -9825,3 +9825,44 @@ buy/orders       0     ⇒ Nike 结账链上一步先断
 | Farfetch transport | 无线索 |
 
 **纪律**：「未覆盖的每条写为什么」要求每条都读一遍消息 —— 消息里有能不能动手的全部信息。
+
+
+## 判据 (f) — **Nike buy 面 7 条实名 URL；未决问题收窄成「哪个承接 shipping 写入」**（R1043）
+
+### 7 条实名 URL
+
+```
+checkouts/v3 · checkout_previews/v3 · checkouts_jobs/v3 · checkout_previews_jobs/v3
+fulfillment_offerings_jobs/v2 · partner_cart_preorder/v2 · partner_cart_preorder_jobs/v2
+```
+
+**→ `buy/orders/v2` 仍 0；**结底面一直在 `buy/` 下**。**
+
+### 而我的动作已被裁决过
+
+**R1013 换成 `checkouts/v3` ⇒ R1014 撤回（「路由存在不解决哪个承接写入」）；R48「换猜测只是移动失败」。
+→ 我差点第四次做同一动作，而裁决在方法上方三行。**
+
+### 收窄后的 Unknown
+
+| 问题 | 状态 |
+|---|---|
+| Nike 有没有结账面 | **有 —— 两个候选** |
+| 哪一个承接 shipping 写入 | **Unknown** |
+
+**解法：反编译**引用**那两条 URL 的函数（池条目无 xref ⇒ IDAPython 搜 immediates）。**
+
+### 编号
+
+**`CORE_COVERAGE.md` 3,275 → **4,241** 字节（含 Nike 段与裁决引用）。**
+
+### 数字
+
+**套件 2258/0/0 · 陈旧度 0/0 · 函数数 174,293 · buy 面 7 · 未决 1（二选一）· 差点重犯 1**
+
+| 仍 Unknown | |
+|---|---|
+| 哪个资源承接 shipping 写入 | **待反编译引用者** |
+| Farfetch transport | 无线索 |
+
+**纪律**：当一件事你已有「我知道该怎么改」的冲动时，那个冲动本身就是去读的理由。

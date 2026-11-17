@@ -61,6 +61,18 @@
 
 **已得的替代证据**：`Farfetch` · `Farfetch Checkout` 在池里，且后者与 `Shopify Checkout` · `Kith EU Checkout` · `FUNKO CHECKOUT` 同列 —— 4 个站的**定制结账文案**。那不是完整清单，但它是**二进制侧对具体站的正面证据**。
 
+### 而 Nike 链上有一个**更具体**的未决问题
+
+镜像里有 `api.nike.com/buy/` 的 **7** 条实名 URL：`checkouts/v3` · `checkout_previews/v3` · `checkouts_jobs/v3` · `checkout_previews_jobs/v3` · `fulfillment_offerings_jobs/v2` · `partner_cart_preorder/v2` · `partner_cart_preorder_jobs/v2`。
+
+**所以「Nike 没有结账面」是错的** —— 而有的是**两个**候选资源。
+
+**未决的是**：哪一个承接 **shipping 写入**（`checkouts/v3` 还是 `checkout_previews/v3`）。
+
+**为什么不能靠名字猜**：R1013 换成 `checkouts/v3` 被 R1014 撤回，理由是「路由存在不解决哪个承接写入」；R48 的裁决「换一个猜测只是移动失败」就在 `NikeFlow.cs` 里那段代码上方。
+
+**什么能解决它**：反编译一个引用那两条 URL 的函数（`0x147053d8c` · `0x147053c94`），读它发什么方法、带什么 body。**那是下一轮的工作，不是靠字符串能得的。**
+
 ## 三、风控清单（可复算）
 
 由 `VendorWiring.Rows` 与 `tests/Cybersole.Tests/VendorWiringTests.cs` 逐条钉住：

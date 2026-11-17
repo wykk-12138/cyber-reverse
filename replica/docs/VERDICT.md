@@ -62331,3 +62331,62 @@ if (Test-Path $p -and $p -notlike "$root\.publish-aot*") { ... }   ← 语法错
 > → 压平之后，那 3 个「其实有名字」的看起来和那 7 个一样无望。**
 > **→ 「未覆盖的每条写为什么」不只是写字 —— 它要求**每条都读一遍消息**，
 > 因为消息里藏着下一轮能不能动手的全部信息。**
+
+
+---
+
+## 第 1043 轮：裁决就在那段代码上方；真正的问题不是路由
+
+### ① 镜像里 Nike 的 buy 面是 **7** 条实名 URL
+
+```
+checkouts/v3 · checkout_previews/v3 · checkouts_jobs/v3 · checkout_previews_jobs/v3
+fulfillment_offerings_jobs/v2 · partner_cart_preorder/v2 · partner_cart_preorder_jobs/v2
+```
+
+**→ 「Nike 没有结账面」是错的；`buy/orders/v2` 确实 0 次，而**结底面一直在 `buy/` 下**。**
+**→ 且 `nike.com` 另有 55 条，含 `deliver/available_gtins/v3` 与 `accounts.nike.com/{authorize,token,challenge}/v1`。**
+
+### ② 而我正要做的动作，`NikeFlow.cs` 里已经裁决过
+
+> R1013 replaced it with `checkouts/v3` … which is true and does not settle **which resource carries a delivery
+> write**. R48: "Swapping one guess for another would move the failure, not remove it."
+
+**→ 那条路由 **R1013 用过，R1014 撤回了**，理由正确 ⇒ 我差点第四次做同一个动作。
+→ 那不是「没查到」，是**答案已经写在面前三行**。**
+
+### ③ 所以真正未决的问题更窄
+
+| 问题 | 状态 |
+|---|---|
+| Nike 有没有结账面 | **有 —— 两个候选** |
+| 哪一个承接 **shipping 写入** | **Unknown** |
+
+**→ 靠名字猜已被 R48 与 R1014 两次否掉。
+→ 解法：反编译**引用**那两条 URL 的函数（NativeAOT 池条目无 xref ⇒ 用 IDAPython 搜 immediates）。**
+
+### ④ 本轮改的是生成物
+
+**`core_coverage.py` 加这一段，表从 **3,275 → 4,241 字节**：
+Nike 的 7 条 URL · 「没有结账面」是错的 · 未决的是二选一 · 为什么不能猜 · 什么能解决它。**
+
+**→ 让 Unknown 从「3 个未取证」收窄成「1 个具体的二选一」。**
+
+### ⑤ 数字
+
+| 度量 | R1042 | **R1043** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 174,293 | **174,293** |
+| **Nike buy 面实名 URL** | 「0 条」 | **7** |
+| **Nike 未决问题** | 「3 个步骤未取证」 | **1 个：哪个承接写入** |
+| **`CORE_COVERAGE.md`** | 3,275 字节 | **4,241 字节** |
+| **差点重犯** | — | **1（被文件里的裁决挡住）** |
+
+### 教训
+
+> **这一轮做对的事，是去读那段代码的注释 —— 而它在我要改的方法**上方三行**。
+> → 它写着「换一个猜测只是移动失败」，注明是 **R48 的裁决**，而那已是两次教训。**
+> **→ 所以第三条不是「先读再改」（那条已有），是：
+> **当一件事你已经有「我知道该怎么改」的**冲动**时，那个冲动本身就是去读的理由。****

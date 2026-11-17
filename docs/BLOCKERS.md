@@ -36431,3 +36431,104 @@ python tools/metrics_report.py -> 完整套件 exit 0  2258 / 0 / 0 · 陈旧度
 
 **→ 另一条：`if (Test-Path $p -and ...)` 语法错让校验静默失效而破坏性操作照旧执行。
   校验存在但没跑，比没有校验更坏 —— 它让人以为检查过了。**
+
+
+---
+
+## 467. **裁决就在那段代码上方；真正的问题不是路由，是哪个资源承接写入**
+
+> R1043。**改 1 个生成器（未改业务代码）。** 套件 **2258 通过 / 0 失败 / 0 跳过**。
+
+### 一、镜像里 Nike 的 buy 面是 **7** 条实名 URL
+
+```
+https://api.nike.com/buy/checkouts/v3/
+https://api.nike.com/buy/checkout_previews/v3/
+https://api.nike.com/buy/checkouts_jobs/v3/
+https://api.nike.com/buy/checkout_previews_jobs/v3/
+https://api.nike.com/buy/fulfillment_offerings_jobs/v2/
+https://api.nike.com/buy/partner_cart_preorder/v2/
+https://api.nike.com/buy/partner_cart_preorder_jobs/v2/
+```
+
+**→ 所以「Nike 没有结账面」是错的；`buy/orders/v2` 确实 0 次，而**结底面一直在 `buy/` 下**。**
+**→ 且 `nike.com` 另有 55 条，含 `deliver/available_gtins/v3` 与
+  `accounts.nike.com/{authorize,token,challenge}/v1`。**
+
+### 二、而我正要做的动作，`NikeFlow.cs` 里已经裁决过
+
+**我以为「找到 `checkouts/v3` ⇒ 把 shipping 改过去」是进展。而那段代码上方写着（R1014）：**
+
+> R1013 replaced it with `checkouts/v3` on the strength of a header sentence — "the resource every step writes to" —
+> which is true and does not settle **which resource carries a delivery write**. `CartUrl()`'s own had already ruled
+> on exactly this move: "there is no way to tell which of `checkouts/v3` and `checkout_previews/v3` carries the add.
+> **Swapping one guess for another would move the failure, not remove it.**"
+
+**→ 所以：那条路由 **R1013 用过**，**R1014 撤回了**，而理由是**正确的**。
+→ 而我这一轮差点第四次做同一个动作。**
+
+**→ 那不是「没查到」，是**答案已经写在面前** —— 而那条教训已经记过两次（R995、R1014），
+  而这次是第三次站在同一个位置。**
+
+### 三、所以真正未决的问题**更窄**
+
+| 问题 | 状态 |
+|---|---|
+| Nike 有没有结账面 | **有 —— 两个**（`checkouts/v3` · `checkout_previews/v3`） |
+| 哪一个承接 **shipping 写入** | **Unknown** |
+
+**→ 而「靠名字猜」被两条独立裁决否过（R48 · R1014），所以那不是可选路径。**
+
+**→ 什么能解决它**：反编译一个**引用**那两条 URL 的函数，读它发什么方法、带什么 body。
+→ 而那需要地址上的引用者 —— NativeAOT 的池条目没有 xref（R1039 试过，0），
+  所以要用 IDAPython 搜 **immediates**，而不是 `xrefs_to`。
+
+### 四、所以本轮**不改代码**，改的是生成物
+
+**`tools/core_coverage.py` 里加了这一段，重新生成后 `docs/CORE_COVERAGE.md` 从 3,275 字节增至 4,241：**
+
+- Nike 的 7 条实名 URL
+- 「Nike 没有结账面」是错的
+- 未决的是**哪一个承接 shipping 写入**
+- 为什么不能靠名字猜（R48 · R1014 的裁决）
+- 什么能解决它（反编译引用者，下一轮）
+
+**→ 而那让表里的 Unknown **更窄、更可动手** —— 上一轮它是「3 个未取证」，现在是「1 个具体的二选一」。**
+
+### 五、数字
+
+| 度量 | R1042 | R1043 |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 174,293 | **174,293** |
+| **Nike buy 面实名 URL** | 「0 条」 | **7** |
+| **`buy/orders/v2`** | 0 | **0（仍）** |
+| **Nike 未决问题** | 「3 个步骤未取证」 | **1 个：哪个承接 shipping 写入** |
+| **`docs/CORE_COVERAGE.md`** | 3,275 字节 | **4,241 字节** |
+| **我差点重犯的次数** | — | **1（被文件里已有的裁决挡住）** |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "/buy/" --limit 600        -> {"n":7}（七条 api.nike.com 实名 URL）
+python analysis/ida.py str "nike\.com" --limit 600    -> {"n":55}
+cd replica
+python tools/core_coverage.py   -> wrote docs/CORE_COVERAGE.md（4,241 字节）
+python tools/metrics_report.py  -> 完整套件 exit 0  2258 / 0 / 0 · 陈旧度 0 / 0
+```
+
+### 七、仍然 Unknown
+
+- **哪个资源承接 shipping 写入**：**待反编译引用者（下一轮）**。
+- **Farfetch 的 transport**：无线索。
+
+### 八、教训
+
+**这一轮我做对的事，是去读那段代码的注释** —— 而它就在我要改的方法**上方三行**。
+
+**→ 而它写着「换一个猜测只是移动失败」，且注明是 **R48 的裁决**，而那已经是两次教训。**
+
+**→ 所以第三条教训不是「先读再改」（那条已经有了），是：
+  **当一件事你已经有「我知道该怎么改」的**冲动**时，那个冲动本身就是去读的理由。****

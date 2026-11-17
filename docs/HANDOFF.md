@@ -3356,3 +3356,24 @@ buy/orders       0     ⇒ Nike 结账链上一步先断
 纪律：**「未覆盖的每条写为什么」要求每条都读一遍消息 —— 消息里有能不能动手的全部信息。**
 
 下一轮：`buy/orders/v2`（Nike 链第一步）的真实路由 —— 那是解开 3 个 Unknown 的钥匙。
+
+## R1043 补充 — **Nike buy 面 7 条实名 URL；未决问题收窄成「哪个承接 shipping 写入」**（套件 2258）
+
+**7 条实名 URL**：`checkouts/v3` · `checkout_previews/v3` · `checkouts_jobs/v3` ·
+`checkout_previews_jobs/v3` · `fulfillment_offerings_jobs/v2` · `partner_cart_preorder/v2` · (+`_jobs`)。
+→ `buy/orders/v2` 仍 **0**，而**结底面一直在 `buy/` 下**。
+
+**而我正要做的动作已被裁决**：R1013 换成 `checkouts/v3` ⇒ **R1014 撤回**（「路由存在不解决哪个承接写入」）；
+R48「换猜测只是移动失败」—— **裁决就在我要改的方法上方三行，而我差点第四次做同一动作。**
+
+**收窄后的 Unknown**：Nike 有结账面（两个候选）· 未决的是**哪一个承接 shipping 写入**。
+→ 靠名字猜被 R48/R1014 两次否掉；解法是**反编译引用那两条 URL 的函数**（池条目无 xref ⇒ IDAPython 搜 immediates）。
+
+**本轮改的是生成物**：`CORE_COVERAGE.md` 3,275 → **4,241** 字节，含 Nike 段与裁决引用。
+→ 让 Unknown 从「3 个未取证」收窄成「1 个具体的二选一」。
+
+数字：套件 2258/0/0 · 陈旧度 **0/0** · 函数数 174,293 · buy 面 **7** · 未决 **1** · 差点重犯 **1**。
+
+纪律：**当一件事你已有「我知道该怎么改」的冲动时，那个冲动本身就是去读的理由。**
+
+下一轮：用 IDAPython 搜引用 `0x147053d8c` / `0x147053c94` 的 immediates，读出哪个承接 shipping 写入。

@@ -61161,3 +61161,72 @@ PerimeterX  n=5
 > → 与 R1023 的 `[:4]` 是同一件事，只是这次截断在工具里不在我的脚本里。
 > → 同样的教训隔一轮就复发，说明「不截断」不能只靠记住，要靠**看到 `n` 等于上限就警觉**。
 > → 而这一轮真正解决它的不是警觉，是**把问题问小**。**
+
+
+---
+
+## 第 1025 轮：queue-it 不只是队列；而 `NotAChallenge` 失去唯一使用者
+
+### ① 八条证据说 queue-it 有挑战面
+
+```
+Fetching Queue-it challenge                 它 serve 挑战
+Error Solving Queue-it (Softblock)           原版尝试解
+Error Initiliazing Queue-it (Softblock)      且会初始化失败
+Queue-IT banned, rotating proxy              也会换代理
+Unsupported Queue-it BotDeflector page       BotDeflector 是它的反机器人产品
+Redirected into a Queue-it waiting room      等待室是真的
+/softblock · /challengeapi/queueitcaptcha/challenge/    端点 + CAPTCHA
+X-queueit-challange-{reason,customerid,eventid,hash,ruleid,rulename} + X-queueit-redirect
+QueueITAccepted · QueueitEnqueueToken · queueittoken
+```
+
+**→ 「队列不是墙，正确处置是等待」一半对：等待**是**处置的一部分。
+→ 「等待是**全部**处置」**错了**。**
+
+### ② 而这是第三次同一个形状
+
+| 轮 | 从 | 推出 | 实际 |
+|---|---|---|---|
+| R1018 | 「`captcha-delivery` 是挑战域」 | 「属 perimeterx」 | 属 datadome |
+| R1023 | 「只有换代理文案」 | 「原版不解 perimeterx」 | 有 `Solving PerimeterX` |
+| **R1025** | 「我们看到的是等待室」 | **「它只是队列」** | **还有挑战面** |
+
+**→ 三次都是**从「我看到的」推出「只有这些」** —— 抽样不等于全量的**行为版**。**
+
+### ③ 改了什么
+
+**`queue-it`：`State.NotAChallenge` → `DetectedOnly`，Note 列八条证据并写明
+「waiting is part of the handling rather than all of it」。**
+
+**→ 与 akamai 同一个 State 而理由不同：akamai 是「镜像解它，我们没写」；
+queue-it 是「镜像解 softblock，我们只等待」。两者都是「镜像有而我们没有」。**
+
+### ④ 而 `NotAChallenge` 现在没有使用者
+
+**保留枚举值（删掉会让分类法静默收缩），加 4 条守卫，其中一条专门钉「无使用者」——
+那是那个值的**墓碑**。**
+
+### ⑤ 而两条旧守卫跟着动
+
+`VendorsWithoutASolveStayWithoutOne` 与 `TheGapsAreClassified` 的 `state == NotAChallenge` → `DetectedOnly`。
+**→ `HasSolveFor("queue-it") == false` **不变** —— 变的只是**为什么**：
+不是「它不是墙」，而是「我们还没写」。**
+
+### ⑥ 数字
+
+| 度量 | R1024 | **R1025** |
+|---|---|---|
+| 套件 | 2233 / 0 | **2237 / 0 / 0（+4）** |
+| 产物陈旧度 | 4 / 3,816 | **4 / 3,835** |
+| 函数数 | 174,336 | **174,336** |
+| **queue-it State** | `NotAChallenge`（错） | **`DetectedOnly`** |
+| **`NotAChallenge` 使用者** | 1 | **0** |
+| **queue-it 挑战面证据** | 1 | **8** |
+
+### 教训
+
+> **三次，同一个形状：从「我看到的那个表面」推出「只有这个表面」。
+> → 而每次的反证据都在**同一个查询的输出里**（`DdInterstitialClient` · `Solving PerimeterX` ·
+> `Fetching Queue-it challenge`）—— 我只读了它在回答的那个问题。**
+> **→ 所以真正的纪律不是「别下结论」，是：**读一段输出时，把不回答我问题的那些行也读一遍**。**

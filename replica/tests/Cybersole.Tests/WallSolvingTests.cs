@@ -111,8 +111,11 @@ public sealed class WallSolvingTests
         Assert.False(WallSolving.HasSolveFor("perimeterx"));
         Assert.False(WallSolving.HasSolveFor(null));
 
-        // queue-it is a queue, not a wall, so it should never gain a solve method
+        // R1025: this used to read "queue-it is a queue, not a wall, so it should never gain a solve method". The image
+        // carries a challenge surface beside the waiting room -- Solving Queue-it (Softblock), BotDeflector, a
+        // queueitcaptcha challenge endpoint -- so the first half of that reasoning does not hold. What still holds is
+        // that this workspace has no queue-it solver, and that is what the assertion now says.
         Assert.False(WallSolving.HasSolveFor("queue-it"));
-        Assert.Equal(VendorWiring.State.NotAChallenge, VendorWiring.For("queue-it")!.State);
+        Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("queue-it")!.State);
     }
 }

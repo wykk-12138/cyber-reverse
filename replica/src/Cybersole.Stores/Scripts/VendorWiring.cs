@@ -180,8 +180,27 @@ public static class VendorWiring
             + "does not carry.",
             MarkerSource.Inferred, Gap.NoPageMarker),
 
-        new Row("queue-it", "queue-it", "queue-it-set-cookie", State.NotAChallenge,
-            "a queue, not a wall: the correct handling is to wait, not to solve",
+        // R1025: this row said NotAChallenge -- "a queue, not a wall: the correct handling is to wait" -- and the image
+        // says otherwise in eight places. Verified this round:
+        //
+        //   "Fetching Queue-it challenge"           the vendor serves a challenge
+        //   "Error Solving Queue-it (Softblock)"     the original tries to solve one
+        //   "Error Initiliazing Queue-it (Softblock)" and can fail to initialise
+        //   "Queue-IT banned, rotating proxy"        it also routes around
+        //   "Unsupported Queue-it BotDeflector page" BotDeflector is Queue-it's anti-bot product, by name
+        //   /softblock                              an endpoint
+        //   /challengeapi/queueitcaptcha/challenge/  a CAPTCHA endpoint
+        //   seven X-queueit-challange-* headers      challenge metadata, down to ruleid and rulename
+        //
+        // So a waiting room and a challenge surface are two things this vendor does, which is R772's shape again. The
+        // state becomes DetectedOnly: recognised, with no solver here. What the row had right is that waiting is part
+        // of the handling -- it was wrong to conclude that waiting is all of it.
+        new Row("queue-it", "queue-it", "queue-it-set-cookie", State.DetectedOnly,
+            "R1025: the image carries a challenge surface beside the waiting room -- Fetching Queue-it challenge, "
+            + "Solving/Initiliazing Queue-it (Softblock), BotDeflector, /softblock, "
+            + "/challengeapi/queueitcaptcha/challenge/ and seven X-queueit-challange-* headers -- so waiting is part of "
+            + "the handling rather than all of it. Rows earlier in this file called it NotAChallenge; that was reading "
+            + "the waiting room as the whole vendor.",
             MarkerSource.ImageLiteral, Gap.None),
     };
 

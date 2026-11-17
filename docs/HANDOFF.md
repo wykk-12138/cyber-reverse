@@ -2936,3 +2936,29 @@ flow 把**封禁页当商品页**。分支只在页面真写该串时触发 ⇒ 
 纪律：**看到 `n` 等于上限就警觉；更好的解法是把问题问小。**
 
 下一轮：queue-it softblock（`Error Solving Queue-it (Softblock)` 与 `NotAChallenge` 矛盾）—— 那是下一个语义冲突。
+
+## R1025 补充 — **queue-it 不只是队列：`NotAChallenge` → `DetectedOnly`，八条证据**（套件 2237）
+
+**八条证据（同一个查询里）**：`Fetching Queue-it challenge` · `Error Solving Queue-it (Softblock)` ·
+`Error Initiliazing Queue-it (Softblock)` · `Queue-IT banned, rotating proxy` ·
+`Unsupported Queue-it BotDeflector page` · `/softblock` · `/challengeapi/queueitcaptcha/challenge/` ·
+`X-queueit-challange-*` ×7。
+→ 「队列不是墙、处置是等待」**一半对** —— 等待**是**一部分，「只是等待」错了。
+
+**第三次同一个形状**：
+| 轮 | 从 | 推出 | 实际 |
+|---|---|---|---|
+| R1018 | captcha-delivery 是挑战域 | 属 perimeterx | 属 datadome |
+| R1023 | 只有换代理文案 | 原版不解 perimeterx | 有 `Solving PerimeterX` |
+| **R1025** | 我们看到等待室 | **它只是队列** | **还有挑战面** |
+→ 三次都是**从「我看到的」推出「只有这些」**。
+
+**改**：`State.NotAChallenge` → `DetectedOnly`（与 akamai 同值而理由不同：都是「镜像有而我们没有」）。
+**4 条守卫**，其中 `NoRowUsesNotAChallengeAnyMore` 是那个枚举值的**墓碑**。
+**两条旧守卫同步**；`HasSolveFor("queue-it") == false` **不变** —— 变的是**为什么**。
+
+数字：套件 2237（+4）· 陈旧度 4 / 3,835 · 函数数 174,336 · NotAChallenge 使用者 1 → **0** · 证据 1 → **8**。
+
+纪律：**读一段输出时，把不回答我问题的那些行也读一遍。**
+
+下一轮：`BotDeflector` 页是否另一套流程；或 queue-it softblock 的求解协议。

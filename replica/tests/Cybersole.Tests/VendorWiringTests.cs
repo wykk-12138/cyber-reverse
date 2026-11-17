@@ -63,7 +63,9 @@ public sealed class VendorWiringTests
         Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("akamai")!.State);
         Assert.Equal(VendorWiring.Gap.None, VendorWiring.For("akamai")!.Gap);
         Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("perimeterx")!.State);
-        Assert.Equal(VendorWiring.State.NotAChallenge, VendorWiring.For("queue-it")!.State);
+        // R1025: queue-it moves to DetectedOnly. The image names a challenge beside the waiting room, so a queue is not
+        // the whole of this vendor; NotAChallenge now has no users, which NoRowUsesNotAChallengeAnyMore pins.
+        Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("queue-it")!.State);
 
         // the kinds differ in what would unblock them
         Assert.NotEqual(VendorWiring.For("datadome")!.State, VendorWiring.For("queue-it")!.State);

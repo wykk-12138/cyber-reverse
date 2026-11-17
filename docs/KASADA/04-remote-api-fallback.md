@@ -63,6 +63,41 @@ Base64 解出来头部是：
 
 ---
 
+## 2.5 原版接的真实服务：**HyperSolutions**（[Obs]，本轮新挖）
+
+之前这一节写的是"如果你要自建远端 solver"，那是我从字段表推的**通用契约**。
+实际情况是：**原版接的是一家现成服务 —— HyperSolutions**，同一家给三个厂商提供端点。
+
+```
+0x143321c61   (HyperSolutionsSolver                      ← 类型（str total = 1）
+
+0x14706ebfc   https://kasada.hypersolutions.co/botid     ← Kasada
+0x14706ec64   https://kasada.hypersolutions.co/payload
+0x1470ae4ec   kasadaRequest                              ← 请求字段名（total = 1）
+
+0x1470517f4   https://akm.hypersolutions.co/pixel        ← Akamai（划边界用）
+0x147051854   https://akm.hypersolutions.co/sbsd
+0x1470518b4   https://akm.hypersolutions.co/v2/sensor
+0x14708ac54   https://trustdecision.hypersolutions.co/decode   ← TrustDecision
+0x14708accc   https://trustdecision.hypersolutions.co/payload
+0x14708ad44   https://trustdecision.hypersolutions.co/sign
+```
+
+**三条推论**：
+
+1. **`Kasada API down (Contact staff)` 里的 "API" 就是这两个端点** ——
+   "Contact staff" 是给运营看的：服务挂了得找服务商，客户端无解。这解释了为什么它是 `Contact staff` 而不是"重试"。
+2. **`KasadaCdSolver` 大概率就是"走 `/payload` 的那个"**（[Inf]）—— 名字里的 cd 对应 `x-kpsdk-cd`，
+   而 `/payload` 正是收 payload 的端点。`/botid` 应该对应 `ct`/身份侧。
+3 **[Unk] 请求体形状没有** —— 只有 URL 与字段名 `kasadaRequest`，没有 body 结构。
+   要拿到得反编译 `HyperSolutionsSolver` 的调用点。
+
+> **别把两种 host 混了**：`https:///ips.js?&x-kpsdk`（空 host，**店铺**提供脚本）与
+> `https://kasada.hypersolutions.co/*`（**服务商**的 solver 端点）是两件完全不同的事。
+> 01 §2.1 的"host 是空占位"只对前者成立。
+
+---
+
 ## 3. 四种模式与它们的动词（[Obs] + [Inf]）
 
 `KasadaStrategy` 的四模式，动词是原版文案自带的：

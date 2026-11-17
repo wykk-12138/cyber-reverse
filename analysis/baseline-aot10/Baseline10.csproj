@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    R1066: the same program, the same source file, only the target framework differs. R1064 established that the
+    original is .NET 10.0.12 and the replica .NET 8, and R1065 showed the minimal .NET 8 baseline is 7,930 functions,
+    which is far too small to explain a 102,827 gap. That left the framework's share undetermined rather than excluded.
+
+    This project links ../../baseline-aot/Program.cs by path instead of copying it, so the two builds cannot drift:
+    there is one source and two target frameworks. The difference between the two .pdata counts is the framework
+    version's contribution measured directly, not inferred.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishAot>true</PublishAot>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\baseline-aot\Program.cs" Link="Program.cs" />
+  </ItemGroup>
+</Project>

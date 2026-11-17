@@ -2752,3 +2752,27 @@ if "{" in value or value.endswith("/"):
 纪律：**判据修好后输出没变，先问它测过没有。**
 
 下一轮：取证 Farfetch 与 Shopify 的真实端点，改那 10 处。
+
+## R1017 补充 — **Farfetch 的 API 面完全不在镜像里；Shopify 两处有候选却仍不改；10 处全部处置完毕**
+
+**Farfetch：镜像只有 3 条串，全是名字**（`Farfetch` · `Farfetch` · `Farfetch Checkout`）。
+而 `api.farfetch` **0** · `farfetch.com` **0** · `ff-products` **0** · `basket/v1` **0**。
+→ 站是真的（有显示名），**API 面一条都没有** ⇒ 7 处**不是拼错，是整个 host 不存在**。
+→ 只能从代码级证据得到（R958 说按名不可得）⇒ **Unknown，不是待办。**
+
+**Shopify 两处有候选，候选不够**：
+- `/api/payments/`（1272）：`/payments/` **39** 处而 `/api/payments` **0** ⇒ `/api` 是自加的，
+  但那 39 处是**别的站**的钱面，「查付款详情」的形状不在其中 ⇒ R48 裁决。
+- `/discount/`（768）：**0**；候选 `cart/update.js`（`0x146fc175c`）+ body 带码 ⇒ 仍是候选。
+
+**决定性：两处都零覆写 ⇒ 被裁 ⇒ 不在产物** ⇒ 改不改都不影响产物；
+换一个不可达的调用 = R48 的「swapping one guess for another」。**→ 本轮不改行为，只写注释。**
+
+**10 处全部处置完毕**：7 个 Unknown（Farfetch）· 2 个注释不改（Shopify）· 1 个已报告（Nike）。
+→ 扫描器**红 10 现在是正确且已解释**的状态，不再是待办。
+
+数字：套件 2219/0/0 · 陈旧度 2 / 3,365 · 函数数 174,336 · Farfetch 串 3 · `/payments/` 39 vs 0。
+
+纪律：**一个站可以在镜像里只有名字；那时照实报告是唯一没有在发明的做法。**
+
+下一轮：换到别的站（Farfetch 已封口为 Unknown）；或重新看优先级 ② 的风控面。

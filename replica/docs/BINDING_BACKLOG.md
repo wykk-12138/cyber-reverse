@@ -8735,3 +8735,46 @@ not in pool: 40 → 39      unknown: 11 → 10
 | Shopify `/discount` 与 `/api/payments` 的真实形 | 待取证 |
 
 **纪律**：判据修好后输出没变，先问它测过没有。
+
+
+## 优先级 ① — **Farfetch 的 API 面完全不在镜像里；Shopify 两处有候选却仍不改；10 处全部处置完毕**（R1017）
+
+### Farfetch：镜像只有 3 条串，全是名字
+
+**`Farfetch` · `Farfetch` · `Farfetch Checkout`（`0x14338eadc` · `0x146d8dfdc` · `0x146d8e004`）。
+而 `api.farfetch` 0 · `farfetch.com` 0 · `ff-products` 0 · `basket/v1` 0。**
+
+**→ 站是真的（有显示名），**API 面一条都没有** ⇒ 7 处路径不只是拼错，是整个 host 不存在。
+→ 修法只能来自代码级证据（R958 说按名不可得）⇒ **Unknown，不是待办。****
+
+### Shopify：有候选，候选不够
+
+- **`/api/payments/`（1272）**：`/payments/` **39** · `/api/payments` **0** ⇒ `/api` 是自加的。
+  **但那 39 处是别的站的钱面，「查付款详情」的形状不在其中 ⇒ R48 的裁决。**
+- **`/discount/`（768）**：**0**；候选 `cart/update.js`（`0x146fc175c`）+ body 带码 ⇒ 仍是候选。
+
+### 决定性：两处都零覆写 ⇒ 被裁 ⇒ 不在产物
+
+**改不改都不影响产物；换一个不可达的调用 = R48 的「swapping one guess for another」。**
+**→ 所以本轮不改行为，只把取证写进两处注释。**
+
+### 10 处的最终分类
+
+| 类 | 数 | 处置 |
+|---|---|---|
+| 镜像完全不提供（Farfetch） | 7 | **Unknown** |
+| 有候选但证据不足（Shopify） | 2 | **注释，不改** |
+| 已确证不存在（Nike） | 1 | 已报告 |
+
+**→ 扫描器红 10 现在是**正确且已解释**的状态。**
+
+### 数字
+
+**套件 2219/0/0 · 陈旧度 2 / 3,365 · 函数数 174,336 · 未登记 10（全处置）· Farfetch 串 3 · `/payments/` 39 vs `/api/payments/` 0**
+
+| 仍 Unknown | |
+|---|---|
+| Farfetch 怎么工作 | 需代码级证据（R958） |
+| discount 打哪 | 候选 `cart/update.js`，无证据 |
+
+**纪律**：一个站可以在镜像里只有名字；那时照实报告是唯一没有在发明的做法。

@@ -28072,3 +28072,122 @@ cd replica && python tools/metrics_report.py -> 完整套件 exit 0  2219 / 0 / 
 
 **→ 那是 R1015 那条教训的同一层：一个「0」可以是真的和没用的。这次它是**没用的 0**，
 而我都没有先问它有没有生效。**
+
+
+---
+
+## 441. **Farfetch 的 API 面完全不在镜像里；Shopify 两处有候选却仍不改；10 处全部处置完毕**
+
+> R1017。**改 1 个源文件（两处注释，行为未变）。** 套件 **2219 通过 / 0 失败 / 0 跳过**。
+
+### 一、Farfetch：镜像里只有**三条**串，全是名字
+
+```
+Farfetch          n=3
+  0x14338eadc  Farfetch            ← 反射元数据（类型/方法名，UTF-8）
+  0x146d8dfdc  Farfetch            ← 字面量
+  0x146d8e004  Farfetch Checkout   ← 显示名
+
+api.farfetch      n=0
+farfetch.com      n=0
+ff-products       n=0
+basket/v1         n=0
+```
+
+**→ Farfetch **是一个真实的站**（有名字、有「Farfetch Checkout」显示名），
+而它的 **API 面在字符串层面一条都没有**。
+→ 所以那 7 处路径**不只是拼错，是整个 host 都不存在**，而镜像**不提供**替代。
+→ 「Farfetch 怎么工作」只能从**代码级**证据得到（那在 NativeAOT 下按名不可得，R958）
+  ⇒ **Unknown，不是待办。****
+
+### 二、Shopify 那两处：有候选，而候选不够
+
+**`/api/payments/`（`StoreFlow.cs:1272`）：**
+
+```
+/payments/        n=39   → /payments/ · /payments/config.json · /payments/place-order
+                            /payments/adyen/payment-methods · /payments/creditCardWithPayerAuthentication/
+/api/payments     n=0
+```
+
+**→ 所以 `/api` 前缀是**复刻件自己加的**，而 `/payments/` 确实存在。
+→ **但那 39 处是**别的站**的钱面，「查一笔付款详情」的形状**不在**镜像展示的那几种里。**
+→ 而 R48 的裁决正好管这个：**知道这个路径存在 ≠ 知道这个 step 用它。**
+
+**`/discount/`（`StoreFlow.cs:768`）：**
+
+```
+/discount/        n=0
+cart/update.js    n=1   （0x146fc175c）
+cart/add.js       n=1   （0x146fc16dc）
+```
+
+**→ 镜像里有 `cart/update.js`，而 Shopify 的常规做法是把折扣码放进那个 POST 的 body，不是路径。
+→ 那是一个**候选**，而「`SubmitDiscount` 到底打哪」仍无证据。**
+
+### 三、决定性：两处都**零覆写**
+
+| 方法 | 覆写数 | R963 的后果 |
+|---|---|---|
+| `SubmitDiscountAsync` | **0** | **被裁，不在产物里** |
+| `GetPaymentDetailsAsync` | **0** | **被裁，不在产物里** |
+
+**→ 所以这两处**改不改都不影响产物** —— 它们只影响源码读起来对不对。
+→ 而把一个**不可达**的调用换成另一个**不可达**的调用，正是 R48 说的「swapping one guess for another」。**
+
+**→ 所以这一轮**没有改行为**，只把取证结果写进两处的注释：**
+
+- `:1272` —— `/api/payments/` 0 命中，`/payments/` 39 处属别的站，本步无覆写被裁
+- `:768` —— `/discount/` 0 命中，候选是 `cart/update.js` 带 body，本步无覆写被裁
+
+### 四、那 10 处的最终分类
+
+| 类 | 数 | 处置 |
+|---|---|---|
+| **镜像完全不提供**（Farfetch） | **7** | **Unknown** —— 需代码级证据 |
+| **有候选但证据不足**（Shopify ×2） | **2** | **记在注释里，不改** |
+| **已确证不存在且有明确替代**（Nike `buy/carts/v2`） | **1** | R1013/R1014 已处置（报告） |
+
+**→ 所以扫描器仍红 10，而**那 10 个全部有据可查地处置过了**：
+  3 个改了、7 个标 Unknown。
+→ 而「红 10」现在是**正确且已解释**的状态，不再是待办。**
+
+### 五、数字
+
+| 度量 | R1016 | R1017 |
+|---|---|---|
+| 套件 | 2219 / 0 | **2219 / 0 / 0** |
+| 产物陈旧度 | 0 / 0 | **2 / 3,365（StoreFlow.cs + 工具）** |
+| 函数数 | 174,336 | **174,336** |
+| **扫描器未登记** | 10 | **10（但全部已处置）** |
+| **Farfetch 串总数** | 未测 | **3（全是名字，无 host 无路径）** |
+| **`/payments/` 与 `/api/payments/`** | 未测 | **39 vs 0** |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "Farfetch"        -> {"n":3}（全是名字）
+python analysis/ida.py str "api.farfetch"    -> {"n":0}
+python analysis/ida.py str "ff-products"     -> {"n":0}
+python analysis/ida.py str "/payments/"      -> {"n":39}
+python analysis/ida.py str "/api/payments"   -> {"n":0}
+python analysis/ida.py str "cart/update"     -> {"n":2}（含 cart/update.js）
+python analysis/ida.py str "/discount"       -> {"n":0}
+cd replica
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug  -> 已成功生成
+python tools/metrics_report.py                                      -> 完整套件 exit 0  2219 / 0 / 0
+```
+
+### 七、仍然 Unknown
+
+- **Farfetch 怎么工作**：**Unknown** —— 需代码级证据，而 R958 说按名不可得。
+- **discount 打哪**：**候选 `cart/update.js`，无证据。**
+
+### 八、教训
+
+**「这个端点不在镜像里」有两种后续：有的能换成镜像里有的另一个，有的**镜像根本不提供**。
+前者是修，后者是 Unknown —— 而两者的第一步取证动作一样，第二步取决于**那个站有没有 API 面**。**
+
+**→ 而 Farfetch 的情况说明：一个站可以在镜像里只有**名字**。
+→ 那时「照实报告」不是保守，是**唯一没有在发明的做法**。**

@@ -765,6 +765,13 @@ public abstract class StoreFlow
         var code = c.Session.Vars.TryGetValue("discount", out var d) ? d : null;
         if (string.IsNullOrWhiteSpace(code)) return StepOutcome.Success();   // optional step
 
+        // R1017: "/discount/" is in the image zero times. The -R1016 scanner reported this site and the IDB agrees.
+        // That does not make the replacement obvious: the image carries cart/update.js (0x146fc175c) and /cart.js
+        // (0x146ab247c), and Shopify's convention for a code is a POST to cart/update.js carrying the code in the body,
+        // not a path segment. But this method has no overrides, so per R963 it is trimmed and none of it reaches the
+        // artifact -- rewriting an unreachable call to a different unreachable call is R48's "swapping one guess for
+        // another". The address stays as it is and the alternative is recorded here, so whoever makes this step
+        // reachable starts from the two candidates rather than from scratch.
         var res = await PostJsonAsync(c, Origin(c.Url) + "/discount/" + Uri.EscapeDataString(code!),
             "{}", Tag() + "-discount", ct).ConfigureAwait(false);
 
@@ -1269,6 +1276,12 @@ public abstract class StoreFlow
         if (string.IsNullOrEmpty(token))
             return StepOutcome.Fail("no payment token to look up", retryable: true);
 
+        // R1017: "/api/payments/" is in the image zero times, while "/payments/" appears thirty-nine times -- in other
+        // stores' surfaces, as /payments/place-order, /payments/config.json, /payments/adyen/payment-methods and
+        // similar. So the "/api" prefix is this workspace's addition rather than the image's. Even so the address is
+        // left alone: those thirty-nine are another store's routes, a payment detail lookup is not among the shapes the
+        // image shows, and this method has no overrides, so R963 trims it and the string does not reach the artifact.
+        // Recorded rather than substituted, for the reason R48 gave about the Nike checkout resource.
         var url = Origin(c.Url) + "/api/payments/" + Uri.EscapeDataString(token!);
         var res = await GetAsync(c, url, Tag() + "-paydetails", ct).ConfigureAwait(false);
         if (res is null) return StepOutcome.Fail("payment details unreachable", retryable: true);

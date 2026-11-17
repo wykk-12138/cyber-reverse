@@ -24523,3 +24523,98 @@ python tools/metrics_report.py
 **一个「陈旧度」字段第一次写会错两次：一次把不相干的算进来（每轮都响），一次把自己算进来（自我失效）。**
 
 **而两次的后果是同一种：告警响得太多，于是没人看 —— 那时它和不存在是一样的。**
+
+
+---
+
+## 407. **`HandleBlock` 只在一个类型里（1/4）；复刻件零；封锁判断分散在 30 处**
+
+> R983。**只取证，未改代码。** 套件 **2200（R982 的记录仍有效）**。
+
+### 一、两侧状态
+
+**复刻件 `where_is HandleBlock` → implementation 组 **0** 条。
+原版 `ida.py str HandleBlock` → 2 条：**
+
+```
+0x143454a52   "<SetRequest>d__53$<HandleBlock>d__54*<HandleResponse>d__55"
+0x143454ccf   "HandleBlockg"
+```
+
+**`<X>d__NN` 是 async 状态机类型名 → `HandleBlock` 是一个 async 方法，
+与 `SetRequest`(d__53)、`HandleResponse`(d__55) 编号相邻。**
+
+### 二、而相邻不等于同管线 —— 有校准项
+
+| 状态机串 | SetRequest | HandleBlock | HandleResponse |
+|---|---|---|---|
+| `<SetRequest>d__53 $ <HandleBlock>d__54 * <HandleResponse>d__55` | ✓ | **✓** | ✓ |
+| `<Generate>d__26 " <SetRequest>d__27 * <HandleResponse>d__28` | ✓ | **✗** | ✓ |
+| `* <HandleResponse>d__46  <GetScript>d__47  <GetKasada>d__48` | ✗ | ✗ | ✓ |
+| `* <HandleResponse>d…`（第 4 处，截断） | ? | ✗ | ✓ |
+
+**计数：`HandleResponse` 4 · `SetRequest` 2 · `HandleBlock` **1**。**
+
+**→ 四个类型都有 `HandleResponse`，两个有 `SetRequest`，只有一个有 `HandleBlock`。
+第 2 组两兄弟都在、它不在 —— **校准项**，证明它不是这对兄弟的必然伴生。**
+
+**→ `analysis/flows.txt` 的老注释写着「相邻 ≠ 执行管线」，这一轮给出了证据。**
+
+### 三、顺序（Inference 中高）
+
+**有它的那组顺序是 `SetRequest` → `HandleBlock` → `HandleResponse`。**
+
+**→ 推断它读的是**还没被正常解析的响应**。
+**Observation 只是三个方法的相对编号；「读原始响应」是推断，无代码支持**
+（R827/R828 已确认其字符串无 xref，MethodTable 路线未通）。**
+
+### 四、复刻件那一侧
+
+| 名字 | 位置 |
+|---|---|
+| `SetRequest` | `src/Cybersole.Stores/Actions/StepAction.cs` |
+| `HandleResponse` | `src/Cybersole.Http/BouncyHttpClient.cs`（3 处） |
+| **`HandleBlock`** | **零** |
+| `Blocked` | **30 处**：`StoreFlow.cs` 11 · `HbxFlow.cs` 6 · 其余各 flow |
+
+**→ 封锁判断的能力在，只是**分散**，而原版有一处集中的 `HandleBlock`。
+→ 那不是「能力缺失」，是「形状不同」。而形状不同会不会导致行为不同，
+取决于那 30 处是否彼此一致 —— **未核过，Unknown。****
+
+### 五、修正 HANDOFF 的一条判断
+
+**HANDOFF 写「`HandleBlock` 与优先级 ② 直接相关」。证据说的是更窄的事：
+它是**某一个**类型的私有步骤，不是全局风控入口。
+第 2 组两个兄弟都在而没有它 —— 如果它是通用管线，那一组也该有。**
+
+### 六、数字
+
+| 度量 | R982 | R983 |
+|---|---|---|
+| 套件 | 2200 | **2200（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| 变异 36/36 | 是 | **是**（记录仍有效） |
+| **`HandleBlock` 的原版类型数** | 未测 | **1 / 4** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse\replica
+python tools/where_is.py HandleBlock          -> implementation 组 0 条
+cd ..
+python analysis/ida.py str HandleBlock        -> 2 条，含 <SetRequest>d__53$<HandleBlock>d__54*<HandleResponse>d__55
+python -c "读 analysis/flows.txt 按 utf-16-le 解码，数 HandleBlock/HandleResponse/SetRequest"
+  -> 1 / 4 / 2
+```
+
+### 八、仍然 Unknown
+
+- **`HandleBlock` 的实现与调用点**：**Unknown** —— 字符串无 xref；MethodTable 路线未通。
+- **那 30 处分判断是否彼此一致**：**Unknown** —— **这是「形状不同会不会导致行为不同」的关键**，下一轮该核。
+
+### 九、教训
+
+**「相邻」这件事第一次配了校准项：第 2 组就是「两兄弟都在、它不在」的对照。**
+
+**没有那个对照，「相邻」会被读成「伴生」，而错的方向会一直带到实现里。**

@@ -1994,3 +1994,29 @@ METRICS 五行：`mutation-fit: total 36 / fired 36 / decorative 0 / skipped 0 /
 纪律：**一个每轮都响的告警，和不存在是一样的。**
 
 下一轮：回到核心 —— 判据 (f) 的镜像→复刻件方向（`myshopify` 主机池 → 复刻差别名），或函数数那一刀按内容分。
+
+## R983 补充 — **`HandleBlock` 只在一个类型里（1/4）；复刻件零；封锁判断分散 30 处**（套件 2200）
+
+原版 `ida.py str HandleBlock` 第一条：`"<SetRequest>d__53$<HandleBlock>d__54*<HandleResponse>d__55`
+→ async 状态机，与两个兄弟编号相邻。
+
+而 `analysis/flows.txt`（按 utf-16-le 解码）四组计数：**HandleResponse 4 · SetRequest 2 · HandleBlock 1**。
+| 组 | SetRequest | HandleBlock |
+|---|---|---|
+| d__53/54/55 | ✓ | **✓** |
+| d__26/27/28 | ✓ | **✗** |
+| Kasada d__46/47/48 | ✗ | ✗ |
+
+→ **第 2 组是校准项：两兄弟都在、它不在 → 它不是这对兄弟的必然伴生。**
+
+复刻件：`SetRequest` 在 `StepAction.cs`、`HandleResponse` 在 `BouncyHttpClient.cs`、**`HandleBlock` 零**，
+而 `Blocked` 出现 **30 次**（`StoreFlow.cs` 11 · `HbxFlow.cs` 6 · 其余各 flow）。
+→ 能力在，**形状不同（分散 vs 集中）**。而形状不同会不会导致行为不同，取决于 30 处是否一致 —— **未核，Unknown**。
+
+→ 顺带修正 HANDOFF：「与优先级 ② 直接相关」应改为更窄的「某一个类型的私有步骤」。
+
+数字：套件 2200（未改代码）· 陈旧度 0/0 · 函数数 173,952 · HandleBlock 原版类型数 1/4。
+
+纪律：**「相邻」要有校准项，否则会被读成「伴生」。**
+
+下一轮：核那 30 处封锁判断是否彼此一致 —— 那是「形状不同会不会导致行为不同」的关键。

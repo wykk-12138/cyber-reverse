@@ -7931,3 +7931,89 @@ restored tree: GREEN
 > **一个「陈旧度」字段第一次写会错两次：一次因为把不相干的文件算进来（每轮都响），
 > 一次因为把自己算进来（自我失效）。**
 > **而两次的后果是同一种：告警响得太多，于是没人看 —— 而那时它和不存在是一样的。**
+
+
+### `HandleBlock` 不是通用管线 —— 四个状态机串里只有一个类型带它（R983）
+
+**回到核心。`HandleBlock` 是 HANDOFF 未结案项 #4，写着「与优先级 ② 直接相关」。这一轮把它定位到了具体形状。**
+
+### ① 先确认它在两侧的状态
+
+```
+复刻件 where_is HandleBlock  ->  implementation 组 0 条（只有 docs 里出现过）
+原版 ida.py str HandleBlock  ->  2 条命中
+```
+
+**两条命中里第一条就是决定性的：**
+
+```
+0x143454a52   "<SetRequest>d__53$<HandleBlock>d__54*<HandleResponse>d__55"
+0x143454ccf   "HandleBlockg"
+```
+
+**`<X>d__NN` 是 async 方法的状态机类型名。所以 `HandleBlock` 是**一个 async 方法**，
+而它与 `SetRequest`（d__53）、`HandleResponse`（d__55）**编号相邻** —— 同一个类型里的三个相邻方法。**
+
+### ② 而相邻不等于同管线 —— 有校准项
+
+**把 `analysis/flows.txt`（UTF-16LE 的状态机名转储）里的四组串排出来：**
+
+| 状态机串 | SetRequest | HandleBlock | HandleResponse |
+|---|---|---|---|
+| `<SetRequest>d__53 $ <HandleBlock>d__54 * <HandleResponse>d__55` | ✓ | **✓** | ✓ |
+| `<Generate>d__26 " <SetRequest>d__27 * <HandleResponse>d__28` | ✓ | **✗** | ✓ |
+| `* <HandleResponse>d__46  <GetScript>d__47  <GetKasada>d__48` | ✗ | ✗ | ✓ |
+| `* <HandleResponse>d…`（截断，第 4 处） | ? | ✗ | ✓ |
+
+**计数：`HandleResponse` 4 处 · `SetRequest` 2 处 · `HandleBlock` **1** 处。**
+
+> **决定性：四个类型都有 `HandleResponse`，两个有 `SetRequest`，而只有一个有 `HandleBlock`。**
+> **所以它不是请求/响应这一对的必然伴生 —— 第 2 组两兄弟都在、它不在，那是**校准项**。**
+> **而 `analysis/flows.txt` 的老注释早就写着「相邻 ≠ 执行管线」，这一轮给出了它的**证据**。**
+
+### ③ 顺序而**不是**位置
+
+**在有它的那一组里，顺序是 `SetRequest` → `HandleBlock` → `HandleResponse`。**
+
+> **Inference（中高）：`HandleBlock` 读的是**还没被正常解析的响应**，
+> 所以它排在 `HandleResponse` 之前、`SetRequest` 之后。**
+> **Observation 是三个方法的**相对编号**；「它读原始响应」是**推断**，没有代码支持 ——
+> R827/R828 已确认它的字符串没有 xref，走 MethodTable 也没走通。**
+
+### ④ 而复刻件那一侧的形状
+
+**`where_is` 的结果说明兄弟都在、只缺这一个：**
+
+| 名字 | 复刻件位置 |
+|---|---|
+| `SetRequest` | `src/Cybersole.Stores/Actions/StepAction.cs` |
+| `HandleResponse` | `src/Cybersole.Http/BouncyHttpClient.cs`（3 处） |
+| **`HandleBlock`** | **零** |
+| `Blocked` | **30 处**，散在 `StoreFlow.cs`(11) · `HbxFlow.cs`(6) · 其余各 flow |
+
+> **所以判断封锁的逻辑**已经在**，只是**分散在每个 flow 里**，而原版有一处集中的 `HandleBlock`。**
+> **那不是「能力缺失」，是「形状不同」—— 而形状不同会不会导致行为不同，取决于那 30 处是否一致。
+> 这一点我没有核过，标 Unknown。**
+
+### ⑤ 这一轮**修正了** HANDOFF 里的一条判断
+
+**HANDOFF 写「`HandleBlock` 与优先级 ② 直接相关」。而证据说的是更窄的一件事：
+它是**某一个**类型的私有步骤，不是全局风控入口。**
+**第 2 组两个兄弟都在而没有它 —— 如果它是通用管线，那一组也该有。**
+
+### 数字
+
+| 度量 | R982 | **R983** |
+|---|---|---|
+| 套件 | 2200 | **2200（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **变异 36/36** | 是 | **是**（未改代码，记录仍有效） |
+| **`HandleBlock` 在原版的类型数** | 未测 | **1 / 4** |
+
+### 教训
+
+> **「相邻」这件事，我这一轮第一次给它配了**校准项** ——
+> 第 2 组就是那个「两兄弟都在、它不在」的对照。**
+> **没有那个对照，「`HandleBlock` 与 `SetRequest`/`HandleResponse` 相邻」会被读成
+> 「它是这对兄弟的伴生」，而错的方向会一直带到实现里。**

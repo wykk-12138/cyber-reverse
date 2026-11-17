@@ -7434,3 +7434,47 @@ mutation-fit: staleness: 0 -- no exercised file is newer than the run
 | 今天重跑会不会给同样的数 | 只有重跑能答（工具输出自己写着这句） |
 
 **纪律**：一个每轮都响的告警，和不存在是一样的。
+
+
+## 判据 (f)/优先级 ② — **`HandleBlock` 只在一个类型里（1/4）；复刻件零；封锁判断分散在 30 处**（R983）
+
+### Observation
+
+**原版 `ida.py str HandleBlock` → 2 条，第一条
+`"<SetRequest>d__53$<HandleBlock>d__54*<HandleResponse>d__55` → async 状态机，与两个兄弟编号相邻。**
+
+**`analysis/flows.txt` 四组状态机串计数：`HandleResponse` 4 · `SetRequest` 2 · `HandleBlock` **1**。**
+
+| 组 | SetRequest | HandleBlock | HandleResponse |
+|---|---|---|---|
+| d__53/54/55 | ✓ | **✓** | ✓ |
+| d__26/27/28 | ✓ | **✗** | ✓ |
+| Kasada d__46/47/48 | ✗ | ✗ | ✓ |
+
+**→ 第 2 组是校准项：两兄弟都在、它不在 → 它不是这对兄弟的必然伴生。**
+
+### 复刻件
+
+| 名字 | 位置 |
+|---|---|
+| `SetRequest` | `StepAction.cs` |
+| `HandleResponse` | `BouncyHttpClient.cs` |
+| **`HandleBlock`** | **零** |
+| `Blocked` | **30 处**（`StoreFlow.cs` 11 · `HbxFlow.cs` 6 · 其余各 flow） |
+
+**→ 能力在，形状不同（分散 vs 集中）。**
+
+### Inference（中高，未证）
+
+**顺序 `SetRequest → HandleBlock → HandleResponse` 暗示它读**未解析的响应**。无代码支持。**
+
+### 数字
+
+**套件 2200（未改代码）· 陈旧度 0/0 · 函数数 173,952 · HandleBlock 原版类型数 1/4**
+
+| 仍 Unknown | |
+|---|---|
+| `HandleBlock` 的实现与调用点 | 字符串无 xref；MethodTable 路线未通 |
+| 30 处分判断是否彼此一致 | 未核 —— **这是「形状不同会不会导致行为不同」的关键** |
+
+**纪律**：「相邻」要有校准项，否则会被读成「伴生」。

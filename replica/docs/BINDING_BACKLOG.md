@@ -9332,3 +9332,47 @@ HANDOFF 未结项 7 → 1 · 重复 Module 7 → 0 · HandleBlock 0**
 | 34 条端点的镜像依据率 | 需逐 flow 复算 |
 
 **纪律**：只追加的日志不能当现状源 —— 读一遍只确认它还写着，跑一遍才知道它不对了。
+
+
+## 判据 (f) — **端点依据率 210/210；12 条未登记；而仓的验收标准是 `SentCeiling = 10` 不是 0**（R1031）
+
+### 准确数字
+
+```
+endpoint constants 210 / verbatim in pool 210 / invented 0      ← 100%
+inline 331 / not in pool 41 / registered 29 / **unregistered 12**
+  Farfetch × 7 · Nike × 1 · StoreFlow × 4
+```
+
+**Farfetch 的 7 条覆盖**全部六个核心步骤** —— 整条结账链都是推出来的。**
+
+### 而改到 12 → 5 被四条守卫拦住，已回滚
+
+```
+EveryUnbackedEndpointSaysSoOnItsOwnLine · EveryUnbackedEndpointIsStillInItsFile
+MostOverridesDoWork · AFlowWithPlaceholdersSaysWhy
+```
+
+### 棘轮有三层，我只看了第一层
+
+```csharp
+Sent (10)  ·  DocumentedOnly (7)  ·  SentCeiling = 10
+```
+
+**→ `SentCeiling = 10` 是**已接受债务的上限**，防增长，不要求归零。
+→ 「仍在文件里」那条让**移除**成为必须记账的动作（R1014 的镜像）。**
+
+### 下一轮
+
+**不删，而是让 12 条与 `Sent` / `DocumentedOnly` 两张表**对齐** —— 找出**两边都没有**的那些，
+那才是唯一真缺口。**
+
+### 数字
+
+**套件 2243/0/0（已回滚）· 陈旧度 5 / 4,199 · 函数数 174,336 · 常量 210/210 · 未登记 12 · 仓标准 ≤10**
+
+| 仍 Unknown | |
+|---|---|
+| 12 条里几条两边都没登记 | 需逐条对表 |
+
+**纪律**：工具输出的 `baseline` 不等于仓的验收标准 —— 后者可能在测试文件里。

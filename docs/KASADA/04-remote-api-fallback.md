@@ -105,8 +105,9 @@ Base64 解出来头部是：
 | `sub_14111CB10` | `https://kasada.hypersolutions.co/botid` | `Getting BotID` |
 | `sub_1411483E0` | `https://kasada.hypersolutions.co/payload` | **`Getting Kasada (1)`** |
 
-**第二个是决定性的**：`Getting Kasada (1)` 正是 05 §4 里"api 第 1 次尝试"的文案 ——
-所以 **`Getting Kasada (n)` 就是在打 `/payload`**，`KasadaCdSolver` 的身份至此确定。
+**第二个是决定性的**：`Getting Kasada (1)` 在 05 §4 里就是**"走服务商"**那条文案 ——
+所以 **`Getting Kasada (1)` 就是在打 `/payload`**，`KasadaCdSolver` 的身份至此确定。
+（`(1)`/`(2)` 不是重试序号：`(2)` 是直连店铺端点，见 02 §1.5.3。）
 
 ### 2.6.1 请求形状（逐字，从伪代码的字段写入还原）
 

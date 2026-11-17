@@ -6,17 +6,17 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 19:02:32 +0800 |
+| 生成时间 | 2026-11-17 19:11:22 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2254 通过 / 0 失败 / 0 跳过 / 2254 总计** |
+| 完整套件 | **2258 通过 / 0 失败 / 0 跳过 / 2258 总计** |
 
 ## 时效警告（生成）
 
 > **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 1 个源文件比产物新（共 217 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`4:56:00 -- FarfetchIsCoveredByTheOriginalTests.cs changed after the run`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`5:04:48 -- CoreCoverageDocumentTests.cs changed after the run`。
 
 ## 摘要素值
 
@@ -42,11 +42,7 @@
 | 函数数量（.pdata） — functions: ratio | 62.89% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 1 |
 | 产物陈旧度（.publish-aot vs src） — lines in those files | 217 |
-| 核心覆盖：store 宿主 — hosts with a path | 39 |
-| 核心覆盖：store 宿主 — store hosts | 15 |
-| 核心覆盖：store 宿主 — store hosts matched | 15 |
-| 核心覆盖：store 宿主 — store hosts unmatched | 0 |
-| 核心覆盖：store 宿主 — vendor hosts | 24 |
+| 核心覆盖：store 宿主 | （未解析，见下方原始输出） |
 | 核心覆盖：vendor 宿主 — vendor hosts carrying a path | 12 |
 | 核心覆盖：vendor 宿主 — vendors named somewhere in src | 12 |
 | 核心覆盖：vendor 宿主 — vendors absent from src | 0 |
@@ -60,7 +56,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 4:56:00 -- FarfetchIsCoveredByTheOriginalTests.cs changed after the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 5:04:48 -- CoreCoverageDocumentTests.cs changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -393,60 +389,8 @@ C:\Python312\python.exe tools/core_coverage.py
 `exit 0`
 
 ```text
-hosts with a path: 39  (store 15, vendor 24)
-registry identifiers: 82   flow types: 35
-
-store hosts
-  matched api-search.dickssportinggoods.com         1 paths  dickssportinggoods
-  matched api.nike.com                              4 paths  nikegs, nike
-  matched api.tobe-official.jp                      1 paths  in src
-  matched auth.casio-intl.com                       1 paths  casio, casio
-  matched authenticate.riotgames.com                1 paths  riotgames
-  matched checkout.johnlewis.com                   11 paths  johnlewis
-  matched checkout.sportsshoes.com                  1 paths  sportsshoes
-  matched forms.shopifyapps.com                     2 paths  shopify
-  matched hbx.com                                   1 paths  hbx
-  matched id.asics.com                              3 paths  in src
-  matched payments.dickssportinggoods.com           2 paths  dickssportinggoods
-  matched prod-hk-actapi.popmart.com                2 paths  popmart
-  matched www.goat.com                              9 paths  goat
-  matched www.nike.com                              1 paths  nikegs, nike
-  matched www.vans.com                              6 paths  in src
-
-vendor hosts
-  matched api.braintreegateway.com                  2 paths  braintree
-  matched api.sibspayments.com                      1 paths  sibspayments
-  matched api.vipps.no                              1 paths  vipps
-  matched app.midtrans.com                          2 paths  midtrans
-  matched challenges.cloudflare.com                 1 paths  cloudflare
-  matched checkoutshopper-live.adyen.com            2 paths  adyen
-  matched degica.as1.gpayments.net                  1 paths  gpayments
-  matched ecommerce-gateway.mollie.com              1 paths  mollie
-  unmatched flex.cybersource.com                      1 paths  cybersource
-  matched inbox-api.aycd.io                         3 paths  aycd
-  matched payments-panel.production.eshopworld.com  3 paths  eshopworld
-  matched payments.bigcommerce.com                  1 paths  bigcommerce
-  matched paymentsheet-ent.wdprapps.disney.com      3 paths  wdprapps
-  matched registerdisney.go.com                     1 paths  disney
-  matched retailer-shopifypayments-api.production.eshopworld.com  2 paths  eshopworld
-  matched retry.touchtechpayments.com               1 paths  touchtech
-  matched static-forms.klaviyo.com                  1 paths  klaviyo
-  unmatched threeds.airwallex.com                     1 paths  airwallex
-  matched web-dsy.global-e.com                      1 paths  global-e
-  matched webservices.global-e.com                  3 paths  global-e
-  matched www.ibm.com                               1 paths  ibm
-  matched www.paypal.com                            4 paths  paypal
-  matched www.purpledotprice.com                    1 paths  purpledotprice
-  matched www.vivapayments.com                      3 paths  vivapayments
-
-hosts with a path: 39
-store hosts: 15
-store hosts matched: 15
-store hosts unmatched: 0
-vendor hosts: 24
-NOTE: matched means a registration contains the host's label; unmatched means none does. Neither proves
-      the store works or is absent -- a store can be registered under a label sharing no letters with its
-      domain, and a short label can match by accident.
+  wrote docs/CORE_COVERAGE.md
+  flows=18 steps=356 placeholders=14 provenance exit=0
 ```
 
 ### 核心覆盖：vendor 宿主
@@ -620,7 +564,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 4:56:00 -- FarfetchIsCoveredByTheOriginalTests.cs changed after the run
+  mutation-fit-staleness: 5:04:48 -- CoreCoverageDocumentTests.cs changed after the run
 
   The counts above are from 2026-11-17T14:06:23+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
@@ -633,7 +577,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2254 通过 / 0 失败 / 0 跳过 / 2254 总计
+`exit 0` · 2258 通过 / 0 失败 / 0 跳过 / 2258 总计
 
 ```text
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\MethodPatchTableTests.cs(77,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
@@ -650,7 +594,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2254，已跳过:     0，总计:  2254，持续时间: 1 m 55 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 1 m 25 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

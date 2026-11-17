@@ -1,0 +1,71 @@
+# 核心覆盖表（生成物 —— 不要手改）
+
+由 `python tools/core_coverage.py` 生成。完成判据 (f) 的两半：
+**复刻件侧可算**，**原版站清单不可得**，后者按 (a) 的形态写 Unknown + 缺什么。
+
+## 一、复刻件侧（可复算）
+
+| 度量 | 值 | 命令 |
+|---|---|---|
+| flow 文件 | 18 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
+| 覆写步骤总数 | 356 | 本文件生成时统计 |
+| 其中报告「端点为 Unknown」的 | 14 | 同上（匹配 `endpoint unknown` / `not captured`） |
+| 含报告的 flow | 3 | 同上 |
+| 端点常量 / 逐字在池 | 214 / 214 | `python tools/endpoint-provenance.py` |
+| 常量 invented / unresolved | 0 / 0 | 同上 |
+| inline 字面量 / 不在池 | 323 / 33 | 同上 |
+| inline 已登记 / 未登记 | 33 / 0 | 同上 |
+| 端点门 exit | **0** | 同上 |
+
+### 逐 flow
+
+| flow | 覆写步骤 | 报告 Unknown | 行数 |
+|---|---|---|---|
+| `BstnFlow.cs` | 12 | 4 | 191 |
+| `DemandwareFlow.cs` | 13 | 0 | 485 |
+| `DicksSportingGoodsFlow.cs` | 6 | 0 | 145 |
+| `FarfetchFlow.cs` | 13 | 7 | 218 |
+| `FlowStoreModule.cs` | 4 | 0 | 61 |
+| `FootsitesFlow.cs` | 21 | 0 | 468 |
+| `GoatFlow.cs` | 11 | 0 | 325 |
+| `HbxFlow.cs` | 13 | 0 | 330 |
+| `HybrisFlow.cs` | 13 | 0 | 371 |
+| `MagentoFlow.cs` | 44 | 0 | 880 |
+| `NikeFlow.cs` | 23 | 3 | 682 |
+| `NikeGsFlow.cs` | 4 | 0 | 47 |
+| `PopMartFlow.cs` | 27 | 0 | 685 |
+| `PoqAppFlow.cs` | 8 | 0 | 242 |
+| `RetailFlows.cs` | 99 | 0 | 1588 |
+| `ScheelsFlow.cs` | 15 | 0 | 353 |
+| `ShopifyFlow.cs` | 23 | 0 | 661 |
+| `SportsshoesFlow.cs` | 7 | 0 | 130 |
+
+## 二、原版侧（不可得 —— Unknown + 缺什么）
+
+**问题**：原版支持哪些站？
+
+**结论**：**Unknown。**
+
+**已试并全空的取证路径**（R1040）：
+
+| 路径 | 查询 | 结果 |
+|---|---|---|
+| 反射元数据里的命名空间 | `str "Stores\.Flows\.[A-Za-z0-9_]+" --limit 600` | **0** |
+| 类型名 | `str "FarfetchFlow"` | **0** |
+| 任意 `*Flow` 类型 | `str "[A-Za-z]+Flow,"` | 1（TPL Dataflow 文档，无关） |
+| 站名 + 步骤的数据行 | `str "^[A-Za-z0-9 .&'-]+ Checkout$"` | 34，其中站名 **4** 条 |
+
+**为什么可能是服务端下发**：复刻件有 18 个 flow 文件，而二进制里没有对应数量的名字；镜像有 `api.cybersole.io` 与 `/connect/app`（R1032）。
+
+**缺什么**：`api.cybersole.io/connect/app` 的响应。取它需要**原版登录凭据** —— 那是本工作允许停下等 YG 的两类事之一。
+
+**已得的替代证据**：`Farfetch` · `Farfetch Checkout` 在池里，且后者与 `Shopify Checkout` · `Kith EU Checkout` · `FUNKO CHECKOUT` 同列 —— 4 个站的**定制结账文案**。那不是完整清单，但它是**二进制侧对具体站的正面证据**。
+
+## 三、风控清单（可复算）
+
+由 `VendorWiring.Rows` 与 `tests/Cybersole.Tests/VendorWiringTests.cs` 逐条钉住：
+七行 × 九列（`Vendor` · `Marker` · `Cookie` · `State` · `Note` · `MarkerFrom` · `Gap` · `Solver` · `Relayed`）。
+复算：`dotnet test --filter "FullyQualifiedName~VendorWiring"`。
+
+原版解**六**家（cloudflare · kasada · datadome · akamai · queue-it softblock · perimeterx）；
+`Solving Incapsula` 为 **0**，是 imperva 的第三个独立证据（R1024）。

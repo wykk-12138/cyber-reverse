@@ -3307,3 +3307,26 @@ Farfetch **3** 条证据 · 我的拼写错 **2** 个（同族第三次）。
 纪律：**别用复刻件的形状去原版里找东西 —— 它不欠我们那些形状。**
 
 下一轮：publish 清陈旧度；或标注 (f) 的 Unknown 并推进 ① 的端点覆盖（那部分可算）。
+
+## R1041 补充 — **(f) 的表是生成物 `docs/CORE_COVERAGE.md`，4 条守卫防过时**（套件 2258）
+
+**生成器**：`replica/tools/core_coverage.py` 读源码树 + `endpoint-provenance.py` → 写 `docs/CORE_COVERAGE.md`。
+```
+flows=18  steps=356  placeholders=14  provenance exit=0   → 3,275 字节 / 72 行 / UTF-8 有效
+```
+
+**两半**：复刻件侧**可复算**（18 flow · 356 步骤 · 14 Unknown · 门 214/214 · invented 0 · unresolved 0 ·
+inline 323/33 · 已登记 33 · 未登记 **0** · exit 0）· 原版侧 **Unknown + 缺什么**
+（站清单需 `api.cybersole.io/connect/app`，即需原版登录凭据）。
+
+**三条空路径也写进生成物**（`Stores.Flows.` 0 · `FarfetchFlow` 0 · `[A-Za-z]+Flow,` 1 TPL Dataflow ·
+`X Checkout` 34/站名 4）—— 理由是**下一个人不该再走一遍**。
+
+**4 条守卫**：`TheFlowCountMatchesTheTree`（防生成物过时）· `TheOriginalStoreListIsStillUnknown`
+（防悄悄漂移成断言）· `TheEmptyProbesAreRecorded` · `TheDocumentSaysItIsGenerated`（防手改）。
+
+数字：套件 2258（+4）· 陈旧度 1 / 217 · 函数数 174,293 · flow 18 · 步骤 356 · Unknown 14 · 表 3,275 字节。
+
+纪律：**「可复算」要求文档与产生它的东西之间有活连接。**
+
+下一轮：publish 清陈旧度；随后回到 ① 的实质工作（端点基或风控求解协议）。

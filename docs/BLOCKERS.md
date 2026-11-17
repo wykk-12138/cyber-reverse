@@ -36241,3 +36241,85 @@ python analysis/ida.py str "^[A-Za-z0-9 .&'-]+ Checkout$" --limit 600     -> {"n
 **→ 而我最初的三次尝试都带着同一个偏见：**用复刻件的形状（`*Flow` 类、`X Checkout` 行）去找原版。**
 
 **→ 而原版不欠我们那些形状 —— 它是**数据驱动**的，而数据可能根本不在 exe 里。**
+
+
+---
+
+## 465. **(f) 的表是生成物，而生成物也要守卫**
+
+> R1041。**加 1 个工具 + 1 个生成文档 + 1 个测试文件。** 套件 **2258 通过 / 0 失败 / 0 跳过**。
+
+### 一、为什么生成而不手写
+
+**R1030 的教训是**只追加的清单会变成化石**；而手写的表会**与产生它的工具漂移**。
+→ 所以 `replica/tools/core_coverage.py` 每次运行都从源码树与 `endpoint-provenance.py` **读**，
+  然后写 `docs/CORE_COVERAGE.md`。**
+
+```
+flows=18  steps=356  placeholders=14  provenance exit=0
+→ docs/CORE_COVERAGE.md：3,275 字节 / 72 行 / 有效 UTF-8
+```
+
+### 二、表的两半
+
+| 半 | 内容 | 可复算？ |
+|---|---|---|
+| **复刻件侧** | 18 个含覆写的 flow · 356 个覆写步骤 · 14 处报告 Unknown · 端点门 214/214 · invented 0 · unresolved 0 · inline 323/33 · 已登记 33 · 未登记 **0** · exit **0** | **是**（跑工具即得） |
+| **原版侧** | 站清单 = **Unknown**，缺 `api.cybersole.io/connect/app` 的响应（需原版登录凭据） | **不可得，已写明缺什么** |
+
+**→ 而那正是 (a) 与 (f) 要求的形态：**可得的给出数，不可得的写 Unknown + 缺什么**。**
+
+### 三、而表里也记了那三条空路径
+
+**`Stores.Flows.` 0 · `FarfetchFlow` 0 · `[A-Za-z]+Flow,` 1（TPL Dataflow 文档）· `X Checkout` 34（站名 4）。
+→ 而那三条**写进生成物**的理由是：**下一个人不该再走一遍**。**
+
+### 四、4 条守卫 —— 而它们防的是「生成物过时」
+
+| 守卫 | 断言 |
+|---|---|
+| `TheFlowCountMatchesTheTree` | 表里的 flow 数 == 磁盘上含覆写的 `.cs` 文件数 |
+| `TheOriginalStoreListIsStillUnknown` | 原版侧仍写 Unknown 且点名 `connect/app` |
+| `TheEmptyProbesAreRecorded` | 三条空路径仍在（`FarfetchFlow` · `TPL Dataflow`） |
+| `TheDocumentSaysItIsGenerated` | 正文点名 `core_coverage.py`（防手改） |
+
+**→ 第 1 条是「生成物过时」的可执行判据：源码变了而没重新生成 ⇒ 红。
+→ 第 2 条防的是**悄悄漂移成断言** —— 若有人把 Unknown 改成「已知」，守卫红。**
+
+### 五、数字
+
+| 度量 | R1040 | R1041 |
+|---|---|---|
+| 套件 | 2254 / 0 | **2258 / 0 / 0（+4）** |
+| 产物陈旧度 | 1 / 217 | **1 / 217** |
+| 函数数 | 174,293 | **174,293** |
+| **`docs/CORE_COVERAGE.md`** | 不存在 | **3,275 字节 / 72 行（生成）** |
+| **flow 数（含覆写）** | 未测 | **18** |
+| **覆写步骤总数** | 未测 | **356** |
+| **报告 Unknown 的步骤** | 未测 | **14（在 3 个 flow 里）** |
+| **(f) 的原版侧** | Unknown（口头） | **Unknown（写进生成物 + 守卫）** |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse\replica
+python tools/core_coverage.py
+  -> wrote docs/CORE_COVERAGE.md
+  -> flows=18 steps=356 placeholders=14 provenance exit=0
+dotnet test --filter "FullyQualifiedName~CoreCoverageDocument" -m:1 -> 4 通过
+python tools/metrics_report.py -> 完整套件 exit 0  2258 / 0 / 0
+```
+
+### 七、仍然待
+
+- **原版站清单**：需凭据（第一类停等项）。
+- **产物需重新 publish**（1 文件陈旧）：待收尾。
+
+### 八、教训
+
+**「可复算」不是形容词 —— 它要求**文档与产生它的东西**之间有活连接。**
+
+**→ 一份手写的表在写下的那一刻就开始了漂移，而它**不会报错**。**
+
+**→ 所以 (f) 这一项真正的交付不是那张表，是**那个脚本加那 4 条守卫**。
+→ 而它们让「表是新的」这件事可被机器检查，而不是靠我记得重跑。**

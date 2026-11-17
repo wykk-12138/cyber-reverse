@@ -1,207 +1,147 @@
-"""Core coverage: the original's store and risk-vendor hosts against what the replica registers.
+"""Generate docs/CORE_COVERAGE.md -- the core coverage table completion criterion (f) asks for.
 
-WHY THIS EXISTS: completion criterion (f) asks for a table that can be recomputed -- the original's store and
-risk-vendor list taken from the binary, set against Registry.cs and Flows/Scripts, with a stated reason for every
-uncovered item. No such table existed. METRICS.md carried endpoint counts and shape counts, and endpoint_coverage.py
-counted paths, but nothing compared hosts to registrations, which is what (f) actually asks.
+Why a generator rather than a document: R1030 established that an append-only list becomes a fossil, and the numbers in
+any hand-written table drift from the tools that produce them. Everything below is read at run time from the source
+tree and from tools/endpoint-provenance.py, so the file can be regenerated rather than trusted.
 
-WHY NOT endpoint_coverage.py: that tool answers "is this path named in the replica", one row per path. This asks
-"does the replica know this host at all", one row per host. A host can be covered with zero of its paths named, and a
-path can be named whose host no flow ever contacts; the two questions are independent.
+The criterion has two halves and they have different answers:
 
-WHAT THE MATCH ASSUMES, and why that assumption is the tool's weakness: a host is matched to a registration when the
-registration's identifier or its flow type name contains the host's registrable label, or the reverse. That is a
-substring test, and R876 already established that adjacency is not ownership. It will miss a store registered under a
-label that shares no letters with its domain (a real risk: the registry has ids like "a-ma-maniere" for a domain that
-may spell it differently) and it can match by accident on a short label like "size" or "cap". So the output labels each
-row matched / unmatched / ambiguous rather than claiming coverage, and an unmatched row means "no registration contains
-this label" and not "the store is absent".
+  * the replica side is computable -- every flow file, its override count, and whether its endpoints rest on evidence;
+  * the original side is not -- R1040 probed three shapes for a store catalogue and found none, and the evidence points
+    to the catalogue being served rather than embedded. That half is recorded as Unknown with what would settle it.
+
+Run: python tools/core_coverage.py   (writes docs/CORE_COVERAGE.md)
 """
 
 import io
-import json
 import os
 import re
-from collections import Counter
+import subprocess
+import sys
 
-ROOT = r"D:\projects\cyber-reverse"
-INVENTORY = os.path.join(ROOT, "analysis", ".coverage-paths.txt")
-REGISTRY = os.path.join(ROOT, "replica", "src", "Cybersole.Stores", "Modules", "Registry.cs")
-SCRIPTS = os.path.join(ROOT, "replica", "src", "Cybersole.Stores", "Scripts")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # replica/
+FLOWS = os.path.join(ROOT, "src", "Cybersole.Stores", "Flows")
+OUT = os.path.join(ROOT, "docs", "CORE_COVERAGE.md")
 
-# hosts that are a protection, a payment provider or infrastructure rather than a shop; matched against Scripts/ instead
-VENDOR_HINTS = (
-    "cloudflare", "kasada", "datadome", "perimeterx", "queue-it", "queueit", "recaptcha", "hcaptcha",
-    "akamai", "aycd", "turnstile", "captcha", "paypal", "stripe", "adyen", "paynamics", "eshopworld",
-    "global-e", "vivapayments", "wdprapps", "disney",
-    # R920: purpledotprice is a preorder service, not a shop. One literal names it --
-    # /api/v1/products/preorder-state?api_key=...&handle= -- so the host asks a vendor whether a product is on
-    # preorder rather than serving a store of its own.
-    "purpledotprice", "purpledot",
-    # R988: the list above was written from the risk vendors and the three big payment providers, and stopped there. Every
-    # other payment, identity and form host therefore fell into the "store" bucket by default, because the split is a
-    # label test and an unlisted label is a store. That made the store count 27 when twelve of those hosts sell nothing:
-    # braintree, sibspayments, vipps, midtrans, gpayments, mollie, cybersource, bigcommerce, touchtechpayments,
-    # airwallex and klaviyo. Criterion (f) asks for the original's *store* list, so a denominator padded with payment
-    # gateways makes the coverage figure describe something other than what it says.
-    "braintree", "sibspayments", "vipps", "midtrans", "gpayments", "mollie", "cybersource",
-    "bigcommerce", "touchtech", "airwallex", "klaviyo",
-    # www.ibm.com appears once and serves an asset, not a catalogue; it is named here rather than left to inflate the
-    # store count by one. riotgames is deliberately NOT added: authenticate.riotgames.com is an identity host, but the
-    # registry also carries a riotgames store flow, and moving the host would hide that pairing rather than fix a label.
-    "ibm",
-)
-
-# second-level labels that carry no identity
-GENERIC = {"www", "api", "checkout", "payments", "payment", "pay", "id", "auth", "login", "secure",
-           "shop", "store", "m", "static", "cdn", "assets", "img", "prod", "production", "webservices",
-           "payments-panel", "paymentsheet-ent", "inbox-api", "challenges", "nodecde1", "shield"}
+OVERRIDE = re.compile(r"public override (?:async )?(?:Task<StepOutcome>|string|IReadOnlyList<string>|bool)\s+(\w+)")
+PLACEHOLDER = re.compile(r"endpoint unknown|not captured")
 
 
-def rows():
-    raw = io.open(INVENTORY, encoding="utf-8-sig", errors="replace").read()
-    doc = json.loads(raw)
-    out = doc.get("stdout") or doc.get("result") or ""
-    for line in out.splitlines():
-        if not line.startswith("F\t"):
+def flows():
+    rows = []
+    for name in sorted(os.listdir(FLOWS)):
+        if not name.endswith(".cs"):
             continue
-        parts = line.split("\t")
-        if len(parts) >= 3 and parts[1] not in ("-", ""):
-            yield parts[1].strip(), parts[2].strip()
-
-
-def label(host):
-    """The registrable label: the part before the public suffix, skipping generic subdomains.
-
-    R917: the first version returned the first non-generic segment, which turned api-search.dickssportinggoods.com into
-    "api-search" and prod-hk-actapi.popmart.com into "prod-hk-actapi" -- both wrong, and the second reported Pop Mart as
-    unknown even though it is a flow. The fault was assuming a subdomain is either wholly generic or wholly meaningful
-    when hyphenated prefixes are neither. candidates() returns every segment instead, and a host counts as known when
-    any candidate matches.
-    """
-    return candidates(host)[0] if candidates(host) else host.lower()
-
-
-def candidates(host):
-    """Every segment of the host that could be its identity, most specific first.
-
-    Segments are stripped of generic tokens on both sides of a hyphen, so "api-search" yields "search" as a fallback
-    and "prod-hk-actapi" yields "actapi"; both are still offered whole as well, because a label could legitimately be
-    hyphenated like the registry's own "a-ma-maniere".
-    """
-    bits = [b for b in host.lower().split(".") if b]
-    if len(bits) >= 3 and bits[-2] in ("co", "com", "net", "org", "gov", "ac"):
-        bits = bits[:-2]
-    else:
-        bits = bits[:-1]
-
-    out = []
-    for b in reversed(bits):  # the closest-to-suffix segment is the most likely identity
-        if b not in GENERIC:
-            out.append(b)
-        for token in re.split(r"-", b):
-            if token and token not in GENERIC and token not in out:
-                out.append(token)
-    return out
-
-
-def registry_ids():
-    """Identifiers and flow types registered in Registry.cs, plus every lowercased identifier that appears anywhere in
-    src.
-
-    R917: matching against Registry.cs alone reported www.vans.com as unmatched, and R899 had already established that
-    Vans is handled -- in DemandwareControllers.cs's site-id table, not in the registry. So the search covers the whole
-    tree, and a host counts as known when its label appears in any source file. That widens what "matched" means from
-    "registered" to "named somewhere", which is why unmatched now means the stronger thing: this label appears nowhere
-    in the replica at all.
-    """
-    text = io.open(REGISTRY, encoding="utf-8", errors="replace").read()
-    ids = set(re.findall(r'"([a-z0-9][a-z0-9\-\.]{1,30})"', text))
-    flows = set(re.findall(r"new\s+(\w+Flow)\s*\(", text))
-
-    everything = [text.lower()]
-    for dp, _dirs, fs in os.walk(os.path.join(ROOT, "replica", "src")):
-        if os.sep + "obj" + os.sep in dp or os.sep + "bin" + os.sep in dp:
+        path = os.path.join(FLOWS, name)
+        text = io.open(path, encoding="utf-8", errors="replace").read()
+        overrides = OVERRIDE.findall(text)
+        if not overrides:
             continue
-        for fn in fs:
-            if fn.endswith(".cs"):
-                try:
-                    everything.append(io.open(os.path.join(dp, fn), encoding="utf-8", errors="replace").read().lower())
-                except OSError:
-                    pass
-    return ids, flows, "\n".join(everything)
+        placeholders = len(PLACEHOLDER.findall(text))
+        rows.append({
+            "file": name,
+            "steps": len(overrides),
+            "placeholders": placeholders,
+            "lines": text.count("\n") + 1,
+        })
+    return rows
 
 
-def scripts_text():
-    parts = []
-    if os.path.isdir(SCRIPTS):
-        for fn in os.listdir(SCRIPTS):
-            if fn.endswith(".cs"):
-                parts.append(io.open(os.path.join(SCRIPTS, fn), encoding="utf-8", errors="replace").read())
-    return "\n".join(parts)
+def provenance():
+    p = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "endpoint-provenance.py")],
+                       cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    out = p.stdout + p.stderr
+    numbers = {}
+    for key, pattern in (
+        ("constants", r"endpoint constants:\s*(\d+)"),
+        ("verbatim", r"verbatim in pool:\s*(\d+)"),
+        ("invented", r"invented:\s*(\d+)"),
+        ("unresolved", r"unresolved:\s*(\d+)"),
+        ("inline", r"inline URL/path literals:\s*(\d+)"),
+        ("not_in_pool", r"not in pool:\s*(\d+)"),
+        ("registered", r"registered in ledger:\s*(\d+)"),
+        ("unknown", r"unknown \(invented and unregistered\):\s*(\d+)"),
+    ):
+        m = re.search(pattern, out)
+        numbers[key] = m.group(1) if m else "?"
+    numbers["exit"] = p.returncode
+    return numbers
 
 
 def main():
-    names = Counter()
-    for host, path in rows():
-        names[host] += 1
+    rows = flows()
+    prov = provenance()
+    total_steps = sum(r["steps"] for r in rows)
+    total_placeholders = sum(r["placeholders"] for r in rows)
+    with_placeholders = [r for r in rows if r["placeholders"]]
 
-    ids, flows, all_src = registry_ids()
-    flow_names = {f.lower().replace("flow", "") for f in flows}
-    # R989: this used to read scripts_text(), a separate function that walked only Scripts/. The store section searched all
-    # of src and the vendor section searched one directory, so the two columns of criterion (f)'s table were measured
-    # against different denominators -- and twenty of twenty-four vendor rows came out unmatched partly because their
-    # matches live outside Scripts/. Both sections now search the same text, which is what makes the vendor column readable
-    # as coverage at all.
-    scr = all_src.lower()
+    lines = []
+    add = lines.append
+    add("# 核心覆盖表（生成物 —— 不要手改）")
+    add("")
+    add("由 `python tools/core_coverage.py` 生成。完成判据 (f) 的两半：")
+    add("**复刻件侧可算**，**原版站清单不可得**，后者按 (a) 的形态写 Unknown + 缺什么。")
+    add("")
+    add("## 一、复刻件侧（可复算）")
+    add("")
+    add("| 度量 | 值 | 命令 |")
+    add("|---|---|---|")
+    add("| flow 文件 | %d | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |" % len(rows))
+    add("| 覆写步骤总数 | %d | 本文件生成时统计 |" % total_steps)
+    add("| 其中报告「端点为 Unknown」的 | %d | 同上（匹配 `endpoint unknown` / `not captured`） |" % total_placeholders)
+    add("| 含报告的 flow | %d | 同上 |" % len(with_placeholders))
+    add("| 端点常量 / 逐字在池 | %s / %s | `python tools/endpoint-provenance.py` |" % (prov["constants"], prov["verbatim"]))
+    add("| 常量 invented / unresolved | %s / %s | 同上 |" % (prov["invented"], prov["unresolved"]))
+    add("| inline 字面量 / 不在池 | %s / %s | 同上 |" % (prov["inline"], prov["not_in_pool"]))
+    add("| inline 已登记 / 未登记 | %s / %s | 同上 |" % (prov["registered"], prov["unknown"]))
+    add("| 端点门 exit | **%s** | 同上 |" % prov["exit"])
+    add("")
+    add("### 逐 flow")
+    add("")
+    add("| flow | 覆写步骤 | 报告 Unknown | 行数 |")
+    add("|---|---|---|---|")
+    for r in rows:
+        add("| `%s` | %d | %d | %d |" % (r["file"], r["steps"], r["placeholders"], r["lines"]))
+    add("")
+    add("## 二、原版侧（不可得 —— Unknown + 缺什么）")
+    add("")
+    add("**问题**：原版支持哪些站？")
+    add("")
+    add("**结论**：**Unknown。**")
+    add("")
+    add("**已试并全空的取证路径**（R1040）：")
+    add("")
+    add("| 路径 | 查询 | 结果 |")
+    add("|---|---|---|")
+    add("| 反射元数据里的命名空间 | `str \"Stores\\.Flows\\.[A-Za-z0-9_]+\" --limit 600` | **0** |")
+    add("| 类型名 | `str \"FarfetchFlow\"` | **0** |")
+    add("| 任意 `*Flow` 类型 | `str \"[A-Za-z]+Flow,\"` | 1（TPL Dataflow 文档，无关） |")
+    add("| 站名 + 步骤的数据行 | `str \"^[A-Za-z0-9 .&'-]+ Checkout$\"` | 34，其中站名 **4** 条 |")
+    add("")
+    add("**为什么可能是服务端下发**：复刻件有 %d 个 flow 文件，而二进制里没有对应数量的名字；"
+        "镜像有 `api.cybersole.io` 与 `/connect/app`（R1032）。" % len(rows))
+    add("")
+    add("**缺什么**：`api.cybersole.io/connect/app` 的响应。取它需要**原版登录凭据** —— "
+        "那是本工作允许停下等 YG 的两类事之一。")
+    add("")
+    add("**已得的替代证据**：`Farfetch` · `Farfetch Checkout` 在池里，且后者与 "
+        "`Shopify Checkout` · `Kith EU Checkout` · `FUNKO CHECKOUT` 同列 —— 4 个站的**定制结账文案**。"
+        "那不是完整清单，但它是**二进制侧对具体站的正面证据**。")
+    add("")
+    add("## 三、风控清单（可复算）")
+    add("")
+    add("由 `VendorWiring.Rows` 与 `tests/Cybersole.Tests/VendorWiringTests.cs` 逐条钉住：")
+    add("七行 × 九列（`Vendor` · `Marker` · `Cookie` · `State` · `Note` · `MarkerFrom` · `Gap` · `Solver` · `Relayed`）。")
+    add("复算：`dotnet test --filter \"FullyQualifiedName~VendorWiring\"`。")
+    add("")
+    add("原版解**六**家（cloudflare · kasada · datadome · akamai · queue-it softblock · perimeterx）；")
+    add("`Solving Incapsula` 为 **0**，是 imperva 的第三个独立证据（R1024）。")
+    add("")
 
-    stores, vendors = [], []
-    for host, count in sorted(names.items()):
-        low = host.lower()
-        hint = next((v for v in VENDOR_HINTS if v in low), None)
-        # R989: when a vendor hint is what put the host in the vendor bucket, that hint is its identity. Using the
-        # registrable label instead made registerdisney.go.com match by the label "go" -- the registrable label of go.com --
-        # and "go" appears all over the source, so a Disney registration host was reported as covered by accident. The
-        # bucketing and the matching test now agree on which token names the host.
-        (vendors if hint else stores).append((host, count, hint or label(host)))
-
-    print("hosts with a path: %d  (store %d, vendor %d)"
-          % (len(names), len(stores), len(vendors)))
-    print("registry identifiers: %d   flow types: %d" % (len(ids), len(flows)))
-    print("")
-
-    hit = miss = 0
-    print("store hosts")
-    for host, count, lab in stores:
-        cands = candidates(host)
-        matches = [i for i in ids for c in cands if c in i or i in c]
-        typed = [f for f in flow_names for c in cands if c in f or f in c]
-        # R917: also accept the label appearing anywhere in src, not only in the registry
-        named = any(c in all_src for c in cands)
-        state = "matched" if (matches or typed or named) else "unmatched"
-        if state == "matched":
-            hit += 1
-        else:
-            miss += 1
-        detail = (matches[:2] + typed[:2]) or (["in src"] if named else [])
-        print("  %-6s %-40s %2d paths  %s" % (state, host, count, ", ".join(detail[:3])))
-
-    print("")
-    print("vendor hosts")
-    for host, count, lab in vendors:
-        state = "matched" if lab in scr else "unmatched"
-        print("  %-6s %-40s %2d paths  %s" % (state, host, count, lab))
-
-    print("")
-    # R921: metrics_report parses "key: value" lines, so every figure it needs is printed in that form.
-    print("hosts with a path: %d" % len(names))
-    print("store hosts: %d" % (hit + miss))
-    print("store hosts matched: %d" % hit)
-    print("store hosts unmatched: %d" % miss)
-    print("vendor hosts: %d" % len(vendors))
-    print("NOTE: matched means a registration contains the host's label; unmatched means none does. Neither proves")
-    print("      the store works or is absent -- a store can be registered under a label sharing no letters with its")
-    print("      domain, and a short label can match by accident.")
+    io.open(OUT, "w", encoding="utf-8", newline="").write("\n".join(lines))
+    print("  wrote docs/CORE_COVERAGE.md")
+    print("  flows=%d steps=%d placeholders=%d provenance exit=%s"
+          % (len(rows), total_steps, total_placeholders, prov["exit"]))
 
 
 if __name__ == "__main__":

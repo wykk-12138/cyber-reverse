@@ -62215,3 +62215,59 @@ FUNKO CHECKOUT · Farfetch Checkout · Kith EU Checkout · Shopify Checkout
 > **三次去找同一件东西，三次都空 —— 而那比找到更有用：它说明 (f) 的**取证方向**有问题，不是执行。
 > → 三次尝试都带同一个偏见：**用复刻件的形状去找原版**。
 > → 而原版不欠我们那些形状 —— 它是**数据驱动**的，而数据可能根本不在 exe 里。**
+
+
+---
+
+## 第 1041 轮：(f) 的表现在是生成物，而生成物也要守卫
+
+### ① 为什么生成而不手写
+
+**`replica/tools/core_coverage.py` 每次运行从源码树与 `endpoint-provenance.py` **读**，然后写
+`docs/CORE_COVERAGE.md`。**
+
+```
+flows=18  steps=356  placeholders=14  provenance exit=0
+→ 3,275 字节 / 72 行 / 有效 UTF-8
+```
+
+**→ R1030 说只追加的清单会变成化石；手写的表会**与产生它的工具漂移**。生成 + 守卫是两者的解。**
+
+### ② 表的两半
+
+| 半 | 内容 | 可复算？ |
+|---|---|---|
+| **复刻件侧** | 18 flow · 356 步骤 · 14 处 Unknown · 门 214/214 · invented 0 · unresolved 0 · inline 323/33 · 已登记 33 · 未登记 **0** · exit **0** | **是** |
+| **原版侧** | 站清单 **Unknown**，缺 `api.cybersole.io/connect/app`（需凭据） | **不可得，已写明缺什么** |
+
+**→ 那正是 (a)+(f) 的形态：可得的给数，不可得的写 Unknown + 缺什么。**
+
+### ③ 而那三条空路径也写进生成物
+
+**`Stores.Flows.` 0 · `FarfetchFlow` 0 · `[A-Za-z]+Flow,` 1（TPL Dataflow）· `X Checkout` 34（站名 4）
+—— 理由是**下一个人不该再走一遍**。**
+
+### ④ 4 条守卫防「生成物过时」
+
+`TheFlowCountMatchesTheTree`（表里的数 == 磁盘实际）· `TheOriginalStoreListIsStillUnknown`（防漂移成断言）·
+`TheEmptyProbesAreRecorded` · `TheDocumentSaysItIsGenerated`（防手改）
+
+### ⑤ 数字
+
+| 度量 | R1040 | **R1041** |
+|---|---|---|
+| 套件 | 2254 / 0 | **2258 / 0 / 0（+4）** |
+| 产物陈旧度 | 1 / 217 | **1 / 217** |
+| 函数数 | 174,293 | **174,293** |
+| **`docs/CORE_COVERAGE.md`** | 不存在 | **3,275 字节 / 72 行** |
+| **flow 数（含覆写）** | 未测 | **18** |
+| **覆写步骤总数** | 未测 | **356** |
+| **报告的 Unknown 步骤** | 未测 | **14（3 个 flow）** |
+| **(f) 原版侧** | Unknown（口头） | **Unknown（写进生成物 + 守卫）** |
+
+### 教训
+
+> **「可复算」不是形容词 —— 它要求**文档与产生它的东西**之间有活连接。
+> → 一份手写的表在写下那一刻就开始漂移，而它**不会报错**。
+> → 所以 (f) 真正的交付不是那张表，是**那个脚本加那 4 条守卫** ——
+> 它们让「表是新的」可被机器检查，而不靠我记得重跑。**

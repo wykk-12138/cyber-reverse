@@ -9745,3 +9745,42 @@ analysis/ida.py py "<IDAPython>" [--timeout N] ← one-off（本轮用它枚举 
 | Farfetch 的 transport | 未找到 |
 
 **纪律**：别用复刻件的形状去原版里找东西 —— 它不欠我们那些形状。
+
+
+## 判据 (f) — **(f) 的表是生成物 `docs/CORE_COVERAGE.md`，4 条守卫防过时**（R1041）
+
+### 生成器
+
+`replica/tools/core_coverage.py` → 读源码树 + `endpoint-provenance.py` → 写 `docs/CORE_COVERAGE.md`。
+
+```
+flows=18  steps=356  placeholders=14  provenance exit=0      → 3,275 字节 / 72 行 / UTF-8 有效
+```
+
+### 两半
+
+| 半 | 内容 |
+|---|---|
+| 复刻件侧（**可复算**） | 18 flow · 356 步骤 · 14 Unknown · 门 214/214 · invented 0 · unresolved 0 · inline 323/33 · 已登记 33 · 未登记 **0** · exit 0 |
+| 原版侧（**Unknown+缺什么**） | 站清单 Unknown，缺 `api.cybersole.io/connect/app`（需原版凭据） |
+
+### 三条空路径也写进生成物
+
+`Stores.Flows.` 0 · `FarfetchFlow` 0 · `[A-Za-z]+Flow,` 1（TPL Dataflow）· `X Checkout` 34（站名 4）
+—— **下一个人不该再走一遍。**
+
+### 4 条守卫
+
+`TheFlowCountMatchesTheTree` · `TheOriginalStoreListIsStillUnknown` ·
+`TheEmptyProbesAreRecorded` · `TheDocumentSaysItIsGenerated`
+
+### 数字
+
+**套件 2258（+4）· 陈旧度 1 / 217 · 函数数 174,293 · flow 18 · 步骤 356 · Unknown 14 · 表 3,275 字节**
+
+| 仍待 | |
+|---|---|
+| 原版站清单 | 需凭据（第一类停等项） |
+| 产物重 publish | 1 文件陈旧 |
+
+**纪律**：「可复算」要求文档与产生它的东西之间有活连接。

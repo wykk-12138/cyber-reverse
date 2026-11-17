@@ -2058,3 +2058,29 @@ METRICS 五行：`mutation-fit: total 36 / fired 36 / decorative 0 / skipped 0 /
 纪律：**「读起来像在描述原版」靠的是语气；看主语是谁才靠得住。**
 
 下一轮：换一条不靠名字定位的核心工作 —— 判据 (f) 的镜像→复刻件方向，或 flow 级别的行为证据。
+
+## R986 补充 — **185 覆写中 180 有实质工作；占位 5 个 = Bstn 下单链 4 + Shopify 有意 1**（+1 工具 +2 守卫，套件 2205）
+
+新工具 `tools/flow_work_audit.py`：按 **flow 文件**分类每个覆写体（`hollow_audit.py` 是按步骤跨站数）。
+
+**分类器第一版错了**：只把 `await`/`Http`/会话访问算工作，把 `=> OpenCheckoutAsync(...)` 判成占位（5 个假阳性）。
+那正是 **R824 记过的形状：「委派是无接收者调用，`\w+\.名字` 一定漏」**。修好：**180 真 / 5 占位**。
+
+| flow | 覆写 | 真 | 占位 |
+|---|---|---|---|
+| Magento 33 · PopMart 23 · Footsites 17 · Nike 15 · Scheels 12 · Farfetch/Hbx/Hybris 各 10 · Demandware 9 · Goat 8 | | 全真 | 0 |
+| Shopify | 18 | 17 | **1** |
+| **Bstn** | 9 | 5 | **4** |
+| **合计** | **185** | **180（97.3%）** | **5** |
+
+**5 个占位 = Bstn 的 AddToCart/GetCart/GetCheckout/SubmitOrder（消息都是 `endpoint unknown`）+ Shopify 的 GetCsrf（R823 有意不编造）。**
+
+→ 优先级 ① 的剩余 = **一个站的四个端点**，不是「35 个站」。
+
+守卫 `FlowWorkAuditTests`（2 用例）：占位 ≤ 5；有 ≥2 占位的 flow 必须写明 `endpoint unknown`。
+
+数字：套件 2205 · 陈旧度 0/0 · 函数数 173,952 · 覆写 185/真 180/占位 5。
+
+纪律：**「无接收者的调用看不见」—— 搜索时是它，分类时还是它。**
+
+下一轮：取 Bstn 的三个端点（cart / checkout / order），把那一站的四个占位补成真实现。

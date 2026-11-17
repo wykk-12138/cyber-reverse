@@ -24789,3 +24789,102 @@ python -c "读 replica/docs/HISTORY.md 第 1483-1499 行"  -> 标题「6.73 空�
 **「读起来像在描述原版」和「是在描述原版」是两件事，而我的判断靠的是语气。**
 
 **更省事的判据是看标题和第一句的主语是谁 —— 「R12 把 39 个填成真实实现」，主语是我们。**
+
+
+---
+
+## 410. **185 覆写中 180 有实质工作；占位 5 个 = Bstn 下单链 4 + Shopify 有意 1**
+
+> R986。**+1 工具 +2 守卫。** 套件 **2205 通过 / 0 失败 / 0 跳过**。
+
+### 一、为什么需要新工具
+
+**`hollow_audit.py` 回答「每个**步骤**跨所有站有几个覆写」。
+而一个步骤在别处有覆写，说明不了**这个站的**覆写做了事。**
+
+**`tools/flow_work_audit.py`：逐 flow **文件**，把每个覆写体分类为「有实质工作」或「只返回一个结果」。**
+
+### 二、而第一版分类器错得很有代表性
+
+**第一版只把 `await` / `Http` / 会话访问算作工作，于是把这一行判成占位：**
+
+```csharp
+public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
+    OpenCheckoutAsync(c, "goat-checkout", "/checkout", ct);
+```
+
+**→ 工作藏在辅助方法里。这是 **R824 记过的同一件事**：「委派是**无接收者**调用，`\w+\.名字` 一定漏」。
+→ 第一版 175 真 / **10 占位**；修好（对本类方法的委派也算工作）**180 真 / 5 占位**。
+→ 那 5 个假占位里 4 个是 `GetCheckout` —— **如果按第一版去「补」，会写四份重复实现，而它们本来就在。****
+
+### 三、真实状态
+
+| flow | 覆写 | 真 | 占位 |
+|---|---|---|---|
+| Magento | 33 | 33 | 0 |
+| PopMart | 23 | 23 | 0 |
+| Shopify | 18 | 17 | **1** |
+| Footsites | 17 | 17 | 0 |
+| Nike | 15 | 15 | 0 |
+| Scheels | 12 | 12 | 0 |
+| Farfetch / Hbx / Hybris | 各 10 | 10 | 0 |
+| **Bstn** | 9 | 5 | **4** |
+| Demandware | 9 | 9 | 0 |
+| Goat | 8 | 8 | 0 |
+| Sportsshoes 3 · Dicks 2 · NikeGs 1 | | 全真 | 0 |
+| AdyenPayPal / Store | 0 | 0 | 0 |
+| **合计** | **185** | **180（97.3%）** | **5** |
+
+### 四、5 个占位，两个类别
+
+**Bstn —— 整条下单链：**
+
+```
+AddToCart    Fail("bstn: cart endpoint unknown — /cart.js is 404 and the cart lives under /api/b…")
+GetCart      Fail("bstn: cart endpoint unknown")
+GetCheckout  Fail("bstn: checkout endpoint unknown (Adyen)")
+SubmitOrder  Fail("bstn: order endpoint unknown")
+```
+
+**Shopify `GetCsrf` —— 有意空实现**，注释写着 R823 的理由：不编造 fallback
+（服务器从未签发的令牌放进会话，会让每个带它的请求被判无效）。**
+
+**→ 10 个占位里：4 个是我们不知道端点，1 个是有意不做，5 个是我分类器的错。
+→ 「Bstn 能监控不能下单」有确切形状：找商品/读尺码/读库存四步在，加购到提交订单四步全断。
+→ 优先级 ① 的剩余 = **一个站的四个端点**，不是「35 个站」。**
+
+### 五、两条守卫（`FlowWorkAuditTests`）
+
+1. `MostOverridesDoWork` —— 覆写总数 > 100（签名正则失配即红），占位数 **≤ 5**
+2. `AFlowWithPlaceholdersSaysWhy` —— 有 ≥2 占位的 flow 必须出现 `endpoint unknown`
+   （**不说原因的占位读起来像疏忽，而不是一条记下来的缺口**）
+
+### 六、数字
+
+| 度量 | R985 | R986 |
+|---|---|---|
+| 套件 | 2203 | **2205** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **flow 覆写总数** | 未测 | **185** |
+| **有实质工作** | 未测 | **180（97.3%）** |
+| **占位** | 未测 | **5** |
+
+### 七、验证
+
+```
+cd replica
+python tools/flow_work_audit.py  -> 185 / 180 / 5，97.3%
+dotnet test --filter "FullyQualifiedName~FlowWorkAuditTests" -m:1  -> 2 通过
+python tools/metrics_report.py   -> 完整套件 exit 0  2205 通过 / 0 失败 / 0 跳过
+```
+
+### 八、仍然 Unknown
+
+- **Bstn 的 cart / checkout / order 端点**：**Unknown** —— 未取证，而占位的消息说的就是它。
+
+### 九、教训
+
+**同一条规则（「无接收者的调用看不见」）换了场景，我一次都没想起它 —— 那次是搜索，这次是分类。**
+
+**而代价如果不抽查：我会去「补」四个本来就在的方法。**

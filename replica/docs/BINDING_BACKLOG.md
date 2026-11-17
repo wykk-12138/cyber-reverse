@@ -8174,3 +8174,34 @@ Getting / Initialising / Solving / Submitting DataDome
 | DataDome 的 3DS 分支为什么被裁 | 未查 |
 
 **纪律**：可达性独立于代码量，它不写在任何一行里。
+
+
+## 判据 (c)/优先级 ① — **可达性精确到方法；Square/Adyen 是我搜错串；Adyen/CommerceHub 整个不在 = id 不匹配**（R1003）
+
+### 自我纠正 ×2
+
+| 网关 | 真实 host | 我 R1002 搜的 |
+|---|---|---|
+| Square | `pci-connect.squareup.com` | `api.squareup.com` ✗ |
+| Adyen | `checkoutshopper-live.adyen.com` | `adyen.com` ✗ |
+
+**→ 「absent」是我搜错了，不是产物没有。§2.7 形状第十次。**
+
+### 精确图景
+
+- **11 个网关的主 host IN**（`AuthorizeAsync` 里 `$"{ApiHost}/…"` 那一段）
+- **Adyen · CommerceHub 整个 absent**
+- **7 个的次 host 全 absent**（`api.sandbox.paypal.com` · `checkout-page.omise.co` · `nodecde1/shield.paynamics.net`）
+- **原因：R1002 只接 `AuthorizeAsync`，`TokenizeAsync` / `CompleteActionAsync` 全裁**
+
+**→ 可达性精确到**方法**，不是到类。**
+
+### 待查（可查，非不可得）
+
+**Adyen / CommerceHub 的 `Id` 是否会被 `Resolve` 命中 —— 若不命中，整个类被裁（与 `CreateDefault` 同形状）。**
+
+### 数字
+
+**套件 2214 · 陈旧度 0/0 · 函数数 174,336 · 主 host IN 11 · 次 host 全无 7 · 整个不在 2**
+
+**纪律**：「进了产物」要说到类、方法、还是那一行 —— 粗的那个听起来完成了更多。

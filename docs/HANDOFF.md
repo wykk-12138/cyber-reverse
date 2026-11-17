@@ -2434,3 +2434,25 @@ datadome 走不到任何 solver。**`Wired` 的意思是「检测→求解→存
 纪律：**可达性独立于代码量，它不写在任何一行里，只能被证明或被否证。**
 
 下一轮：`GetPaymentMethodsAsync` 覆写 0 次 → 它必然被裁，把它接到某个覆写里去（或查原版是否真无覆写）。
+
+## R1003 补充 — **可达性精确到方法；Square/Adyen 是我搜错串；Adyen/CommerceHub 整个不在 = id 不匹配**（套件 2214，未改代码）
+
+**自我纠正 ×2**：`SquareGateway` 的真实 host 是 **`pci-connect.squareup.com`**（我搜 `api.squareup.com`）；
+`AdyenGateway` 是 **`checkoutshopper-live.adyen.com`**（我搜 `adyen.com`）。→ 「absent」是我搜错了。
+（AGENTS.md §2.7 那个形状第**十**次：先假设形状，再把不符读成不存在。）
+
+**正确拼法重搜**：11 个网关的主 host **IN**（Square 也在）· **Adyen / CommerceHub 整个 absent** ·
+7 个的次 host 全 absent（`api.sandbox.paypal.com` · `checkout-page.omise.co` · `nodecde1/shield.paynamics.net`）。
+
+**规律**：IN 的都是 `AuthorizeAsync` 里 `$"{ApiHost}/…"` 那一段；absent 的次 host 全在
+`TokenizeAsync` / `CompleteActionAsync` 里 —— **而 R1002 只接了 `AuthorizeAsync`。**
+**→ 可达性精确到**方法**，不是到类。**
+
+**Adyen/CommerceHub 的原因不同**：它们连被直接调的 `AuthorizeAsync` host 都不在 → 问题在**它们的 `Id` 没被 `Resolve` 命中**
+（与 `CreateDefault` 同形状，只是发生在 id 上）。**那是可查的具体问题，不是缺证据。**
+
+数字：套件 2214 · 陈旧度 0/0 · 函数数 174,336 · 主 host IN 11 · 次 host 全无 7 · 整个不在 2。
+
+纪律：**「进了产物」要说到类、方法、还是那一行 —— 粗的那个听起来完成了更多。**
+
+下一轮：查 `AdyenGateway.Id` / `CommerceHubGateway` 的 Id 与 `ChooseGateway` 的产出集合是否相交。

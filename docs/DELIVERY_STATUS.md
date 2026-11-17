@@ -26598,3 +26598,93 @@ python - 在 .publish-aot 字节里搜 13 个串 -> 见上表
 而我在 R1001 里以为注册就是那句 —— 注册只是把新类放在一条没人走的走廊上。**
 
 **→ 可达性是**独立于代码量**的一个维度。它不写在任何一行里，只能被证明或被否证。**
+
+
+---
+
+## 427. **可达性精确到方法；Square/Adyen 是我搜错串；Adyen/CommerceHub 整个不在**
+
+> R1003。**未改代码，只取证。** 套件 **2214 通过 / 0 失败 / 0 跳过**。
+
+### 一、自我纠正：两次搜错了串
+
+| 网关 | 源码里真实的 host 常量 | R1002 搜的 |
+|---|---|---|
+| `SquareGateway`（`Gateways.cs:70`） | **`pci-connect.squareup.com`** | `api.squareup.com` |
+| `AdyenGateway`（`AdyenGateway.cs:22`） | **`checkoutshopper-live.adyen.com`** | `adyen.com` |
+
+**→ 一个是我臆造的前缀（`api.`），一个是把品牌名当 host。
+→ 所以 R1002 那句「`squareup` / `adyen` 仍 absent」**两个都是我的错**，不是产物的事实。
+→ AGENTS.md §2.7 那个形状第**十**次：先假设形状，再把「不符合假设」读成「不存在」。**
+
+### 二、用正确拼法重搜
+
+| 网关 | 主 host | 次 host |
+|---|---|---|
+| Square · Stripe · Unzer · Omise · Paynamics · Sibs · PayPal | **IN** | — |
+| Mollie · GMO · Touchtech · Midtrans | **IN** | — |
+| **Adyen** | **absent** | — |
+| **CommerceHub** | **absent** | — |
+| 各家次 host | — | `api.sandbox.paypal.com` · `checkout-page.omise.co` · `nodecde1.paynamics.net` · `shield.paynamics.net` **全 absent** |
+
+### 三、而规律解释了全部
+
+**`IN` 的每一条，都是 `AuthorizeAsync` 里 `$"{ApiHost}/…"` 引用的那一段。
+`absent` 的次 host，全在 `TokenizeAsync` 或 `CompleteActionAsync` 里。**
+
+**而 R1002 只接了一处：**
+
+```csharp
+var outcome = await registered.AuthorizeAsync(c, ct).ConfigureAwait(false);
+```
+
+**→ 所以可达性**精确到方法**，不是到类。
+→ 「这个网关进了产物」和「这个网关的三个方法都进了产物」是两个陈述；
+  R1002 只做到了前者，而我在那一轮把它读成了后者。**
+
+### 四、Adyen 与 CommerceHub 整个不在，原因不同
+
+**它们连 `AuthorizeAsync` 的 host 都不在 —— 而那一条是被 `SubmitPaymentAsync` 直接调的。
+所以问题不在可达性，在**它们的 `Id` 没被 `Resolve` 命中**。**
+
+**`AdyenGateway` 的 `Id` 若是 `"adyen"` 而 `ChooseGateway` 从不产 `"adyen"`，
+那 `Resolve` 永远返回 null，整个类被裁 —— 与 `CreateDefault` 那次同一形状，只是发生在 id 上。**
+
+**→ 那是一个**待证的具体问题**，不是「Adyen 缺证据」。**
+
+### 五、数字
+
+| 度量 | R1002 | R1003 |
+|---|---|---|
+| 套件 | 2214 | **2214（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 174,336 | **174,336** |
+| 函数比 | 62.91% | **62.91%** |
+| **主 host 在产物的网关** | 记作 9 | **11** |
+| **次 host 一个都没有的网关** | 未测 | **7** |
+| **整个不在的网关** | 记作 2 | **2（Adyen · CommerceHub）** |
+
+### 六、验证
+
+```
+cd replica
+python - 读 Gateways.cs:70 -> NonceHost = "https://pci-connect.squareup.com"
+python - 读 AdyenGateway.cs:22 -> ShopperHost = "https://checkoutshopper-live.adyen.com"
+python - 在 .publish-aot 字节里搜 'pci-connect.squareup.com' -> IN
+python - 搜 'checkoutshopper-live.adyen.com' -> absent
+python - 搜 'commercehub-secure-data-capture.fiservapps.com' -> absent
+python - 搜 'api.sandbox.paypal.com' / 'checkout-page.omise.co' / 'nodecde1.paynamics.net' -> 全 absent
+python tools/metrics_report.py -> 套件 2214 · 陈旧度 0/0 · 函数数 174,336
+```
+
+### 七、仍然 Unknown
+
+- **Adyen / CommerceHub 的 `Id` 是否会被 `Resolve` 命中**：**未查**（下一步）。
+- 其余家次 host 是否需要接（取决于原版是否调 `TokenizeAsync` / `CompleteActionAsync`）。
+
+### 八、教训
+
+**「进了产物」要说到**哪一层**：类、方法、还是那一行。
+我在 R1002 说「9 个网关进了」，实际是「9 个网关的**一个方法**进了」。**
+
+**→ 两个记录都「对」，只是粒度不同 —— 而粗的那个听起来完成了更多。**

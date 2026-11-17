@@ -47,7 +47,7 @@
 | `AnalyticsView.OpenRelease` | 无 release 目录、无浏览器服务（**R465 未逐条核描述符表，仍记为待定**） |
 
 > **R465 整节订正**：这一节原来的意思是"三个来源都查过，成员不存在或无据"。但原版把编译期绑定描述符
-> 以可读串摊在字符串池里（`analysis/binding_descriptors.py`，215 类型 / 1,637 条），
+> 以可读串摊在字符串池里（`analysis/binding_descriptors.py`，类型数与条目数见 `docs/METRICS.md` 的「原版绑定描述符表」），
 > **是第四个来源，而且它比前三个都权威**：它是原版自己声明的绑定表。
 >
 > 用它核对的结果：`Platform` 那三个、`User.IsStaff`、`SettingsView.Transition`、`Store.ColorSupport/Elements`

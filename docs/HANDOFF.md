@@ -1,60 +1,65 @@
-# 交接（2026-11-16 20:40，R826 后）
+# 交接（2026-11-17 11:50，R978 后）
+
+> **这一节是「现在在哪」，给新会话第一步读。数字一律不写在这里** —— 唯一数字源是
+> `docs/METRICS.md`（`python tools/metrics_report.py` 生成）。下面写的是**该跑哪条命令**和**哪些结论已经立住**。
+> R978 刷新这一节：此前它停在 R826，比实际落后 152 轮，并且把一条只覆盖 5 行的检查结果写成了判据 (d) 的证据。
 
 ## 现在在哪
 
-- **轮次**：R826 已提交（`git log` 顶端应为 `drop the record helper` / `R826: NikeFlow reads structurally…`）。
-- **内存**：重启后 20.1 GB / 31.71 GB，**全量已复跑：1766 / 0**。
-- **IDA**：**已开启并就绪**（`health` = `status=ok / hexrays_ready=true`，13337 LISTENING）。
-- **套件**：最后一次确认绿是 R823（`DocsConsistencyTests` 7/7）。**R824–R826 未跑全量**（内存纪律）。
-  重启或内存回到 2 GB 以上后先跑一次 `python tools\metrics_report.py`，**期望 1766 / 0**。
-- **四项度量**（沿用 R820）：名字级 `real gap 4 / missing 16` · 类型级 `0` · 类型缺失 `17` · 形状 `78` · 文案 `0`。
+- **轮次**：R978 已提交，`git log` 顶端是 R978 那条。
+- **套件**：绿（数量见 `docs/METRICS.md` 的「完整套件」行）。
+- **IDA**：就绪时 `analysis/ida.py health` 返回 `status=ok` 且带 `idb_path` / `hexrays_ready`。
+- **度量项**：14 项，全在 `docs/METRICS.md` 摘要表里。**不要在别的文档里抄这些数。**
 
 ## 完成判据现状
 
-| 判据 | 状态 |
-|---|---|
-| (a) 类型级缺口 / 类型缺失 | **已分类完毕**：见 `docs/TYPE_PRESENCE_TRIAGE.md`（2 越界 · 7 改名 · 1 结构性 · 7 契约无判别力） |
-| (b) 文案 | **0**，无剩余 |
-| (c) 产物级对照 | **PASS** —— `python analysis\verify_artifact.py`：1142/1142 locale · 20/20 资源 · 12/12 叶子 |
-| (d) claim 表 | **PASS 规则** —— `python analysis\check_claims.py`：5 行，2 pass / 3 fail，全有 authority |
-| (e) 套件 / 变异 / 数字来源 | **待一次全量确认**（内存所限未跑）；数字全部出自 `docs/METRICS.md` |
-| (f) 核心覆盖表 | 风控已对账（R807）；站点复刻件→镜像已逐条（49/57 有据 · 6 零 · 2 仅噪音）；**镜像→复刻件未分类** |
+| 判据 | 状态 | 复算命令 |
+|---|---|---|
+| (a) 类型级缺口 / 类型缺失 | **类型级 0**。类型缺失按优先级切开：核心 **0**（5 个是改名，1 个已实现）；其余是 UI（YG 明令不急）。逐条见 `docs/TYPE_PRESENCE_TRIAGE.md` | `python tools/bind_scope.py`、`python tools/bind_diff.py --type-presence` |
+| (b) 文案 | **0**，无剩余 | `python tools/copy_audit_report.py` |
+| (c) 产物级对照 | **可复算**：函数数、可执行段体量、地址分桶三项都进了 `METRICS.md` | `python tools/func_count.py`、`python tools/pe_sections.py`、`python tools/pdata_sections.py` |
+| (d) claim 表 | **PASS，且 22 行全审**。R978 之前 `check_claims.py` 只审第一张表的 5 行就报 PASS | `python analysis/check_claims.py` |
+| (e) 套件 / 变异 / 数字来源 | 套件绿；变异用例见 `tools/mutation-check.py`；三份活文档（`GOAL` / `SESSION_STATE` / `DEVIATIONS`）无硬编码度量值 | `python tools/metrics_report.py`、`python tools/mutation-check.py` |
+| (f) 核心覆盖表 | store 与 vendor 两列都进了 `METRICS.md` | `python tools/core_coverage.py`、`python tools/vendor_coverage.py` |
 
 ## 未结案项（按价值排序）
 
-1. **`RefreshSession` 在镜像元数据里零匹配（R827）** → 方向看起来是删声明。**但 R828 补了一个限定：trimming 可能裁掉未使用的 `async` 方法名，所以这是 Inference 不是 Observation。**
-   `HandleBlock` 反过来：**镜像有、复刻件 0 匹配** —— 名字级缺口，且名字暗示「处理封锁」，**与优先级 ② 直接相关，值得单独一轮**。
-   `SetRequest` / `HandleResponse` 在镜像里有，调用点待反编译。
-2. **长度守卫（R826）**：`ScheelsFlow`（`body.Length > 200`）与 `BstnFlow`（`> 2000`）把「响应体短/空」也判成
-   `available=false`。**误报缺货 = 错过 drop，不可重来**，而它由与商品无关的量决定。
-   两种改法（明确失败 / 先看 `lastStatus` 判 `Blocked`）**都需要镜像证据**。
-3. **8 个未通读的可用性解析**（通读 12/20）：`Hbx` `Hybris` `Magento` `JohnLewis` `PopMart` `YeezySupply`
-   `Casio` `Shopify`。**其中还有几个用长度守卫？Unknown —— `BstnFlow` 是偶然撞见的。**
-4. **3 个忽略 `c.Url` 的流程**（`NikeFlow` / `PoqAppFlow` / `SuperswipeFlow`，与 `ModuleRobustnessTests`
-   例外名单一致）：**待判「忽略是对的还是遗漏」，判据在镜像里。** 工具：`analysis\scan_url_ignoring4.py`。
-5. **镜像→复刻件方向**：池子有 1182 个 `myshopify` 主机（**下界**），复刻件 33 个别名覆盖 30。
-   **未分类，成因写的是「未逐个取证」。**
+1. **函数数量缺口**：两侧的差是**两个大反向运动的净额**（分界线以下复刻件更多，以上为 0）。地址分桶**定位不了**它，
+   因为两镜像布局独立。**下一刀要按内容而不是按地址分** —— 这是目前最大的一条。
+2. **那 671 个 4 KB 以上的函数**（占执行段体量的大头，占总函数数 0.24%）：最大的反编译失败，
+   且它们互相引用。**已记 Unknown，不占轮次。**
+3. **34 个覆写步的逐店正确性**：每个都有 ≥1 覆写，但「Bstn 的 `GetCart` 是否等于原版的」未逐店核。
+   证据在天花板：方法名在产物里（UTF-8，179/179），方法体大部分被裁。
+4. **`HandleBlock`**：镜像有、复刻件零匹配，名字暗示「处理封锁」，**与优先级 ② 直接相关**。
+5. **长度守卫**（`ScheelsFlow` `body.Length > 200`、`BstnFlow` `> 2000`）：把「响应体短/空」也判成缺货。
+   **误报缺货 = 错过 drop**，两种改法都需要镜像证据。
+6. **8 个未通读的可用性解析**：`Hbx` `Hybris` `Magento` `JohnLewis` `PopMart` `YeezySupply` `Casio` `Shopify`。
+   其中还有几个用长度守卫 —— **Unknown**。
+7. **3 个忽略 `c.Url` 的流程**（`NikeFlow` / `PoqAppFlow` / `SuperswipeFlow`）：待判「忽略是对的还是遗漏」。
+8. **池 → 复刻件方向**：`myshopify` 主机数在池子里是**下界**，未逐个取证。
 
 ## 工具的可信边界（这一条最省时间）
 
 - **`analysis/pe_strings.txt` 是抽样**（180,228 行 vs 镜像 324,895 条串）。**正向可用、反向不可用** ——
   反向结论用 `python analysis\ida.py str <pat>`。见 `AGENTS.md` §2.7b。
 - **`ida.py str` 默认 `limit 40`**（已加 `--limit`），**插件侧还有约 500 条上限**。数数要写明是下界。
+- **产物的编码是两套**（R967）：**反射元数据（类型名、方法名）是 UTF-8**，**字符串字面量是 UTF-16LE**。
+  搜错编码会得到「全都不在」这种很确定的假答案。
+- **「方法名在产物里」与「方法体在产物里」是两件事**：元数据全在（179/179），体大部分被裁。
+- **`DynamicallyAccessedMembers` 对本产物没有可见影响**（R967/R968 两次确认）。
 - **判断「某方法是否被调用」不要用调用图扫描**：委派是**无接收者**调用（`=> FindProductAsync(c, ct)`），
-  `\w+\.名字` 一定漏。**用「裸名字总提及次数 = 1 ⇒ 只有声明 ⇒ 真死」这个判据。**（R824 两次扫描都错在这）
+  `\w+\.名字` 一定漏。
 - **按花括号或「最近前缀 class」定类边界都会错**（一文件多类 + 字符串里的 `{`）。
-  **可用做法**：缩进切类 + 截到下一个成员声明（`scan_url_ignoring4.py`）。
 - **文档守卫**：`DocsConsistencyTests` 扫 `replica/docs/VERDICT.md` 正文里所有「数字 + 个模块 / modules」，
-  要求全等于 63。**写记录时别把违规字符串抄进去** —— 引号复述等于又写一遍（这个坑踩过三次）。
-- **`Get-Content -Raw` 读 1.9 MB 的 `VERDICT.md` 会把中文比错**。判断文件内容**只看字节**
-  （`io.open(p, 'rb')` + `decode('utf-8')`）。
+  要求全等于 63。**写记录时别把违规字符串抄进去**。
+- **`Get-Content -Raw` 读 1.9 MB 的 `VERDICT.md` 会把中文比错**。判断文件内容**只看字节**。
+- **一个检查报 PASS 之前先问它审了多少行**（R978）：一个只覆盖 23% 的检查报 PASS 比没有更坏。
 
 ## 机器相关
 
-**内存不足导致重启过一次。** 重启后若 `available < 2GB` 只用 `-m:1`；`< 1GB` 停构建。
+**内存不足导致重启过一次。** `available < 2GB` 只用 `-m:1`；`< 1GB` 停构建。
 **IDA 若需重开**：后台跑 `powershell -File "D:\projects\vm2api\.dsh\scripts\ida-mcp-doctor.ps1" -Path <目标.i64>`，
 同时用 CUA 轮询点掉「请确认」类对话框，**判据是「再读一次没有框」**。
-**IDA 未开时不要硬做需要反编译的事** —— 本轮次两次因此挂起（R824、R826 的镜像侧问题）。
 
 ---
 
@@ -1903,3 +1908,29 @@ AddRange 只对新增键通知；Clear 空字典不发通知。
 纪律：覆盖 23% 的检查报 PASS，比没有检查更坏 —— 它的结论会被引用。
 
 下一轮：判据 (e) —— 套件绿、变异测试全 fired。先跑 mutation-check.py 看现状。
+
+## R979 补充 — **变异 33/36（1 装饰性 + 2 跳过）→ 判据 (e) 不满足；HANDOFF 头部已刷新**（套件 2200）
+
+`python tools/mutation-check.py` 实测 36 条：**33 fired / 1 装饰性 / 2 跳过**，restored GREEN。
+- **装饰性**：round 606 — 度量索引指向不存在的节，守卫 `EverySectionTheMetricIndexReferencesExists` 没红
+- **跳过**：round 164 — `PARITY.md` 模块数，锚点 `**62 个注册模块` 已不存在
+- **跳过**：round 623 — copy audit detail 循环，锚点那段循环已不存在
+
+→ **「跳过」比「装饰性」更隐蔽：那条变异根本没跑，不红不绿，而套件照样绿。**
+
+而 `HANDOFF.md` 头部停在 **R826**（落后 152 轮），写着套件 1766、类型缺失 17、形状 78，
+**并且把「`check_claims.py`：5 行」写成判据 (d) 满足的证据 —— 那正是 R978 修掉的缺陷**。
+→ 已刷新为指针 + 复算命令；历史 1,845 行原样保留。
+
+顺带两条：
+① `metrics_report.py` 的 `VERDICT_BY_FILE` 从 cwd 相对改成锚 `ROOT`（从仓库根跑时回退静默失效）
+② `DEVIATIONS.md` 的「1,637 条」改成指针（`descriptor entries` 现值 951）
+→ 修后活文档硬编码命中 **0 / 0 / 0 / 0**。
+
+新守卫 `HandoffHeadPointerTests`（2 用例）。
+
+数字：套件 2200 · 陈旧度 0/0 · 函数数 173,952 · 变异 33/36 · 活文档硬编码 0。
+
+纪律：一条变异没跑就不红不绿，而整套仍然绿 ——「全 fired」只有报了分母的来源敢说。
+
+下一轮：查 round 606 的守卫为何不红，以及 164 / 623 的锚点该换成什么。

@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 11:40:03 +0800 |
+| 生成时间 | 2026-11-17 11:54:38 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2198 通过 / 0 失败 / 0 跳过 / 2198 总计** |
+| 完整套件 | **2200 通过 / 0 失败 / 0 跳过 / 2200 总计** |
 
 ## 摘要素值
 
@@ -34,8 +34,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 173,952 |
 | 函数数量（.pdata） — functions: ratio | 62.77% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 12 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 7840 |
 | 核心覆盖：store 宿主 — hosts with a path | 39 |
 | 核心覆盖：store 宿主 — store hosts | 27 |
 | 核心覆盖：store 宿主 — store hosts matched | 27 |
@@ -363,10 +363,13 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 11:23:03
-newest source: src\Cybersole.Core\Helpers\ObservableDictionary.cs (2026-11-17 11:11:31)
-source files newer than the artifact: 0
-lines in those files: 0
-publish artifact state: current
+newest source: src\Cybersole.Stores\Flows\ShopifyFlow.cs (2026-11-17 11:50:04)
+source files newer than the artifact: 12
+lines in those files: 7840
+publish artifact state: stale
+
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -598,7 +601,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2198 通过 / 0 失败 / 0 跳过 / 2198 总计
+`exit 0` · 2200 通过 / 0 失败 / 0 跳过 / 2200 总计
 
 ```text
   正在确定要还原的项目…
@@ -615,7 +618,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2198，已跳过:     0，总计:  2198，持续时间: 1 m 38 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2200，已跳过:     0，总计:  2200，持续时间: 1 m 22 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

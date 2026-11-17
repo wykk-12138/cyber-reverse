@@ -220,7 +220,10 @@ def main(argv=None):
     # 0xC0000005). Its rows and file may or may not reach the buffer before that, so neither the exit code nor
     # stdout is a reliable verdict. What it *produces* is: if the target file was rewritten during the call, the
     # metric ran. That is the check.
-    VERDICT_BY_FILE = {"文案缺口总表": os.path.join("docs", "COPY_QUEUE.md")}
+    # R979: this used to be a path relative to whatever cwd the caller happened to have, so the fallback engaged from
+    # replica/ and silently did not from the repo root -- and the other scripts in this repo are documented to be run
+    # from both. A verdict path that depends on where you stand is not a verdict. It is now anchored to ROOT.
+    VERDICT_BY_FILE = {"文案缺口总表": os.path.join(ROOT, "docs", "COPY_QUEUE.md")}
     for title, script_args, owned in METRICS:
         watched = VERDICT_BY_FILE.get(title)
         before = os.path.getmtime(watched) if watched and os.path.exists(watched) else None

@@ -7613,3 +7613,89 @@ python analysisudit_claims.py → claims parsed: 22 (authority=unknown: 9)
 > **如果我一开始就按规则 `where_is` 查一次，我会看到同一行 `claim rows: 5`，
 > **而很可能不觉得那有问题** —— 因为我要找的是「有没有这个检查」，不是「这个检查对不对」。
 > 所以这一轮的运气在于：我多看了一眼一个我本来只打算复制的文件。**
+
+
+### 变异套件**没有全 fired**，而 `HANDOFF.md` 的头部落后 152 轮（R979）
+
+**判据 (e)：套件绿、**变异测试全 fired**、文档数字全来自 METRICS.md。这一轮把三句都实测了一遍。**
+
+### ① 变异：36 条里 **33 fired / 1 装饰性 / 2 跳过**
+
+```
+running 36 of 36 mutations
+guard fired                                 ×33
+GUARD IS DECORATIVE — tests stayed green    round 606 -- the metric index points at a section that does not exist
+SKIPPED — anchor not found                  round 164 -- PARITY.md's module count drifts
+SKIPPED — anchor not found                  round 623 -- the copy audit's detail loop goes back to the old predicate
+restored tree: GREEN   （2215 通过 / 0 失败 / 2 跳过）
+```
+
+> **所以「变异测试全 fired」**不满足** —— 一条守卫是装饰性的，两条的锚点在源码里已经找不到了。**
+> **而「跳过」比「装饰性」更隐蔽：那条变异**根本没跑**，所以它既不会红也不会绿，
+> 而套件照样绿。** 一个不跑的检查和一个通过的检查在日志里长得一样。**
+
+### ② 三处具体的洞
+
+| 变异 | 状态 | 意思 |
+|---|---|---|
+| round 606 — 度量索引指向不存在的节 | **装饰性** | 把 `METRIC_CLAIMS.md` 的索引改坏，守卫 `EverySectionTheMetricIndexReferencesExists` **没红** |
+| round 164 — `PARITY.md` 的模块数漂移 | **跳过** | 锚点 `**62 个注册模块` 在文档里已不存在 |
+| round 623 — copy audit 的 detail 循环回到旧判据 | **跳过** | 锚点那段循环在 `copy_audit_report.py` 里已不存在 |
+
+**同一条 round 164 的**UI 数**变异仍然 fired —— 所以不是整条坏了，是**那一条锚点**坏了。**
+
+### ③ `HANDOFF.md` 的头部停在 **R826** —— 落后 152 轮
+
+**那是每轮**第一读**的块。而它当时写着：**
+
+| 它写的 | 而 METRICS 现在是 |
+|---|---|
+| 套件 `1766 / 0` | 见 METRICS |
+| 类型缺失 `17` | 见 METRICS |
+| 形状 `78` | 见 METRICS |
+| **(d) claim 表 PASS —— `check_claims.py`：5 行，2 pass / 3 fail** | **那个「5 行」正是 R978 修掉的缺陷** |
+
+> **最坏的一行是最后那行：它把「只审 5 行」当成判据 (d) 满足的证据写在了交接里。
+> 而 R978 发现的那个缺陷，其实**早就被记录在这份交接文档里** —— 只是记成了一个通过。**
+> **一个活的块装死数字，比没有块更坏，因为它被第一读、被相信。**
+
+**已刷新：头部改成指针 + 复算命令，历史 1,845 行原样保留。**
+
+### ④ 顺带修掉两条「数字不是来自 METRICS」
+
+**① `metrics_report.py` 的 `VERDICT_BY_FILE` 原来是 **cwd 相对路径**：**
+
+```
+从 replica/ 跑:    replica/docs/COPY_QUEUE.md 存在 = True
+从仓库根跑:        docs/COPY_QUEUE.md 存在 = False   <- 回退判定静默失效
+```
+
+**那个回退是给一个会在解释器关闭时崩溃的脚本兜底的 —— 而它取决于你站在哪。改成锚到 `ROOT`。**
+
+**② `DEVIATIONS.md` L50 硬编码「215 类型 / **1,637 条**」，而 `descriptor entries` 现在是 951。
+改成指针。**
+
+**修后只看活文档（`GOAL` / `SESSION_STATE` / `DEVIATIONS` / `HANDOFF` 头部）：硬编码命中 **0 / 0 / 0 / 0**。**
+
+### ⑤ 新守卫
+
+**`HandoffHeadPointerTests`（2 用例）：头部必须提到 `METRICS.md`；头部不得复述任何当前度量值
+（同一行有指针除外）。**数字边界用 `(?<![0-9A-Za-z_,])` —— 否则 `R951` 会被读成 951。**
+
+### 数字
+
+| 度量 | R978 | **R979** |
+|---|---|---|
+| 套件 | 2198 | **2200** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **变异 fired / 总** | 未测 | **33 / 36** |
+| **装饰性** | 未测 | **1** |
+| **跳过** | 未测 | **2** |
+| **活文档硬编码** | DEVIATIONS 1 处 | **0** |
+
+### 教训
+
+> **「跳过」是这一轮最值钱的发现。一条变异没跑，它就不红不绿，而整套仍然绿。
+> 所以「全 fired」这句话只有一个来源敢说：**分母也报了**的那个。**
+> **而 R978 和 R979 是同一件事的两面：一个检查审 5 行、一条变异没跑 —— 两者都在报通过。**

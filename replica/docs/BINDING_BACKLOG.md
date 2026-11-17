@@ -7300,3 +7300,44 @@ criterion (d) by its own stated rule: PASS
 | `DELIVERY_STATUS.md` 那条证据的历史成因 | 未追（只知是旧版输出） |
 
 **纪律**：覆盖 23% 的检查报 PASS，比没有检查更坏 —— 它的结论会被引用。
+
+
+## 判据 (e) — **变异 33/36（1 装饰性 + 2 跳过）；HANDOFF 头部已刷新；活文档硬编码 0**（R979）
+
+### 变异实测
+
+```
+running 36 of 36 mutations
+guard fired ×33
+GUARD IS DECORATIVE    round 606 -- the metric index points at a section that does not exist
+SKIPPED (anchor gone)  round 164 -- PARITY.md's module count drifts
+SKIPPED (anchor gone)  round 623 -- the copy audit's detail loop goes back to the old predicate
+restored tree: GREEN
+```
+
+**→ 「变异测试全 fired」**不满足**。三处：round 606 守卫装饰性；round 164 / 623 锚点已不存在。**
+
+### HANDOFF 头部
+
+**停在 R826（落后 152 轮），且把「`check_claims.py`：5 行」写成判据 (d) 满足的证据 ——
+那个 5 行正是 R978 修掉的缺陷。已刷新为指针 + 复算命令；历史 1,845 行保留。**
+
+### 两条数字来源
+
+**① `metrics_report.py` `VERDICT_BY_FILE` 改成锚 `ROOT`（原 cwd 相对 → 从仓库根跑静默失效）**
+**② `DEVIATIONS.md` 的「1,637 条」改成指针（现值 951）**
+
+### 新守卫
+
+**`HandoffHeadPointerTests`（2 用例）**
+
+### 数字
+
+**套件 2200 · 陈旧度 0/0 · 函数数 173,952 · 变异 33/36 · 活文档硬编码 0**
+
+| 仍 Unknown / 待办 | |
+|---|---|
+| round 606 守卫为何不红 | 未查（下一轮） |
+| round 164 / 623 的锚点该换成什么 | 未查 |
+
+**纪律**：一条变异没跑就不红不绿，而整套仍然绿 ——「全 fired」只有报了分母的来源敢说。

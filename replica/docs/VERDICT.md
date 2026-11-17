@@ -58048,3 +58048,75 @@ criterion (d) by its own stated rule: PASS
 > 如果我一开始就 `where_is` 查一次，我会看到同一行 `claim rows: 5`，**而很可能不觉得那有问题** ——
 > 因为我要找的是「有没有这个检查」，不是「这个检查对不对」。**
 > **所以运气在于：我多看了一眼一个本来只打算复制的文件。**
+
+
+---
+
+## 第 979 轮：变异套件没有全 fired；HANDOFF 头部落后 152 轮
+
+### ① 变异：36 条里 **33 fired / 1 装饰性 / 2 跳过**
+
+```
+running 36 of 36 mutations
+guard fired                                 ×33
+GUARD IS DECORATIVE — tests stayed green    round 606 -- the metric index points at a section that does not exist
+SKIPPED — anchor not found                  round 164 -- PARITY.md's module count drifts
+SKIPPED — anchor not found                  round 623 -- the copy audit's detail loop goes back to the old predicate
+restored tree: GREEN
+```
+
+> **判据 (e) 的「变异测试全 fired」**不满足**。
+> 而「跳过」比「装饰性」更隐蔽：那条变异**根本没跑**，不红不绿，套件照样绿。**
+
+### ② 三处具体的洞
+
+| 变异 | 状态 |
+|---|---|
+| round 606 — 度量索引指向不存在的节 | **装饰性**（守卫没红） |
+| round 164 — `PARITY.md` 模块数漂移 | **跳过**（锚点 `**62 个注册模块` 已不存在） |
+| round 623 — copy audit detail 循环回旧判据 | **跳过**（锚点循环已不存在） |
+
+**round 164 的**UI 数**变异仍然 fired → 不是整条坏，是**那条锚点**坏。**
+
+### ③ `HANDOFF.md` 头部停在 **R826**，落后 152 轮
+
+| 它当时写的 | 而现在是 |
+|---|---|
+| 套件 `1766 / 0` | 见 METRICS |
+| 类型缺失 `17` · 形状 `78` | 见 METRICS |
+| **(d) PASS —— `check_claims.py`：5 行，2 pass / 3 fail** | **那正是 R978 修掉的缺陷** |
+
+> **最坏的是最后一行：它把「只审 5 行」当成判据 (d) 满足的证据写进了交接。
+> R978 发现的缺陷**早就被记录在这份文档里** —— 只是记成了一个通过。**
+> **一个活的块装死数字，比没有块更坏，因为它被第一读、被相信。**
+
+**已刷新：指针 + 复算命令；历史 1,845 行原样保留。**
+
+### ④ 顺带修掉两条「数字不是来自 METRICS」
+
+**① `metrics_report.py` 的 `VERDICT_BY_FILE` 是 cwd 相对路径 → 从仓库根跑时静默失效。改成锚到 `ROOT`。**
+**② `DEVIATIONS.md` L50 硬编码「1,637 条」，而 `descriptor entries` 现在是 951。改成指针。**
+
+**修后活文档硬编码命中 **0 / 0 / 0 / 0**。**
+
+### ⑤ 新守卫
+
+**`HandoffHeadPointerTests`（2 用例）：头部必须提到 `METRICS.md`；不得复述当前度量值。
+数字边界用 `(?<![0-9A-Za-z_,])` —— 否则 `R951` 会被读成 951。**
+
+### 数字
+
+| 度量 | R978 | **R979** |
+|---|---|---|
+| 套件 | 2198 | **2200** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **变异 fired / 总** | 未测 | **33 / 36** |
+| **装饰性 / 跳过** | 未测 | **1 / 2** |
+| **活文档硬编码** | 1 | **0** |
+
+### 教训
+
+> **「跳过」是这一轮最值钱的发现。一条变异没跑，它就不红不绿，而整套仍然绿。
+> 所以「全 fired」只有一个来源敢说：**分母也报了**的那个。**
+> **R978 和 R979 是同一件事的两面：一个检查审 5 行、一条变异没跑 —— 两者都在报通过。**

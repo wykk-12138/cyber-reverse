@@ -28,7 +28,9 @@ OUT = os.path.join(ROOT, "docs", "TYPE_COVERAGE.md")
 # "<ns>.Type,<asm>.<Member>!Getter", so the query is the type name with a comma after it.
 TYPES = [
     ("Cybersole.CaptchaProviders.CaptchaProvider", "Cybersole.Core/Settings/GlobalSettings.cs", "CaptchaProvider"),
-    ("Cybersole.Core.CloudflareSolverConfig", "Cybersole.Core/Settings/GlobalSettings.cs", "CloudflareSolverConfig"),
+    # R1056: the real name, found by reverse lookup on IsFetchingBalance and BalanceSupported rather than guessed. The
+    # namespace is Cybersole.CloudflareSolvers, the same shape as Cybersole.CaptchaProviders.
+    ("Cybersole.CloudflareSolvers.CloudflareSolver", "Cybersole.Core/Settings/GlobalSettings.cs", "CloudflareSolverConfig"),
 ]
 
 # Members the replica adds deliberately. A key is local bookkeeping; a flag that the list membership already expresses

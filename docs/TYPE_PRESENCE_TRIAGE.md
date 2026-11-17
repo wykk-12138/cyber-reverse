@@ -12,7 +12,7 @@
 
 | 类型（简单名） | 判定 | 证据 |
 |---|---|---|
-| `CloudflareSolver` | **RENAMED** | `CaptchaProvider` declares all 9 member(s) — sole declaration match |
+| `CloudflareSolver` | **RENAMED** | best match `CaptchaProvider` in GlobalSettings.cs — 9/9 (100%) |
 | `Settings` | **RENAMED** | `GlobalSettings` declares all 34 member(s) — sole declaration match |
 | `Concurrency` | **RENAMED** | `ConcurrencySettings` declares all 3 member(s) — sole declaration match |
 | `ImapProvider` | **RENAMED** | `ImapMailProvider` in ImapMailProvider.cs — 4/4 (100%) documented; its doc comment names ImapProvider |

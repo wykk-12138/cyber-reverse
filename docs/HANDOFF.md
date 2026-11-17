@@ -3902,3 +3902,60 @@ R815「按证据删除，删掉了证据本身」正是这个形状。
 | `TYPE_COVERAGE.md` | — | **2,675 字节** |
 
 **纪律**：同一个 `0` 可以是「齐了」也可以是「没查到」；修法是给它们各自的名字，不是把它们都当成好消息。
+
+
+## R1056 —— **反查名字 → 找到一个真缺口 → 补上 → (a) 类型级缺口真的成 0**
+
+### 反查：用成员名找拥有者
+
+```
+IsFetchingBalance n=10 · BalanceSupported n=8 · CloudflareSolver n=146
+→ Cybersole.CloudflareSolvers.CloudflareSolver,Cybersole.Core.Name!Getter
+```
+
+**真实名字 `Cybersole.CloudflareSolvers.CloudflareSolver`，与 `Cybersole.CaptchaProviders` **同构**。
+我上一轮猜的 `Cybersole.Core.CloudflareSolverConfig` 错在把命名空间猜成 Core。**
+
+### 而真名一用，假零变真缺口
+
+```
+R1055（假名）meta=0   orig=0  repl=8  missing=0  UNRESOLVED
+R1056（真名）meta=25  orig=9  repl=8  missing=1
+```
+
+**⇒ 上一轮那列 `resolved` 的价值在**这一轮**才显出来：它拒绝把 `orig=0` 读成好消息，
+于是才去查真名，而真名一用就露出缺口。**
+
+### 缺口 = `IsFetchingBalance`，而 R361 的注释说的正是这件事
+
+镜像 9 个属性，复刻件 8 个。R361 注释写「`CloudflareSolverConfig` **already had two** of them,
+`CaptchaProvider` **had none**」—— 而 `IsFetchingBalance` 只到了 `CaptchaProvider`。
+**⇒ 一条注释记的是**当时的判断**，字段数是**后来可算的**；不一致时可算的那个对。**
+
+### 修后
+
+```
+CaptchaProvider  orig=9 repl=11 missing=0 · CloudflareSolverConfig orig=9 repl=9 missing=0
+type-level gaps total: 0 (unresolved types: 0)
+```
+
+**两个零都是真的，且无未解类型 ⇒ 结论句不再需要限定词。**
+
+### 而我又破了自己的纪律一次
+
+`$t.Replace()` 里用 `\n` 当换行 —— 单引号里是**字面反斜杠 n** ⇒ 元组被注释掉，`TYPES` 少一个元素。
+**修法用 `edit` 工具。不用 PowerShell 做源码文本手术。**
+
+### 数字
+
+| 度量 | R1055 | **R1056** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 陈旧度 | 3 / 650 | **4 / 889** |
+| 函数数 | 174,293 | **174,293** |
+| `CloudflareSolverConfig` 原版侧 | 0（假零） | **9（真）** |
+| 其缺口 | 「0」（假） | **1 → 修后 0** |
+| 未解类型 | 1 | **0** |
+| 补的属性 | — | **1（`IsFetchingBalance`）** |
+
+**纪律**：「不把不知道写成零」的回报是滞后的 —— 它当时只让表难看，下一轮让人找对地方。

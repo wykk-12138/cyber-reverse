@@ -230,4 +230,10 @@ public sealed class CloudflareSolverConfig
     public int Count { get; set; }
     public int Concurrency { get; set; } = 10;
     public bool BalanceSupported { get; set; }
+
+    // R1056: found by tools/type_coverage.py, which reads the original's reflection metadata. The image's
+    // Cybersole.CloudflareSolvers.CloudflareSolver carries nine properties and this record had eight. R361 added the
+    // three fields the binding table names to both records, but IsFetchingBalance only reached CaptchaProvider -- so
+    // the two lists could not be shown the same way after all.
+    public bool IsFetchingBalance { get; set; }
 }

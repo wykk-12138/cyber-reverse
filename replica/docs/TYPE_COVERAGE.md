@@ -25,19 +25,23 @@
 
 **→ 缺口：无。** 镜像的每个属性在复刻件里都有。
 
-### `Cybersole.Core.CloudflareSolverConfig` ↔ `CloudflareSolverConfig`
+### `Cybersole.CloudflareSolvers.CloudflareSolver` ↔ `CloudflareSolverConfig`
 
-**→ Unknown：原版侧查询为空（元数据命中 0）。**
+| 度量 | 值 |
+|---|---|
+| 镜像元数据命中 | 25 |
+| 镜像属性 | **9** |
+| 复刻件属性 | **9** |
+| **镜像有而复刻件无** | **0** |
+| 复刻件自加 | 0 |
 
-**缺什么**：这个类型在镜像里的**真实名字**。`Cybersole.Core.CloudflareSolverConfig` 是本地猜的，而查询返回零 ⇒
-两种可能：名字不对，或该类型的属性 getter 全被内联掉而不出现在这个形状里。
-**→ 所以本行不计入缺口，也不计为已覆盖。**
+镜像属性：`ApiKey` · `Balance` · `BalanceSupported` · `Concurrency` · `Count` · `Id` · `IsFetchingBalance` · `Name` · `Type`
+
+**→ 缺口：无。** 镜像的每个属性在复刻件里都有。
 
 ## 二、结论
 
 **类型级缺口合计：0**（只计原版侧**查询成功**的类型）。
-
-**而 1 个类型的原版侧查询为空 ⇒ 记为 Unknown，不计入缺口：** `CloudflareSolverConfig`
 
 **→ 在**查询成功**的类型上，(a) 的缺口为 0**：镜像的每个属性在复刻件里都能找到。
 → 而「复刻件自加」的几个字段各有理由（本地主键、以及用列表成员表达镜像的 `EnabledProviders` 集合），

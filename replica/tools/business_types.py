@@ -42,15 +42,62 @@ def probe(pattern, limit=2000):
         return json.loads(m.group(0)) if m else {"n": 0, "matches": []}
 
 
+CAP = 500  # R1067: the plugin returns at most this many strings whatever limit is asked for.
+
+
+def sharded_types(prefix=",Cybersole.", alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ", depth=0):
+    """Every Cybersole type, by walking the prefix space until each shard comes back unsaturated.
+
+    R1068: one query cannot answer this. The plugin caps a reply at 500 strings, so a single Cybersole query returns
+    whichever five hundred happen to sort first. Sharding on a narrowing prefix fixes it and verifies itself -- a shard
+    that returns fewer than the cap was complete, and one that fills it gets split again. So the result is either the
+    whole set or the shards that could not be resolved, and the two are distinguishable.
+    """
+    types, saturated, queries = {}, [], 0
+    for letter in alphabet:
+        pattern = re.escape(prefix + letter) if depth == 0 else re.escape(prefix) + letter
+        d = probe(pattern, CAP)
+        queries += 1
+        hits = d.get("matches", [])
+        for hit in hits:
+            for m in SHAPE.finditer(hit.get("string", "")):
+                full, member = m.group(1), m.group(2)
+                if full.startswith("Cybersole."):
+                    types.setdefault(full, set()).add(member)
+        if len(hits) >= CAP:
+            saturated.append(prefix + letter)
+    return types, saturated, queries
+
+
+def grow(terms, alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ", depth=0):
+    """Split saturated shards until none is saturated, or the depth runs out."""
+    types, todo, queries = {}, list(terms), 0
+    pending = []
+    while todo and depth < 2:
+        next_round = []
+        for term in todo:
+            got, sat, q = sharded_types(term, alphabet, depth)
+            queries += q
+            for full, members in got.items():
+                types.setdefault(full, set()).update(members)
+            next_round.extend(sat)
+        todo = next_round
+        depth += 1
+    pending = todo
+    return types, pending, queries
+
+
 def original_types():
-    d = probe(r"Cybersole\.")
-    types = {}
-    for hit in d.get("matches", []):
-        for m in SHAPE.finditer(hit.get("string", "")):
-            full, member = m.group(1), m.group(2)
-            if full.startswith("Cybersole."):
-                types.setdefault(full, set()).add(member)
-    return types, d.get("n", -1)
+    top, saturated, queries = sharded_types()
+    if saturated:
+        deeper_letters = "abcdefghijklmnopqrstuvwxyz"
+        more, pending, q2 = grow(saturated, deeper_letters, 1)
+        for full, members in more.items():
+            top.setdefault(full, set()).update(members)
+        queries += q2
+        if pending:
+            print("  !! still saturated after two levels: %s" % ", ".join(pending[:8]))
+    return top, queries
 
 
 def replica_types():
@@ -118,7 +165,7 @@ def main():
     add("| 对照串 | 命中 |")
     add("|---|---|")
     add("| `%s` | **%d** |" % (CONTROL, control))
-    add("| `Cybersole\\.` 字符串命中 | **%d** |" % pool_hits)
+    add("| `Cybersole.` **分片查询次数** | **%d** |" % pool_hits)
     add("")
     add("**→ 对照%s。**" % ("成立" if control > 0 else "不成立，下方为零不可读"))
     add("")

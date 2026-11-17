@@ -63,9 +63,13 @@ public sealed class WallSolvingTests
         Assert.True(WallSolving.HasSolveFor("datadome"));
         Assert.Contains("SolveBotD", WallSolving.VendoredSolves);
 
-        // but the audit's state stays as it is: this workspace still lacks the protocol
-        Assert.Equal(VendorWiring.State.HostWithoutProtocol,
+        // R995: R141 kept the row off Wired deliberately -- Wired means detect, solve and store all exist, and the store
+        // side is unwritten -- and that intent is preserved here. What changed is the state's name, not its weight: the old
+        // value said the protocol does not exist, which contradicted this very correction, while the new one says the
+        // original solves it and the gap is ours. Still not Wired, for the same reason as before.
+        Assert.Equal(VendorWiring.State.OriginalSolvesProtocolUnrecorded,
             VendorWiring.For("datadome")!.State);
+        Assert.NotEqual(VendorWiring.State.Wired, VendorWiring.For("datadome")!.State);
 
         // the correction says exactly that, in both directions
         Assert.Contains("SolveBotD exists", WallSolving.DataDomeCorrection);

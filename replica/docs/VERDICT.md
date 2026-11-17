@@ -59168,3 +59168,91 @@ public const string AuditRule =
 > **`where_is` 查的是**名字**。「这件事有没有一张表」是另一种查法 ——
 > 而那张表可能早就把答案、原因分类、以及一句话总结都写好了。
 > 三轮的代价：我以为自己在发现，其实在重新发现。**
+
+
+---
+
+## 第 995 轮：DataDome 那行的名字错了，而 R141 的判断是对的
+
+### ① 镜像里的 DataDome 是一条完整的链
+
+```
+<GenerateSensor>d__11   <SubmitSensor>d__12   <GetSensorData>d__34
+sensorData(<datadomeCookie>5__2"<<SubmitCh>b__1>d
+https://api-sdk.datadome.co/sdk/   https://datadome.cybersole.io/sensor
+DataDomeKey · DataDomeChallenge · DatadomeSliderTask · datadome=
+Getting / Initialising / Solving / Submitting DataDome
+```
+
+> **所以「有 host 无协议」是错的：协议就在镜像里。而 `WallSolving.DataDomeCorrection`（R141）
+> 早就写了这句 —— 只是它没有可供 `VendorWiring` 用的词。**
+
+### ② 而那条测试**不是**在保护错误
+
+```csharp
+// but the audit's state stays as it is: this workspace still lacks the protocol
+Assert.Equal(VendorWiring.State.HostWithoutProtocol, VendorWiring.For("datadome")!.State);
+```
+
+> **R141 是**有意**让状态停在 `HostWithoutProtocol`：`Wired` 要求「检测→求解→**存回**」三件齐全，
+> 而存回我们没写。所以它的判断正确。
+> 错的是**名字** —— `HostWithoutProtocol` 说「协议不存在」，而实际是「协议在原版里、缺在我们的笔记里」。**
+
+### ③ 新增 state 而不是升成 Wired
+
+```csharp
+/// The original solves this vendor and this workspace has not written the call yet.
+OriginalSolvesProtocolUnrecorded,
+```
+
+**同时满足两边：不是 `Wired`（缺口仍在）· 不说「协议不存在」。**
+
+### ④ 而真正的新东西是一条**跨表**守卫
+
+**`TheTwoAuditsAgree`：`WallSolving.HasSolveFor(v)` 为真的厂商，在 `VendorWiring` 里不得是
+`HostWithoutProtocol` 或 `DetectedOnly`。**
+
+> **两张表在同一源码树里，各有测试，而没有一条能看见另一张。
+> 一张说「无协议」、另一张说「原版能解」，两个断言都绿 ——
+> 这正是 R978–R981 那三轮修的形态，只是这次不一致在**两张表之间**。**
+> **验过会红：改回 `HostWithoutProtocol` → 2 条失败，其中 `TheTwoAuditsAgree` **独立**红
+> （即使忘了改断言的期望值，它仍会红）。**
+
+### ⑤ 改了三处
+
+| 文件 | 改了什么 |
+|---|---|
+| `Scripts/VendorWiring.cs` | 新增 state；`datadome` 行改用它 + 新 note |
+| `tests/.../VendorWiringTests.cs` | 断言改用新 state；新增 `TheTwoAuditsAgree` |
+| `tests/.../WallSolvingTests.cs` | 断言改用新 state，并**保留**「不是 Wired」 |
+
+> **第三处最要紧：只改前两处会让 R141 的意图消失（缺口被读成已修）。**
+
+### ⑥ 判据 (f) 的 4 个缺口现在只剩 2 个缺证据
+
+| 墙 | 之前 | 现在 |
+|---|---|---|
+| imperva | 缺证据 | 缺证据 |
+| **datadome** | **「缺协议」** | **协议在镜像里；缺的是调用** |
+| perimeterx | 缺证据 | 缺证据 |
+| queue-it | 不是墙 | 不是墙 |
+
+**`Wired` 仍是 2 / 6 —— 这一个没动，因为**存回**那一步确实没写。**
+
+### 数字
+
+| 度量 | R994 | **R995** |
+|---|---|---|
+| 套件 | 2208 | **2209（+1 跨表守卫）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| 墙 Wired | 2 / 6 | **2 / 6（未变）** |
+| **墙的四状态** | 4 种 | **5 种** |
+| **跨表矛盾** | 1 | **0** |
+
+### 教训
+
+> **我上一轮说「一个测试在保护一个已被更正的错误」—— 那句是错的，而错的方式有教益：
+> 测试保护的**不是**错误结论，是**正确的**约束（缺口仍在），而它用了一个**会误导的名字**去表达它。
+> → 我差点把一条正确的守卫当成坏的改掉。这与 R980（守卫对象为空）同一课：
+> 一个看起来在阻碍你的守兵，可能正站在正确的位置上。**

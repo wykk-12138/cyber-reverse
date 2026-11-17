@@ -2259,3 +2259,30 @@ perimeterx DetectedOnly · queue-it NotAChallenge。**2/6 接通，4 个缺口�
 纪律：**`where_is` 查名字；「这件事有没有一张表」是另一种查法。**
 
 下一轮：按这张表做 — datadome 的协议（唯一「缺代码」的那一格），或 imperva / perimeterx 的 cookie 取证。
+
+## R995 补充 — **DataDome 协议在镜像里；新增第 5 个 state；+1 跨表守卫（验过会红）**（套件 2209）
+
+取证：镜像里 DataDome 是完整链 —— `<GenerateSensor>d__11` `<SubmitSensor>d__12` `<GetSensorData>d__34`、
+`https://datadome.cybersole.io/sensor`、`DataDomeKey`、`DatadomeSliderTask`、四阶段日志。
+→ **「有 host 无协议」是错的**；协议在镜像里，缺的是**存回调用**。
+
+**而我上一轮说「测试在保护一个已被更正的错误」—— 核查后只对一半**：`WallSolvingTests.cs:66` 的
+`HostWithoutProtocol` 是 R141 **有意**保持的（`Wired` 要求检测→求解→**存回**三件齐全，存回没写）。
+**错的是名字**：它说「协议不存在」，而实际是「协议在原版里、缺在我们的笔记里」。
+
+改三处：① `VendorWiring.cs` 新增 `State.OriginalSolvesProtocolUnrecorded` + datadome 行改用它
+② `VendorWiringTests.cs` 断言改用新 state + 新增 **`TheTwoAuditsAgree`**（跨表守卫）
+③ `WallSolvingTests.cs` 断言改用新 state，**保留** `Assert.NotEqual(Wired, …)` —— 这一条最要紧，
+只改前两处会让 R141 的意图消失。
+
+跨表守卫：`WallSolving.HasSolveFor(v)` 为真 → `VendorWiring` 不得是 `HostWithoutProtocol`/`DetectedOnly`。
+**验过会红**：改回 → 2 失败，其中跨表那条**独立**红。
+
+判据 (f) 的 4 个缺口：imperva 缺证据 · **datadome 缺存回调用（协议已知）** · perimeterx 缺证据 ·
+queue-it 等待策略。**`Wired` 仍 2/6 —— 未变。**
+
+数字：套件 2209（+1）· 陈旧度 0/0 · 函数数 173,952 · 墙 2/6 · 状态 5 种 · 跨表矛盾 0。
+
+纪律：**一个看起来在阻碍你的守兵，可能正站在正确的位置上。**
+
+下一轮：写 DataDome 的存回调用（协议已知：sensor 端点 + 三方法 + 四阶段），把它从 2/6 推到 3/6。

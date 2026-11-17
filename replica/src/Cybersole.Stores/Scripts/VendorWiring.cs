@@ -46,6 +46,18 @@ public static class VendorWiring
         DetectedOnly,
         /// <summary>Not a challenge at all — waiting is the correct handling.</summary>
         NotAChallenge,
+        /// <summary>
+        /// The original solves this vendor and this workspace has not written the call yet. R995 added this because the
+        /// four states above could not say it, and DataDome had been mislabelled as a result.
+        ///
+        /// <para>
+        /// The distinction from <see cref="HostWithoutProtocol"/> is one of attribution, and it is the whole point. That
+        /// state says the protocol does not exist. This one says the protocol exists in the image and the gap is in these
+        /// notes — which is what <see cref="WallSolving.DataDomeCorrection"/> recorded at R141 when it found
+        /// <c>SolveBotD</c>, DataDome's own challenge script, named by a method in the original.
+        /// </para>
+        /// </summary>
+        OriginalSolvesProtocolUnrecorded,
     }
 
     /// <summary>One row of the audit.</summary>
@@ -63,8 +75,12 @@ public static class VendorWiring
         new Row("imperva", "_Incapsula_Resource", null, State.DetectedOnly,
             "the image names no Imperva cookie and no Imperva host"),
 
-        new Row("datadome", "datadome", "datadome", State.HostWithoutProtocol,
-            "datadome.cybersole.io exists; the call's protocol does not"),
+        new Row("datadome", "datadome", "datadome", State.OriginalSolvesProtocolUnrecorded,
+            "R995 corrects this row. R141 already found SolveBotD -- DataDome's own challenge script, named by a method in "
+            + "the original -- and WallSolving.DataDomeCorrection records the consequence: the original does solve DataDome "
+            + "and the missing protocol is this workspace's gap. The image also names the whole chain: api-sdk.datadome.co/sdk/, "
+            + "datadome.cybersole.io/sensor, DataDomeKey, DatadomeSliderTask, and GenerateSensor / SubmitSensor / GetSensorData "
+            + "as three state machines. What is missing is the call, not the knowledge."),
 
         new Row("perimeterx", "px-captcha", null, State.DetectedOnly,
             "deliberately blank: a token header exists, no _px cookie does"),

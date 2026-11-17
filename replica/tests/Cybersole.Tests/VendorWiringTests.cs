@@ -47,7 +47,11 @@ public sealed class VendorWiringTests
     {
         Assert.Equal(new[] { "imperva", "datadome", "perimeterx", "queue-it" }, VendorWiring.Gaps);
 
-        Assert.Equal(VendorWiring.State.HostWithoutProtocol,
+        // R995: this row used to assert HostWithoutProtocol, which said the protocol does not exist. R141 had already
+        // established the opposite -- SolveBotD is named by a method in the original -- so the assertion was holding a
+        // conclusion the same repository had corrected. What differs now is the attribution: the protocol exists in the
+        // image and the gap is in this workspace's notes.
+        Assert.Equal(VendorWiring.State.OriginalSolvesProtocolUnrecorded,
             VendorWiring.For("datadome")!.State);
         Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("imperva")!.State);
         Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("perimeterx")!.State);
@@ -55,6 +59,31 @@ public sealed class VendorWiringTests
 
         // the kinds differ in what would unblock them
         Assert.NotEqual(VendorWiring.For("datadome")!.State, VendorWiring.For("queue-it")!.State);
+    }
+
+    /// <summary>
+    /// R995: the two audits in this repository must not contradict each other.
+    ///
+    /// <para>
+    /// VendorWiring said DataDome had a host and no protocol while WallSolving, in the same source tree, recorded that the
+    /// original does solve DataDome and only our notes were short. Both were written down, both had tests, and neither test
+    /// could see the other. A disagreement between two tables is invisible to a test that reads one table, so this one reads
+    /// both: any vendor WallSolving says the image has a solve method for may not be recorded as
+    /// <see cref="VendorWiring.State.HostWithoutProtocol"/> or <see cref="VendorWiring.State.DetectedOnly"/>.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void TheTwoAuditsAgree()
+    {
+        foreach (var row in VendorWiring.Rows)
+        {
+            if (!WallSolving.HasSolveFor(row.Vendor)) continue;
+
+            Assert.True(row.State is VendorWiring.State.Wired
+                    or VendorWiring.State.OriginalSolvesProtocolUnrecorded,
+                $"{row.Vendor} is recorded as {row.State} but WallSolving names a solve method for it, so the original does "
+                + "solve it and the missing piece is the call rather than the knowledge. The two audits contradict each other.");
+        }
     }
 
     /// <summary>The audit's cookie column agrees with the protocol table.</summary>

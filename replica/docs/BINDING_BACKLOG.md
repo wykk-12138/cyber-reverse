@@ -7887,3 +7887,51 @@ GetAuthTokenAsync  → => GetTokenAsync    // 「Acquire an authorisation token 
 | imperva / perimeterx 在镜像里的 cookie 家族 | 未取证 |
 
 **纪律**：`where_is` 查名字；「这件事有没有一张表」是另一种查法。
+
+
+## 优先级 ② — **DataDome：协议在镜像里；新增 `OriginalSolvesProtocolUnrecorded`；+1 跨表守卫**（R995）
+
+### 取证
+
+```
+<GenerateSensor>d__11  <SubmitSensor>d__12  <GetSensorData>d__34
+https://datadome.cybersole.io/sensor   https://api-sdk.datadome.co/sdk/
+DataDomeKey · DataDomeChallenge · DatadomeSliderTask
+Getting / Initialising / Solving / Submitting DataDome
+```
+
+**→ 「有 host 无协议」错：协议在镜像里，缺的是**存回调用**。**
+
+### 改了三处
+
+1. `Scripts/VendorWiring.cs` — 新增 `State.OriginalSolvesProtocolUnrecorded`；`datadome` 行改用它 + 新 note
+2. `VendorWiringTests.cs` — 断言改用新 state；新增 **`TheTwoAuditsAgree`**（跨表守卫）
+3. `WallSolvingTests.cs` — 断言改用新 state，**保留** `Assert.NotEqual(Wired, …)`
+
+**第三处最要紧：只改前两处会让 R141 的意图消失（缺口被读成已修）。**
+
+### 跨表守卫
+
+**`WallSolving.HasSolveFor(v)` 为真 → `VendorWiring` 里不得是 `HostWithoutProtocol` / `DetectedOnly`。**
+**验过会红：改回 → 2 失败，其中跨表那条**独立**红。**
+
+### 判据 (f) 的 4 个缺口
+
+| 墙 | 缺什么 |
+|---|---|
+| imperva | **证据** |
+| **datadome** | **存回调用**（协议已知） |
+| perimeterx | **证据** |
+| queue-it | 等待策略（不是墙） |
+
+**`Wired` 仍 2/6 —— 未变，因为存回确实没写。**
+
+### 数字
+
+**套件 2209（+1）· 陈旧度 0/0 · 函数数 173,952 · 墙 2/6 · 状态 5 种 · 跨表矛盾 0**
+
+| 仍 Unknown | |
+|---|---|
+| imperva / perimeterx 在镜像里的 cookie 家族 | 未取证 |
+
+**纪律**：一个看起来在阻碍你的守兵，可能正站在正确的位置上。

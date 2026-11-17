@@ -6621,3 +6621,31 @@ post 委托按网关声明的 `Func<...>` 形状构造；无网关时保持 `Not
 | `ValidateBuyRule` 的 body 形状 | 只知道要 POST |
 
 **纪律**：残留比崩溃活得更久、更像真错误。
+
+
+## 优先级 ② — Queue-it 协议（R959，**+18 用例**）
+
+### 证据
+
+**字段列表：`QueueHostMarkers` · `AcceptedCookiePrefix` = `QueueITAccepted-SDFrts345E-V3_` ·
+`CookieValiditySeconds` · `MinRemainingSeconds`**
+**文案：五条，其中 `Initiliazing Queue-it` **拼错照留****
+**handler 三种拼写：`QueueItHandler` / `queueItHandler` / `_queueItHandler`**
+
+### `Scripts/QueueItProtocol.cs`
+
+**`HostSuffix` · `WaitingRoomPrefix` · `AcceptedCookiePrefix` · `Messages` · `HandlerNames` ·
+`IsQueueHost` · `CookieName` · `IsAcceptedCookie` · `IsUsable`（剩余时间）· `Verdict`（status+pass）· `Describe`**
+**+ `QueueVerdict` 枚举（Waiting/Passed/Banned/RetryLater/Failed）**
+
+### 数字
+
+**套件 2129 → 2147 · 陈旧度 1 文件 / 119 行 · 函数数 173,866（未变）**
+
+| 仍 Unknown | |
+|---|---|
+| `CookieValiditySeconds` 的实际数值 | 只有字段名 |
+| 排队页的轮询间隔 | 未取证 |
+| `Softblock` 与硬封的区别 | 只有两条文案 |
+
+**纪律**：一个线索的价值取决于它离行为有多近。

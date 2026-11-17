@@ -6212,3 +6212,68 @@ d__173 RpcCreateAddress      d__178 RpcSubmitCard
 > 而拿到的是一条更强的：那个二进制**不给名字**，所以「按名字反编译」整个方法在这个目标上不成立。**
 > **而这一条比一次成功的反编译值钱 —— 它关掉了一条我会反复尝试的路，
 > 同时把注意力推到唯一能用的东西上：**连号描述符里的顺序**。**
+
+
+### Queue-it 是从**一个类的字段列表**里读出来的（R959）
+
+**R958 之后转优先级 ②。而 IDA 断过一次（重启后没开），三个框走完才就绪 —— 而就绪之后拿到的证据出乎意料地实。**
+
+### 一段字段列表，不是名字
+
+```
+QueueHostMarkers(AcceptedCookiePrefix<QueueITAccepted-SDFrts345E-V3_*CookieValiditySecondsa<MinRemainingSecond
+```
+
+**那一条串里是一个类的**完整字段清单**：**
+
+| 字段 | 值 |
+|---|---|
+| `QueueHostMarkers` | 判定这是不是 Queue-it 表面 |
+| `AcceptedCookiePrefix` | **`QueueITAccepted-SDFrts345E-V3_`** |
+| `CookieValiditySeconds` | 通行证有效期 |
+| `MinRemainingSeconds` | 通行证**至少还要剩多久才算可用** |
+
+> **那个前缀里的 `SDFrts345E` 是一个**哈希**，是 cookie 名字的一部分 —— 不是占位符。
+> 所以它逐字保留，不做归一化。****
+
+### 而 `MinRemainingSeconds` 这个字段说明了为什么要提前几秒判废
+
+**一个剩余有效期为几秒的通行证比没有更糟：**
+**它授权的那个请求会在**排队已经离开之后**才被拒。**
+
+> **所以那个判断不是「它有效吗」，是「它有效到**够跑完**吗」。
+> 而复刻件如果只判前者，会在最难恢复的位置失败。****
+
+### 而五条控制流文案里有一条**拼错了**
+
+```
+Fetching Queue-it challenge
+Initiliazing Queue-it                 <- 镜像自己拼错（Initiliazing）
+Error Initiliazing Queue-it (Softblock)
+Error Solving Queue-it (Softblock)
+Queue-IT banned, rotating proxy
+```
+
+> **而拼错的这条**照原样保留**。
+> 一个「把拼写改对」的复刻件，日志就不再和原版一样了 —— 而这种差异在某天对日志时是最难查的。****
+
+### 而一个状态可以有两种意思，所以判定要两样东西
+
+**200 加一个通行证 = 通过；200 没有通行证 = **还在排队**。同一个状态码。**
+
+**所以 `Verdict(status, hasPass)` 收两样，而不是只看 status。**
+
+### 数字
+
+| 度量 | R958 | **R959** |
+|---|---|---|
+| 套件 | 2129 | **2147** |
+| 产物陈旧度 | 0 / 0 | **1 文件 / 119 行（需重发）** |
+| 函数数 | 173,866 | **173,866（未变 —— 全是 const 与小静态方法且无人调用）** |
+
+### 教训
+
+> **这一轮最实的一条不是「Queue-it 存在」，是那个**字段列表**。
+> 名字告诉你有一家厂商；字段列表告诉你**它怎么判、判什么、以及为什么不能等到零**。**
+> **而一个线索的价值，取决于它离**行为**有多近。`Queue-it` 这个词离行为很远，
+> `MinRemainingSeconds` 就在行为里。**

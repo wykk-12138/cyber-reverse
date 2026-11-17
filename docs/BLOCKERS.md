@@ -28433,3 +28433,60 @@ metrics_report.py                        -> 2129 通过 / 0 失败
 **想要的证据没拿到，拿到的是一条更硬的：这个二进制不给名字。**
 
 **那比一次成功反编译值钱 —— 它关掉了一条我会反复尝试的路。**
+
+
+---
+
+## 383. Queue-it 协议：从字段列表读出判定条件
+
+> R959。**改产品代码 +18 用例。** 套件 **2147 通过 / 0 失败 / 0 跳过**。
+
+### 一、证据是一段字段列表
+
+```
+QueueHostMarkers(AcceptedCookiePrefix<QueueITAccepted-SDFrts345E-V3_*CookieValiditySecondsa<MinRemainingSecond
+```
+
+**`QueueHostMarkers` · `AcceptedCookiePrefix`（含哈希）· `CookieValiditySeconds` · `MinRemainingSeconds`**
+
+### 二、`MinRemainingSeconds` 是那个要紧的字段
+
+**剩余几秒的通行证比没有更糟：它授权的请求会在排队已离开之后被拒。
+所以判据是「有效到够跑完吗」，不是「有效吗」。**
+
+### 三、五条文案，一条拼错
+
+**`Initiliazing Queue-it` —— 镜像拼错，**照原样保留**。改对拼写的复刻件日志就不再和原版一样。**
+
+### 四、一个状态两种意思
+
+**200 + 通行证 = 通过；200 无通行证 = 还在排队 → `Verdict(status, hasPass)`。**
+
+### 五、数字
+
+| 度量 | R958 | R959 |
+|---|---|---|
+| 套件 | 2129 | **2147** |
+| 产物陈旧度 | 0 / 0 | **1 / 119** |
+| 函数数 | 173,866 | **173,866** |
+
+### 六、验证
+
+```
+analysis/ida.py str queueit   -> QueueHostMarkers / AcceptedCookiePrefix / CookieValiditySeconds / MinRemainingSeconds
+analysis/ida.py str queue-it  -> 五条文案（含拼错的 Initiliazing）
+test --filter QueueItProtocolTests -> 18 通过
+metrics_report.py                  -> 2147 通过 / 0 失败
+```
+
+### 七、仍然 Unknown
+
+- **`CookieValiditySeconds` 的实际数值**：**Unknown** —— 只有字段名。
+- **排队页的轮询间隔**：**Unknown** —— 未取证。
+- **`Softblock` 与硬封的区别**：**Unknown** —— 只有两条文案。
+
+### 八、教训
+
+**名字告诉你有一家厂商；字段列表告诉你它怎么判、判什么、为什么不能等到零。**
+
+**一个线索的价值取决于它离行为有多近。**

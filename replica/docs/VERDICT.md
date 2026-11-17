@@ -56872,3 +56872,52 @@ never to delete the assertion」。`implementable` 仍是 8（三个新名不在
 > **想要的证据没拿到，而拿到的是「这个二进制不给名字，按名字反编译整个方法不成立」——
 > 那比一次成功反编译值钱：它关掉了一条我会反复尝试的路，
 > 同时把注意力推到唯一能用的东西上：连号描述符里的顺序。**
+
+
+---
+
+## 第 959 轮：Queue-it 是从一个类的字段列表里读出来的
+
+### 一段字段列表，不是名字
+
+```
+QueueHostMarkers(AcceptedCookiePrefix<QueueITAccepted-SDFrts345E-V3_*CookieValiditySecondsa<MinRemainingSecond
+```
+
+| 字段 | 值 |
+|---|---|
+| `QueueHostMarkers` | 判定是不是 Queue-it 表面 |
+| `AcceptedCookiePrefix` | **`QueueITAccepted-SDFrts345E-V3_`** |
+| `CookieValiditySeconds` | 通行证有效期 |
+| `MinRemainingSeconds` | **至少还要剩多久才算可用** |
+
+> **`SDFrts345E` 是 cookie 名字里的**哈希**，不是占位符 → 逐字保留。**
+
+### 而 `MinRemainingSeconds` 说明了为什么不能等到零
+
+**剩余几秒的通行证比没有更糟：它授权的请求会在**排队已经离开之后**才被拒。**
+
+> **所以判断不是「它有效吗」，是「它有效到**够跑完**吗」。**
+
+### 五条文案里有一条**拼错了**
+
+**`Initiliazing Queue-it`（镜像自己拼错）→ **照原样保留**。**
+**「把拼写改对」的复刻件，日志就不再和原版一样 —— 而那种差异对日志时最难查。**
+
+### 一个状态两种意思
+
+**200 + 通行证 = 通过；200 无通行证 = **还在排队**。→ `Verdict(status, hasPass)` 收两样。**
+
+### 数字
+
+| 度量 | R958 | **R959** |
+|---|---|---|
+| 套件 | 2129 | **2147** |
+| 产物陈旧度 | 0 / 0 | **1 文件 / 119 行** |
+| 函数数 | 173,866 | **173,866（未变）** |
+
+### 教训
+
+> **最实的不是「Queue-it 存在」，是那个**字段列表**。
+> 名字告诉你有一家厂商；字段列表告诉你**它怎么判、判什么、为什么不能等到零**。
+> **一个线索的价值取决于它离行为有多近 —— `Queue-it` 离得很远，`MinRemainingSeconds` 就在行为里。**

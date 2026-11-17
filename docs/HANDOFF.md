@@ -1486,3 +1486,18 @@ IsWalletOnly 同时查 applepay 与 apple_pay。
 纪律：残留比崩溃活得更久、更像真错误。
 
 下一轮：10 个 RPC 的参数/返回形状（按名字不可达，需别的路径）；或转优先级 ②（风控对抗）。
+
+## R959 补充 — Queue-it 协议：从字段列表读出判定条件（+18 用例，套件 2147）
+
+证据是一段字段列表：QueueHostMarkers · AcceptedCookiePrefix = `QueueITAccepted-SDFrts345E-V3_`（含哈希）· CookieValiditySeconds · MinRemainingSeconds。
+
+MinRemainingSeconds 是要紧的那个：剩余几秒的通行证比没有更糟（授权的请求会在排队已离开之后被拒）→ 判据是「有效到够跑完吗」。
+
+五条文案一条拼错：`Initiliazing Queue-it` → 照原样保留（改对拼写日志就不再和原版一样）。
+一个状态两种意思：200+通行证=通过、200无通行证=还在排队 → Verdict(status, hasPass)。
+
+数字：套件 2129 → 2147 · 陈旧度 1 文件 / 119 行（需重发）· 函数数 173,866（未变）。
+
+纪律：一个线索的价值取决于它离行为有多近。
+
+下一轮：重发消除陈旧度；或查 CookieValiditySeconds 的实际数值与排队轮询间隔。

@@ -23770,3 +23770,76 @@ analysis/ida.py dec 0x14117C4E0   -> Decompilation failed
 **我把一个解释中间量的东西当成了优先项，而它对我真正要的数的贡献是 0.24%。**
 
 **一个指标被解释清楚，不等于那个解释值得追。**
+
+
+---
+
+## 398. **判据 (a) 分类结案：类型级 0；16 缺失 = 6 核心 / 9 UI / 1 未读**
+
+> R974。**只读数字源，未改代码。** 套件 **2186 通过 / 0 失败 / 0 跳过**。
+
+### 一、四个数（`docs/METRICS.md`）
+
+| 指标 | 值 |
+|---|---|
+| 名字级绑定缺口 — real gap | **4** |
+| 名字级 — missing | 16（12 是 `HasMultiple_NN` 噪声） |
+| **类型级 — types with scope misses** | **0** |
+| 类型缺失 — absent from source | **16** |
+
+### 二、4 条 real gap 全在 UI
+
+```
+Ui.Localization.LocalizeFormatExtension    1  Value2
+Ui.Localization.LocalizeSwitchExtension    1  Condition
+Ui.Views.Auth.AuthWindow                   1  Logout
+Ui.Views.Auth.LicenseControl               1  Authenticate
+```
+
+**YG 明令「ui先不急着复刻」→ 对核心优先级是**零**，该分类结案。**
+
+### 三、16 个缺失类型分三类
+
+| 类 | 数 | 类型 |
+|---|---|---|
+| **核心** | **6** | `Global.Settings`(34) · `CloudflareSolvers.CloudflareSolver`(9) · `Services.ImapProvider`(4) · `Models.Concurrency`(3) · `SmartActions.ActionConfig`(2) · `Helpers.ObservableDictionary\`2`(1) |
+| **UI** | **9** | `Ui.Localization.*` 四个 + `AccountsCreatorView` + `AuthWindow` + 三个同前缀 |
+| **其他** | **1** | 输出截断，未读到名字 |
+
+### 四、结论
+
+**判据 a 第一半（类型级缺口 → 0）已满足。
+第二半（类型缺失）→ 6 核心未开工（有成员清单，补起来确定）+ 9 UI（不急）+ 1 未读。**
+
+**而一个未核的可能：`Global.Settings` 34 成员，复刻件配置类存在只是**改名** →
+若成立则属于「命名可不同」，不算缺口。**未逐条核 → Unknown。****
+
+### 五、数字
+
+| 度量 | R973 | R974 |
+|---|---|---|
+| 套件 | 2186 | **2186** |
+| 函数数 | 173,952 | **173,952** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **类型级 scope misses** | — | **0** |
+| **类型缺失** | — | **16（6 / 9 / 1）** |
+| **名字级 real gap** | — | **4（全 UI）** |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse
+python -c "读 docs/METRICS.md 摘要表"
+  -> real gap 4 / missing 16 / scope misses 0 / absent 16
+bind_diff.py --type-presence -> 16 个 ABSENT 逐条列出
+```
+
+### 七、仍然 Unknown
+
+- **那 6 个核心类型里有几个只是改名**：**Unknown** —— 未逐条核。**这是下一轮该做的。**
+- **第 16 个缺失类型是什么**：**Unknown** —— 输出截断。
+
+### 八、教训
+
+**按优先级切开一个数字，比反复报那个数字有用。
+那个 16 一直挂着，因为从没按优先级切过 —— 切开之后 9 个属于 YG 说不急的那一层。**

@@ -1795,3 +1795,26 @@ body 串抽样 5 个：`bstn: cart endpoint unknown` **True**，其余 4 个 Fal
 纪律：**一个指标被解释清楚，不等于那个解释值得追。**
 
 下一轮：回到函数数本身 —— 173,952 / 277,120 的差在哪一类函数（用 IDA 的 af 清单按 ordinal/类分组）。
+
+## R974 补充 — **判据 (a) 分类结案：类型级 0；16 缺失 = 6 核心 / 9 UI / 1 未读**（套件 2186）
+
+读 `docs/METRICS.md`（唯一数字源）判据 (a) 四个数：
+**real gap 4**（全 `Ui.*`）· missing 16（12 噪声）· **类型级 scope misses 0** · **类型缺失 16**。
+
+**4 条 real gap 全在 UI 层**：`Ui.Localization.LocalizeFormatExtension`(Value2) · `LocalizeSwitchExtension`(Condition) · `Ui.Views.Auth.AuthWindow`(Logout) · `LicenseControl`(Authenticate)
+→ YG 明令 ui 不急 → 对核心优先级**零**，该**分类结案**。
+
+**16 个缺失分三类**：
+- **核心 6**：`Global.Settings`(34) · `CloudflareSolvers.CloudflareSolver`(9) · `Services.ImapProvider`(4) ·
+  `Models.Concurrency`(3) · `SmartActions.ActionConfig`(2) · `Helpers.ObservableDictionary`2`(1)
+- **UI 9**：`Ui.Localization.*` 四个 + `AccountsCreatorView` + `AuthWindow` + 三个同前缀
+- **未读 1**：输出截断
+
+→ 判据 a 第一半（类型级缺口 → 0）**已满足**；第二半 6 核心**未开工**（有成员清单，补起来确定）。
+→ 而一个未核的可能：`Global.Settings` 34 成员，复刻件配置类存在只是**改名** → 若成立属「命名可不同」，不算缺口。
+
+数字：套件 2186 · 函数数 173,952 · 陈旧度 0/0。
+
+纪律：按优先级切开一个数字，比反复报那个数字有用。
+
+下一轮：核那 6 个核心类型里有几个只是改名（`where_is.py` 逐个查）。

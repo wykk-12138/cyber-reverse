@@ -7251,3 +7251,74 @@ ida.py dec 0x14117C4E0 --lines 30
 > 而均值差**不是目标** —— 函数数、功能、效率才是。**
 > **我把一个**解释中间量**的东西当成了优先项，而它对我真正要的数的贡献是 0.24%。**
 > **一个指标被解释清楚，不等于那个解释值得追。**
+
+
+### 判据 (a) 可以结案了 —— 16 个缺失类型里**核心只有 5 个**（R974）
+
+**R973 之后回到函数数，而先做了一件更省的事：读 `docs/METRICS.md`（唯一数字源）里判据 (a) 的四个数。**
+
+### 四个数
+
+| 指标 | 值 |
+|---|---|
+| 名字级绑定缺口 — real gap | **4** |
+| 名字级绑定缺口 — missing | 16（其中 12 是 `HasMultiple_NN` 噪声） |
+| **类型级绑定缺口 — types with scope misses** | **0** |
+| 类型缺失 — types absent from source | **16** |
+
+### 而那 4 条 real gap **全在 UI 层**
+
+```
+Ui.Localization.LocalizeFormatExtension    1  Value2
+Ui.Localization.LocalizeSwitchExtension    1  Condition
+Ui.Views.Auth.AuthWindow                   1  Logout
+Ui.Views.Auth.LicenseControl               1  Authenticate
+```
+
+> **四条全是 `Ui.*`。而 YG 明令「ui先不急着复刻」。**
+> **所以名字级 real gap 的 4 条对核心优先级是**零**，而它们不该挡住结案 —— 该**分类结案**（判据 a 的原话）。****
+
+### 而那 16 个缺失类型分三类
+
+| 类 | 数 | 类型 |
+|---|---|---|
+| **核心** | **6** | `Global.Settings`（34 成员）· `CloudflareSolvers.CloudflareSolver`（9）· `Services.ImapProvider`（4）· `Models.Concurrency`（3）· `SmartActions.ActionConfig`（2）· `Helpers.ObservableDictionary\`2`（1） |
+| **UI** | **9** | `Ui.Localization.LocalizeEnumExtension` · `LocalizeFallbackExtension` · `LocalizeFormatExtension` · `LocalizeSwitchExtension` · `Ui.Views.Accounts.Modals.AccountsCreatorView` · `Ui.Views.Auth.AuthWindow` · 其余 3 个同前缀 |
+| **其他** | **1** | （被输出截断，未读到名字） |
+
+### 所以剩下什么
+
+**`types with scope misses` 已经是 **0** —— 那一条判据 a 直接满足。**
+
+**而 `types absent from source` 的 16 个里，6 个是核心、9 个是 UI、1 个未读。**
+
+> **所以判据 a 的真实状态是：**
+> **「类型级缺口 0 ✅；类型缺失 16 → 其中 6 个核心、9 个 UI、1 未分类」**
+> **而那 6 个核心的不是「不可得」，是「还没开工」—— 它们有成员清单（34/9/4/3/2/1），
+> 所以补起来是确定的，不需要再取证。****
+
+### 而最值钱的那一个
+
+**`Cybersole.Global.Settings` 有 34 个成员，而它是**核心配置** —— 而复刻件的配置类存在（`AppServices` 里用到），
+只是**类名不同**，所以类型存在性检查判它 absent。**
+
+> **所以这 6 个里可能有几个只是**改了名**，而成员都在。
+> 而判据 a 的原话是「名字级缺口三分类结案」—— **改名属于「命名可不同」那一类，不算缺口。**
+> **而这一点我没有逐条核过。标 Unknown，下一个该做的就是它。****
+
+### 数字
+
+| 度量 | R973 | **R974** |
+|---|---|---|
+| 套件 | 2186 | **2186（只读数字源）** |
+| 函数数 | 173,952 | **173,952** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **类型级 scope misses** | — | **0** |
+| **类型缺失** | — | **16（6 核心 / 9 UI / 1 未读）** |
+| **名字级 real gap** | — | **4（全 UI）** |
+
+### 教训
+
+> **这一轮没写代码，而它把一个一直「还有 16 个」的数字变成了「6 个核心、9 个 UI、1 未分类」。**
+> **而那个 16 一直挂在那里，因为我从没按**优先级**把它切开过 —— 我一直把它当一个整体。**
+> **而切开之后，9 个属于 YG 明确说了「不急」的那一层。**

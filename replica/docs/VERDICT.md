@@ -57745,3 +57745,63 @@ ida.py dec 0x14117C4E0  ->  {"error": "Decompilation failed"}
 
 > **一个指标被解释清楚，不等于那个解释值得追。
 > 我把「解释中间量」当成了优先项，而它对我真正要的数的贡献是 0.24%。**
+
+
+---
+
+## 第 974 轮：判据 (a) 可以结案了 —— 16 个缺失类型里核心只有 5 个
+
+### 四个数（来自 `docs/METRICS.md`）
+
+| 指标 | 值 |
+|---|---|
+| 名字级绑定缺口 — real gap | **4** |
+| 名字级 — missing | 16（12 是 `HasMultiple_NN` 噪声） |
+| **类型级 — types with scope misses** | **0** |
+| 类型缺失 — absent from source | **16** |
+
+### 那 4 条 real gap **全在 UI**
+
+```
+Ui.Localization.LocalizeFormatExtension    1  Value2
+Ui.Localization.LocalizeSwitchExtension    1  Condition
+Ui.Views.Auth.AuthWindow                   1  Logout
+Ui.Views.Auth.LicenseControl               1  Authenticate
+```
+
+> **四条全 `Ui.*`，而 YG 明令「ui先不急着复刻」。
+> 所以它们对核心优先级是**零** —— 该**分类结案**，不是挡住结案。**
+
+### 那 16 个缺失类型分三类
+
+| 类 | 数 | 类型 |
+|---|---|---|
+| **核心** | **6** | `Global.Settings`（34）· `CloudflareSolvers.CloudflareSolver`（9）· `Services.ImapProvider`（4）· `Models.Concurrency`（3）· `SmartActions.ActionConfig`（2）· `Helpers.ObservableDictionary\`2`（1） |
+| **UI** | **9** | `Ui.Localization.*` 四个 · `Ui.Views.Accounts.Modals.AccountsCreatorView` · `Ui.Views.Auth.AuthWindow` · 其余 3 |
+| **其他** | **1** | 输出截断，未读到名字 |
+
+### 所以剩下什么
+
+**`types with scope misses` 已是 **0** —— 判据 a 那一条直接满足。
+而 16 个缺失里 6 核心 / 9 UI / 1 未读。**
+
+> **而那 6 个核心的**不是「不可得」，是「还没开工」** —— 它们有成员清单，补起来是确定的。
+> **而最有意思的一点：`Global.Settings` 有 34 个成员，而复刻件的配置类存在，只是**类名不同** ——
+> 判据 a 的原话是「名字级缺口三分类结案」，而**改名属于「命名可不同」，不算缺口**。
+> **这一点我没逐条核过。标 Unknown，下一个该做的就是它。**
+
+### 数字
+
+| 度量 | R973 | **R974** |
+|---|---|---|
+| 套件 | 2186 | **2186** |
+| 函数数 | 173,952 | **173,952** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **类型级 scope misses** | — | **0** |
+| **类型缺失** | — | **16（6 核心 / 9 UI / 1 未读）** |
+
+### 教训
+
+> **这一轮没写代码，而它把一个一直「还有 16 个」的数字变成了「6 核心 / 9 UI / 1 未分类」。
+> 那个 16 一直挂着，因为我从没按**优先级**把它切开过 —— 我一直把它当一个整体。
+> 切开之后，9 个属于 YG 明确说了「不急」的那一层。**

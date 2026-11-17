@@ -7114,3 +7114,43 @@ FindSlot · GetReleaseFeed · LoadCountryData · ProcessResponse · Fill · GetS
 | 它们对效率的影响 | 未测 |
 
 **纪律**：一个指标被解释清楚，不等于那个解释值得追。
+
+
+## 判据 (a) — **分类结案：类型级 0；16 缺失 = 6 核心 / 9 UI / 1 未读；real gap 4 全 UI**（R974）
+
+### 数（来自 docs/METRICS.md）
+
+| 指标 | 值 |
+|---|---|
+| 名字级 real gap | **4（全 `Ui.*`）** |
+| 名字级 missing | 16（12 噪声） |
+| **类型级 scope misses** | **0** |
+| 类型缺失 | **16** |
+
+### 16 的分类
+
+**核心 6：`Global.Settings`(34) · `CloudflareSolvers.CloudflareSolver`(9) · `Services.ImapProvider`(4) ·
+`Models.Concurrency`(3) · `SmartActions.ActionConfig`(2) · `Helpers.ObservableDictionary\`2`(1)**
+**UI 9：`Ui.Localization.*` 四个 + `AccountsCreatorView` + `AuthWindow` + 三个同前缀**
+**未读 1：输出截断**
+
+### 结论
+
+**判据 a 第一半（类型级缺口 → 0）**已满足**。**
+**第二半（类型缺失）→ 6 核心未开工（有成员清单，补起来确定）+ 9 UI（YG 说不急）+ 1 未读。**
+
+### 而一个未核的可能
+
+**`Global.Settings` 34 成员，复刻件配置类存在只是改名 → 若成立则属于「命名可不同」，不算缺口。
+**未逐条核 → Unknown。这是下一轮该做的。****
+
+### 数字
+
+**套件 2186 · 函数数 173,952 · 陈旧度 0/0**
+
+| 仍 Unknown | |
+|---|---|
+| 那 6 个核心类型里有几个只是改名 | 未逐条核 |
+| 第 16 个缺失类型是什么 | 输出截断 |
+
+**纪律**：按优先级切开一个数字，比反复报那个数字有用。

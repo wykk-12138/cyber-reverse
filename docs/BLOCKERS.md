@@ -38084,3 +38084,59 @@ original types = **122**（31 命名空间）    replica = **648**（53 命名�
 | 分片查询 | — | **26，无片饱和** |
 
 **纪律**：分片让「完整」可判；而荒谬的派生比率指向**分子或分母有一边不对**。
+
+---
+
+## 493. **13 个疑似缺口全部排除；IDA 进程退出**
+
+
+## R1069 —— **13 个疑似缺口全部排除（真缺口 0）；IDA 进程退出**
+
+### 13 个名字本身有分组
+
+```
+4× Localize*Extension · 4× *View · AuthWindow + LicenseControl（登录/许可）
+ImapProvider（收码）· KeyGesture（快捷键）· Settings（全局设置容器）
+```
+
+### 而 `where_is` 一个都不是零
+
+| 原版类型 | 复刻件对应物 | 判定 |
+|---|---|---|
+| `Localize*Extension` ×4 | `Localize` **2 文件** | 命名不同 |
+| `ImapProvider` | `Imap` **25 文件** | 命名不同 |
+| `KeyGesture` | **同名 12 文件** | 同名 |
+| `AuthWindow` / `LicenseControl` | 各 **17 文件** | 同名 |
+| `Settings` | `GlobalSettings` | 命名不同 |
+| `*View` ×4 | `ProviderViews` / `SettingsShell` 等 | 命名不同 |
+| **`Cybersole.ProxyTesters`** | **`ProxyTester` 21 · `TestProxy` 5** | 命名不同 |
+
+**⇒ 13 个**全部**有对应物 ⇒ **真缺口 = 0**。**
+
+### 而一条 Inference
+
+`KeyGesture` / `AuthWindow` / `LicenseControl` 在复刻件里**同名**，却没进 109 ——
+⇒ 推断：复刻件侧 **648 是下界**（嵌套类抓不到）⇒ 真实类型覆盖 **≥ 89.3%**。**（未验证）**
+
+### 而 IDA 退出了
+
+```
+ida.py health → ConnectionRefusedError    port 13337 → False    ida processes → **0**
+```
+
+**进程 0 ⇒ 不是代理漂移，是 IDA 本身退出。** 按 goal 属「停下等 YG」那一类。
+**不影响本轮结论**：13 个是用 `where_is`（查源码）判的，原版侧来自 R1068 的已有证据。
+**下一轮要反编译，先按规程拉 IDA（doctor + CUA 点框）；若报 PROXY: MISSING 且框已清 ⇒ 停下等 YG。**
+
+### 数字
+
+| 度量 | R1068 | **R1069** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 函数数 | 174,258 / 277,094 | **同** |
+| 原版 / 复刻件类型 | 122 / 648 | **122 / 648（下界）** |
+| 同名 | 109 | **109** |
+| **13 个中真缺口** | 未判 | **0** |
+| **IDA** | 可用 | **退出，需重新拉起** |
+
+**纪律**：「只在原版」看起来像缺口清单，实际是一份**命名对照表**。不查就会去「补」13 个已经存在的东西（R815 的形状）。

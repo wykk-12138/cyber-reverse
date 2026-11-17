@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 22:31:09 +0800 |
+| 生成时间 | 2026-11-17 22:42:13 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -48,7 +48,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file is newer than the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 0:21:10 -- business_types.py changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -539,9 +539,10 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 0 -- no exercised file is newer than the run
+  mutation-fit-staleness: 0:21:10 -- business_types.py changed after the run
 
-  Every mutation fired, none was decorative and none was skipped at the time of that run.
+  The counts above are from 2026-11-17T22:20:21+08:00 and the tree has moved since. They are a record of that run, not a
+  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
 ```
 
 ### 完整套件

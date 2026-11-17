@@ -33,6 +33,38 @@
 **→ 「只在原版」不是缺口**：goal 明说「命名可不同」，而这一列里有一大部分是复刻件用了自己的名字。
 → 而「两边都有」那 109 个同名类型，才是可以用名字对字段的（见 `TYPE_COVERAGE.md`）。
 
+### 只在原版的 13 个（逐个列出，否则这个数无法行动）
+
+- `AccountsCreatorView`  ← 原版 `Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView`
+- `AuthWindow`  ← 原版 `Cybersole.Ui.Views.Auth.AuthWindow`
+- `ImapProvider`  ← 原版 `Cybersole.Services.ImapProvider`
+- `KeyGesture`  ← 原版 `Cybersole.KeyInput.KeyGesture`
+- `LicenseControl`  ← 原版 `Cybersole.Ui.Views.Auth.LicenseControl`
+- `LocalizeEnumExtension`  ← 原版 `Cybersole.Ui.Localization.LocalizeEnumExtension`
+- `LocalizeFallbackExtension`  ← 原版 `Cybersole.Ui.Localization.LocalizeFallbackExtension`
+- `LocalizeFormatExtension`  ← 原版 `Cybersole.Ui.Localization.LocalizeFormatExtension`
+- `LocalizeSwitchExtension`  ← 原版 `Cybersole.Ui.Localization.LocalizeSwitchExtension`
+- `Settings`  ← 原版 `Cybersole.Global.Settings`
+- `SettingsView`  ← 原版 `Cybersole.Ui.Views.Settings.SettingsView`
+- `TaskCreatorCartView`  ← 原版 `Cybersole.Ui.Views.Tasks.TaskCreatorCartView`
+- `TaskCreatorMainView`  ← 原版 `Cybersole.Ui.Views.Tasks.TaskCreatorMainView`
+
+**→ 每一个都要判一次：命名不同、还是真缺。**
+→ 判据不是名字，是**它在任何命名空间下有没有对应物** —— 那要看 534 个「只在复刻件」里有没有干同一件事的。
+
+### 原版有而复刻件**无同名命名空间**的
+
+| 命名空间 | 类型数 |
+|---|---|
+| `Cybersole.Global` | 1 |
+| `Cybersole.ProxyTesters` | 1 |
+| `Cybersole.Ui.Controls` | 2 |
+| `Cybersole.Ui.Localization` | 4 |
+| `Cybersole.Ui.Views.Accounts.Modals` | 3 |
+| `Cybersole.Ui.Views.Proxies.Modals` | 2 |
+| `Cybersole.Ui.Views.Tasks.Modals` | 5 |
+| `Cybersole.Webhook` | 1 |
+
 ## 四、原版命名空间的前 20 个（按类型数）
 
 | 命名空间 | 类型数 |

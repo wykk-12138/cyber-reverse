@@ -187,6 +187,29 @@ def main():
     add("**→ 「只在原版」不是缺口**：goal 明说「命名可不同」，而这一列里有一大部分是复刻件用了自己的名字。")
     add("→ 而「两边都有」那 %d 个同名类型，才是可以用名字对字段的（见 `TYPE_COVERAGE.md`）。" % len(both))
     add("")
+    add("### 只在原版的 %d 个（逐个列出，否则这个数无法行动）" % len(only_orig))
+    add("")
+    if only_orig:
+        for name in only_orig:
+            origin = ", ".join(sorted(orig_simple[name]))
+            add("- `%s`  ← 原版 `%s`" % (name, origin))
+    else:
+        add("（无）")
+    add("")
+    add("**→ 每一个都要判一次：命名不同、还是真缺。**")
+    add("→ 判据不是名字，是**它在任何命名空间下有没有对应物** —— 那要看 534 个「只在复刻件」里有没有干同一件事的。")
+    add("")
+    add("### 原版有而复刻件**无同名命名空间**的")
+    add("")
+    orphan_ns = sorted(ns for ns in orig_ns if ns not in repl_ns)
+    if orphan_ns:
+        add("| 命名空间 | 类型数 |")
+        add("|---|---|")
+        for ns in orphan_ns:
+            add("| `%s` | %d |" % (ns, orig_ns[ns]))
+    else:
+        add("（无 —— 原版每个命名空间在复刻件里都有同名的）")
+    add("")
     add("## 四、原版命名空间的前 20 个（按类型数）")
     add("")
     add("| 命名空间 | 类型数 |")

@@ -68,10 +68,36 @@ xrefs 0x14706ebf0（= -12）       → 1 → 代码 0x14111cc16，函数 sub_141
 
 同一手法可解出任意字符串对象的引用。**要点**：
 
-- `&off_XXXX` 这种操作数**本身就是对象头**，不需要二次解引用；
+- `&off_XXXX` 这种操作数**本身就是对象头**，不需要二次解引用（它的 `mt` 是 MethodTable，不是指针）；
 - 读字符：`length = get_dword(obj+8)`，`chars = get_bytes(obj+12, length*2)` 按 UTF-16LE 解；
 - `0x14111CB10` 与 `0x1411483E0` **大小都是 0x294** —— 同尺寸的兄弟函数通常只差一两个常量，
   找到第一个就别只反编译它。
+
+### 2.5.1 别自己写这套脚本（本轮踩了）
+
+仓库里**已经有现成的三件套**，我这几轮手工写的读取器是重复造轮子：
+
+```
+python analysis\names_at.py  <obj_va...>     # 批量解码冻结字符串 + MethodTable（obj_va = chars_va - 12）
+python analysis\site_to_func.py <site_va>    # 引用点 → .pdata 函数起止
+python analysis\disp32_scan_any.py <obj_va>  # IDA 未建引用时，全字节滑窗扫 .text 找 lea
+```
+
+实测对照（我的读取器 vs `names_at.py`，七个串全部一致）：
+
+```
+0x147153CA8  str  mt=0x144DB6A40 len=21 "script[src*='ips.js']"
+0x1471795D0  str  mt=0x144DB6A40 len=10 'user-agent'
+0x1471620F8  str  mt=0x144DB6A40 len=3  'src'
+0x14710E630  str  mt=0x144DB6A40 len=7  'payload'
+0x14706EBF0  str  mt=0x144DB6A40 len=38 'https://kasada.hypersolutions.co/botid'
+0x14706EC58  str  mt=0x144DB6A40 len=40 'https://kasada.hypersolutions.co/payload'
+0x1470AE4B8  str  mt=0x144DB6A40 len=6  'kasada'
+```
+
+顺带解释了本轮早先一个困惑：我第一版脚本发现"所有 slot 都指向 `0x144DB6A40`"，
+以为是解引用错了 —— **那其实是 MethodTable 的地址**，`names_at.py` 直接把它印出来，一眼就分得清。
+
 
 
 ---

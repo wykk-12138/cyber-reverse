@@ -120,6 +120,27 @@ public static class VendorWiring
             "R141: KasadaClearance runs the four-road strategy and writes the token",
             MarkerSource.ImageLiteral, Gap.None),
 
+        // R1024: Akamai was missing from this audit while being the vendor the image documents most thoroughly --
+        // analysis/endpoints.md lists twenty-five literals for it. Verified in this round, in address order:
+        //
+        //   detection   AkamaiGHost (0x146b249dc) · AkamaiQueueName (0x146b24a0c) · AkamaiReferer (0x146b24a44)
+        //   solving     "Solving Akamai (" (0x146e77ebc) · "(SBSD)" (0x146e77ef4) · "(SDS)" (0x146e77f34)
+        //   failure     "Akamai Failed" · "Akamai Failed (Rotating)" · "Akamai Blocked (IP)" · "Akamai block"
+        //   control     SkipAkamai (0x146e7243c) · "Akamai disabled"
+        //   internal    GetAkamaiCookie · AkamaiHandler · AkamaiQueueHandler · AkamaiPixel · AkamaiGenerator*
+        //
+        // So three things are true at once, and the two columns keep them apart on purpose. The marker is image
+        // evidence (Gap.None), the original does solve this vendor ("Solving Akamai" with two named modes), and this
+        // workspace has no Akamai solver -- its only mentions are failure messages in the fanatics and casio flows. That
+        // last one is what DetectedOnly records, and it is a statement about the replica rather than about the image.
+        new Row("akamai", "AkamaiGHost", null, State.DetectedOnly,
+            "R1024: the image carries twenty-five Akamai literals including a three-stage solver -- \"Solving Akamai (\", "
+            + "\"(SBSD)\" and \"(SDS)\" -- plus Blocked/Failed/(Rotating) outcomes and a SkipAkamai control, so the "
+            + "original both solves it and can route around it. This replica detects it and has no solver: the name turns "
+            + "up in its source only inside fanatics' and casio's 403 messages. DetectedOnly is therefore a statement "
+            + "about the replica, not about the artifact.",
+            MarkerSource.ImageLiteral, Gap.None),
+
         new Row("imperva", "_Incapsula_Resource", null, State.DetectedOnly,
             "R1021: two independent sources agree the vendor is absent. None of six spellings is in the artifact "
             + "(_Incapsula_Resource, incap_ses, visid_incap, incapsula, imperva, nlbi_), and AntiBotVendors.All -- eight "

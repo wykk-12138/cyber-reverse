@@ -2913,3 +2913,26 @@ flow 把**封禁页当商品页**。分支只在页面真写该串时触发 ⇒ 
 纪律：**截断自己输出的那一刻，我同时决定了结论。**
 
 下一轮：定 `DetectedOnly` 该改成什么（`Solving PerimeterX` 的存在使它站不住）；或取证求解协议。
+
+## R1024 补充 — **原版解六个厂商；`Rows` 补 akamai（第 7 行）；`DetectedOnly` 说的是复刻件**（套件 2233）
+
+**又一次读了被截断的答案**：`ida.py str "Solv"` → **n=40**，而 40 是**返回上限**。
+→ 正解是**把问题问小**（窄 probe），不是读前 40 条。与 R1023 的 `[:4]` 同形，只是截断在工具里。
+
+**完整答案**：`Solving Cloudflare` **14**（8 条阶段 + `no clearance`/`too many rounds`）·
+`Solving Kasada` 2 · `Solving DataDome` 1 · **`Solving Incapsula` 0** · `Solving Akamai` **3**
+（`(` · `(SBSD)` · `(SDS)`）· `Solving Queue` 1（`Error Solving Queue-it (Softblock)`）· `Solving PerimeterX` 1。
+→ **原版解六个**：cloudflare · kasada · datadome · akamai · queue-it softblock · perimeterx。
+→ **`Solving Incapsula` = 0 ⇒ imperva 第三个独立证据。**
+
+**补 akamai（第 7 行）**：`Gap = None`（`AkamaiGHost` 镜像有）而 `State = DetectedOnly`（复刻件无 solver）。
+→ **那回答了 R1023 的问题：`DetectedOnly` 不该改，它说的是**复刻件**不是镜像** —— 需要被**说清**而非改掉。
+
+**四条守卫跟着动**：`ThreeOfSevenAreWired` · `Gaps` 3 → 4（**行序**，我第一版按字母序写红了，R1009 老账）·
+加 `akamai.Gap == None` 与 `State == DetectedOnly` 并列断言 · `OnlyWiredWallsAreDispatched` 3 → 4。
+
+数字：套件 2233/0/0 · 陈旧度 4 / 3,816 · 函数数 174,336 · Rows 6 → **7** · 原版解 **6** 个 · imperva 证据 2 → **3**。
+
+纪律：**看到 `n` 等于上限就警觉；更好的解法是把问题问小。**
+
+下一轮：queue-it softblock（`Error Solving Queue-it (Softblock)` 与 `NotAChallenge` 矛盾）—— 那是下一个语义冲突。

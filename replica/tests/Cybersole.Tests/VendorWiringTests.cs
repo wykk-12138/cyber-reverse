@@ -32,9 +32,11 @@ public sealed class VendorWiringTests
 
     /// <summary>Six vendors, and the two wired ones are the two this session built.</summary>
     [Fact]
-    public void ThreeOfSixAreWired()
+    public void ThreeOfSevenAreWired()
     {
-        Assert.Equal(6, VendorWiring.Rows.Count);
+        // R1024: seven rows, not six. Akamai was missing from an audit that already listed eight vendors in
+        // AntiBotVendors, and the image documents it more thoroughly than any of them.
+        Assert.Equal(7, VendorWiring.Rows.Count);
         Assert.Equal(new[] { "cloudflare", "kasada", "datadome" }, VendorWiring.Wired);
 
         foreach (var row in VendorWiring.Rows)
@@ -45,7 +47,10 @@ public sealed class VendorWiringTests
     [Fact]
     public void TheGapsAreClassified()
     {
-        Assert.Equal(new[] { "imperva", "perimeterx", "queue-it" }, VendorWiring.Gaps);
+        // R1024: akamai joins the gaps. Its marker is image evidence -- Gap.None -- and it is still a gap, because the
+        // image solves it with a three-stage routine this workspace has not written. Gap and State are different
+        // questions and this row is the clearest case of that: the marker is fine and the call is missing.
+        Assert.Equal(new[] { "akamai", "imperva", "perimeterx", "queue-it" }, VendorWiring.Gaps);
 
         // R995: this row used to assert HostWithoutProtocol, which said the protocol does not exist. R141 had already
         // established the opposite -- SolveBotD is named by a method in the original -- so the assertion was holding a
@@ -55,6 +60,8 @@ public sealed class VendorWiringTests
         // sensor was unwritten; a label is not the work.
         Assert.Equal(VendorWiring.State.Wired, VendorWiring.For("datadome")!.State);
         Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("imperva")!.State);
+        Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("akamai")!.State);
+        Assert.Equal(VendorWiring.Gap.None, VendorWiring.For("akamai")!.Gap);
         Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("perimeterx")!.State);
         Assert.Equal(VendorWiring.State.NotAChallenge, VendorWiring.For("queue-it")!.State);
 

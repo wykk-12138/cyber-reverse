@@ -61095,3 +61095,69 @@ PerimeterX  n=5
 > → 更坏的是：我用前四条建立了「原版不解决它」，而那个结论的形状（「只有换代理文案」）
 > 恰好与截断后的输入一致，所以它看起来很可靠。**
 > **→ 截断自己输出的那一刻，我同时决定了结论。**
+
+
+---
+
+## 第 1024 轮：原版解六个厂商；而台账漏了最有据的那个
+
+### ① 第一次问又撞上截断 —— 这次是**工具**的
+
+**`ida.py str "Solv"` 返回 `n=40`，而**40 是它的返回上限**，不是真实数量 —— 40 条里没有 `Solving PerimeterX`。
+→ R1023 才刚立过「不截断」的纪律，隔一轮就复发。
+→ **正解不是读前 40 条，是**把问题问小**（窄 probe），让结果落在上限内。**
+
+### ② 窄了之后答案完整
+
+| probe | n |
+|---|---|
+| `Solving Cloudflare` | **14**（8 条阶段 + `no clearance` / `too many rounds`） |
+| `Solving Kasada` · `Solving DataDome` · `Solving PerimeterX` | 2 · 1 · 1 |
+| **`Solving Incapsula`** | **0** ← imperva 的第三个证据 |
+| `Solving Akamai` | **3**（`(` · `(SBSD)` · `(SDS)`） |
+| `Solving Queue` | 1（`Error Solving Queue-it (Softblock)`） |
+
+**→ 原版解**六个**：cloudflare · kasada · datadome · akamai · queue-it softblock · perimeterx。**
+**→ `Solving Incapsula` = 0 ⇒ imperva 三个独立来源说它不在。**
+
+### ③ 而台账里**没有 akamai**
+
+**`AntiBotVendors.All` 有 8 个含 Akamai；`VendorWiring.Rows` 只有 6 行，不含它。
+而镜像是真的**详细**记录它：检测（`AkamaiGHost`/`AkamaiQueueName`/`AkamaiReferer`）· 解（三阶段）·
+失败（`Failed (Rotating)` · `Blocked (IP)`）· 控制（`SkipAkamai` · `disabled`）· 内部（5 个 handler/generator）。**
+
+### ④ akamai 这一行正好演示 `Gap` 与 `State` 是两个问题
+
+| 列 | 值 | 含义 |
+|---|---|---|
+| **`Gap`** | **`None`** | marker 是**镜像的** |
+| **`State`** | **`DetectedOnly`** | **复刻件没有 solver** |
+
+**→ 那回答了 R1023 的问题：`DetectedOnly` **不该改** —— 它说的是**复刻件**，不是镜像。
+→ 它需要被**说清**（Note 里写了），不是被改掉。**
+
+### ⑤ 六 → 七行，四条守卫跟着动
+
+`ThreeOfSixAreWired` → **`ThreeOfSevenAreWired`** · `Gaps` 3 → **4（按**行序**）** ·
+加 `akamai.Gap == None` 与 `State == DetectedOnly` 并列断言 · `OnlyWiredWallsAreDispatched` 3 → **4**
+
+**→ 我第一版按**字母序**写 `Gaps`，红了 —— 那是 R1009 的老账，又犯一次。**
+
+### ⑥ 数字
+
+| 度量 | R1023 | **R1024** |
+|---|---|---|
+| 套件 | 2233 / 0 | **2233 / 0 / 0** |
+| 产物陈旧度 | 4 / 3,795 | **4 / 3,816** |
+| 函数数 | 174,336 | **174,336** |
+| **`Rows`** | 6 | **7（+akamai）** |
+| **原版解几个厂商** | 未测 | **6** |
+| **imperva 独立证据** | 2 | **3** |
+| **`DetectedOnly` 该改吗** | 待定 | **不该** |
+
+### 教训
+
+> **「把 `Solv` 一次问完」撞上了工具的 40 条上限 —— 而我第一眼读的是 40 条，不是「40 是上限」。
+> → 与 R1023 的 `[:4]` 是同一件事，只是这次截断在工具里不在我的脚本里。
+> → 同样的教训隔一轮就复发，说明「不截断」不能只靠记住，要靠**看到 `n` 等于上限就警觉**。
+> → 而这一轮真正解决它的不是警觉，是**把问题问小**。**

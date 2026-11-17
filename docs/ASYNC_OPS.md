@@ -11463,3 +11463,86 @@ PerimeterX  n=5
 > **→ 而更坏的是：我用前四条建立了「原版不解决它」这个结论，而那个结论的形状
 > （「只有换代理文案」）恰好与截断后的输入一致，所以它看起来很可靠。**
 > **→ 截断自己输出的那一刻，我同时决定了结论。**
+
+
+### 原版解**六个**厂商；而台账漏了最有据的那个（R1024）
+
+**R1023 说下一轮定 `DetectedOnly` 该改成什么。要定它，先得知道**原版解哪些** —— 于是把 `Solving …` 形一次问完。**
+
+### ① 而第一次问又撞上截断 —— 这次是**工具**的
+
+**`ida.py str "Solv"` 返回 `n=40`，而**40 就是它的返回上限**，不是真实数量。
+→ 40 条里**没有** `Solving PerimeterX`。
+→ 所以我**又一次**读了一个被截断的答案 —— 而 R1023 才刚立过这条纪律。**
+
+**→ 正解不是读前 40 条，是**把问题问小**：用 `"Solving Cloudflare"` / `"Solving Akamai"` 这种窄 probe，
+让结果落在上限内。那与「截断自己的输出」是同一件事的两面：**问得宽，答案就被砍。****
+
+### ② 而窄了之后，答案完整了
+
+| probe | n | 内容 |
+|---|---|---|
+| `Solving Cloudflare` | **14** | 8 条阶段（`analyzing` · `loading challenge` · `queued` · `reloading` · `(1)` · `(2)`）+ `Failed Solving Cloudflare (no clearance)` / `(too many rounds)` |
+| `Solving Kasada` | 2 | `Failed solving Kasada` · `(TL)` |
+| `Solving DataDome` | 1 | `Solving DataDome (I)` |
+| **`Solving Incapsula`** | **0** | **imperva 的第三个独立证据** |
+| `Solving Akamai` | **3** | `(` · `(SBSD)` · `(SDS)` |
+| `Solving Queue` | 1 | `Error Solving Queue-it (Softblock)` |
+| `Solving PerimeterX` | 1 | `Solving PerimeterX` |
+
+**→ 原版解 **cloudflare · kasada · datadome · akamai · queue-it softblock · perimeterx** —— 六个。
+→ 而 **`Solving Incapsula` = 0**，imperva 现在有三个独立来源说它不在（六拼写 · 台账 · 无 solver 文案）。**
+
+### ③ 而 `Solving Akamai` 三条，加上 `endpoints.md` 的 25 条 —— 台账里**没有 akamai**
+
+**`AntiBotVendors.All` 有 8 个厂商，含 Akamai；而 `VendorWiring.Rows` 只有 6 行，**不含 akamai**。**
+
+**→ 镜像是真的**详细**记录它：**
+```
+检测   AkamaiGHost · AkamaiQueueName · AkamaiReferer
+解     "Solving Akamai (" · "(SBSD)" · "(SDS)"
+失败   "Akamai Failed" · "Akamai Failed (Rotating)" · "Akamai Blocked (IP)" · "Akamai block"
+控制   SkipAkamai · "Akamai disabled"
+内部   GetAkamaiCookie · AkamaiHandler · AkamaiQueueHandler · AkamaiPixel · AkamaiGenerator*
+```
+
+### ④ 而 akamai 这一行正好演示 `Gap` 与 `State` 是**两个问题**
+
+| 列 | akamai 的值 | 含义 |
+|---|---|---|
+| **`Gap`** | **`None`** | marker（`AkamaiGHost`）是**镜像的** |
+| **`State`** | **`DetectedOnly`** | **复刻件没有 akamai solver** |
+
+**→ 所以 `DetectedOnly` 说的是**复刻件**，不是**镜像**。
+→ 而那回答了 R1023 那个问题：**`DetectedOnly` 不该改** —— 它本来就没在说镜像。
+→ **它说的东西需要被**说清**（Note 里现在写了），而不是被改掉。****
+
+### ⑤ 六 → 七行，四条守卫跟着动
+
+| 守卫 | 从 | 到 |
+|---|---|---|
+| `ThreeOfSixAreWired` | 6 行 | **`ThreeOfSevenAreWired`（7 行）** |
+| `TheGapsAreClassified` | `Gaps` = 3 个 | **4 个（按**行序**，akamai 在 imperva 前）** |
+| 同上 | — | **加 `akamai.Gap == None` 且 `State == DetectedOnly` 的并列断言** |
+| `OnlyWiredWallsAreDispatched` | `Gaps.Count == 3` | **`== 4`** |
+
+**→ 而 `Gaps` 是**行序**不是字母序 —— 我第一版按字母序写，红了。那是 R1009 的老账，又犯一次。**
+
+### ⑥ 数字
+
+| 度量 | R1023 | **R1024** |
+|---|---|---|
+| 套件 | 2233 / 0 | **2233 / 0 / 0** |
+| 产物陈旧度 | 4 / 3,795 | **4 / 3,816** |
+| 函数数 | 174,336 | **174,336** |
+| **`VendorWiring.Rows`** | 6 | **7（+akamai）** |
+| **原版解几个厂商** | 未测 | **6（cloudflare · kasada · datadome · akamai · queue-it · perimeterx）** |
+| **imperva 的独立证据** | 2 | **3（+`Solving Incapsula` = 0）** |
+| **`DetectedOnly` 该改吗** | 待定 | **不该 —— 它说的是复刻件** |
+
+### 教训
+
+> **「把 `Solv` 一次问完」这个动作本身撞上了工具的 40 条上限 —— 而我第一眼读的是 40 条，不是「40 是上限」。**
+> **→ 那与 R1023 的 `[:4]` 是同一件事，只是这次截断不在我的脚本里，在工具里。
+> → 而**同样的教训隔一轮就复发**，说明「不截断」不能只靠记住 —— 要靠**看到 n 等于上限就警觉**。
+> → 而这一轮真正把它解决的不是警觉，是**把问题问小**。**

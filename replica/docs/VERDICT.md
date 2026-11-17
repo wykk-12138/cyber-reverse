@@ -59256,3 +59256,76 @@ OriginalSolvesProtocolUnrecorded,
 > 测试保护的**不是**错误结论，是**正确的**约束（缺口仍在），而它用了一个**会误导的名字**去表达它。
 > → 我差点把一条正确的守卫当成坏的改掉。这与 R980（守卫对象为空）同一课：
 > 一个看起来在阻碍你的守兵，可能正站在正确的位置上。**
+
+
+---
+
+## 第 996 轮：DataDome 接上了 —— 墙 2/6 → 3/6，这一轮写了真代码
+
+### ① 先看已 Wired 的两个怎么接的
+
+**`SolveDetectedWallAsync`（`StoreFlow.cs:406`）是唯一派发点，而它只放行两个：**
+
+```csharp
+if (vendor is not ("cloudflare" or "kasada")) return StepOutcome.Success();   // datadome 走不到任何 solver
+```
+
+> **所以「有协议」不够 —— 派发白名单里没有 datadome。**`Wired` 的意思是三样都有人调。**
+
+### ② 写了 `DataDomeClearance.cs`（125 行），与 `CloudflareClearance.cs` 对称
+
+| 元素 | 依据 |
+|---|---|
+| `SensorUrl` | 镜像 `https://datadome.cybersole.io/sensor` |
+| `SdkUrl` | 镜像 `https://api-sdk.datadome.co/sdk/` |
+| `ClearanceCookie = "datadome"` | `AntiBotProtocol.CookiesFor("DataDome")` |
+| `Stages` 四条 | 镜像四句日志 Getting / Initialising / Solving / Submitting |
+| 存回 | `Vars[ClearanceVar]` **且** `Cookies["datadome"]` |
+
+**派发点加分支：`if (vendor is not (… or "datadome"))` + `if (vendor == "datadome") { … }`。**
+
+### ③ 没配时写成事实而非失败
+
+> 「DataDome relay not configured: the image names datadome.cybersole.io/sensor but this workspace has no
+> credentials for it」
+
+**与 `cf-solver.cybersole.io` 的 401 同一条路：不假装成功，也不当失败。**
+
+### ④ 这一轮没发明第二条路
+
+**镜像只命名一个 relay + 一个 SDK。所以 DataDome **没有** service→in-bot 阶梯，
+只有一条 `IDataDomeSensor`。造第二条会是镜像没有的策略。**
+
+### ⑤ 改了 5 处断言，其中两处是「钉住 2/6」的
+
+| 文件 | 改了什么 |
+|---|---|
+| `VendorWiring.cs` | datadome → `Wired` + 新 note |
+| `VendorWiringTests.cs` | `Wired` 加它 · `Gaps` 去它 · 用例名 → `ThreeOfSixAreWired` |
+| `WallDispatchTests.cs` | 白名单串 · `Wired` · `Gaps.Count` 4→3 · 注释 |
+| `WallSolvingTests.cs` | datadome → `Wired`；删 R995 那条 `NotEqual(Wired, …)` |
+
+> **`Wired` 的顺序是**行序**不是字母序**：`["cloudflare", "kasada", "datadome"]`。
+> 第一次改成字母序，测试立刻报 `Collections differ` —— **一个陈列顺序的假设，一次就露。**
+
+### ⑥ 诚实的边界
+
+**`Wired` 说「三样都在」，而「求解」默认返回未配置。
+所以 3/6 的意思是：**调用链存在、派发到它、存回写对**，不是「本机能过」。
+这与 Cloudflare / Kasada 的 2/6 **同一口径**，所以没有虚高。**
+
+### 数字
+
+| 度量 | R995 | **R996** |
+|---|---|---|
+| 套件 | 2209 | **2209** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952（未 publish）** |
+| **墙 Wired** | 2 / 6 | **3 / 6** |
+| **墙的缺口** | 4 | **3** |
+| 新增源文件 | 0 | **1** |
+
+### 教训
+
+> **一个标签的改善不等于工作的进展。R995 那个 state 是对的，而它一个字都没让墙过去。
+> 更准确的名字会让缺口显得更小 —— 这正是名字与工作之间最容易混的一步。**

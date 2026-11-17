@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 13:36:23 +0800 |
+| 生成时间 | 2026-11-17 13:44:46 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -34,8 +34,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 173,952 |
 | 函数数量（.pdata） — functions: ratio | 62.77% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 14 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 10549 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 15 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 10717 |
 | 核心覆盖：store 宿主 — hosts with a path | 39 |
 | 核心覆盖：store 宿主 — store hosts | 15 |
 | 核心覆盖：store 宿主 — store hosts matched | 15 |
@@ -54,7 +54,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 1:10:59 -- WallSolvingTests.cs changed after the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 1:19:31 -- VendorWiringTests.cs changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -368,9 +368,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 11:23:03
-newest source: src\Cybersole.Stores\Scripts\VendorWiring.cs (2026-11-17 13:31:26)
-source files newer than the artifact: 14
-lines in those files: 10549
+newest source: src\Cybersole.Stores\Scripts\VendorWiring.cs (2026-11-17 13:42:37)
+source files newer than the artifact: 15
+lines in those files: 10717
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -392,7 +392,7 @@ registry identifiers: 82   flow types: 35
 
 store hosts
   matched api-search.dickssportinggoods.com         1 paths  dickssportinggoods
-  matched api.nike.com                              4 paths  nikegs, nike
+  matched api.nike.com                              4 paths  nike, nikegs
   matched api.tobe-official.jp                      1 paths  in src
   matched auth.casio-intl.com                       1 paths  casio, casio
   matched authenticate.riotgames.com                1 paths  riotgames
@@ -404,7 +404,7 @@ store hosts
   matched payments.dickssportinggoods.com           2 paths  dickssportinggoods
   matched prod-hk-actapi.popmart.com                2 paths  popmart
   matched www.goat.com                              9 paths  goat
-  matched www.nike.com                              1 paths  nikegs, nike
+  matched www.nike.com                              1 paths  nike, nikegs
   matched www.vans.com                              6 paths  in src
 
 vendor hosts
@@ -614,7 +614,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 1:10:59 -- WallSolvingTests.cs changed after the run
+  mutation-fit-staleness: 1:19:31 -- VendorWiringTests.cs changed after the run
 
   The counts above are from 2026-11-17T12:25:02+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
@@ -644,7 +644,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2209，已跳过:     0，总计:  2209，持续时间: 1 m 27 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2209，已跳过:     0，总计:  2209，持续时间: 1 m 54 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

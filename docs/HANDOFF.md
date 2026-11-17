@@ -2286,3 +2286,28 @@ queue-it 等待策略。**`Wired` 仍 2/6 —— 未变。**
 纪律：**一个看起来在阻碍你的守兵，可能正站在正确的位置上。**
 
 下一轮：写 DataDome 的存回调用（协议已知：sensor 端点 + 三方法 + 四阶段），把它从 2/6 推到 3/6。
+
+## R996 补充 — **DataDome 接线完成：墙 2/6 → 3/6**（套件 2209）
+
+**新建 `src/Cybersole.Stores/Scripts/DataDomeClearance.cs`（125 行）**，与 `CloudflareClearance.cs` 对称：
+SensorUrl = `datadome.cybersole.io/sensor` · SdkUrl = `api-sdk.datadome.co/sdk/` · cookie `datadome` ·
+四阶段 Getting/Initialising/Solving/Submitting · `ApplyAsync` 存回 `Vars` **且** `Cookies` ·
+未配置时返回**状态**而非错误。
+
+**`SolveDetectedWallAsync` 白名单加 `datadome` + 新增分支** —— 之前它只放行 cloudflare/kasada，
+datadome 走不到任何 solver。**`Wired` 的意思是「检测→求解→存回三样都有人调」。**
+
+这一轮**没有**发明第二条路：镜像只命名一个 relay + 一个 SDK，所以没有 service→in-bot 阶梯。
+
+改了 5 处断言，其中两处是钉住 2/6 的（`VendorWiringTests` 用例名 → `ThreeOfSixAreWired`；
+`WallDispatchTests` 的 `Gaps.Count` 4→3）。**踩到一个细节：`Wired` 顺序是行序不是字母序** ——
+改成字母序立刻报 `Collections differ`。
+
+**边界**：3/6 是「调用链存在、派发到它、存回写对」，不是「本机能过」（求解默认返回未配置，
+与 Cloudflare 的 401 同口径）。
+
+数字：套件 2209 · 陈旧度 0/0 · 函数数 173,952（未 publish）· 墙 3/6 · 缺口 3。
+
+纪律：**一个标签的改善不等于工作的进展** —— R995 那个 state 是对的，而它一个字都没让墙过去。
+
+下一轮：imperva 或 perimeterx 的 cookie 取证（剩下两个缺口都是「缺证据」）；或 publish 一次把函数数刷新。

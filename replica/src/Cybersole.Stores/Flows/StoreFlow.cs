@@ -408,7 +408,10 @@ public abstract class StoreFlow
     {
         var vendor = c.Session.Vars.TryGetValue("antibot", out var detected) ? detected : "none";
 
-        if (vendor is not ("cloudflare" or "kasada")) return StepOutcome.Success();
+        // R996: datadome joins the two. It was the one wall whose protocol the image names completely -- the sensor URL,
+        // the four stages and the cookie -- and which nothing dispatched to, so a DataDome store detected the wall and
+        // never asked for a cookie.
+        if (vendor is not ("cloudflare" or "kasada" or "datadome")) return StepOutcome.Success();
 
         if (Cybersole.Stores.Scripts.ChromiumBridge.FindBrowser() is null)
         {
@@ -424,6 +427,13 @@ public abstract class StoreFlow
             var runner = Cybersole.Stores.Scripts.CloudflareStrategyRunner.Default();
             return await Cybersole.Stores.Scripts.CloudflareClearance
                 .ApplyAsync(c, runner, c.Url ?? string.Empty, ct).ConfigureAwait(false);
+        }
+
+        if (vendor == "datadome")
+        {
+            var sensor = Cybersole.Stores.Scripts.InjectedDataDomeSensor.Default();
+            return await Cybersole.Stores.Scripts.DataDomeClearance
+                .ApplyAsync(c, sensor, c.Url ?? string.Empty, ct).ConfigureAwait(false);
         }
 
         var kasada = Cybersole.Stores.Scripts.KasadaStrategyRunner.Default();

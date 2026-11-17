@@ -55,17 +55,17 @@ public sealed class WallDispatchTests
         Assert.Contains("KasadaStrategyRunner.Default()", text);
     }
 
-    /// <summary>Only the two wired walls are dispatched; the other four are left alone.</summary>
+    /// <summary>Only the wired walls are dispatched; the rest are left alone.</summary>
     [Fact]
     public void OnlyWiredWallsAreDispatched()
     {
         var text = Source();
 
-        Assert.Contains("vendor is not (\"cloudflare\" or \"kasada\")", text);
+        Assert.Contains("vendor is not (\"cloudflare\" or \"kasada\" or \"datadome\")", text);
 
-        // and the audit agrees: two wired, four gaps
-        Assert.Equal(new[] { "cloudflare", "kasada" }, Cybersole.Stores.Scripts.VendorWiring.Wired);
-        Assert.Equal(4, Cybersole.Stores.Scripts.VendorWiring.Gaps.Count);
+        // and the audit agrees: three wired, three gaps
+        Assert.Equal(new[] { "cloudflare", "kasada", "datadome" }, Cybersole.Stores.Scripts.VendorWiring.Wired);
+        Assert.Equal(3, Cybersole.Stores.Scripts.VendorWiring.Gaps.Count);
 
         _out.WriteLine("dispatch covers exactly the vendors the audit calls wired");
     }

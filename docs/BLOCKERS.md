@@ -31596,3 +31596,119 @@ python tools/metrics_report.py                                 -> 完整套件 e
 
 **→ 所以我差点把一条正确的守卫当成坏的改掉。这与 R980 那次（守卫对象为空）是同一课：
 一个看起来在阻碍你的守兵，可能正站在正确的位置上。**
+
+
+---
+
+## 420. **DataDome 接线完成：墙 2/6 → 3/6（新建 `DataDomeClearance.cs`）**
+
+> R996。**新建 1 个源文件 + 改 2 个源 + 5 处断言。** 套件 **2209 通过 / 0 失败 / 0 跳过**。
+
+### 一、先看已 Wired 的两个怎么接的
+
+**`SolveDetectedWallAsync`（`StoreFlow.cs:406`）是**唯一的派发点**，而它只放行两个：**
+
+```csharp
+if (vendor is not ("cloudflare" or "kasada")) return StepOutcome.Success();   // datadome 走不到任何 solver
+if (vendor == "cloudflare") { … CloudflareClearance.ApplyAsync … }
+var kasada = KasadaStrategyRunner.Default();
+return await KasadaClearance.ApplyAsync(…);
+```
+
+**→ 所以「有协议」还不够：派发白名单里没有 datadome。
+→ `Wired` 的意思是「检测 → 求解 → 存回，三样都有人调」。**
+
+### 二、写了 `src/Cybersole.Stores/Scripts/DataDomeClearance.cs`（125 行）
+
+**形状与 `CloudflareClearance.cs` 对称：**
+
+| 元素 | 依据 |
+|---|---|
+| `SensorUrl = "https://" + AntiBotVendors.DataDomeSensor` | 镜像 `https://datadome.cybersole.io/sensor` |
+| `SdkUrl = "https://" + AntiBotVendors.DataDomeSdk` | 镜像 `https://api-sdk.datadome.co/sdk/` |
+| `ClearanceCookie = "datadome"` | `AntiBotProtocol.CookiesFor("DataDome")` 已记 |
+| `Stages` 四条 | 镜像四句日志：Getting / Initialising / Solving / Submitting DataDome |
+| `ApplyAsync` 存回 | `Vars[ClearanceVar] = token` **且** `Cookies["datadome"] = token` |
+| 未配置 | 返回**状态**而非错误 |
+
+**派发点加了一条分支：**
+
+```csharp
+if (vendor is not ("cloudflare" or "kasada" or "datadome")) return StepOutcome.Success();
+...
+if (vendor == "datadome")
+{
+    var sensor = Cybersole.Stores.Scripts.InjectedDataDomeSensor.Default();
+    return await Cybersole.Stores.Scripts.DataDomeClearance
+        .ApplyAsync(c, sensor, c.Url ?? string.Empty, ct).ConfigureAwait(false);
+}
+```
+
+### 三、「一个都没配」被写成事实而不是失败
+
+**`InjectedDataDomeSensor` 无 call 时返回：**
+
+> 「DataDome relay not configured: the image names datadome.cybersole.io/sensor but this workspace has no credentials for it」
+
+**→ 与 `cf-solver.cybersole.io` 探到 401 时 Cloudflare 那条路一致：host 是真的、要凭据，而凭据我们没有。
+→ 不假装成功，也不当失败，而是记状态让流程继续。**
+
+### 四、这一轮没有发明第二条路
+
+**镜像只命名**一个 relay + 一个 SDK**。所以 DataDome 这边**没有** service→in-bot 的阶梯，
+只有一条 `IDataDomeSensor`。造第二条会是镜像没有的策略。**
+
+### 五、改了 5 处断言，其中两处是「钉住 2/6」的
+
+| 文件 | 改了什么 |
+|---|---|
+| `Scripts/VendorWiring.cs` | datadome 行 → `State.Wired` + 新 note（引用 R141 的更正与派发点） |
+| `VendorWiringTests.cs` | `Wired` 加 datadome · `Gaps` 去掉它 · 用例名 `TwoOfSixAreWired` → `ThreeOfSixAreWired` |
+| `WallDispatchTests.cs` | 派发白名单串加 `datadome` · `Wired` 加它 · `Gaps.Count` 4 → 3 · 注释 |
+| `WallSolvingTests.cs` | datadome → `Wired`；删掉 R995 那条 `Assert.NotEqual(Wired, …)` |
+
+**→ 一个踩到的细节：`VendorWiring.Wired` 的顺序是**行序**不是字母序**
+（`["cloudflare", "kasada", "datadome"]`）。第一次改成字母序，测试立刻报 `Collections differ`。
+**一个陈列顺序的假设，一次就露。****
+
+### 六、诚实的边界
+
+**`Wired` 现在说「三样都在」，而「求解」那一样在默认配置下**返回未配置**。
+→ 所以 3/6 的意思是：**调用链存在、派发到它、存回写对了**，而不是「这个墙在本机能过」。
+→ 这与 Cloudflare / Kasada 的 2/6 是**同一口径** —— 那两个的 service 路也需要凭据。
+→ 所以 3/6 没有虚高。**
+
+### 七、数字
+
+| 度量 | R995 | R996 |
+|---|---|---|
+| 套件 | 2209 | **2209** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952（未 publish）** |
+| **墙 Wired** | 2 / 6 | **3 / 6** |
+| **墙的缺口** | 4 | **3（imperva 证据 · perimeterx 证据 · queue-it 等待）** |
+| 新增源文件 | 0 | **1** |
+
+### 八、验证
+
+```
+cd replica
+python tools/snapshot.py
+dotnet build src/Cybersole.Stores/Cybersole.Stores.csproj -c Debug     -> 已成功生成
+dotnet test --filter "FullyQualifiedName~VendorWiringTests|FullyQualifiedName~WallDispatchTests|FullyQualifiedName~WallSolvingTests|FullyQualifiedName~CloudflareClearanceTests" -m:1  -> 23 通过
+python tools/metrics_report.py                                          -> 完整套件 exit 0  2209 通过 / 0 失败 / 0 跳过
+```
+
+### 九、仍然 Unknown
+
+- **imperva / perimeterx 在镜像里的 cookie 家族**：**Unknown** —— 未取证。
+- **DataDome relay 的凭据与字段顺序**：**Unknown** —— 无凭据，未探到。
+
+### 十、教训
+
+**`Wired` 这个词在这里不是「协议已知」，是「三样都有人调」。
+
+而当我上一轮把 `OriginalSolvesProtocolUnrecorded` 那种状态写出来之后，它看起来已经很像做完了 ——
+一个更准确的名字会让缺口显得更小。**
+
+**→ 一个标签的改善不等于工作的进展。R995 那个 state 是对的，而它一个字都没让墙过去。**

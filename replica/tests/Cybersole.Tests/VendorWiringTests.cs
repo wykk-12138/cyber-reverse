@@ -32,10 +32,10 @@ public sealed class VendorWiringTests
 
     /// <summary>Six vendors, and the two wired ones are the two this session built.</summary>
     [Fact]
-    public void TwoOfSixAreWired()
+    public void ThreeOfSixAreWired()
     {
         Assert.Equal(6, VendorWiring.Rows.Count);
-        Assert.Equal(new[] { "cloudflare", "kasada" }, VendorWiring.Wired);
+        Assert.Equal(new[] { "cloudflare", "kasada", "datadome" }, VendorWiring.Wired);
 
         foreach (var row in VendorWiring.Rows)
             _out.WriteLine($"{row.Vendor,-12} {row.State,-20} {row.Note}");
@@ -45,14 +45,15 @@ public sealed class VendorWiringTests
     [Fact]
     public void TheGapsAreClassified()
     {
-        Assert.Equal(new[] { "imperva", "datadome", "perimeterx", "queue-it" }, VendorWiring.Gaps);
+        Assert.Equal(new[] { "imperva", "perimeterx", "queue-it" }, VendorWiring.Gaps);
 
         // R995: this row used to assert HostWithoutProtocol, which said the protocol does not exist. R141 had already
         // established the opposite -- SolveBotD is named by a method in the original -- so the assertion was holding a
         // conclusion the same repository had corrected. What differs now is the attribution: the protocol exists in the
         // image and the gap is in this workspace's notes.
-        Assert.Equal(VendorWiring.State.OriginalSolvesProtocolUnrecorded,
-            VendorWiring.For("datadome")!.State);
+        // R996: the call now exists, so DataDome joins the wired pair. R995's state was the honest label while the
+        // sensor was unwritten; a label is not the work.
+        Assert.Equal(VendorWiring.State.Wired, VendorWiring.For("datadome")!.State);
         Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("imperva")!.State);
         Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("perimeterx")!.State);
         Assert.Equal(VendorWiring.State.NotAChallenge, VendorWiring.For("queue-it")!.State);

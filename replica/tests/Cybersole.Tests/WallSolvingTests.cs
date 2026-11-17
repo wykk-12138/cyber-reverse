@@ -67,9 +67,8 @@ public sealed class WallSolvingTests
         // side is unwritten -- and that intent is preserved here. What changed is the state's name, not its weight: the old
         // value said the protocol does not exist, which contradicted this very correction, while the new one says the
         // original solves it and the gap is ours. Still not Wired, for the same reason as before.
-        Assert.Equal(VendorWiring.State.OriginalSolvesProtocolUnrecorded,
-            VendorWiring.For("datadome")!.State);
-        Assert.NotEqual(VendorWiring.State.Wired, VendorWiring.For("datadome")!.State);
+        // R996: the store side exists now, so the wall is wired rather than merely known to be solvable.
+        Assert.Equal(VendorWiring.State.Wired, VendorWiring.For("datadome")!.State);
 
         // the correction says exactly that, in both directions
         Assert.Contains("SolveBotD exists", WallSolving.DataDomeCorrection);

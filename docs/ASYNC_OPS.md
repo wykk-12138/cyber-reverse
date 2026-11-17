@@ -9115,3 +9115,104 @@ OriginalSolvesProtocolUnrecorded,
 > 而它用了一个**会误导的名字**去表达那个约束。**
 > **→ 所以我差点把一条正确的守卫当成坏的改掉。这与 R980 那次（守卫对象为空）是同一课：
 > 一个看起来在阻碍你的守兵，可能正站在正确的位置上。**
+
+
+### DataDome 接上了 —— 墙从 **2/6** 到 **3/6**，而这一轮写了真代码（R996）
+
+**R995 说下一轮写 DataDome 的存回调用。写了：新建 `Scripts/DataDomeClearance.cs`（125 行），
+并在 `SolveDetectedWallAsync` 里加了一条分支。**
+
+### ① 先看已 `Wired` 的两个是怎么接的
+
+**`SolveDetectedWallAsync`（`StoreFlow.cs:406`）是**唯一的派发点**，而它只放行两个：**
+
+```csharp
+if (vendor is not ("cloudflare" or "kasada")) return StepOutcome.Success();   // datadome 走不到任何 solver
+...
+if (vendor == "cloudflare") { … CloudflareClearance.ApplyAsync … }
+var kasada = KasadaStrategyRunner.Default();
+return await KasadaClearance.ApplyAsync(…);
+```
+
+> **所以「有协议」还不够 —— 派发点的白名单里没有 datadome。
+> 那正是 `Wired` 的意思：检测 → 求解 → 存回，**而三样都要有人调用**。**
+
+### ② 写了什么
+
+**`src/Cybersole.Stores/Scripts/DataDomeClearance.cs`，形状与 `CloudflareClearance.cs` 对称：**
+
+| 元素 | 依据 |
+|---|---|
+| `SensorUrl = "https://" + AntiBotVendors.DataDomeSensor` | 镜像 `https://datadome.cybersole.io/sensor` |
+| `SdkUrl = "https://" + AntiBotVendors.DataDomeSdk` | 镜像 `https://api-sdk.datadome.co/sdk/` |
+| `ClearanceCookie = "datadome"` | `AntiBotProtocol.CookiesFor("DataDome")` 已记 |
+| `Stages` 四条 | 镜像四句日志：Getting / Initialising / Solving / Submitting DataDome |
+| `ApplyAsync` 存回 | `Vars[ClearanceVar] = token` **且** `Cookies["datadome"] = token` |
+| 未配置时 | 返回**状态**而非错误（与 `ServiceCloudflareSolver` 同一决定） |
+
+**而派发点加了一条：**
+
+```csharp
+if (vendor is not ("cloudflare" or "kasada" or "datadome")) return StepOutcome.Success();
+...
+if (vendor == "datadome")
+{
+    var sensor = InjectedDataDomeSensor.Default();
+    return await DataDomeClearance.ApplyAsync(c, sensor, c.Url ?? string.Empty, ct);
+}
+```
+
+### ③ 而「一个都没配」这件事被写成事实而不是失败
+
+**`InjectedDataDomeSensor` 无 call 时返回：**
+
+> 「DataDome relay not configured: the image names datadome.cybersole.io/sensor but this workspace has no credentials for it」
+
+**→ 与 `cf-solver.cybersole.io` 探到 401 时 Cloudflare 那条路一样：host 是真的、要凭据，而凭据我们没有。
+→ 所以**不假装成功**，也不当失败，而是把状态记下来让流程继续 —— 下一个请求再试。**
+
+### ④ 而这一轮没有发明第二条路
+
+**镜像只命名**一个 relay + 一个 SDK**。所以 DataDome 这边**没有** service→in-bot 的阶梯，
+只有一条 `IDataDomeSensor`。**
+
+> **`CloudflareClearance` 的注释写着 Cloudflare 有两条路（service 在前、本地在后），
+> 而 DataDome 的镜像证据里没有第二条 —— 造一条会是镜像没有的策略。**
+
+### ⑤ 改了 5 处断言，其中两处是「钉住 2/6」的
+
+| 文件 | 改了什么 |
+|---|---|
+| `VendorWiring.cs` | datadome 行 → `State.Wired` + 新 note（引用 R141 的更正与派发点） |
+| `VendorWiringTests.cs` | `Wired` 加 datadome；`Gaps` 去掉它；用例名 `TwoOfSixAreWired` → `ThreeOfSixAreWired` |
+| `WallDispatchTests.cs` | 派发白名单串加 `datadome`；`Wired` 加它；`Gaps.Count` 4 → 3；注释「two wired, four gaps」→「three wired, three gaps」 |
+| `WallSolvingTests.cs` | datadome → `Wired`；删掉 R995 那条 `Assert.NotEqual(Wired, …)`（它现在该等于） |
+
+> **而 `VendorWiring.Wired` 的顺序是**行序**不是字母序**：`["cloudflare", "kasada", "datadome"]`。
+> 第一次改成了字母序，测试立刻报 `Collections differ` —— **一个陈列顺序的假设，一次就露。**
+
+### ⑥ 一个仍然诚实的边界
+
+**`Wired` 现在说「三样都在」，而「求解」那一样在默认配置下**返回未配置**。
+所以 3/6 的意思是：**调用链存在、派发到它、存回写对了**，而不是「这个墙在本机能过**。
+
+> **这与 Cloudflare / Kasada 的 2/6 是**同一口径** —— 那两个的 service 路也需要凭据。
+> 所以 3/6 没有虚高。**
+
+### 数字
+
+| 度量 | R995 | **R996** |
+|---|---|---|
+| 套件 | 2209 | **2209** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952（未 publish）** |
+| **墙 Wired** | 2 / 6 | **3 / 6** |
+| **墙的缺口** | 4 | **3（imperva 证据 · perimeterx 证据 · queue-it 等待）** |
+| 新增源文件 | 0 | **1（`DataDomeClearance.cs`）** |
+
+### 教训
+
+> **`Wired` 这个词在这里不是「协议已知」，是「三样都有人调」。
+> 而当我把 ProtocolUnrecorded 那种状态写出来之后，它看起来已经很像做完了 —— 一个更准确的名字
+> 会让缺口显得更小。**
+> **→ 一个标签的改善不等于工作的进展。R995 那个 state 是对的，而它一个字都没让墙过去。**

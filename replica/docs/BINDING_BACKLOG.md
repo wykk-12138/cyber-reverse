@@ -7935,3 +7935,31 @@ Getting / Initialising / Solving / Submitting DataDome
 | imperva / perimeterx 在镜像里的 cookie 家族 | 未取证 |
 
 **纪律**：一个看起来在阻碍你的守兵，可能正站在正确的位置上。
+
+
+## 优先级 ② — **DataDome 接线完成：墙 2/6 → 3/6；新建 `DataDomeClearance.cs`**（R996）
+
+### 改了什么
+
+| 文件 | 改了什么 |
+|---|---|
+| **`Scripts/DataDomeClearance.cs`（新，125 行）** | SensorUrl / SdkUrl / `datadome` cookie / 四阶段 / `ApplyAsync` 存回 / `IDataDomeSensor` + 未配置时返回状态串 |
+| `Flows/StoreFlow.cs` | `SolveDetectedWallAsync` 白名单加 `datadome`；新增 datadome 分支 |
+| `Scripts/VendorWiring.cs` | datadome 行 → `State.Wired` |
+| `VendorWiringTests.cs` / `WallDispatchTests.cs` / `WallSolvingTests.cs` | 5 处断言（含两处钉住 2/6 的） |
+
+### 边界（诚实）
+
+**`Wired` = 检测 → 求解 → 存回三样都有人调，**不是**「本机能过」。
+求解默认返回「relay not configured」，与 Cloudflare 的 401 同口径。**
+
+### 数字
+
+**套件 2209 · 陈旧度 0/0 · 函数数 173,952 · 墙 3/6 · 缺口 3（imperva 证据 · perimeterx 证据 · queue-it 等待）**
+
+| 仍 Unknown | |
+|---|---|
+| imperva / perimeterx 的 cookie 家族 | 未取证 |
+| DataDome relay 的凭据与字段顺序 | 无凭据 |
+
+**纪律**：一个标签的改善不等于工作的进展。

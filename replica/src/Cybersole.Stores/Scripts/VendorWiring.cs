@@ -75,12 +75,10 @@ public static class VendorWiring
         new Row("imperva", "_Incapsula_Resource", null, State.DetectedOnly,
             "the image names no Imperva cookie and no Imperva host"),
 
-        new Row("datadome", "datadome", "datadome", State.OriginalSolvesProtocolUnrecorded,
-            "R995 corrects this row. R141 already found SolveBotD -- DataDome's own challenge script, named by a method in "
-            + "the original -- and WallSolving.DataDomeCorrection records the consequence: the original does solve DataDome "
-            + "and the missing protocol is this workspace's gap. The image also names the whole chain: api-sdk.datadome.co/sdk/, "
-            + "datadome.cybersole.io/sensor, DataDomeKey, DatadomeSliderTask, and GenerateSensor / SubmitSensor / GetSensorData "
-            + "as three state machines. What is missing is the call, not the knowledge."),
+        new Row("datadome", "datadome", "datadome", State.Wired,
+            "R996: DataDomeClearance runs the sensor at datadome.cybersole.io/sensor, narrates the image's four stages "
+            + "and writes the datadome cookie. R141's correction stands -- SolveBotD proved the original solves it -- and "
+            + "what was missing was the call, which now exists and which SolveDetectedWallAsync dispatches to."),
 
         new Row("perimeterx", "px-captcha", null, State.DetectedOnly,
             "deliberately blank: a token header exists, no _px cookie does"),

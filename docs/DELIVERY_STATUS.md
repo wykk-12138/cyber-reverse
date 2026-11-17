@@ -23843,3 +23843,74 @@ bind_diff.py --type-presence -> 16 个 ABSENT 逐条列出
 
 **按优先级切开一个数字，比反复报那个数字有用。
 那个 16 一直挂着，因为从没按优先级切过 —— 切开之后 9 个属于 YG 说不急的那一层。**
+
+
+---
+
+## 399. **6 个核心缺失中 5 个只是改名；判据 a 类型缺失真实剩余 2**
+
+> R975。**只核对，未改代码。** 套件 **2186 通过 / 0 失败 / 0 跳过**。
+
+### 一、逐条核对
+
+| 原版名 | 复刻件实现 | 抽样成员 |
+|---|---|---|
+| `Cybersole.Global.Settings`（34） | **`GlobalSettings.cs`** | `AutoOpen3DS` `BrowserLimit` `MonitorConcurrency` `RetryDelay` `TaskGroupOrder` `ScrollbarWidth` `StartupPage` `Currency` —— **8/8 全在** |
+| `CloudflareSolvers.CloudflareSolver`（9） | 散在 `Drivers.cs` / `CaptchaSolverService.cs` / `GlobalSettings.cs` | `ApiKey` `BalanceSupported` `IsFetchingBalance` `Concurrency` —— **4/4 全在** |
+| `Services.ImapProvider`（4） | **`ImapMailProvider.cs`** | `MessageCount` 在 |
+| `Models.Concurrency`（3） | **`ConcurrencyLimit.cs`** | `Maximum` `Ratio` 在 |
+| `SmartActions.ActionConfig`（2） | **`SmartActions.cs`** | `Required` 在 |
+| `Helpers.ObservableDictionary\`2`（1） | **未见** | `Count` 是通用成员，命中的是 `Checkout.cs`/`Profiles.cs`，**不算证据** |
+
+### 二、结论
+
+**5 个确认是改名。而判据 a 的原话是「名字级缺口三分类结案」，
+而「命名可不同」是目标里写明的自由度 → **不算缺口，应从缺口里划掉**。**
+
+**第 6 个（`ObservableDictionary\`2`）待判 —— 可能是 BCL 现成类型，
+若复刻件用 BCL 原版则是「实现不同」不是缺失。未查 BCL 清单 → Unknown。**
+
+### 三、判据 a 的真实剩余量
+
+| 类 | R974 | R975 |
+|---|---|---|
+| 核心 | 6 | **1** |
+| UI | 9 | **9** |
+| 未读 | 1 | **1** |
+| 合计 | 16 | **11** |
+| **真实剩余（非 UI、非改名）** | — | **2** |
+
+### 四、数字
+
+| 度量 | R974 | R975 |
+|---|---|---|
+| 套件 | 2186 | **2186** |
+| 函数数 | 173,952 | **173,952** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **核心缺失** | 6 | **1** |
+| **类型缺失合计** | 16 | **11** |
+
+### 五、验证
+
+```
+cd replica
+python tools/where_is.py Settings            -> implementation 组有 GlobalSettings.cs
+python tools/where_is.py ImapProvider        -> ImapMailProvider.cs
+python tools/where_is.py Concurrency         -> ConcurrencyLimit.cs
+python tools/where_is.py ActionConfig        -> SmartActions.cs
+python tools/where_is.py ObservableDictionary-> 0 行
+python -c "逐成员正则查 src" -> 8/8、4/4 全在
+```
+
+### 六、仍然 Unknown
+
+- **`ObservableDictionary\`2` 是否 BCL 现成类型**：**Unknown** —— 未查 BCL 清单。
+- **第 16 个缺失类型是什么**：**Unknown** —— 输出截断。
+
+### 七、教训
+
+**「类型缺失 16」里 5 个是改名，而改名在目标里是允许的 —— 那个 16 从一开始就高估了 5 个。**
+
+**它没被修正，因为检查工具按名字判存在，而名字可不同是目标里明写的自由度。**
+
+**检查工具与目标条款之间有一个洞，而那个洞里装着 5 个假缺口。**

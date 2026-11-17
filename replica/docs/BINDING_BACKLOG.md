@@ -7154,3 +7154,35 @@ FindSlot · GetReleaseFeed · LoadCountryData · ProcessResponse · Fill · GetS
 | 第 16 个缺失类型是什么 | 输出截断 |
 
 **纪律**：按优先级切开一个数字，比反复报那个数字有用。
+
+
+## 判据 (a) — **6 个核心缺失中 5 个只是改名；真实剩余 2**（R975）
+
+### 核对结果
+
+| 原版名 | 复刻件实现 | 抽样 |
+|---|---|---|
+| `Global.Settings`(34) | `GlobalSettings.cs` | 8/8 在 |
+| `CloudflareSolvers.CloudflareSolver`(9) | `Drivers.cs`/`CaptchaSolverService.cs` | 4/4 在 |
+| `Services.ImapProvider`(4) | `ImapMailProvider.cs` | 在 |
+| `Models.Concurrency`(3) | `ConcurrencyLimit.cs` | 在 |
+| `SmartActions.ActionConfig`(2) | `SmartActions.cs` | 在 |
+| `Helpers.ObservableDictionary\`2`(1) | **未见** | `Count` 通用，不算证据 |
+
+### 结论
+
+**5 个是改名 → 属于目标里写明的「命名可不同」→ **不算缺口，划掉**。**
+**第 6 个待判（可能是 BCL 现成类型）→ Unknown。**
+
+**→ 判据 a「类型缺失」真实剩余：1 核心待判 + 1 未读 = **2**（不是 16）。**
+
+### 数字
+
+**套件 2186 · 函数数 173,952 · 陈旧度 0/0 · 核心缺失 6 → 1 · 类型缺失 16 → 11（实剩 2）**
+
+| 仍 Unknown | |
+|---|---|
+| `ObservableDictionary`2` 是否 BCL 现成 | 未查 BCL 清单 |
+| 第 16 个缺失类型是什么 | 输出截断 |
+
+**纪律**：检查工具按名字判存在，而名字可不同是目标里的自由度 —— 那个洞装着 5 个假缺口。

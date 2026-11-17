@@ -1818,3 +1818,23 @@ body 串抽样 5 个：`bstn: cart endpoint unknown` **True**，其余 4 个 Fal
 纪律：按优先级切开一个数字，比反复报那个数字有用。
 
 下一轮：核那 6 个核心类型里有几个只是改名（`where_is.py` 逐个查）。
+
+## R975 补充 — **6 个核心缺失中 5 个只是改名；判据 a 类型缺失真实剩余 2**（套件 2186）
+
+逐条核对：
+- `Global.Settings`(34) → **`GlobalSettings.cs`**，抽样 8/8 全在
+- `CloudflareSolvers.CloudflareSolver`(9) → 散在 `Drivers.cs`/`CaptchaSolverService.cs`，4/4 全在
+- `Services.ImapProvider`(4) → **`ImapMailProvider.cs`**
+- `Models.Concurrency`(3) → **`ConcurrencyLimit.cs`**
+- `SmartActions.ActionConfig`(2) → **`SmartActions.cs`**
+- `Helpers.ObservableDictionary`2`(1) → **未见**（`Count` 通用，不算证据）→ Unknown
+
+→ **5 个是改名 → 属目标里写明的「命名可不同」→ 不算缺口，划掉。**
+→ 判据 a「类型缺失」真实剩余：**1 核心待判 + 1 未读 = 2**（不是 16）。
+→ 9 个 UI（YG 说不急）+ 1 未读 + 1 核心待判 = 11 合计。
+
+数字：套件 2186 · 函数数 173,952 · 陈旧度 0/0 · 核心缺失 6 → 1 · 类型缺失 16 → 11。
+
+纪律：**检查工具按名字判存在，而名字可不同是目标里的自由度 —— 那个洞装着 5 个假缺口。**
+
+下一轮：查 `ObservableDictionary`2` 是否 BCL 现成类型（查 .NET 8 BCL 清单）+ 补读第 16 个。

@@ -7322,3 +7322,58 @@ Ui.Views.Auth.LicenseControl               1  Authenticate
 > **这一轮没写代码，而它把一个一直「还有 16 个」的数字变成了「6 个核心、9 个 UI、1 未分类」。**
 > **而那个 16 一直挂在那里，因为我从没按**优先级**把它切开过 —— 我一直把它当一个整体。**
 > **而切开之后，9 个属于 YG 明确说了「不急」的那一层。**
+
+
+### 那 6 个核心缺失：**5 个只是改名**，第 6 个待判（R975）
+
+**R974 说下一轮核这 6 个里有几个只是改名。核完了。**
+
+### 逐条（成员抽样 + 命中文件）
+
+| 原版名 | 复刻件里的实现 | 抽样成员 |
+|---|---|---|
+| `Cybersole.Global.Settings`（34 成员） | **`GlobalSettings.cs`** | `AutoOpen3DS` `BrowserLimit` `MonitorConcurrency` `RetryDelay` `TaskGroupOrder` `ScrollbarWidth` `StartupPage` `Currency` —— **8/8 全在** |
+| `Cybersole.CloudflareSolvers.CloudflareSolver`（9） | **散在 `Drivers.cs` / `CaptchaSolverService.cs` / `GlobalSettings.cs`** | `ApiKey` `BalanceSupported` `IsFetchingBalance` `Concurrency` —— **4/4 全在** |
+| `Cybersole.Services.ImapProvider`（4） | **`ImapMailProvider.cs`** | `MessageCount` 在 |
+| `Cybersole.Models.Concurrency`（3） | **`ConcurrencyLimit.cs`** | `Maximum` `Ratio` 在 |
+| `Cybersole.SmartActions.ActionConfig`（2） | **`SmartActions.cs`** | `Required` 在 |
+| `Cybersole.Helpers.ObservableDictionary\`2`（1） | **未见** | `Count` 是通用成员，命中的是 `Checkout.cs` / `Profiles.cs`，**不能算证据** |
+
+### 所以
+
+**5 个确认改名 —— 而判据 a 的原话是「名字级缺口三分类结案」，
+而「命名可不同」是目标里写明的**不算缺口**。**
+
+> **所以这 5 个应当**从缺口里划掉**，而不是留着占位。
+> 而第 6 个（`ObservableDictionary\`2`，两个泛型参数）待判 —— 它可能是 BCL 的
+> `System.Collections.ObjectModel` 里现成的类型，复刻件用 BCL 的原版就是「实现不同」，不是缺失。**
+> **而这一点我没查 BCL 的清单，所以标 Unknown。****
+
+### 而这意味着判据 a 的缺口从 16 降到 11
+
+| 类 | R974 | **R975** |
+|---|---|---|
+| 核心 | 6 | **1（`ObservableDictionary\`2`）** |
+| UI | 9 | **9** |
+| 未读 | 1 | **1** |
+| 合计 | 16 | **11** |
+
+> **所以 16 里：9 个 UI（YG 说不急）+ 1 个未读 + **1 个核心待判**。
+> 而「类型缺失」这一条的真实剩余量是 1+1 = 2，不是 16。****
+
+### 数字
+
+| 度量 | R974 | **R975** |
+|---|---|---|
+| 套件 | 2186 | **2186（只核对）** |
+| 函数数 | 173,952 | **173,952** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **核心缺失** | 6 | **1** |
+| **类型缺失合计** | 16 | **11（9 UI + 1 未读 + 1 核心）** |
+
+### 教训
+
+> **「类型缺失 16」这个数字里，5 个是改名。而改名在目标里是允许的 ——
+> 所以那个 16 从一开始就**高估了 5 个**。**
+> **而它没被修正，因为检查工具按**名字**判存在，而**名字可以不同**是目标里明写的自由度。
+> 检查工具与目标条款之间有一个洞，而那个洞里装着 5 个假缺口。**

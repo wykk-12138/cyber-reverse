@@ -57805,3 +57805,54 @@ Ui.Views.Auth.LicenseControl               1  Authenticate
 > **这一轮没写代码，而它把一个一直「还有 16 个」的数字变成了「6 核心 / 9 UI / 1 未分类」。
 > 那个 16 一直挂着，因为我从没按**优先级**把它切开过 —— 我一直把它当一个整体。
 > 切开之后，9 个属于 YG 明确说了「不急」的那一层。**
+
+
+---
+
+## 第 975 轮：那 6 个核心缺失 —— 5 个只是改名，第 6 个待判
+
+### 逐条
+
+| 原版名 | 复刻件 | 抽样成员 |
+|---|---|---|
+| `Global.Settings`（34） | **`GlobalSettings.cs`** | 8/8 全在（`AutoOpen3DS` `BrowserLimit` `MonitorConcurrency` `RetryDelay` `TaskGroupOrder` `ScrollbarWidth` `StartupPage` `Currency`） |
+| `CloudflareSolvers.CloudflareSolver`（9） | 散在 `Drivers.cs` / `CaptchaSolverService.cs` | 4/4 全在 |
+| `Services.ImapProvider`（4） | **`ImapMailProvider.cs`** | `MessageCount` 在 |
+| `Models.Concurrency`（3） | **`ConcurrencyLimit.cs`** | `Maximum` `Ratio` 在 |
+| `SmartActions.ActionConfig`（2） | **`SmartActions.cs`** | `Required` 在 |
+| `Helpers.ObservableDictionary\`2`（1） | **未见** | `Count` 通用，命中不算证据 |
+
+### 所以 5 个确认改名
+
+**判据 a 的原话：「名字级缺口三分类结案」—— 而「命名可不同」是目标里写明的**不算缺口**。**
+**→ 这 5 个应从缺口里划掉。**
+
+**第 6 个（`ObservableDictionary\`2`，两泛型参数）待判 —— 可能是 BCL 现成类型，
+若复刻件用 BCL 原版则是「实现不同」不是缺失。**未查 BCL 清单 → Unknown。****
+
+### 而判据 a 的真实剩余量
+
+| 类 | R974 | **R975** |
+|---|---|---|
+| 核心 | 6 | **1** |
+| UI | 9 | **9** |
+| 未读 | 1 | **1** |
+| 合计 | 16 | **11** |
+
+> **「类型缺失」的真实剩余量是 **1+1 = 2**（1 核心待判 + 1 未读），不是 16。**
+
+### 数字
+
+| 度量 | R974 | **R975** |
+|---|---|---|
+| 套件 | 2186 | **2186** |
+| 函数数 | 173,952 | **173,952** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **核心缺失** | 6 | **1** |
+| **类型缺失合计** | 16 | **11** |
+
+### 教训
+
+> **「类型缺失 16」里 5 个是改名，而改名在目标里是允许的 —— 所以那个 16 从一开始就**高估了 5 个**。**
+> **它没被修正，因为检查工具按**名字**判存在，而**名字可以不同**是目标里明写的自由度。
+> 检查工具与目标条款之间有一个洞，而那个洞里装着 5 个假缺口。**

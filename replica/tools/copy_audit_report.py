@@ -13,6 +13,24 @@ AREAS = ['Accounts','Proxies','Tasks','Profiles','Analytics','Auth','Billing','C
          'HistoryWindow','Monitor','ProfileCsv','Release','Settings','SmartActions','TaskCreator',
          'TaskGroup','Utilities','GroupModal']
 
+# R981: the three constants above are the defaults; this lets them be overridden from the command line before anything is
+# opened, and the rest of the module is untouched.
+#
+# The reason is the guard, not convenience. `CopyAuditConsistencyTests` requires the detail row count to equal the
+# summary's missing total, and with the real gap at zero that invariant is 0 == 0 -- no edit to either loop can break it,
+# so no mutation of this file can make the guard fail. A guard that cannot fail is not evidence. The guard therefore also
+# runs this tool over a two-line fixture in which one key's name appears in the source while its value does not, which is
+# the one shape where the wide and narrow predicates disagree. Without these flags the tool can only ever be pointed at the
+# real tree and the guard stays untestable.
+import argparse as _argparse
+
+_ap = _argparse.ArgumentParser(description="Consolidated copy-gap report (defaults: the real pool, source and output).")
+_ap.add_argument("--pool", default=POOL, help="string pool to read key/value pairs from")
+_ap.add_argument("--src", default=SRC, help="source tree to look the values up in")
+_ap.add_argument("--out", default=OUT, help="report to write")
+_args = _ap.parse_args()
+POOL, SRC, OUT = _args.pool, _args.src, _args.out
+
 raw = io.open(POOL, encoding='utf-8', errors='replace').read()
 # R542: the first pattern was r'"([A-Z][\w.]*\.[\w.]+)":\s*"([^"\n]{1,90})"'. `[^"\n]` stops at the first double
 # quote, so any value containing an escaped quote (`\"{0}\"`) was cut at the backslash and the *fragment* was then

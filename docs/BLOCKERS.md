@@ -30092,3 +30092,93 @@ python tools/metrics_report.py    -> 完整套件 exit 0  2200 通过 / 0 失败
 
 **而工具只有一个词，所以我差点把 623 也当成「守卫坏了」去改它 ——
 那会把一条正确的守卫改坏，而它今天的沉默是对的。**
+
+
+---
+
+## 405. **变异 36 / 36 fired，0 装饰性，0 跳过 → 判据 (e) 第二句成立**
+
+> R981。**加工具参数 + 改写守卫为双跑。** 套件 **2200 通过 / 0 失败 / 0 跳过**。
+
+### 一、缺口的形状
+
+**守卫不变式：`明细行数 == 摘要 missing 数`。真实树两边都是 **0** → 任何改动仍 0==0 → 无法被触发。**
+
+**两个判据在**一种**形状下分开：**
+
+| 判据 | True 的条件 |
+|---|---|
+| `_satisfied(key, value, text, code)`（新） | value 在源码里 **或** key 的名字在源码里 |
+| `_present(value, text)`（旧） | **只有** value 在源码里 |
+
+**→「键名在、值不在」时分开。真实树里没有这种键，因为缺口是 0。**
+
+### 二、改法
+
+**① `copy_audit_report.py` 加 `--pool` / `--src` / `--out`（默认 = 原常量）。
+理由写进文件：守卫要能指向人造小样本，否则只能指向真实树，而真实树上它无话可说。**
+
+**② 守卫跑两次：**
+
+```
+[real tree]  摘要 0 / 明细 0  → 成立
+[fixture]    pool: "Accounts.Test.Key": "a value that appears nowhere at all"
+             src : class Sample { const string K = "Accounts.Test.Key"; }
+             → 正确代码 0 / 0 成立；变异代码 0 / 1 → 红
+```
+
+### 三、手工验过它真的红
+
+```
+变异应用 1 处
+[FAIL] Cybersole.Tests.CopyAuditConsistencyTests.DetailRowsMatchTheSummaryTotal
+失败: 1
+已还原 → 通过: 1
+```
+
+### 四、全量变异
+
+```
+running 36 of 36 mutations
+fired        36      （33 → 35 → 36）
+decorative    0      （原 1）
+skipped       0      （原 2）
+restored tree: GREEN
+```
+
+**→ 判据 (e) 第二句「变异测试全 fired」**现在成立**。
+而成立方式不是把守卫改严，是**给守卫一个能说话的对象**。**
+
+### 五、三轮修的是同一件东西
+
+| 原因 | 征兆 | 修法 |
+|---|---|---|
+| 只审了一部分 | `claim rows: 5` | 扩范围（R978） |
+| 锚点/前提过期 | `SKIPPED` / `DECORATIVE` | 换锚点（R980） |
+| 对象是空的 | `DECORATIVE` 而代码没变 | 造对象（R981） |
+
+### 六、数字
+
+| 度量 | R980 | R981 |
+|---|---|---|
+| 变异 fired / 总 | 35 / 36 | **36 / 36** |
+| 装饰性 | 1 | **0** |
+| 跳过 | 0 | **0** |
+| 套件 | 2200 | **2200** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+
+### 七、验证
+
+```
+cd replica
+python tools/mutation-check.py                    -> 36 of 36；fired 36 / decorative 0 / skipped 0；restored GREEN
+dotnet test --filter "FullyQualifiedName~CopyAuditConsistencyTests" -m:1  -> 通过 1
+python tools/metrics_report.py                    -> 完整套件 exit 0  2200 通过 / 0 失败 / 0 跳过
+```
+
+### 八、教训
+
+**「守卫是装饰性的」和「守卫没有对象」在日志里是同一行。
+而前者要改守卫，后者改了守卫就是把一条正确的守卫改坏。**
+
+**所以下一步永远是：先看代码有没有变。变了还绿 → 装饰性；没变 → 没有对象。**

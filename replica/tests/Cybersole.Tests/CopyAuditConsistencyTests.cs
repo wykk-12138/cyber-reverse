@@ -32,6 +32,38 @@ public sealed class CopyAuditConsistencyTests
     {
         var repo = RepoRoot();
 
+        // R981: two runs, because one is not enough. On the real tree the copy gap is zero, so summary is zero and detail
+        // is zero and the invariant is 0 == 0 -- no edit to either loop can break it, which is why round 623's mutation
+        // reported that this guard was decorative. It was not decorative; it had nothing to guard. The fixture below is
+        // the one shape where the wide and narrow predicates disagree: a key whose name appears in the source while its
+        // value does not, so the wide predicate counts it as in use and the narrow one does not. There the invariant has
+        // content, and reverting the detail loop to the narrow predicate must break it.
+        AssertInvariantHolds(repo, null);
+
+        var fixture = Path.Combine(Path.GetTempPath(), "copyaudit-fixture-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var src = Path.Combine(fixture, "src");
+            Directory.CreateDirectory(src);
+            File.WriteAllText(Path.Combine(fixture, "pool.txt"),
+                "\"Accounts.Test.Key\": \"a value that appears nowhere at all\",\n");
+            File.WriteAllText(Path.Combine(src, "Sample.cs"),
+                "class Sample { const string K = \"Accounts.Test.Key\"; }\n");
+
+            AssertInvariantHolds(repo, fixture);
+        }
+        finally
+        {
+            try { Directory.Delete(fixture, true); } catch (IOException) { /* a temp dir left behind is not a failure */ }
+        }
+    }
+
+    /// <summary>
+    /// Run the tool once, then require the summary's missing total to equal the number of detail rows it wrote.
+    /// <paramref name="fixture"/> is null for the real tree; otherwise it holds <c>pool.txt</c> and <c>src/</c>.
+    /// </summary>
+    private void AssertInvariantHolds(string repo, string? fixture)
+    {
         var psi = new ProcessStartInfo("python")
         {
             WorkingDirectory = repo,
@@ -43,13 +75,25 @@ public sealed class CopyAuditConsistencyTests
         };
         psi.ArgumentList.Add("tools/copy_audit_report.py");
 
+        string? report = null;
+        if (fixture is not null)
+        {
+            report = Path.Combine(fixture, "report.md");
+            psi.ArgumentList.Add("--pool");
+            psi.ArgumentList.Add(Path.Combine(fixture, "pool.txt"));
+            psi.ArgumentList.Add("--src");
+            psi.ArgumentList.Add(Path.Combine(fixture, "src"));
+            psi.ArgumentList.Add("--out");
+            psi.ArgumentList.Add(report);
+        }
+
         using var p = Process.Start(psi);
         Assert.True(p is not null, "could not start 'python'; the guard fails rather than skips");
 
         var stdout = p.StandardOutput.ReadToEnd();
         var stderr = p.StandardError.ReadToEnd();
         p.WaitForExit();
-        _out.WriteLine(stdout);
+        _out.WriteLine((fixture is null ? "[real tree]" : "[fixture]") + Environment.NewLine + stdout);
 
         Assert.True(p.ExitCode == 0, "copy_audit_report.py exited " + p.ExitCode + ": " + stderr);
 

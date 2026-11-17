@@ -85,7 +85,7 @@ x-kpsdk-h    x-kpsdk-im   x-kpsdk-st   x-kpsdk-v
 | 头 | 含义 | 备注 |
 |---|---|---|
 | `x-kpsdk-ct` | client token，**核心凭据** | 必须与产出它的 UA 一致 |
-| `x-kpsdk-cd` | client data，用于**请求体加密** | 同一份脚本上下文才能配 `cd` 加密 body |
+| `x-kpsdk-cd` | client data：**默认是挑战应答**（指纹 + answers + 时序 + PoW 难度），需要时也承载加密后的 body | **两件事同名**，详见 [08-cd.md](08-cd.md) |
 | `x-kpsdk-v` | 脚本版本 | 见 §5 的 per-store 版本头 |
 | `x-kpsdk-st` / `-rst` | 握手时间戳 / 接收时间戳 | 与 `workTime` 一起构成时序证据 |
 | `x-kpsdk-dt` `-dv` `-fc` `-h` `-im` | 脚本内部状态的投影 | 语义 **[Unk]**，跟随脚本产出即可，不要自造 |

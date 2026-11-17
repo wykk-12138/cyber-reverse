@@ -35,10 +35,13 @@ TYPES = [
 
 # Members the replica adds deliberately. A key is local bookkeeping; a flag that the list membership already expresses
 # is a representation choice. Neither is a gap, and saying so is part of the table rather than a footnote.
+# R1057: enumerating the two namespaces showed one type in each, and corrected this table. CaptchaProvider has no Id in
+# the image -- all nine of its properties are listed -- so the replica's Id really is local bookkeeping. CloudflareSolver
+# DOES have Id, so listing it as an extra was wrong, and it hid the fact that the replica's Id is evidenced.
 REPLICA_EXTRAS = {
-    "CaptchaProvider": {"Id": "本地主键（镜像无此字段，镜像用列表位置表示）",
-                        "Enabled": "列表成员即启用（镜像用 EnabledProviders 集合表达同一件事）"},
-    "CloudflareSolverConfig": {"Id": "本地主键"},
+    "CaptchaProvider": {"Id": "**本地主键** —— 镜像该类型的 9 个属性里没有 Id",
+                        "Enabled": "**表示选择** —— 镜像用 EnabledProviders 集合表达同一件事"},
+    "CloudflareSolverConfig": {},
 }
 
 
@@ -113,8 +116,16 @@ def main():
     add("**取证方式**：镜像的反射元数据里，属性形如 `<命名空间>.<类型>,<程序集>.<成员>!Getter`，")
     add("所以「原版某个类型有哪些属性」是一个**查询**而不是判断。复刻件侧读源码里的 `get` 访问器。")
     add("")
-    add("**范围**：下表只覆盖本工作一直在推理的核心类型。镜像有数千个类型，")
-    add("而**本表不声称枚举了它们** —— 没列出的类型不因此而被判为缺席。")
+    add("**范围**：下表覆盖两个**完整的命名空间**，不是两个挑出来的样本。")
+    add("")
+    add("| 命名空间 | 该命名空间下的类型数 | 已对照 |")
+    add("|---|---|---|")
+    add("| `Cybersole.CaptchaProviders` | **1** | **1** |")
+    add("| `Cybersole.CloudflareSolvers` | **1** | **1** |")
+    add("")
+    add("**取证命令**（R1057）：对两个命名空间各做一次前缀查询，统计该命名空间下出现过的类型名。")
+    add("⇒ 两个命名空间各只有 1 个类型，而两个都已对照且缺口为 0。")
+    add("**→ 所以这两个命名空间是**穷尽**的；镜像另外还有数千个类型，本表不声称枚举了它们。**")
     add("")
     add("## 一、逐类型对照")
     add("")

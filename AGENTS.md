@@ -184,6 +184,15 @@ python tools\where_is.py <名字>
 - **一个名字在 implementation 组里出现，就先去读那个文件，再决定写不写。**
   查的成本是三分钟；重复品和假成功的成本是两轮。
 
+## 2.9 等新 key 的暂停项（R508）
+
+B 类 31 条"行为 Unknown"卡在**有效许可**上：登录能过（bearer 有效到 2027-11-14），但
+License Selector 列表为空 → 进不了主界面 → 本地动作（Add/Delete/Clear/Save）无法观察。
+
+- 已实测并落账：`C-license-gate`（许可门在登录之后）、`C-license-authority`（服务端权威）。
+- 恢复步骤与环境收尾清单在 **`docs/R508_LICENSE_GATE.md` §6–§7**。
+- 拿到新 key 之前，这 31 条保持 `unknown`，**不要替它们编实现**。
+
 ## 3. 改代码的纪律
 
 **「方法改成绑定属性」的固定连带清单**（R468–R499 踩了七次，七次的错因就这六项）：

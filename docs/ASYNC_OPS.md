@@ -9885,3 +9885,97 @@ omise        UTF-16 x52   UTF-8 x89
 > 而这次的判别手段是**短串计数** —— 长串 absent 只说明那一段代码不在，
 > 短串计数才说明那个类型的**名字**还在不在。**
 > **→ 「在不在产物里」这句话，对长串和对类型名是两个不同的问题，而我一直用一个答案回答两个。**
+
+
+### 409 的两难消失了 —— 因为原版**不按状态码分类**（R1005）
+
+**R993 留下一句「两份表哪一份对，需要证据」。这一轮取了证据，而它把那个二选一**取消了**。**
+
+### ① 先按 goal 的流程把 IDA 弄起来（三个框，一个新框型）
+
+```
+PROXY: MISSING   INSTANCE: none   PORT 13337: REFUSED   TIMEOUT: 180s
+```
+
+**代理仍然缺失（属停下等 YG 的条件），而 **IDA 自己起来了**、只是停在对话框上。
+`analysis/ida.py` 直连插件的 13337，不走 DSH 代理，所以清框即可用。**
+
+| 框 | 处置 |
+|---|---|
+| 「IDA has found an unpacked version」 | **Proceed with unpacked base**（goal 指定） |
+| 「id0 is not closed. repair it?」 | **是(Y)**（goal 指定） |
+| 「请稍候…」 | **等，不点**（goal 指定） |
+| **「Database still contains inconsistencies」** | **确定** —— **新框型，本轮补记**；只有这一个按钮，信息性 |
+
+**→ `13337 LISTENING pid=44936`，标题 `IDA - Cybersole.exe.i64`。**
+
+### ② 409 的状态码语义：镜像**不提供**
+
+| 探测 | 命中 | 是什么 |
+|---|---|---|
+| `409` | 40 | 全是十六进制哈希（`1409A77B…`），**无状态码语义** |
+| `Conflict` | 30 | `.NET` 枚举名（`Conflicte` / `DeprecatedLegacyJsonFieldConflicts`） |
+| `unavailable` | 40 | HTTP 枚举名（`ServiceUnavailable` / `UnavailableForLegalReasons`） |
+
+> **→ 镜像里没有「409 → 某种处置」的对照表。有的只是 HTTP 枚举的**名字**。
+> → 所以 R993 那个问题（「哪份表对」）在原版的**状态码层**上无解 —— 那里没有表。**
+
+### ③ 而原版在**消息层**给了答案
+
+```
+0x146e2c6cc  Out of stock (reservation failed), retrying
+0x146e6ab6c  Reservation failed (
+0x146dd0644  Item is Out of Stock
+0x146e2c68c  Out of stock (decoy)
+0x146edb584  The product in the cart is out of stock.
+```
+
+**`out of stock` 共 7 条，而它们**不是同一件事**：**
+
+| 消息 | 处置 |
+|---|---|
+| `Out of stock (reservation failed), **retrying**` | **重试** |
+| `Out of stock (decoy)` | **诱饵** —— 不是真缺货（另有 `get_DecoyActive` 状态） |
+| `Item is Out of Stock` · `This item is out of stock` | 真缺货 |
+
+> **→ 所以「缺货要不要重试」的判据是**消息内容**，不是状态码。
+> → 而两份表（`ClassifyCheckoutFailure` 409=Declined · `HandleResponseAsync` 409=retryable）
+> **同错**：都在按状态码分类，而原版按**消息**分类。**
+
+### ④ 所以修法不是「选哪一份」，是**加一层**
+
+**两难的形状是「A 说甲、B 说乙，哪个对」。而证据说：问题问错了层次。
+409 的状态码层没有语义；语义在响应体里。**
+
+**正确的修法：**
+1. 状态码层保持**保守**（409 → Declined，因为多数 409 是售罄）
+2. **加一条消息级升级**：体里含 `reservation failed` → **可重试**
+3. 体里含 `decoy` → **不重试**（诱饵，重试会加深可疑）
+
+**→ 而这三条各自有字符串证据，不是偏好。**
+
+### ⑤ 本轮未改代码，因为接线前要先定这条顺序
+
+**`HandleResponseAsync` 仍未接上 —— 而接它之前必须先有消息层，
+否则 409 会一律变可重试（= 重试已经卖出的东西）。**
+
+**→ 那正是 R993 说的「必须先对齐再接线」。而这一轮把「对齐什么」问清楚了：
+不是两份表对齐，是**加一层它们都没有的东西**。**
+
+### 数字
+
+| 度量 | R1004 | **R1005** |
+|---|---|---|
+| 套件 | 2214 | **2214（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 174,336 | **174,336** |
+| 函数比 | 62.91% | **62.91%** |
+| **409 状态码语义在镜像** | 未测 | **无（40 条全是哈希/枚举名）** |
+| **缺货消息分类** | 未测 | **3 类（真缺货 / reservation failed→重试 / decoy→不重试）** |
+| IDA 框型 | 3 种 | **4 种（+「仍含不一致」→确定）** |
+
+### 教训
+
+> **「A 和 B 矛盾，哪个对」这个问法本身可能错 —— 也许两个都在错的层次上回答。
+> → R993 把问题设成二选一，而镜像的证据说：状态码层没有语义。
+> → 而**取证的第一个用途不是选边，是检查那个二选一是否成立**。**

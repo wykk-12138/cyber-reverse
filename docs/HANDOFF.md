@@ -2479,3 +2479,27 @@ CommerceHub 用 `Host(c)`（**从 session Vars 读**），`DefaultHost` 常量�
 纪律：**「在不在产物里」对长串和对类型名是两个问题 —— 我一直用一个答案回答两个。**
 
 下一轮：查「只留签名」的触发机制 —— 或换到优先级 ① 的 flow 端点（那条路已有覆写证据）。
+
+## R1005 补充 — **409 两难取消：镜像无状态码语义；缺货按消息分 3 类**（套件 2214，未改代码）
+
+**IDA 就绪流程**：doctor 报 PROXY MISSING / PORT REFUSED，而 IDA 其实起来了停在框上 ——
+`ida.py` 直连 13337 不走 DSH 代理。清框：unpacked→**Proceed with unpacked base** ·
+id0→**是(Y)** · 「请稍候…」→**等** · **新框型「Database still contains inconsistencies」→ 确定**（本轮补记）。
+→ `13337 LISTENING pid=44936`。
+
+**409 的状态码语义在镜像里不存在**：`409` 40 条全是十六进制哈希；`Conflict` 30 条是 .NET 枚举名；
+`unavailable` 40 条是 HTTP 枚举名。**所以 R993 的「哪份表对」在状态码层无解。**
+
+**而原版在消息层给了答案**：`Out of stock (reservation failed), retrying` · `Out of stock (decoy)` ·
+`Item is Out of Stock`。**缺货分 3 类：reservation failed→重试 · decoy→不重试（另有 `get_DecoyActive`）· 真缺货。**
+
+**裁决**：两份表同错，都在按状态码分类。修法不是选一份，是**加一层消息判断**：
+① 状态码层保守（409→Declined）② 含 `reservation failed`→可重试 ③ 含 `decoy`→不重试。
+**接 `HandleResponseAsync` 之前必须先有这一层，否则 409 一律变可重试。**
+
+数字：套件 2214 · 陈旧度 0/0 · 函数数 174,336 · 409 语义 无 · 缺货分类 3 · IDA 框型 4。
+
+纪律：**取证的第一个用途不是选边，是检查那个二选一是否成立。**
+
+下一轮：按三条证据加消息层（`reservation failed` / `decoy` / 真缺货），再接 `HandleResponseAsync`。
+**仍停下等 YG**：DSH 的 ida 代理 MISSING（不影响 ida.py，但 mcp__ida__* 不可用）。

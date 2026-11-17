@@ -26794,3 +26794,126 @@ python tools/metrics_report.py -> 套件 2214 · 陈旧度 0/0 · 函数数 174,
 
 **→ 「在不在产物里」这句话，对长串和对类型名是两个不同的问题，
 而我一直用一个答案回答两个。**
+
+
+---
+
+## 429. **409 两难取消：镜像无状态码语义；缺货按消息分 3 类**
+
+> R1005。**未改代码；IDA 就绪 + 取证。** 套件 **2214 通过 / 0 失败 / 0 跳过**。
+
+### 一、先把 IDA 弄起来（goal 指定的框 + 一个新框型）
+
+**doctor 报：**
+
+```
+PROXY: MISSING - DSH did not spawn [python -m ida_pro_mcp]
+INSTANCE: none    PORT 13337: REFUSED    TIMEOUT: no listener after 180s
+```
+
+**而 `Get-Process` 显示 `ida pid=44936 mem=263 MB title=请确认` —— IDA 起来了，停在对话框上。
+`analysis/ida.py` 直连插件的 13337，不上 DSH 代理，所以清框即可用。**
+
+| 框 | 处置 |
+|---|---|
+| 「IDA has found an unpacked version」 | **Proceed with unpacked base**（goal 指定） |
+| 「id0 is not closed. repair it?」 | **是(Y)**（goal 指定） |
+| 「请稍候…」 | **等，不点**（goal 指定） |
+| **「Database still contains inconsistencies」** | **确定** —— **新框型，本轮补记**；只有一个按钮，信息性 |
+
+**→ 清完：`13337 LISTENING pid=44936`，`ida mem=1,889 MB`，标题 `IDA - Cybersole.exe.i64`。**
+
+### 二、409 的状态码语义：镜像**不提供**
+
+| 探测 | 命中 | 是什么 |
+|---|---|---|
+| `409` | 40 | 全是十六进制哈希（`1409A77B047C…`），**无状态码语义** |
+| `Conflict` | 30 | `.NET` 枚举名（`Conflicte` / `DeprecatedLegacyJsonFieldConflicts`） |
+| `unavailable` | 40 | HTTP 枚举名（`ServiceUnavailable` / `UnavailableForLegalReasons` / `ListenerUnavailable`） |
+
+**→ 镜里没有「409 → 某种处置」的对照表。有的只是 HTTP 枚举的**名字**。
+→ 所以 R993 那个问题（「两份表哪一份对」）在原版的**状态码层**上无解 —— 那里没有表。**
+
+### 三、而原版在**消息层**给了答案
+
+```
+0x146e2c6cc  Out of stock (reservation failed), retrying
+0x146e6ab6c  Reservation failed (
+0x146dd0644  Item is Out of Stock
+0x146e2c68c  Out of stock (decoy)
+0x146edb584  The product in the cart is out of stock.
+0x146eed0ac  This item is out of stock
+```
+
+**`out of stock` 共 7 条，而它们**不是同一件事**：**
+
+| 消息 | 处置 |
+|---|---|
+| `Out of stock (reservation failed), **retrying**` | **重试** |
+| `Out of stock (decoy)` | **诱饵** —— 不是真缺货（另有 `get_DecoyActive` 状态，10 条命中） |
+| `Item is Out of Stock` · `This item is out of stock` · `The product in the cart is out of stock.` | 真缺货 |
+
+**→ 「缺货要不要重试」的判据是**消息内容**，不是状态码。
+→ 两份表**同错**：`ClassifyCheckoutFailure`（409=Declined）与 `HandleResponseAsync`（409=retryable）
+  都在按状态码分类，而原版按**消息**分类。**
+
+### 四、所以修法不是「选哪一份」，是**加一层**
+
+**两难的形状是「A 说甲、B 说乙，哪个对」。而证据说：问题问错了层次。
+409 的状态码层没有语义；语义在响应体里。**
+
+**正确修法（本轮未做）：**
+
+1. 状态码层保持**保守**（409 → Declined，因为多数 409 是售罄）
+2. **加一条消息级升级**：体里含 `reservation failed` → **可重试**
+3. 体里含 `decoy` → **不重试**（诱饵，重试会加深可疑）
+
+**三条各自有字符串证据，不是偏好。**
+
+### 五、本轮未改代码的理由
+
+**`HandleResponseAsync` 仍未接上 —— 而接它之前必须先有消息层，
+否则 409 会一律变可重试（= 重试已经卖出的东西）。
+R993 说「必须先对齐再接线」；这一轮把「对齐什么」问清楚了：
+**不是两份表对齐，是加一层它们都没有的东西。****
+
+### 六、数字
+
+| 度量 | R1004 | R1005 |
+|---|---|---|
+| 套件 | 2214 | **2214（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 174,336 | **174,336** |
+| 函数比 | 62.91% | **62.91%** |
+| **409 状态码语义在镜像** | 未测 | **无（40 条全是哈希/枚举名）** |
+| **缺货消息分类** | 未测 | **3 类** |
+| **IDA 框型** | 3 种 | **4 种（+「仍含不一致」→确定）** |
+
+### 七、验证
+
+```
+powershell -File "D:\projects\vm2api\.dsh\scripts\ida-mcp-doctor.ps1" -Path "D:\projects\cyber-reverse\target\Cybersole.exe.i64"
+  -> PROXY: MISSING / TIMEOUT（IDA 停在框上）
+CUA: list_windows(app:"ida") -> 「请确认」-> Proceed with unpacked base
+     -> 「请确认」-> 是(Y)
+     -> 「请稍候…」-> 等 75s
+     -> 「警告」-> 确定
+Get-NetTCPConnection -LocalPort 13337 -> LISTENING pid=44936
+python analysis/ida.py str "reservation failed" -> {"n":2}
+python analysis/ida.py str "409"              -> {"n":40}（全哈希）
+python analysis/ida.py str "out of stock"     -> {"n":7}
+cd replica && python tools/metrics_report.py  -> 套件 2214 · 陈旧度 0/0 · 函数数 174,336
+```
+
+### 八、仍然 Unknown
+
+- **`decoy` 的判定是否还有别的信号**：**Unknown** —— 未查（`get_DecoyActive` 是状态属性，
+  但触发它的条件未取证）。
+- **DSH 的 ida 代理**：仍 `MISSING` —— 属停下等 YG（不影响 `ida.py` 直连）。
+
+### 九、教训
+
+**「A 和 B 矛盾，哪个对」这个问法本身可能错 —— 也许两个都在错的层次上回答。**
+
+**→ R993 把问题设成二选一，而镜像的证据说：状态码层没有语义。
+→ 而**取证的第一个用途不是选边，是检查那个二选一是否成立**。**

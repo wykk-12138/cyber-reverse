@@ -8248,3 +8248,41 @@ Getting / Initialising / Solving / Submitting DataDome
 | `Host(c)` 从 Vars 读的 host 是否正确 | 需原版证据 |
 
 **纪律**：「在不在产物里」对长串和对类型名是两个问题 —— 我一直用一个答案回答两个。
+
+
+## 判据 (a)/优先级 ① — **409 两难取消：镜像无状态码语义；缺货按消息分 3 类（reservation failed→重试 · decoy→不重试）**（R1005）
+
+### IDA 就绪（goal 流程）
+
+**doctor 报 PROXY MISSING 但 IDA 起来了 ⇒ 清 3 个 goal 指定框 + **1 个新框型**
+（「Database still contains inconsistencies」→ 确定）⇒ `13337 LISTENING`。
+**`ida.py` 直连 13337，不依赖 DSH 代理。**
+
+### 证据
+
+| 探测 | 命中 | 是什么 |
+|---|---|---|
+| `409` | 40 | 全是哈希，无状态码语义 |
+| `Conflict` | 30 | .NET 枚举名 |
+| `unavailable` | 40 | HTTP 枚举名 |
+| **`reservation failed`** | **2** | `Out of stock (reservation failed), retrying` · `Reservation failed (` |
+| `decoy` | 10 | `get_DecoyActive` —— 诱饵是状态 |
+| `out of stock` | 7 | 真缺货 ×3 + decoy + reservation failed |
+
+### 裁决
+
+**两份表**同错**：`ClassifyCheckoutFailure`（409=Declined）与 `HandleResponseAsync`（409=retryable）
+都在按状态码分类，而原版按**消息**分类。**
+
+**正确修法（未做）：① 状态码层保守（409→Declined）② 消息含 `reservation failed` → 可重试
+③ 消息含 `decoy` → 不重试。**
+
+### 数字
+
+**套件 2214 · 陈旧度 0/0 · 函数数 174,336 · 409 语义 无 · 缺货分类 3 · IDA 框型 4**
+
+| 仍 Unknown | |
+|---|---|
+| `decoy` 的判定是否还有别的信号 | 未查 |
+
+**纪律**：取证的第一个用途不是选边，是检查那个二选一是否成立。

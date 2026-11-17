@@ -30631,3 +30631,87 @@ python tools/metrics_report.py   -> 完整套件 exit 0  2205 通过 / 0 失败 
 **同一条规则（「无接收者的调用看不见」）换了场景，我一次都没想起它 —— 那次是搜索，这次是分类。**
 
 **而代价如果不抽查：我会去「补」四个本来就在的方法。**
+
+
+---
+
+## 411. **`Bstn` 不在原版里 → R986 的归属错误；判据 (f) 仍 27/27**
+
+> R987。**只取证 + 一处归档更正。** 套件 **2205（R986 的记录仍有效，未改代码）**。
+
+### 一、Observation：原版没有 bstn
+
+```
+ida.py str bstn      -> 0 命中
+ida.py str api/bstn  -> 0 命中
+ida.py str bstn.com  -> 0 命中
+```
+
+**`ida.py str` 查数据库本身 → 反向可用（§2.7b）。而 `core_coverage` 的 27 个 store host 里也没有 bstn：
+`goat` `hbx` `popmart` `scheels` 都在，`bstn` 不在。**
+
+**→ 三项一致（名字不在池 · 不在 27 host · 自己的占位写着 `endpoint unknown`）
+→ `BstnFlow` 是**复刻件自己加的站**。**
+
+### 二、更正 R986
+
+| R986 说 | 实际 |
+|---|---|
+| 优先级 ① 剩余 = Bstn 四个端点 | **不是原版缺口** —— Bstn 不在原版 |
+| 185 覆写 / 180 真 / 5 占位 | **对** |
+| 判据 (f) 27/27 matched / 0 unmatched | **对**，且它**从未**把 Bstn 算进去 |
+
+### 三、校准项：这条不能推广
+
+| flow | 名字命中 | 平台在不在 |
+|---|---|---|
+| **Bstn** | **0** | **不在** |
+| **Hybris** | **0** | **在** —— `ecommerce-gateway.mollie.com … hypecommerce` |
+| **PoqApp** | **0** | **在** —— `app.midtrans.com … poqapp` |
+| Hbx | 调用失败，未判 | `hbx.com` 在 27 host 里 |
+
+**→ 「名字不在」只在 Bstn 上成立为「站不在」。Hybris / PoqApp 名字缺失而平台在 ——
+名字缺失证明不了平台缺失，这正是 §2.7b 那条，而这里的第二个来源是 `core_coverage` 的 host 列表。**
+
+### 四、需要判断的一条（不是证据能定的）
+
+**`BstnFlow` 处置：**
+**① 删掉** —— 若目标是严格 1:1，原版没有的东西不该有
+**② 保留并标为「超出原版的添加」** —— 若多一个站是可接受的扩展
+
+**两个方向都自洽；「1:1」在这次对话里没有被明确到「不许有额外站」。
+这一条留给 YG 定，我不自己决定。**
+
+### 五、数字
+
+| 度量 | R986 | R987 |
+|---|---|---|
+| 套件 | 2205 | **2205（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| 覆写 / 真 / 占位 | 185 / 180 / 5 | **未变** |
+| **判据 (f) store matched** | 27/27 | **27/27（Bstn 从未算入）** |
+| **不在原版的站点 flow** | 未测 | **1（Bstn）** |
+
+### 六、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str bstn      -> {"n":0}
+python analysis/ida.py str api/bstn  -> {"n":0}
+python analysis/ida.py str bstn.com  -> {"n":0}
+cd replica
+python tools/core_coverage.py | grep -i bstn   -> 无输出
+python tools/core_coverage.py                  -> store hosts 27, store hosts matched 27, unmatched 0
+```
+
+### 七、仍然 Unknown
+
+- **`BstnFlow` 该保留还是删除**：**需要 YG 判断** —— 两个方向都自洽。
+
+### 八、教训
+
+**R986 我把「复刻件的 35 个 flow」默认成了「原版那些站」。
+而 `core_coverage` 的 27/27 与 35 个 flow 类型**一直是两个数**，我把它们读成了一个。**
+
+**校验它只需一次 `ida.py str`。**

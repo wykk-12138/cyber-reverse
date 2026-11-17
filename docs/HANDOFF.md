@@ -2084,3 +2084,23 @@ METRICS 五行：`mutation-fit: total 36 / fired 36 / decorative 0 / skipped 0 /
 纪律：**「无接收者的调用看不见」—— 搜索时是它，分类时还是它。**
 
 下一轮：取 Bstn 的三个端点（cart / checkout / order），把那一站的四个占位补成真实现。
+
+## R987 补充 — **`Bstn` 不在原版里 → R986 归属错误；判据 (f) 仍 27/27**（套件 2205，未改代码）
+
+`ida.py str bstn` / `api/bstn` / `bstn.com` **各 0 命中**（查数据库本身，反向可用），
+而 `core_coverage` 的 27 个 store host 里也没有 bstn（goat/hbx/popmart/scheels 都在）。
+→ **`BstnFlow` 是复刻件自己加的站**；R986 说的「优先级 ① 剩余 = Bstn 四个端点」**归属错误**。
+
+**校准项（不能推广）**：Hybris / PoqApp 名字也是 0 命中，但 `hypecommerce` / `poqapp` host 都在
+→ **名字缺失证明不了平台缺失**（§2.7b）。
+
+→ 判据 (f) 不变：**27/27 matched，0 unmatched**；Bstn 从未被算入。
+
+**需要 YG 判断的一条**：`BstnFlow` 删掉（严格 1:1）还是保留并标为超出原版的添加。
+两个方向都自洽，「1:1」未被明确到「不许有额外站」—— 我不自己决定。
+
+数字：套件 2205（未改代码）· 陈旧度 0/0 · 函数数 173,952 · 覆写 185/真 180/占位 5 · 不在原版的站点 flow 1。
+
+纪律：**27 个 host 与 35 个 flow 类型一直是两个数，我把它们读成了一个。**
+
+下一轮：按 R986 的守卫继续 —— 或者核其余 34 个 flow 与 27 个 host 的对应关系（35 vs 27 的差是 8）。

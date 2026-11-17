@@ -13492,3 +13492,81 @@ Vercel         VercelBotIdSolver
 > → 而那正是 R468–R499 那七条连带清单的同一个形状 —— **改一个东西，有 N 处要同步**。
 > → 而这次我识别对了（3 形状 + 1 真问题），也**没有**硬塞进去。
 > → 所以本轮的产出是「下一轮的任务变清楚了」，而不是「加了行」。**
+
+
+### 补一行**实际是九件事** —— 两轮都低估了，而这次拿到了完整清单（R1050）
+
+**R1049 说「补一行是四件事」。这一轮把四步全做了（五个 patch 全 applied），而套件红了 **5** 个 —— 不是四件，是九件。**
+
+### ① 第一次尝试：五处改了，五处红
+
+| 改了 | 结果 |
+|---|---|
+| `AntiBotProtocol` += `["Vercel"] = "_vcrcs"` | ✓ |
+| `VendorWiring` += 两行 | ✓ |
+| `VendorWiringTests` 7→9 · wired 列表加两名字 | ✓ |
+| `VendorSolvingModeTests` local 列表加两名字 | ✓ |
+| `VendorSolvingModeTests` `localNotRelayed` 2→4 | ✓ |
+
+**→ vendor 相关 15 个测试**全过**。而**全量**红了 **5** 个，全在别处：**
+
+| 红 | 为什么 |
+|---|---|
+| `VendorNegativeClaimsTests.TheCookieTableHasFiveAndImpervaIsNotOne` | **名字里写「五」** —— 加了 `_vcrcs` 变 6 |
+| `PerimeterXProtocolTests.FiveVendorsHaveCookiesAndPerimeterXIsOne` | 同上 |
+| `AntiBotProtocolTests.FiveVendorsHaveCookieFamilies` | 同上 |
+| **`AntiBotProtocolTests.EveryProtocolVendorIsAKnownVendor`** | **真问题**：`Vercel` 进了 cookie 表，但**不在 `AntiBotVendors`** |
+| **`WallDispatchTests.OnlyWiredWallsAreDispatched`** | 两个新 `Wired` 行**没在 dispatch 表**里 |
+
+**→ 前三个是「五」这个数字散落在三个测试名里；后两个是真缺口：一个新厂商要同时进 `AntiBotVendors` 与 wall dispatch。**
+**→ 所以「补一行」的真实范围是 **九处**，而两轮我分别估成四和五。**
+
+### ② 所以本轮再次回滚，而这次交的是**清单**
+
+**回滚后：`rows=7 · missing=7` · 套件 **2258 / 0 / 0**。**
+
+**→ 而那是对的处置：九处里有两处是**真判断**（新厂商要不要进 `AntiBotVendors`、要不要进 wall dispatch），
+→ 硬塞会让那两处变成「为了让测试变绿而加的项」，而那正是 R48 说的移动失败。**
+
+### ③ 完整清单（第三次尝试可一次做完）
+
+| # | 文件 | 改动 | 性质 |
+|---|---|---|---|
+| 1 | `VendorWiring.cs` | + `Row("botdeflector", …)` | 数据 |
+| 2 | `VendorWiring.cs` | + `Row("vercel", …)` | 数据 |
+| 3 | `AntiBotProtocol.cs` | + `["Vercel"] = new[] { "_vcrcs" }` | 数据 |
+| 4 | `VendorWiringTests.cs` | `7` → `9` | 计数 |
+| 5 | `VendorWiringTests.cs` | wired 列表 + 两名（**行序**） | 枚举 |
+| 6 | `VendorSolvingModeTests.cs` | local 列表 + 两名（**行序**） | 枚举 |
+| 7 | `VendorSolvingModeTests.cs` | `localNotRelayed` `2` → `4` | 计数 |
+| 8 | 三个测试的**「五」** | `TheCookieTableHasFive…` · `FiveVendorsHaveCookies…` · `FiveVendorsHaveCookieFamilies` | 计数（**含测试名**） |
+| 9 | **`AntiBotVendors`** + **wall dispatch** | 新厂商要不要进这两张表 —— **真判断** | **判断** |
+
+**→ 第 9 项是唯一的真判断，而它决定 8 与 1–3 的写法：
+→ 若 `botdeflector`/`vercel` 该进 `AntiBotVendors` 与 dispatch，那 `EveryProtocolVendorIsAKnownVendor` 与
+`OnlyWiredWallsAreDispatched` 是**在提示我漏了一处**；若不该进，那两个新行**不该是 `State.Wired`**。**
+
+### ④ 而那是本轮真正的收获
+
+**→ 九处里八处是机械的，一处是判断 —— 而那一处决定其余八处的正确形态。
+→ 所以第三次尝试的第一步不是改代码，是**先答第 9 项**。**
+
+### ⑤ 数字
+
+| 度量 | R1049 | **R1050** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0（回滚后）** |
+| 产物陈旧度 | 1 / 277 | **2 / 429** |
+| 函数数 | 174,293 | **174,293** |
+| **改了几处** | 0 | **5（全部 applied）** |
+| **transient 红** | — | **5（3 计数 + 2 真缺口）** |
+| **vendor 测试** | — | **15 全过** |
+| **`VendorWiring` 行数** | 7 | **7（回滚）** |
+| **真厂商缺口** | 2 | **2（回滚）** |
+| **真实范围** | 「4 件事」 | **9 件事（8 机械 + 1 判断）** |
+
+### 教训
+
+> **两轮都在同一个地方回滚 —— 而那说明我该交的不是第三次尝试，是**完整清单**。
+> → 而清单里最有价值的一行是第 9 项：它说明**第 1–8 项的正确形态取决于一个新厂商该不该进另外两张表**。
+> → 所以在答第 9 项之前，任何一次「把数字改绿」都是**为了让测试闭嘴**。**

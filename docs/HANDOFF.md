@@ -3601,3 +3601,52 @@ Vercel        VercelBotIdSolver · x-vercel-challenge-{token,solution,version}
 | **加行时的红** | — | **4（3 形状 + 1 真问题）** |
 
 **纪律**：拿到证据与改进去是两件事。硬塞代码再改守卫而不看清第 4 个，就是 R1031 那次回滚的形状。
+
+
+## R1050 —— **补一行实际是九件事；五处改了、五处红、回滚；完整清单已固化**（套件 2258 绿）
+
+### 第一次尝试与结果
+
+改了 5 处（`AntiBotProtocol` += Vercel cookie · `VendorWiring` += 两行 · 4 个守卫数字/列表），
+**vendor 相关 15 个测试全过**，而**全量红 5 个**：
+
+| 红 | 性质 |
+|---|---|
+| `TheCookieTableHasFiveAndImpervaIsNotOne` | **计数**（名字里写「五」） |
+| `FiveVendorsHaveCookiesAndPerimeterXIsOne` | **计数** |
+| `AntiBotProtocolTests.FiveVendorsHaveCookieFamilies` | **计数** |
+| **`EveryProtocolVendorIsAKnownVendor`** | **真缺口**：`Vercel` 不在 `AntiBotVendors` |
+| **`OnlyWiredWallsAreDispatched`** | **真缺口**：新 `Wired` 行不在 wall dispatch |
+
+**⇒ 真实范围是 9 处：8 机械 + 1 判断。已回滚，套件 **2258 / 0 / 0**。**
+
+### 完整清单（第三次尝试照此做）
+
+1. `VendorWiring.cs` + `Row("botdeflector", "BotDeflector", null, State.Wired, …)`
+2. `VendorWiring.cs` + `Row("vercel", "x-vercel-challenge-token", "_vcrcs", State.Wired, …)`
+3. `AntiBotProtocol.cs` + `["Vercel"] = new[] { "_vcrcs" }`
+4. `VendorWiringTests.cs` `7` → `9`
+5. `VendorWiringTests.cs` wired 列表 + 两名（**行序**）
+6. `VendorSolvingModeTests.cs` local 列表 + 两名（**行序**）
+7. `VendorSolvingModeTests.cs` `localNotRelayed` `2` → `4`
+8. 三处**「五」**：`TheCookieTableHasFive…` · `FiveVendorsHaveCookies…` · `FiveVendorsHaveCookieFamilies`
+9. **真判断**：新厂商该不该进 `AntiBotVendors` 与 wall dispatch ⇒ **决定 1–8 的正确形态**
+
+### 而第 9 项是必须先答的
+
+**若该进 ⇒ 那两个红是「漏了一处」的提示；若不该进 ⇒ 两个新行**不该是 `State.Wired`**。
+→ 在答它之前改任何数字都是**为了让测试闭嘴**。**
+
+### 数字
+
+| 度量 | R1049 | **R1050** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 陈旧度 | 1 / 277 | **2 / 429** |
+| 函数数 | 174,293 | **174,293** |
+| **改了几处** | 0 | **5（全 applied）** |
+| **transient 红** | — | **5（3 计数 + 2 真缺口）** |
+| **vendor 测试** | — | **15 全过** |
+| **真实范围** | 「4 件事」 | **9 件事** |
+
+**纪律**：两轮在同一处回滚 ⇒ 该交的是完整清单，不是第三次尝试。

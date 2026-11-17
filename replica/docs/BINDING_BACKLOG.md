@@ -9492,3 +9492,49 @@ registered 29 → 41      unknown 12 → 0      exit 1 → 0
 | `endpoint constants: unresolved 4`（Warhammer IdentityHost 模板） | 未处理 |
 
 **纪律**：生产端截断 + 消费端不截断 = 登记永远无效，而无效与没登记同形。
+
+
+## 判据 (d)(f) — **端点门三项全零；`unresolved` 说的是形式不是证据**（R1035）
+
+### 那 4 条逐字有据
+
+```
+0x1470718ac  https://login.mywarhammer.com/usernamepassword/login
+0x147071824  https://login.mywarhammer.com/usernamepassword/challenge
+0x1470717bc  https://login.mywarhammer.com/oauth/token
+0x14707174c  https://login.mywarhammer.com/login/callback
+```
+
+**而代码里是 `IdentityHost + "/path"` ⇒ 工具解析不了拼接，报 `unresolved`。**
+**→ 镜像存的是每条**一个完整字面量、无拼接** ⇒ 写全是**更忠实**，不是妥协。**
+
+### 与 R1034 同一个病
+
+| 轮 | 判据看不见 | 修法 |
+|---|---|---|
+| R1034 | 含模板的台账条目 | 比对接受两种形 |
+| R1035 | 常量拼接 | 改成完整字面量 |
+
+### 结果
+
+```
+210 / 210 / invented 0 / unresolved 4    →    214 / 214 / invented 0 / unresolved 0
+unknown 0 · exit 0                          ← 三项第一次同时为零
+```
+
+### 5 条守卫
+
+`EachIsWrittenOutInFull` ×4 + `TheHostConstantStaysForTheAssembledSites`（**防过度清理**：
+`/api/me` 与 `/api/v1/login` 真的拼，禁 `IdentityHost` 会断言假事）
+
+### 数字
+
+**套件 2252（+5）· 陈旧度 6 / 5,786 · 函数数 174,336 · constants 210 → 214 · unresolved 4 → 0 ·
+三项同时为零（第一次）**
+
+| 仍 Unknown | |
+|---|---|
+| 那 6 条 `sent` 该继续发还是改报告 | 有 `sent` 格，可判了 |
+| 产物需重新 publish（RetailFlows 进陈旧集） | 待下一轮或收尾时做 |
+
+**纪律**：当镜像存一个完整串时，代码也该有一个完整串 —— 拼接是抽象，而抽象同时藏证据与缺陷。

@@ -486,10 +486,22 @@ public sealed class WarhammerFlow : StoreFlow
     public const string WafAuthCookie = "warhammer-com-waf-auth";
 
     // Auth0's universal login: the image names all four steps. R787.
-    public const string UsernamePasswordLogin = IdentityHost + "/usernamepassword/login";
-    public const string UsernamePasswordChallenge = IdentityHost + "/usernamepassword/challenge";
-    public const string OAuthToken = IdentityHost + "/oauth/token";
-    public const string LoginCallback = IdentityHost + "/login/callback";
+    // R1035: these four were built at run time as IdentityHost + "/path", which reads as a composition and hid the
+    // fact that the image stores each one as a single complete string. Verified verbatim:
+    //
+    //   0x1470718ac  https://login.mywarhammer.com/usernamepassword/login
+    //   0x147071824  https://login.mywarhammer.com/usernamepassword/challenge
+    //   0x1470717bc  https://login.mywarhammer.com/oauth/token
+    //   0x14707174c  https://login.mywarhammer.com/login/callback
+    //
+    // So writing them out in full is the more faithful form, not the less: the artifact has one literal per endpoint and
+    // no concatenation. It also lets the provenance tool resolve them -- it reported all four as unresolved, which was a
+    // statement about this file's shape rather than about the endpoints' evidence. IdentityHost stays for the two sites
+    // that really are assembled, /api/me and /api/v1/login below.
+    public const string UsernamePasswordLogin = "https://login.mywarhammer.com/usernamepassword/login";
+    public const string UsernamePasswordChallenge = "https://login.mywarhammer.com/usernamepassword/challenge";
+    public const string OAuthToken = "https://login.mywarhammer.com/oauth/token";
+    public const string LoginCallback = "https://login.mywarhammer.com/login/callback";
 
     /// <summary>
     /// Put the two WAF tokens on the session when a caller has obtained them.

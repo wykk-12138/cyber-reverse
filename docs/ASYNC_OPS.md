@@ -12401,3 +12401,87 @@ for lit in literals:
 > **→ 而它不会报错 —— 它只是让「登记」这个动作**永远无效**，而无效的样子和「没登记」一模一样。**
 > **→ 而我是通过「我明明登记了为什么数不动」这个矛盾找到它的 ——
 > 那个矛盾是这一轮唯一有价值的东西，因为它逼我去看**判据怎么比的**，而不是**我做了什么**。**
+
+
+### 端点门**三项全零**；而 `unresolved` 说的是形式不是证据（R1035）
+
+**R1034 说下一轮做 `unresolved 4`（Warhammer 的 `IdentityHost` 模板）。做了，而它和上一轮是同一个病。**
+
+### ① 那 4 条其实**逐字有据**
+
+工具把它们报成 `unresolved`（解析不了 `IdentityHost + "/path"` 的拼接）。而镜像里：
+
+```
+0x1470718ac  https://login.mywarhammer.com/usernamepassword/login
+0x147071824  https://login.mywarhammer.com/usernamepassword/challenge
+0x1470717bc  https://login.mywarhammer.com/oauth/token
+0x14707174c  https://login.mywarhammer.com/login/callback
+```
+
+**→ 四条**完整 URL（含 host）**逐字在镜像里。
+→ 所以 `unresolved` 不是「缺证据」，是**这个文件的形式让工具看不见**。**
+
+### ② 而拼接形式**比完整串更不忠实**
+
+**镜像存的是**每条端点一个完整字面量，没有拼接**。
+→ 而 `IdentityHost + "/usernamepassword/login"` 是运行时拼出来的 —— 那是我方的形状，不是镜像的形状。
+→ **所以写全是更忠实的写法，不是妥协。**
+
+**→ 而那与 R1034 的修法是同一件事的两面：**
+| 轮 | 谁看不见 | 修法 |
+|---|---|---|
+| R1034 | 工具看不见**含模板**的台账条目 | 比对时接受两种形 |
+| **R1035** | 工具看不见**常量拼接** | **把拼接改成完整字面量** |
+
+**→ 两次都不是放宽判据，是**让写法与证据的形式对齐**。**
+
+### ③ 结果：三项全零
+
+```
+修前:  endpoint constants: 210   verbatim in pool: 210   invented: 0   unresolved: 4
+修后:  endpoint constants: 214   verbatim in pool: 214   invented: 0   unresolved: 0
+       inline literals: 331   not in pool: 41   registered: 41
+       unknown: 0   baseline: 0   exit 0
+```
+
+**→ 常量从 210 增到 **214** —— 那 4 条从「看不见」变成了「看见且逐字有据」。
+→ 而 `verbatim in pool: 214 / 214` ⇒ **全部常量都逐字在镜像里。**
+→ **`invented: 0` · `unresolved: 0` · `unknown: 0` —— 端点门的三项第一次同时为零。****
+
+### ④ 而 `IdentityHost` **没有删**
+
+**它还在，因为两处**真的是**拼出来的：`$"{IdentityHost}/api/me"` 与 `$"{IdentityHost}/api/v1/login"`
+（前者在 R787 记录过、`/api/me` 是 assembled）。
+**→ 所以守卫不去禁这个标识符，而是逐条点名那 4 个常量 —— 禁 Identifier 会断言一件对文件为假的事。**
+
+### ⑤ 5 条守卫
+
+| 守卫 | 断言 |
+|---|---|
+| `EachIsWrittenOutInFull` ×4（`[Theory]`） | 每个常量是完整 URL 字面量，且不含 `IdentityHost +` |
+| `TheHostConstantStaysForTheAssembledSites` | `IdentityHost` **仍在**（那两处真的拼） |
+
+**→ 第 2 条是防「过度清理」：一条把 `IdentityHost` 全禁掉的守卫，会逼着把两处**真拼接**也写成假字面量。**
+
+### ⑥ 数字
+
+| 度量 | R1034 | **R1035** |
+|---|---|---|
+| 套件 | 2247 / 0 | **2252 / 0 / 0（+5）** |
+| 产物陈旧度 | 5 / 4,199 | **6 / 5,786**（`RetailFlows.cs` 进陈旧集） |
+| 函数数 | 174,336 | **174,336** |
+| **`endpoint constants`** | 210 | **214** |
+| **`verbatim in pool`** | 210 / 210 | **214 / 214** |
+| **`unresolved`** | **4** | **0** |
+| **`invented`** | 0 | **0** |
+| **`unknown`** | 0 | **0** |
+| **端点门 exit** | 0 | **0** |
+| **三项同时为零** | **否** | **是（第一次）** |
+
+### 教训
+
+> **R1034 我以为修的是「两份台账」；R1035 发现修的是**同一个病的第二次**：
+> 判据看不见某种写法，而「看不见」在输出里长得和「没有」一样。**
+> **→ 而两次的正确反应都不是让判据更宽松，而是**让写法去贴合证据的形式**。**
+> **→ 那条更深的规则是：**当镜像存一个完整串时，我们的代码也该有一个完整串** ——
+> 拼接是我方抽象带来的，而抽象会同时藏起证据和缺陷。**

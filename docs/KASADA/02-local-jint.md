@@ -88,6 +88,57 @@ a1[15] = 0;   a1[16] = 0;   // 15 = x-kpsdk-h, 16 = x-kpsdk-cd
 
 `Reset` 一次清掉全部 —— 说明这六个是"一次握手的整体"，不能部分复用。
 
+### 1.5.2 算出之后：带**全套 Chrome 头**去打店铺自己的端点（[Obs]）
+
+`sub_1408EFC50` 是这一步的构造器，它的状态文案是 **`Getting Kasada (2)`** —— 注意是 `(2)`，不是 `(1)`。
+全部操作数由 `analysis/names_at.py` 解出：
+
+```http
+POST/GET <店铺的 Kasada 端点>
+x-kpsdk-ct:  <rec[11]>            x-kpsdk-dt: <rec[9]>
+x-kpsdk-im:  <rec[10]>            x-kpsdk-v:  <EF620(rec)>
+user-agent:  <与被算 token 时同一份>
+
+content-length:    0
+sec-ch-ua:         <动态>
+sec-ch-ua-platform:<动态>
+sec-ch-ua-mobile:  ?0
+accept:            */*
+accept-encoding:   gzip, deflate, br, zstd
+accept-language:   <动态>
+origin:            <动态>
+referer:           <动态>
+sec-fetch-site:    same-origin
+sec-fetch-mode:    cors
+sec-fetch-dest:    empty
+priority:          u=1, i
+cookie:            <会话 cookie 罐>
+```
+
+**这条头集是"整份 Chrome 伪装"**，不是只补 Kasada 的那几个头：
+
+| 细节 | 为什么重要 |
+|---|---|
+| `sec-ch-ua` / `-platform` / `-mobile` | Client Hints，现代 Chrome 必带；缺了就是"不是浏览器" |
+| `sec-fetch-site/mode/dest` | Fetch Metadata 三件套，Chrome 会自动加，脚本客户端常忘 |
+| `priority: u=1, i` | Chrome 2023+ 的取回优先级格式，细节到位 |
+| `accept-encoding: gzip, deflate, br, zstd` | **含 `zstd`** —— 与 `content-encoding: zstd` 的依赖一致 |
+| `origin` + `referer` 同时带 | 跨源 POST 的真实形状 |
+
+**⇒ 这一步是"拿到头之后怎么用"的完整答案**：把这几个 `x-kpsdk-*` 塞进一次**看起来完全像 Chrome** 的请求里，
+打店铺自己的 Kasada 端点，拿回下一次的挑战响应。**头算对了但请求不像浏览器，一样过不去。**
+
+### 1.5.3 `Getting Kasada (1)` 与 `(2)` 是两条不同的路（[Obs]）
+
+| 文案 | 构造器 | 打向哪里 | 带什么 |
+|---|---|---|---|
+| `Getting Kasada (1)` | `sub_1411483E0` | `https://kasada.hypersolutions.co/payload` | `X-Type: kasada` + `X-Upstream-*`（04 §2.6） |
+| `Getting Kasada (2)` | `sub_1408EFC50` | **店铺自己的 Kasada 端点** | `x-kpsdk-ct/dt/im/v` + 全套 Chrome 头（本节） |
+
+**这两条不是重试关系**（`(1)` 与 `(2)` 不是"第一次失败再来一次"），
+而是一个走服务商、一个直连店铺。原版把两个完全不同的对象都编成了 `Getting Kasada (n)`，
+所以**光看状态文案分不出走的是哪条路** —— 这也是为什么 04 §3 那张"动词表"要配这张表一起看。
+
 ---
 
 ## 2. 为什么这条路能撑 100 个任务并发

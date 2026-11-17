@@ -93,4 +93,4 @@ python analysis\ida.py str 149e9513      --limit 20    # 期望 total = 5
 
 1. **`total` 不等于 `returned`。** `ida.py str` 报三个键：`returned`（这次回来几条）、`saturated`（是否撞到 `--limit`）、`total`（只有 `saturated=false` 时才是真总数）。撞了上限就写"至少 N 条"。这条在这个项目里已经犯过五次。
 2. **一个零需要对照才能读。** `kpsdk` 查到 0 说明不了问题，除非同时查到 `datadome` 之类已知非零的对照。
-3. **反编译给控制流，给不了语义。** 原版 96.87% 的函数是 `sub_*`，没有业务符号名。本文档的结论优先建立在**字符串与反射元数据**上，那是 NativeAOT 里唯一保真的部分。
+3. **裸看反编译只有控制流，配 `chars_va - 12` + `names_at.py` 才有完整语义。** 原版 96.87% 的函数是 `sub_*`，无业务符号名；必须先对冻结字符串对象头（`chars_va - 12`）查 `xrefs_to` / `disp32_scan_any.py` 定位业务函数，再用 `analysis/names_at.py` 把伪代码里的 `&off_146xxxxxx` 还原回原始字符串，才能同时拿到精确控制流与协议字段语义（见 [06-evidence.md](06-evidence.md) §2.5）。

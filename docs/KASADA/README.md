@@ -58,6 +58,7 @@ Cybersole 的做法是**四条路 + 一套统一状态机**（Obs，见 `06-evid
 | [07-boundaries.md](07-boundaries.md) | **边界**：Kasada ≠ Akamai ≠ Cloudflare（含四个已犯过的误判） | 避免把 SBSD/bm_sz 当成 Kasada |
 | [08-cd.md](08-cd.md) | **`x-kpsdk-cd` 专章**：本地算法类型的成员表、payload 对照、两条本地实现 | 想搞清 cd 到底怎么来的 |
 | [09-inventory.md](09-inventory.md) | **能力清单（不遗漏的判据）**：A–H 八族、逐条证据、⬜/Unk 缺口 | 想知道还差什么 |
+| [10-mobile.md](10-mobile.md) | **移动构型**：iOS / MFC / MobileDv —— 与"执行者"正交的第二维 | 要做移动端指纹与版本 |
 
 ---
 

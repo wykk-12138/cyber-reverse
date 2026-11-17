@@ -82,19 +82,22 @@ get_MfcEnabled 0x14345a802     set_MfcEnabled 0x14345a811
 全部地址由 `python analysis\ida.py str Kasada --limit 200` 得到（`total = 57`，`saturated = false`），可直接复核：
 
 ```
-Getting Kasada (                    0x146da174c    api 尝试，编号前缀
-Getting Kasada (1)                  0x146da1784    api 第 1 次
-Getting Kasada (2)                  0x146da17c4    api 第 2 次
-Getting Kasada (MFC)                0x146da1804    api 的移动构型变体
-Failed getting Kasada               0x146d8a5e4    api 失败
-Failed getting Kasada (Rotating)    0x146d8a624    api 失败且正在换代理
-Failed solving Kasada               0x146d8a94c    本地失败
-Failed solving Kasada (TL)          0x146d8a98c    本地在 TL 阶段失败
+Getting Kasada (                    0x146da174c    编号前缀
+Getting Kasada (1)                  0x146da1784    **走服务商**（HyperSolutions /payload）
+Getting Kasada (2)                  0x146da17c4    **直连店铺自己的 Kasada 端点**（带全套 Chrome 头）
+Getting Kasada (MFC)                0x146da1804    移动构型变体
+Failed getting Kasada               0x146d8a5e4    getting 路失败
+Failed getting Kasada (Rotating)    0x146d8a624    getting 失败且正在换代理
+Failed solving Kasada               0x146d8a94c    solving 路失败
+Failed solving Kasada (TL)          0x146d8a98c    solving 在 TL（`reload`）阶段失败 — 见 01 §7
 Failed Kasada (Retry limit reached) 0x146d8a2b4    整条策略放弃
-Kasada API down (Contact staff)     0x146dda8dc    服务不可达（运营问题）
+Kasada API down (Contact staff)     0x146dda8dc    服务商不可达（运营问题）
 Kasada-Fallback                     0x146dda934    降级 token
 Kasada-Mobile-Fallback              0x146dda96c    移动降级 token
 ```
+
+> **`(1)` 与 `(2)` 不是重试关系**（本轮纠正）：`(1)` 打 `kasada.hypersolutions.co/payload`，
+> `(2)` 打店铺自己的端点 —— 两条完全不同的路被编成了同一个文案族。细节见 02 §1.5.3。
 
 > 复算时注意：`str Kasada` 的 `total` 是 **57**，不是早期以为的"≥40"。`--limit` 给 200 才不会饱和。
 

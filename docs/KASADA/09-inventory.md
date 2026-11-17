@@ -88,7 +88,17 @@
 | F2 | `KasadaHandler`（`d__32`–`d__35`）与 `KasadaMobileHandler`（`d__46`–`d__50`）两套 | `0x14345abb1` · `0x14345a632` | 05 §1 | ✅ |
 | F3 | MFC 移动降级：`GetMfc` / `MfcEnabled` / `IsMobile` / `VersionProvider` | `d__49` · `0x14345a802` · `0x1434599e8` | 04 §4 | ✅ |
 | F4 | 12 条状态/失败文案 | 05 §4 全表 | 05 | ✅ |
-| F5 | **`MFC` 的展开与协议** | 无 | — | **Unk** |
+| F5 | **`MFC` 的展开与协议** | `Getting Kasada (MFC)` 属 getting 家族 · `GetMfc` 只在移动 handler | 10 §3 | 🟡 **收窄**：MFC = Api 路在 `IsMobile` 时的分支；展开本身仍 **Unk** |
+
+## I. 移动构型（本轮新增，与"执行者"正交的第二维）
+
+| # | 能力 | 证据 | 文档 | 状态 |
+|---|---|---|---|---|
+| I1 | 三个开关：`IsMobile` / `MfcEnabled` / `VersionProvider` | `0x14345a7e8` · `0x14345a802` · `0x14345a811` | 10 §2.1 | ✅ |
+| I2 | `MobileDv` —— 移动端的 `x-kpsdk-dv` 取值 | `get_MobileDv` `0x14344855b` | 10 §2.2 | ✅ |
+| I3 | `GenRandomIos` —— iOS 形态指纹生成 | `0x143448fbe` | 10 §2.3 | ✅ |
+| I4 | 浏览器侧移动模拟四件套 + `SpoofMobile` 总开关 | `0x1433048fd` · `MobileUserAgent` `0x143306ee6` · `MobileViewport{Width,Height}` · `MobileWindowHeight` | 10 §2.4 | ✅ |
+| I5 | 移动端 `x-kpsdk-v` 由 `VersionProvider` 注入（不与桌面共用常量） | 同上 | 10 §2.1 | ✅ |
 | F6 | 重试策略（`Rotating` / `Retry limit reached` 的停/换语义） | 05 §5 | 05 | ✅ |
 
 ## G. 状态与持久化

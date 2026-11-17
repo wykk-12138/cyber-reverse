@@ -62,7 +62,8 @@ public sealed class VendorSolvingModeTests
         var local = VendorWiring.Rows.Where(r => r.Solver == VendorWiring.Solver.Local).Select(r => r.Vendor).ToList();
         var none = VendorWiring.Rows.Where(r => r.Solver == VendorWiring.Solver.None).Select(r => r.Vendor).ToList();
 
-        Assert.Equal(new[] { "perimeterx", "queue-it" }, local);
+        // R1052: the two appended rows are Local too, in row order.
+        Assert.Equal(new[] { "perimeterx", "queue-it", "botdeflector", "vercel" }, local);
         Assert.Equal(new[] { "imperva" }, none);
     }
 
@@ -77,7 +78,8 @@ public sealed class VendorSolvingModeTests
         Assert.True(relayed.Count > 1, "relaying should span more than one solver kind");
 
         var localNotRelayed = VendorWiring.Rows.Count(r => r.Solver == VendorWiring.Solver.Local && !r.Relayed);
-        Assert.Equal(2, localNotRelayed);
+        // R1052: four, because botdeflector and vercel are Local and not relayed.
+        Assert.Equal(4, localNotRelayed);
     }
 
     /// <summary>No row silently becomes Unknown where a real answer exists: exactly two do, and they are the outage pair.</summary>

@@ -67,7 +67,8 @@ public sealed class WallDispatchTests
         // R1024: the gaps were three until akamai joined the audit. It is a gap because the image solves it with a
         // three-stage routine this workspace has not written, not because its marker is unsupported -- Gap.None there.
         Assert.Equal(new[] { "cloudflare", "kasada", "datadome" }, Cybersole.Stores.Scripts.VendorWiring.Wired);
-        Assert.Equal(4, Cybersole.Stores.Scripts.VendorWiring.Gaps.Count);
+        // R1052: six. Gaps is Rows.Where(State != Wired), and two DetectedOnly rows joined.
+        Assert.Equal(6, Cybersole.Stores.Scripts.VendorWiring.Gaps.Count);
 
         _out.WriteLine("dispatch covers exactly the vendors the audit calls wired");
     }

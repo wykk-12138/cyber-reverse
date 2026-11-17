@@ -165,6 +165,20 @@ public static class AntiBotVendors
             "GetSignifydCode", "requiresSignifydStepUp", "_signifydStepUpDone",
             SignifydSendCode, SignifydCompleteStepUp,
         }),
+        // R1052: handled rather than merely named, on the criterion NamedButNotHandled states -- Riskified sits there
+        // because Build/Handle/Get are absent for it, unlike BuildForterSessionId or GetKasada. Both below have handler
+        // names, BotDeflector three bodies and Vercel a solver type plus a handler.
+        new Vendor("BotDeflector", new[]
+        {
+            "BotDeflector", "SubmitBotDeflectorChallenge", "SolveBotDeflectorPow", "SolveBotDeflectorIcons",
+            "_botDeflectorFingerprint", "Solving BotDeflector icons", "Solving BotDeflector proof of work",
+        }),
+        new Vendor("Vercel", new[]
+        {
+            "VercelBotIdSolver", "VercelChallengeHandler", "VercelChallengeToken",
+            "x-vercel-challenge-token", "x-vercel-challenge-solution", "x-vercel-challenge-version",
+            "/.well-known/vercel/security/request-challenge", "_vcrcs", "SupportedVersion",
+        }),
     };
 
     /// <summary>

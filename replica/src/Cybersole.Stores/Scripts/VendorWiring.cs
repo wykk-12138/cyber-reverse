@@ -246,6 +246,22 @@ public static class VendorWiring
             + "the handling rather than all of it. Rows earlier in this file called it NotAChallenge; that was reading "
             + "the waiting room as the whole vendor.",
             MarkerSource.ImageLiteral, Gap.None, Solver.Local, false),
+
+        // R1052: two vendors the image handles and this workspace does not. DetectedOnly, not Wired: Wired means
+        // detect, solve and store all exist here, and no BotDeflector or Vercel solver exists in this workspace. That
+        // also puts both in Gaps, which is correct -- Gaps is Rows.Where(State != Wired), so these are gaps in exactly
+        // the sense akamai is one. The image-side claim of being handled lives in AntiBotVendors.All.
+        new Row("botdeflector", "BotDeflector", null, State.DetectedOnly,
+            "R1052: the image solves this -- <SubmitBotDeflectorChallenge>, <SolveBotDeflectorPow> and "
+            + "<SolveBotDeflectorIcons> are three bodies, and _botDeflectorFingerprint shows it builds the identity it "
+            + "presents. Nothing here solves it, so DetectedOnly; the image-side fact is in AntiBotVendors.All.",
+            MarkerSource.ImageLiteral, Gap.None, Solver.Local, false),
+
+        new Row("vercel", "x-vercel-challenge-token", "_vcrcs", State.DetectedOnly,
+            "R1052: the challenge is in the image -- x-vercel-challenge-token, -solution and -version headers, the "
+            + "/.well-known/vercel/security/request-challenge submit path, a _vcrcs cookie and a SupportedVersion "
+            + "constant, with VercelBotIdSolver as the type name. Nothing here solves it, so DetectedOnly.",
+            MarkerSource.ImageLiteral, Gap.None, Solver.Local, false),
     };
 
     /// <summary>Vendors whose call chain is complete.</summary>

@@ -44,13 +44,14 @@ public sealed class AntiBotProtocolTests
 
     /// <summary>Four vendors have a cookie family; PerimeterX deliberately does not.</summary>
     [Fact]
-    public void FiveVendorsHaveCookieFamilies()   // R944: PerimeterX is the fifth; Queue-it and TrustDecision are covered by routes and scripts, not cookies
+    public void SixVendorsHaveCookieFamilies()   // R944: PerimeterX is the fifth; Queue-it and TrustDecision are covered by routes and scripts, not cookies
     {
         var vendors = AntiBotProtocol.VendorsWithCookies().OrderBy(v => v).ToList();
         _out.WriteLine(string.Join(", ", vendors));
 
-        Assert.Equal(5, vendors.Count);
-        Assert.Equal(new[] { "Akamai", "Cloudflare", "DataDome", "Kasada", "PerimeterX" }, vendors);   // R944
+        // R1052: six -- Vercel's _vcrcs joins the cookie families.
+        Assert.Equal(6, vendors.Count);
+        Assert.Equal(new[] { "Akamai", "Cloudflare", "DataDome", "Kasada", "PerimeterX", "Vercel" }, vendors);   // R944
 
         Assert.Equal(new[] { "_abck", "ak_bmsc" }, AntiBotProtocol.CookiesFor("Akamai"));
         Assert.Equal(new[] { "datadome" }, AntiBotProtocol.CookiesFor("DataDome"));

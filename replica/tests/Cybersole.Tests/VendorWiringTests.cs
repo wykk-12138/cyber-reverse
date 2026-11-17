@@ -36,7 +36,8 @@ public sealed class VendorWiringTests
     {
         // R1024: seven rows, not six. Akamai was missing from an audit that already listed eight vendors in
         // AntiBotVendors, and the image documents it more thoroughly than any of them.
-        Assert.Equal(7, VendorWiring.Rows.Count);
+        // R1052: nine. VENDOR_COVERAGE.md found the image naming thirteen solvers against this table's seven.
+        Assert.Equal(9, VendorWiring.Rows.Count);
         Assert.Equal(new[] { "cloudflare", "kasada", "datadome" }, VendorWiring.Wired);
 
         foreach (var row in VendorWiring.Rows)
@@ -50,7 +51,9 @@ public sealed class VendorWiringTests
         // R1024: akamai joins the gaps. Its marker is image evidence -- Gap.None -- and it is still a gap, because the
         // image solves it with a three-stage routine this workspace has not written. Gap and State are different
         // questions and this row is the clearest case of that: the marker is fine and the call is missing.
-        Assert.Equal(new[] { "akamai", "imperva", "perimeterx", "queue-it" }, VendorWiring.Gaps);
+        // R1052: the two appended rows are DetectedOnly, so they are gaps too, in row order.
+        Assert.Equal(new[] { "akamai", "imperva", "perimeterx", "queue-it", "botdeflector", "vercel" },
+            VendorWiring.Gaps);
 
         // R995: this row used to assert HostWithoutProtocol, which said the protocol does not exist. R141 had already
         // established the opposite -- SolveBotD is named by a method in the original -- so the assertion was holding a

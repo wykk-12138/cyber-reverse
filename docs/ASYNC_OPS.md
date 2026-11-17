@@ -13656,3 +13656,84 @@ Vercel         VercelBotIdSolver
 > 有的在**分类表里**（`TheGapsAreClassified`），有的在**派发映射里**（`OnlyWiredWallsAreDispatched`）。**
 > **→ 而它们只有一样东西是共同的：都在说「你改了一处，我还有意见」。
 > → 所以下一次不是猜清单，是**让工具告诉我有几处** —— grep 出全部钉子，一次看完。**
+
+
+### 12 个钉子**一次改完** —— 真厂商缺口归零（R1052）
+
+**R1051 说下次不猜清单，用查询把钉子全找出来。做了，而**没有一个钉子是真问题** ——
+前两轮我判成「真问题」的两个都是计数。**
+
+### ① 查询代替猜测
+
+**精确 grep `VendorWiring.Rows` · `AntiBotVendors.All` · `CookieFamil` · `HasFive` · `KnowsEight`
+⇒ 12 处钉子，分三类：**
+
+| 类 | 数量 | 例子 |
+|---|---|---|
+| **数据**（3 张表） | 3 | `VendorWiring` 两行 · `AntiBotProtocol` 加 cookie · `AntiBotVendors.All` 加两名 |
+| **数量断言** | 5 | `Rows.Count` 7→9 · `All.Count` 8→10 · `Gaps.Count` 4→6 · `localNotRelayed` 2→4 · `local` 列表 |
+| **测试名里的数字** | **3** | `FiveVendorsHaveCookieFamilies` · `FiveVendorsHaveCookiesAndPerimeterXIsOne` · `TheCookieTableHasFiveAndImpervaIsNotOne` |
+
+**→ 而 `TheImageKnowsEightVendors` 是第四处带数字的名字（8→10）。**
+
+### ② 而前两轮我判成「真问题」的两个，都是计数
+
+| 我上一轮的判断 | 实际 |
+|---|---|
+| `OnlyWiredWallsAreDispatched` = 真问题 | **`Assert.Equal(4, Gaps.Count)`** —— 而 `Gaps = Rows.Where(State != Wired)` ⇒ 两行 `DetectedOnly` ⇒ **4 → 6** |
+| `TheGapsAreClassified` = 真问题 | **`Assert.Equal({akamai,imperva,perimeterx,queue-it}, Gaps)`** —— 同一份列表写出来 ⇒ 加两名 |
+
+**→ 所以两轮「真问题」的标签都错了，而错因是**没读断言就按测试名推断**。
+→ 而测试名说的是「OnlyWiredWallsAreDispatched」，实际里面三条断言，红的只有 `Gaps.Count` 那条。**
+
+### ③ 而改名不改正文 —— 这一轮又踩了一次
+
+**第一遍 12 处改完，红 3 个。那 3 个都是我把**测试名**里的「五」改成「六」，而**正文里的 `Assert.Equal(5, …)` 没动**。**
+
+**→ 与 R1009 那条「总数对了不等于每行都对」同族，也与 R764 那条「诊断文案要写对因」同族。
+→ 修了 5 处（3 个 `Assert.Equal(5, vendors.Count)` → 6 + 2 处 doc 注释），然后又红 1 个：
+→ `Assert.Equal({Akamai, Cloudflare, DataDome, Kasada, PerimeterX}, vendors)` —— **列表本身少一个名字**。**
+
+**→ 所以「改一个数字」在这个仓里通常是「改名字 + 改断言 + 改列表」三件事。
+→ 而 `vendors` 是 `OrderBy(v => v)` 排的，所以 `"Vercel"` 在**末尾**。**
+
+### ④ 结果
+
+```
+controls ok=True   vendors named=13   wiring rows=9   missing=5
+missing: Stripe challenge · PayPal 3DS · captcha · proof of work · checkpoint
+```
+
+**→ 剩下 5 个全是 R1048 判定「不属于这张表」的（2 支付挑战 + 3 通用挑战类型）。
+→ **真厂商缺口 = 0。** 那正是 (f) 要求的「原版风控清单从二进制取证 ↔ 台账逐条对」的闭合。**
+
+### ⑤ 套件：2257 通过 / **1 失败**（网络用例，非本轮）
+
+```
+2257 通过 / 1 失败 / 0 跳过
+FAIL: ModuleRobustnessTests.Monitor_Survives_An_Unreachable_Host(id: "poq-app")
+```
+
+**→ 那一条**在 R1051 的失败名单里就已存在**（改动前），它是驱动网络去连一个不可达 host 的用例。
+→ 按 AGENTS §2.6：**它既不等于通过也不等于失败**，而它**不是本轮引入的红**，证据是 R1051 那次它同列。**
+
+### ⑥ 数字
+
+| 度量 | R1051 | **R1052** |
+|---|---|---|
+| **套件** | 2258 / 0（回滚后） | **2257 / 1（红是网络用例）** |
+| **`VendorWiring` 行数** | 7 | **9** |
+| **`AntiBotVendors.All`** | 8 | **10** |
+| **`Gaps`** | 4 | **6** |
+| **真厂商缺口** | 2 | **0** |
+| **`missing`（不属于这张表）** | 5 | **5** |
+| **钉子数** | 估 11 | **实测 12（+4 处带数字的测试名）** |
+| **vault 里判成「真问题」的** | 2 | **0 —— 两个都是计数** |
+
+### 教训
+
+> **三轮猜测（4 → 9 → 11）都不如**一次查询**。而查询给出的第 12 处、以及「没有真问题」这个结论，
+> 都是猜不出来的。**
+> **→ 而这一轮的第二个教训更具体：**测试名里的数字是一个钉子**。
+> → 改了行为却没改名字，名字就变成一句假话 —— 而那个假话不会自己报错，
+> 直到有人因为别的原因为读它。**

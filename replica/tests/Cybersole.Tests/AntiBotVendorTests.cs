@@ -36,13 +36,14 @@ public sealed class AntiBotVendorTests
     /// lives in NamedButNotHandled instead.
     /// </remarks>
     [Fact]
-    public void TheImageKnowsEightVendors()
+    public void TheImageKnowsTenVendors()
     {
         foreach (var vendor in AntiBotVendors.All)
             _out.WriteLine($"{vendor.Name}: {string.Join(", ", vendor.Evidence)}");
 
-        Assert.Equal(8, AntiBotVendors.All.Count);
-        Assert.Equal(8, AntiBotVendors.All.Select(v => v.Name).Distinct().Count());
+        // R1052: ten -- BotDeflector and Vercel join, both on the handler-name criterion.
+        Assert.Equal(10, AntiBotVendors.All.Count);
+        Assert.Equal(10, AntiBotVendors.All.Select(v => v.Name).Distinct().Count());
         Assert.All(AntiBotVendors.All, v => Assert.NotEmpty(v.Evidence));
 
         foreach (var name in new[] { "DataDome", "PerimeterX", "Akamai", "Kasada", "TrustDecision", "Cloudflare", "Signifyd" })

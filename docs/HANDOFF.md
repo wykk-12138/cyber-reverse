@@ -3700,3 +3700,55 @@ Vercel        VercelBotIdSolver · x-vercel-challenge-{token,solution,version}
 | **真实范围** | 9 | **11** |
 
 **纪律**：下一次不是猜清单，是**grep 出全部钉子，一次看完**。
+
+
+## R1052 —— **12 个钉子一次改完；真厂商缺口归零（0）；套件 2257/1（红是网络用例）**
+
+### 查询代替猜测
+
+精确 grep 出 **12 处**钉子，分三类：**数据 3**（`VendorWiring` 两行 · `AntiBotProtocol` cookie · `AntiBotVendors.All` 两名）·
+**数量断言 5**（`Rows.Count` 7→9 · `All.Count` 8→10 · `Gaps.Count` 4→6 · `localNotRelayed` 2→4 · `local` 列表）·
+**带数字的测试名 4**（`FiveVendorsHaveCookieFamilies` · `FiveVendorsHaveCookiesAndPerimeterXIsOne` ·
+`TheCookieTableHasFiveAndImpervaIsNotOne` · `TheImageKnowsEightVendors`）。
+
+### 而前两轮判成「真问题」的两个，都是计数
+
+| 我上轮的判断 | 实际 |
+|---|---|
+| `OnlyWiredWallsAreDispatched` = 真问题 | `Assert.Equal(4, Gaps.Count)`，而 `Gaps = Rows.Where(State != Wired)` ⇒ **4 → 6** |
+| `TheGapsAreClassified` = 真问题 | `Assert.Equal({akamai,imperva,perimeterx,queue-it}, Gaps)` ⇒ 加两名 |
+
+**⇒ 错因是**没读断言就按测试名推断**。测试名说的是派发，实际三条断言，红的只有 `Gaps.Count`。**
+
+### 而「改名不改正文」这一轮又踩了
+
+第一遍 12 处改完红 3 个 —— 全是把**测试名**的五改成六而**正文 `Assert.Equal(5, …)` 没动**。
+修了 5 处后又红 1 个：`Assert.Equal({Akamai,…,PerimeterX}, vendors)` —— **列表少一个名字**，
+而 `vendors` 是 `OrderBy` 排的 ⇒ `"Vercel"` 在末尾。
+
+**⇒ 「改一个数字」在这里通常是「改名 + 改断言 + 改列表」三件事。**
+
+### 结果
+
+```
+controls ok=True  vendors named=13  wiring rows=9  missing=5
+missing: Stripe challenge · PayPal 3DS · captcha · proof of work · checkpoint    ← 全是「不属于这张表」的
+真厂商缺口 = 0
+```
+
+**套件 2257 通过 / 1 失败**：`ModuleRobustnessTests.Monitor_Survives_An_Unreachable_Host(poq-app)` ——
+**网络用例，R1051 的失败名单里就有它（改动前）**。按 §2.6 它既不等于通过也不等于失败，而**不是本轮引入**。
+
+### 数字
+
+| 度量 | R1051 | **R1052** |
+|---|---|---|
+| 套件 | 2258 / 0（回滚后） | **2257 / 1（网络用例）** |
+| `VendorWiring` 行数 | 7 | **9** |
+| `AntiBotVendors.All` | 8 | **10** |
+| `Gaps` | 4 | **6** |
+| **真厂商缺口** | 2 | **0** |
+| 钉子数 | 估 11 | **实测 12** |
+| 判成「真问题」的 | 2 | **0** |
+
+**纪律**：三轮猜测（4→9→11）都不如一次查询。而**测试名里的数字是一个钉子** —— 改了行为没改名字，名字就成了假话。

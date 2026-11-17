@@ -81,11 +81,11 @@ public class VendorNegativeClaimsTests
     /// The five vendors with cookie families, none of which is Imperva.
     /// </summary>
     [Fact]
-    public void TheCookieTableHasFiveAndImpervaIsNotOne()
+    public void TheCookieTableHasSixAndImpervaIsNotOne()
     {
         var vendors = AntiBotProtocol.VendorsWithCookies();
 
-        Assert.Equal(5, vendors.Count);
+        Assert.Equal(6, vendors.Count);
         Assert.DoesNotContain("Imperva", vendors);
     }
 

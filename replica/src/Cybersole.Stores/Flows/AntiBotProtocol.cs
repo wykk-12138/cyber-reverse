@@ -45,6 +45,8 @@ public static class AntiBotProtocol
             ["DataDome"] = new[] { "datadome" },
             ["Cloudflare"] = new[] { "cf_clearance" },
             ["Kasada"] = new[] { "kpsdk" },
+        // R1052: _vcrcs is the Vercel challenge cookie, present in the image at 0x146f64ddc.
+        ["Vercel"] = new[] { "_vcrcs" },
             // R944: _px3 was recorded as absent in the note below and it is present -- one match in the image. The
             // absence was asserted rather than searched for, which is why it survived. The two visitor ids are kept
             // apart because the image has both spellings and nothing says they hold the same value.

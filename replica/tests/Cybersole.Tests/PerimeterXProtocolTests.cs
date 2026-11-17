@@ -23,11 +23,11 @@ public class PerimeterXProtocolTests
     /// asserting a cookie they do not have.
     /// </summary>
     [Fact]
-    public void FiveVendorsHaveCookiesAndPerimeterXIsOne()
+    public void SixVendorsHaveCookiesAndPerimeterXIsOne()
     {
         var vendors = AntiBotProtocol.VendorsWithCookies();
 
-        Assert.Equal(5, vendors.Count);
+        Assert.Equal(6, vendors.Count);
         Assert.Contains("PerimeterX", vendors);
         Assert.Contains("Kasada", vendors);
         Assert.Contains("Cloudflare", vendors);

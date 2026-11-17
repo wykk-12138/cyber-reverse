@@ -9979,3 +9979,97 @@ PROXY: MISSING   INSTANCE: none   PORT 13337: REFUSED   TIMEOUT: 180s
 > **「A 和 B 矛盾，哪个对」这个问法本身可能错 —— 也许两个都在错的层次上回答。
 > → R993 把问题设成二选一，而镜像的证据说：状态码层没有语义。
 > → 而**取证的第一个用途不是选边，是检查那个二选一是否成立**。**
+
+
+### 消息层写对了，没进产物 —— 而我的「可达性」读数自己和自己矛盾（R1006）
+
+**R1005 说下一轮按三条证据加消息层。加了，11 条测试绿。而 publish 之后产物里一个串都不在。
+更要紧的是：这一轮把 R1002 那个可达性结论**否掉了**。**
+
+### ① 写了什么
+
+**`StoreFlowRunner.ClassifyCheckoutFailure` 前面加一层消息判断：**
+
+```csharp
+private static readonly string[] RetryableShortage = { "reservation failed" };
+private static readonly string[] NeverRetryShortage = { "decoy" };
+
+private static CheckoutResult ClassifyCheckoutFailure(FlowContext ctx) =>
+    FromShortageMessage(ctx) ?? LastStatus(ctx) switch
+    {
+        422 or 409 => CheckoutResult.Declined,
+        402 => CheckoutResult.Declined,
+        _ => CheckoutResult.Error,
+    };
+```
+
+**顺序是「状态码是外层猜测，消息细化它」—— 因为多数 409 确实是售罄，而那一个例外在体里说出来。
+两个标记同时出现时**拒绝优先**：错的重试花掉账号，错的放弃只花掉这一次尝试。**
+
+**而 `Vars["home"]` 是**首页**，缺货消息在 **checkout 响应**里 —— 所以补了一个新活通道：
+`lastStatus` 的 5 个写入点旁边各写一行 `Vars["lastBody"]`。**
+
+**11 条测试绿（4 新 + 7 既有 `CheckoutFailureModeTests`，`{}` 体无标记 → 仍 `Declined`，没破既有行为）。**
+
+### ② 而 publish 之后，产物里一个都不在
+
+| 串 | 新 `.publish-aot` | 旧 |
+|---|---|---|
+| `reservation failed` | **absent** | absent |
+| `decoy` | **absent** | absent |
+| **`lastBody`** | **absent** | absent |
+| `sold out during checkout`（既有注释） | absent | absent |
+
+**→ 函数数 **174,336 未变**。**
+
+### ③ 而判别组把 R1002 的结论否掉了
+
+| 串 | 新产物 | **R1002 我记的** |
+|---|---|---|
+| `StoreFlowRunner` | **absent** | **IN** |
+| `GuardAsync` | **absent** | **IN** |
+| `lastStatus` | **absent** | absent（一致） |
+| `antibot` | IN | IN |
+
+> **→ `StoreFlowRunner` 与 `GuardAsync` 现在 absent，而 R1002 我记的是 IN。
+> → 而函数数在 R1002 之后**没变**（174,336 → 174,336），所以这不是裁剪变化。
+> → 所以**其中一次的读数是错的**，而我留的记录不足以判断是哪一次。**
+
+### ④ 而这否掉的不止一条读数
+
+**R1002 的 `+342` 我用它论证「接一句 `Resolve` 就让 250 行达标」。而那个论证的可达性依据
+（`StoreFlowRunner` / `GuardAsync` 在产物里）现在不成立。**
+
+**→ `+342` 仍然是真的（函数数确实涨了）。但「为什么涨」的那个解释建立在一条现在矛盾的读数上。
+→ 而 R1004「Adyen/CommerceHub 的 `Id` 在产物里 19/17 次」那条也是同类读数 —— 同样需要重验。**
+
+**这一轮不重验，因为重验需要一条**稳定的**读数方法，而那件事本身要先设计。**
+
+### ⑤ 所以这一轮真正的产出是三条
+
+1. **消息层在源码与测试里正确**（11 条绿），而**产物里不在** —— 那一条是清楚的、可复现的
+2. **`lastBody` 通道补上了**（`home` 是首页，缺货消息在 checkout 响应里 —— 那是实现里的一个真错）
+3. **R1002 的可达性结论撤回** —— 依据是同一段字节里 `StoreFlowRunner` absent，而函数数未变
+
+### ⑥ 而「读数不稳定」的可能原因（未证，标 Unknown）
+
+- 两次查的**不是同一个文件**（R1002 查 `.publish-aot`，那一份在 R999 之后被替换过两次）
+- 或者某次 publish 的裁剪结果不同而函数数恰好相同
+- **而未证的我不写成结论。**
+
+### 数字
+
+| 度量 | R1005 | **R1006** |
+|---|---|---|
+| 套件 | 2214 | **2218（+4 缺货消息守卫）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| **函数数** | 174,336 | **174,336（未变）** |
+| 函数比 | 62.91% | **62.91%** |
+| **消息层进产物** | — | **否（3 个串全 absent）** |
+| **R1002 的可达性读数** | 采信 | **撤回（与当前读数矛盾）** |
+
+### 教训
+
+> **产物读数是一个**观测**，而观测要有稳定的对象和记录。我拿三次不同 publish 的读数当一条时间线用，
+> 于是其中任何一次读错都会变成一个「事实」进入论证。**
+> **→ 而这一轮能发现它，是因为我**又查了一遍**同样几个串 —— 不是因为方法更好。**

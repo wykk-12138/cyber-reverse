@@ -256,15 +256,74 @@ public static class StoreFlowRunner
             : entry.Title + " - " + detail;
 
     /// <summary>
+    /// The shortage messages the image distinguishes, and what each one means for a retry. R1006.
+    ///
+    /// <para>
+    /// These come from the artifact rather than from a preference. It carries <c>Out of stock (reservation
+    /// failed), retrying</c> -- so a failed reservation is worth another attempt -- and it carries <c>Out of stock
+    /// (decoy)</c> beside a <c>get_DecoyActive</c> property, so a decoy is a shortage the shop is pretending to have,
+    /// and retrying bait is how a session starts looking like a bot. The plain wordings, <c>Item is Out of Stock</c>
+    /// and <c>This item is out of stock</c>, mean what they say.
+    /// </para>
+    ///
+    /// <para>
+    /// R1005 established why this layer has to exist at all: searching the image for 409 finds forty hexadecimal
+    /// hashes and nothing else, and Conflict finds only .NET enum names. There is no status-code-to-disposition table
+    /// anywhere in it. The disposition lives in the body, so a classifier that reads only the code is guessing.
+    /// </para>
+    /// </summary>
+    private static readonly string[] RetryableShortage = { "reservation failed" };
+
+    /// <summary>Markers that must never be retried, whatever the status code says.</summary>
+    private static readonly string[] NeverRetryShortage = { "decoy" };
+
+    /// <summary>
+    /// What the response body says about a shortage, or null when it says nothing this workspace recognises.
+    ///
+    /// <para>
+    /// The body comes from <c>Vars["home"]</c>, which twenty flows write and <c>DetectAsync</c> already reads, so it is
+    /// a live channel rather than a new one. It is the only body channel that is live: <c>HandleResponseAsync</c> has
+    /// no overrides at all, so per R963 its body is trimmed and nothing wired through it would reach the artifact.
+    /// </para>
+    /// </summary>
+    private static CheckoutResult? FromShortageMessage(FlowContext ctx)
+    {
+        // lastBody is the channel for a checkout response; home is the landing page and stays as a fallback so callers
+        // that only record that still classify.
+        var body = ctx.Session.Vars.TryGetValue("lastBody", out var b) && !string.IsNullOrEmpty(b)
+            ? b
+            : ctx.Session.Vars.TryGetValue("home", out var h) ? h : null;
+        if (string.IsNullOrEmpty(body)) return null;
+
+        foreach (var marker in NeverRetryShortage)
+            if (body.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                return CheckoutResult.Declined;
+
+        foreach (var marker in RetryableShortage)
+            if (body.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                return CheckoutResult.Error;
+
+        return null;
+    }
+
+    /// <summary>
     /// A 422 means the store understood the request and rejected it — retrying costs time and
     /// can burn the account. A 409 (sold out during checkout) is the same story.
+    ///
+    /// <para>
+    /// R1006: unless the body says otherwise. The status code is the outer guess and the message refines it, which is
+    /// the order the artifact implies -- a 409 normally does mean sold out, and the one case where it does not says so
+    /// in words. Disagreeing markers are resolved against retrying, because a wrong retry costs an account and a
+    /// wrongly abandoned attempt costs only this attempt.
+    /// </para>
     /// </summary>
-    private static CheckoutResult ClassifyCheckoutFailure(FlowContext ctx) => LastStatus(ctx) switch
-    {
-        422 or 409 => CheckoutResult.Declined,
-        402 => CheckoutResult.Declined,
-        _ => CheckoutResult.Error,
-    };
+    private static CheckoutResult ClassifyCheckoutFailure(FlowContext ctx) =>
+        FromShortageMessage(ctx) ?? LastStatus(ctx) switch
+        {
+            422 or 409 => CheckoutResult.Declined,
+            402 => CheckoutResult.Declined,
+            _ => CheckoutResult.Error,
+        };
 
     /// <summary>
     /// Same classification, but also naming the stage so the surfaced reason can match the

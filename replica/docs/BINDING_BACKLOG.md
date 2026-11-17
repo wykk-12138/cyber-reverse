@@ -8286,3 +8286,40 @@ Getting / Initialising / Solving / Submitting DataDome
 | `decoy` 的判定是否还有别的信号 | 未查 |
 
 **纪律**：取证的第一个用途不是选边，是检查那个二选一是否成立。
+
+
+## 判据 (a)/①/(c) — **消息层实现正确（11 绿）但未进产物；`lastBody` 通道补上；R1002 可达性结论撤回**（R1006）
+
+### 实现
+
+**`ClassifyCheckoutFailure` 前加消息层：`reservation failed` → `Error`（可重试）· `decoy` → `Declined`（不重试）·
+两者同时出现拒绝优先。状态码层保持保守。**
+**`lastStatus` 的 5 个写入点旁各写 `Vars["lastBody"]`（`home` 是首页，消息在 checkout 响应里）。**
+**11 条测试绿（4 新 + 7 既有）。**
+
+### 产物验证（否定）
+
+**`reservation failed` · `decoy` · `lastBody` · `sold out during checkout` 全 absent；函数数 174,336 未变。**
+
+### 自我否证
+
+| 串 | 新产物 | R1002 记录 |
+|---|---|---|
+| `StoreFlowRunner` | **absent** | **IN** |
+| `GuardAsync` | **absent** | **IN** |
+| `antibot` | IN | IN |
+
+**→ 函数数在 R1002 之后未变 ⇒ 不是裁剪变化 ⇒ 其中一次读数错了。
+→ R1002 的「+342 因为可达」解释与 R1004 的「Id 在产物里」读数都需要重验。
+→ 需要一条**稳定的**产物读数方法先。**
+
+### 数字
+
+**套件 2218 · 陈旧度 0/0 · 函数数 174,336 · 消息层进产物 否 · R1002 可达性 撤回**
+
+| 仍 Unknown | |
+|---|---|
+| 读数为何矛盾 | 未证（不同文件？裁剪巧合？） |
+| 消息层怎样才能进产物 | 未证 |
+
+**纪律**：产物读数是观测 —— 观测要有稳定的对象和记录。

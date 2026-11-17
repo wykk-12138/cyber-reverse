@@ -313,6 +313,12 @@ public abstract class StoreFlow
         if (res is null) return StepOutcome.Fail("refresh failed", retryable: true);
 
         c.Session.Vars["lastStatus"] = res.StatusCode.ToString();
+
+        // R1006: the body that came with this status. lastStatus alone cannot say whether a 409 is a sold-out
+
+        // shelf or a failed reservation, and the artifact settles that in words rather than in a code (R1005).
+
+        c.Session.Vars["lastBody"] = res.Body ?? string.Empty;
         return res.IsSuccess
             ? StepOutcome.Success()
             : StepOutcome.Fail($"refresh HTTP {res.StatusCode}", retryable: true);
@@ -2516,6 +2522,9 @@ public abstract class StoreFlow
             var res = await c.Http.GetAsync(url, c.Options(tag), ct).ConfigureAwait(false);
             c.Session.AbsorbCookies(res.Cookies);
             c.Session.Vars["lastStatus"] = res.StatusCode.ToString();
+            // R1006: the body that came with this status. lastStatus alone cannot say whether a 409 is a sold-out
+            // shelf or a failed reservation, and the artifact settles that in words rather than in a code (R1005).
+            c.Session.Vars["lastBody"] = res.Body ?? string.Empty;
             c.Session.Vars["lastUrl"] = res.Url.ToString();
             return res;
         }
@@ -2534,6 +2543,9 @@ public abstract class StoreFlow
             var res = await c.Http.PostJsonAsync(url, json, c.Options(tag), ct).ConfigureAwait(false);
             c.Session.AbsorbCookies(res.Cookies);
             c.Session.Vars["lastStatus"] = res.StatusCode.ToString();
+            // R1006: the body that came with this status. lastStatus alone cannot say whether a 409 is a sold-out
+            // shelf or a failed reservation, and the artifact settles that in words rather than in a code (R1005).
+            c.Session.Vars["lastBody"] = res.Body ?? string.Empty;
             c.Session.Vars["lastUrl"] = res.Url.ToString();
             return res;
         }
@@ -2561,6 +2573,9 @@ public abstract class StoreFlow
 
             c.Session.AbsorbCookies(res.Cookies);
             c.Session.Vars["lastStatus"] = res.StatusCode.ToString();
+            // R1006: the body that came with this status. lastStatus alone cannot say whether a 409 is a sold-out
+            // shelf or a failed reservation, and the artifact settles that in words rather than in a code (R1005).
+            c.Session.Vars["lastBody"] = res.Body ?? string.Empty;
             c.Session.Vars["lastUrl"] = res.Url.ToString();
             return res;
         }
@@ -2625,6 +2640,9 @@ public abstract class StoreFlow
             var res = await c.Http.PostFormAsync(url, form, c.Options(tag), ct).ConfigureAwait(false);
             c.Session.AbsorbCookies(res.Cookies);
             c.Session.Vars["lastStatus"] = res.StatusCode.ToString();
+            // R1006: the body that came with this status. lastStatus alone cannot say whether a 409 is a sold-out
+            // shelf or a failed reservation, and the artifact settles that in words rather than in a code (R1005).
+            c.Session.Vars["lastBody"] = res.Body ?? string.Empty;
             c.Session.Vars["lastUrl"] = res.Url.ToString();
             return res;
         }

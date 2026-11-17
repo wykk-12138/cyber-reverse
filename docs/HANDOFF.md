@@ -2503,3 +2503,21 @@ id0→**是(Y)** · 「请稍候…」→**等** · **新框型「Database still
 
 下一轮：按三条证据加消息层（`reservation failed` / `decoy` / 真缺货），再接 `HandleResponseAsync`。
 **仍停下等 YG**：DSH 的 ida 代理 MISSING（不影响 ida.py，但 mcp__ida__* 不可用）。
+
+## R1006 补充 — **消息层实现正确（11 绿）但未进产物；`lastBody` 通道补上；R1002 可达性结论撤回**（套件 2218）
+
+`ClassifyCheckoutFailure` 加消息层：`reservation failed`→`Error`（可重试）· `decoy`→`Declined`（不重试）·
+两者同时出现**拒绝优先**；状态码层保持保守。**并补 `Vars["lastBody"]`** —— `home` 是**首页**，
+缺货消息在 **checkout 响应**里（实现里的真错，本轮修掉）。**11 条测试绿。**
+
+**而 publish 后：`reservation failed` · `decoy` · `lastBody` 全 absent，函数数 174,336 未变。**
+
+**更重的是判别组把 R1002 否掉了**：`StoreFlowRunner` / `GuardAsync` 现在 **absent**，而 R1002 我记的是 **IN**。
+而函数数在 R1002 之后没变 ⇒ 不是裁剪变化 ⇒ **其中一次读数是错的**，而记录不足以判断是哪一次。
+→ **R1002「+342 因为可达」的解释撤回；R1004 的 `Id` 计数读数也需重验。**
+
+数字：套件 2218（+4）· 陈旧度 0/0 · 函数数 174,336（未变）· 消息层进产物 否 · R1002 可达性 撤回。
+
+纪律：**产物读数是观测 —— 观测要有稳定的对象和记录。**
+
+下一轮：先设计一条**稳定的**产物读数方法（同一文件 + 存快照 + 记录 sha256），再重验 R1002/R1004 两条结论。

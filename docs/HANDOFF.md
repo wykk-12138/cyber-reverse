@@ -3007,3 +3007,25 @@ cloudflare/datadome = `Relay` · kasada/akamai = `ThirdPartyApi` · perimeterx/q
 纪律：**每次新加枚举值，先问它能不能被两个互斥的事实同时满足。**
 
 下一轮：relay 的协议（`cf-solver.cybersole.io/v1/warm` 之后是什么）—— 那是 cloudflare 求解的核心。
+
+## R1028 补充 — **`CloudflareSolver` 八属性：求解者是用户配的第三方；`How` 需要两个轴**（套件 2243，未改代码）
+
+**`cf-solver.cybersole.io/` 只有 **1** 个路径：`/v1/warm`。`v1/solve` 0 · `v1/result` 0 ⇒ **预热端点，不是求解端点。**
+
+**`CloudflareSolver` 八个属性**：`Name` · `Type` · `ApiKey` · `Balance` · `BalanceSupported` ·
+`IsFetchingBalance` · `Count` · `Concurrency`。
+→ `ApiKey` = 用户自己的 key · `Balance`/`BalanceSupported`/`IsFetchingBalance` = **付费服务** · `Type` = 多种 ⇒ **服务商条目**。
+→ 而 `DataDomeSolver` / `DatadomeSolver` / `Cybersole.Solvers.` **全 0 命中** ⇒ datadome 走自建中继，无 solver 类。
+
+**所以 `How` 要第三次改 —— 而我不改。** 已改两次（R1026 · R1027），两次都被下一轮推翻。
+→ 问题不在值上，在**列的定义**上：它想同时装「求解者是谁」与「是否经原版中转」**两个正交轴**。
+→ cloudflare = 用户第三方 **+** 经原版预热 ⇒ 一个枚举装不下。
+
+**本轮是诊断**：不改 `How`，`cloudflare = Relay` 的**不完整**写在这里，不留在代码里当结论。
+**下一轮把 `How` 换成两个列/两个字段。**
+
+数字：套件 2243/0/0（未改代码）· 陈旧度 4 / 3,869 · 函数数 174,336 · cf-solver 路径 **1** · 属性 **8** · How 修正 **2** 次。
+
+纪律：**三次动同一个地方，第一次是修，第二次是修错了，第三次该先问它该不该存在。**
+
+下一轮：把 `How` 换成两个轴（求解者 + 是否中转）。

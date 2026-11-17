@@ -11824,3 +11824,95 @@ public enum How { None, Local, Relay, ThirdPartyApi, Unknown }
 > → 而更刺眼的是：**R1020 我刚为 `Inferred` 拆过一次列，R1026 又在 `RemoteApi` 上重犯。**
 > **→ 所以那个教训不是「一个词别盖两件事」，而是：**每次新加一个枚举值，先问它能不能被两个
 > 互斥的事实同时满足**。**
+
+
+### `CloudflareSolver` 的八个属性；而**连续第三次改同一列**是我不改它的理由（R1028）
+
+**R1027 说下一轮找 relay 的协议。找了，而找到的东西**又**推翻了那一列的判断 —— 所以这一轮不改它。**
+
+### ① `/v1/warm` 之后什么都没有
+
+```
+cf-solver.cybersole.io/     n=1   → 只有 /v1/warm
+v1/solve                    n=0
+v1/result                   n=0
+v1/task                     n=5   → 但属 aycd.io / uncaptcha.io（别的第三方）
+```
+
+**→ `cf-solver.cybersole.io` 只有**一个**路径：`/v1/warm`。
+→ 没有 solve、没有 result。**所以它是一个**预热**端点，不是求解端点。**
+
+### ② 而 `CloudflareSolver` 的八个属性说明求解者是谁
+
+```
+Cybersole.CloudflareSolvers.CloudflareSolver,   n=25
+  Name (get/set) · Type (get)
+  ApiKey (get/set)
+  Balance (get/set) · BalanceSupported (get) · IsFetchingBalance (get/set)
+  Count (get/set) · Concurrency (get/set)
+```
+
+**→ 每一个都在描述一个**用户配置的付费 solver**：**
+
+| 属性 | 它意味着 |
+|---|---|
+| `ApiKey` | 用户填**自己的** key |
+| `Balance` + `BalanceSupported` + `IsFetchingBalance` | **付费服务**才需要向用户显示余额 |
+| `Type` | 有**多种** solver 可选 |
+| `Count` · `Concurrency` · `Name` | 就是一个服务商条目 |
+
+**→ 而 `DataDomeSolver` · `DatadomeSolver` · `Cybersole.Solvers.` 全部 **0 命中** —— datadome **没有**这个类。
+→ 所以两家**走的路不一样**：cloudflare 是用户填 key 的第三方，datadome 是原版自建的中继。**
+
+### ③ 而这意味着 `How` 要**第三次**改 —— 而我不改
+
+**`How` 的历史：**
+
+| 轮 | 值 | 理由 | 被什么推翻 |
+|---|---|---|---|
+| R1026 | `RemoteApi` / `Local` | 「有 `API down` 文案」 | R1027：cloudflare/datadome 走中继而无 outage |
+| R1027 | `Relay` / `ThirdPartyApi` | 「有自建 host vs 有 outage」 | **R1028：cloudflare 两者都有** |
+| R1028 | **不改** | — | — |
+
+> **→ 连续第三次，同一个列。而那是一个信号：我在**用一条症状反推一个机制**，而每次都有第三种情形。
+> → 而正确的反应不是第三次改值，是**先问清这个列在回答什么问题**。**
+
+### ④ 而这个列的问题在于它想同时答两件事
+
+**「谁在解」有两个独立维度：**
+
+| 维度 | 取值 | 证据 |
+|---|---|---|
+| **求解者是谁** | 用户配的第三方 / 原版自建 / 本地实现 | `ApiKey`+`Balance` vs `*-solver.cybersole.io` vs 无 host |
+| **是否经原版中转** | 是 / 否 | `cf-solver…/v1/warm` vs 直连 |
+
+**→ cloudflare = 用户第三方 **+** 经原版预热 ⇒ 一个维度装不下。
+→ datadome = 原版自建 + 直连。
+→ kasada/akamai = 第三方（有 `API down`）+ 直连。
+→ 所以那是**两个正交的轴**，而我一直想用一个枚举装。**
+
+### ⑤ 所以本轮的交付是**诊断**，不是又一次改值
+
+**→ 不改 `How`；把 `CloudflareSolver` 的八属性与 `ApiKey`/`Balance` 的含义记下来。
+→ 下一轮把 `How` 换成**两个**列（或一个带两个字段的记录），而那时它才装得下三种情形。**
+
+**→ 而 `How` 现在的 cloudflare = `Relay` 是**不完整**的 —— 它说了「经自建」而没说「求解者是用户第三方」。
+→ 那个不完整现在写在这里，而不是留在代码里当结论。**
+
+### ⑥ 数字
+
+| 度量 | R1027 | **R1028** |
+|---|---|---|
+| 套件 | 2243 / 0 | **2243 / 0 / 0（未改代码）** |
+| 产物陈旧度 | 4 / 3,869 | **4 / 3,869** |
+| 函数数 | 174,336 | **174,336** |
+| **`cf-solver` 的路径数** | 未知 | **1（只有 `/v1/warm`）** |
+| **`CloudflareSolver` 的属性数** | 未知 | **8** |
+| **`DataDomeSolver` 类** | 未查 | **0 命中** |
+| **`How` 的修正次数** | 2（R1026 · R1027） | **2 —— 第三次被诊断挡住** |
+
+### 教训
+
+> **连续两次改同一个列，而两次都被下一轮推翻 —— 那说明问题不在值上，在**列的定义**上。**
+> **→ 而第三次我差点又改。拦住我的是数一下：**这个列我这轮是第几次动它。**
+> **→ 三次动同一个地方，第一次是修，第二次是修错了，第三次该先问它该不该存在。**

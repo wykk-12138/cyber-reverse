@@ -61368,3 +61368,73 @@ perimeterx · queue-it = `Local` · imperva = `None`。**
 > → 更刺眼的是：**R1020 我刚为 `Inferred` 拆过一次列，R1026 又在 `RemoteApi` 上重犯。**
 > → 所以那个教训不是「一个词别盖两件事」，而是：**每次新加一个枚举值，先问它能不能被两个
 > 互斥的事实同时满足**。**
+
+
+---
+
+## 第 1028 轮：`CloudflareSolver` 的八个属性；而连续第三次改同一列是不改它的理由
+
+### ① `/v1/warm` 之后什么都没有
+
+```
+cf-solver.cybersole.io/  n=1  → 只有 /v1/warm
+v1/solve n=0 · v1/result n=0
+v1/task  n=5 → 但属 aycd.io / uncaptcha.io
+```
+
+**→ `cf-solver.cybersole.io` 只有**一个**路径 ⇒ 它是**预热**端点，不是求解端点。**
+
+### ② 而 `CloudflareSolver` 的八个属性说明求解者是谁
+
+```
+Name (get/set) · Type (get) · ApiKey (get/set)
+Balance (get/set) · BalanceSupported (get) · IsFetchingBalance (get/set)
+Count (get/set) · Concurrency (get/set)
+```
+
+**→ `ApiKey` = 用户填自己的 key；`Balance` + `BalanceSupported` + `IsFetchingBalance` = **付费服务**才需显示余额；
+`Type` = 多种 solver 可选 ⇒ **那就是一个服务商条目。**
+→ 而 `DataDomeSolver` · `DatadomeSolver` · `Cybersole.Solvers.` 全 **0 命中** ⇒ datadome **没有**这个类。**
+
+### ③ 而这意味着 `How` 要**第三次**改 —— 而我不改
+
+| 轮 | 值 | 理由 | 被什么推翻 |
+|---|---|---|---|
+| R1026 | `RemoteApi`/`Local` | 有 `API down` | R1027：cloudflare/datadome 走中继无 outage |
+| R1027 | `Relay`/`ThirdPartyApi` | 自建 host vs outage | **R1028：cloudflare 两者都有** |
+| **R1028** | **不改** | — | — |
+
+**→ 连续第三次，同一个列 ⇒ 我在**用一条症状反推一个机制**，而每次都有第三种情形。**
+
+### ④ 而这个列想同时答两件事（两个正交轴）
+
+| 维度 | 取值 |
+|---|---|
+| **求解者是谁** | 用户第三方（`ApiKey`+`Balance`）/ 原版自建（`*-solver.cybersole.io`）/ 本地 |
+| **是否经原版中转** | 是（`/v1/warm`）/ 否 |
+
+**→ cloudflare = 用户第三方 **+** 经原版预热 ⇒ 一个维度装不下。**
+
+### ⑤ 所以本轮交付是**诊断**，不是又一次改值
+
+**不改 `How`；下一轮把它换成**两个**列（或带两个字段的记录），那时它才装得下三种情形。
+→ `How` 现在的 cloudflare = `Relay` 是**不完整**的（说了「经自建」没说「求解者是用户第三方」），
+而那个不完整现在写在这里，不是留在代码里当结论。**
+
+### ⑥ 数字
+
+| 度量 | R1027 | **R1028** |
+|---|---|---|
+| 套件 | 2243 / 0 | **2243 / 0 / 0（未改代码）** |
+| 产物陈旧度 | 4 / 3,869 | **4 / 3,869** |
+| 函数数 | 174,336 | **174,336** |
+| **`cf-solver` 路径数** | 未知 | **1** |
+| **`CloudflareSolver` 属性数** | 未知 | **8** |
+| **`DataDomeSolver` 类** | 未查 | **0 命中** |
+| **`How` 修正次数** | 2 | **2 —— 第三次被诊断挡住** |
+
+### 教训
+
+> **连续两次改同一列、两次都被下一轮推翻 —— 那说明问题不在值上，在**列的定义**上。
+> → 拦住第三次的不是判断力，是数一下：**这个列我这轮是第几次动它。**
+> → 三次动同一个地方，第一次是修，第二次是修错了，第三次该先问它该不该存在。**

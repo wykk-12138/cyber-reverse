@@ -9202,3 +9202,49 @@ public enum How { None, Local, Relay, ThirdPartyApi, Unknown }
 | relay 的协议（`/v1/warm` 之后是什么） | 未取证 |
 
 **纪律**：每次新加枚举值，先问它能不能被两个互斥的事实同时满足。
+
+
+## 优先级 ② — **`CloudflareSolver` 八属性：求解者是用户配的第三方；`How` 需要两个轴**（R1028）
+
+### `cf-solver.cybersole.io` 只有一个路径
+
+```
+cf-solver.cybersole.io/  n=1 → /v1/warm
+v1/solve 0 · v1/result 0
+```
+
+**→ 它是**预热**端点，不是求解端点。**
+
+### `CloudflareSolver` 的八个属性
+
+```
+Name · Type · ApiKey · Balance · BalanceSupported · IsFetchingBalance · Count · Concurrency
+```
+
+**→ `ApiKey` 用户自己的 key · `Balance`/`BalanceSupported`/`IsFetchingBalance` 付费服务 · `Type` 多种 ⇒ 服务商条目。
+→ 而 `DataDomeSolver`/`DatadomeSolver`/`Cybersole.Solvers.` **0 命中** ⇒ datadome 走自建中继，没有 solver 类。**
+
+### 所以 `How` 装不下 —— 它需要两个正交轴
+
+| 轴 | 取值 |
+|---|---|
+| 求解者 | 用户第三方 / 原版自建 / 本地 |
+| 是否经原版中转 | 是 / 否 |
+
+**cloudflare = 用户第三方 + 经预热 ⇒ 一个枚举装不下。**
+
+### 本轮不改代码（诊断）
+
+**`How` 已改两次（R1026 · R1027），两次都被下一轮推翻。第三次先问「这一列该不该存在」。**
+**→ cloudflare = `Relay` 是**不完整**的，那个不完整写在这里而不是留在代码里当结论。**
+
+### 数字
+
+**套件 2243/0/0（未改代码）· 陈旧度 4 / 3,869 · 函数数 174,336 · cf-solver 路径 1 · 属性 8 · How 修正 2 次**
+
+| 仍 Unknown | |
+|---|---|
+| `Type` 有哪些 solver 取值 | 未取证 |
+| 预热之后真的求解打到哪 | 未取证 |
+
+**纪律**：三次动同一个地方，第一次是修，第二次是修错了，第三次该先问它该不该存在。

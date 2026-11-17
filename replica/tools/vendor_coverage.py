@@ -69,8 +69,8 @@ DISPOSITION = {
     ),
     "PayPal 3DS": (
         "payment",
-        "九条分期文案（`(1)`…`(8)` 加无条件），是 3DS 流程的阶段，同样**不属于站点风控台账**。"
-        "→ 归支付层。分期数本身是有用证据：3DS 有 8 个可观察阶段。",
+        "九条分期文案（`(1)`…`(8)` 加 `(2.1)` 子阶段），是 3DS 流程的阶段，同样**不属于站点风控台账**。"
+        "→ 归支付层。分期数本身是有用证据：3DS 有 9 个可观察阶段（详见 `PAYMENT_CHALLENGES.md`）。",
     ),
     "captcha": ("challenge", "通用验证码挑战，不是某个厂商 ⇒ 台账形状不建模，且不该建模。"),
     "proof of work": ("challenge", "通用 PoW 挑战，同上。注意镜像原文拼作 `challange` —— 保留拼写，不修正。"),
@@ -117,6 +117,10 @@ def wiring_rows():
 def main():
     controls = [(name, probe(pat).get("n", -1)) for name, pat in CONTROLS]
     control_ok = all(n > 0 for _, n in controls)
+    if not control_ok:
+        print("  !! controls failed (%s) -- IDA is not ready; refusing to overwrite docs/VENDOR_COVERAGE.md with false zeros"
+              % ", ".join("%s=%d" % (k, v) for k, v in controls))
+        return 2
 
     found = []
     for name, pattern in VENDORS:

@@ -78,6 +78,10 @@ def replica_hits(marker):
 
 def main():
     control = probe(r"kpsdk").get("n", -1)
+    if control <= 0:
+        print("  !! control failed (kpsdk=%d) -- IDA is not ready; refusing to overwrite docs/CAPTCHA_COVERAGE.md with false zeros"
+              % control)
+        return 2
     fam = [(n, probe(p).get("n", -1), (probe(p).get("matches") or [{}])[0].get("addr", ""), note)
            for n, p, note in FAMILIES]
     absent = [(n, probe(p).get("n", -1)) for n, p in ABSENT]

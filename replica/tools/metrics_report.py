@@ -67,8 +67,10 @@ METRICS = [
     ("产物陈旧度（.publish-aot vs src）", ["tools/artifact_freshness.py"], ["source files newer than the artifact", "lines in those files"]),
     # R921: criterion (f) has two columns and only the store one had been measured. These add the vendor column, so the
     # coverage table the criterion asks for comes out of the single number source instead of being assembled by hand.
-    ("核心覆盖：store 宿主", ["tools/core_coverage.py"], ["hosts with a path", "store hosts", "store hosts matched", "store hosts unmatched", "vendor hosts"]),
-    ("核心覆盖：vendor 宿主", ["tools/vendor_coverage.py"], ["vendor hosts carrying a path", "vendors named somewhere in src", "vendors absent from src"]),
+    ("核心覆盖：store 宿主", ["tools/core_coverage.py"],
+     ["core: flows", "core: override steps", "core: unknown placeholders", "core: provenance exit"]),
+    ("核心覆盖：vendor 宿主", ["tools/vendor_coverage.py"],
+     ["vendor: controls ok", "vendor: named in image", "vendor: wiring rows", "vendor: missing"]),
     # R977: criterion (c) is "artifact-level comparison recomputable". func_count answers how many, and those two answer
     # how much and where -- figures R969 through R972 measured by hand and then quoted from prose, which is how a number
     # drifts. Both were already tools; nothing here is new capability, only registration.
@@ -114,15 +116,15 @@ def summary_bits(name_out, owned):
         "types with scope misses": r"types with scope misses:\s*(\d+)",
         "types absent from source": r"type presence: \d+ declared in bindings, \d+ present in source, (\d+) absent",
         "total mismatches": r"total mismatches:\s*(\d+)",
-        # R921: criterion (f) -- the core coverage table has two columns and these are their figures.
-        "hosts with a path": r"hosts with a path:\s*(\d+)",
-        "store hosts": r"(?:^|\\n)store hosts:\s*(\d+)",
-        "store hosts matched": r"store hosts matched:\s*(\d+)",
-        "store hosts unmatched": r"store hosts unmatched:\s*(\d+)",
-        "vendor hosts": r"(?:^|\\n)vendor hosts:\s*(\d+)",
-        "vendor hosts carrying a path": r"vendor hosts carrying a path:\s*(\d+)",
-        "vendors named somewhere in src": r"vendors named somewhere in src:\s*(\d+)",
-        "vendors absent from src": r"vendors absent from src:\s*(\d+)",
+        # R921 / updated for R1041+R1047 output format of core_coverage.py and vendor_coverage.py
+        "core: flows": r"flows=(\d+)",
+        "core: override steps": r"steps=(\d+)",
+        "core: unknown placeholders": r"placeholders=(\d+)",
+        "core: provenance exit": r"provenance exit=(\d+)",
+        "vendor: controls ok": r"controls ok=(True|False)",
+        "vendor: named in image": r"vendors named=(\d+)",
+        "vendor: wiring rows": r"wiring rows=(\d+)",
+        "vendor: missing": r"missing=(\d+)",
         # R888: the same audit's rows restricted to Stores, Services, Http and Core. The total is
         # dominated by Ui, so this is the figure that tracks progress on the deferred-behind work.
         "core mismatches": r"core mismatches:\s*(\d+)",

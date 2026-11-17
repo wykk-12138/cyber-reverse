@@ -94,9 +94,12 @@
 
 ## 2.5 目标与循环（新会话从这里接手）
 
-新会话的 goal 原文、每轮五步循环、完成判据（a–e）、Unknown 的判定标准，都在 `docs/GOAL.md`。
-一句话：**每轮从 `replica/docs/BINDING_BACKLOG.md` 取一条未结案项，取证 → 落实现 → 复算 → 更新数字**，
-完成判据必须逐条附证据，不许用"大概完成度"代替。
+新会话的完整路由见 `docs/HANDOFF_PROMPT_antigravity.md`，goal 原文、每轮五步循环、完成判据（a–f）与 Unknown 判定标准见 `docs/GOAL.md`。
+
+**取件优先级（YG R757 明令，严禁倒置）**：
+**① 站点结账流程（`Cybersole.Stores/Flows`）→ ② 客户端挑战与校验层（支付 3DS/Stripe、Kasada、Cloudflare、DataDome、PerimeterX、Queue-it、Captcha 驱动）→ ③ 请求与传输层（`Cybersole.Http`）→ ④ UI 绑定与文案（`replica/docs/BINDING_BACKLOG.md`，冻结在最后，仅在 ①–③ 核心项全部结案或均卡外部凭据/裁决时才做）。**
+
+一句话：**每轮从核心能力待办队列取一条未结案项，用 NativeAOT 反编译链（`chars_va - 12`）取证 → 落可执行运行时实现 → 复算 → 更新数字**；完成判据必须逐条附可重算证据，不许用"大概完成度"或静态台账类代替。
 
 ### 2.7 扫描器的前置问题（R764 立规，六次踩坑之后）
 
@@ -184,14 +187,34 @@ python tools\where_is.py <名字>
 - **一个名字在 implementation 组里出现，就先去读那个文件，再决定写不写。**
   查的成本是三分钟；重复品和假成功的成本是两轮。
 
-## 2.9 等新 key 的暂停项（R508）
+### 2.7d NativeAOT 冻结字符串定位铁律（`chars_va - 12`，R702 已解通 · 禁再误判「无 xref 不可得」）
 
-B 类 31 条"行为 Unknown"卡在**有效许可**上：登录能过（bearer 有效到 2027-11-14），但
-License Selector 列表为空 → 进不了主界面 → 本地动作（Add/Delete/Clear/Save）无法观察。
+> **对 `ida.py str` 返回的地址直接查 `xrefs_to` 得 `0`，绝不等于没有代码引用它！**
 
-- 已实测并落账：`C-license-gate`（许可门在登录之后）、`C-license-authority`（服务端权威）。
-- 恢复步骤与环境收尾清单在 **`docs/R508_LICENSE_GATE.md` §6–§7**。
-- 拿到新 key 之前，这 31 条保持 `unknown`，**不要替它们编实现**。
+`.NET NativeAOT` 冻结 `System.String` 对象的内存布局是：
+
+```
+[ MethodTable* : 8 字节 ][ Length : 4 字节 ][ UTF-16 字符数据 … ]
+  ↑ obj_va = chars_va - 12 (-0x0C)             ↑ ida.py str / pe_strings 报的 chars_va
+```
+
+`.text` 代码段里的 `lea reg, [rip+disp32]` 指向的是对象头 **`obj_va = chars_va - 12`**，而不是字符首地址 `chars_va`。R1044/R1045 忘了减 `12` 就直接判「无 xref、不可得」，属于典型的工具链失忆。
+
+**标准四步定位与语义还原链（现成脚本，禁止重复造轮子）**：
+
+1. **取串算头**：`python analysis\ida.py str "<pattern>" --limit N` 拿到 `chars_va`，计算 `obj_va = chars_va - 12`；
+2. **找代码引用点**：查 IDA `xrefs_to(obj_va)`；若 IDA 未建引用（如未对齐位移），跑 `python analysis\disp32_scan_any.py <obj_va>` 全字节滑窗扫描 `.text`；
+3. **定所属函数**：`python analysis\site_to_func.py <site_va>` 精确映射到 `.pdata` 函数起止范围；
+4. **反编译 + 解字面量语义**：用 IDA Hex-Rays 反编译该函数获取控制流，并把伪代码里的 `&off_146xxxxxx` / `off_143xxxxxx` 传给 `python analysis\names_at.py <va...>` 批量解码出冻结字符串与 `MethodTable`——控制流与端点/头名/JSON 键名语义一次还原。
+
+## 2.9 等新 key 的暂停项（R508）与范围外裁决（R702）
+
+- **R702 范围外裁决（`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）**：YG 明令登录凭证与许可管理类（`LicenseControl` / `AuthWindow` 等）只用于管理用户，**不属于复刻范围（`OUT_OF_SCOPE`）**，不再投入轮次。
+- B 类 31 条 UI 本地动作"行为 Unknown"卡在**有效许可**上：登录能过（bearer 有效到 2027-11-14），但
+  License Selector 列表为空 → 进不了主界面 → 本地动作（Add/Delete/Clear/Save）无法观察。
+  - 已实测并落账：`C-license-gate`（许可门在登录之后）、`C-license-authority`（服务端权威）。
+  - 恢复步骤与环境收尾清单在 **`docs/R508_LICENSE_GATE.md` §6–§7**。
+  - 拿到新 key 之前，这 31 条保持 `unknown`，**不要替它们编实现**。
 
 ## 3. 改代码的纪律
 
@@ -215,6 +238,7 @@ License Selector 列表为空 → 进不了主界面 → 本地动作（Add/Dele
 `(d)(e)` 必须单独扫（脚本只改定义，不改调用点）；
 `(f)` 一律改成 `GetMembers()` 或双形式接受，别等红了再改。
 
+- **产品代码红线（严禁台账注水）**：**禁止再往 `replica/src/` 里新增任何静态逆向审计台账/缺口免责类**（如 `*Gaps`、`*Wiring`、`*Witness`、`*Coverage`、纯常量登记表）以及仅锁死台账行数的钉子测试。逆向考据、未覆盖说明与对账表一律归 `docs/` 或 `analysis/`；`replica/src/` 只准写可执行的运行时产品逻辑（协议收发、状态流转、数据模型、脚本/TLS 执行）。
 - 改前先 `python tools/snapshot.py`（快照到 `tools/.mutation-backup/`），改后一次只跑相关用例。
 - **禁止按行号做手术**（R352 删掉过四个类，靠备份救回）；只按整块锚点替换。
 - 新加 action 成员 → 必须是 `ICommand` 属性（绑定表里 action 就是属性）。

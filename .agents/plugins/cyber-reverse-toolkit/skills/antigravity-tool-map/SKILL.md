@@ -18,8 +18,8 @@ description: >-
 |---|---|---|
 | 反编译一个函数 / 看伪代码 | **ida** | 主参照。结论的出处 |
 | 查一个字符串在镜像里有没有（**反向结论**必须走这条） | **ida** | `analysis/pe_strings.txt` 是**抽样**，搜不到 ≠ 不存在 |
-| 交叉引用 / 调用者 / 被调用者 | **ida** | 不要用符号计数推断"接线还是逻辑"，读伪代码 |
-| 列出函数清单 / 段信息 / 命名空间 | **ida** | |
+| 交叉引用 / 字符串→函数定位 | **ida** + `analysis/` | **NativeAOT 铁律**：字符串地址指向 UTF-16 `chars`，对象头在 **`chars_va - 12`**！必须对 `chars_va - 12` 查 `xrefs_to` 或跑 `python analysis\disp32_scan_any.py <chars_va-12>` → `site_to_func.py`，伪代码里的 `&off_146xxxxxx` 用 `python analysis\names_at.py` 解码 |
+| 列出函数清单 / 段信息 / 命名空间 | **ida** | 不要用符号计数推断"接线还是逻辑"，读伪代码 |
 | 确认 IDA 处于什么状态（有没有对话框、库载没载入） | **cua** | 截图 + 无障碍树 |
 | 点掉 IDA 的模态框、在 GUI 里定位一个控件 | **cua** | 只做消歧/定位，不做证据 |
 | 两个函数的伪代码/CFG 对比 | **rea** | 第二意见，用来裁决分歧，不单独当证据 |
@@ -50,7 +50,7 @@ python tools\metrics_report.py                # 五个度量 + 完整套件
 ```
 
 - 唯一事实源是 `docs/METRICS.md`（生成物）。**不要在任何文档里手写这些数字。**
-- IDA 不在时 `vendor_coverage.py` 会印出 `missing=0` 并正常退出 —— **那是假零**，
-  先让 IDA 就绪再跑，或只信 `controls ok=True` 的那一次输出。
+- 先确认 `python analysis\ida.py health` 返回 `status: ok` 再跑 `metrics_report.py`（`vendor_coverage.py` / `payment_challenges.py` / `captcha_coverage.py` 已加 `controls ok` 非零退出守卫，IDA 未就绪时会拒绝覆盖生成物并退出 `2`）。
 - 动手写实现之前先跑 `python tools\where_is.py <名字>`：它按 **implementation / analysis / test / doc**
   四组报位置，先读 implementation 组，再决定要不要写新的。
+- **产品代码红线**：禁止往 `replica/src/` 新增任何静态逆向审计台账类（`*Gaps` / `*Wiring` / `*Witness` 等）；分析结论归 `docs/`，`replica/src/` 只写可执行运行时逻辑。

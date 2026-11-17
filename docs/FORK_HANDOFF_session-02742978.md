@@ -263,6 +263,7 @@ obj['n']         = obj.get('n', len(hits))                # 保留旧键，向�
 3. **captcha 层**（R1054 枚举完，实现未做）：`Recaptcha`（含 Invisible/V3/Enterprise）· `HCaptcha`（含 Invisible/Spoof）· `Turnstile` · `Geetest`（含 V4 / 本地 html 自解）· `Castle` / `TrustDevice`；明确为零：funcaptcha/arkose、mtcaptcha。
 4. **(a) 的 15 个 `ABSENT` 类型**要逐条分类 RENAMED / UNIMPLEMENTED —— 当前 `TYPE_PRESENCE_TRIAGE.md`（2,990 字节）已开工，未逐条结案。
 5. **(b) 的 4 个 real gap**（`LocalizeFormatExtension.Value2` · `LocalizeSwitchExtension.Condition` · `AuthWindow.Logout` · `LicenseControl.Authenticate`）：属"类型不存在但成员有描述符"，要先定它们是不是原生实现。
+   - **【2026-11-18 纠偏注记】**：其中 `AuthWindow.Logout` 与 `LicenseControl.Authenticate` 早在 R702 已由 YG 裁决 `OUT_OF_SCOPE`（登录与许可管理不做，见 `docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）；剩余 2 条属 UI 标记扩展，冻结于优先级④。
 6. **变异套件 staleness 0:24:34** —— `business_types.py` 在那次运行后被动过，要重跑 `python tools/mutation-check.py` 才能引用 36/36。
 
 ### 6.2 卡在外部条件
@@ -321,6 +322,7 @@ R1049 之后的 26 轮只写进 `docs/BLOCKERS.md` 与 `docs/HANDOFF.md`（23:00
 **⇒ 建议（下一轮一行）**：给 `vendor_coverage.py` 加拒绝发布守卫 —— `if not control_ok: return 2`，
 理由与 R764 那次 `rows == 0` 的守卫完全同源（解析不出东西时不许发布"全部缺失/全部齐备"的结论）。
 同一守卫也该加在 `metrics_report.py` 调它之后：任一 viz 脚本 exit != 0 时，METRICS 不写该节而写"未测"。
+- **【2026-11-18 纠偏注记】**：`vendor_coverage.py`、`payment_challenges.py`、`captcha_coverage.py` 均已补上 `control_ok` 非零退出守卫（`exit 2`），且 `metrics_report.py` 的 `core` / `vendor` 摘要提取正则已修复对齐。
 
 ---
 
@@ -332,6 +334,7 @@ R1049 之后的 26 轮只写进 `docs/BLOCKERS.md` 与 `docs/HANDOFF.md`（23:00
 3. **计数掩盖类别**（R1042 / R1048）：7 个缺口里有 2 个是真厂商、5 个根本不属于那张表。先说清 **kind**，数字才有意义。
 4. **同一个形状的失败反复出现时，要问"每次尝试共享的那个前提，曾经成立过吗"**（R1045 / R1072）。
 5. **反编译不足给出语义**（R1071）：IDA 能给你控制流，给不了"这个字符串是站名还是字段名"。
+   - **【2026-11-18 纠偏注记】**：此条仅对裸看无符号伪代码成立。NativeAOT 冻结字符串对象头在 **`obj_va = chars_va - 12`**（R702 已验证），用 `disp32_scan_any.py` → `site_to_func.py` 定位函数后，把伪代码中的 `&off_146xxxxxx` 喂给 `analysis/names_at.py` 即可完整还原业务字符串与协议语义；最新接手规程以 `docs/HANDOFF_PROMPT_antigravity.md` 为准。
 6. **荒谬的中间量是最好的报警器**（R1064）：「每函数 6 字节」比任何纪律都更早指出假设错了。
 7. **工具的最小基线不是仓库的验收判据**（R1031）：证据不在就回滚，别为了让工具变绿而改产品口径。
 8. **加一行到 `VendorWiring` 是 11 处联动改动** —— R468–R499 的连带清单在项目规模上的复现。

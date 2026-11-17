@@ -45,6 +45,8 @@
 - **永不写入** `%APPDATA%\Cybersole` 和 `%LOCALAPPDATA%\Cybersole`（原版数据目录，只读）。
 - **不许在任何文档里硬编码度量数字** —— 唯一事实源是 `docs/METRICS.md`（由
   `python tools/metrics_report.py` 生成）。
+- **不许对 NativeAOT 字符串 `chars_va` 直接查 xref 得 0 就判「无引用/不可得」** —— 冻结字符串对象头在 **`chars_va - 12`**，须用 `xrefs_to(chars_va - 12)` 或 `analysis/disp32_scan_any.py` → `site_to_func.py` 定位，再用 `analysis/names_at.py` 还原伪代码里的 `&off_146xxxxxx`。
+- **不许往 `replica/src/` 新增静态逆向台账/缺口免责类**（如 `*Gaps`、`*Wiring`、`*Witness`）—— 考据与缺口记录归 `docs/`，`replica/src/` 只写可执行的运行时业务代码。
 
 ## 5. 内存纪律（这台机器因为内存耗尽崩过多次）
 

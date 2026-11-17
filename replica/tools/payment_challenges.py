@@ -84,6 +84,10 @@ def main():
 
     control = [r for r in rows if r[0] == "control"]
     control_ok = all(r[2] > 0 for r in control)
+    if not control_ok:
+        print("  !! controls failed (%s) -- IDA is not ready; refusing to overwrite docs/PAYMENT_CHALLENGES.md with false zeros"
+              % ", ".join("%s=%d" % (label, n) for _, label, n, _ in control))
+        return 2
     replica = {m: replica_hits(m) for m in REPLICA_MARKERS}
 
     # The staged strings, taken whole so the count is a fact rather than a recollection.
@@ -160,8 +164,10 @@ def main():
     add("")
     add("## 六、边界")
     add("")
-    add("- **有方法名不等于有协议**：`SubmitOrderStripe` 证明原版有这一步，不证明它发什么。" +
-        "要协议得反编译那几个体，而那是下一步。")
+    add("- **有方法名不等于有协议，但入口函数已可直接反编译**：`SubmitOrderStripe` 等名字只证明原版有这一步；" +
+        "在 NativeAOT 里取协议须按冻结字符串头 `obj_va = chars_va - 12` 查引用（`disp32_scan_any.py` → `site_to_func.py` → Hex-Rays + `names_at.py`）。" +
+        "已核实入口：`Solving PayPal 3DS`（`0x146e93fb4 - 12 = 0x146e93fa8`）→ `sub_141102970`（927 B）/ `sub_141105A80`（1,047 B）；" +
+        "`Solving Stripe challenge`（`0x146e9427c - 12 = 0x146e94270`）→ `sub_140BE31F0`（1,017 B）。")
     add("- **3DS 的真实分支取决于银行**：9 条分期是原版的**观察顺序**，不是所有卡都会走满。")
     add("- **这两个挑战不属于 `VendorWiring`**：那张表问的是「哪个站的风控在拦路」，" +
         "而支付挑战是「付款这一步还要做什么」，两者不同类。")

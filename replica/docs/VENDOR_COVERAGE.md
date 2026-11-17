@@ -57,7 +57,7 @@ Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。
 | 缺的 | 命中 | 类别 | 处置 |
 |---|---|---|---|
 | **Stripe challenge** | 1 | payment | 支付侧挑战，不是站点风控。`VendorWiring` 是站点风控台账 ⇒ **不该进这张表**；它属于支付层（`AdyenGateway` 那一族），要在那里记。 |
-| **PayPal 3DS** | 9 | payment | 九条分期文案（`(1)`…`(8)` 加无条件），是 3DS 流程的阶段，同样**不属于站点风控台账**。→ 归支付层。分期数本身是有用证据：3DS 有 8 个可观察阶段。 |
+| **PayPal 3DS** | 9 | payment | 九条分期文案（`(1)`…`(8)` 加 `(2.1)` 子阶段），是 3DS 流程的阶段，同样**不属于站点风控台账**。→ 归支付层。分期数本身是有用证据：3DS 有 9 个可观察阶段（详见 `PAYMENT_CHALLENGES.md`）。 |
 | **captcha** | 1 | challenge | 通用验证码挑战，不是某个厂商 ⇒ 台账形状不建模，且不该建模。 |
 | **proof of work** | 1 | challenge | 通用 PoW 挑战，同上。注意镜像原文拼作 `challange` —— 保留拼写，不修正。 |
 | **checkpoint** | 1 | challenge | 通用检查点，同上。 |

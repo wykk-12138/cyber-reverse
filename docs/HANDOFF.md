@@ -1,65 +1,46 @@
-# 交接（2026-11-17 11:50，R978 后）
+# 交接（2026-11-18 路线纠偏后）
 
-> **这一节是「现在在哪」，给新会话第一步读。数字一律不写在这里** —— 唯一数字源是
-> `docs/METRICS.md`（`python tools/metrics_report.py` 生成）。下面写的是**该跑哪条命令**和**哪些结论已经立住**。
-> R978 刷新这一节：此前它停在 R826，比实际落后 152 轮，并且把一条只覆盖 5 行的检查结果写成了判据 (d) 的证据。
+> **这一节是「现在在哪」，给新会话第一步读。动态度量数值一律不写在这里** —— 唯一数字源是
+> `docs/METRICS.md`（在 `replica/` 下由 `python tools/metrics_report.py` 生成）。
+> 完整的新会话接手路由、NativeAOT 反编译 SOP 与未结案核心队列见 **`docs/HANDOFF_PROMPT_antigravity.md`** 与 **`docs/GOAL.md`**。
 
 ## 现在在哪
 
-- **轮次**：R978 已提交，`git log` 顶端是 R978 那条。
-- **套件**：绿（数量见 `docs/METRICS.md` 的「完整套件」行）。
-- **IDA**：就绪时 `analysis/ida.py health` 返回 `status=ok` 且带 `idb_path` / `hexrays_ready`。
-- **度量项**：14 项，全在 `docs/METRICS.md` 摘要表里。**不要在别的文档里抄这些数。**
+- **轮次与状态**：当前最新提交以 `git log --oneline -5` 为准；开始任何修改前先看 `git status --short`，切勿覆盖并行会话的改动。
+- **套件**：绿（具体通过数见 `docs/METRICS.md` 的「完整套件」行）。
+- **IDA**：就绪时 `python analysis/ida.py health` 返回 `status=ok` 且 `hexrays_ready=true`。必须在 IDA 在线时再跑 `metrics_report.py`（各覆盖率生成脚本已加 `controls ok` 非零退出守卫，拒写假零）。
+- **度量项**：全部汇总在 `docs/METRICS.md` 摘要表里。**不要在任何活文档里硬编码这些数值。**
 
 ## 完成判据现状
 
 | 判据 | 状态 | 复算命令 |
 |---|---|---|
-| (a) 类型级缺口 / 类型缺失 | **类型级 0**。类型缺失按优先级切开：核心 **0**（5 个是改名，1 个已实现）；其余是 UI（YG 明令不急）。逐条见 `docs/TYPE_PRESENCE_TRIAGE.md` | `python tools/bind_scope.py`、`python tools/bind_diff.py --type-presence` |
-| (b) 文案 | **0**，无剩余 | `python tools/copy_audit_report.py` |
-| (c) 产物级对照 | **可复算**：函数数、可执行段体量、地址分桶三项都进了 `METRICS.md` | `python tools/func_count.py`、`python tools/pe_sections.py`、`python tools/pdata_sections.py` |
-| (d) claim 表 | **PASS，且 22 行全审**。R978 之前 `check_claims.py` 只审第一张表的 5 行就报 PASS | `python analysis/check_claims.py` |
-| (e) 套件 / 变异 / 数字来源 | 套件绿；变异用例见 `tools/mutation-check.py`；三份活文档（`GOAL` / `SESSION_STATE` / `DEVIATIONS`）无硬编码度量值 | `python tools/metrics_report.py`、`python tools/mutation-check.py` |
-| (f) 核心覆盖表 | store 与 vendor 两列都进了 `METRICS.md` | `python tools/core_coverage.py`、`python tools/vendor_coverage.py` |
+| (a) 类型级缺口 / 类型缺失 | **类型级已归零**。类型缺失逐条分类见 `docs/TYPE_PRESENCE_TRIAGE.md`（其中 `AuthWindow` / `LicenseControl` 已在 R702 裁决 `OUT_OF_SCOPE` 不做，见 `docs/DECISION_LICENSE_OUT_OF_SCOPE.md`） | `python tools/bind_scope.py`、`python tools/bind_diff.py --type-presence` |
+| (b) 文案 | **已归零**（见 `docs/METRICS.md`） | `python tools/copy_audit_report.py` |
+| (c) 产物级对照 | **可复算**：函数数、可执行段体量、地址分桶均由 `docs/METRICS.md` 自动生成 | `python tools/func_count.py`、`python tools/pe_sections.py`、`python tools/pdata_sections.py` |
+| (d) claim 表 | **PASS**（全表逐行校验 authority + command + gap_reason） | `python analysis/check_claims.py` |
+| (e) 套件 / 变异 / 数字来源 | 套件绿；变异测试以 `tools/mutation-check.py` 实测为准；全部活文档数字引用 `docs/METRICS.md` | `python tools/metrics_report.py`、`python tools/mutation-check.py` |
+| (f) 核心覆盖 | 覆盖生成物已进 `docs/METRICS.md`；**下一步重点是把核心可执行能力逐项反编译落地（严禁用静态台账类代替运行时实现）** | `python tools/core_coverage.py`、`python tools/vendor_coverage.py` |
 
-## 未结案项（按价值排序）
+## 当前核心待办队列（按 YG 优先级 ①→②→③ 排序，不再从 UI `BINDING_BACKLOG.md` 取件）
 
-1. **函数数量缺口**：两侧的差是**两个大反向运动的净额**（分界线以下复刻件更多，以上为 0）。地址分桶**定位不了**它，
-   因为两镜像布局独立。**下一刀要按内容而不是按地址分** —— 这是目前最大的一条。
-2. **那 671 个 4 KB 以上的函数**（占执行段体量的大头，占总函数数 0.24%）：最大的反编译失败，
-   且它们互相引用。**已记 Unknown，不占轮次。**
-3. **34 个覆写步的逐店正确性**：每个都有 ≥1 覆写，但「Bstn 的 `GetCart` 是否等于原版的」未逐店核。
-   证据在天花板：方法名在产物里（UTF-8，179/179），方法体大部分被裁。
-4. **`HandleBlock`**：镜像有、复刻件零匹配，名字暗示「处理封锁」，**与优先级 ② 直接相关**。
-5. **长度守卫**（`ScheelsFlow` `body.Length > 200`、`BstnFlow` `> 2000`）：把「响应体短/空」也判成缺货。
-   **误报缺货 = 错过 drop**，两种改法都需要镜像证据。
-6. **8 个未通读的可用性解析**：`Hbx` `Hybris` `Magento` `JohnLewis` `PopMart` `YeezySupply` `Casio` `Shopify`。
-   其中还有几个用长度守卫 —— **Unknown**。
-7. **3 个忽略 `c.Url` 的流程**（`NikeFlow` / `PoqAppFlow` / `SuperswipeFlow`）：待判「忽略是对的还是遗漏」。
-8. **池 → 复刻件方向**：`myshopify` 主机数在池子里是**下界**，未逐个取证。
+1. **[优先级① · Checkout Flow] Nike 结账写入路由与请求体落地**：已通过 `chars_va - 12` 定位出 `checkouts/v3/` 与 `checkout_previews/v3/` 对应的两个可反编译业务函数（详见 `replica/docs/CORE_COVERAGE.md` §二），下一步反编译还原请求体并消掉 `NikeFlow.cs` 中的占位返回；其余含占位步骤的 Flow 同法推进。
+2. **[优先级② · 支付挑战层] PayPal 3DS 与 Stripe Challenge 状态机实现**：入口函数与阶段清单见 `replica/docs/PAYMENT_CHALLENGES.md`，反编译后在 `Cybersole.Stores/Payments` 落成真实可执行状态机。
+3. **[优先级② · 客户端挑战层] Kasada 本地主路对齐与 Captcha 驱动对位**：按 `docs/KASADA/`（`01`–`09`）与 `replica/docs/CAPTCHA_COVERAGE.md` 已落盘证据，修正 `NikeFlow.cs` / `KasadaSolver.cs` 的主辅路顺序与协议细节，对位各支持家族的驱动载荷。
+4. **[优先级④ · 冻结收尾] UI 绑定与视图收尾**：`replica/docs/BINDING_BACKLOG.md` 冻结在最后，仅在 ①–③ 核心项全部结案或均卡外部凭据/裁决时处理。
 
-## 工具的可信边界（这一条最省时间）
+## 工具的可信边界与工程红线（必读）
 
-- **`analysis/pe_strings.txt` 是抽样**（180,228 行 vs 镜像 324,895 条串）。**正向可用、反向不可用** ——
-  反向结论用 `python analysis\ida.py str <pat>`。见 `AGENTS.md` §2.7b。
-- **`ida.py str` 默认 `limit 40`**（已加 `--limit`），**插件侧还有约 500 条上限**。数数要写明是下界。
-- **产物的编码是两套**（R967）：**反射元数据（类型名、方法名）是 UTF-8**，**字符串字面量是 UTF-16LE**。
-  搜错编码会得到「全都不在」这种很确定的假答案。
-- **「方法名在产物里」与「方法体在产物里」是两件事**：元数据全在（179/179），体大部分被裁。
-- **`DynamicallyAccessedMembers` 对本产物没有可见影响**（R967/R968 两次确认）。
-- **判断「某方法是否被调用」不要用调用图扫描**：委派是**无接收者**调用（`=> FindProductAsync(c, ct)`），
-  `\w+\.名字` 一定漏。
-- **按花括号或「最近前缀 class」定类边界都会错**（一文件多类 + 字符串里的 `{`）。
-- **文档守卫**：`DocsConsistencyTests` 扫 `replica/docs/VERDICT.md` 正文里所有「数字 + 个模块 / modules」，
-  要求全等于 63。**写记录时别把违规字符串抄进去**。
-- **`Get-Content -Raw` 读 1.9 MB 的 `VERDICT.md` 会把中文比错**。判断文件内容**只看字节**。
-- **一个检查报 PASS 之前先问它审了多少行**（R978）：一个只覆盖 23% 的检查报 PASS 比没有更坏。
+- **NativeAOT 冻结字符串定位铁律（`chars_va - 12`）**：冻结 `System.String` 布局为 `[MethodTable*:8][Length:4][UTF-16 chars]`，`ida.py str` 返回 `chars_va`，而 `.text` 代码引用指向对象头 **`obj_va = chars_va - 12`**！必须对 `chars_va - 12` 查 `xrefs_to` 或跑 `python analysis/disp32_scan_any.py` → `site_to_func.py`，再用 `python analysis/names_at.py` 解码伪代码中的 `&off_146xxxxxx`。严禁未减 `12` 就判「无 xref 不可得」。
+- **产品代码红线**：**严禁往 `replica/src/` 新增任何静态逆向审计台账/缺口免责类**（如 `*Gaps`、`*Wiring`、`*Witness`）及行数钉子测试；考据写进 `docs/`，`replica/src/` 只写可执行运行时代码。
+- **`analysis/pe_strings.txt` 是抽样**：**正向可用、反向不可用** —— 反向结论必须用 `python analysis\ida.py str <pat> --limit N`，并确认 `saturated: false`。见 `AGENTS.md` §2.7b。
+- **写实现前先查现成代码**：在 `replica/` 跑 `python tools\where_is.py <名字>`，先读 implementation 组。
+- **文档守卫**：`DocsConsistencyTests` 与 `HandoffHeadPointerTests` 会校验模块数口吻与活区块无硬编码度量值；`SourceEncodingTests` 严禁任何乱码样本文本。
 
 ## 机器相关
 
-**内存不足导致重启过一次。** `available < 2GB` 只用 `-m:1`；`< 1GB` 停构建。
-**IDA 若需重开**：后台跑 `powershell -File "D:\projects\vm2api\.dsh\scripts\ida-mcp-doctor.ps1" -Path <目标.i64>`，
-同时用 CUA 轮询点掉「请确认」类对话框，**判据是「再读一次没有框」**。
+**内存纪律**：`available < 2GB` 只用 `-m:1`；`< 1GB` 停构建。
+**IDA 若需重开**：后台跑 `powershell -File "D:\projects\vm2api\.dsh\scripts\ida-mcp-doctor.ps1" -Path "D:\projects\cyber-reverse\target\Cybersole.exe.i64"`，同时用 CUA 轮询点掉「请确认」类对话框，**判据是「再读一次没有框」**。
 
 ---
 

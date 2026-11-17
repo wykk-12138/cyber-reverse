@@ -71,46 +71,30 @@
 
 **为什么不能靠名字猜**：R1013 换成 `checkouts/v3` 被 R1014 撤回，理由是「路由存在不解决哪个承接写入」；R48 的裁决「换一个猜测只是移动失败」就在 `NikeFlow.cs` 里那段代码上方。
 
-**什么不能解决它 —— 而这是我上一版写错的**：`xrefs` 对这个产物里的字符串池**完全无效**。
+**更正 R1044/R1045 的误判（该项可取证，非不可得）**：
 
-| 检查 | 结果 |
-|---|---|
-| `xrefs_to 0x147053d8c`（checkouts/v3） | **0** |
-| `xrefs_to 0x147053c94`（checkout_previews/v3） | **0** |
-| 8 字节小端立即数搜索（`bin_search`） | **0**（x64 用 `lea rip+disp`，绝对地址不落盘） |
-| **对照**：`datadome`（`0x146ffe1fc`） | **0** |
-| **对照**：`queue-it`（`0x147147794`） | **0** |
+R1044 曾对 `0x147053d8c`（`checkouts/v3`）与 `0x147053c94`（`checkout_previews/v3`）直接查 `xrefs_to` 得 `0`，
+并据此误判为「字符串无 xref，只剩全盘数据流工程，记为不可得」。
+**错因是漏了 NativeAOT 冻结字符串对象头偏移（R702 早已验证）**：
+冻结 `System.String` 布局为 `[MethodTable*: 8B][Length: 4B][UTF-16 chars...]`；
+`ida.py str` 返回的是字符首地址 `chars_va`，而 `.text` 中 `lea reg, [rip+disp32]` 指向的是对象头 **`obj_va = chars_va - 12`（`-0x0C`）**。
 
-**→ 对照也全是 0 ⇒ 「没有 xref」是这个产物的**通性**，不是那两条 URL 的特别之处，所以它关于那两条什么也没说明。**
+对 `chars_va - 12` 实测（可复算命令：`python analysis/disp32_scan_any.py 0x147053d80 0x147053c88` → `python analysis/site_to_func.py 0x140B26A5E 0x140B1EDB1`）：
 
-**而根因是同一件事：这个产物没有业务符号名。** R1045 数了全部 321,244 个函数：
+| URL 串 | `chars_va` | 对象头 `obj_va`（`-12`） | `.text` 引用点 | 所属业务函数（`.pdata`） |
+|---|---|---|---|---|
+| `checkouts/v3/` | `0x147053d8c` | `0x147053d80` | `0x140B26A5E` | **`sub_140B248A0`..`0x140B26B87`（8,935 字节）** |
+| `checkout_previews/v3/` | `0x147053c94` | `0x147053c88` | `0x140B1EDB1` | **`sub_140B1DCC0`..`0x140B1EEC9`（4,617 字节）** |
 
-| 度量 | 值 |
-|---|---|
-| 函数总数 | 321,244 |
-| 名为 `sub_*` | **311,203（96.87%）** |
-| 其他名字 | 10,041 —— **全是 C++ CRT 符号**（`__CxxQueryExceptionSize` · `nullsub_81` · `?file_name@__crt_win32_buffer_debug_info@@`） |
-| Cybersole 的业务函数名 | **0** |
-
-**→ 反射元数据里的名字（`Farfetch` · `CloudflareSolver`）是**数据**，不是符号。**
-**→ 所以三条路全断，而根因是同一个：**
-
-| 试过的路 | 为什么断 |
-|---|---|
-| 查命名空间 / 类型名（R1040） | 符号名里没有命名空间，因为符号被剥了 |
-| `funcs Nike` | 返回 `sub_*`，因为没有叫 Nike 的函数 |
-| `xrefs` 池条目（R1044） | 池条目不承载 xref，且有对照 |
-| 搜 8 字节立即数 | x64 `lea rip+disp` ⇒ 绝对地址不落盘 |
-
-**什么还可能解决它**：只剩**数据流** —— 从**数据段**找指向池的 `(ptr, len)` 表，再找读那张表的代码。**而那不是一次查询，是一件工程**；R1045 已把前面四条路逐一排除并附对照。
-
-**所以这一条按完成判据 (b) 记为**不可得**，并写明为何不可得 —— 而不是留作「待查」。**
+**→ 结论更新**：两条候选路由各自落在独立可反编译的业务函数内，**不再记为不可得**。
+下一步直接用 IDA 反编译 `sub_140B248A0` 与 `sub_140B1DCC0`，并用 `python analysis/names_at.py` 解码伪代码里的 `&off_146xxxxxx` 冻结字符串，
+即可从控制流与字段常量确定哪一个承接 shipping/payment 写入，替换 `NikeFlow.cs` 中的 `not captured` 占位。
 
 ## 三、风控清单（可复算）
 
 由 `VendorWiring.Rows` 与 `tests/Cybersole.Tests/VendorWiringTests.cs` 逐条钉住：
-七行 × 九列（`Vendor` · `Marker` · `Cookie` · `State` · `Note` · `MarkerFrom` · `Gap` · `Solver` · `Relayed`）。
-复算：`dotnet test --filter "FullyQualifiedName~VendorWiring"`。
+9 行 × 9 列（`Vendor` · `Marker` · `Cookie` · `State` · `Note` · `MarkerFrom` · `Gap` · `Solver` · `Relayed`）。
+复算：`dotnet test --filter "FullyQualifiedName~VendorWiring"`，完整对账见 `docs/VENDOR_COVERAGE.md`。
 
-原版解**六**家（cloudflare · kasada · datadome · akamai · queue-it softblock · perimeterx）；
+原版在进度文案或请求头中点名 8 家站点风控（cloudflare · kasada · datadome · akamai · queue-it softblock · perimeterx · botdeflector · vercel）；
 `Solving Incapsula` 为 **0**，是 imperva 的第三个独立证据（R1024）。

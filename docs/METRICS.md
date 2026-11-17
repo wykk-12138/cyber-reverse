@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 11:54:38 +0800 |
+| 生成时间 | 2026-11-17 12:06:25 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -363,7 +363,7 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 11:23:03
-newest source: src\Cybersole.Stores\Flows\ShopifyFlow.cs (2026-11-17 11:50:04)
+newest source: src\Cybersole.Stores\Flows\ShopifyFlow.cs (2026-11-17 12:03:18)
 source files newer than the artifact: 12
 lines in those files: 7840
 publish artifact state: stale
@@ -618,7 +618,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2200，已跳过:     0，总计:  2200，持续时间: 1 m 22 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2200，已跳过:     0，总计:  2200，持续时间: 1 m 27 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

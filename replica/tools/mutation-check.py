@@ -212,11 +212,16 @@ MUTATIONS = [
     {
         "name": "round 164 -- PARITY.md's module count drifts",
         "file": PARITY_DOC,
-        "find": "**62 个注册模块",
         # the table said 50 for eleven rounds after the catalogue reached 61. ParityDocTests reads
         # the number out of the document and compares it to CreateAll().Count, so a hand-edit that
         # forgets to recount now fails here.
-        "replace": "**61 个注册模块",
+        #
+        # R980: this row had been SKIPPED because its literal anchor carried the number itself ("**62 个注册模块") and
+        # the catalogue has since reached 65. Re-anchoring the literal to 65 would repeat round 164's own history a third
+        # time, so the anchor is a pattern: it matches whatever count the line currently shows and prefixes a 9, which
+        # makes the document's figure disagree with CreateAll().Count no matter what that count becomes.
+        "find_re": r"(\*\*)(\d+)( 个注册模块)",
+        "replace_re": r"\g<1>9\g<2>\g<3>",
         "test": "FullyQualifiedName~ParityDocTests",
         "guard": "TheModuleCountInParityMatchesTheCatalogue",
     },
@@ -396,8 +401,13 @@ MUTATIONS = [
         # R606 added a metric index to BLOCKERS.md ("I don't believe this number, what do I read?"). It is
         # hand-written, so renumbering a heading leaves a pointer into nothing -- which reads as if the explanation
         # exists. The guard parses the index block and requires every section number it names to be a real heading.
+        #
+        # R980: the target section was \u00a799, chosen when the document had barely a hundred sections. It has four
+        # hundred now, so \u00a799 came to name a real heading and the mutation stopped mutating anything -- the run
+        # reported "GUARD IS DECORATIVE", which blamed the guard for the mutation's own expired premise. \u00a79999
+        # cannot become a real heading.
         "find": "| **\u540d\u5b57\u7ea7\u7f3a\u53e3\u62a5\u5c11\u4e86** | \u00a724\u3001\u00a725 |",
-        "replace": "| **\u540d\u5b57\u7ea7\u7f3a\u53e3\u62a5\u5c11\u4e86** | \u00a724\u3001\u00a799 |",
+        "replace": "| **\u540d\u5b57\u7ea7\u7f3a\u53e3\u62a5\u5c11\u4e86** | \u00a724\u3001\u00a79999 |",
         "test": "FullyQualifiedName~MetricClaimsTests",
         "guard": "EverySectionTheMetricIndexReferencesExists",
     },
@@ -419,8 +429,12 @@ MUTATIONS = [
         # number and listed another number of rows. R622 changed the predicate again (a key whose name appears in the
         # source counts as in use), which is the kind of edit that can land on one consumer only.
         # The mutation restores the narrow predicate in the DETAIL loop while the summary keeps the new one.
-        "find": "    for k, v in mine:\n        if not _satisfied(k, v, text):\n            lines.append",
-        "replace": "    for k, v in mine:\n        if not _present(v, text):\n            lines.append",
+        # R980: the anchor had been SKIPPED since the predicate gained its fourth argument. `_satisfied(k, v, text)` became
+        # `_satisfied(k, v, text, code)` when comments started being stripped before the key lookup, so the literal no
+        # longer existed and the mutation quietly stopped running. A predicate's signature is exactly the kind of thing a
+        # later round changes, so the anchor is now a pattern over the call and not a copy of it.
+        "find_re": r"if not _satisfied\(k, v, text, code\):\n(\s+)lines\.append",
+        "replace_re": r"if not _present(v, text):\n\g<1>lines.append",
         "test": "FullyQualifiedName~CopyAuditConsistencyTests",
         "guard": "DetailRowsMatchTheSummaryTotal",
     },
@@ -555,12 +569,25 @@ def main():
         with io.open(backup, "w", encoding="utf-8", newline="") as handle:
             handle.write(original)
 
-        if m["find"] not in original:
-            results.append((m["name"], "SKIPPED — anchor not found"))
-            print(f"  [skip] {m['name']}: anchor not found")
-            continue
+        # R980: a mutation may name its anchor as a regular expression instead of a literal. A literal that contains a
+        # number which moves -- a module count, a section count -- silently stops matching the moment the number changes,
+        # and the run then reports "SKIPPED" rather than testing anything. That happened to round 164 twice and to round
+        # 623 once. A pattern cannot go stale the same way: it matches whatever the current number is and substitutes a
+        # deliberately wrong one.
+        if "find_re" in m:
+            mutated, matched = re.subn(m["find_re"], m["replace_re"], original,
+                                       count=0 if m.get("all") else 1)
+            if matched == 0:
+                results.append((m["name"], "SKIPPED — pattern matched nothing"))
+                print(f"  [skip] {m['name']}: pattern matched nothing")
+                continue
+        else:
+            if m["find"] not in original:
+                results.append((m["name"], "SKIPPED — anchor not found"))
+                print(f"  [skip] {m['name']}: anchor not found")
+                continue
 
-        mutated = original.replace(m["find"], m["replace"], -1 if m.get("all") else 1)
+            mutated = original.replace(m["find"], m["replace"], -1 if m.get("all") else 1)
 
         try:
             io.open(path, "w", encoding="utf-8").write(mutated)

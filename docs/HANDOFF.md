@@ -4213,3 +4213,53 @@ $p = Start-Process python -ArgumentList "tools/mutation-check.py" -NoNewWindow -
 | 真正的错误 | — | **1（把管道退出码读成脚本的）** |
 
 **纪律**：测量工具没分清主体，和查询没有内容，是同一个错的两种形态。
+
+
+## R1062 —— **两个差异闭合：`exit 1` 撤销（是我的管道）· 「差 19」撤回（是口径不同）**
+
+### ① `exit 1` —— 撤销
+
+```
+Start-Process python tools/mutation-check.py -PassThru -Wait  →  python ExitCode = 0
+```
+
+**⇒ R1060 那个「GREEN 而 exit 1」**不存在** —— 那是 `python … | Select-Object` 管道的退出码。
+⇒ R1061 的推理链对（无 `sys.exit`、`main()` 无返回 ⇒ 应 0），而实测 **0**。撤销依据是**正确方式的测量**。**
+
+### ② 「差 19」—— 撤回：不存在差，是两个定义
+
+```
+metrics_report 排除 7 个浏览器类：VoiceListTests · GlobalSurfaceTests · KeyOrderDispatchTests
+  PatchJournalTests · PruneWhitelistTests · NetworkRecorderLiveTests · ChromiumStealthTests
+mutation-check:612 用 "Speed!=Slow" —— **完全不排除**
+```
+
+| 数字 | 口径 | 用途 |
+|---|---|---|
+| **2258** | **默认套件**（排除 7 类，R493 内存稳定） | **(e)「套件绿」唯一口径，METRICS 是唯一数字源** |
+| **2277** | `Speed!=Slow`（不排除） | 变异恢复验证口径 |
+
+**⇒ 它们不是同一集合的两个测量，是两个集合各一个测量 ⇒「差 19」这个说法撤回。**
+
+### ③ (e) 两项都达成
+
+| 子项 | 状态 |
+|---|---|
+| 套件绿 | **是（2258 / 0 / 0）** |
+| 变异测试全 fired | **是（36/36 · decorative 0 · skipped 0 · staleness 0 · GREEN）** |
+| 文档数字来自 METRICS | **是**（变异数来自 mutation_report，自有权威） |
+| **退出码** | **0 —— 已实测** |
+
+### 数字
+
+| 度量 | R1061 | **R1062** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| 函数数 | 174,293 | **174,293** |
+| 变异 fired | 36 / 36 | **36 / 36** |
+| 脚本退出码 | 归属未定 | **0（实测）** |
+| `exit 1` 那个 Unknown | 存在 | **撤销** |
+| 「差 19」 | Unknown | **撤回（口径不同）** |
+| (e) 两项 | 一项半 | **两项达成** |
+
+**纪律**：在数字的来源或定义不清时做算术 —— 那是假零、假缺口、假退出码、假差值这四种错共同的根。

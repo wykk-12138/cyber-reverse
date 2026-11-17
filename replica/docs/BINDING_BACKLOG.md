@@ -9538,3 +9538,43 @@ unknown 0 · exit 0                          ← 三项第一次同时为零
 | 产物需重新 publish（RetailFlows 进陈旧集） | 待下一轮或收尾时做 |
 
 **纪律**：当镜像存一个完整串时，代码也该有一个完整串 —— 拼接是抽象，而抽象同时藏证据与缺陷。
+
+
+## 判据 (f) — **镜像里没有 `farfetch.com`；Farfetch 7 个步骤停止发请求**（R1036）
+
+### 取证
+
+```
+ff-products 0 · /api/basket 0 · checkout/v1/basket 0 · api.farfetch.com 0 · **farfetch.com 0**
+basketId 5（别的站）· place-order 3（别的站）· /api/checkout 1（on.com）
+```
+
+**→ 整个站不在镜像里 ⇒ 域名、7 端点、结账链全部无据。
+→ 与 Nike 的差别：Nike 两步缺据（补丁），Farfetch 整站缺据（停止假装）。**
+
+### 改动
+
+**7 步骤 → `Fail("farfetch: <step> endpoint unknown -- ...")`；类头列四个零探针。**
+**两份台账同步（棘轮 −7 行 · 工具台账 −3 条）；`SentCeiling` 16 不变。**
+
+### 守卫
+
+`AFlowWithPlaceholdersSaysWhy` → 消息含 `endpoint unknown` ·
+`MostOverridesDoWork` → **`KnownPlaceholders` 5 → 12**（有据，故改数不回滚）
+
+### 而我又踩了同一个坑
+
+**类头注释里写了 `"/api/basket"` ⇒ 扫描器把注释里的路径也算端点，`unknown` 0 → 1。
+→ 与 R1033 同族：**我的文字成了被测对象**。**
+
+### 数字
+
+**套件 2252/0/0 · 陈旧度 6 / 5,669 · 函数数 174,336 · inline 331 → 323 · not-in-pool 41 → 33 ·
+unknown 0 · KnownPlaceholders 5 → 12 · Farfetch 会发请求 7 → 0**
+
+| 仍 Unknown / 待 YG | |
+|---|---|
+| `FarfetchFlow` 该不该存在（多余 vs 未覆盖） | **待 YG 裁决** |
+| 产物需重新 publish（6 文件陈旧） | 待收尾 |
+
+**纪律**：「守住不动」与「动手」之间没有原则之争：缺一次取证。

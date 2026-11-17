@@ -22,6 +22,13 @@ namespace Cybersole.Stores.Flows;
 /// (the API 403s without it), <c>ffid</c> (a client id issued on the first page load) and the  // inferred: no image evidence (R297)
 /// usual storefront <c>Accept: application/json</c>.
 /// </summary>
+/// <summary>
+/// R1036: this flow has no support in the image. Probing for its domain, for its API host, for the product prefix and
+/// for the basket and checkout prefixes returns zero on every one, so its host, its endpoints and its checkout chain
+/// were all written without evidence. Every step now reports instead of sending.
+/// Whether the flow should exist at all is a question for the owner; keeping it as a reporting stub means the
+/// workspace no longer pretends it can buy from a store the original never mentions.
+/// </summary>
 public class FarfetchFlow : StoreFlow
 {
     public override string Id => "farfetch";
@@ -56,29 +63,10 @@ public class FarfetchFlow : StoreFlow
 
     public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
     {
-        var pid = ProductIdOf(c.Url);
-        if (pid is null) return StepOutcome.Fail("farfetch: no product id in url");
-
-        var res = await GetAsync(c, Api(c, $"/api/ff-products/v1/products/{pid}/"),  // inferred: no image evidence (R297)
-            "farfetch-product", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("farfetch product unreachable", retryable: true);
-        if (res.StatusCode == 403)
-            return StepOutcome.Fail("farfetch product blocked (x-requested-with / ffid)", retryable: true);  // inferred: no image evidence (R297)
-        if (!res.IsSuccess) return StepOutcome.Fail($"farfetch product HTTP {res.StatusCode}", retryable: true);
-
-        c.Session.Vars["raw"] = res.Body;
-        c.Session.Vars["productId"] = pid;
-
-        var name = TryRead(res.Body, "name") ?? TryRead(res.Body, "shortDescription");
-        if (!string.IsNullOrEmpty(name)) c.Session.Vars["product"] = name;
-
-        var price = TryRead(res.Body, "finalPrice") ?? TryRead(res.Body, "price");
-        if (!string.IsNullOrEmpty(price)) c.Session.Vars["price"] = price;
-
-        return string.IsNullOrEmpty(name)
-            ? StepOutcome.Fail("farfetch: product payload carried no name", retryable: true)
-            : StepOutcome.Success();
+        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
+        // had no evidence behind it; R1011 settled what to do when that is true.
+        return StepOutcome.Fail(
+            "farfetch: product endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
     }
 
     public override Task<StepOutcome> FindVariantAsync(FlowContext c, CancellationToken ct)
@@ -149,155 +137,50 @@ public class FarfetchFlow : StoreFlow
 
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(c.Session.VariantId))
-            return StepOutcome.Fail("farfetch: no variant to add");
-
-        var payload = new Newtonsoft.Json.Linq.JObject
-        {
-            ["merchantId"] = c.Session.VariantId,
-            ["quantity"] = c.Session.Quantity,
-        };
-
-        var res = await PostJsonAsync(c, Api(c, "/api/basket/v1/items"),  // inferred: no image evidence (R294)
-            payload.ToString(Newtonsoft.Json.Formatting.None), "farfetch-add", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("farfetch add failed", retryable: true);
-        if (res.StatusCode == 403) return StepOutcome.Fail("farfetch add blocked", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"farfetch add HTTP {res.StatusCode}", retryable: true);
-
-        c.Session.Vars["cart"] = res.Body;
-        return StepOutcome.Success();
+        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
+        // had no evidence behind it; R1011 settled what to do when that is true.
+        return StepOutcome.Fail(
+            "farfetch: add-to-cart endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
     }
 
     public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
     {
-        var res = await GetAsync(c, Api(c, "/api/basket/v1/"), "farfetch-cart", ct)  // inferred: no image evidence (R294)
-            .ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("farfetch basket unreachable", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"farfetch basket HTTP {res.StatusCode}", retryable: true);
-
-        c.Session.Vars["cart"] = res.Body;
-
-        var total = TryRead(res.Body, "grandTotal") ?? TryRead(res.Body, "total");
-        if (!string.IsNullOrEmpty(total)) c.Session.Vars["total"] = total;
-
-        var count = Regex.Match(res.Body, @"""itemCount""\s*:\s*(\d+)").Groups[1].Value;
-        if (count == "0") return StepOutcome.Fail("farfetch: basket is empty");
-
-        return StepOutcome.Success();
+        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
+        // had no evidence behind it; R1011 settled what to do when that is true.
+        return StepOutcome.Fail(
+            "farfetch: basket endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
     }
 
     public override async Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct)
     {
-        var basketId = TryRead(c.Session.Vars.TryGetValue("cart", out var cart) ? cart : "{}",
-            "basketId") ?? c.Session.CartId;
-
-        if (string.IsNullOrEmpty(basketId))
-            return StepOutcome.Fail("farfetch: no basket id for checkout");
-
-        c.Session.CartId = basketId;
-
-        var res = await GetAsync(c, Api(c, $"/api/checkout/v1/basket/{basketId}"),  // inferred: no image evidence (R294)
-            "farfetch-checkout", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("farfetch checkout unreachable", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"farfetch checkout HTTP {res.StatusCode}", retryable: true);
-
-        c.Session.CheckoutUrl = Api(c, $"/api/checkout/v1/basket/{basketId}");  // inferred: no image evidence (R294)
-        c.Session.Vars["checkout"] = res.Body;
-
-        var token = TryRead(res.Body, "csrfToken") ?? TryRead(res.Body, "token");
-        if (!string.IsNullOrEmpty(token)) c.Session.CsrfToken = token;
-
-        return StepOutcome.Success();
+        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
+        // had no evidence behind it; R1011 settled what to do when that is true.
+        return StepOutcome.Fail(
+            "farfetch: checkout endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
     }
 
     public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
     {
-        var ship = c.Shipping;
-        if (ship is null) return StepOutcome.Fail("farfetch: no shipping address");
-
-        var basketId = c.Session.CartId;
-        if (string.IsNullOrEmpty(basketId)) return StepOutcome.Fail("farfetch: no basket id");
-
-        var payload = new Newtonsoft.Json.Linq.JObject
-        {
-            ["firstName"] = ship.FirstName ?? string.Empty,
-            ["lastName"] = ship.LastName ?? string.Empty,
-            ["addressLine1"] = ship.Address1 ?? string.Empty,
-            ["city"] = ship.City ?? string.Empty,
-            ["state"] = ship.State ?? string.Empty,
-            ["postalCode"] = ship.ZipCode ?? string.Empty,
-            ["countryCode"] = ship.Country ?? "US",
-            ["phone"] = c.ProfileData?.Phone ?? string.Empty,
-        };
-
-        var res = await SendJsonAsync(c, HttpMethod.Put,
-            Api(c, $"/api/checkout/v1/basket/{basketId}/shipping"),  // inferred: no image evidence (R294)
-            payload.ToString(Newtonsoft.Json.Formatting.None), "farfetch-shipping", ct)
-            .ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("farfetch shipping failed", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"farfetch shipping HTTP {res.StatusCode}", retryable: true);
-
-        c.Session.Vars["shipping"] = res.Body;
-
-        var method = TryRead(res.Body, "shippingMethodId");
-        if (!string.IsNullOrEmpty(method)) c.Session.Vars["shippingMethodId"] = method;
-
-        return StepOutcome.Success();
+        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
+        // had no evidence behind it; R1011 settled what to do when that is true.
+        return StepOutcome.Fail(
+            "farfetch: shipping endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
     }
 
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
-        var card = c.Card;
-        if (card?.Number is null) return StepOutcome.Fail("farfetch: no card");
-
-        var basketId = c.Session.CartId;
-        if (string.IsNullOrEmpty(basketId)) return StepOutcome.Fail("farfetch: no basket id");
-
-        var payload = new Newtonsoft.Json.Linq.JObject
-        {
-            ["cardType"] = card.Number.StartsWith('4') ? "VISA"
-                : card.Number.StartsWith("5") ? "MASTERCARD"
-                : "AMEX",
-            ["cardNumber"] = card.Number,
-            ["expiryMonth"] = card.Month ?? string.Empty,
-            ["expiryYear"] = card.Year ?? string.Empty,
-            ["cvv"] = card.Cvv ?? string.Empty,
-            ["cardHolderName"] = card.Name ?? c.ProfileData?.Display ?? string.Empty,
-        };
-
-        var res = await PostJsonAsync(c, Api(c, $"/api/checkout/v1/basket/{basketId}/payment"),  // inferred: no image evidence (R294)
-            payload.ToString(Newtonsoft.Json.Formatting.None), "farfetch-payment", ct)
-            .ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("farfetch payment failed", retryable: true);
-        if (!res.IsSuccess)
-            return StepOutcome.Fail($"farfetch payment HTTP {res.StatusCode}", retryable: res.StatusCode >= 500);
-
-        c.Session.Vars["paymentStatus"] = "authorised";
-        return StepOutcome.Success();
+        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
+        // had no evidence behind it; R1011 settled what to do when that is true.
+        return StepOutcome.Fail(
+            "farfetch: payment endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
     }
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
-        var basketId = c.Session.CartId;
-        if (string.IsNullOrEmpty(basketId)) return StepOutcome.Fail("farfetch: no basket to submit");
-
-        var res = await PostJsonAsync(c, Api(c, $"/api/checkout/v1/basket/{basketId}/place-order"),  // inferred: no image evidence (R294)
-            "{}", "farfetch-order", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("farfetch order failed", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"farfetch order HTTP {res.StatusCode}", retryable: true);
-
-        var order = TryRead(res.Body, "orderId") ?? TryRead(res.Body, "orderNumber");
-        if (string.IsNullOrEmpty(order))
-            return StepOutcome.Fail("farfetch: no order id returned");
-
-        c.Session.OrderNumber = order;
-        return StepOutcome.Success();
+        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
+        // had no evidence behind it; R1011 settled what to do when that is true.
+        return StepOutcome.Fail(
+            "farfetch: place-order endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
     }
 
     /// <summary>

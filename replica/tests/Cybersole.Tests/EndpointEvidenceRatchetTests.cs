@@ -33,9 +33,6 @@ public sealed class EndpointEvidenceRatchetTests
     {
         ("/account/recover", "src/Cybersole.Stores/Flows/StoreFlow.cs"),
         ("/account/verify", "src/Cybersole.Stores/Flows/MagentoFlow.cs"),
-        ("/api/checkout/v1/basket/{basketId}", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
-        ("/api/checkout/v1/basket/{basketId}/place-order", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
-        ("/api/checkout/v1/basket/{basketId}/shipping", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
         ("/api/preorder/entry", "src/Cybersole.Stores/Flows/RetailFlows.cs"),
         ("/api/stock", "src/Cybersole.Stores/Flows/PopMartEndpoints.cs"),
         ("/collections/new-releases", "src/Cybersole.Stores/Flows/MagentoFlow.cs"),
@@ -46,9 +43,6 @@ public sealed class EndpointEvidenceRatchetTests
         // being sent -- so they belong in Sent rather than in a third list. The literals are copied from the source,
         // not from the tool's display: R1032 recorded that display truncates a template to "{...}", and copying that
         // made StillInItsFile report the path missing.
-        ("/api/ff-products/v1/products/{pid}/", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
-        ("/api/basket/v1/", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
-        ("/api/checkout/v1/basket/{basketId}/payment", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
         ("https://api.nike.com/buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified", "src/Cybersole.Stores/Flows/NikeFlow.cs"),
         ("/discount/", "src/Cybersole.Stores/Flows/StoreFlow.cs"),
         ("/api/payments/", "src/Cybersole.Stores/Flows/StoreFlow.cs"),
@@ -60,7 +54,6 @@ public sealed class EndpointEvidenceRatchetTests
     /// </summary>
     private static readonly (string Path, string File)[] DocumentedOnly =
     {
-        ("/api/basket/v1/items", "src/Cybersole.Stores/Flows/FarfetchFlow.cs"),
         ("/api/beast", "src/Cybersole.Stores/Flows/BstnFlow.cs"),
         ("/api/checkout/submit", "src/Cybersole.Stores/Flows/RetailFlows.cs"),
         ("/api/order/submit", "src/Cybersole.Stores/Flows/PopMartEndpoints.cs"),

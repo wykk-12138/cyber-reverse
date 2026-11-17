@@ -35736,3 +35736,105 @@ python tools/metrics_report.py -> 完整套件 exit 0  2252 / 0 / 0
 
 **→ 那条更深的规则是：**当镜像存一个完整串时，我们的代码也该有一个完整串** ——
   拼接是我方抽象带来的，而抽象会同时藏起证据和缺陷。**
+
+
+---
+
+## 460. **镜像里没有 `farfetch.com`；Farfetch 的 7 个步骤停止发请求**
+
+> R1036。**改 1 个 flow + 2 个测试 + 2 份台账。** 套件 **2252 通过 / 0 失败 / 0 跳过**。
+> **端点门 `unknown` 0 · exit 0。**
+
+### 一、取证：不是端点无据，是**整个站在镜像里不存在**
+
+```
+ff-products          0        api/farfetch.com     0
+/api/basket          0        farfetch.com         0      ← 连域名都不在
+checkout/v1/basket   0
+basketId             5        但都是别的站的字段名
+place-order          3        都是别的站
+/api/checkout        1        是 on.com 的
+```
+
+**→ `farfetch.com` **零次**。所以 `FarfetchFlow` 的域名、7 个端点、整条结账链**全部无据**。
+
+**→ 那与 Nike 的情况不同：Nike 是**两个步骤**的端点缺据，而 Farfetch 是**整个站**缺据。
+→ 所以「改成报告」对 Nike 是补丁，对 Farfetch 是**停止假装**。**
+
+### 二、改了什么
+
+**7 个公开步骤全部不再发请求：**
+
+```csharp
+return StepOutcome.Fail("farfetch: <step> endpoint unknown -- the image carries no farfetch.com, so there is nothing to call");
+```
+
+**→ 类头写明：探域、探 API host、探 product/basket/checkout 前缀，**每一个都是零**。
+→ 而去留（这个 flow 该不该存在）留给 YG —— 代码不再假装它能下单。**
+
+### 三、而两份台账同步
+
+| 台账 | 动作 |
+|---|---|
+| 棘轮 `Sent` + `DocumentedOnly` | 移出 **7 行** Farfetch 条目 |
+| 工具台账 `sent` 段 | 移出 **3 条** Farfetch 的 |
+
+**→ 而 `SentCeiling` 没动（16），因为移出的是条目不是上限。**
+
+### 四、而 `Counts` 那两个守卫要**改数字而不是回滚**
+
+| 守卫 | 要什么 | 处置 |
+|---|---|---|
+| `AFlowWithPlaceholdersSaysWhy` | 占位 ≥2 的 flow 正文里要有 `endpoint unknown` | **把 7 条消息改成含这个短语** |
+| `MostOverridesDoWork` | `placeholders <= KnownPlaceholders` | **5 → 12**，常量旁写明理由 |
+
+**→ 与 R1031 那次不同：那次我**回滚**了，因为改动没据。
+→ 这次**有据**（`farfetch.com` 为 0），所以数字**跟着证据走**。**
+
+### 五、而这一轮我又踩了同一个坑
+
+**类头注释里我写了 `"/api/basket"` 和 `"checkout/v1/basket"` —— 而扫描器把**注释里的路径也算成端点**，
+→ 于是 `unknown` 从 0 变 1，而它指的是**我自己写的说明文字**。
+→ 改成不引字面量的措辞（「product prefix」「basket and checkout prefixes」）。**
+
+**→ 那是 R1033 我写的报告消息同族：散文里提到路径，工具分不清注释与代码。
+→ 两次都是**我的文字成了被测对象**。**
+
+### 六、数字
+
+| 度量 | R1035 | R1036 |
+|---|---|---|
+| 套件 | 2252 / 0 | **2252 / 0 / 0** |
+| 产物陈旧度 | 6 / 5,786 | **6 / 5,669** |
+| 函数数 | 174,336 | **174,336** |
+| **inline 端点字面量** | 331 | **323** |
+| **`not in pool`** | 41 | **33** |
+| **端点门 `unknown`** | 0 | **0** |
+| **`KnownPlaceholders`** | 5 | **12** |
+| **Farfetch 会发的请求** | **7** | **0** |
+| **`farfetch.com` 在镜像里** | 未查 | **0（决定性）** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "farfetch\.com"     -> {"n":0}
+python analysis/ida.py str "ff-products"        -> {"n":0}
+cd replica
+python tools/endpoint-provenance.py             -> unknown 0 · exit 0
+python tools/metrics_report.py -> 完整套件 exit 0  2252 / 0 / 0
+```
+
+### 八、仍然 Unknown / 待 YG
+
+- **`FarfetchFlow` 该不该存在**：**待 YG 裁决**（不是未覆盖，是多余）。
+- **产物需重新 publish**（6 文件陈旧）：待收尾。
+
+### 九、教训
+
+**R1031 我为同一批端点改过报告，而当时**没有取证**，被守卫拦住只好回滚。**
+
+**→ 这一轮取证了五分钟，答案（`farfetch.com` 为 0）比任何论证都硬 ——
+  而那五分钟正是上一轮缺的那一步。**
+
+**→ 所以「守住不动」和「动手」之间没有原则之争：缺一次取证。**

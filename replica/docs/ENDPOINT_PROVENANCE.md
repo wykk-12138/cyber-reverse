@@ -22,9 +22,6 @@ inline URL/path literals: 202   not in pool: 29
 这些请求由复刻件真的发出，镜像里**没有**对应路由，也没有活的响应证据可以引用。
 它们不是 fixture（保留它们并不验证任何东西），也不是待定（已经判过）。
 
-- `sent` `/api/ff-products/v1/products/{pid}/` —— FarfetchFlow.FindProductAsync
-- `sent` `/api/basket/v1/` —— FarfetchFlow.GetCartAsync
-- `sent` `/api/checkout/v1/basket/{basketId}/payment` —— FarfetchFlow.SubmitPaymentAsync
 - `sent` `https://api.nike.com/buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified` —— NikeFlow.CartUrl
 - `sent` `/discount/` —— StoreFlow.SubmitDiscountAsync
 - `sent` `/api/payments/` —— StoreFlow.GetPaymentDetailsAsync

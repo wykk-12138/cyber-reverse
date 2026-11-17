@@ -54,6 +54,11 @@ public sealed class EndpointLedgerLinkTests
     /// <summary>
     /// The ledger carries the fifth class. `sent` means the replica really makes this request, the image names no such
     /// route, and there is no live response to cite -- which is neither a fixture nor something still undecided.
+    ///
+    /// <para>
+    /// R1036: three entries left, not six. Farfetch's three went with the flow's endpoints, because probing showed the
+    /// image has no farfetch.com at any spelling -- so those requests are no longer sent and cannot be `sent`.
+    /// </para>
     /// </summary>
     [Fact]
     public void TheLedgerHasTheSentClass()
@@ -62,7 +67,7 @@ public sealed class EndpointLedgerLinkTests
         Assert.Contains("## sent", body, StringComparison.Ordinal);
 
         var sent = body.Split('\n').Count(l => l.TrimStart().StartsWith("- `sent`", StringComparison.Ordinal));
-        Assert.True(sent >= 6, "expected at least six sent entries, saw " + sent);
+        Assert.True(sent >= 3, "expected at least three sent entries, saw " + sent);
     }
 
     /// <summary>

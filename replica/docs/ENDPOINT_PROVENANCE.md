@@ -1,6 +1,10 @@
 # 端点溯源台账
 
-第 129 轮生成。每个在 `src/Cybersole.Stores/Flows/*.cs` 里出现的 URL / 路径字面量，
+第 129 轮生成。
+**R1034：这份台账由 `tools/endpoint-provenance.py` 读取，而 `tests/Cybersole.Tests/EndpointEvidenceRatchetTests.cs`
+里另有一份 `Sent` / `DocumentedOnly` 台账由三个棘轮守卫读取。两份互不引用过 —— 于是有一轮把条目加进了
+没人读的那份，而工具的数一点没动。两边现在互相点名。
+每个在 `src/Cybersole.Stores/Flows/*.cs` 里出现的 URL / 路径字面量，
 要么**逐字出现在镜像里**，要么在下面登记为 `live`（有真实响应证据）或 `fixture`
 （故意保留的不存在路径，用测试禁止）。**三者都不是的，就是发明。**
 
@@ -12,6 +16,18 @@ inline URL/path literals: 202   not in pool: 29
 ## live —— 有响应证据、但镜像里没有这条字面量
 
 - `live` `/api/beast` —— R91: the prefix answers (geoIP and monetate live under it)
+
+## sent —— 真的会发出去，而镜像里没有这条路由（R1034）
+
+这些请求由复刻件真的发出，镜像里**没有**对应路由，也没有活的响应证据可以引用。
+它们不是 fixture（保留它们并不验证任何东西），也不是待定（已经判过）。
+
+- `sent` `/api/ff-products/v1/products/{pid}/` —— FarfetchFlow.FindProductAsync
+- `sent` `/api/basket/v1/` —— FarfetchFlow.GetCartAsync
+- `sent` `/api/checkout/v1/basket/{basketId}/payment` —— FarfetchFlow.SubmitPaymentAsync
+- `sent` `https://api.nike.com/buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified` —— NikeFlow.CartUrl
+- `sent` `/discount/` —— StoreFlow.SubmitDiscountAsync
+- `sent` `/api/payments/` —— StoreFlow.GetPaymentDetailsAsync
 
 ## fixture —— 故意保留的不存在路径
 

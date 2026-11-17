@@ -248,15 +248,33 @@ def inline_scan(pool):
 
 
 LEDGER = os.path.join(os.path.dirname(ROOT), "replica", "docs", "ENDPOINT_PROVENANCE.md")
-BASELINE = 0           # R201: all 24 judged and registered (live / assembled); the gate now forbids any new one
+BASELINE = 0           # R1034: all thirty judged and registered (live / fixture / assembled / sent); the gate forbids any new onene
 
 
 def ledger_classes():
-    """Paths the ledger registers as `live` or `fixture` — allowed to be absent from the pool."""
+    """Paths the ledger registers, in either form — allowed to be absent from the pool.
+
+    R1034: two corrections. The class list already matched `assembled` while the docstring said otherwise, so the
+    docstring was the only thing wrong there. The real defect was the comparison: inline_scan reports a templated
+    path as its prefix plus "{...}" (see the invented.append above), while the ledger records the literal in full.
+    A path containing a template could therefore never match, no matter how it was registered. Both spellings of
+    every ledger entry are returned, so the comparison works whichever side truncated.
+
+    `sent` is the fifth class: a request the replica really makes, for which the image names no such route and no
+    live response exists to cite. It is not a fixture -- nothing is being tested by keeping it -- and it is not
+    pending, because it has been judged.
+    """
     if not os.path.exists(LEDGER):
         return set()
     body = io.open(LEDGER, encoding="utf-8", errors="replace").read()
-    return set(re.findall(r"-\s+`(?:live|fixture|assembled)`\s+`([^`]+)`", body))
+    literals = re.findall(r"-\s+`(?:live|fixture|assembled|sent)`\s+`([^`]+)`", body)
+    allowed = set()
+    for lit in literals:
+        allowed.add(lit)
+        brace = lit.find("{")
+        if brace > 0:
+            allowed.add(lit[:brace] + "{...}")
+    return allowed
 
 
 if __name__ == "__main__":

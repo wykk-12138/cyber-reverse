@@ -61762,3 +61762,72 @@ LEDGER = .../replica/docs/ENDPOINT_PROVENANCE.md     ← 只认 `live` 与 `fixt
 > → 那不全是疏忽：一份在 `docs/`，一份在 `tests/`，两个名字，没有一处交叉引用。**
 > **→ 所以 AGENTS §2.7c「先查有没有现成的」在这里有个变体：
 > **查一下这个东西有没有**两个**现成的，而我要改的是哪一个。****
+
+
+---
+
+## 第 1034 轮：两份台账互相点名；而工具此前看不见任何含模板的路径
+
+### ① 那个 bug：生产端截断，消费端不截断，两者直接比较
+
+```python
+inline_scan:      invented.append((name, line, prefix + "{...}"))   # 截断形
+ledger_classes:   re.findall(r"-`(?:live|fixture|assembled)`\s+`([^`]+)`")   # 完整形
+unknown = [row for row in invented if row[2] not in allowed]
+```
+
+**→ 含模板的路径**永远匹配不上**，无论登记得多仔细。
+→ 所以那 4 条（Farfetch 三条 + Nike 一条）在旧代码下**不可能**登记成功。
+→ 那也解释了 R1033：我把 6 条写进测试台账而数不动 —— 一半是读错文件，**另一半是即使读对也匹配不上**。**
+
+### ② 修法：两边形都接受
+
+```python
+allowed.add(lit)
+if (brace := lit.find("{")) > 0:
+    allowed.add(lit[:brace] + "{...}")
+```
+
+**而 `sent` 成为第五个分类：**真的会发出去、镜像里没有这条路由、也没有活的响应证据** ——
+不是 fixture（保留它不验证任何东西），也不是待定（已经判过）。**
+
+### ③ 而 `ledger_classes()` 的 docstring 也错了
+
+**正则里**早有** `assembled`，而 docstring 写「只认 `live` 或 `fixture`」—— 无害，因为代码对。**
+
+### ④ 结果
+
+```
+修前:  registered 29   unknown 12   exit 1
+修后:  registered 41   unknown  0   exit 0
+```
+
+**→ 41 = 29 + 12（6 条 × 两种形）。而这是**这个门第一次真的变绿** —— 不是放宽，是让判据能看见。**
+
+### ⑤ 4 条守卫钉住「互不引用」这个缺陷本身
+
+`TheProvenanceLedgerNamesTheRatchet` · `TheRatchetNamesTheProvenanceLedger` ·
+`TheLedgerHasTheSentClass` · **`EverySentPathIsKnownToTheRatchet`**
+
+**→ 前两条钉根因（一份在 `docs/`、一份在 `tests/`，无交叉引用）；第 4 条钉一致性。**
+
+### ⑥ 数字
+
+| 度量 | R1033 | **R1034** |
+|---|---|---|
+| 套件 | 2243 / 0 | **2247 / 0 / 0（+4）** |
+| 产物陈旧度 | 5 / 4,199 | **5 / 4,199** |
+| 函数数 | 174,336 | **174,336** |
+| **端点门 `unknown`** | 12 | **0** |
+| **端点门 exit** | **1（红）** | **0（绿）** |
+| **`registered in ledger`** | 29 | **41** |
+| **可被登记的模板路径** | **0** | **全部** |
+| **台账分类数** | 4 | **5（+`sent`）** |
+| **交叉引用** | 0 | **2（双向）** |
+
+### 教训
+
+> **那个 bug 的形状：**生产者截断，消费者不截断，而两者直接比较。**
+> **→ 它不报错 —— 它只是让「登记」这个动作**永远无效**，而无效的样子和「没登记」一模一样。**
+> **→ 我是通过「我明明登记了为什么数不动」这个矛盾找到它的。
+> → 那个矛盾是这一轮唯一有价值的东西，因为它逼我去看**判据怎么比的**，而不是**我做了什么**。**

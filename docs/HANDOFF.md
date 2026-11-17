@@ -3146,3 +3146,25 @@ MostOverridesDoWork · AFlowWithPlaceholdersSaysWhy
 纪律：**查一下这个东西有没有两个现成的，而我要改的是哪一个。**
 
 下一轮：加 `sent` 格并联通两份台账。
+
+## R1034 补充 — **端点门第一次真绿：`unknown` 12 → 0，原因是格式不匹配的真 bug**（套件 2247）
+
+**那个 bug**：`inline_scan` 报 `prefix + "{...}"`（截断形），而 `ledger_classes()` 比的是**完整字面量**，
+两者直接比 ⇒ **含模板的路径永远匹配不上**。那 4 条（Farfetch 三 + Nike 一）旧代码下**不可能**登记成功。
+→ 也解释了 R1033：一半是读错文件，**另一半是即使读对也匹配不上**。
+
+**修**：两边形都接受；`sent` 成为第五类（真的发、镜像无此路由、无活响应证据 —— 非 fixture 非待定）。
+
+```
+registered 29 → 41      unknown 12 → 0      exit 1 → 0
+```
+**→ 这是这个门**第一次真的变绿** —— 不是放宽，是靠让判据能看见。**
+
+**4 条守卫**：两份台账**双向点名** + `sent` 段 ≥6 条 + **`EverySentPathIsKnownToTheRatchet`**（一致性）。
+
+数字：套件 2247（+4）· 陈旧度 5 / 4,199 · 函数数 174,336 · unknown **12 → 0** · registered **29 → 41** ·
+台账分类 **4 → 5** · 交叉引用 **0 → 2**。
+
+纪律：**生产端截断 + 消费端不截断 = 登记永远无效，而无效与没登记同形。**
+
+下一轮：`endpoint constants: unresolved 4`（Warhammer 的 `IdentityHost` 模板）；或判那 6 条该发还是改报告。

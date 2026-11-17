@@ -9450,3 +9450,45 @@ api.nike.com/buy/carts/v2/...           Nike
 | 那 6 条该继续发还是改报告 | 需先有 `sent` 格 |
 
 **纪律**：查一下这个东西有没有**两个**现成的，而我要改的是哪一个。
+
+
+## 判据 (d) — **端点门第一次真绿：`unknown` 12 → 0；原因是格式不匹配的真 bug**（R1034）
+
+### 那个 bug
+
+```python
+inline_scan  → prefix + "{...}"       # 截断形
+ledger_classes → 完整字面量            # 完整形
+unknown = invented if not in allowed   # 直接比
+```
+
+**→ 含模板的路径**永远匹配不上**。那 4 条（Farfetch 三 + Nike 一）旧代码下不可能登记成功。**
+
+### 修
+
+**两边形都接受；`sent` 成为第五类**（真的发、镜像无此路由、无活响应证据 —— 非 fixture 非待定）。**
+
+### 结果
+
+```
+registered 29 → 41      unknown 12 → 0      exit 1 → 0
+```
+
+**→ 这个门第一次真绿：不是放宽，是让判据能看见。**
+
+### 4 条守卫
+
+`TheProvenanceLedgerNamesTheRatchet` · `TheRatchetNamesTheProvenanceLedger` ·
+`TheLedgerHasTheSentClass` · **`EverySentPathIsKnownToTheRatchet`**
+
+### 数字
+
+**套件 2247（+4）· 陈旧度 5 / 4,199 · 函数数 174,336 · unknown 12 → 0 · registered 29 → 41 ·
+台账分类 4 → 5 · 交叉引用 0 → 2**
+
+| 仍 Unknown | |
+|---|---|
+| 那 6 条该继续发还是改报告 | 现在有 `sent` 格，可判了 |
+| `endpoint constants: unresolved 4`（Warhammer IdentityHost 模板） | 未处理 |
+
+**纪律**：生产端截断 + 消费端不截断 = 登记永远无效，而无效与没登记同形。

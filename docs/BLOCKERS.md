@@ -35531,3 +35531,102 @@ python tools/metrics_report.py -> 完整套件 exit 0  2243 / 0 / 0
 
 **→ 所以「查一下有没有现成的」（AGENTS §2.7c）在这里该有个变体：
   **查一下这个东西有没有**两个**现成的，而我要改的是哪一个。****
+
+
+---
+
+## 458. **两份台账互相点名；而工具此前看不见任何含模板的路径**
+
+> R1034。**改工具 1、台账 1、测试 1 新 + 1 旧。** 套件 **2247 通过 / 0 失败 / 0 跳过**。
+> **端点门 `unknown` 12 → 0，exit 1 → 0。**
+
+### 一、那个 bug：生产端截断，消费端不截断，两者直接比较
+
+```python
+inline_scan:      invented.append((name, line, prefix + "{...}"))     # 截断形
+ledger_classes:   set(re.findall(r"-\s+`(?:live|fixture|assembled)`\s+`([^`]+)`", body))   # 完整形
+unknown = [row for row in invented if row[2] not in allowed]          # 两边直接比
+```
+
+**→ 扫描器报的是 `prefix + "{...}"`，而台账存的是**完整字面量** ⇒ **含模板的路径永远匹配不上，
+  无论登记得多仔细。**
+
+**→ 所以那 4 条（`/api/ff-products/v1/products/{pid}/` · `/api/basket/v1/` ·
+  `.../payment` · `api.nike.com/.../{CountryCode}/...`）在旧代码下**不可能**被登记成功。**
+
+**→ 而那解释了 R1033 的一个现象：我把 6 条写进测试台账而工具数不动 —— 一半原因是读错文件，
+  另一半是**即使读对文件，4 条也匹配不上**。**
+
+### 二、修法：两边形都接受
+
+```python
+for lit in literals:
+    allowed.add(lit)                      # 完整形
+    brace = lit.find("{")
+    if brace > 0:
+        allowed.add(lit[:brace] + "{...}")   # 截断形
+```
+
+**→ 而 `sent` 成为第五个分类。它的含义精确：**这个请求真的会发出去，而镜像里没有这条路由，
+  也没有活的响应证据可以引用** —— 不是 fixture（保留它不验证任何东西），也不是待定（已经判过）。**
+
+### 三、而 `ledger_classes()` 的 docstring 原本也错了
+
+**它的正则里**早就有** `assembled`，而 docstring 写着「registers as `live` or `fixture`」。
+→ 那是 R1011 那条「注释与代码不一致」的又一个实例 —— 而它是无害的，因为代码对。**
+
+### 四、结果
+
+```
+修前:  registered in ledger: 29   unknown: 12   exit 1
+修后:  registered in ledger: 41   unknown:  0   exit 0
+```
+
+**→ 41 = 29 + 12（6 条 × 完整/截断两种形）。
+→ 而 `unknown: 0` 与 `exit 0` 是**这个门第一次真的变绿** —— 不是靠放宽，是靠让判据能看见。**
+
+### 五、4 条守卫钉住「互不引用」这个缺陷本身
+
+| 守卫 | 断言 |
+|---|---|
+| `TheProvenanceLedgerNamesTheRatchet` | 台账正文含 `EndpointEvidenceRatchetTests` |
+| `TheRatchetNamesTheProvenanceLedger` | 测试文件含 `ENDPOINT_PROVENANCE` |
+| `TheLedgerHasTheSentClass` | 有 `## sent` 段且 ≥6 条 |
+| **`EverySentPathIsKnownToTheRatchet`** | **台账里每条 `sent` 路径也在棘轮里出现** |
+
+### 六、数字
+
+| 度量 | R1033 | R1034 |
+|---|---|---|
+| 套件 | 2243 / 0 | **2247 / 0 / 0（+4）** |
+| 产物陈旧度 | 5 / 4,199 | **5 / 4,199** |
+| 函数数 | 174,336 | **174,336** |
+| **端点门 `unknown`** | 12 | **0** |
+| **端点门 exit** | **1（红）** | **0（绿）** |
+| **`registered in ledger`** | 29 | **41** |
+| **可被登记的模板路径** | **0（格式不匹配）** | **全部** |
+| **台账分类数** | 4 | **5（+`sent`）** |
+| **两份台账的交叉引用** | 0 | **2（双向）** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse\replica
+python tools/endpoint-provenance.py   -> registered 41 · unknown 0 · exit 0
+dotnet test --filter "FullyQualifiedName~EndpointLedgerLink|~EndpointEvidenceRatchet" -m:1 -> 7 通过
+python tools/metrics_report.py -> 完整套件 exit 0  2247 / 0 / 0
+```
+
+### 八、仍然 Unknown
+
+- **那 6 条该继续发还是改报告**：**现在有 `sent` 格，可判了**。
+- **`endpoint constants: unresolved 4`**（Warhammer 的 `IdentityHost` 模板）：**未处理**。
+
+### 九、教训
+
+**那个 bug 的形状是：**生产者截断，消费者不截断，而两者直接比较。**
+
+**→ 而它不会报错 —— 它只是让「登记」这个动作**永远无效**，而无效的样子和「没登记」一模一样。**
+
+**→ 而我是通过「我明明登记了为什么数不动」这个矛盾找到它的 ——
+  那个矛盾是这一轮唯一有价值的东西，因为它逼我去看**判据怎么比的**，而不是**我做了什么**。**

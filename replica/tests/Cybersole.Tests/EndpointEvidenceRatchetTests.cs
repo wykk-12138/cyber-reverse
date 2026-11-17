@@ -16,6 +16,11 @@ namespace Cybersole.Tests;
 /// file that uses them. This test keeps the ledger honest in two directions: the list may not grow, and every entry must
 /// still exist in its file — so removing an endpoint forces the list to be updated, and adding an unbacked one fails.
 /// </para>
+///
+/// R1034: this is one of two endpoint ledgers. <c>docs/ENDPOINT_PROVENANCE.md</c> is the other, and it is the one
+/// <c>tools/endpoint-provenance.py</c> reads; this one is what the three guards below read. They did not reference
+/// each other, so a round could add six rows here and leave the tool's count untouched. See EndpointLedgerLinkTests
+/// for the guards that keep them naming one another.
 /// </summary>
 public sealed class EndpointEvidenceRatchetTests
 {

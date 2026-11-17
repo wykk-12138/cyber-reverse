@@ -1882,3 +1882,24 @@ AddRange 只对新增键通知；Clear 空字典不发通知。
 纪律：一个单位 bug 报出的 0 恰好是我以为的答案 —— 是原版那一侧的 156,590 让那个 0 显得可疑。
 
 下一轮：转到判据 (d) —— claim 表每条要有 authority+命令+gap_reason。
+
+## R978 补充 — **判据 (d) 的检查从诞生起只审 5/22 行，而报 PASS；已修 +2 守卫**（套件 2198）
+
+`docs/PARITY_CLAIMS.md` 是**五张表**（一节一张，各有表头）。`analysis/check_claims.py`（R811）
+找到第一个表头后遇到第一个非表格行就停 → 只审 C1–C5 五行 → 报 PASS。
+**6 个表头在 R811 当天就都在 → 不是回归，是从诞生起就这样。**
+
+修法：改成遍历每一张表。修好之后 `claim rows: 22`，仍 PASS → **判据 (d) 确实满足，第一次被真正验证**。
+
+新守卫 `ClaimsCoverageTests`（2 用例）：文档多表 + 脚本行数 == 测试独立计数。
+
+另一条：`DELIVERY_STATUS.md` 判据 d 引用的 `claims parsed: 22` 来自 `audit_claims.py` 旧版本（`35e8721`），
+现行版本打 `inconsistencies found: 0` → **命令能跑 ≠ 命令能复算出被引用的那句**。记 Unknown。
+
+而我又撞了「先写后查」：写了 `audit_claims.py --structure` 却做成独立脚本（R972 同一次），已删除并改为修已有的。
+
+数字：套件 2198 · 陈旧度 0/0 · 函数数 173,952 · claim 行 5 → 22 · 守卫 2。
+
+纪律：覆盖 23% 的检查报 PASS，比没有检查更坏 —— 它的结论会被引用。
+
+下一轮：判据 (e) —— 套件绿、变异测试全 fired。先跑 mutation-check.py 看现状。

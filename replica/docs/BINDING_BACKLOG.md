@@ -7256,3 +7256,47 @@ pdata-last-replica-bucket:      0x1B00000
 | 缺口在功能层面分布在哪 | 地址分桶答不了（布局独立） |
 
 **纪律**：一个单位 bug 报出的 0 恰好是我以为的答案 —— 是原版那一侧的数让它可疑。
+
+
+## 判据 (d) — **check_claims.py 审 5/22 行而报 PASS；已修为 22/22，+2 守卫**（R978）
+
+### 缺陷
+
+**`PARITY_CLAIMS.md` 是五张表（一节一张，各有表头）。`check_claims.py`（R811）
+找到第一个表头后遇到第一个非表格行就停 → 只审 C1–C5 五行 → 报 PASS。**
+**6 个表头在 R811 当天就都在 → **从诞生起**就只审一张表。**
+
+### 修法
+
+**`analysis/check_claims.py` 改为遍历文档里每一张表（`tables()` 生成器）。**
+
+### 结果
+
+```
+claim tables: 5      claim rows: 22
+rows without an authority: 0
+non-unknown rows without a command: 0
+criterion (d) by its own stated rule: PASS
+```
+
+**→ 判据 (d) 确实满足，而这是第一次被真正验证。**
+
+### 新守卫
+
+**`ClaimsCoverageTests`（2 用例）：文档多表（tables>1 / rows>10）+ 脚本行数 == 测试独立计数。**
+**两个计数器一致才算数。**
+
+### 另一条
+
+**`DELIVERY_STATUS.md` 判据 d 那行引用的 `claims parsed: 22` 来自 `audit_claims.py` 的旧版本（`35e8721`），
+现行版本打的是 `inconsistencies found: 0` → **证据点了一个命令，而它不再产出被引用的那句**。记 Unknown。**
+
+### 数字
+
+**套件 2198 · 陈旧度 0/0 · 函数数 173,952 · claim 行 5 → 22 · 守卫 2**
+
+| 仍 Unknown | |
+|---|---|
+| `DELIVERY_STATUS.md` 那条证据的历史成因 | 未追（只知是旧版输出） |
+
+**纪律**：覆盖 23% 的检查报 PASS，比没有检查更坏 —— 它的结论会被引用。

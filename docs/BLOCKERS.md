@@ -29801,3 +29801,106 @@ python tools/metrics_report.py
 如果我只看复刻件那一侧，它会活下来，而下一轮会拿它当证据。**
 
 **这次是原版那一侧的 156,590 让那个 0 显得可疑。**
+
+
+---
+
+## 402. **判据 (d) 的检查从诞生起只审 5/22 行，而报 PASS；已修 +2 守卫**
+
+> R978。**修已有工具（不是新造）+2 守卫。** 套件 **2198 通过 / 0 失败 / 0 跳过**。
+
+### 一、缺陷
+
+**`docs/PARITY_CLAIMS.md` 不是一张表 —— 是**五张**，一节一张，每张各有
+`| id | claim | status | authority | command | gap_reason |` 表头。**
+
+**`analysis/check_claims.py`（R811）找到**第一个**表头（第 41 行），
+然后**遇到第一个非表格行就停**（§2 标题前的空行）→ 只审 C1–C5。**
+
+```
+claim rows: 5
+status distribution:  **fail** 3 / **pass** 2
+criterion (d) by its own stated rule: PASS
+```
+
+**而 6 个表头在 R811 当天就都在（`git show c869fe1` → 表头数 6）→ **不是回归，是从诞生起就这样**。
+脚本一次都没改过（`git log --follow` 只有 R811 一条）。**
+
+**→ 覆盖 23% 的检查报 PASS，比没有检查更坏 —— 它的结论会被引用，而 `DELIVERY_STATUS.md` 判据 d 写着「✅」。**
+
+### 二、修法
+
+**改成遍历文档里每一张表（`tables()` 生成器，按表头定位、按行边界收尾）。**
+
+### 三、修好之后
+
+```
+claim tables: 5
+claim rows: 22
+status distribution: **pass** 8 / **unknown** 7 / **fail** 3 / （四种带限定的变体各 1）
+rows without an authority: 0
+non-unknown rows without a command: 0
+criterion (d) by its own stated rule: PASS
+```
+
+**22 行全审仍 PASS → 判据 (d) **确实满足**，而这是**第一次被真正验证**。**
+
+### 四、新守卫
+
+**`ClaimsCoverageTests`（2 用例）：**
+1. `TheDocumentIsMoreThanOneTable` —— `tables > 1` 且 `rows > 10`（表头正则失配就会红）
+2. `TheScriptAuditsEveryTableNotJustTheFirst` —— 脚本报的行数 == 测试**独立**数出的行数，且 PASS
+
+**→ 两个计数器一致才算数：一个计数器打一个数字，正是出错的那种形态。**
+
+### 五、还有一条证据不可复算
+
+**`DELIVERY_STATUS.md` 判据 d 那行引用的证据是
+`python analysis\audit_claims.py → claims parsed: 22 (authority=unknown: 9) / criterion (d) holds`。
+今天同一命令打的是 `inconsistencies found: 0`。**
+**`claims parsed` 那句来自 `audit_claims.py` 的**旧版本**（`35e8721`）。**
+
+**→ 命令能跑 ≠ 命令能复算出被引用的那句。记 Unknown，成因未追。**
+
+### 六、而我又撞了一次「先写后查」
+
+**写了个 `audit_claims.py --structure`，文件头写着「add a structural mode to audit_claims.py」，
+然后写成了独立脚本 —— **R972 刚记过同一次**。删掉、`git checkout` 撤回，改成修已有的那个（§1「先抄」）。
+**R870 那条规则的第六次。****
+
+### 七、数字
+
+| 度量 | R977 | R978 |
+|---|---|---|
+| 套件 | 2196 | **2198** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **check_claims.py 审的行数** | **5**（错） | **22** |
+| **claim 表数** | 未测 | **5** |
+| **守卫用例** | 0 | **2** |
+
+### 八、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/check_claims.py
+  -> claim tables: 5 / claim rows: 22 / PASS
+cd replica
+dotnet test --filter "FullyQualifiedName~ClaimsCoverageTests" -m:1
+  -> 2 通过
+python tools/metrics_report.py
+  -> 完整套件 exit 0  2198 通过 / 0 失败 / 0 跳过
+```
+
+### 九、仍然 Unknown
+
+- **`DELIVERY_STATUS.md` 那条证据的历史成因**：**Unknown** —— 只知是旧版输出，未追何时失配。
+
+### 十、教训
+
+**发现它的路径纯属偶然：我在写一个重复品，而读原件输出时看到 `claim rows: 5` 跟我以为的 22 对不上。**
+
+**如果我一开始就 `where_is` 查一次，我会看到同一行 `claim rows: 5`，而很可能不觉得那有问题 ——
+因为我要找的是「有没有这个检查」，不是「这个检查对不对」。**
+
+**所以运气在于：我多看了一眼一个本来只打算复制的文件。**

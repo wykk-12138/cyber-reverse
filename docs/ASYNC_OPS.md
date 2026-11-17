@@ -7515,3 +7515,101 @@ above_o = sum(v for k, v in oh.items() if k >= 0x1C00000)     # k 是 28，0x1C0
 > **一个单位 bug 报出的 0，恰好是我以为的答案。
 > 如果我只看复刻件那一侧，它会活下来，而下一轮会拿它当证据。**
 > **所以这一轮真正的收获不是那两个度量，是**原版那一侧的 156,590 让那个 0 显得可疑**。**
+
+
+### 判据 (d) 的检查**从诞生起就只审 5 行**，而它报 PASS（R978）
+
+**判据 (d)：claim 表每条有 authority+命令+gap_reason。仓里早有 `analysis/check_claims.py`（R811）。
+这一轮先写了一个新的，然后发现它存在 —— 而**读它的时候发现了真问题**。**
+
+### 它报 `claim rows: 5`
+
+```
+claim rows: 5
+status distribution:  **fail** 3 / **pass** 2
+criterion (d) by its own stated rule: PASS
+```
+
+**而 `PARITY_CLAIMS.md` 是**五张表**，一节一张，每张各有自己的
+`| id | claim | status | authority | command | gap_reason |` 表头。**
+
+**脚本找到**第一个**表头（第 41 行），然后**遇到第一个非表格行就停**（§2 标题前的空行）。
+所以它审的只有 C1–C5 —— 五行。**
+
+### 而这不是回归 —— **6 个表头在 R811 那天就都在**
+
+```
+c869fe1 (R811)  表头数 6
+1635297 (R812)  表头数 6
+HEAD            表头数 6
+```
+
+**→ 脚本**从诞生起**就只审一张表。它一次都没改过（`git log` 只有 R811 一条），而文档一直是多表。**
+
+> **一个覆盖 23% 的检查报 PASS，比没有检查更坏 —— 因为它的结论会被引用。**
+> **而它被引用了：`docs/DELIVERY_STATUS.md` 判据 d 那行写着「✅」。**
+
+### 修好之后
+
+```
+claim tables: 5
+claim rows: 22
+status distribution: **pass** 8 / **unknown** 7 / **fail** 3 / **pass（Observation 层）** 1 /
+                     **fail**（…）1 / **unknown**（…）1 / **pass（Observation 层，R458 实测）** 1
+rows without an authority: 0
+non-unknown rows without a command: 0
+criterion (d) by its own stated rule: PASS
+```
+
+**22 行全审，仍然 PASS。所以判据 (d) **确实满足** —— 而它是**这一轮才第一次被真正验证**的。**
+
+### 而 I 又撞了一次「先写后查」
+
+**我写了一个 `audit_claims.py --structure`，文件头写着「add a structural mode to audit_claims.py」，
+然后写成了独立脚本 —— 而 R972 刚记过同一次。**
+
+**删掉它、撤回对 `audit_claims.py` 的改动，改成修**已有的**那个（AGENTS.md §1「先抄」）。
+R870 的 `where_is` 那条规则的第六次。**
+
+### 还有一条**证据不可复算**
+
+**`docs/DELIVERY_STATUS.md` 判据 d 那行写的证据是：**
+
+```
+python analysisudit_claims.py → claims parsed: 22 (authority=unknown: 9)
+                                / criterion (d) holds: ...
+```
+
+**而今天同一个命令打的是 `inconsistencies found: 0` —— 完全不同的文本。
+`claims parsed` 那句来自 `audit_claims.py` 的**旧版本**（`35e8721`），现行版本不再输出它。**
+
+> **所以那一行的证据**点了一个命令，而那个命令现在不产出被引用的那句话**。
+> 判据 (d) 要求「每条有命令」，而**命令能跑 ≠ 命令能复算出引用的那句**。**
+
+### 而这一轮加了守卫
+
+**`ClaimsCoverageTests`（2 个用例）：**
+1. **文档确实是多张表**（`tables > 1`、`rows > 10`）—— 表头正则一旦失配就会红
+2. **脚本报的行数 == 测试自己独立数出的行数**，且 PASS
+
+> **两个计数器一致才算数 —— 一个计数器打一个数字，正是出错的那种形态。**
+
+### 数字
+
+| 度量 | R977 | **R978** |
+|---|---|---|
+| 套件 | 2196 | **2198** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **check_claims.py 审的行数** | **5**（错） | **22** |
+| **claim 表数** | 未测 | **5** |
+| **守卫用例** | 0 | **2** |
+
+### 教训
+
+> **这一轮最值钱的东西不是那个守卫，是「它一直在报 PASS」这个事实。
+> 而发现它的路径纯属偶然 —— 我在写一个重复品，而读原件的输出时看到 `claim rows: 5` 那个数
+> 跟我知道的 22 对不上。**
+> **如果我一开始就按规则 `where_is` 查一次，我会看到同一行 `claim rows: 5`，
+> **而很可能不觉得那有问题** —— 因为我要找的是「有没有这个检查」，不是「这个检查对不对」。
+> 所以这一轮的运气在于：我多看了一眼一个我本来只打算复制的文件。**

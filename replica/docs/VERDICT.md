@@ -57970,3 +57970,81 @@ above_o = sum(v for k, v in oh.items() if k >= 0x1C00000)   # k 是桶索引 28�
 ### 教训
 
 > **一个单位 bug 报出的 0，恰好是我以为的答案。而这次是**原版那一侧的 156,590** 让那个 0 显得可疑。**
+
+
+---
+
+## 第 978 轮：判据 (d) 的检查从诞生起就只审 5 行，而它报 PASS
+
+### 发现
+
+**`analysis/check_claims.py`（R811）报：**
+
+```
+claim rows: 5
+status distribution:  **fail** 3 / **pass** 2
+criterion (d) by its own stated rule: PASS
+```
+
+**而 `PARITY_CLAIMS.md` 是**五张表**，一节一张，每张各有自己的表头。
+脚本找到**第一个**表头（第 41 行），**遇到第一个非表格行就停**（§2 标题前的空行）→ 只审 C1–C5。**
+
+### 而不是回归 —— 6 个表头在 R811 那天就都在
+
+```
+c869fe1 (R811)  表头数 6
+1635297 (R812)  表头数 6
+HEAD            表头数 6
+```
+
+**→ 脚本从诞生起就只审一张表，一次都没改过（`git log` 只有 R811 一条）。**
+
+> **覆盖 23% 的检查报 PASS，比没有检查更坏 —— 它的结论会被引用。
+> 而它被引用了：`DELIVERY_STATUS.md` 判据 d 那行写着「✅」。**
+
+### 修好之后
+
+```
+claim tables: 5
+claim rows: 22
+rows without an authority: 0
+non-unknown rows without a command: 0
+criterion (d) by its own stated rule: PASS
+```
+
+**22 行全审仍 PASS → 判据 (d) 确实满足，而它是**这一轮才第一次被真正验证**的。**
+
+### 而我又撞了一次「先写后查」
+
+**写了个 `audit_claims.py --structure`，文件头写着「add a structural mode」却做成独立脚本 —— R972 刚记过。
+删掉、撤回改动，改成修**已有的**那个（§1「先抄」）。R870 那条规则的第六次。**
+
+### 还有一条证据不可复算
+
+**`DELIVERY_STATUS.md` 判据 d 那行的证据：`python analysis\audit_claims.py → claims parsed: 22 …`
+而今天同一命令打的是 `inconsistencies found: 0`。`claims parsed` 来自 `audit_claims.py` 的**旧版本**（`35e8721`）。**
+
+> **命令能跑 ≠ 命令能复算出引用的那句。**
+
+### 守卫
+
+**`ClaimsCoverageTests`（2 用例）：① 文档确实是多张表；② 脚本报的行数 == 测试独立数出的行数，且 PASS。**
+**两个计数器一致才算数。**
+
+### 数字
+
+| 度量 | R977 | **R978** |
+|---|---|---|
+| 套件 | 2196 | **2198** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| **check_claims.py 审的行数** | **5**（错） | **22** |
+| **claim 表数** | 未测 | **5** |
+| **守卫用例** | 0 | **2** |
+
+### 教训
+
+> **发现它的路径纯属偶然：我在写一个重复品，而读原件输出时看到 `claim rows: 5` 跟我以为的 22 对不上。
+> 如果我一开始就 `where_is` 查一次，我会看到同一行 `claim rows: 5`，**而很可能不觉得那有问题** ——
+> 因为我要找的是「有没有这个检查」，不是「这个检查对不对」。**
+> **所以运气在于：我多看了一眼一个本来只打算复制的文件。**

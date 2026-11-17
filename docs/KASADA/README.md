@@ -21,11 +21,27 @@ Cybersole 的做法是**四条路 + 一套统一状态机**（Obs，见 `06-evid
 | 模式 | 触发条件 | 实现 |
 |---|---|---|
 | `Local`（Jint） | 默认 | 内嵌 **Jint 4.17.0** 解释器 + 自建浏览器 shim，在本进程里执行店铺的 `ips.js` |
-| `Local`（浏览器） | 脚本需要 Jint 给不了的宿主 API | 内嵌 **DotNetBrowser 4.3.5**（完整 Chromium），让真页面自己算 |
-| `Api` | 配置了远端 solver | `KasadaCdSolver` 走一条 protobuf 编码的服务通道 |
+| `Local`（浏览器） | 脚本需要 Jint 给不了的宿主 API | 内嵌 **DotNetBrowser 4.3.5**（完整 Chromium，**池化 + 信号量**），让真页面自己算 |
+| `Api` | 配置了远端 solver | **HyperSolutions** 的服务通道：`kasada.hypersolutions.co/{botid,payload}`，代理式转发 |
 | `Fallback` / `MobileFallback`（MFC） | 前两条都失败 | 降级通道，名字直接写在状态文案里 |
 
-关键结论：**Nike 走的是第一条**。二进制里 Jint 是 AOT 编译进去的（不是外部 dll），并且原版有 `DoChallenge.GenerateJavascriptToken` 这样一个方法名 —— 那是"在 JS 引擎里生成 token"的直接证据（Obs）。
+### 最重要的一条结论（`08-cd.md` §11）
+
+**客户端自己不算，只搬运。** 九个头在本地的每个写入点都是「从 HTTP 响应头取出来，存进记录」，
+没有任何一处实现 Kasada 的算法 —— 算法在 `ips.js` 里（本地路）或在服务商那侧（Api 路）。
+
+这条一次性解释了三件看起来矛盾的事：
+
+1. **"体感跟自主生成一样"** —— 确实不调外部服务（本地路），但也不是自己算；
+2. **100 个任务占用不高** —— 客户端只是 JS 解释器 + 一个**池化**浏览器（`_browserSemaphore`）+ 字段搬运，
+   没有每任务一套重型进程；
+3. **`Reset` 一次清六个槽位** —— 那六个是"这一次握手的全部结果"，拿旧 `ct` 配新 `st` 就是一次不可能的组合。
+
+### 还有一个常被问的：`x-kpsdk-cd` 有自己的算法吗
+
+**没有。** `Sha256Hex` / `HashDifficulty` / `RandomAddSubtract` 那一批看着像算法，但它们所在类型里有 `get_Bmsz`，
+同族有 `IAkamaiGenerator` —— **那是 Akamai 的 PoW**。Kasada 的 cd 只有两个来源：脚本产出、服务商响应。
+详见 `08-cd.md` §10.3。
 
 ---
 

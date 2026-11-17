@@ -3854,3 +3854,51 @@ Funcaptcha / ArkoseLabs   0        MTCaptcha   0
 | `CAPTCHA_COVERAGE.md` | — | **3,448 字节** |
 
 **纪律**：「缺席」与「结构」是两种证据；而 `0 条元数据` 与 `9 个字段` 写在同一页上就是自相矛盾。
+
+
+## R1055 —— **(a) 的类型级缺口第一次被算出来；一个真的零旁边是一个假的零**
+
+### 判据是现成的
+
+镜像属性形如 `<ns>.<Type>,<asm>.<Member>!Getter` ⇒ 「原版某类型有哪些属性」是**查询**；
+复刻件侧读源码 `get` 访问器 ⇒ **相减即缺口，不用判断。**
+
+### 而结果里一个真零一个假零
+
+```
+CaptchaProvider          meta=24  orig=9  repl=11  missing=0  added=0
+CloudflareSolverConfig   meta=0   orig=0  repl=8   missing=0  added=7  UNRESOLVED
+```
+
+**真零**：镜像 9 个属性全在复刻件（`Priority`·`Name`·`Type`·`ApiKey`·`Balance`·`Count`·`Concurrency`·
+`BalanceSupported`·`IsFetchingBalance`），复刻件另有 `Id`（本地主键）与 `Enabled`（列表成员即启用）。
+
+**假零**：`orig=0` ⇒ `missing=0` 是**空集减空集**的必然；而 `Cybersole.Core.CloudflareSolverConfig`
+这个类型名是**我猜的**，镜像里不叫这个。
+
+**⇒ 同一个 `0` 在同一张表里代表两件相反的事。R1044 那次的对照是横向的（拿已知存在的比），
+这次的对照是**纵向的**（原版侧有没有内容）。**
+
+### 修法：加一列 `resolved`，让两种零各有名字
+
+未解的报 **Unknown + 缺什么**（真实类型名），且**不计入缺口、也不计为已覆盖**。
+结论句因此必须写「**在查询成功的类型上**，缺口为 0」—— 那个限定词是真正的产出。
+
+### 而自加字段的理由要写进表里
+
+`Id`（本地主键）· `Enabled`（列表成员即启用）等。**不写理由，下一轮会把它们当反向缺口去删** ——
+R815「按证据删除，删掉了证据本身」正是这个形状。
+
+### 数字
+
+| 度量 | R1054 | **R1055** |
+|---|---|---|
+| 套件 | 2258 / 0 | **2258 / 0 / 0** |
+| `CaptchaProvider` 属性 | 未知 | **原版 9 / 复刻件 11** |
+| `CaptchaProvider` 缺口 | 未算 | **0（真的）** |
+| `CloudflareSolverConfig` 原版侧 | 未算 | **0 ⇒ UNRESOLVED** |
+| 类型级缺口合计 | 未算 | **0（仅查询成功）** |
+| 未解类型 | — | **1** |
+| `TYPE_COVERAGE.md` | — | **2,675 字节** |
+
+**纪律**：同一个 `0` 可以是「齐了」也可以是「没查到」；修法是给它们各自的名字，不是把它们都当成好消息。

@@ -52,15 +52,20 @@ Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。
 
 ### 原版点名而台账里没有的（7）
 
-| 缺的 | 命中 | 地址 |
-|---|---|---|
-| **BotDeflector** | 2 | `0x146e93b9c` |
-| **Vercel** | 2 | `0x146d8aa2c` |
-| **Stripe challenge** | 1 | `0x146e9427c` |
-| **PayPal 3DS** | 9 | `0x146e93fb4` |
-| **captcha** | 1 | `0x146e94334` |
-| **proof of work** | 1 | `0x146e93f74` |
-| **checkpoint** | 1 | `0x146e94464` |
+| 缺的 | 命中 | 类别 | 处置 |
+|---|---|---|---|
+| **BotDeflector** | 2 | vendor | 原版有两条文案（`Solving BotDeflector icons` · `Solving BotDeflector proof of work`），所以它是**两种挑战**（图标点选 + PoW）。补行需要先定 `Solver`：镜像里没有第三方指向，但那不等于自建 —— R1029 的 `Relayed` 两轴就是为这种情形留的。 |
+| **Vercel** | 2 | vendor | 只有 `Solving Vercel` 一条，没有分期文案。补行的最小诚实形态是 `State.DetectedOnly` + `Solver.Unknown`，因为镜像只证明它被走到，不证明怎么解。 |
+| **Stripe challenge** | 1 | payment | 支付侧挑战，不是站点风控。`VendorWiring` 是站点风控台账 ⇒ **不该进这张表**；它属于支付层（`AdyenGateway` 那一族），要在那里记。 |
+| **PayPal 3DS** | 9 | payment | 九条分期文案（`(1)`…`(8)` 加无条件），是 3DS 流程的阶段，同样**不属于站点风控台账**。→ 归支付层。分期数本身是有用证据：3DS 有 8 个可观察阶段。 |
+| **captcha** | 1 | challenge | 通用验证码挑战，不是某个厂商 ⇒ 台账形状不建模，且不该建模。 |
+| **proof of work** | 1 | challenge | 通用 PoW 挑战，同上。注意镜像原文拼作 `challange` —— 保留拼写，不修正。 |
+| **checkpoint** | 1 | challenge | 通用检查点，同上。 |
+
+**→ 分成两类，而这是完成判据 (f) 要的「未覆盖的每条写为什么」：**
+
+- **真厂商缺口 2 个**（`BotDeflector` · `Vercel`）：`VendorWiring` 应该补行。
+- **不属于这张表的 5 个**（`Stripe challenge` · `PayPal 3DS` · `captcha` · `proof of work` · `checkpoint`）：它们不是站点风控厂商 —— 支付挑战归支付层，通用挑战类型是 `VendorWiring` 的形状不该建模的东西。
 
 **→ 这些是 `VendorWiring` 的缺口**：原版对它们有进度文案，说明原版确实走到那一步，
 而台账没有对应的行 ⇒ 按 (f)「未覆盖的每条写为什么」。

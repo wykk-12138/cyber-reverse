@@ -9983,3 +9983,39 @@ kpsdk 17 · datadome 15      ⇒ 下面的 0 可读成「镜像里没有」
 | Nike 二选一 / Farfetch transport | 不可得（R1045） |
 
 **纪律**：名字没有 authority 时，要说清**为什么它不需要**，而不只是「查不到」。
+
+
+## 判据 (f) — **R1047 收尾（套件绿）；7 个缺口只有 2 个真该补**（R1048）
+
+### R1047 收尾
+
+```
+完整套件 2258/0/0 · 陈旧度 0/0 · 函数数 174,293 · 62.89%
+```
+
+### 7 条缺口分两类
+
+| 缺口 | 类别 | 处置 |
+|---|---|---|
+| `BotDeflector` | **vendor** | 真该补。两条文案 ⇒ 两种挑战（icons · PoW）。补行要先定 `Solver`。 |
+| `Vercel` | **vendor** | 真该补。最小诚实形态 `DetectedOnly` + `Solver.Unknown`。 |
+| `Stripe challenge` | payment | **不该进这张表**（属支付层） |
+| `PayPal 3DS` | payment | **不该进**（9 条分期 ⇒ **3DS 有 8 个可观察阶段**） |
+| `captcha` · `proof of work` · `checkpoint` | challenge | **不该建模**（原文 `challange` 拼写保留） |
+
+**⇒ 真厂商缺口 2 · 不属于这张表 5。**
+
+### 生成物
+
+**`VENDOR_COVERAGE.md` 2,059 → **4,466** 字节；`DISPOSITION` 有自保：未分类名字会明说「生成器的缺口」。**
+
+### 数字
+
+**套件 2258/0/0 · 陈旧度 0/0 · 函数数 174,293 · 求解对象 13 · 台账 7 行 · 缺口 7（真厂商 2）**
+
+| 待做 | |
+|---|---|
+| `BotDeflector` 补行（先定 Solver） | 下一步 |
+| `Vercel` 补行（DetectedOnly + Unknown） | 下一步 |
+
+**纪律**：「未覆盖的每条写为什么」要求**每条先定类别** —— 答案随类别完全不同。

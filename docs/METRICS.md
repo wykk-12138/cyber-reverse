@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-17 19:33:25 +0800 |
+| 生成时间 | 2026-11-17 20:19:08 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,7 +14,7 @@
 
 ## 时效警告（生成）
 
-> **变异套件那一组数来自上一次运行，而它已经过期**：`5:26:51 -- fingerprint_vocab.py changed after the run`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`6:12:25 -- vendor_coverage.py changed after the run`。
 
 ## 摘要素值
 
@@ -41,9 +41,7 @@
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
 | 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
 | 核心覆盖：store 宿主 | （未解析，见下方原始输出） |
-| 核心覆盖：vendor 宿主 — vendor hosts carrying a path | 12 |
-| 核心覆盖：vendor 宿主 — vendors named somewhere in src | 12 |
-| 核心覆盖：vendor 宿主 — vendors absent from src | 0 |
+| 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
 | 可执行段体量 — section-mass: original executable | 51695104 |
 | 可执行段体量 — section-mass: replica executable | 28897792 |
 | 可执行段体量 — section-mass: ratio | 55.90% |
@@ -54,7 +52,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 5:26:51 -- fingerprint_vocab.py changed after the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 6:12:25 -- vendor_coverage.py changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -398,27 +396,15 @@ C:\Python312\python.exe tools/vendor_coverage.py
 `exit 0`
 
 ```text
-vendor hosts carrying a path: 12
-
-host                                                        pt  service      named in
-challenges.cloudflare.com                                    1  Cloudflare   yes  AntiBotProtocol.cs, AntiBotVendors.cs, CloudflareClearance.cs
-checkoutshopper-live.adyen.com                               2  Adyen        yes  AdyenGateway.cs, AdyenPayPalFlow.cs, BstnFlow.cs
-inbox-api.aycd.io                                            3  AYCD         yes  Accounts.cs, AycdInboxAccount.cs, AycdInboxClient.cs
-payments-panel.production.eshopworld.com                     3  eShopWorld   yes  EshopWorldPanel.cs
-paymentsheet-ent.wdprapps.disney.com                         3  Disney       yes  DisneyPaymentSheet.cs, StoreFlow.cs
-registerdisney.go.com                                        1  Disney       yes  DisneyPaymentSheet.cs, StoreFlow.cs
-retailer-shopifypayments-api.production.eshopworld.com       2  eShopWorld   yes  EshopWorldPanel.cs
-web-dsy.global-e.com                                         1  Global-e     yes  GlobalECheckout.cs
-webservices.global-e.com                                     3  Global-e     yes  GlobalECheckout.cs
-www.paypal.com                                               4  PayPal       yes  Accounts.cs, AdyenPayPalFlow.cs, CandidateSteps.cs
-www.purpledotprice.com                                       1  PurpleDot    yes  PurpleDot.cs
-www.vivapayments.com                                         3  Viva         yes  StoreFlow.cs, VivaPayments.cs
-
-vendor hosts carrying a path: 12
-vendors named somewhere in src: 12
-vendors absent from src: 0
-NOTE: 'yes' means some source file contains the service's name. It does not mean the integration is complete
-      or correct -- a constant naming a host and a working flow are different things.
+  wrote docs/VENDOR_COVERAGE.md
+  controls ok=True  vendors named=13  wiring rows=7  missing=7
+    missing: BotDeflector       n=2   0x146e93b9c
+    missing: Vercel             n=2   0x146d8aa2c
+    missing: Stripe challenge   n=1   0x146e9427c
+    missing: PayPal 3DS         n=9   0x146e93fb4
+    missing: captcha            n=1   0x146e94334
+    missing: proof of work      n=1   0x146e93f74
+    missing: checkpoint         n=1   0x146e94464
 ```
 
 ### 可执行段体量
@@ -559,7 +545,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 5:26:51 -- fingerprint_vocab.py changed after the run
+  mutation-fit-staleness: 6:12:25 -- vendor_coverage.py changed after the run
 
   The counts above are from 2026-11-17T14:06:23+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
@@ -575,21 +561,21 @@ D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c
 `exit 0` · 2258 通过 / 0 失败 / 0 跳过 / 2258 总计
 
 ```text
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\MethodPatchTableTests.cs(77,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(109,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(34,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(35,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SizePaletteTests.cs(24,9): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StepActionTests.cs(293,89): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SportsshoesFlowTests.cs(128,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\UnmatchedGatewaysTests.cs(58,78): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+  正在确定要还原的项目…
+D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+  所有项目均是最新的，无法还原。
+  Cybersole.Core -> D:\projects\cyber-reverse\replica\src\Cybersole.Core\bin\Debug\net8.0\Cybersole.Core.dll
+  Cybersole.Http -> D:\projects\cyber-reverse\replica\src\Cybersole.Http\bin\Debug\net8.0\Cybersole.Http.dll
+D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr
+  Cybersole.Services -> D:\projects\cyber-reverse\replica\src\Cybersole.Services\bin\Debug\net8.0\Cybersole.Services.dll
+  Cybersole.Stores -> D:\projects\cyber-reverse\replica\src\Cybersole.Stores\bin\Debug\net8.0\Cybersole.Stores.dll
+  Cybersole.Ui -> D:\projects\cyber-reverse\replica\src\Cybersole.Ui\bin\Debug\net8.0\Cybersole.Ui.dll
   Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 1 m 30 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 2 m 33 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

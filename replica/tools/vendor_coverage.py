@@ -46,6 +46,37 @@ VENDORS = [
 
 CONTROLS = [("kpsdk", r"kpsdk"), ("datadome", r"datadome")]
 
+# R1048: the seven gaps the reconciliation finds are not one kind of thing, and criterion (f) asks each uncovered item
+# to say why. Three of them are challenge types the Row shape does not model -- they are not vendors, and adding them
+# as rows would make the table claim something false about its own subject. The other four are missing rows, and the
+# disposition column says what each needs before a row can be written honestly.
+DISPOSITION = {
+    "BotDeflector": (
+        "vendor",
+        "原版有两条文案（`Solving BotDeflector icons` · `Solving BotDeflector proof of work`），"
+        "所以它是**两种挑战**（图标点选 + PoW）。补行需要先定 `Solver`：镜像里没有第三方指向，"
+        "但那不等于自建 —— R1029 的 `Relayed` 两轴就是为这种情形留的。",
+    ),
+    "Vercel": (
+        "vendor",
+        "只有 `Solving Vercel` 一条，没有分期文案。补行的最小诚实形态是 `State.DetectedOnly` + "
+        "`Solver.Unknown`，因为镜像只证明它被走到，不证明怎么解。",
+    ),
+    "Stripe challenge": (
+        "payment",
+        "支付侧挑战，不是站点风控。`VendorWiring` 是站点风控台账 ⇒ **不该进这张表**；"
+        "它属于支付层（`AdyenGateway` 那一族），要在那里记。",
+    ),
+    "PayPal 3DS": (
+        "payment",
+        "九条分期文案（`(1)`…`(8)` 加无条件），是 3DS 流程的阶段，同样**不属于站点风控台账**。"
+        "→ 归支付层。分期数本身是有用证据：3DS 有 8 个可观察阶段。",
+    ),
+    "captcha": ("challenge", "通用验证码挑战，不是某个厂商 ⇒ 台账形状不建模，且不该建模。"),
+    "proof of work": ("challenge", "通用 PoW 挑战，同上。注意镜像原文拼作 `challange` —— 保留拼写，不修正。"),
+    "checkpoint": ("challenge", "通用检查点，同上。"),
+}
+
 
 def probe(pattern, limit=600):
     p = subprocess.run(
@@ -150,10 +181,21 @@ def main():
     add("### 原版点名而台账里没有的（%d）" % len(missing))
     add("")
     if missing:
-        add("| 缺的 | 命中 | 地址 |")
-        add("|---|---|---|")
+        add("| 缺的 | 命中 | 类别 | 处置 |")
+        add("|---|---|---|---|")
         for name, n, addr in missing:
-            add("| **%s** | %d | `%s` |" % (name, n, addr))
+            kind, why = DISPOSITION.get(name, ("?", "（未分类 —— 这是生成器的缺口，不是结论）"))
+            add("| **%s** | %d | %s | %s |" % (name, n, kind, why))
+        real = [m for m in missing if DISPOSITION.get(m[0], ("?",))[0] == "vendor"]
+        other = [m for m in missing if DISPOSITION.get(m[0], ("?",))[0] != "vendor"]
+        add("")
+        add("**→ 分成两类，而这是完成判据 (f) 要的「未覆盖的每条写为什么」：**")
+        add("")
+        add("- **真厂商缺口 %d 个**（%s）：`VendorWiring` 应该补行。"
+            % (len(real), " · ".join("`%s`" % m[0] for m in real) or "无"))
+        add("- **不属于这张表的 %d 个**（%s）：它们不是站点风控厂商 —— 支付挑战归支付层，"
+            "通用挑战类型是 `VendorWiring` 的形状不该建模的东西。"
+            % (len(other), " · ".join("`%s`" % m[0] for m in other) or "无"))
     else:
         add("（无）")
     add("")

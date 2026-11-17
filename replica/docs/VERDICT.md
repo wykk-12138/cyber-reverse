@@ -61438,3 +61438,68 @@ Count (get/set) · Concurrency (get/set)
 > **连续两次改同一列、两次都被下一轮推翻 —— 那说明问题不在值上，在**列的定义**上。
 > → 拦住第三次的不是判断力，是数一下：**这个列我这轮是第几次动它。**
 > → 三次动同一个地方，第一次是修，第二次是修错了，第三次该先问它该不该存在。**
+
+
+---
+
+## 第 1029 轮：一个列换成两个轴；而 kasada/akamai 标 `Unknown` 是刻意的
+
+### ① 两个轴
+
+```csharp
+public enum Solver { None, Local, SelfHosted, UserThirdParty, Unknown }
+public sealed record Row(..., Solver Solver, bool Relayed);
+```
+
+| vendor | `Solver` | `Relayed` |
+|---|---|---|
+| cloudflare | **`UserThirdParty`** | **true** |
+| datadome | **`SelfHosted`** | **true** |
+| kasada · akamai | **`Unknown`** | false |
+| perimeterx · queue-it | `Local` | false |
+| imperva | `None` | false |
+
+**→ cloudflare 与 datadome 都中转而 solver 不同；kasada 与 akamai 都 `Unknown` 而不中转 ⇒ **两轴独立**。**
+
+### ② 而 `Unknown` 用在这里是**刻意的**
+
+**kasada/akamai 的 `API down (Contact staff)` 只证明**别人**在解，不证明是谁 ——
+无 solver 类、无中继 host。给它们 `UserThirdParty` 会是一次**同形的推断**，而那已经错了两次。**
+
+### ③ 而这次改动里我的脚本错了**四次**
+
+| 次 | 错 |
+|---|---|
+| 1 | 替换时吞掉行尾 `)` |
+| 2 | 补 `)` 的匹配形不对（行尾是 `,`） |
+| 3 | 补成 `)` 而集合初始化器需要 `),` |
+| 4 | 写成命名实参，而 `Row` 是**位置**构造 |
+
+**→ 四次都是**同一个动作的四个不同细节**，每次我都以为改完了。代价：四次构建。
+→ 教训不是「小心点」，是：改七处同形调用时，**先改一处并构建，再批量。****
+
+### ④ 6 条守卫，第 5 条是拆分的**意义**
+
+`CloudflareIsSolvedByAUserSuppliedService` · `DataDomeIsSolvedByTheOriginalsOwnService` ·
+`TheOutageLineVendorsSayTheyDoNotKnowWhoSolves` · `TheRestAreLocalOrNone` ·
+**`TheTwoAxesAreIndependent`** · `UnknownIsUsedByExactlyTheOutagePair`
+
+**→ 如果两轴总是一起变，拆分只是把一个值换成两个值。**
+
+### ⑤ 数字
+
+| 度量 | R1028 | **R1029** |
+|---|---|---|
+| 套件 | 2243 / 0 | **2243 / 0 / 0** |
+| 产物陈旧度 | 4 / 3,869 | **4 / 3,879** |
+| 函数数 | 174,336 | **174,336** |
+| **`How`** | 1 列（改 2 次） | **拆成 2 列** |
+| **`Solver` 在用取值** | — | **5** |
+| **`Relayed` 为真** | — | **2** |
+| **本轮脚本错误** | — | **4** |
+
+### 教训
+
+> **拆一个列之后要问：这两个新列会不会总是一起动。若会，拆分只是把一个值换成两个值。
+> → 而 `Relayed` 跨 `UserThirdParty` 与 `SelfHosted`，`Local` 两家都不中转 ——
+> 那就是独立性，而它恰好也是**为什么必须拆**的理由。**

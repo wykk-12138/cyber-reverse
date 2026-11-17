@@ -5,84 +5,86 @@ using Xunit;
 namespace Cybersole.Tests;
 
 /// <summary>
-/// R1027: R1026's single RemoteApi value was covering two different arrangements, and the second is not the first.
+/// R1029: the single How column answered two questions at once and was wrong twice for it, so it becomes two axes.
 ///
 /// <para>
-/// R1026 reasoned from "the failure vocabulary includes API down (Contact staff)" to "this vendor is solved remotely",
-/// and found exactly Kasada and Akamai. That is a real signal and it is not the only kind of remote solving: the image
-/// also runs services of its own, named cf-solver.cybersole.io with a /v1/warm endpoint, cloudflare-jsd-gen on the
-/// Worker, and datadome.cybersole.io/sensor. Cloudflare and DataDome use those and carry no outage line, because an
-/// outage line is what you write when somebody else's API can fail.
+/// Cloudflare is the case that made one value impossible. A user supplies an ApiKey and the app displays a balance, so
+/// a paid third party solves; and the same vendor is warmed through cf-solver.cybersole.io, so the original relays too.
+/// R1027 recorded the relaying and lost the solver; R1026 recorded neither. Split, both facts fit.
 /// </para>
 ///
 /// <para>
-/// So the column splits. Relay means the original routes through a service it owns. ThirdPartyApi means it calls one it
-/// does not, and is the only case where "API down, contact staff" makes sense. A vendor with neither is Local.
+/// Kasada and Akamai are deliberately left as Solver.Unknown. Their vocabulary says "API down (Contact staff)", which
+/// establishes that somebody else solves, and nothing establishes who. Reusing UserThirdParty on that evidence would be
+/// the same inference that has been wrong twice -- so the column says it does not know.
 /// </para>
 /// </summary>
 public sealed class VendorSolvingModeTests
 {
-    /// <summary>The two with an outage line call somebody else, and they are the only ones.</summary>
+    /// <summary>The paid-third-party solver is Cloudflare, evidenced by its property set rather than a host.</summary>
     [Fact]
-    public void OnlyTheTwoWithAnOutageLineCallAThirdParty()
+    public void CloudflareIsSolvedByAUserSuppliedService()
     {
-        // Row order, not alphabetical -- this repository has caught me on that three times.
-        var thirdParty = VendorWiring.Rows
-            .Where(r => r.How == VendorWiring.How.ThirdPartyApi)
-            .Select(r => r.Vendor)
-            .ToList();
+        var row = VendorWiring.Rows.Single(r => r.Vendor == "cloudflare");
 
-        Assert.Equal(new[] { "kasada", "akamai" }, thirdParty);
+        Assert.Equal(VendorWiring.Solver.UserThirdParty, row.Solver);
+        Assert.True(row.Relayed);
+    }
+
+    /// <summary>DataDome is the opposite arrangement: the original's own service, not a user's key.</summary>
+    [Fact]
+    public void DataDomeIsSolvedByTheOriginalsOwnService()
+    {
+        var row = VendorWiring.Rows.Single(r => r.Vendor == "datadome");
+
+        Assert.Equal(VendorWiring.Solver.SelfHosted, row.Solver);
+        Assert.True(row.Relayed);
     }
 
     /// <summary>
-    /// The two with a host under cybersole.io or on the Worker go through the original's own service.
+    /// Kasada and Akamai know that somebody else solves but not who, so they say Unknown rather than borrowing a value.
     /// </summary>
     [Fact]
-    public void TheTwoWithARelayHostUseIt()
+    public void TheOutageLineVendorsSayTheyDoNotKnowWhoSolves()
     {
-        var relay = VendorWiring.Rows
-            .Where(r => r.How == VendorWiring.How.Relay)
-            .Select(r => r.Vendor)
-            .ToList();
-
-        Assert.Equal(new[] { "cloudflare", "datadome" }, relay);
+        foreach (var vendor in new[] { "kasada", "akamai" })
+        {
+            var row = VendorWiring.Rows.Single(r => r.Vendor == vendor);
+            Assert.Equal(VendorWiring.Solver.Unknown, row.Solver);
+            Assert.False(row.Relayed);
+        }
     }
 
-    /// <summary>The rest are solved in-process, and imperva is not solved at all.</summary>
+    /// <summary>The remaining two are in-process, and Imperva is not solved at all.</summary>
     [Fact]
     public void TheRestAreLocalOrNone()
     {
-        var local = VendorWiring.Rows.Where(r => r.How == VendorWiring.How.Local).Select(r => r.Vendor).ToList();
-        var none = VendorWiring.Rows.Where(r => r.How == VendorWiring.How.None).Select(r => r.Vendor).ToList();
+        var local = VendorWiring.Rows.Where(r => r.Solver == VendorWiring.Solver.Local).Select(r => r.Vendor).ToList();
+        var none = VendorWiring.Rows.Where(r => r.Solver == VendorWiring.Solver.None).Select(r => r.Vendor).ToList();
 
         Assert.Equal(new[] { "perimeterx", "queue-it" }, local);
         Assert.Equal(new[] { "imperva" }, none);
     }
 
     /// <summary>
-    /// No row has both a relay host and an outage line, which is the observation that forced the split: the two signals
-    /// never co-occur, so one column could not honestly hold both.
+    /// The axes are independent, which is the whole reason for splitting them: two vendors relay and they do not share a
+    /// solver, and two vendors share a solver without sharing the relaying.
     /// </summary>
     [Fact]
-    public void RelayAndThirdPartyAreDisjoint()
+    public void TheTwoAxesAreIndependent()
     {
-        Assert.DoesNotContain(VendorWiring.Rows,
-            r => r.How == VendorWiring.How.Relay && r.Note.Contains("API down"));
+        var relayed = VendorWiring.Rows.Where(r => r.Relayed).Select(r => r.Solver).Distinct().ToList();
+        Assert.True(relayed.Count > 1, "relaying should span more than one solver kind");
+
+        var localNotRelayed = VendorWiring.Rows.Count(r => r.Solver == VendorWiring.Solver.Local && !r.Relayed);
+        Assert.Equal(2, localNotRelayed);
     }
 
-    /// <summary>Unknown exists for a future row that cannot tell; nothing claims it yet.</summary>
+    /// <summary>No row silently becomes Unknown where a real answer exists: exactly two do, and they are the outage pair.</summary>
     [Fact]
-    public void NoRowClaimsUnknownYet()
+    public void UnknownIsUsedByExactlyTheOutagePair()
     {
-        Assert.DoesNotContain(VendorWiring.Rows, r => r.How == VendorWiring.How.Unknown);
-    }
-
-    /// <summary>The column carries information only if more than one value is in use.</summary>
-    [Fact]
-    public void TheColumnDistinguishesTheCases()
-    {
-        var kinds = VendorWiring.Rows.Select(r => r.How).Distinct().Count();
-        Assert.True(kinds >= 4, "expected at least four distinct solving modes among seven rows, saw " + kinds);
+        var unknown = VendorWiring.Rows.Where(r => r.Solver == VendorWiring.Solver.Unknown).Select(r => r.Vendor).ToList();
+        Assert.Equal(new[] { "kasada", "akamai" }, unknown);
     }
 }

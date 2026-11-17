@@ -9248,3 +9248,45 @@ Name · Type · ApiKey · Balance · BalanceSupported · IsFetchingBalance · Co
 | 预热之后真的求解打到哪 | 未取证 |
 
 **纪律**：三次动同一个地方，第一次是修，第二次是修错了，第三次该先问它该不该存在。
+
+
+## 优先级 ② — **`How` 拆成 `Solver` + `Relayed` 两轴；kasada/akamai 刻意标 `Unknown`**（R1029）
+
+### 两个轴
+
+```csharp
+public enum Solver { None, Local, SelfHosted, UserThirdParty, Unknown }
+public sealed record Row(..., Solver Solver, bool Relayed);
+```
+
+| vendor | Solver | Relayed | 依据 |
+|---|---|---|---|
+| cloudflare | `UserThirdParty` | true | `ApiKey`+`Balance`+`BalanceSupported`+`IsFetchingBalance` · `/v1/warm` |
+| datadome | `SelfHosted` | true | `datadome.cybersole.io/sensor` |
+| kasada · akamai | `Unknown` | false | `API down`，无 solver 类，无中继 |
+| perimeterx · queue-it | `Local` | false | 有 Solving 文案，无 host 无 key |
+| imperva | `None` | false | 无解 |
+
+### 而 `Unknown` 是刻意的
+
+**`API down` 只证明**别人**在解，不证明是谁。给 `UserThirdParty` 会是同形的推断（已错两次）。**
+
+### 6 条守卫
+
+含 **`TheTwoAxesAreIndependent`**（若两轴总是一起动，拆分无意义）。
+
+### 而这次我的脚本错了 4 次
+
+吞 `)` → 匹配形错 → 缺 `,` → 命名实参 vs 位置构造。
+**教训：改七处同形调用时，先改一处并构建，再批量。**
+
+### 数字
+
+**套件 2243/0/0 · 陈旧度 4 / 3,879 · 函数数 174,336 · How 1 列 → 2 列 · Solver 5 值 · Relayed 2 家**
+
+| 仍 Unknown | |
+|---|---|
+| kasada/akamai 具体是哪个第三方 | 未取证 |
+| `Type` 有哪些 solver 取值 | 未取证 |
+
+**纪律**：拆分后要问两个新列会不会总是一起动。

@@ -3029,3 +3029,24 @@ cloudflare/datadome = `Relay` · kasada/akamai = `ThirdPartyApi` · perimeterx/q
 纪律：**三次动同一个地方，第一次是修，第二次是修错了，第三次该先问它该不该存在。**
 
 下一轮：把 `How` 换成两个轴（求解者 + 是否中转）。
+
+## R1029 补充 — **`How` 拆成 `Solver` + `Relayed` 两轴；kasada/akamai 刻意标 `Unknown`**（套件 2243）
+
+**两个轴**：`Solver { None, Local, SelfHosted, UserThirdParty, Unknown }` + `bool Relayed`。
+cloudflare = `UserThirdParty`/true · datadome = `SelfHosted`/true · kasada·akamai = `Unknown`/false ·
+perimeterx·queue-it = `Local`/false · imperva = `None`/false。
+→ cloudflare 与 datadome 都中转而 solver 不同；kasada/akamai 都 Unknown 而不中转 ⇒ **两轴独立**。
+
+**`Unknown` 是刻意的**：`API down (Contact staff)` 只证明**别人**在解，不证明是谁。
+给它们 `UserThirdParty` 会是同形的推断（已错两次）⇒ 两行说 `Unknown`，那正是这个值存在的理由。
+
+**而这次我的脚本在同一动作上错了 4 次**：吞 `)` → 匹配形错 → 缺 `,` → 命名实参 vs 位置构造。
+→ 教训：改七处同形调用时，**先改一处并构建，再批量**。
+
+**6 条守卫**，含 **`TheTwoAxesAreIndependent`**（若两轴总是一起动，拆分无意义）。
+
+数字：套件 2243/0/0 · 陈旧度 4 / 3,879 · 函数数 174,336 · How 1 列 → **2 列** · Solver **5** 值 · Relayed **2** 家。
+
+纪律：**拆分后要问两个新列会不会总是一起动。**
+
+下一轮：kasada/akamai 的具体第三方（`Type` 枚举可能是线索）；或换回优先级 ①。

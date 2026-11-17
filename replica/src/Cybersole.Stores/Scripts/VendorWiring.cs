@@ -114,31 +114,41 @@ public static class VendorWiring
     /// others locally. An API can go down; a local routine cannot, it just fails.
     /// </para>
     /// </summary>
-    public enum How
+    /// <summary>
+    /// Who actually solves the challenge, as far as the artifact shows.
+    ///
+    /// <para>
+    /// R1029 replaces the single <c>How</c> enum, which was corrected twice and wrong twice, because it was answering
+    /// two independent questions at once: who solves, and whether the original relays the traffic. Cloudflare is the
+    /// case that proved it -- the user supplies an ApiKey and the app displays a balance, so a third party solves, and
+    /// the same vendor is warmed through cf-solver.cybersole.io, so the original relays. One value could not hold both.
+    /// </para>
+    /// </summary>
+    public enum Solver
     {
         /// <summary>No solving step in the image.</summary>
         None,
-        /// <summary>Solved in-process; the failure vocabulary describes rounds and clearance, not an outage.</summary>
+        /// <summary>Solved in-process; the failure vocabulary describes rounds and clearance, never an outage.</summary>
         Local,
+        /// <summary>Solved by the original's own service: cf-solver.cybersole.io, datadome.cybersole.io/sensor.</summary>
+        SelfHosted,
         /// <summary>
-        /// Solved through a service the original runs itself. Evidenced by a host under cybersole.io or
-        /// cybersole.workers.dev: cf-solver.cybersole.io with its /v1/warm endpoint, cloudflare-jsd-gen on the Worker,
-        /// datadome.cybersole.io/sensor.
+        /// Solved by a service the user configures and pays for. The evidence is the property set rather than a host:
+        /// CloudflareSolver carrying ApiKey, Balance, BalanceSupported and IsFetchingBalance beside a Type.
         /// </summary>
-        Relay,
+        UserThirdParty,
         /// <summary>
-        /// Solved by calling a third party that can be down, which is what "&lt;Vendor&gt; API down (Contact staff)"
-        /// says. Kasada and Akamai carry that line and carry no relay host, so R1026's single RemoteApi value was
-        /// covering two different arrangements.
+        /// Known to call somebody else -- the failure vocabulary says "API down (Contact staff)" -- but which service
+        /// is not established. Kasada and Akamai are here, and naming them Unknown is more useful than picking the
+        /// value the other two vendors justify.
         /// </summary>
-        ThirdPartyApi,
-        /// <summary>Not established, and this column says so rather than guessing.</summary>
         Unknown,
     }
 
     /// <summary>One row of the audit.</summary>
+    /// <summary>One row of the audit.</summary>
     public sealed record Row(string Vendor, string Marker, string? Cookie, State State, string Note,
-        MarkerSource MarkerFrom, Gap Gap, How How);
+        MarkerSource MarkerFrom, Gap Gap, Solver Solver, bool Relayed);
 
     /// <summary>The audit, in the order <c>DetectAsync</c> tests its markers.</summary>
     public static readonly IReadOnlyList<Row> Rows = new[]
@@ -148,11 +158,11 @@ public static class VendorWiring
             + "from cf-chl, which the image does not contain, to challenge-platform, which it carries twice as "
             + "/cdn-cgi/challenge-platform/ -- page-level, which is what DetectAsync reads. cf_clearance and __cf_bm "
             + "are in the image too but are cookie names, so they belong in the cookie column where cf_clearance sits.",
-            MarkerSource.ImageLiteral, Gap.None, How.Relay),
+            MarkerSource.ImageLiteral, Gap.None, Solver.UserThirdParty, true),
 
         new Row("kasada", "kpsdk", "kpsdk", State.Wired,
             "R141: KasadaClearance runs the four-road strategy and writes the token",
-            MarkerSource.ImageLiteral, Gap.None, How.ThirdPartyApi),
+            MarkerSource.ImageLiteral, Gap.None, Solver.Unknown, false),
 
         // R1024: Akamai was missing from this audit while being the vendor the image documents most thoroughly --
         // analysis/endpoints.md lists twenty-five literals for it. Verified in this round, in address order:
@@ -173,7 +183,7 @@ public static class VendorWiring
             + "original both solves it and can route around it. This replica detects it and has no solver: the name turns "
             + "up in its source only inside fanatics' and casio's 403 messages. DetectedOnly is therefore a statement "
             + "about the replica, not about the artifact.",
-            MarkerSource.ImageLiteral, Gap.None, How.ThirdPartyApi),
+            MarkerSource.ImageLiteral, Gap.None, Solver.Unknown, false),
 
         new Row("imperva", "_Incapsula_Resource", null, State.DetectedOnly,
             "R1021: two independent sources agree the vendor is absent. None of six spellings is in the artifact "
@@ -181,13 +191,13 @@ public static class VendorWiring
             + "vendors, each carrying the literals that prove it -- does not list Imperva, nor does NamedButNotHandled. "
             + "The branch is kept as an extension so an Imperva wall on a store the original never covered is reported "
             + "rather than swallowed as a product page; it fires only on a page naming the resource.",
-            MarkerSource.Inferred, Gap.VendorAbsent, How.None),
+            MarkerSource.Inferred, Gap.VendorAbsent, Solver.None, false),
 
         new Row("datadome", "datadome", "datadome", State.Wired,
             "R996: DataDomeClearance runs the sensor at datadome.cybersole.io/sensor, narrates the image's four stages "
             + "and writes the datadome cookie. R141's correction stands -- SolveBotD proved the original solves it -- and "
             + "what was missing was the call, which now exists and which SolveDetectedWallAsync dispatches to.",
-            MarkerSource.ImageLiteral, Gap.None, How.Relay),
+            MarkerSource.ImageLiteral, Gap.None, Solver.SelfHosted, true),
 
         // R1022: Gap.NoPageMarker now has a second witness. AntiBotVendors has carried a PerimeterX entry since
         // before this audit, and none of its literals is a page-level string (R1023 added a fifth, "Solving PerimeterX",
@@ -212,7 +222,7 @@ public static class VendorWiring
             + "literals to this vendor when they are DataDome's -- DdInterstitialClient sits beside them -- so DetectAsync "
             + "now routes them to datadome and this row keeps px-captcha as the only marker it can claim, which the image "
             + "does not carry.",
-            MarkerSource.Inferred, Gap.NoPageMarker, How.Local),
+            MarkerSource.Inferred, Gap.NoPageMarker, Solver.Local, false),
 
         // R1025: this row said NotAChallenge -- "a queue, not a wall: the correct handling is to wait" -- and the image
         // says otherwise in eight places. Verified this round:
@@ -235,7 +245,7 @@ public static class VendorWiring
             + "/challengeapi/queueitcaptcha/challenge/ and seven X-queueit-challange-* headers -- so waiting is part of "
             + "the handling rather than all of it. Rows earlier in this file called it NotAChallenge; that was reading "
             + "the waiting room as the whole vendor.",
-            MarkerSource.ImageLiteral, Gap.None, How.Local),
+            MarkerSource.ImageLiteral, Gap.None, Solver.Local, false),
     };
 
     /// <summary>Vendors whose call chain is complete.</summary>

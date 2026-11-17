@@ -59,6 +59,51 @@ get_Bmsz / set_Bmsz             0x1434486fb / 0x143448704
 
 ---
 
+## 2.2 三个「bot」别混（本轮新增，最容易踩的一处）
+
+镜像里有三样东西名字都带 `bot`，**分属三家**：
+
+| 名字 | 归属 | 证据 | 是什么 |
+|---|---|---|---|
+| `https://kasada.hypersolutions.co/botid` | **Kasada**（服务商端点） | `0x14706ebfc` | HyperSolutions 的 **Kasada** 端点，路径碰巧叫 `botid` |
+| `BotIdHandler` · `Getting BotID` · `VercelBotIdSolver` · `_botId` · `botIdScriptPath` · `BotID API down (Contact staff)` | **Vercel** | `0x143330b4e` · `0x146da1594` · `0x143323e85` · `0x1433a5b6a` · `0x1433a5af3` · `0x146b609ac` | Vercel 的 BotID 体系 |
+| `0x4AAAAAA…` 形式的字符串（11 条） | **Cloudflare Turnstile** | `0x146ac49b4`–`0x146ac4bac` 一片 | Turnstile 的 **sitekey** 表 |
+
+**Vercel 是一套完整的独立挑战体系**，不是 Kasada 的变体：
+
+```
+VercelChallengeHandler                            0x143337de3
+  x-vercel-challenge-token                        0x1471893bc
+  x-vercel-challenge-solution                     0x14718936c
+  x-vercel-challenge-version                      0x147189404
+  /.well-known/vercel/security/request-challenge  0x146aabfdc
+  /.well-known/vercel/security/static/challenge.v2.min.js   0x146aac054
+  文案：Solving Vercel · Failed solving Vercel · VERCEL
+```
+
+它的**三个头**（token / solution / version）与 Kasada 的九个 `x-kpsdk-*` 结构上像、内容上毫无关系。
+
+**Turnstile sitekey 表**（11 条，紧邻 `botIdScriptPath`）：
+
+```
+0x146ac49b4  0x4AAAAAAAjwg0oHC1Cfqzj5
+0x146ac49fc  0x4AAAAAABjS2VBBaa-_UHjJ
+0x146ac4a44  0x4AAAAAABjS33Y7wk11lsWy
+0x146ac4a8c  0x4AAAAAACm-_-PQVKerNsuH    （旁边标了 KlaviyoCompanyId）
+0x146ac4ad4  0x4AAAAAADibA1OitcnQTPLS
+0x146ac4b1c  0x4AAAAAADpcHyen1klrdgJO
+0x146ac4b64  0x4AAAAAAEG_uUuLoIeg8-fD    （就在 botIdScriptPath 隔壁，最容易被误认）
+0x146ac4bac  0x4AAAAAAFX8YPLX2e1EDOQl
+```
+
+**⇒ 判据**：看到 `0x4AAAAAA` 前缀就是 Turnstile sitekey，与 bot id **无关**；
+`botIdScriptPath` 之所以挨着它，只是因为元数据区按字母序排。
+
+**这条边界的价值**：`E10` 这个待办原本挂了两轮，就是因为"`/botid` 端点"与"`BotIdHandler`"名字撞了。
+现在确认**两者毫无关系** —— Kasada 的 `/botid` 是服务商端点，`BotIdHandler` 是 Vercel 的。
+
+---
+
 ## 3. 四个已经踩过的误判（写下来是为了不再犯）
 
 ### 3.1 把 `GenerateSbsd` / `GetSbsdData` 当成 Kasada 的步骤

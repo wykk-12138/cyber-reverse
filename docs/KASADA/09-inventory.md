@@ -78,7 +78,7 @@
 | E8 | **`/payload` 与 `/botid` 的请求形状** | 反编译 `sub_14111CB10`（botid）/ `sub_1411483E0`（payload），见 04 §2.6：`POST` + `X-Type: kasada` + `X-Upstream-{Url,Method,Headers}` + `X-User-Id` + `X-Client-Version` + `content-encoding: zstd`；200/401/403 三档 | 04 §2.6 | ✅ |
 | E8b | `/payload` 的状态文案 = **`Getting Kasada (1)`** ⇒ `Getting Kasada (n)` 就是打这个端点 | `0x146da1778`（`/botid` 那条是 `0x146da1588` = `Getting BotID`） | 04 §2.6 | ✅ |
 | E9 | protobuf 的 solver 指令协议（`stage` / `ReceiveHeaders` / `target`） | 字段表 `0x143459xxx` · base64 样本池 `0x06f96c3c` | 04 §2 | 🟡（Inf） |
-| E10 | `BotID` 族（`BotIdHandler` / `Getting BotID` / `BotID API down (Contact staff)`） | `0x143330b4e` · `0x146da1594` · `0x146b609ac` | — | ⬜ **待挖**：是不是 Kasada 的 botid，还是通用能力 |
+| E10 | `BotID` 族归属 | `BotIdHandler` `0x143330b4e` · `Getting BotID` `0x146da1594` · `VercelBotIdSolver` `0x143323e85` · `botIdScriptPath` `0x1433a5af3` · `BotID API down` `0x146b609ac` | 07 §2.2 | ✅ **结案**：属 **Vercel** 的 BotID 体系，与 Kasada 的 `/botid` 端点**毫无关系**（后者是 HyperSolutions 的 Kasada 路径） |
 
 ## F. 模式、降级与状态机
 

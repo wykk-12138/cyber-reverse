@@ -52,6 +52,14 @@ public sealed class PaymentGatewayRegistry
     public IPaymentGateway? Resolve(string? id) =>
         id is not null && _gateways.TryGetValue(id, out var g) ? g : null;
 
+    /// <summary>
+    /// The registry flows actually use. R1002 added this because <see cref="CreateDefault"/> had no caller, so the whole
+    /// family was trimmed: seven of the nine gateways already written were absent from the artifact, and so was this type's
+    /// own name. Building a new registry on every payment would be wasteful and still unreachable if nothing calls it, so
+    /// there is one instance and <c>StoreFlow.SubmitPaymentAsync</c> is the call site that reaches it.
+    /// </summary>
+    public static PaymentGatewayRegistry Default { get; } = CreateDefault();
+
     /// <summary>Every gateway the shipped binary references, wired up and ready.</summary>
     public static PaymentGatewayRegistry CreateDefault()
     {

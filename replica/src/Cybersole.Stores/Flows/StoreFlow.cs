@@ -1122,6 +1122,38 @@ public abstract class StoreFlow
 
         if (string.IsNullOrEmpty(gateway)) return await NotSupported("SubmitPayment").ConfigureAwait(false);
 
+        // R1002: the per-shop gateway choice finally has a caller. R1001 wrote four gateways and published them, and not
+        // one reached the artifact -- CreateDefault had no caller, so the family was trimmed along with this type's own
+        // name. SubmitPaymentAsync is the place, because twelve flows override it and a step with overrides is retained
+        // where an unoverridden base body is not.
+        var registered = Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve(gateway);
+        if (registered is not null)
+        {
+            var outcome = await registered.AuthorizeAsync(c, ct).ConfigureAwait(false);
+
+            // StepOutcome has no Action form -- it carries Ok, Error, Retryable and Abort and nothing else -- so a 3-D
+            // Secure hand-off is recorded where the next step reads it and the step reports success. Inventing a fifth
+            // factory here would be a shape the rest of the flow does not understand.
+            if (outcome.RequiresAction && !string.IsNullOrEmpty(outcome.ThreeDsUrl))
+            {
+                c.Session.Vars["threeDsUrl"] = outcome.ThreeDsUrl!;
+                if (!string.IsNullOrEmpty(outcome.ThreeDsPayload))
+                    c.Session.Vars["threeDsPayload"] = outcome.ThreeDsPayload!;
+                c.Emit($"{Name}: {gateway} needs a 3-D Secure step", "payment");
+                return StepOutcome.Success();
+            }
+
+            if (outcome.Ok)
+            {
+                c.Emit($"{Name}: {gateway} authorised ({outcome.GatewayReference ?? "no reference"})", "payment");
+                return StepOutcome.Success();
+            }
+
+            // A registered gateway that refuses is a real answer, so it stops here rather than falling through to the
+            // generic post: a second attempt would be a different payment, not a retry of this one.
+            return StepOutcome.Fail($"{Name}: {outcome.Error ?? gateway + " declined"}", retryable: false);
+        }
+
         var card = c.Session.Vars.GetValueOrDefault("cardNumber") ?? string.Empty;
         var expiry = c.Session.Vars.GetValueOrDefault("cardExpiry") ?? string.Empty;
 

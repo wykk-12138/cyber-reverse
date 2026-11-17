@@ -8140,3 +8140,37 @@ Getting / Initialising / Solving / Submitting DataDome
 | `CreateDefault()` 在原版里是否有调用者 | 未取证 |
 
 **纪律**：「我给它加了调用点」可以为真而不改变产物一个字节。
+
+
+## 优先级 ①/判据 (c) — **`SubmitPaymentAsync` 接 `registry.Resolve`：函数数 173,994 → 174,336（+342），产物网关 2 → 9**（R1002）
+
+### 改了两处
+
+1. `PaymentGateway.cs` — `public static PaymentGatewayRegistry Default { get; } = CreateDefault();`
+2. `StoreFlow.SubmitPaymentAsync` — gateway 名解析后先试 `Default.Resolve(gateway)`，
+   命中则跑 `AuthorizeAsync`；`RequiresAction` 记 `threeDsUrl`/`threeDsPayload` 并返回 Success
+   （`StepOutcome` 只有 Success/Fail/Stop，不发明第四个工厂）
+
+**选它的理由：`SubmitPaymentAsync` 有 **12 个覆写** → 基类体保留 → 调用可达（R963 的反面）。**
+
+### 可达性三档（R1000 修订）
+
+**① 从入口可达 ② 被覆写 ③ 两者都没有（被裁）。「有调用语句」不构成任何一档。**
+**R1001 +0 / R1002 +342，同一份代码，差别只在那一行是否在可达的路上。**
+
+### 产物验证
+
+**`PaymentGatewayRegistry` IN · 4 个新网关 host 全 IN · `sibspayments`/`unzer`/`omise` IN
+→ 产物里网关 2 → 9。**
+**`needs a 3-D Secure step` absent（该分支未保留，可达的是 `AuthorizeAsync`）· `squareup`/`adyen` absent。**
+
+### 数字
+
+**套件 2214 · 陈旧度 0/0 · 函数数 174,336 · 比 62.91% · 产物网关 9**
+
+| 仍 Unknown | |
+|---|---|
+| `api.squareup.com` / `adyen.com` 的 host 拼法 | 未核（可能不同） |
+| DataDome 的 3DS 分支为什么被裁 | 未查 |
+
+**纪律**：可达性独立于代码量，它不写在任何一行里。

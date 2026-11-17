@@ -59672,3 +59672,68 @@ ran_at 2026-11-17T14:06:23+08:00
 > 因为那个调用点在一条没人走的路上。
 > → 唯一不会骗人的检验是产物本身：搜它，或者数它。
 > 而我在 R1000 才第一次做，这一轮就靠它否掉了自己。**
+
+
+---
+
+## 第 1002 轮：一句接线把 250 行代码拉进产物 —— +0 → +342
+
+### ① 改了两处
+
+1. **`PaymentGateway.cs`**：`public static PaymentGatewayRegistry Default { get; } = CreateDefault();`
+2. **`StoreFlow.SubmitPaymentAsync`**：gateway 名解析出来后先试注册表
+
+```csharp
+var registered = Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve(gateway);
+if (registered is not null)
+{
+    var outcome = await registered.AuthorizeAsync(c, ct).ConfigureAwait(false);
+    …
+}
+```
+
+**选 `SubmitPaymentAsync` 的理由：它有 **12 个覆写** —— R963「零覆写基类体被裁」的反面。**
+
+### ② 为什么这一处通、R1001 那处不通
+
+**R1001 的 `Register(new MollieGateway())` 在 `CreateDefault()` 里，是一句普通构造调用 ——
+而**没有人调 `CreateDefault()`**，整条链不可达。**
+
+**这一轮的调用点在 `SubmitPaymentAsync` 里，它有 12 个覆写，所以基类体被保留。**
+
+> **→ R1000 那条规则该写成三档：① 从入口可达 ② 被覆写 ③ 两者都没有（被裁）。
+> 「有调用语句」不构成任何一档。**
+
+### ③ 产物验证（肯定的）
+
+| 串 | 新 | 旧 |
+|---|---|---|
+| **`PaymentGatewayRegistry`** | **IN** | absent |
+| **4 个新网关的 host** | **IN** | absent |
+| `sibspayments` · `unzer` · `omise` | **IN** | absent |
+| `stripe` · `paypal` | IN | IN |
+| `squareup` · `adyen` | absent | absent |
+| `needs a 3-D Secure step` | **absent** | absent |
+
+**→ 产物里的网关 **2 → 9 个**。
+→ `needs a 3-D Secure step` absent：`RequiresAction` 分支没被保留，可达的是 `AuthorizeAsync` 本身。
+→ `squareup`/`adyen` 不在这一轮的可达集里（不同文件 / 不同拼法）。**
+
+### ④ 数字
+
+| 度量 | R1001 | **R1002** |
+|---|---|---|
+| **函数数** | 173,994 | **174,336（+342）** |
+| **函数比** | 62.79% | **62.91%** |
+| 套件 | 2214 | **2214** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 产物里网关 | 2 | **9** |
+
+> **+342 的量级对得上：9 个网关类各自的四方法 + 闭包 + `JObject` 构造 + 插值 + `Dictionary`。
+> 而这一整族在 R1001 里是 0。**
+
+### ⑤ 教训
+
+> **「加了 250 行」和「产物多了 342 个函数」之间，隔着一句 `Resolve`。
+> 而我在 R1001 里以为注册就是那句 —— 注册只是把新类放在一条没人走的走廊上。
+> → 可达性是**独立于代码量**的一个维度。它不写在任何一行里，只能被证明或被否证。**

@@ -9640,3 +9640,86 @@ R1000 让「在产物里搜」成为固定动作。**
 > **「我给它加了调用点」这句话可以完全为真，而不改变产物一个字节 ——
 > 因为那个调用点在一条没人走的路上。**
 > **→ 唯一不会骗人的检验是产物本身：搜它，或者数它。而我在 R1000 才第一次做，这一轮就靠它否掉了自己。**
+
+
+### 一句接线把 250 行代码拉进了产物：**+0 → +342**（R1002）
+
+**R1001 加了 4 个网关，publish 之后函数数**一个都不动**，因为 `CreateDefault()` 没人调。
+这一轮只改两处，函数数涨了 **342**。**
+
+### ① 改了什么
+
+**① `PaymentGateway.cs`：加一个 `public static PaymentGatewayRegistry Default { get; } = CreateDefault();`**
+**② `StoreFlow.SubmitPaymentAsync`：gateway 名解析出来之后先试注册表**
+
+```csharp
+var registered = Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve(gateway);
+if (registered is not null)
+{
+    var outcome = await registered.AuthorizeAsync(c, ct).ConfigureAwait(false);
+    …
+}
+```
+
+**而选 `SubmitPaymentAsync` 的理由是**有 12 个覆写**（`DemandwareFlow` / `FarfetchFlow` / `FootsitesFlow` …）——
+R963 那条「零覆写的基类体被裁」的反面。**
+
+### ② 为什么这一处能通，而 R1001 那处不能
+
+**R1001 说「我给它加了调用点」：`Register(new MollieGateway())` 在 `CreateDefault()` 里，
+那是一句普通的构造调用 —— 而**没有人调 `CreateDefault()`**，所以整条链不可达。**
+
+**这一轮的调用点在 `SubmitPaymentAsync` 里，而那个方法有 12 个覆写，
+所以基类体被保留，`registry.Resolve` 从覆写出发可达。**
+
+> **→ 所以 R1000 那条规则要写成三档，而不是两档：
+> ① 从入口可达 ② 被覆写（覆写的体进产物，且该方法被保留）③ 两者都没有（被裁）。
+> 「有调用语句」不构成任何一档。**
+
+### ③ 产物验证（这一次是肯定的）
+
+| 串 | 新 `.publish-aot` | 旧 |
+|---|---|---|
+| **`PaymentGatewayRegistry`** | **IN** | absent |
+| **`ecommerce-gateway.mollie.com`** | **IN** | absent |
+| **`degica.as1.gpayments.net`** | **IN** | absent |
+| **`retry.touchtechpayments.com`** | **IN** | absent |
+| **`app.midtrans.com`** | **IN** | absent |
+| `api.sibspayments.com` · `api.unzer.com` · `api.omise.co` | **IN** | absent |
+| `api.stripe.com` · `paypal.com` | IN | IN |
+| `api.squareup.com` · `adyen.com` | absent | absent |
+| `needs a 3-D Secure step` | **absent** | absent |
+
+**→ 产物里的网关从 **2 个变成 9 个**。**
+**→ 而 `needs a 3-D Secure step` absent：那条 `RequiresAction` 分支没被保留，
+可达的是 `AuthorizeAsync` 本身 —— 一个诚实的细节，不是失败。**
+**→ `squareup` / `adyen` 仍 absent：它们不在这一轮的可达集里（`AdyenGateway` 在另一个文件，
+`SquareGateway` 的 host 常量可能是别的拼法）。**
+
+### ④ 函数数 **+342**，比 +0.12 个百分点
+
+| 度量 | R1001 | **R1002** |
+|---|---|---|
+| **函数数** | 173,994 | **174,336（+342）** |
+| **函数比** | 62.79% | **62.91%** |
+| 套件 | 2214 | **2214** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 产物里网关 | 2 | **9** |
+
+> **+342 的量级对得上：9 个网关类各自的四方法 + 闭包 + `JObject` 构造 + 字符串插值
+> + `PaymentGatewayRegistry` 的 `Dictionary`。而这一整族在 R1001 里是 0。**
+
+### ⑤ 而这一轮真正建立的东西
+
+**同一份 250 行代码，同样 publish 成功、套件同样绿、陈旧度同样 0 —— 而函数数一次 +0、一次 +342。
+唯一的差别是**那一行 `Resolve` 在不在一条可达的路上**。**
+
+> **→ 所以「产物对得上源码」这件事，不能靠「我改了、我发布了、套件绿了」来确认。
+> 它只有两种可信的确认方式：**在产物里搜一个只有那段代码才会有的串**，或者**看函数数动没动**。
+> 而两者的前提是同一条：先说得出那段代码**为什么可达**。**
+
+### 教训
+
+> **「加了 250 行」和「产物多了 342 个函数」之间，隔着一句 `Resolve`。
+> 而我在 R1001 里以为注册就是那句 —— 注册只是把新类放在一条没人走的走廊上。**
+> **→ 可达性是**独立于代码量**的一个维度。它不写在任何一行里，只能被证明或被否证。**

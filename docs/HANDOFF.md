@@ -2414,3 +2414,23 @@ datadome 走不到任何 solver。**`Wired` 的意思是「检测→求解→存
 纪律：**「我给它加了调用点」可以为真而不改变产物一个字节。**
 
 下一轮：取证 host↔flow 对照（哪个 flow 该承载 Mollie/GMO/Touchtech/Midtrans），然后让那个 flow 覆写支付步骤并直接调 registry —— 否则第 5 个网关也一样进不去。
+
+## R1002 补充 — **一句接线把 250 行代码拉进产物：+0 → +342**（套件 2214）
+
+改两处：① `PaymentGatewayRegistry.Default`（静态单例）② `SubmitPaymentAsync` 里 `Default.Resolve(gateway)` → `AuthorizeAsync`。
+**选 `SubmitPaymentAsync` 的理由：它有 12 个覆写 → 基类体保留 → 调用可达（R963 的反面）。**
+
+**产物验证（肯定）**：`PaymentGatewayRegistry` IN · 4 个新网关 host 全 IN · `sibspayments`/`unzer`/`omise` IN
+→ **产物里网关 2 → 9**。`needs a 3-D Secure step` absent（该分支未保留，可达的是 `AuthorizeAsync`）。
+
+**函数数 173,994 → 174,336（+342）· 比 62.79% → 62.91% · 陈旧度 0/0。**
+→ 同一份 250 行代码，R1001 是 **+0**、R1002 是 **+342**，差别只在那一行是否在可达的路上。
+
+**可达性三档（R1000 修订）**：① 从入口可达 ② 被覆写 ③ 两者都没有（被裁）。
+**「有调用语句」不构成任何一档。**
+
+仍 Unknown：`squareup`/`adyen` 的 host 拼法；`RequiresAction` 分支为何未保留。
+
+纪律：**可达性独立于代码量，它不写在任何一行里，只能被证明或被否证。**
+
+下一轮：`GetPaymentMethodsAsync` 覆写 0 次 → 它必然被裁，把它接到某个覆写里去（或查原版是否真无覆写）。

@@ -2146,3 +2146,24 @@ braintree · sibs · vipps 全 matched。那 6 个属于**下单链路**（优�
 纪律：**两列放一张表 ≠ 两列在回答同一个问题。**
 
 下一轮：核那 6 个支付网关在复刻件里是否真缺（`matched` 只说名字出现过，不说实现）；或给 store 桶加防支付标签的守卫。
+
+## R990 补充 — **6 条未覆盖分类：1 指标盲区 · 1 伪造令牌 · 4 真缺**（套件 2205，未改代码）
+
+核 R989 的 6 个支付网关：`where_is` 显示它们只在 `docs/VERDICT.md` 与 `docs/BINDING_BACKLOG.md`，
+而 `core_coverage` 的 `all_src` 只走 `replica/src` → `unmatched` 准确。
+
+**而六条分成三类：**
+1. `threeds.airwallex.com` —— **指标盲区**：`Solve3DSRedirectAsync` 跟随**运行期** URL（来自 paymentData），
+   host 名永不写进源码。泛化步骤覆盖率工具看不见。
+2. `flex.cybersource.com` —— **被伪造值顶掉**：`StoreFlow.cs:1151`
+   `c.Session.PaymentToken = "tok_" + Guid.NewGuid()...` **不调任何端点**。
+   而 `ShopifyFlow.GetCsrf` 的注释写着 R823：「不编造 fallback —— 服务器未签发的令牌会让每个带它的请求被判无效」。
+   同形第二处：`HISTORY.md` R12 表「`GetToken` | 16 字节 CSPRNG hex」。
+3. `midtrans` / `gpayments` / `mollie` / `touchtech` —— **真缺**（收单会话 / 结果查询 / 状态轮询 / 支付选择）。
+
+数字：套件 2205（未改代码）· 陈旧度 0/0 · 函数数 173,952 · 未覆盖 6 = 1/1/4。
+
+纪律：**「未覆盖」是混合类别 —— 做不到 / 没做 / 指标看不见 / 做了个假的，四者同名。**
+
+下一轮：删掉 `GetPaymentTokenAsync` 的伪造令牌并让它调 `/flex/v2/tokens`（或写成显式 Fail + 原因），
+同时核有无 override 真的调了端点。

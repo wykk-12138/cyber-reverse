@@ -25164,3 +25164,109 @@ python tools/metrics_report.py
 **「两列数字放在一张表里」不等于「两列在回答同一个问题」。**
 
 **而一个口径不同的分母，会让一列看起来只是「覆盖得差」，而不是「量错了」。**
+
+
+---
+
+## 414. **6 条未覆盖分类：1 指标盲区 · 1 伪造令牌 · 4 真缺**
+
+> R990。**只取证，未改代码。** 套件 **2205（R989 的记录仍有效）**。
+
+### 一、先确认真不在源码里
+
+```
+where_is midtrans / gpayments / mollie / cybersource / touchtech / airwallex
+  -> 各 2 个文件，两个都是 docs\VERDICT.md 与 docs\BINDING_BACKLOG.md
+```
+
+**`core_coverage` 的 `all_src` 只走 `replica/src` → 这 6 个在**源码**里确实一次都没出现，
+`unmatched` 是准确的。**
+
+### 二、原版路径（`analysis/.coverage-paths.txt`，154 条路径的清单）
+
+| host | 路径 | 性质 |
+|---|---|---|
+| `app.midtrans.com` | `/snap/v1/transactions` · `/snap/v2/transactions` | 收单会话创建 |
+| `degica.as1.gpayments.net` | `/api/v2/brw/info/result?transId=` | 结果查询 |
+| `ecommerce-gateway.mollie.com` | `/api/v1/public/core/payments/poll` | 支付状态轮询 |
+| `flex.cybersource.com` | `/flex/v2/tokens` | **令牌化** |
+| `retry.touchtechpayments.com` | `/api/v1/:select` | 支付选择 |
+| `threeds.airwallex.com` | `/api/v1/pa/gateway/hk/three-ds-method/redirect` | **3DS 重定向** |
+
+### 三、第一类：泛化覆盖，指标看不见
+
+```csharp
+Solve3DSAsync         → c.Session.ThreeDsUrl = adyen.threeDSMethodUrl
+Solve3DSRedirectAsync → GetAsync(c.Session.ThreeDsUrl) → 从 HTML 提取 transStatus
+Handle3DSAsync        → 按 transStatus 判 Y / 其他
+```
+
+**→ Airwallex 的 3DS 重定向被这条链覆盖，而 URL 是**运行期**从 paymentData 读的，
+所以 host 名永远不会写进源码。
+→ `matched` 测的是「host 名出现在源码里」，而**泛化步骤不写 host 名**。
+→ **这是覆盖率指标的结构性盲区，不是复刻件的缺陷。****
+
+### 四、第二类：该调用的端点被伪造值顶掉 —— 这是缺陷
+
+```csharp
+// src/Cybersole.Stores/Flows/StoreFlow.cs:1146-1154
+public virtual async Task<StepOutcome> GetPaymentTokenAsync(FlowContext c, CancellationToken ct)
+{
+    if (!string.IsNullOrEmpty(c.Session.PaymentToken)) return StepOutcome.Success();
+    c.Session.PaymentToken = "tok_" + Guid.NewGuid().ToString("N")[..24];   // ← 不调任何端点
+    c.Session.Vars["paymentToken"] = c.Session.PaymentToken!;
+    return StepOutcome.Success();
+}
+```
+
+**→ 它不请求 `flex.cybersource.com/flex/v2/tokens`，而是**造一个随机 GUID 当支付令牌**。
+→ 而 `ShopifyFlow.GetCsrf` 的注释明确写着 R823 的结论：
+「不编造 fallback —— 服务器从未签发的令牌会让每个带它的请求被判无效」。
+→ **`GetPaymentTokenAsync` 做的**正是那件被明令禁止的事**，而且它在**支付**路径上。
+→ `HISTORY.md` 的 R12 表里还有一处同形：「令牌 | `GetToken` | 16 字节 CSPRNG hex」。**
+
+### 五、第三类：真缺，且无泛化路径
+
+**`midtrans` · `gpayments` · `mollie` · `touchtech` —— 收单会话、结果查询、状态轮询、支付选择，
+四者都是 host 专属端点，没有泛化步骤能覆盖。
+→ 这四条是优先级 ① 的真缺口；各自属于哪个 flow，本轮未取证。**
+
+### 六、判据 (f) 的 6 条现在能逐条写「为什么」
+
+| # | 未覆盖 | 为什么 |
+|---|---|---|
+| 1 | `threeds.airwallex.com` | **泛化覆盖**（`Solve3DSRedirectAsync` 跟随运行期 URL）—— 指标盲区，非缺陷 |
+| 2 | `flex.cybersource.com` | **被伪造令牌顶掉** —— `GetPaymentTokenAsync` 造 GUID 而不调用 |
+| 3–6 | `midtrans` · `gpayments` · `mollie` · `touchtech` | **真缺**，host 专属端点，无泛化路径 |
+
+### 七、数字
+
+| 度量 | R989 | R990 |
+|---|---|---|
+| 套件 | 2205 | **2205（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| vendor unmatched | 6 | **6（1 盲区 / 1 伪造 / 4 真缺）** |
+| **伪造的支付令牌** | 未测 | **1 处函数 + 1 处 `GetToken`** |
+
+### 八、验证
+
+```
+cd replica
+python tools/where_is.py mollie         -> 2 个文件，均 docs/
+python - 读 analysis/.coverage-paths.txt 里六个 host 的路径
+python - 读 src/Cybersole.Stores/Flows/StoreFlow.cs:1146 与 1572-1597
+```
+
+### 九、仍然 Unknown
+
+- **4 条真缺各属于哪个 flow**：**Unknown** —— 未取证。
+- **`GetPaymentTokenAsync` 有无 override 真的调端点**：**Unknown** —— 它是 `virtual`，各 flow 可覆写；本轮未逐个核。
+
+### 十、教训
+
+**「未覆盖」是一个**混合类别**：里面有「做不到」「没做」「做了但指标看不见」「做了个假的」。
+而它们在这张表里长得一模一样 —— 都叫 `unmatched`。**
+
+**只按这一个词去补，我会写六个支付网关客户端 —— 而其中一个的活儿已经干完了（只是指标看不见），
+另一个的活儿是**先把自己伪造的那个值删掉**。**

@@ -7708,3 +7708,38 @@ braintree · sibs · vipps。**
 | 那 6 个支付网关在复刻件里是否真缺 | `matched` 只说名字出现过，不说实现 |
 
 **纪律**：两列放一张表 ≠ 两列在回答同一个问题。
+
+
+## 判据 (f)/优先级 ① — **6 条未覆盖分类：1 指标盲区 · 1 伪造令牌 · 4 真缺**（R990）
+
+### 分类
+
+| # | host | 为什么 | 性质 |
+|---|---|---|---|
+| 1 | `threeds.airwallex.com` | `Solve3DSRedirectAsync` 跟随运行期 URL，host 名不写进源码 | **指标盲区** |
+| 2 | `flex.cybersource.com` | `GetPaymentTokenAsync` 造 GUID 而不调 `/flex/v2/tokens` | **伪造令牌（违反 R823）** |
+| 3 | `app.midtrans.com` | `/snap/v1|v2/transactions` 收单会话 | 真缺 |
+| 4 | `degica.as1.gpayments.net` | `/api/v2/brw/info/result` 结果查询 | 真缺 |
+| 5 | `ecommerce-gateway.mollie.com` | `/payments/poll` 状态轮询 | 真缺 |
+| 6 | `retry.touchtechpayments.com` | `/api/v1/:select` 支付选择 | 真缺 |
+
+### 伪造令牌的确切形状
+
+```csharp
+// src/Cybersole.Stores/Flows/StoreFlow.cs:1151
+c.Session.PaymentToken = "tok_" + Guid.NewGuid().ToString("N")[..24];
+```
+
+**而 `ShopifyFlow.GetCsrf` 的注释写着 R823：「不编造 fallback —— 服务器从未签发的令牌会让每个带它的请求被判无效」。**
+**同形第二处：`HISTORY.md` R12 表「`GetToken` | 16 字节 CSPRNG hex」。**
+
+### 数字
+
+**套件 2205（未改代码）· 陈旧度 0/0 · 函数数 173,952 · 未覆盖 6 = 1 盲区 / 1 伪造 / 4 真缺**
+
+| 仍 Unknown | |
+|---|---|
+| 4 条真缺各属于哪个 flow | 未取证 |
+| `GetPaymentTokenAsync` 有无 override 真的调端点 | 未核（virtual，各 flow 可覆写） |
+
+**纪律**：「未覆盖」是混合类别 —— 做不到 / 没做 / 指标看不见 / 做了个假的，四者同名。

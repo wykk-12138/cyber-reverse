@@ -58783,3 +58783,80 @@ store hosts matched: 15    store hosts unmatched: 0
 
 > **「两列数字放在一张表里」不等于「两列在回答同一个问题」。
 > 而一个口径不同的分母，会让一列看起来只是「覆盖得差」，而不是「量错了」。**
+
+
+---
+
+## 第 990 轮：6 条未覆盖分成三类，其中一条藏着伪造的支付令牌
+
+### ① 先确认真不在源码里
+
+```
+where_is midtrans/gpayments/mollie/cybersource/touchtech/airwallex
+  -> 各 2 个文件，两个都是 docs\VERDICT.md 与 docs\BINDING_BACKLOG.md
+```
+
+**`core_coverage` 的 `all_src` 只走 `replica/src` → 这 6 个在源码里确实没出现，`unmatched` 准确。**
+
+### ② 原版路径（来自 `analysis/.coverage-paths.txt`）
+
+| host | 路径 | 性质 |
+|---|---|---|
+| `app.midtrans.com` | `/snap/v1/transactions` · `/snap/v2/transactions` | 收单会话 |
+| `degica.as1.gpayments.net` | `/api/v2/brw/info/result?transId=` | 结果查询 |
+| `ecommerce-gateway.mollie.com` | `/api/v1/public/core/payments/poll` | 状态轮询 |
+| `flex.cybersource.com` | `/flex/v2/tokens` | **令牌化** |
+| `retry.touchtechpayments.com` | `/api/v1/:select` | 支付选择 |
+| `threeds.airwallex.com` | `/api/v1/pa/gateway/hk/three-ds-method/redirect` | **3DS 重定向** |
+
+### ③ 第一类：泛化覆盖，指标看不见
+
+```csharp
+Solve3DSAsync         → c.Session.ThreeDsUrl = adyen.threeDSMethodUrl
+Solve3DSRedirectAsync → GetAsync(c.Session.ThreeDsUrl) → 提取 transStatus
+Handle3DSAsync        → 按 transStatus 判 Y / 其他
+```
+
+> **Airwallex 的 3DS 重定向被这条链覆盖，而 URL 是**运行期**读的 → host 名永不写进源码。
+> `matched` 测的是「名字出现在源码里」，而泛化步骤不写名字。**指标的结构性盲区，不是缺陷。****
+
+### ④ 第二类：该调的端点被伪造值顶掉 —— 这是缺陷
+
+```csharp
+c.Session.PaymentToken = "tok_" + Guid.NewGuid().ToString("N")[..24];   // 不调任何端点
+```
+
+> **它不请求 `flex.cybersource.com/flex/v2/tokens`，而是造一个随机 GUID 当令牌。
+> 而 `ShopifyFlow.GetCsrf` 的注释明确写着 R823：「不编造 fallback ——
+> 服务器从未签发的令牌会让每个带它的请求被判无效」。
+> `GetPaymentTokenAsync` 做的正是被明令禁止的事，而且在**支付**路径上。**
+> **`HISTORY.md` 的 R12 表里还有一处同形：「`GetToken` | 16 字节 CSPRNG hex」。**
+
+### ⑤ 第三类：真缺，无泛化路径
+
+**`midtrans` / `gpayments` / `mollie` / `touchtech` —— 收单会话、结果查询、状态轮询、支付选择，
+都是 host 专属端点。这四条是优先级 ① 的真缺口，各自属于哪个 flow 尚未取证。**
+
+### ⑥ 判据 (f) 的 6 条现在能逐条写「为什么」
+
+| # | 未覆盖 | 为什么 |
+|---|---|---|
+| 1 | `threeds.airwallex.com` | **泛化覆盖**（运行期 URL）—— 指标盲区，非缺陷 |
+| 2 | `flex.cybersource.com` | **被伪造令牌顶掉** |
+| 3–6 | `midtrans` · `gpayments` · `mollie` · `touchtech` | **真缺**，host 专属 |
+
+### 数字
+
+| 度量 | R989 | **R990** |
+|---|---|---|
+| 套件 | 2205 | **2205（未改代码）** |
+| 产物陈旧度 | 0 / 0 | **0 / 0** |
+| 函数数 | 173,952 | **173,952** |
+| vendor unmatched | 6 | **6（1 盲区 / 1 伪造 / 4 真缺）** |
+| **伪造的支付令牌** | 未测 | **1 处函数 + 1 处 `GetToken`** |
+
+### 教训
+
+> **「未覆盖」是**混合类别**：「做不到」「没做」「做了但指标看不见」「做了个假的」都叫 `unmatched`。
+> 只按这一个词去补，会写六个支付网关客户端 —— 而其中一个的活儿已经干完（指标看不见），
+> 另一个的活儿是**先把自己伪造的那个值删掉**。**

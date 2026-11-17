@@ -38,6 +38,57 @@ REPLICA = os.path.join(ROOT, ".publish-aot", "Cybersole.Ui.exe")
 RUNTIME_FUNCTION_BYTES = 12  # x64: BeginAddress, EndAddress, UnwindInfoAddress
 
 
+def pdata_extents(path):
+    """Return [(begin, end)] from .pdata, or [] when absent. Same section walk, extents kept.
+
+    R971. An entry whose end is not above its begin, or is more than a mebibyte above it, is not a function extent and is
+    dropped rather than counted as a one-byte or a two-megabyte function.
+    """
+    if not os.path.exists(path):
+        return []
+
+    data = open(path, "rb").read()
+    pe = struct.unpack_from("<I", data, 0x3C)[0]
+    if data[pe:pe + 4] != b"PE\x00\x00":
+        return []
+
+    sections = struct.unpack_from("<H", data, pe + 6)[0]
+    optional_size = struct.unpack_from("<H", data, pe + 20)[0]
+    table = pe + 24 + optional_size
+
+    for i in range(sections):
+        head = table + i * 40
+        name = data[head:head + 8].rstrip(b"\x00").decode("ascii", "replace")
+        if name != ".pdata":
+            continue
+        _vsize, _vaddr, raw_size, raw_ptr = struct.unpack_from("<IIII", data, head + 8)
+        out = []
+        for off in range(0, raw_size - RUNTIME_FUNCTION_BYTES + 1, RUNTIME_FUNCTION_BYTES):
+            begin, end, _unwind = struct.unpack_from("<III", data, raw_ptr + off)
+            if 0 < end - begin < 0x100000:
+                out.append((begin, end))
+        return out
+
+    return []
+
+
+def report_sizes(label, path):
+    entries = pdata_extents(path)
+    sizes = sorted(e - b for b, e in entries)
+    if not sizes:
+        print("  %-9s no .pdata or no extents" % label)
+        return
+    n = len(sizes)
+    total = sum(sizes)
+    print("  %-9s funcs=%-7d total=%d B  mean=%.1f  median=%-5d p90=%-5d p99=%-6d max=%d" % (
+        label, n, total, total / n, sizes[n // 2], sizes[int(n * 0.9)], sizes[int(n * 0.99)], sizes[-1]))
+    small = sum(1 for x in sizes if x <= 64)
+    mid = sum(1 for x in sizes if 64 < x <= 512)
+    big = sum(1 for x in sizes if x > 512)
+    print("             <=64B: %-6d (%4.1f%%)   65..512B: %-6d (%4.1f%%)   >512B: %-5d (%4.1f%%)" % (
+        small, 100.0 * small / n, mid, 100.0 * mid / n, big, 100.0 * big / n))
+
+
 def pdata_begins(path):
     """Return (image_base, [BeginAddress...]) or (None, []) when the section or file is missing.
 
@@ -86,7 +137,20 @@ def histogram(begins, bucket):
 def main():
     ap = argparse.ArgumentParser(description="Compare the two .pdata tables as address-bucket histograms.")
     ap.add_argument("--bucket", default="0x100000", help="bucket size in bytes, hex or decimal (default 1 MiB)")
+    ap.add_argument("--sizes", action="store_true",
+                    help="report the function size distribution instead of address buckets (R971)")
     args = ap.parse_args()
+
+    if args.sizes:
+        print("pdata function size distribution (bytes per non-leaf function)")
+        print("  entries whose extent is zero or over 1 MiB are excluded as not being function extents")
+        print()
+        report_sizes("ORIGINAL", ORIGINAL)
+        report_sizes("REPLICA", REPLICA)
+        print()
+        print("  A size difference is not a behaviour difference: a function twice as long is not two functions' worth.")
+        return 0
+
     bucket = int(args.bucket, 0)
 
     o_base, o_begins = pdata_begins(ORIGINAL)

@@ -9703,3 +9703,45 @@ analysis/ida.py py "<IDAPython>" [--timeout N] ← one-off（本轮用它枚举 
 | 产物需重 publish（1 文件） | 待收尾 |
 
 **纪律**：**别推断工具与数据的形状 —— 读它们。**
+
+
+## 判据 (f) — **原版站清单三条取证路径全空 ⇒ (f) 的取证方向要改**（R1040）
+
+### 三条路径
+
+| 路径 | 结果 |
+|---|---|
+| `Stores\.Flows\.[A-Za-z0-9_]+` | **n = 0** |
+| `FarfetchFlow` | **n = 0** |
+| `[A-Za-z]+Flow,` | n = 1（**TPL Dataflow 文档，无关**） |
+| `^... Checkout$` | n = 34，**只有 4 条是站名**：FUNKO · Farfetch · Kith EU · Shopify |
+
+**→ `*Flow` 是**复刻件的命名**；`X Checkout` 只覆盖 4 个站而复刻件有 **52** 个 flow 文件。**
+
+### 而 `Farfetch Checkout` 因此更强
+
+**与 `Shopify Checkout` / `Kith EU Checkout` / `FUNKO CHECKOUT` 同列 ⇒ 原版对它**有专属结账流程**。**
+
+### 推理：站清单可能服务端下发
+
+**52 个 flow 文件 vs 二进制 0 个对应名 + `api.cybersole.io` / `/connect/app` ⇒
+站点列表很可能是**服务端配置**。**
+
+**⇒ (a) 形态：Unknown + 缺什么 = `api.cybersole.io/connect/app` 的响应，需**原版登录凭据**。**
+
+### (f) 表述改
+
+**「原版站点清单从**二进制**取证」→「站清单的**取证来源**要写明：二进制 / 服务端 / Unknown+缺什么」。**
+
+**两件事分开：原版支持哪些站 = Unknown（需凭据）· 复刻件端点是否有据 = 能（门三项全零）。**
+
+### 数字
+
+**套件 2254/0/0 · 陈旧度 1 / 217 · 函数数 174,293 · 命名空间 0 · `*Flow` 0 · `X Checkout` 34/站名4 · flow 文件 52**
+
+| 仍 Unknown | |
+|---|---|
+| 原版支持哪些站 | **需 `api.cybersole.io/connect/app`（凭据）** |
+| Farfetch 的 transport | 未找到 |
+
+**纪律**：别用复刻件的形状去原版里找东西 —— 它不欠我们那些形状。

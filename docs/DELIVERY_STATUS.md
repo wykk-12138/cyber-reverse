@@ -30391,3 +30391,110 @@ python analysis/ida.py py "<枚举 0x146d8d000-0x146d93000>" -> wrote 315
 ② 我要的那个能力早在工具里，而我三次读同一个 82 行的文件都没看见那行注释。**
 
 **→ 两条都指向同一件事：**我在推断工具和数据的形状，而不是读它们。****
+
+
+---
+
+## 464. **原版站清单的三条取证路径全是空的 ⇒ (f) 的取证方向要改**
+
+> R1040。**未改代码 —— 本轮是取证与判据修正。** 套件 **2254 通过 / 0 失败 / 0 跳过**。
+
+### 一、路径一：命名空间（反射元数据）
+
+```
+str "Stores\.Flows\.[A-Za-z0-9_]+"  --limit 600   →  n = 0
+FarfetchFlow                                      →  n = 0
+[A-Za-z]+Flow,                                    →  n = 1（**TPL Dataflow 的文档**）
+```
+
+**→ 原版**没有** `Cybersole.Stores.Flows` 这个命名空间，也没有 `*Flow` 类。
+→ 所以 `*Flow` 是**复刻件的命名**（goal 允许「命名可不同」）。
+→ 那意味着**用复刻件的命名习惯去找原版的站清单，方向从一开始就错了。**
+
+### 二、路径二：`"<站> Checkout"` 数据行
+
+```
+^[A-Za-z0-9 .&'-]+ Checkout$   →  n = 34
+```
+
+**→ 34 条里只有 **4 条**是站名 + 结账：**
+
+```
+FUNKO CHECKOUT · Farfetch Checkout · Kith EU Checkout · Shopify Checkout
+```
+
+**→ 其余 30 条是别的东西：**14 条动作/错误文案**（`Create checkout` · `Error polling checkout` ·
+  `Parsing checkout` · `Preloading checkout` …）· `User Checkout` · `Invalid Checkout` ·
+  `The date of the checkout` · `Triggers when any user completes a checkout`。**
+
+**→ 所以那不是站清单 —— 它是**4 个站的定制结账文案**，而复刻件有 **52** 个 flow 文件。**
+
+### 三、而它对 Farfetch 是**更强**的证据
+
+**`Farfetch Checkout` 与 `Shopify Checkout` · `Kith EU Checkout` · `FUNKO CHECKOUT` 同列。
+→ 那说明原版对 Farfetch 有**专属的**结账流程（不只是通用 Shopify/Hybris 适配器）。
+→ 而那让 R1038 的结论更硬：Farfetch 不只是「有这个站名」，它有一个**定制的结账步骤**。**
+
+### 四、路径三（推理）：站清单**可能不在二进制里**
+
+**证据方向：**
+- 复刻件有 **52** 个 flow 文件，而二进制里没有对应的 52 个名字或 52 行 `X Checkout`
+- 原版镜像里有 `api.cybersole.io` · `/connect/app`（R1032）
+- R1032 的 `Relay` 证据显示原版**依赖自建服务**
+
+**→ 所以「站点清单」很可能是**服务端下发**的配置，而不是内嵌在 exe 里。
+→ 而那属于 goal 完成判据 (a) 的形态：**不可得 ⇒ 写 Unknown + 缺什么**。**
+
+**→ 缺的是：`api.cybersole.io/connect/app` 的响应（需要原版登录凭据）
+  —— 而那属于「可停下等 YG」的第一类。**
+
+### 五、所以 (f) 的表述要改
+
+| (f) 原文 | 问题 | 改后 |
+|---|---|---|
+| 「原版站点清单从**二进制**取证」 | 清单可能**不在**二进制里 | 「站清单的**取证来源**要写明：二进制 / 服务端 / Unknown+缺什么」 |
+
+**→ 两件事分开：**
+| 问题 | 现在能回答？ |
+|---|---|
+| 原版支持哪些站 | **Unknown —— 需服务端配置或凭据** |
+| 复刻件的每个端点有据吗 | **能 —— 门三项全零** |
+
+### 六、数字
+
+| 度量 | R1039 | R1040 |
+|---|---|---|
+| 套件 | 2254 / 0 | **2254 / 0 / 0（未改代码）** |
+| 产物陈旧度 | 1 / 217 | **1 / 217** |
+| 函数数 | 174,293 | **174,293** |
+| **`Stores.Flows` 命名空间** | 未查 | **n = 0** |
+| **`FarfetchFlow` 类名** | 未查 | **n = 0** |
+| **`*Flow` 类名** | 未查 | **n = 1，且是 TPL Dataflow 文档** |
+| **`X Checkout` 行** | 未查 | **34，其中站名 4 条** |
+| **复刻件 flow 文件** | 未测 | **52** |
+| **原版站清单** | 「从二进制取证」 | **Unknown —— 可能服务端下发** |
+
+### 七、验证
+
+```
+cd D:\projects\cyber-reverse
+python analysis/ida.py str "Stores\.Flows\.[A-Za-z0-9_]+" --limit 600  -> {"n":0}
+python analysis/ida.py str "FarfetchFlow" --limit 100                    -> {"n":0}
+python analysis/ida.py str "[A-Za-z]+Flow," --limit 60                    -> {"n":1}（TPL Dataflow 文档）
+python analysis/ida.py str "^[A-Za-z0-9 .&'-]+ Checkout$" --limit 600     -> {"n":34}
+```
+
+### 八、仍然 Unknown / 待 YG
+
+- **原版支持哪些站**：**需 `api.cybersole.io/connect/app` 的响应 ⇒ 需原版登录凭据（第一类停等项）**。
+- **Farfetch 的 transport**：未找到。
+- **产物需重新 publish**（1 文件陈旧）：待收尾。
+
+### 九、教训
+
+**这一轮我三次去找同一件东西，三次都空 —— 而那比找到更有用：
+  它说明 (f) 那条判据的**取证方向**本身有问题，而问题不在执行上。**
+
+**→ 而我最初的三次尝试都带着同一个偏见：**用复刻件的形状（`*Flow` 类、`X Checkout` 行）去找原版。**
+
+**→ 而原版不欠我们那些形状 —— 它是**数据驱动**的，而数据可能根本不在 exe 里。**

@@ -3424,3 +3424,28 @@ functions 321,244 · sub_* 311,203 (96.87%) · 其余 10,041 全是 C++ CRT 符�
 纪律：**「查不到」反复出现时，问前提有没有成立过，而不是每次问这次为什么。**
 
 下一轮：换到 ② 风控（`Solving Akamai (SBSD)/(SDS)` 的协议）或 ③ 指纹层。
+
+## R1046 补充 — **③ 词汇：payload 名与时区有据，两个 session key 是本地约定**（套件 2258）
+
+**对照成立**：`kpsdk` 17 · `datadome` 15 ⇒ 下面的 0 可读成「镜像里没有」。
+
+| 类别 | 名字 | 命中 | 判定 |
+|---|---|---|---|
+| payload | `fingerprint-v1` | **2**（`0x147034eac`） | **有据** |
+| payload | `fingerprint-v1-sans-ua` | **2**（`0x147034ee4`） | **有据** |
+| key | `browser.fingerprintKey` | **0** | **自造（无需有据）** |
+| key | `browser.fingerprintPayload` | **0** | **自造（无需有据）** |
+| key | `browser.timezoneOffsetMinutes` | **21** | **概念有据** |
+
+**⇒ payload 名有据（含 `-sans-ua`）⇒ `FingerprintLayers.PayloadFor` 的分支名不是猜的。
+⇒ session 变量是本工作内部约定；原版用别的方式把同一件事带到支付层。**
+
+**生成物**：`replica/tools/fingerprint_vocab.py` → `docs/FINGERPRINT_VOCAB.md`（2,059 字节），
+**对照写在第一节** —— 对照不成立则整张表作废。
+
+数字：套件 2258/0/0 · 陈旧度 0/0 · 函数数 174,293 · 实现 95 行/21 测试引用 · payload 2 有据 ·
+时区 21 · 自造 key 2 · 对照 17/15。
+
+纪律：**名字没有 authority 时，要说清为什么它不需要，而不只是「查不到」。**
+
+下一轮：② 风控 —— `Solving Akamai (SBSD)/(SDS)` 与 queue-it softblock 的求解协议（带对照查文案族）。

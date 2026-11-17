@@ -8519,3 +8519,44 @@ Nike 打不存在端点的活请求 2 → 0**
 | Nike 付款的 host | 镜像只给路径不给 host |
 
 **纪律**：注释不是守卫；守卫要能被跑。
+
+
+## 优先级 ① — **`NikeFlow.GetPaymentMethodsAsync` 首个覆写进产物；查出该族还有 **4 处活代码**（R1012）
+
+### 做成了
+
+**`NikeFlow.GetPaymentMethodsAsync` 覆写：地址 `NikeEndpoints.Checkouts`（`0x147053d8c`），
+复用 `ParsePaymentMethodNames`，写 `PaymentGatewayNameKey`。**
+**产物验证：`buy/checkouts/v3` **IN**（旧 absent）· `no checkout to read payment methods` **IN**。**
+**→ 全仓 `GetPaymentMethodsAsync` 覆写 0 → 1。**
+
+### 未解释 ×2（标 Unknown，不写成结论）
+
+1. **函数数 174,336 **未变**** —— 而 R1002 加一句 `Resolve` 涨 342。两个观测矛盾。
+2. **metrics 报 2218/1 失败，全套报 2236/0** —— **间歇失败，未定位。**
+
+### 新查出：该族仍 **4 处活代码**
+
+| 位置 | 形态 |
+|---|---|
+| `NikeFlow.cs:493` | `.../buy/orders/v2/US/{cart}/delivery` |
+| `NikeFlow.cs:670` | `.../buy/carts/v2/{CC}/Nike/SNKRS?format=simplified` |
+| `StoreFlow.cs:2365` | `Origin(c.Url) + "/buy/carts/v2/app"` |
+| `NikeModule.cs:80` | `.../buy/carts/v2/US/Nike/SNKRS?format=simplified` |
+
+### 一条做法被否掉
+
+**R1011 的「把死代码留成未调用 private 方法」有副作用：未调用方法体的字面量仍可能进池。
+→ 正确做法是**删掉**，把代码写进文档。**
+
+### 数字
+
+**全套 2236/0/2 · metrics 2218/1（间歇）· 陈旧度 0/0 · 函数数 174,336（未变，未解释）· 覆写 1 · 残留 4 处**
+
+| 仍 Unknown | |
+|---|---|
+| 函数数为何未变 | 未证 |
+| 间歇失败是哪一条 | 未定位 |
+| Nike 付款/运单的 host | 镜像只给路径 |
+
+**纪律**：「修了两处」的满足感会让「还有几处」不被问出来。

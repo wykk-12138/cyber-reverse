@@ -507,6 +507,65 @@ public class NikeFlow : StoreFlow
     }
 
     /// <summary>
+    /// Step <c>GetPaymentMethods</c>, ordinal 57, which sits between <c>GetShopperIp</c> and
+    /// <c>SubmitOrder</c> in the image's sequence (<c>StoreFlowSteps.Nike</c>, source Literal).
+    ///
+    /// <para>
+    /// <b>R1012: this is the first override of this step anywhere in the replica.</b> R1008 found that
+    /// <c>StoreFlow.GetPaymentMethodsAsync</c> had none, and R963 established that an unoverridden base method is
+    /// trimmed -- so the step existed in no artifact and read <c>Vars["paymentMethodsUrl"]</c>, a key name that is
+    /// absent from the image in both encodings. An override both gives the step a caller and lets the address come
+    /// from the image instead of from a session variable nobody sets.
+    /// </para>
+    ///
+    /// <para>
+    /// The address is <see cref="NikeEndpoints.Checkouts"/>, which the image carries at <c>0x147053d8c</c> and which
+    /// <c>NikeEndpoints</c>' header describes as the single resource every checkout step writes to. Nike's own
+    /// <c>GetPaymentMethods</c> is a read of the checkout, not a separate route -- the image names no
+    /// payment-methods path for this host at all, so inventing one would be the join-two-fragments mistake.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetPaymentMethodsAsync(FlowContext c, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(c.Session.CartId))
+            return StepOutcome.Fail("nike: no checkout to read payment methods from", retryable: true);
+
+        var res = await GetAsync(c, NikeEndpoints.Checkouts + c.Session.CartId,
+            "nike-payment-methods", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("nike: payment methods read failed", retryable: true);
+        if (res.StatusCode == 403)
+            return StepOutcome.Fail("nike payment methods blocked (kasada)", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"nike payment methods HTTP {res.StatusCode}", retryable: res.StatusCode is 429 or >= 500);
+
+        // The same reader the base class uses, so there is one parser rather than two that can drift.
+        var offered = ParsePaymentMethodNames(res.Body ?? string.Empty);
+        if (offered.Count == 0)
+        {
+            // A checkout that names no payment method is a real answer, not a failure to retry: Nike returns the
+            // settled shape of the checkout and the step's job is to report what it offers.
+            c.Session.Vars["paymentMethods"] = string.Empty;
+            return StepOutcome.Fail("nike: the checkout offers no payment method", retryable: false);
+        }
+
+        c.Session.Vars["paymentMethods"] = string.Join(",", offered);
+
+        var preferred = (c.Session.Vars.GetValueOrDefault(PreferredGatewaysSetting) ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var blocked = (c.Session.Vars.GetValueOrDefault(BlockedGatewaysSetting) ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var chosen = ChooseGateway(offered, preferred, blocked);
+        if (string.IsNullOrEmpty(chosen))
+            return StepOutcome.Fail("nike: every offered method is blocked", retryable: false);
+
+        // The image names _paymentGatewayName beside _captchaToken (R956), so the chosen gateway goes there.
+        c.Session.Vars[PaymentGatewayNameKey] = chosen!;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// Payment goes through two calls: InitiatePayment hands back a token, then the payment
     /// block is PUT onto the order. Kasada guards both, which is why the sensor has to be
     /// submitted earlier in the flow.
@@ -540,50 +599,11 @@ public class NikeFlow : StoreFlow
             retryable: false);
     }
 
-    /// <summary>
-    /// The card-attaching half, kept for when the address is established. Unused today; see the note in
-    /// <see cref="SubmitPaymentAsync"/> for why.
-    /// </summary>
-    private async Task<StepOutcome> AttachCardAsync(FlowContext c, CancellationToken ct)
-    {
-        var card = c.Card;
-        if (card?.Number is null) return StepOutcome.Fail("nike: no card");
-
-        // 2. attach the card
-        var payload = new JObject
-        {
-            ["creditCard"] = new JObject
-            {
-                ["cardType"] = card.Number.StartsWith('4') ? "VISA"
-                    : card.Number.StartsWith("5") ? "MASTERCARD"
-                    : "AMEX",
-                ["cardNumber"] = card.Number,
-                ["expirationMonth"] = card.Month ?? string.Empty,
-                ["expirationYear"] = card.Year ?? string.Empty,
-                ["securityCode"] = card.Cvv ?? string.Empty,
-                ["nameOnCard"] = card.Name ?? c.ProfileData?.Display ?? string.Empty,
-            },
-            ["billingAddress"] = new JObject
-            {
-                ["address1"] = c.Billing?.Address1 ?? c.Shipping?.Address1 ?? string.Empty,
-                ["city"] = c.Billing?.City ?? c.Shipping?.City ?? string.Empty,
-                ["state"] = c.Billing?.State ?? c.Shipping?.State ?? string.Empty,
-                ["postalCode"] = c.Billing?.ZipCode ?? c.Shipping?.ZipCode ?? string.Empty,
-                ["country"] = c.Billing?.Country ?? c.Shipping?.Country ?? "US",
-            },
-        };
-
-        var res = await SendJsonAsync(c, HttpMethod.Put,
-            $"https://api.nike.com/buy/orders/v2/US/{c.Session.CartId}/payment",
-            payload.ToString(Newtonsoft.Json.Formatting.None), "nike-payment", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("nike payment failed", retryable: true);
-        if (res.StatusCode == 403) return StepOutcome.Fail("nike payment blocked (kasada)", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"nike payment HTTP {res.StatusCode}", retryable: res.StatusCode >= 500);
-
-        c.Session.Vars["paymentStatus"] = "authorised";
-        return StepOutcome.Success();
-    }
+    // R1013: the card-attaching half used to live here as a private AttachCardAsync, kept "for when the address is
+    // established". Published, and buy/orders/v2 was still in the artifact afterwards -- so the string pool keeps
+    // literals from code nothing calls. Keeping the dead method therefore kept the two non-existent endpoints alive in
+    // the binary, which is the opposite of what leaving evidence was for. The body is recorded in the round's dossier
+    // instead; a comment cannot be compiled.
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {

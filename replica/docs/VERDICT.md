@@ -60338,3 +60338,68 @@ return StepOutcome.Fail(
 > → 注释不是守卫；守卫要能被**跑**。
 > → 而这一轮能发现它，是因为我在找一个**别的**东西时读到了那个文件头。
 > → 那说明「按顺序查 backlog」不如「顺着一条线索读到手边的文件」。**
+
+
+---
+
+## 第 1012 轮：第一个 `GetPaymentMethods` 覆写进了产物 —— 而两个观测没解释
+
+### ① 全仓第一个覆写
+
+**`NikeFlow.GetPaymentMethodsAsync`：地址用 `NikeEndpoints.Checkouts`（镜像 `0x147053d8c`，
+「the single resource every checkout step writes to」），复用基类的 `ParsePaymentMethodNames`。**
+
+**→ 它同时解决 R1008 那两件事：给它一个调用者（零覆写 ⇒ 被裁），并让地址来自镜像而不是自造的 `paymentMethodsUrl`。**
+
+### ② 产物验证：它**进去了**
+
+| 串 | 新 | 旧 |
+|---|---|---|
+| **`buy/checkouts/v3`** | **IN** | absent |
+| **`no checkout to read payment methods`** | **IN** | absent |
+
+### ③ 观测一：**字符串池不等于可达性**
+
+**R1011 的「代码留证」（未调用的 `private AttachCardAsync`）删掉后，`nike: no card` 消失（证明删对），
+而 `buy/orders/v2` **仍在**产物里 —— 因为它本来就不止两处。`where_is` 给出**还有 4 处活代码**：**
+
+| 位置 | 形态 |
+|---|---|
+| `NikeFlow.cs:493` | `.../buy/orders/v2/US/{cart}/delivery` |
+| `NikeFlow.cs:670` | `.../buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified` |
+| `StoreFlow.cs:2365` | `Origin(c.Url) + "/buy/carts/v2/app"` |
+| `NikeModule.cs:80` | `.../buy/carts/v2/US/Nike/SNKRS?format=simplified` |
+
+**→ R1011「修了两处」的满足感，让「还有几处」这个问题没被问出来。**
+
+### ④ 观测二：**函数数没动**
+
+**加了一个 `public override`（约 45 行），函数数 **174,336 未变**。
+而 R1002 加一句 `registry.Resolve` 涨了 **342**。→ 两个观测互相矛盾，**本轮不足以判定 —— 标 Unknown。****
+
+### ⑤ 观测三：metrics 报 1 失败，全跑报 0
+
+| 跑法 | 结果 |
+|---|---|
+| `metrics_report.py`（排除浏览器依赖类） | **2218 通过 / 1 失败** |
+| 全套 `Speed!=Slow` | **2236 通过 / 0 失败 / 2 跳过** |
+
+**→ 同一份代码一次有失败一次没有 ⇒ **间歇失败**，而我没有定位到它是哪一条。那是本轮的缺口，不是噪声。**
+
+### 数字
+
+| 度量 | R1011 | **R1012** |
+|---|---|---|
+| 全套 | 2219 | **2236 / 0 / 2** |
+| **metrics 子集** | 2219 | **2218 / 1（间歇）** |
+| 产物陈旧度 | 2 / 2,7xx | **0 / 0** |
+| **函数数** | 174,336 | **174,336（未变，未解释）** |
+| **覆写数** | 0 | **1** |
+| **`buy/checkouts/v3` 在产物** | absent | **IN** |
+| **打不存在族的活代码位置** | 2（已修） | **4（新查出）** |
+
+### 教训
+
+> **「代码留证」有一个我没算到的代价：未调用方法体里的字面量**仍可能进池**。
+> → 而它把注意力从真问题引开了 —— 那族 URL **本来就不止两处**，`where_is` 一次给出全部 4 处。
+> → **上一轮「修了两处」的满足感，让「还有几处」没被问出来。**

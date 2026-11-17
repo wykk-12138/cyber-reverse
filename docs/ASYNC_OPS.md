@@ -10499,3 +10499,93 @@ return StepOutcome.Fail(
 > → 注释不是守卫；守卫要能被**跑**。**
 > **→ 而这一轮能发现它，是因为我在找一个**别的**东西（ordinal 57 的端点）时读到了那个文件头。
 > → 那说明「按顺序查 backlog」不如「顺着一条线索读到手边的文件」。**
+
+
+### 第一个 `GetPaymentMethods` 覆写进了产物 —— 而两个观测没解释（R1012）
+
+**R1011 说下一轮做「ordinal 57 的覆写」。做了，它成功了。而同一轮里出现两件我不解释的事。**
+
+### ① `NikeFlow.GetPaymentMethodsAsync` —— 全仓第一个覆写
+
+**R1008 查出 `StoreFlow.GetPaymentMethodsAsync` 覆写 **0** 次 ⇒ 按 R963 被裁 ⇒ 那个步骤在任何产物里都不存在，
+而它读的 `Vars["paymentMethodsUrl"]` 是自造键名。
+→ 覆写同时解决两件事：给它一个调用者，并让地址来自镜像而不是一个没人设的会话变量。**
+
+**地址用 `NikeEndpoints.Checkouts` —— 镜像 `0x147053d8c`，`NikeEndpoints` 头注释说它是
+「the single resource every checkout step writes to」。Nike 的 `GetPaymentMethods` 是**读**那个结账资源，
+因为镜像给这个 host **没有**付款方式路径 —— 造一条会是 host+path 拼接那类错误。**
+
+**并复用基类的 `ParsePaymentMethodNames`（一个解析器，不是两个会漂移的）。**
+
+### ② 产物验证：它**进去了**
+
+| 串 | 新 | 旧 |
+|---|---|---|
+| **`buy/checkouts/v3`** | **IN** | absent |
+| **`no checkout to read payment methods`** | **IN** | absent |
+| `nike-payment-methods` | absent | absent |
+| `nike: no card` | absent → **删除后仍 absent** | absent |
+
+**→ 新端点与覆写体的错误串都进了产物 —— 与 R1002 同一条规则（有覆写 ⇒ 进产物）。**
+
+### ③ 而第一个未解释的观测：**字符串池不等于可达性**
+
+**R1011 把打不存在端点的两段移进一个 `private AttachCardAsync`（未调用），作为「代码留证」。
+而 publish 之后 `buy/orders/v2` **仍在**产物里。**
+
+**→ 删掉那个方法再 publish：`nike: no card`（只在该方法里）消失了 —— 证明删对了；
+而 `buy/orders/v2` **仍在**。**
+
+**→ 所以那个串**不是**从 `NikeFlow` 来的。而 `where_is` 给出答案：还有 **4 处活代码**在用它。**
+
+| 位置 | 形态 |
+|---|---|
+| `NikeFlow.cs:493` | `.../buy/orders/v2/US/{cart}/delivery` |
+| `NikeFlow.cs:670` | `.../buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified` |
+| `StoreFlow.cs:2365` | `Origin(c.Url) + "/buy/carts/v2/app"` |
+| `NikeModule.cs:80` | `.../buy/carts/v2/US/Nike/SNKRS?format=simplified` |
+
+**→ 所以 R1011「把两段移进未调用方法」那个动作**同时**做对了一件事（不留活路径）
+和留了一个副作用（字符串可能仍在池里）—— 而真正的答案更简单：**它本来就不止两处。****
+
+### ④ 而第二个未解释的观测：**函数数没动**
+
+| 度量 | R1011 | **R1012** |
+|---|---|---|
+| **函数数** | 174,336 | **174,336（未变）** |
+
+**→ 加了一个 `public override` 方法（约 45 行），而函数数**一个都没变**。
+→ 而 R1002 加一句 `registry.Resolve` 就涨了 **342**。
+→ **两个观测互相矛盾，而本轮不足以判定原因 —— 标 Unknown，不写成结论。**
+
+**可能的解释（未证）：**那个覆写替换了一个已被裁的基类方法，净增接近零；
+或者 `pdata` 的条目数对「在已有方法组里加一个覆写」不敏感。**都不是结论。**
+
+### ⑤ 而第三个：metrics 报 1 失败，全跑报 0
+
+| 跑法 | 结果 |
+|---|---|
+| `metrics_report.py`（排除浏览器依赖类） | **2218 通过 / 1 失败** |
+| 全套 `--filter "Speed!=Slow"` | **2236 通过 / 0 失败 / 2 跳过** |
+
+**→ 同一份代码，一次有失败一次没有 ⇒ 间歇失败。**
+**→ 而我没有定位到它是哪一条 —— 那是本轮的缺口，不是可忽略的噪声。**
+
+### 数字
+
+| 度量 | R1011 | **R1012** |
+|---|---|---|
+| 全套 | 2219 | **2236 通过 / 0 失败 / 2 跳过** |
+| **metrics 子集** | 2219 通过 | **2218 通过 / 1 失败（间歇）** |
+| 产物陈旧度 | 2 / 2,7xx | **0 / 0（已 publish）** |
+| **函数数** | 174,336 | **174,336（未变，未解释）** |
+| **`GetPaymentMethodsAsync` 覆写数** | 0 | **1** |
+| **`buy/checkouts/v3` 在产物** | absent | **IN** |
+| **打不存在族的活代码位置** | 2（已修） | **4（新查出）** |
+
+### 教训
+
+> **「代码留证」这个做法有一个我没算到的代价：未调用的方法体里的字面量**仍可能进池**。
+> → 而它把注意力从真问题引开了 —— 真正的答案是那族 URL **本来就不止两处**，
+> 而 `where_is` 一次就给出了全部 4 处。**
+> **→ 我上一轮「修了两处」的满足感，让「还有几处」这个问题没被问出来。**

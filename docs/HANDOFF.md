@@ -2627,3 +2627,25 @@ id0→**是(Y)** · 「请稍候…」→**等** · **新框型「Database still
 纪律：**注释不是守卫；守卫要能被跑。**
 
 下一轮：`GetPaymentMethodsAsync`（ordinal 57，零覆写 ⇒ 被裁）在 Nike 上覆写 —— 那是本轮起点的正题。
+
+## R1012 补充 — **首个 `GetPaymentMethodsAsync` 覆写进产物；查出该族还有 4 处活代码；两个观测未解释**
+
+**做成了**：`NikeFlow.GetPaymentMethodsAsync`（全仓第一个覆写）—— 地址 `NikeEndpoints.Checkouts`（`0x147053d8c`），
+复用 `ParsePaymentMethodNames`，写 `PaymentGatewayNameKey`。
+**产物验证**：`buy/checkouts/v3` **IN**（旧 absent）· `no checkout to read payment methods` **IN**。
+→ 同时解决 R1008 的两件事（零覆写被裁 + 自造端点键）。
+
+**未解释 ×3（标 Unknown，不写成结论）**：
+1. **函数数 174,336 未变** —— 而 R1002 加一句 `Resolve` 涨 342。两个观测矛盾。
+2. **metrics 报 2218/1，全套报 2236/0** —— **间歇失败，未定位**。
+3. ~~字符串池~~ 已解释：**「代码留证」的未调用方法体可能留字面量**；删掉后 `nike: no card` 消失证明删对，
+   而 `buy/orders/v2` 仍在 —— 因为它**本来就不止两处**。
+
+**新查出该族仍 4 处活代码**：`NikeFlow.cs:493`（`/delivery`）· `NikeFlow.cs:670`（SNKRS cart）·
+`StoreFlow.cs:2365`（`/buy/carts/v2/app`）· `NikeModule.cs:80`（SNKRS cart）。
+
+数字：全套 2236/0/2 · metrics 2218/1（间歇）· 陈旧度 0/0 · 函数数 174,336（未变）· 覆写 1 · 残留 4 处。
+
+纪律：**「修了两处」的满足感会让「还有几处」不被问出来。**
+
+下一轮：修那 4 处（`NikeFlow.cs:493` 的 `/delivery` 最急，它是运单步骤，必 404），并定位间歇失败。

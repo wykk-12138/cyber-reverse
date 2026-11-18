@@ -40856,3 +40856,49 @@ Inference = 无（两条结论都由伪代码直接给出）。
 - 改 src+	ests 后先查 staleness → **331** → **重跑变异套件** → 新收据
   an_at 2026-11-19T01:22:50、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   staleness 0（mtime 01:22:56，读于 01:23:02 —— 6 秒新鲜）。
+## R1134 —— `DeliveryPage`(序号 26) 从**零实现**落地；顺带把 `delivery-address` 的三层体读全
+
+**取件**：R1133 待办①「`deliveries/delivery-address` 归属已明但缺步骤位」。
+
+改了什么：
+- **先取证 `delivery-address`（v4 PUT，`sub_140A43A80`）** —— 11 个键 + 三层嵌套：
+  ```
+  addressDetails: {
+    addressee: { firstName, lastName },
+    address:   { addressLine1, townOrCity, postcode, countryCode },
+    contact:   { phoneNumber }
+  }
+  ```
+  设键顺序可读：`addressee` 在 `lastName` 之后、`address` 在 `countryCode` 之后、
+  `contact` 在 `phoneNumber` 之后、`addressDetails` 最后（唯一根键）。动词槽 `6310`＝**PUT**，
+  且第三参是 **`v2` 不是 0** ⇒ **有体**。
+- **但它没有步骤位**：镜像 19 步里没有任何名字对到它，`StoreFlow` 也没有对应虚步骤。
+  按纪律**不落**（落了就是孤岛），体形状已完整记入账。
+- **另取一个能落的**：`DeliveryPage`（序号 26，v3 PUT）。`sub_140A3F750` 只引用自己的 URL
+  （`0x14705d960`，`sub_1408B6310(v2, v3, 0, v4)` ⇒ **无体**），而 `DeliveryPageAsync`
+  在 `StoreFlow` 里**根本没有虚步骤**——这一步骤此前**零实现**。
+  → 加 `StoreFlow.DeliveryPageAsync`（`NotSupported`）+ `JohnLewisFlow` 覆写：无体 PUT 到
+  `DeliveryPageV3`，seam `jl.deliveryPageUrl`，响应存 `jl.deliveryPageBody`。
+- 新增 `JohnLewisDeliveryPageTests` **4 条**：PUT + **空体**（断言结尾 `[]`）、`Knows("DeliveryPage")`、
+  503 可重试、常量等于镜像字面量。
+- ratchet 同步：`StepDispatch` **183 → 184**（照该测试惯例写原因）。
+
+验证命令与输出：
+- `ida.py py`（`_bff_delivaddr.py`，先指向 `sub_140A43A80` 再重定向到 `sub_140A3F750`）→
+  两段输出：delivery-address 的 11 键 + 11 行设键顺序 + `slot 6310 args(v40, v41, v2, v42)`；
+  delivery-page 的 1 键串 + `(none)` 设键 + `slot 6310 args(v2, v3, 0, v4)`。
+- `dotnet build` 无 error；全量 **2428 通过 / 0 失败 / 2 跳过 / 2430**（2m35s）。
+
+数字变化：John Lewis 实际调用 BFF 端点 **6 → 7**；可派发步骤名 **+1**（`DeliveryPage` 此前不存在）；测试 **+4**。
+
+证据等级：Observation = 两函数的全部冻结串与设键顺序、动词槽与第三参（`v2` vs 字面 `0`）、
+全量 2428/0/2；Inference = 无（「无体」与「有体」由第三参直接判定）。
+
+还剩什么：① `delivery-address` 的**步骤位**：它必须在某个已有步骤内部被调用（19 步里无其名），
+需先解决「步骤名 ↔ 端点」的对账；② `payment-page` 无体 PUT 同样缺位；
+③ `GetDeliveryMethods`（GET `…/deliveries/methods`）归属待判——三件事是同一个问题的三个面。
+
+**全量与收据（本轮收数）**：
+- 全量：**2428 通过 / 0 失败 / 2 跳过 / 2430**（2m35s）。
+- 改 `src`+`tests` 后重跑变异套件 → 新收据 `ran_at 2026-11-19T01:35:19`、
+  **59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`（mtime 01:35:26，读于 01:35:32 —— 6 秒新鲜）。

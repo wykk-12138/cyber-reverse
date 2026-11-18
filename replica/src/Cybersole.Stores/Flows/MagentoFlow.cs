@@ -1101,6 +1101,34 @@ public sealed class JohnLewisFlow : StoreFlow
     }
 
     /// <summary>
+    /// <c>DeliveryPage</c> — the <b>body-less</b> PUT to <c>v3/orderforms/delivery-page</c>.
+    ///
+    /// <para>
+    /// R1134: <c>sub_140A3F750</c> references exactly one literal — its own URL (0x14705d960) — and its
+    /// verb call is <c>sub_1408B6310(v2, v3, 0, v4)</c> with the literal <c>0</c> where a body would go.
+    /// So this step is a touch on the page, not a submission; the address itself travels to
+    /// <c>v4/orderforms/deliveries/delivery-address</c>, whose body is evidenced separately (11 keys
+    /// under <c>addressDetails</c>) but which has no step name of its own in the image's list.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> DeliveryPageAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.TryGetValue("jl.deliveryPageUrl", out var over) &&
+                  !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.DeliveryPageV3;
+
+        var options = c.Options("jl-delivery-page");
+        var res = await c.Http.SendAsync(HttpMethod.Put, url, options, ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl delivery page unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl delivery page HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.deliveryPageBody"] = res.Body ?? string.Empty;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
     /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
     /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>

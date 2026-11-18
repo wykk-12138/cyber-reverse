@@ -6096,3 +6096,22 @@ threeds 站点可一并校正既有实现。
 
 还剩什么：① `…/deliveries/delivery-address`(PUT) 归属已明但缺步骤位；② `payment-page` 无体 PUT 缺步骤位；
 ③ `GetDeliveryMethods` 归属待判。
+## R1134 —— DeliveryPage 从零实现落地；delivery-address 体读全但无步骤位
+
+改了什么：
+- **`delivery-address`（v4 PUT，`sub_140A43A80`）体读全**：11 键三层
+  `{addressDetails:{addressee:{firstName,lastName}, address:{addressLine1,townOrCity,postcode,countryCode},
+  contact:{phoneNumber}}}`；槽 `6310`＝PUT 且第三参 `v2` ⇒ **有体**。
+  **但镜像 19 步里无其名 → 不落位**（落则孤岛），形状入账。
+- **`DeliveryPage`（序号 26）落地**：`sub_140A3F750` 只引用自身 URL、第三参字面 `0` ⇒ 无体 PUT；
+  `DeliveryPageAsync` 此前**无虚步骤（零实现）** → 加 `StoreFlow.DeliveryPageAsync` + `JohnLewisFlow`
+  覆写（无体 PUT + seam `jl.deliveryPageUrl`）；新增 4 条测试（含空体断言 `[]`）。
+- ratchet 同步：`StepDispatch` **183 → 184**。
+
+验证：`ida.py py` 两段提取（先 `sub_140A43A80` 再重定向 `sub_140A3F750`）；全量 **2428/0/2**；
+变异 **59/59 fired, tree GREEN, staleness 0**（01:35:19，6 秒新鲜）。
+
+数字变化：JL 实际调用 BFF 端点 **6 → 7**；可派发步骤名 **+1**；测试 **+4**。
+
+还剩什么：**下一轮做「步骤名 ↔ 端点」对账**——`delivery-address` 缺位、`payment-page` 无体 PUT 缺位、
+`GetDeliveryMethods` 归属不明，三件事是同一个问题的三个面。

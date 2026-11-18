@@ -797,6 +797,13 @@ public abstract class StoreFlow
     /// </summary>
     public virtual Task<StepOutcome> CreateDeliveryAsync(FlowContext c, CancellationToken ct)
         => SubmitShippingAsync(c, ct);
+
+    /// <summary>
+    /// The delivery page step (John Lewis ordinal 26). Declared so the name is dispatchable; a store
+    /// that knows its own delivery-page call overrides it.
+    /// </summary>
+    public virtual Task<StepOutcome> DeliveryPageAsync(FlowContext c, CancellationToken ct)
+        => NotSupported("DeliveryPage");
     public virtual Task<StepOutcome> SubmitAddressAsync(FlowContext c, CancellationToken ct)
         => SubmitShippingAsync(c, ct);
     public virtual Task<StepOutcome> SubmitShippingMethodAsync(FlowContext c, CancellationToken ct) => Ok();

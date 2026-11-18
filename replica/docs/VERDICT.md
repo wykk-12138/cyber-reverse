@@ -64629,3 +64629,43 @@ POST {CheckoutHost}/api/delivery/address
 | JL 实际调用 BFF 端点 | **5 → 6** |
 
 顺手又碰上同一个 ratchet（`StepDispatch` 182 → 183），照惯例改数并写明原因。
+---
+
+## 第 1134 轮：一个步骤从**零实现**落地，另一个只落体不落位
+
+### 一、`delivery-address` 的体读全了，但它**没有位置**
+
+11 个键，三层：
+
+`
+addressDetails: {
+  addressee: { firstName, lastName },
+  address:   { addressLine1, townOrCity, postcode, countryCode },
+  contact:   { phoneNumber }
+}
+`
+
+嵌套不是我猜的 —— 设键顺序写着：`addressee` 在 `lastName` 之后、`address` 在 `countryCode` 之后、
+`contact` 在 `phoneNumber` 之后、`addressDetails` 最后（唯一的根键）。
+
+动词槽 `6310`（PUT），第三参是 **`v2` 不是 0** ⇒ **有体**。
+
+**可是镜像 19 步里没有它的名字。** 落实现就得造一个不被派发的方法 —— 所以**只记形状，不落位**。
+
+### 二、改成落一个真能落的
+
+`DeliveryPage`（序号 26）：`sub_140A3F750` 只引用自己的 URL，第三参是**字面 `0`**（无体），
+而 `DeliveryPageAsync` 在 `StoreFlow` 里**根本没有虚步骤** —— 这一步骤此前**零实现**。
+
+加了虚步骤 + 覆写（无体 PUT + seam），4 条测试。
+
+### 三、三件事其实是同一个问题
+
+`delivery-address` 缺位、`payment-page` 的无体 PUT 缺位、`GetDeliveryMethods` 归属不明
+—— **都是「步骤名 ↔ 端点」还没对完账**。下一轮该做的是这张账，不是再挖一个体。
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2428 通过 / 0 失败 / 2 跳过** |
+| 变异 | **59/59 fired，tree GREEN，staleness 0** |
+| JL 实际调用 BFF 端点 | **6 → 7** |

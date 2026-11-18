@@ -92,7 +92,7 @@ public sealed class PayPalThreeDs
     public const string ResolveStatusSucceeded = "SUCCESS";
     public const string ResolveStatusFailed = "FAILED";
 
-    /// <summary>The GetThreeDsJwtQuery document, verbatim (631 chars) - obj 0x1471213F8.</summary>
+    /// <summary>The GetThreeDsJwtQuery document, verbatim (630 chars) - obj 0x1471213F8.</summary>
     public const string JwtQueryDocument = @"query GetThreeDsJwtQuery($referenceId: String!, $cardBin: String, $jwtIssuer: String!, $jwtOrgUnitId: String!, $returnUrl: String, $redirectUrl: String, $transactionId: String, $paymentAuthenticationRequest: String, $authenticationProvider: String, $cardType: String) {
   threeDSJwt(
     referenceId: $referenceId
@@ -107,10 +107,9 @@ public sealed class PayPalThreeDs
     cardType: $cardType
   )
 }
-
 ";
 
-    /// <summary>The ThreeDsAuthenticateMutation document, verbatim (814 chars) - obj 0x1470E1FA0.</summary>
+    /// <summary>The ThreeDsAuthenticateMutation document, verbatim (813 chars) - obj 0x1470E1FA0.</summary>
     public const string AuthenticateDocument = @"mutation ThreeDsAuthenticateMutation($token: String, $amount: AmountInput!, $productDetails: ProductDetails, $threeDsServerTransactionId: String!, $paymentAuthenticationRequest: String!, $authenticatePayload: threedsLookUpPayload!) {
   threeDSAuthenticate(
     token: $token
@@ -135,10 +134,9 @@ public sealed class PayPalThreeDs
     __typename
   }
 }
-
 ";
 
-    /// <summary>The ThreeDsLookUpMutation document, verbatim (872 chars) - obj 0x1470E2CC0.</summary>
+    /// <summary>The ThreeDsLookUpMutation document, verbatim (871 chars) - obj 0x1470E2CC0.</summary>
     public const string LookUpDocument = @"mutation ThreeDsLookUpMutation($token: String!, $amount: AmountInput!, $productDetails: ProductDetails, $browserInfo: ThreedsBrowserDetailsInput, $threedsLookUpPayload: threedsLookUpPayload!) {
   threeDSLookUp(
     token: $token
@@ -173,10 +171,9 @@ public sealed class PayPalThreeDs
     __typename
   }
 }
-
 ";
 
-    /// <summary>The ResolveThreeDsContingency document, verbatim (10371 chars) - obj 0x1470DC9B0.</summary>
+    /// <summary>The ResolveThreeDsContingency document, verbatim (10370 chars) - obj 0x1470DC9B0.</summary>
     public const string ResolveDocument = @"mutation ResolveThreeDsContingency($token: String!, $authId: String!, $referenceId: String!, $creditCardId: String!, $status: ResolveThreeDsContingencyStatus!, $experiences: [ThreeDSPaymentExperience]) {
   resolveThreeDsContingency(
     token: $token
@@ -765,7 +762,6 @@ fragment InstallmentsFragment on FundingInstrument {
   }
   __typename
 }
-
 ";
 
     /// <summary>The PayPal REST hop beside the graphql surface: the method-complete notification (0x147098740).</summary>

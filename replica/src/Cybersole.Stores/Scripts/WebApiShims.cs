@@ -16,6 +16,38 @@ internal static class WebApiShims
 {
     /// <summary>JS installed on the shim's global object, after the DOM part of the prelude.</summary>
     public const string Prelude = """
+        // TEMPORARY diagnostic: the vendor payload stores every literal encoded and rebuilds them
+        // with String.fromCharCode, so a plain text search of the file finds nothing. Recording the
+        // decoded characters is the only way to see what the payload is actually looking for.
+        this.__dshDecoded = [];
+        (function () {
+            var orig = String.fromCharCode;
+            var rec = this.__dshDecoded;
+            String.fromCharCode = function () {
+                var out = orig.apply(String, arguments);
+                if (rec.length < 400000) rec.push(out);
+                return out;
+            };
+        }).call(this);
+
+        // TEMPORARY diagnostic: the payload slices its own bytecode array with splice() right after
+        // decoding the literal pool. Recording what that call removes, and what the array looks like
+        // afterwards, is how we tell "the bytecode is misaligned" from "the VM asks for a slot that
+        // was never assigned".
+        this.__dshSplices = [];
+        (function () {
+            var orig = Array.prototype.splice;
+            var rec = this.__dshSplices;
+            Array.prototype.splice = function (start, count) {
+                if (rec.length < 8) {
+                    var head = [];
+                    for (var i = 0; i < Math.min(24, this.length); i++) head.push(this[i]);
+                    rec.push({ start: start, count: count, len: this.length, head: head });
+                }
+                return orig.apply(this, arguments);
+            };
+        }).call(this);
+
         // ---- TextEncoder / TextDecoder (real UTF-8, no host call needed) ----
         this.TextEncoder = function () {};
         this.TextEncoder.prototype.encode = function (s) {

@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace Cybersole.Stores.Scripts;
@@ -106,13 +106,47 @@ public sealed class BrowserShim
           },
           hasFocus: function () { return true; }
         };
-        var location = {
-          href: {{JsStr(href)}}, protocol: "https:", host: "", hostname: "", port: "",
-          pathname: "/", search: "", hash: "", origin: "",
-          assign: function () {}, replace: function () {}, reload: function () {},
-          toString: function () { return this.href; }
-        };
+        var location = (function (raw) {
+          raw = String(raw === undefined || raw === null ? "about:blank" : raw);
+          var out = {
+            href: raw, protocol: "https:", host: "", hostname: "", port: "",
+            pathname: "/", search: "", hash: "", origin: "",
+            assign: function () {}, replace: function () {}, reload: function () {},
+            toString: function () { return this.href; }
+          };
+          var m = /^([a-zA-Z][a-zA-Z0-9+.\-]*:)\/\/([^\/?#]*)([^?#]*)(\?[^#]*)?(#.*)?$/.exec(raw);
+          if (m) {
+            out.protocol = m[1];
+            var auth = m[2] || "";
+            var at = auth.indexOf("@");
+            if (at >= 0) auth = auth.slice(at + 1);
+            var colon = auth.lastIndexOf(":");
+            var hasPort = colon > 0 && auth.indexOf("]") < colon;
+            out.hostname = hasPort ? auth.slice(0, colon) : auth;
+            out.port = hasPort ? auth.slice(colon + 1) : "";
+            out.host = auth;
+            out.pathname = m[3] || "/";
+            out.search = m[4] || "";
+            out.hash = m[5] || "";
+            out.origin = out.protocol + "//" + out.host;
+          } else {
+            var c2 = raw.indexOf(":");
+            if (c2 > 0) out.protocol = raw.slice(0, c2 + 1);
+          }
+          return out;
+        })({{JsStr(href)}});
         document.location = location;
+          /* `currentScript` and `baseURI` are both in the sensor's literal table; a sensor that cannot
+             see its own <script> element has no way to resolve relative endpoints. */
+          document.baseURI = location.href;
+          document.URL = location.href;
+          document.documentURI = location.href;
+          document.currentScript = {
+            src: location.href, type: "text/javascript", async: true, defer: false, noModule: false,
+            getAttribute: function (n) { return String(n) === "src" ? location.href : null; },
+            hasAttribute: function (n) { return String(n) === "src"; },
+            parentNode: null, ownerDocument: document
+          };
         this.location = location;
         var navigator = {
           userAgent: {{JsStr(ua)}}, appVersion: {{JsStr(ua.Replace("Mozilla/", ""))}},

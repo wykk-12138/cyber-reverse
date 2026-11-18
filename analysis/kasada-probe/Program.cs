@@ -1,4 +1,4 @@
-// WHY THIS EXISTS: the xUnit project is shared with other sessions and can be mid-edit; this harness
+﻿// WHY THIS EXISTS: the xUnit project is shared with other sessions and can be mid-edit; this harness
 // references only Cybersole.Stores so the Kasada payload can be run and probed independently.
 //
 // The payload's literal table says `configure` takes `{ endpoints: [{domain, path, method, ...}] }` and
@@ -27,7 +27,7 @@ var script = File.ReadAllText(fixture);
 
 // Raised limits on purpose: with a real endpoint the call throws a JS-uncatchable exception, which in
 // Jint usually means a statement/time/memory limit rather than a bug in the payload.
-using var runtime = new ScriptRuntime(new BrowserShim(), TimeSpan.FromMinutes(3), 512L << 20);
+using var runtime = new ScriptRuntime(new BrowserShim { Href = Environment.GetEnvironmentVariable("KASADA_HREF") ?? "https://www.nike.com/" }, TimeSpan.FromMinutes(3), 512L << 20);
 var executed = runtime.TryExecute(script, out var error);
 var solver = new { Runtime = runtime };
 
@@ -40,7 +40,10 @@ if (config is not null)
     // candidate gets a fresh runtime and this is the only call made.
     // TryExecute surfaces the C#-level exception text; TryString swallows it, and the interesting
     // failures here are Jint exceptions JavaScript cannot catch.
+    var before = solver.Runtime.TryString("(window.__dshOpcodes||[]).length") ?? "?";
     var cfgOk = solver.Runtime.TryExecute("window.KPSDK.configure(" + config + ");", out var cfgErr);
+    var after = solver.Runtime.TryString("(window.__dshOpcodes||[]).length") ?? "?";
+    Console.WriteLine($"opcodes before={before} after={after}  (equal means configure executed no payload bytecode)");
     Console.WriteLine($"configure ok={cfgOk} err={cfgErr ?? "-"} runtimeError={solver.Runtime.LastErrorWasRuntime}");
 
 

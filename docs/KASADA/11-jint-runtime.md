@@ -818,6 +818,52 @@ requests                                                                     →
 同时 `configure.name === "bound "` 说明这两个都是 `Function.bind` 的产物 ——
 和 opcode 41（`new (Function.bind.apply(v,i))`）对得上，是 payload 自己生成的导出面。
 
+### 5.34 `configure` 不是空壳：它真的跑了 834 条字节码 [实测]
+
+一直有个疑问是「configure 是不是个桩」。用一个计数器就能问清楚 ——
+指令表是 `new Proxy(...)` 包的，每次 `u[opcode]` 取值都被记录下来：
+
+```
+configure 之前 dispatch 次数 = 9289
+configure 之后 dispatch 次数 = 10123      ← 差 834
+```
+
+**所以 `configure` 执行了 834 条 payload 字节码**，然后停下来 —— 不是没跑，是**跑完某个分支后决定不继续**。
+
+配合前面的事实（不发请求、不派发新事件、无待执行定时器、`isReady()` 仍 false），
+最可能是走到了 `InterrogationSkipped` 这类「无事可做」的出口（该状态名在字面量表里）。
+
+### 5.35 顺带修好的两处 shim 缺陷（都没能让它变 ready，但本来就该修）
+
+**（1）`location` 的 `host` / `hostname` / `origin` 原来是空字符串**
+
+```js
+var location = { href: href, protocol: "https:", host: "", hostname: "", port: "", origin: "" };
+```
+
+只有 `href` 有值，其余全空。传感器要把配置里的 `endpoints[].domain` 和当前页面的
+location 对上，空 host 会让任何真实域名都「不属于本页」。现在从 `href` 真解析出
+`protocol` / `host` / `hostname` / `port` / `pathname` / `search` / `hash` / `origin`。
+
+**（2）没有 `document.currentScript` / `baseURI`**
+
+这两个名字都在字面量表里；看不见自己那个 `<script>` 的传感器没法解析相对端点。
+现在都补上了（`currentScript.src` 暂时用 `location.href`，等真 URL 接进来再换）。
+
+**修完这两处，`isReady()` 仍然是 `false`、requests 仍然是空** —— 所以它们不是主因，
+但属于「本来就该对」的东西。
+
+### 5.36 下一步：把这 834 条字节码的走向读出来
+
+手上已经有现成的工具链（`analysis/instrument_payload.py` 插桩 + 按 `U` 规则解码），
+之前就是靠它把崩溃点从「某个随机属性名」定到 `document.dispatchEvent` 的。现在把同一套用在这 834 条上：
+
+1. 插桩记录 `pc + opcode`，并在 configure 前后各打一个标记
+2. 取出标记之间的序列，按 `U` 解码
+3. 看它从 `Configured` 走到哪个出口，以及那个出口的判断条件读了什么
+
+**这比继续猜配置键名靠谱** —— 834 条指令足够看出它检查了什么。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

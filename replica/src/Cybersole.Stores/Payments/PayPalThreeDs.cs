@@ -840,6 +840,21 @@ fragment InstallmentsFragment on FundingInstrument {
     public const string NormalPathFailureStatus = "Payment failed (3DS)";
     public const string NormalPathFailureColour = "#FB4961";
 
+    /// <summary>
+    /// The challenge callback's trailing query fragment (0x147163128, 47 chars) — the normal
+    /// solver appends it while composing the callback URL in its string builder (site
+    /// 0x140d8e6ff, the same region that references <c>challenge_callback_url</c>).
+    /// </summary>
+    public const string ChallengeCallbackFragment = "state=undefined&code=undefined&liability_shift=";
+
+    /// <summary>
+    /// Composes the callback URL the challenge hop advertises: the base URL, the fragment's
+    /// three placeholder names with their values substituted in order, then the shift.
+    /// </summary>
+    public static string ChallengeCallbackUrlFor(string baseUrl, string state, string code,
+        string liabilityShift) =>
+        baseUrl + "state=" + state + "&code=" + code + "&liability_shift=" + liabilityShift;
+
     /// <summary>The frozen document for an operation name — the four the machine sends.</summary>
     public static string DocumentFor(string operationName) => operationName switch
     {
@@ -1443,10 +1458,18 @@ fragment InstallmentsFragment on FundingInstrument {
 
         var options = c.Options("paypal3ds-init-challenge");
         options.Timeout = TimeSpan.FromMilliseconds(StageTimeoutMs);
-        options.Content = new System.Net.Http.FormUrlEncodedContent(new Dictionary<string, string>
+        var challengeForm = new Dictionary<string, string>
         {
             [JwtFormField] = jwt,
-        });
+        };
+        // The callback URL the hop advertises (field 0x146fc54d8, the normal solver's own single
+        // reference). Inference: the composed value the solver builds in its string builder is the
+        // fragment 0x147163128 with its three placeholders filled; the session supplies them.
+        if (c.Session.Vars.TryGetValue("paypal3ds.challengeCallbackUrl", out var callback) &&
+            !string.IsNullOrEmpty(callback))
+            challengeForm[ChallengeCallbackUrlField] = callback;
+
+        options.Content = new System.Net.Http.FormUrlEncodedContent(challengeForm);
         foreach (var h in (input.Hosted ? HostedHeaders(input) : NormalHeaders(input)))
             options.Headers[h.Key] = h.Value;
 

@@ -645,6 +645,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~PayPalThreeDsTests",
         "guard": "TheDialectSelectorWalksTheChosenSurface",
     },
+    {
+        "name": "round 1101 -- the callback fragment loses its liability_shift tail",
+        "file": PAYPAL_3DS,
+        # The frozen fragment (0x147163128) ends with liability_shift=; truncating it is the drift
+        # the callback pin forbids.
+        "find": '    public const string ChallengeCallbackFragment = "state=undefined&code=undefined&liability_shift=";',
+        "replace": '    public const string ChallengeCallbackFragment = "state=undefined&code=undefined";',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheChallengeInitCarriesItsCallbackUrl",
+    },
 ]
 
 

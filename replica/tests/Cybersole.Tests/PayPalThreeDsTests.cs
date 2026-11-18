@@ -376,6 +376,40 @@ public sealed class PayPalThreeDsTests
     }
 
     /// <summary>
+    /// R1101: the challenge hop advertises its callback URL — the base plus the fragment
+    /// 0x147163128 with its three placeholders filled in, carried in the field 0x146fc54d8 that
+    /// the normal solver references exactly once.
+    /// </summary>
+    [Fact]
+    public async Task TheChallengeInitCarriesItsCallbackUrl()
+    {
+        var bodies = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((_, body) =>
+        {
+            bodies.Add(body);
+            return (200, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+        ctx.Session.Vars["paypal3ds.initChallengeUrl"] = server.BaseUrl + "/v1/init-challenge";
+        ctx.Session.Vars["paypal3ds.challengeCallbackUrl"] = PayPalThreeDs.ChallengeCallbackUrlFor(
+            "https://checkout.example/back?", "SUCCESS", "0", "Y");
+
+        var outcome = await new PayPalThreeDs().SubmitChallengeInitAsync(ctx, Sample(),
+            "{\"jwt\":\"eyJ.jwt.sig\"}", default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        var body = bodies.Single();
+        Assert.Contains("JWT=eyJ.jwt.sig", body);
+        Assert.Contains("challenge_callback_url=", body);
+        Assert.Contains(Uri.EscapeDataString("state=SUCCESS&code=0&liability_shift=Y"), body);
+
+        // The fragment itself is the frozen literal, 47 chars, in its own order.
+        Assert.Equal("state=undefined&code=undefined&liability_shift=",
+            PayPalThreeDs.ChallengeCallbackFragment);
+    }
+
+    /// <summary>
     /// R1100: the dialect choice is explicit, and each branch walks its own surface. The image
     /// has no field-based branch in a shared function — it has two implementation types with
     /// parallel method tables — so the selector is the API-level expression of that choice.

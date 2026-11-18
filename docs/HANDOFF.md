@@ -5524,3 +5524,24 @@ SourceEncoding 2/2、metrics exit 0。
 字段级判据的未知项**撤销**（它不存在）。
 
 还剩什么：confirm 内容体内部字段；56 锚静树全跑。
+
+## R1101 —— 【核心②】confirm 内容体解出：响应读取 + 200 投影；回调 URL 片段落地
+
+改了什么：
+- `sub_140D8CF60`（20 行）= **响应反序列化回调**：`sub_1408C0CE0(a2, 类型)` 读 + 
+  `sub_142389CA0(v4, 200, v5, 1)` 投影到 200 —— **与既有 `SubmitProcessConfirmationAsync`
+  同形**，故内容体是「上一跳给的内容」，Unknown 撤销。
+- 解出普通路独有 **`state=undefined&code=undefined&liability_shift=`**（0x147163128，47 字），
+  位于 StringBuilder 拼接区（0x140D8E6FF），与 **`challenge_callback_url`（0x146FC54D8，全库
+  仅一处引用）** 同域 → 回调 URL = 基址 + 该片段。
+- 落地 `ChallengeCallbackFragment` + `ChallengeCallbackUrlFor(...)`；
+  `SubmitChallengeInitAsync` 增 `challenge_callback_url` 字段。
+- 变异 56 → **57**（片段截断锚）+ 指南同步。
+
+验证：`PayPalThreeDsTests` **26/26**（1 新钉）、SummaryBlock 4/4（指南 57）、
+SourceEncoding 2/2、metrics exit 0。
+**自伤记录**：误删一钉签名，下一读即发现并整块补回。
+
+数字变化：变异 56 → **57**；PayPal 钉 25 → **26**；confirm 内容体 Unknown → Observation。
+
+还剩什么：片段到字段的逐指令绑定（把 Inference 降为 Observation）；57 锚静树全跑。

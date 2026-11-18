@@ -39459,3 +39459,38 @@ confirm 内容体的内部字段；55 锚静树全跑。
 Inference = 两类型共同实现的接口名（未被本轮解出，但不影响「按类型分派」这一结论）。
 
 还剩什么：confirm 内容体的内部字段（`sub_142FABDD8 → sub_140D8CF60` 深链）；56 锚静树全跑。
+
+## R1101 —— 【核心②】confirm 内容体解出：它是响应读取 + 200 投影；回调 URL 片段落地
+
+**取件**：R1100 遗留的 confirm 内容体（`sub_142FABDD8 → sub_140D8CF60`）。
+
+改了什么：
+- `sub_140D8CF60`（20 行）读完：它是**响应反序列化回调**——`sub_1408C0CE0(a2, <类型>)` 按类型读，
+  再 `sub_142389CA0(v4, 200, v5, 1)` **把结果投影到 200 状态**。**这正与
+  `SubmitProcessConfirmationAsync` 的既有行为同形**（PUT → 2xx 即成功 → 回写响应体），
+  故内容体不是「一组固定字段」，而是**上一跳给出的内容**，由调用方承接是对的。
+- 顺带解出普通路独有常量 **`state=undefined&code=undefined&liability_shift=`（0x147163128，47 字）**：
+  它出现在一个 StringBuilder 拼接区（长度检查 + `sub_141D2B5E0` 拷贝，站点 0x140D8E6FF），
+  该区与 **`challenge_callback_url`（0x146FC54D8，普通 solver 全库仅此一处引用）** 同域——
+  即回调 URL = 基址 + 该三段占位片段。
+- 落地：`ChallengeCallbackFragment` 常量 + `ChallengeCallbackUrlFor(base, state, code, shift)`
+  组合方法；`SubmitChallengeInitAsync` 增 `challenge_callback_url` 表单字段（有会话值才带）。
+- 变异 56 → **57**（片段截断锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`dec sub_140D8CF60` 全文；`xrefs 0x147163128` 两处（均在普通 solver）；
+  `xrefs 0x146FC54D8` 一处；`names_at` 校验 `0x147163134` 为同串字符区。
+- `PayPalThreeDsTests` **26/26 绿**（1 新钉：回调字段 + 值逐字 + 片段 47 字原文）；
+  `SummaryBlockTests` 4/4（指南 57）；`SourceEncodingTests` 2/2；`metrics_report` exit 0。
+- **如实记录一次自伤**：编辑测试时误删了 `TheDialectSelectorWalksTheChosenSurface` 的签名
+  （只删了 summary+特性+首行，方法体留存），下一读即发现并整块补回——**整块锚点替换前先确认
+  旧块边界覆盖的是「要换的东西」，不是「要保留的东西的前缀」**。
+
+数字变化：变异 56 → **57**；PayPal 钉 25 → **26**；confirm 内容体的 Unknown **从「未知字段集」
+改为 Observation（= 上一跳内容 + 200 投影）**，回调片段从 Inference 升为 Observation 常量、
+其与字段的绑定仍标 Inference。
+
+证据等级：Observation = `sub_140D8CF60` 全文、47 字片段原文、`challenge_callback_url` 唯一引用、
+`0x147163134` 字符区校验；Inference = 片段三占位与回调字段的绑定（同域但未逐指令接上）。
+
+还剩什么：片段到字段的逐指令绑定（把 Inference 降为 Observation）；57 锚静树全跑。

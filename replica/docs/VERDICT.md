@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **56 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1100 各 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **57 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1101 各 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63484,3 +63484,41 @@ bootstrap(serverData → session) → SubmitAsync → ReadContingency
 > 待办 —— 把「不存在的东西」挂在待办里，会让后面每一轮都去查一个不存在的字段。
 >
 > 判据：**如果两个实现的全部引用形状对称、槽函数是同一模板、虚槽成对平行，那就是类型分派。**
+
+---
+
+## 第 1101 轮：confirm 内容体不是字段集，是「上一跳的响应 + 200 投影」
+
+### 一、`sub_140D8CF60` 只有 20 行，但它关掉了一个 Unknown
+
+```
+sub_1408C0CE0(a2, <类型>)        // 按类型反序列化读
+sub_142389CA0(v4, 200, v5, 1)    // 把结果投影到 200 状态
+```
+
+我原先把它挂成「confirm 内容体的内部字段待解」。读完发现：**它不是字段集**，
+是**响应读取 + 状态投影**——也就是说这个跳的「内容」来自上一跳，`SubmitProcessConfirmationAsync`
+接受调用方给的 JSON 本来就是对的。**Unknown 撤销。**
+
+> 记一笔方法论：**「某个字段集待解」这个 Unknown 本身可能是错的框架**。先问「它到底是不是
+> 一组字段」，再问「字段是什么」。
+
+### 二、回调片段
+
+普通路独有常量 `state=undefined&code=undefined&liability_shift=`（47 字）出现在 StringBuilder
+拼接区，与 `challenge_callback_url`（全库**仅一处**引用）同域。于是落地
+`ChallengeCallbackUrlFor(base, state, code, shift)` + 该表单字段。
+
+**片段是 Observation（原文逐字），片段→字段的绑定是 Inference（同域未被逐指令接上）。**
+
+### 三、数字与一次自伤
+
+| 度量 | R1100 | **R1101** |
+|---|---|---|
+| 变异套件 | 56 | **57**（片段截断锚） |
+| PayPal 钉 | 25 | **26** |
+
+自伤：编辑测试时用「summary + 特性 + 首行」当锚点替换，把 `TheDialectSelectorWalksTheChosenSurface`
+的签名删掉了（方法体还在）。下一读即发现，整块补回。
+
+**教训：整块锚点替换前，先确认旧块覆盖的是「要换的东西」，不是「要保留的东西的前缀」。**

@@ -376,6 +376,55 @@ public sealed class PayPalThreeDsTests
     }
 
     /// <summary>
+    /// R1099: the normal dialect end to end — its three hops have a real caller, in the normal
+    /// solver's own order, stopping where the challenge window opens exactly as the hosted path
+    /// does. Without this the three methods were an island reachable only from tests.
+    /// </summary>
+    [Fact]
+    public async Task TheNormalDialectRunsEndToEndAndStopsAtTheWindow()
+    {
+        var seen = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, _) =>
+        {
+            seen.Add(req.Url?.AbsolutePath ?? "");
+            if ((req.Url?.AbsolutePath ?? "").Contains("graphql"))
+                return (200, @"{""data"":{""paymentContingencies"":{
+                    ""threeDomainSecure"":{""status"":""CHALLENGE_REQUIRED"",
+                        ""redirectUrl"":{""href"":""https://bank.example/challenge""}},
+                    ""threeDSContingencyData"":{""resolution"":{
+                        ""paymentCard"":{""id"":""card-77""},
+                        ""contingencyContext"":{
+                            ""jwtSpecification"":{""jwtIssuer"":""iss-1"",""jwtOrgUnitId"":""org-2""},
+                            ""referenceId"":""ref-9""}}}}}}");
+            return (200, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+        ctx.Session.Vars["paypal3ds.heliosServerDataUrl"] = server.BaseUrl + "/heliosnext/api/serverData";
+        ctx.Session.Vars["paypal3ds.heliosSessionUrl"] = server.BaseUrl + "/heliosnext/api/session";
+        ctx.Session.Vars["paypal3ds.initMethodUrl"] = server.BaseUrl + "/v1/init-method";
+        ctx.Session.Vars["paypal3ds.notifyUrl"] = server.BaseUrl + "/v1/notify-method-cmpl";
+        ctx.Session.Vars["paypal3ds.initChallengeUrl"] = server.BaseUrl + "/v1/init-challenge";
+
+        var outcome = await new PayPalThreeDs().RunNormalAsync(ctx, Sample(), "cart-9", default,
+            server.BaseUrl + "/graphql");
+
+        // It stopped at the window, not completed — the same contract as the hosted path.
+        Assert.True(outcome.AwaitingChallenge, outcome.Error);
+        Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Waiting3DS), ctx.Session.Vars["paypal3ds.state"]);
+
+        // The normal solver's own order: bootstrap, submit, JWT query, then the method pair.
+        Assert.Equal("/heliosnext/api/serverData", seen[0]);
+        Assert.Equal("/heliosnext/api/session", seen[1]);
+        Assert.Contains("/graphql", seen[2]);
+        Assert.Contains("/graphql", seen[3]);
+        // The remaining hops only run when the JWT answer carries a jwt; this stub does not, so
+        // the machine's alive gate keeps them off the wire — which is itself the decoded gate.
+        Assert.Equal(4, seen.Count);
+        Assert.Equal("0", ctx.Session.Vars["paypal3ds.hosted"]);   // the normal dialect's flag
+    }
+
+    /// <summary>
     /// The challenge-init hop (normal path only) posts the JWT and, on refusal, speaks the
     /// normal dialect's own failure line in its own colour.
     /// </summary>

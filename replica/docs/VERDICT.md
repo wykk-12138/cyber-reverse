@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **54 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1098 各 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **55 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1099 各 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63404,3 +63404,43 @@ R1097 我按「`action` 是表单字段」落了 session 跳。本轮逐行读 `
 > 的 JSON 类型标记（`unk_144CBDA18` + `content-type: application/json`）。
 > **判体形要看类型标记，不是看键名。** 这条与 R1095 的「一站一站解」是同族：
 > 键名给的是「有哪些字段」，类型标记才给「怎么装」。
+
+---
+
+## 第 1099 轮：普通路端到端 —— 三跳从「可调用」到「可运行」
+
+### 一、反孤岛
+
+R1097/R1098 落了普通方言的三跳（bootstrap / init-challenge / processConfirmation），
+但 `RunAsync` 只走 hosted —— **那三跳当时只有测试能调**。R1086 的「不许留孤岛」纪律要求
+每个落地的模块都接进真实调用链，本轮补上：`RunNormalAsync` 成为普通方言的完整入口。
+
+顺序照抄普通 solver 自己的九站点：
+
+```
+bootstrap(serverData → session) → SubmitAsync → ReadContingency
+  → GqlAsync(GetThreeDsJwtQuery) → 方法对 → init-challenge → 停窗
+```
+
+**与 hosted 同一停靠契约**：两种方言都在挑战窗开启处停，因为窗口在两种方言里都是宿主驱动。
+
+### 二、没有擅自改 `RunAsync` 的语义
+
+原版靠**两个 solver 入口点**分派（`sub_140D8D2B0` 普通 / `sub_141113680` hosted），
+但**分派判据本轮没解出**。所以 `RunNormalAsync` 作为**独立入口**存在，`RunAsync` 的既有语义
+一字未动——**这比「猜一个判据然后改老路径」诚实**。分派判据记入待办。
+
+### 三、数字
+
+| 度量 | R1098 | **R1099** |
+|---|---|---|
+| 变异套件 | 54 | **55**（方法对跳过锚） |
+| PayPal 钉 | 23 | **24** |
+
+### 教训
+
+> **「能调用」和「能运行」差一个调用者。** 三跳写完、测试绿了，`RunAsync` 里却一次都不出场——
+> 这正是 R1086 说的孤岛。**验收标准是「有真实调用者」，不是「测试调得通」。**
+>
+> 顺带一条自省：本轮构建挂了一次，原因是自己多写了一句 `AbsorbCookies(Array.Empty<...>())`
+> ——每跳本来就各自吸收 cookie，那句纯属画蛇。**照抄邻居的写法之前先看它解决什么问题。**

@@ -5478,3 +5478,27 @@ SourceEncoding 2/2、metrics exit 0。
 证据等级：JSON 类型标记/三键/verify 字面量/entry 三段为 Observation；confirm 内容体为 Inference。
 
 还剩什么：confirm 内容体内部字段；方言选择入口接线；54 锚静树全跑。
+
+## R1099 —— 【核心②】普通路端到端接线：`RunNormalAsync`，三跳不再是孤岛
+
+**反孤岛**：R1097/R1098 的三跳此前只有测试能调，`RunAsync` 只走 hosted。
+
+改了什么：
+- 新增 `RunNormalAsync(c, input, cartId, ct, graphqlUrl)` —— 普通方言完整入口，镜像镜像里
+  **两个 solver 入口点**（`sub_140D8D2B0` 普通面 / `sub_141113680` hosted 面）：
+  bootstrap → SubmitAsync → ReadContingency → JWT query → 方法对 → init-challenge →
+  落 resolver 输入 + `state=Waiting3DS` + `hosted="0"`，返回 `Challenge`。
+  **与 hosted 同一停靠契约**（窗口都是宿主驱动）。
+- 变异 54 → **55**（方法对跳过锚）+ 指南同步。
+
+验证：`PayPalThreeDsTests` **24/24**（1 新钉：端到端序 + `hosted="0"` + alive 门挡后三跳）、
+SummaryBlock 4/4（指南 55）、SourceEncoding 2/2、metrics exit 0。
+构建时修一处自造 CS1503（多余的 `AbsorbCookies` 空数组，删除）。
+
+数字变化：变异 54 → **55**；PayPal 钉 23 → **24**；普通方言**三跳可调用 → 端到端可运行**。
+
+证据等级：九站点顺序/停靠契约/hosted 标志为 Observation；**两方言分派判据为 Inference**
+（未解出，故 `RunNormalAsync` 作独立入口，不改 `RunAsync` 既有语义）。
+
+还剩什么：两方言分派判据（哪个字段选 `sub_140D8D2B0` vs `sub_141113680`）；confirm 内容体；
+55 锚静树全跑。

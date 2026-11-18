@@ -39379,3 +39379,40 @@ Inference = confirm 跳的内容体由上下文预构（本轮以调用方传入
 
 还剩什么：confirm 跳内容体的内部字段（`a1[5]+16` 的构造体）；方言选择入口接线
 （`StageInput.Hosted` 之外补 normal 分支）；54 锚静树全跑。
+
+## R1099 —— 【核心②】普通路端到端接线：`RunNormalAsync`，三跳不再是孤岛
+
+**取件**：R1098 遗留的「方言选择入口接线」。
+
+**反孤岛**：R1097/R1098 落的三跳（bootstrap / init-challenge / processConfirmation）此前只有
+测试能调，`RunAsync` 只走 hosted。按 R1086 的「不许留孤岛类」纪律，本轮给它们一个真实调用者。
+
+改了什么：
+- 新增 `RunNormalAsync(c, input, cartId, ct, graphqlUrl)`——普通方言的完整入口，镜像镜像里
+  **两个 solver 入口点**的结构（`sub_140D8D2B0` 走普通面、`sub_141113680` 走 hosted 面）：
+  1. `SubmitNormalBootstrapAsync`（serverData → session，JSON）
+  2. `SubmitAsync`（同一 graphql 应急读）
+  3. `ReadContingency` → 无挑战即 Complete3DS 收尾
+  4. `GqlAsync(GetThreeDsJwtQuery)`
+  5. `SubmitDeviceDataAsync`（方法对）
+  6. `SubmitChallengeInitAsync`（init-challenge）
+  7. 落 resolver 输入 + `paypal3ds.state = Waiting3DS` + `paypal3ds.hosted = "0"`，
+     返回 `StageOutcome.Challenge`
+  **与 hosted 路径同一停靠契约**：都在挑战窗开启处停（窗口在两种方言里都是宿主驱动）。
+- 变异 54 → **55**（方法对跳过锚）+ 指南格同步。
+
+验证命令与输出：
+- `PayPalThreeDsTests` **24/24 绿**（1 新钉：端到端序 serverData → session → graphql ×2 →
+  停窗；`hosted="0"` 标志；并验证 alive 门在没有 jwt 应答时把后三跳挡在网外——这正是解出的门）；
+  `SummaryBlockTests` 4/4（指南 55）；`SourceEncodingTests` 2/2；`metrics_report` exit 0。
+- 构建时修掉一处自造错误：`c.Session.AbsorbCookies(Array.Empty<(string,string)>())` 类型不符
+  （CS1503）——那行本就多余（每跳自己吸收 cookie），直接删。
+
+数字变化：变异 54 → **55**；PayPal 钉 23 → **24**；普通方言**从「三跳可调用」到「端到端可运行」**。
+
+证据等级：Observation = 普通 solver 的九站点顺序与停靠契约、`hosted` 标志位；Inference =
+普通路与 hosted 的**选择策略**（原版由两个 solver 入口点分派，其分派判据未在本轮解出，
+故 `RunNormalAsync` 作为独立入口存在，不擅自改动 `RunAsync` 的既有语义）。
+
+还剩什么：两方言的**分派判据**（哪个字段决定走 `sub_140D8D2B0` 还是 `sub_141113680`）；
+confirm 内容体的内部字段；55 锚静树全跑。

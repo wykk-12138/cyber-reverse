@@ -625,6 +625,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~PayPalThreeDsTests",
         "guard": "TheEntryUrlIsTheFrozenComposition",
     },
+    {
+        "name": "round 1099 -- the normal chain skips its method pair",
+        "file": PAYPAL_3DS,
+        # The normal solver runs the method pair between the JWT query and init-challenge;
+        # dropping it is exactly the drift the end-to-end pin forbids.
+        "find": '        var method = await SubmitDeviceDataAsync(c, input, jwt.Body, ct).ConfigureAwait(false);',
+        "replace": '        var method = StageOutcome.Success(200, null);',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheNormalDialectRunsEndToEndAndStopsAtTheWindow",
+    },
 ]
 
 

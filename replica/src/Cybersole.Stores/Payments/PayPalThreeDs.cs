@@ -1318,6 +1318,63 @@ fragment InstallmentsFragment on FundingInstrument {
         HeliosEntryUrl + Uri.EscapeDataString(cartId) + GoToNextSegment;
 
     /// <summary>
+    /// The normal dialect end to end (R1099) — the counterpart of <see cref="RunAsync"/> for the
+    /// <c>heliosnext</c> surface, mirroring how the image has two solver entry points
+    /// (<c>sub_140d8d2b0</c> for this one, <c>sub_141113680</c> for the hosted one). The order is
+    /// the normal solver's own: session bootstrap (serverData → session) → the JWT query → the
+    /// method pair (init-method → notify-method-cmpl) → the challenge initialisation → the
+    /// confirmation hop. It stops where the challenge window opens, exactly as the hosted path
+    /// does, because the window is host-driven in both dialects.
+    /// </summary>
+    public async Task<StageOutcome> RunNormalAsync(FlowContext c, StageInput input, string cartId,
+        CancellationToken ct, string? graphqlUrl = null)
+    {
+        var boot = await SubmitNormalBootstrapAsync(c, input, cartId, ct).ConfigureAwait(false);
+        if (!boot.Ok) return boot;
+        c.Session.Vars["paypal3ds.state"] = nameof(ThreeDsState.Process3DS);
+
+        // The submit stage is the same graphql contingency read the hosted path performs.
+        var submit = await SubmitAsync(c, input, ct, graphqlUrl).ConfigureAwait(false);
+        if (!submit.Ok) return submit;
+
+        var snapshot = ReadContingency(submit.Body);
+        if (!snapshot.RequiresChallenge)
+        {
+            c.Session.Vars["paypal3ds.state"] = nameof(ThreeDsState.Complete3DS);
+            return StageOutcome.Success(submit.Status, submit.Body);
+        }
+
+        var jwtVariables = new JObject
+        {
+            ["amount"] = input.Amount.ToString("0.00"),
+            ["jwtIssuer"] = snapshot.JwtIssuer,
+            ["jwtOrgUnitId"] = snapshot.JwtOrgUnitId,
+            ["referenceId"] = snapshot.ReferenceId,
+        };
+        var jwt = await GqlAsync(c, input, JwtQueryOperation, jwtVariables, ct, graphqlUrl)
+            .ConfigureAwait(false);
+        if (!jwt.Ok) return jwt;
+        c.Session.Vars["paypal3ds.jwt"] = jwt.Body ?? string.Empty;
+
+        // The method pair, then the challenge initialisation — this dialect's own two hops.
+        var method = await SubmitDeviceDataAsync(c, input, jwt.Body, ct).ConfigureAwait(false);
+        if (!method.Ok) return method;
+
+        var challenge = await SubmitChallengeInitAsync(c, input, jwt.Body, ct).ConfigureAwait(false);
+        if (!challenge.Ok) return challenge;
+
+        // Waiting3DS: the window opens here in both dialects; the resolver inputs persist.
+        c.Session.Vars["paypal3ds.redirectUrl"] = snapshot.RedirectUrl ?? string.Empty;
+        c.Session.Vars["paypal3ds.referenceId"] = snapshot.ReferenceId ?? string.Empty;
+        c.Session.Vars["paypal3ds.creditCardId"] = snapshot.CreditCardId ?? string.Empty;
+        c.Session.Vars["paypal3ds.euat"] = input.Euat ?? string.Empty;
+        c.Session.Vars["paypal3ds.hosted"] = "0";
+        c.Session.Vars["paypal3ds.token"] = input.Token ?? string.Empty;
+        c.Session.Vars["paypal3ds.state"] = nameof(ThreeDsState.Waiting3DS);
+        return StageOutcome.Challenge(snapshot);
+    }
+
+    /// <summary>
     /// The normal path's confirmation hop (line 591): a PUT to the context's URL at +8 when it
     /// carries one, else the frozen <c>processThreedsConfirmation</c> endpoint (0x147098258), with
     /// the content the context pre-built.

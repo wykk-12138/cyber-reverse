@@ -39083,3 +39083,37 @@ HandleRequiresAction 门全解 + 构建器续体命名）。
 
 还剩什么：三请求链本体（`sub_141141870`/`910`/`9B0`/`A00` 的请求面——JL Stripe 链的最深
 一块）；47 锚静树全跑；PayPal solver 逐 case 精读收尾。
+
+## R1092 —— 【核心①+②】JL 3DS2 hosted 页 GET 落地：hooks 面 + 五段组合 + returnUrl 报线
+
+**取件**：三请求链本体首件（R1091 指定）。
+
+改了什么：
+- 追链：`sub_141141870` → TLS 包装 `sub_142C7C100` → 真体 **`sub_141144FC0`**（222 行，
+  2 态）——过程链首请求全解：
+  - **GET `https://hooks.stripe.com/3d_secure_2/hosted?merchant={账户}&payment_intent={id}
+    &payment_intent_client_secret={secret}&publishable_key={key}&source={源}`**
+    ——基址 53 字（0x14706B818）+ 五段名（`&payment_intent=` 16 字 0x146A84F80 /
+    `&payment_intent_client_secret=` 30 字 0x146A84FB8 / `&publishable_key=` 17 字
+    0x146A85280 / `&source=` 8 字 0x146A85C80），+8 槽 GET 无载荷；
+  - **报线**：`GetHostedPage: returnUrl={值}`（25 字 0x146D9EB30）发 STRIPE 频道。
+- 落地：`HandleRequiresActionAsync` 过程墙后接 hosted GET（五段组合原样；`stripe.hooksUrl`
+  缝复用 R1088 的 hooks 缝）→ returnUrl 入 `jl.hostedReturnUrl` + 报线照发。签名转 async。
+- 变异 47 → **48**（merchant 段改名锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`dec sub_141141870` → `sub_142C7C100` → **`sub_141144FC0`** 222 行 + names_at 10
+  常量（53 字基址 + 四段名 + 报线全解）。
+- `dotnet test --filter "JohnLewisStripe|JohnLewisStepMap|StoreFlowDigest" -m:1` → **17/17 绿**
+  （1 新钉：五段组合 + returnUrl 报线；两处早前钉补 hooks 缝防真 URL 外泄）；
+  SummaryBlock 4/4（指南 48）；`metrics_report --skip-tests` → exit 0。
+
+数字变化：变异 47 → **48**；JL Stripe 步钉 8 → **9**；hooks 面（R1088 的 notify）再添
+**hosted** 端点。
+
+证据等级：Observation = 53 字基址 + 四段名逐字 + +8 槽 GET + 报线 25 字 + 222 行控制流；
+Inference = returnUrl 的响应键形状（正则读 returnUrl 字段——原机读 ctx+104，其响应解析体
+在链后部未逐字解）、publishable_key 的会话宿主（stripe.publishableKey 惯例位）。
+
+还剩什么：链后两件（`sub_141141910`/`9B0`/`A00` 的请求面——挑战应答回投与完成）；
+48 锚静树全跑；PayPal solver 逐 case 精读收尾。

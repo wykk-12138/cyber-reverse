@@ -5309,3 +5309,27 @@ setupFutureUsage 空值为 Inference。
 证据等级：四句文案/频道/槽名/控制流全 Observation；intentId 键宿主与墙-链先后为 Inference。
 
 还剩什么：三请求链本体（JL Stripe 最深一块）；47 锚静树全跑。
+
+## R1092 —— 【核心①+②】JL 3DS2 hosted 页 GET 落地：hooks 面 + 五段组合 + returnUrl 报线
+
+**取件**：三请求链首件。
+
+改了什么：
+- 追链 `sub_141141870` → TLS 包装 → 真体 **`sub_141144FC0`**（222 行 / 2 态）：
+  **GET `hooks.stripe.com/3d_secure_2/hosted?merchant={账户}&payment_intent={id}
+  &payment_intent_client_secret={secret}&publishable_key={key}&source={源}`**
+  （53 字基址 0x14706B818 + 四段名 0x146A84F80/4FB8/5280/5C80 逐字）；报线
+  `GetHostedPage: returnUrl={值}`（0x146D9EB30）发 STRIPE 频道。
+- 落地：`HandleRequiresActionAsync`（转 async）过程墙后接 hosted GET → returnUrl 入会话 +
+  报线照发；`stripe.hooksUrl` 缝复用。
+- 变异 47 → **48**（merchant 段锚）+ 指南同步。
+
+验证：`dec sub_141144FC0` 222 行 + names_at 10 常量；**17/17 钉绿**（1 新：五段组合+returnUrl
+报线；两处早钉补 hooks 缝防真 URL 外泄）；SummaryBlock 4/4（指南 48）；metrics exit 0。
+
+数字变化：变异 47 → **48**；JL Stripe 步钉 8 → **9**；hooks 面再添 hosted 端点。
+
+证据等级：基址/四段/GET 槽/报线/控制流全 Observation；returnUrl 响应键形状与
+publishable_key 宿主为 Inference。
+
+还剩什么：链后两件（挑战应答回投与完成）；48 锚静树全跑。

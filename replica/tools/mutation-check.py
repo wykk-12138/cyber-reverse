@@ -555,6 +555,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~JohnLewisStripeStepTests",
         "guard": "TheProcessWallOpensOnTheStripeChannel",
     },
+    {
+        "name": "round 1092 -- the hosted page loses its merchant",
+        "file": MAGENTO_FLOW,
+        # The hosted GET keys on merchant={frozen account} (0x14706b818's own segment);
+        # renaming it is exactly the drift the hosted-page pin forbids.
+        "find": '        var hosted = hooksBase + "/3d_secure_2/hosted?merchant=" + StripeAccount +',
+        "replace": '        var hosted = hooksBase + "/3d_secure_2/hosted?acct=" + StripeAccount +',
+        "test": "FullyQualifiedName~JohnLewisStripeStepTests",
+        "guard": "TheHostedGetCarriesTheFiveComposedSegments",
+    },
 ]
 
 

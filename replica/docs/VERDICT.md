@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **47 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087/R1088/R1089 各 1 条；R1090 补 1 条；R1091 补 STRIPE 频道墙锚 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **48 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087/R1088/R1089/R1090/R1091 各 1 条；R1092 补 hosted 页 merchant 段锚 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63150,3 +63150,35 @@ methodId → retryable 停（零出网）；CREDITCARD 选中而无卡 → 失�
 > **频道名也是协议**——`STRIPE` 这六个字母是原版事件流的通道约定，UI 侧按它归类展示。
 > 复刻把消息发对而频道发错，界面上的归类就静悄悄错了——所以频道跟文案一起钉，
 > 改频道名与改常量同罪。
+
+---
+
+## 第 1092 轮：JL 3DS2 hosted 页 —— hooks 面第二端点，五段组合逐字归位
+
+### 一、真体（`sub_141144FC0`，222 行，经两层跳板追到）
+
+过程链首请求：**GET** `https://hooks.stripe.com/3d_secure_2/hosted?merchant={acct}&payment_intent={id}&payment_intent_client_secret={secret}&publishable_key={key}&source={src}`——
+53 字基址 + 四段名全部逐字解出，+8 槽 GET 无载荷。响应侧报线
+`GetHostedPage: returnUrl={值}`（25 字）发 STRIPE 频道。hooks 面（R1088 的 notify）再添
+**hosted** 端点——Stripe 的 3DS2 挑战面三个端点至此集齐两个消费链的交叉印证。
+
+### 二、落地形状
+
+`HandleRequiresActionAsync` 转异步：过程墙后接 hosted GET（五段组合原样）→ returnUrl 入
+会话 → 报线照发。`stripe.hooksUrl` 缝复用 R1088 的同一条。两处早前钉补缝——
+**没有缝的钉会打真 URL**，这一轮把三个测试的上下文都补上了。
+
+### 三、数字
+
+| 度量 | R1091 | **R1092** |
+|---|---|---|
+| 变异套件 | 47 | **48**（hosted merchant 段锚） |
+| JL Stripe 步钉 | 8 | **9** |
+
+**17/17 钉绿**；SummaryBlock 4/4（指南 48）。
+
+### 教训
+
+> **URL 组合的段名和段序都是协议**——五个查询段各就各位，顺序即原机的拼接顺序。
+> 复刻时把它们当作五个常量而非一个模板串：段名锚钉住每一个，任何一段漂移都在
+> 守卫上红，而不是在服务器 404 上静默。

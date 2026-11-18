@@ -116,11 +116,13 @@ public sealed class JohnLewisStripeStepTests
     [Fact]
     public async Task TheProcessWallOpensOnTheStripeChannel()
     {
+        using var server = new TinyServer((_, _) => (200, "{}"));
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = Context(http, card: null);
         ctx.Session.Vars["jl.paymentsBody"] =
             "{\"id\":\"pi_77\",\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
             "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
+        ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
         await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
 
         var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);
@@ -130,6 +132,46 @@ public sealed class JohnLewisStripeStepTests
             e.Name == "Process start: payment_intent=pi_77 merchant=acct_1S0JRiIiwyy5Cf6X " +
                      "source=src_3ds_secret_ABC123"
             && e.Type == "STRIPE");
+    }
+
+    /// <summary>
+    /// R1092: the chain's first request — a GET of the hosted challenge page on Stripe's hooks
+    /// surface, the five composed segments verbatim, with the return URL reported back.
+    /// </summary>
+    [Fact]
+    public async Task TheHostedGetCarriesTheFiveComposedSegments()
+    {
+        var seen = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, _) =>
+        {
+            seen.Add(req.Url?.PathAndQuery ?? "");
+            return (200, "{\"returnUrl\":\"https://checkout.johnlewis.com/back\"}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http, card: null);
+        ctx.Session.Vars["jl.paymentsBody"] =
+            "{\"id\":\"pi_77\",\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
+            "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
+        ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.publishableKey"] = "pk_jl";
+        await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
+
+        var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        var url = seen.Single();
+        Assert.Contains("/3d_secure_2/hosted", url);
+        Assert.Contains("merchant=acct_1S0JRiIiwyy5Cf6X", url);
+        Assert.Contains("payment_intent=pi_77", url);
+        Assert.Contains("payment_intent_client_secret=ABC123", url);
+        Assert.Contains("publishable_key=pk_jl", url);
+        Assert.Contains("source=src_3ds_secret_ABC123", url);
+
+        // The machine's report line, on the STRIPE channel with the answer's return URL.
+        Assert.Contains(ctx.Events, e =>
+            e.Name == "GetHostedPage: returnUrl=https://checkout.johnlewis.com/back"
+            && e.Type == "STRIPE");
+        Assert.Equal("https://checkout.johnlewis.com/back", ctx.Session.Vars["jl.hostedReturnUrl"]);
     }
 
     /// <summary>The no-3DS stop line is the machine's own message, on the same channel.</summary>
@@ -152,11 +194,13 @@ public sealed class JohnLewisStripeStepTests
     [Fact]
     public async Task TheFingerprintGateStagesTheFrozenAccount()
     {
+        using var server = new TinyServer((_, _) => (200, "{}"));
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = Context(http, card: null);
         ctx.Session.Vars["jl.paymentsBody"] =
             "{\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
             "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
+        ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
         await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
 
         var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);

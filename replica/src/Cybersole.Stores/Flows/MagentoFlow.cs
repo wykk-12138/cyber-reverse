@@ -943,15 +943,15 @@ public sealed class JohnLewisFlow : StoreFlow
     /// (0x146e4b068) and the no-source line the intent read emits.
     /// </para>
     /// </summary>
-    public override Task<StepOutcome> HandleRequiresActionAsync(FlowContext c, CancellationToken ct)
+    public override async Task<StepOutcome> HandleRequiresActionAsync(FlowContext c, CancellationToken ct)
     {
         if (!c.Session.Vars.TryGetValue("jl.threeDs2Source", out var source) ||
             string.IsNullOrEmpty(source))
-            return Task.FromResult(StepOutcome.Success());   // nothing to act on
+            return StepOutcome.Success();   // nothing to act on
 
         var type = c.Session.Vars.GetValueOrDefault("jl.stripeSdkType");
         if (!string.Equals(type, "stripe_3ds2_fingerprint", StringComparison.Ordinal))
-            return Task.FromResult(StepOutcome.Success());   // not the fingerprint action
+            return StepOutcome.Success();   // not the fingerprint action
 
         // The gate passed: the source is staged for the account-keyed continuation, and the
         // account the builder swears by goes out with it — the frozen literal, not a guess.
@@ -963,7 +963,35 @@ public sealed class JohnLewisFlow : StoreFlow
         c.Emit("Process start: payment_intent=" + intentId + " merchant=" + StripeAccount +
                " source=" + source, "STRIPE");
 
-        return Task.FromResult(StepOutcome.Success());
+        // R1092: the chain's first request, decoded from sub_141144fc0 — a GET of the hosted
+        // challenge page on Stripe's hooks surface, the five composed segments verbatim:
+        // merchant (the frozen account), payment_intent, its client secret, the publishable
+        // key, and the source. The answer's return URL is the machine's own report line.
+        var secret = c.Session.Vars.GetValueOrDefault("jl.stripeSecret");
+        var publishable = c.Session.Vars.GetValueOrDefault("stripe.publishableKey");
+        var hooksBase = c.Session.Vars.TryGetValue("stripe.hooksUrl", out var h) &&
+                        !string.IsNullOrEmpty(h)
+            ? h.TrimEnd('/')
+            : "https://hooks.stripe.com";
+        var hosted = hooksBase + "/3d_secure_2/hosted?merchant=" + StripeAccount +
+                    "&payment_intent=" + Uri.EscapeDataString(intentId ?? string.Empty) +
+                    "&payment_intent_client_secret=" + Uri.EscapeDataString(secret) +
+                    "&publishable_key=" + Uri.EscapeDataString(publishable ?? string.Empty) +
+                    "&source=" + Uri.EscapeDataString(source);
+
+        var res = await GetAsync(c, hosted, "jl-stripe-hosted", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl: hosted page unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl hosted page HTTP {res.StatusCode}", retryable: true);
+
+        // The machine's report line (0x146d9eb30): the hosted page's return URL.
+        var returnUrl = System.Text.RegularExpressions.Regex.Match(
+            res.Body, "\"returnUrl\"\\s*:\\s*\"([^\"]+)\"").Groups[1].Value;
+        if (!string.IsNullOrEmpty(returnUrl)) c.Session.Vars["jl.hostedReturnUrl"] = returnUrl;
+        c.Emit("GetHostedPage: returnUrl=" + (string.IsNullOrEmpty(returnUrl) ? res.Url.ToString() : returnUrl),
+            "STRIPE");
+
+        return StepOutcome.Success();
     }
 }
 

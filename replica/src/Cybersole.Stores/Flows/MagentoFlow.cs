@@ -743,33 +743,17 @@ public sealed class JohnLewisFlow : StoreFlow
         return StepOutcome.Success();
     }
 
-    public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
-    {
-        var ship = c.Shipping ?? FootsitesFlow.AddressFromProfile(c);
-        if (ship is null) return StepOutcome.Fail("jl: no shipping address");
-
-        var payload = new JObject
-        {
-            ["deliveryAddress"] = new JObject
-            {
-                ["firstName"] = ship.FirstName,
-                ["lastName"] = ship.LastName,
-                ["line1"] = ship.Address1,
-                ["line2"] = ship.Address2,
-                ["town"] = ship.City,
-                ["postcode"] = ship.ZipCode,
-                ["countryCode"] = ship.Country,
-                ["phone"] = c.ProfileData?.Phone,
-            },
-        };
-
-        var res = await PostJsonAsync(c, $"{CheckoutHost}/api/delivery/address",
-            payload.ToString(Newtonsoft.Json.Formatting.None), "jl-delivery", ct).ConfigureAwait(false);
-
-        return res is { IsSuccess: true }
-            ? StepOutcome.Success()
-            : StepOutcome.Fail($"jl delivery HTTP {res?.StatusCode}", retryable: true);
-    }
+    /// <summary>
+    /// <c>SubmitShipping</c> —— R1133 replaced the previous implementation, which posted an invented
+    /// <c>POST {CheckoutHost}/api/delivery/address</c> carrying a <c>deliveryAddress</c> object whose
+    /// keys (<c>line1</c>, <c>line2</c>, <c>town</c>, <c>phone</c>) are nowhere in the image. The
+    /// machine's own delivery step is <c>PUT …/bff/v4/orderforms/deliveries</c> with <b>no body</b>
+    /// (<c>sub_1408B6310(v2, v3, 0, v4)</c>, literal <c>0</c> for the body); the address fields travel
+    /// to <c>…/deliveries/delivery-address</c> instead, which is a separate endpoint and a separate
+    /// step. So this now confirms the form rather than inventing a submission.
+    /// </summary>
+    public override Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
+        => ConfirmDeliveryFormAsync(c, ct);
 
     public override async Task<StepOutcome> GetShippingRatesAsync(FlowContext c, CancellationToken ct)
     {
@@ -1080,6 +1064,39 @@ public sealed class JohnLewisFlow : StoreFlow
             return StepOutcome.Fail($"jl guest callback HTTP {res.StatusCode}", retryable: true);
 
         c.Session.Vars["jl.guestCallbackBody"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// <c>SubmitShipping</c> / <c>CreateDelivery</c> — the <b>body-less</b> PUT to
+    /// <c>v4/orderforms/deliveries</c> that confirms the delivery form the previous steps filled in.
+    ///
+    /// <para>
+    /// R1133: R1129 recorded this function as "no body keys", and that was the right reading of the
+    /// wrong thing — it is not that the keys live elsewhere, it is that <b>there is no body</b>. In
+    /// <c>sub_140A3F590</c> the verb call is <c>sub_1408B6310(v2, v3, 0, v4)</c>: the third argument,
+    /// where every other BFF call passes its body object, is the literal <c>0</c>. The address fields
+    /// go to a different endpoint (<c>v4/orderforms/deliveries/delivery-address</c>, also a PUT), which
+    /// is what makes this one a confirmation rather than a submission.
+    /// </para>
+    /// </summary>
+    public override Task<StepOutcome> CreateDeliveryAsync(FlowContext c, CancellationToken ct)
+        => ConfirmDeliveryFormAsync(c, ct);
+
+    private async Task<StepOutcome> ConfirmDeliveryFormAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.TryGetValue("jl.deliveriesUrl", out var over) && !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.DeliveriesV4;
+
+        // No Content: the machine passes 0 for the body, so sending "{}" would be a different request.
+        var options = c.Options("jl-deliveries");
+        var res = await c.Http.SendAsync(HttpMethod.Put, url, options, ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl deliveries unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl deliveries HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.deliveriesBody"] = res.Body ?? string.Empty;
         return StepOutcome.Success();
     }
 

@@ -127,7 +127,10 @@ public class FlowSequenceTests
         // (WebHandOver, SessionHandover, GuestCallback). Those are not Pop Mart steps, and that is the
         // point: StepDispatch is built from the methods the base class declares, so every store's map
         // grows together. The coverage number below is what stays specific to this flow.
-        Assert.Equal(182, map.Count);
+        //
+        // R1133 raised it 182 -> 183 with CreateDeliveryAsync, the image's second delivery step
+        // (ordinal 28), which pairs with the same endpoint as SubmitShipping.
+        Assert.Equal(183, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
         Assert.Equal(8, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");

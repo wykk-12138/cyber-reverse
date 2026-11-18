@@ -40807,3 +40807,52 @@ Inference = 无（两条结论都由伪代码直接给出）。
 - 动作顺序：改 src 后先查 staleness → **2**（RetailApiFamilies.cs +1 在被变异集内）→ **重跑变异套件** →
   新收据 an_at 2026-11-19T01:07:13、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   staleness 0（mtime 01:07:20，读于 01:07:26 —— 6 秒新鲜）。
+## R1133 —— 抓到一处**实打实的错实现**：`SubmitShipping` 打的是个镜像里不存在的端点
+
+**取件**：R1132 待办②「v4 `deliveries` PUT 的体」。
+
+改了什么：
+- **先测「有没有体」**（沿用 R1132 的技法，看动词调用的第三参数）：
+  `sub_140A3F590` 里是 `sub_1408B6310(v2, v3, 0, v4)` —— **第三参数是字面 `0`**。
+  ⇒ R1129 记的「该函数没有 body 键」是**对的观察、错的解释**：不是「键在别处」，是**根本没有体**。
+- **顺手撞出既有实现是错的**：加 `SubmitShippingAsync` 覆写时报 **CS0111 重复定义** ——
+  `JohnLewisFlow` 早就有一个（`MagentoFlow.cs:746`），它做的是：
+  ```
+  POST {CheckoutHost}/api/delivery/address
+  body: {"deliveryAddress": {firstName, lastName, line1, line2, town, postcode, countryCode, phone}}
+  ```
+  - 端点 `/api/delivery/address` **在镜像里查不到**（本轮 12 条 BFF 普查 + 早前普查都没有）；
+  - 键名 `line1` / `line2` / `town` / `phone` **与镜像的键名不一致**（镜像是
+    `addressLine1` / `townOrCity` / `postcode` / `countryCode` / `phoneNumber`，R1128 已取证）；
+  - 动词也不同（镜像这一步是 **PUT /bff/v4/orderforms/deliveries**，无体）。
+  ⇒ **这是一处「能跑但打错门」的既有实现**（与 R1127 支付页同型）。**按证据替换**：
+  `SubmitShippingAsync` 改为 `PUT …/bff/v4/orderforms/deliveries`，**不设 Content**（镜像传 0），
+  seam `jl.deliveriesUrl`；地址字段走的是**另一个端点** `…/deliveries/delivery-address`（也是 PUT），
+  所以这一步是**确认表单**，不是提交地址。
+- 同时按 R1130 的派发规则补 `StoreFlow.CreateDeliveryAsync` 虚步骤（镜像序号 28，与 `SubmitShipping`
+  同一端点），`JohnLewisFlow` 覆写同核心。
+- 新增 `JohnLewisDeliveryConfirmTests` **5 条**：PUT + **空体**（并断言结尾是 `[]` 而不是 `{}`）、
+  第二个步骤名同端点、`Knows` 两条、500 可重试、常量等于镜像字面量 `0x14705db08`。
+
+验证命令与输出：
+- `ida.py py "exec(..._bff_deliv_put.py)"` → 该函数只有四行相关：`sub_1408C22E0(v3, &off_14705DB08)`（URL）、
+  `sub_1408B6310(v2, v3, 0, v4)`（PUT，body 为 0）。
+- `dotnet build` → 首轮 **CS0111**（我引入的重复定义，暴露了既有实现）；替换后无 error。
+- 全量：**2424 通过 / 0 失败 / 2 跳过 / 2426**（2m31s）。
+- 顺手又碰上同一个 ratchet：`FlowSequenceTests` 的 `StepDispatch` **182 → 183**（`CreateDeliveryAsync`），
+  按该测试既有惯例更新数字并写明原因。
+
+数字变化：John Lewis 实际调用 BFF 端点 **5 → 6**（`deliveries` PUT，两个步骤名）；
+可派发步骤名 **+1**；测试 **+5**；**删除了一个镜像中不存在的端点用法**（`POST /api/delivery/address`）。
+
+证据等级：Observation = `sub_1408B6310(…, 0, …)` 的字面参数、URL 字面量地址、CS0111 的触发、
+全量 2424/0/2；Inference = 无（错实现的三处不符——端点不在镜像、键名不符、动词不符——都是逐条比对既有结论）。
+
+还剩什么：① `…/deliveries/delivery-address`（PUT）**现在有了明确归属**：它是地址提交，
+需要一个步骤位才落地；② `payment-page` 无体 PUT 仍缺步骤位；③ `GetDeliveryMethods` 归属待判。
+
+**全量与收据（本轮收数）**：
+- 全量：**2424 通过 / 0 失败 / 2 跳过 / 2426**（2m31s）。
+- 改 src+	ests 后先查 staleness → **331** → **重跑变异套件** → 新收据
+  an_at 2026-11-19T01:22:50、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  staleness 0（mtime 01:22:56，读于 01:23:02 —— 6 秒新鲜）。

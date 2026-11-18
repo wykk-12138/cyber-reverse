@@ -64588,3 +64588,44 @@ v13[0] = sub_1408B6310(v8, v9, 0, v10);  // 另一状态: PUT(body = 0)
 `JohnLewisStepMap` 把 `GetDeliveryMethods` 与 `SubmitDeliveryMethod` **都**配到 POST `details`，
 那是按**名字关联**推的（当时无请求捕获）。现在我知道存在一个 **GET `…/deliveries/methods`** ——
 「`GetDeliveryMethods` 打哪条」需要重新判定。**没改映射，只把疑点写清楚。**
+---
+
+## 第 1133 轮：CS0111 帮我抓到一个**打错门**的既有实现
+
+### 一、先答「有没有体」
+
+`sub_140A3F590` 的动词行：`sub_1408B6310(v2, v3, 0, v4)` —— **第三参数是字面 `0`**。
+
+所以 R1129 那句「该函数没有 body 键」是**对的观察、错的解释**：不是键在别处，是**根本没有体**。
+
+### 二、加覆写时报 CS0111，才发现早就有一个
+
+`JohnLewisFlow.SubmitShippingAsync`（`MagentoFlow.cs:746`）打的是：
+
+`
+POST {CheckoutHost}/api/delivery/address
+{"deliveryAddress":{firstName,lastName,line1,line2,town,postcode,countryCode,phone}}
+`
+
+三处不符，逐条比对：
+
+| | 既有实现 | 镜像 |
+|---|---|---|
+| 端点 | `/api/delivery/address` | **普查里没有这条** |
+| 动词 | POST | **PUT** `/bff/v4/orderforms/deliveries` |
+| 键名 | `line1` `line2` `town` `phone` | `addressLine1` `townOrCity` `postcode` `countryCode` `phoneNumber` |
+
+**这是一处「能跑但打错门」的既有实现**（与 R1127 支付页同型）。按证据替换为无体 PUT。
+
+> **CS0111 是个礼物。** 如果我只是「加一个覆写」而不小心，编译器替我喊了停；
+> 如果我顺手把旧方法删掉再写新的，**这处错实现会一直躺在那里**，而且看起来完全正常。
+
+### 三、收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2424 通过 / 0 失败 / 2 跳过**（2m31s） |
+| 变异 | **59/59 fired，tree GREEN，staleness 0** |
+| JL 实际调用 BFF 端点 | **5 → 6** |
+
+顺手又碰上同一个 ratchet（`StepDispatch` 182 → 183），照惯例改数并写明原因。

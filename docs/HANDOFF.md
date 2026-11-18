@@ -6076,3 +6076,23 @@ threeds 站点可一并校正既有实现。
 数字变化：家族表 **12 → 13** 条常量；测试 **+2**。
 
 还剩什么：① `GetDeliveryMethods` 归属待判；② v4 `deliveries` PUT 的体；③ `payment-page` 无体 PUT 的步骤位。
+## R1133 —— 抓到一处错实现：SubmitShipping 打的是镜像里不存在的端点
+
+改了什么：
+- **先测体**：`sub_140A3F590` 的 `sub_1408B6310(v2, v3, 0, v4)` 第三参数是字面 `0` ⇒ **无体 PUT**。
+  R1129 的「无键」观察对、解释错。
+- **CS0111 暴露既有错实现**（`MagentoFlow.cs:746`）：`POST {CheckoutHost}/api/delivery/address`
+  + 自造 `deliveryAddress` 体（`line1`/`line2`/`town`/`phone`）。三处不符：端点不在镜像、
+  动词应为 PUT、键名应为 `addressLine1`/`townOrCity`/`postcode`/`countryCode`/`phoneNumber`。
+  → **替换**为无体 `PUT …/bff/v4/orderforms/deliveries`（seam `jl.deliveriesUrl`）。
+- 补 `StoreFlow.CreateDeliveryAsync` 虚步骤（镜像序号 28，同端点）+ `JohnLewisFlow` 覆写；
+  新增 `JohnLewisDeliveryConfirmTests` 5 条（PUT + **空体**，断言结尾 `[]` 而非 `{}`）。
+- 同步 `FlowSequenceTests` 的 ratchet：`StepDispatch` **182 → 183**。
+
+验证：`dotnet build` 首轮 CS0111 → 替换后无 error；全量 **2424/0/2**；
+变异重跑 **59/59 fired, tree GREEN, staleness 0**（01:22:50，6 秒新鲜）。
+
+数字变化：JL 实际调用 BFF 端点 **5 → 6**；可派发步骤名 **+1**；测试 **+5**；**删掉一处镜像中不存在的端点用法**。
+
+还剩什么：① `…/deliveries/delivery-address`(PUT) 归属已明但缺步骤位；② `payment-page` 无体 PUT 缺步骤位；
+③ `GetDeliveryMethods` 归属待判。

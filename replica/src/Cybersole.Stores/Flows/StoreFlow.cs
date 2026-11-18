@@ -789,6 +789,14 @@ public abstract class StoreFlow
     public virtual Task<StepOutcome> GuestCallbackAsync(FlowContext c, CancellationToken ct)
         => NotSupported("GuestCallback");
     public virtual Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct) => NotSupported("SubmitShipping");
+
+    /// <summary>
+    /// The image's second delivery step (John Lewis ordinal 28), which pairs with the same endpoint as
+    /// <see cref="SubmitShippingAsync"/> — declaring it keeps the step name dispatchable rather than
+    /// leaving it to fail as "unknown step".
+    /// </summary>
+    public virtual Task<StepOutcome> CreateDeliveryAsync(FlowContext c, CancellationToken ct)
+        => SubmitShippingAsync(c, ct);
     public virtual Task<StepOutcome> SubmitAddressAsync(FlowContext c, CancellationToken ct)
         => SubmitShippingAsync(c, ct);
     public virtual Task<StepOutcome> SubmitShippingMethodAsync(FlowContext c, CancellationToken ct) => Ok();

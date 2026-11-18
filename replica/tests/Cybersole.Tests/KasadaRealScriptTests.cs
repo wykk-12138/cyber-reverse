@@ -87,7 +87,16 @@ public class KasadaRealScriptTests
             // A silent empty result would be worse than a failure: the caller has to know
             // whether to retry, give up, or fall back to an embedded browser.
             Assert.NotNull(result.Error);
-            Assert.True(result.StoppedAt > 0 || result.Error!.Contains("threw"));
+
+            // Three distinct outcomes, and they mean different things to the caller:
+            //   * the script threw part way through      -> StoppedAt > 0, or the message says so
+            //   * it ran to the end but exposed no token -> the host surface is now complete enough
+            //     for execution, and what remains is token extraction (see KasadaErrorNoToken)
+            Assert.True(
+                result.StoppedAt > 0
+                || result.Error!.Contains("threw")
+                || result.ScriptExecuted,
+                $"unexpected failure shape: executed={result.ScriptExecuted} stoppedAt={result.StoppedAt} err={result.Error}");
         }
     }
 

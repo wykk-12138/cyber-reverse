@@ -1,4 +1,4 @@
-# 11 · 本地跑 Nike payload 的实测结构（Jint 侧）
+﻿# 11 · 本地跑 Nike payload 的实测结构（Jint 侧）
 
 > 这份记的是**我们自己跑 nike-p.js 时量出来的东西**，不是原版二进制里的证据。
 > 用途：复刻本地路时不必从零试错。每条都标了是 [实测] 还是 [未解]。
@@ -509,10 +509,64 @@ trace 里能看到重建成功的例子（`pc=8903 → m[5]=fn`），所以机�
 **而触发 (2) 的最可能原因仍然是宿主面** —— 某条指令读了一个不存在的全局，抛在 try 里被吞，
 流程就歪了。
 
-**下一步的做法**：记录 `pc=69469` 那次 `12` **之前 30 条指令**的 opcode 序列，
-和一次成功重建（`pc=8903`）之前的序列对比 —— 差异就是走错的那一步。
+> §5.21–§5.22 是找到这个结论之前的调查过程（序列对比与全局名清单），按时间顺序读起来更顺，
+> 但结论在 §5.18。保留它们是因为里面的「payload 会读哪几个全局名」仍然有用。
 
-### 5.18 序列对比：失败路径里多了一次全局读取 [实测]
+### 5.18 修好了：缺的是 `document.dispatchEvent` [实测]
+
+把字形表偏移修对之后（`P.O = DecodedStrings[28:]`，前 28 字符是那个随机串 `L`），
+整条失败路径的指令流就全解开了：
+
+```
+69442  op=81   str:window                 -> m7      m7 = window
+69447  op=51   m7, str:document, -> m6               m6 = window.document
+69453  op=51   m6, str:dispatchEvent, -> m5          m5 = document.dispatchEvent   ← 这里是 undefined
+69459  op=49   new Array(...)                        （还没执行到）
+69469  op=12   m6, m5, m7                            m5.apply(m6, m7)  → l[_] 崩
+```
+
+**`document.dispatchEvent` 在我的 shim 里不存在** —— `document` 有 `addEventListener` /
+`removeEventListener`，唯独漏了 `dispatchEvent`。payload 按名字取到 `undefined`，
+两条指令之后当成函数调用，于是报 `Cannot read properties of undefined (reading '<随机属性名>')`。
+
+**这个属性名是随机的，所以四轮里我一直以为它是「某个内建对象缺了」** —— 其实它只是
+`opcode 12` 在检查 `l[_]`，而 `l` 是 undefined。名字本身没有信息量。
+
+**修法**（`BrowserShim.cs`）：`document` 与 `window` 都装上真的事件机制 ——
+`addEventListener` 记录、`dispatchEvent` 回调、`removeEventListener` 移除。
+必须是真的，因为 payload 的 `kpsdk-ready` 之后的工作全在那个监听器里。
+
+**结果**：
+
+```
+修之前： executed=False  error=Cannot read properties of undefined (reading '<随机名>')
+修之后： executed=True   error=no kasada client token exposed by the script
+```
+
+**payload 现在能跑完了。** 剩下的不是崩溃，而是「跑完了但没在 `KPSDK.ct()` 之类的入口暴露 token」。
+
+### 5.19 一个曾经的误判，值得记下来
+
+上一轮我统计「6 处 `m[5]` 是 undefined」，据此断定「六次 generator 恢复没重建作用域」。
+**那个结论是错的**：`opcode 12` 读哪三个槽位由它自己的字节码操作数决定，
+不是固定读 `m[5]`。改成按操作数取槽位之后，148 次调用里**只有 1 次**任一操作数为空
+（`pc=69469`，被调槽位空），其余全部正常。
+
+**教训**：VM 的槽位号必须从操作数解出来，不能假定某个固定槽位。
+
+### 5.20 剩下的：token 提取
+
+`executed=True` 但 `Ct` 为空，说明脚本完整跑完、没有在 `KPSDK.ct()` / `KPSDK.sb()` 等
+入口留下值。两种可能：
+
+1. **token 本来就来自 `/tl` 往返**（见 `08-cd.md` §9.1：`rec[11] = v5[16]`，ct 是服务端回填的）
+   —— 那本地脚本只负责产出 `cd`，`ct` 要 POST `/tl` 才有；
+2. **本地确实暴露了，但入口名不是我们试的那七个**（`CtEntryPoints` 是猜的，见 `KasadaSolver.cs`）。
+
+**下一步**：脚本跑完后 dump `window.KPSDK` 的形状（有哪些属性、哪些是函数、调一次返回什么），
+用事实替换那七个猜测的入口名。
+
+### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：
 
@@ -533,7 +587,7 @@ trace 里能看到重建成功的例子（`pc=8903 → m[5]=fn`），所以机�
 
 六次失败的窗口有两种形态：`fail0/2/5` 带 `81`，`fail1/3/4` 是 `31 → 51 → 49 → 3 → 63`（走了建闭包却仍没写对槽）。
 
-### 5.19 payload 到底要哪些全局 [实测，名字部分解出]
+### 5.22 payload 到底要哪些全局（调查过程） [实测，名字部分解出]
 
 记录每次 `81` 的三个原始操作数 `(pc, f1, f2, f3)`，共 **124 次读取、7 个不同名字**。
 把 payload 自己解出来的字面量表（`DecodedStrings`，6309 字符）当作坐标系去查，能定出真实名字：

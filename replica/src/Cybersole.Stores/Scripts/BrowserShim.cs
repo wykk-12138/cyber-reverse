@@ -51,6 +51,7 @@ public sealed class BrowserShim
         var parent = this;
         var frames = this;
         var __dshCookieStore = [{{cookieTokens}}];
+        var __dshDocEvents = {};
         var document = {
           referrer: {{JsStr(referrer)}},
           title: "",
@@ -81,7 +82,27 @@ public sealed class BrowserShim
           getElementsByClassName: function () { return []; },
           querySelector: function () { return null; },
           querySelectorAll: function () { return []; },
-          addEventListener: function () {}, removeEventListener: function () {},
+          /* The payload resolves `document.dispatchEvent` by name and calls it to fire its own
+             `kpsdk-ready` lifecycle event; a missing method here becomes an undefined callee two
+             instructions later, which is exactly the failure this shim used to produce. Listeners are
+             real: addEventListener records them and dispatchEvent invokes them, because the payload
+             does its post-ready work inside that handler. */
+          addEventListener: function (t, fn) { (__dshDocEvents[t] = __dshDocEvents[t] || []).push(fn); },
+          removeEventListener: function (t, fn) {
+            var a = __dshDocEvents[t];
+            if (!a) return;
+            var i = a.indexOf(fn);
+            if (i >= 0) a.splice(i, 1);
+          },
+          dispatchEvent: function (ev) {
+            var type = ev == null ? undefined : ev.type;
+            if (type === undefined || type === null) return true;
+            var a = (__dshDocEvents[type] || []).slice(0);
+            for (var i = 0; i < a.length; i++) {
+              try { a[i].call(this, ev); } catch (e) { }
+            }
+            return true;
+          },
           hasFocus: function () { return true; }
         };
         var location = {
@@ -186,9 +207,20 @@ public sealed class BrowserShim
         this.clearTimeout = function () {};
         this.clearInterval = function () {};
         this.requestAnimationFrame = function (fn) { if (typeof fn === "function") { try { fn(__dshNow()); } catch (e) {} } return 0; };
-        this.addEventListener = function () {};
-        this.removeEventListener = function () {};
-        this.dispatchEvent = function () { return true; };
+        this.addEventListener = function (t, fn) { (__dshDocEvents[t] = __dshDocEvents[t] || []).push(fn); };
+        this.removeEventListener = function (t, fn) {
+          var a = __dshDocEvents[t];
+          if (!a) return;
+          var i = a.indexOf(fn);
+          if (i >= 0) a.splice(i, 1);
+        };
+        this.dispatchEvent = function (ev) {
+          var type = ev == null ? undefined : ev.type;
+          if (type === undefined || type === null) return true;
+          var a = (__dshDocEvents[type] || []).slice(0);
+          for (var i = 0; i < a.length; i++) { try { a[i].call(this, ev); } catch (e) { } }
+          return true;
+        };
         this.matchMedia = function () {
           return { matches: false, media: "", addListener: function () {}, removeListener: function () {},
                    addEventListener: function () {}, removeEventListener: function () {} };

@@ -29,8 +29,9 @@ public sealed class KasadaPayloadBootstrapTests
     public void TheLiteralPoolIsCutFromTheBytecodeArrayAtTheSamePlace()
     {
         using var solver = new KasadaSolver(new BrowserShim());
-        var executed = solver.Runtime.TryExecute(Fixture(), out _);
-        Assert.False(executed, "the payload is not expected to complete yet; if it does, update this test");
+        // The payload now runs to completion (was throwing at opcode 12 until `document.dispatchEvent`
+        // was installed). The splice numbers below are what this test exists to pin, not the outcome.
+        solver.Runtime.TryExecute(Fixture(), out _);
 
         var json = solver.Runtime.TryString("JSON.stringify(__dshSplices || [])");
         Assert.False(string.IsNullOrWhiteSpace(json), "the splice recorder produced nothing");

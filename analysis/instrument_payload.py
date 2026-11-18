@@ -1,11 +1,10 @@
-# WHY THIS EXISTS: the payload's frame array and dispatch state are only visible from inside its own
-# closure. This writes an instrumented COPY of the fixture (the original is never modified) that keeps a
-# rolling window of the last dispatches and snapshots it whenever a call instruction is about to run.
-# Comparing the window before a call whose callee slot is undefined against one whose callee is present
-# shows which instruction was skipped or jumped over.
+# WHY THIS EXISTS: payload frame slots live only inside the payload's closure, so an instrumented COPY of
+# the fixture is written (original untouched). This version records two things needed to explain the one
+# call whose callee slot is undefined (pc 69469):
+#   1. every change of slot 5, with the pc and opcode that caused it      -> which instruction writes it
+#   2. every opcode-81 global read with its target slot                   -> whether a missing global feeds it
 #
-# Usage:  python analysis/instrument_payload.py
-#         -> writes replica/tests/Cybersole.Tests/fixtures/nike-p-traced.js (build artifact, not committed)
+# Usage: python analysis/instrument_payload.py
 import io
 import os
 
@@ -17,14 +16,17 @@ ANCHOR = "var T,E;var i=void 0;"
 
 PROBE = (
     "var T,E;var i=void 0;"
-    "if(window.__dshRing){"
-    "var __op=t[e.m[0]];"
-    "if(__op===12){"
-    "if(e.m[5]===void 0&&window.__dshFail.length<8)window.__dshFail.push(window.__dshRing.slice());"
-    "else if(e.m[5]!==void 0&&window.__dshOk.length<4)window.__dshOk.push(window.__dshRing.slice());"
+    "if(window.__dshM5){"
+    "var __p=e.m[0],__op=t[__p];"
+    "var __v=e.m[5];"
+    "if(window.__dshM5.last!==__v){"
+    "window.__dshM5.last=__v;"
+    "if(window.__dshM5.log.length<600)"
+    "window.__dshM5.log.push([__p,__op,__v===void 0?'UNDEF':(typeof __v==='function'?'fn':typeof __v)]);"
     "}"
-    "window.__dshRing.push([e.m[0],__op]);"
-    "if(window.__dshRing.length>45)window.__dshRing.shift();"
+    "if(__op===81&&window.__dshG&&window.__dshG.length<400){"
+    "window.__dshG.push([__p,t[__p+1],t[__p+2],t[__p+3],t[__p+4]]);"
+    "}"
     "}"
 )
 
@@ -32,13 +34,12 @@ PROBE = (
 def main():
     src = io.open(SRC, encoding="utf-8").read()
     if ANCHOR not in src:
-        raise SystemExit("anchor %r not found in %s" % (ANCHOR, SRC))
+        raise SystemExit("anchor %r not found" % ANCHOR)
     out = src.replace(ANCHOR, PROBE, 1)
     if out == src:
-        raise SystemExit("probe was not inserted")
+        raise SystemExit("probe not inserted")
     io.open(DST, "w", encoding="utf-8", newline="\n").write(out)
-    print("wrote", DST)
-    print("size", len(out), "delta", len(out) - len(src))
+    print("wrote", DST, "delta", len(out) - len(src))
 
 
 if __name__ == "__main__":

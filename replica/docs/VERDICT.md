@@ -65018,3 +65018,39 @@ R1143 我宣布「27 条源码端点镜像里没有」。这一轮去**攻自己
 | 变异 | **59/59 fired，tree GREEN，staleness 0** |
 
 **下一轮第一件事：拿剩下 37 条去和 `EndpointLedgerTests` 的 `assembled` 栏对账，再决定动谁。**
+---
+
+## 第 1146 轮：我花了三轮，去重新发现一道仓库里早就存在的门
+
+`where_is` 我确实用了。但我**只翻了 `src`**。
+
+那道门在三个地方：`replica/docs/ENDPOINT_PROVENANCE.md`（30 行台账）、
+`tests/EndpointLedgerTests.cs`（镜像 + 三条守卫）、`tools/endpoint-provenance.py`（**`BASELINE = 0`**）。
+
+### 对账结果
+
+R1144 那 24 条「确证缺失」里：
+
+| 门的分类 | 条数 | 例 |
+|---|---|---|
+| `assembled` | 13 | `/rest/V1/carts/mine`、`/account/recover` |
+| `live` | 2 | `/api/beast`、`/api/v2/shop/countries` |
+| `fixture` | 3 | `/api/cart/add`、`/api/order/submit`、`/api/stock` |
+| `sent` | 2 | `/api/payments/`、`/discount/` |
+| **不在门里** | **2** | `/checkout/#payment`、`/geoIP` |
+
+**21/24 早就有分类。** 而 `fixture` 那三个是**测试里故意的 404**，
+`AFixtureIsStillAFixture` 专门守着它们不许被改判——
+**我 R1143 把 `/api/order/submit` 列进「待修」，正打算去动这条被守住的东西。**
+
+### 门也有它遮住的东西
+
+`https://api.paypal.com/v2/checkout/orders` 在门里是 `assembled`（「不在镜像里，按平台文档拼的」）。
+可真实字面量是 **`https://www.paypal.com/…`**（R1145）。
+
+> **「我们拼的」这句话里，藏着「拼错了」的可能。**
+> 门能挡住「凭空发明」，挡不住「拼得差一个词」——**而后者恰恰是我这一周真正找到的那类缺陷。**
+
+### 收数
+
+`src`/`tests` 零改动，变异收据保持 `staleness 0`；`EndpointLedgerTests` **3/3 通过**。

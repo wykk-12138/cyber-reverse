@@ -6292,3 +6292,18 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 仓库既有结论（`where_is` 查了 `src` 没查 `tests`）。
 
 还剩什么：① OAuth 端点去留判断；② 其余 37 条先与 `assembled` 栏对账；③ 3DS 四端点可着手落地。
+## R1146 —— 对账：21/24 早已在 ENDPOINT_PROVENANCE 门里；只剩 2 条真空缺
+
+改了什么（只取证/更正）：
+- **找到既有门**：`replica/docs/ENDPOINT_PROVENANCE.md`（30 行：live 4 / sent 3 / fixture 3 / assembled 20）
+  + `tests/EndpointLedgerTests.cs` + `tools/endpoint-provenance.py`（`BASELINE = 0`）。
+- **对账 R1144 的 24 条**：**21 条早已分类**（assembled 13 / live 2 / fixture 3 / sent 2）；
+  **真缺 2 条**：`/checkout/#payment`、`/geoIP`（`/api/payments` 由 `/api/payments/` 前缀覆盖）。
+- **`fixture` 类**：`/api/cart/add`、`/api/order/submit`、`/api/stock` 是**测试故意的 404**，
+  `AFixtureIsStillAFixture` 守着它们不许改判——我 R1143 正打算去动其中一条。
+- **门的盲区**：`assembled` 会把 host 错误也归进去（`api.paypal.com` vs 真实 `www.paypal.com`，R1145）。
+
+验证：`_gate_coverage.py` → `ledger rows: 30 / covered: 21 / not in gate: 3`；
+`EndpointLedgerTests` **3/3 通过**；`src`/`tests` 零改动（`staleness 0`）。
+
+还剩什么：① 两条真空缺归类入账（先读门的类定义）；② 支付层 3DS 四端点可着手落地。

@@ -41374,3 +41374,41 @@ Unknown = 无（39 条每条都查了两种形状）。
 还剩什么：① `GetPayPalAccessTokenAsync` 的 OAuth 端点是否需要（判断，不是改名）；
 ② 其余 37 条「确证缺失」要与 `EndpointLedgerTests` 的 `assembled` 栏**先对账再动手**；
 ③ 3DS 家族四端点可着手落地。
+
+## R1146 —— 对账结果：**仓库里早有这道门**，我前三轮在重推它已经给出的答案
+
+**取件**：R1145 定的「拿剩下 37 条去和既有分类对账，再决定动谁」。
+
+改了什么（**只取证与更正**，`src`/`tests` 零改动）：
+- **找到了门**：`replica/docs/ENDPOINT_PROVENANCE.md` + `tests/EndpointLedgerTests.cs`（镜像字典 23 行）
+  + `tools/endpoint-provenance.py`，**`BASELINE = 0`**（`TheGateIsAtZero` 这条测试就在守它）。
+  门的四类：**`live` 4 / `sent` 3 / `fixture` 3 / `assembled` 20**，共 **30 行**。
+- **对账 R1144 的 24 条确证缺失**（`analysis/_gate_coverage.py`）：
+  - **21 条早已在门里**：`assembled` 13 条、`live` 2 条（`/api/beast`、`/api/v2/shop/countries`）、
+    `fixture` 3 条（`/api/cart/add`、`/api/order/submit`、`/api/stock`）、`sent` 2 条（`/api/payments/`、`/discount/`）。
+  - **只有 2 条真不在门里**：**`/checkout/#payment`**、**`/geoIP`**。
+    （`/api/payments` 由 `/api/payments/` 按前缀覆盖，不算缺口。）
+- **`fixture` 类是我一直没看懂的三个**：`/api/cart/add`、`/api/order/submit`、`/api/stock` 是**测试里故意的 404**，
+  而 `AFixtureIsStillAFixture` **专门守着**它们不许被改判成 `assembled`。
+  **我 R1143 把 `/api/order/submit` 列进「待修」，正好是要去动这条被守住的东西。**
+
+验证命令与输出：
+- `python analysis/_gate_coverage.py` → `ledger rows: 30 / classes: {live 4, sent 3, fixture 3, assembled 20} /
+  already classified by the gate: 21 / not in the gate: 3`。
+- `dotnet test --filter EndpointLedgerTests` → **3/3 通过**（门是绿的，`BASELINE = 0`）。
+
+**这轮最该记住的**：
+1. **`where_is` 我用了，但只翻 `src`。** 那道门在 `tests` + `docs` + `tools` 三个地方，我一个都没翻。
+   R1143、R1144 两轮「重大发现」，**是仓库 201 轮就建好的台账**。
+2. **门的 `assembled` 类会掩盖 host 错误**：`https://api.paypal.com/v2/checkout/orders` 被判 `assembled`
+   （「不在镜像里，我们按平台文档拼的」）——而真实字面量是 **`https://www.paypal.com/…`**（R1145）。
+   **「我们拼的」这句话里，藏着「拼错了」的可能。** 这是 R1145 那个唯一真缺陷为什么能躲过门的原因。
+
+数字变化：无度量变化（`src`/`tests` 零改动，变异收据保持 `staleness 0`）。
+
+证据等级：Observation = 门 30 行与四类计数、21/24 对账输出、`EndpointLedgerTests` 3/3、
+`BASELINE = 0` 的测试断言；Inference = 无。
+
+还剩什么：① `/checkout/#payment`、`/geoIP` 两条真空缺需归类入账（要先读门的类定义再定 class）；
+② 其余 37 条**不再需要修**——它们在门里已有分类；③ 支付层 3DS 四端点（`init-challenge`、
+`init-method`、`notify-challenge-cmpl/`、`notify-method-cmpl`）可着手落地。

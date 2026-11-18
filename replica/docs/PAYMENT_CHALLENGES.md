@@ -66,7 +66,7 @@
 |---|---|---|
 | `PayPal3DS` | `Gateways.cs` · `WallSolving.cs` | 名字被引用 |
 | `PayPalThreeDs` | `Gateways.cs` · `PayPalThreeDs.cs` | 名字被引用 |
-| `StripeChallenge` | `StripeChallenge.cs` | 名字被引用 |
+| `StripeChallenge` | `Gateways.cs` · `StripeChallenge.cs` | 名字被引用 |
 | `Submit3DS` | `PayPalThreeDs.cs` | 名字被引用 |
 | `CreateStripePaymentMethod` | `DemandwareStepMap.cs` · `RetailFlows.cs` · `StoreFlow.cs` · `StoreFlowSteps.cs` | 名字被引用 |
 

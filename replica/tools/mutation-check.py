@@ -43,6 +43,7 @@ NIKE_FLOW = os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "NikeFlow.cs"
 PAYPAL_3DS = os.path.join(REPO, "src", "Cybersole.Stores", "Payments", "PayPalThreeDs.cs")
 FARFETCH_FLOW = os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "FarfetchFlow.cs")
 STRIPE_CHALLENGE = os.path.join(REPO, "src", "Cybersole.Stores", "Payments", "StripeChallenge.cs")
+GATEWAYS = os.path.join(REPO, "src", "Cybersole.Stores", "Payments", "Gateways.cs")
 
 MUTATIONS = [
     {
@@ -502,6 +503,16 @@ MUTATIONS = [
         "replace": '    public const string CaptchaVendor = "recaptcha";',
         "test": "FullyQualifiedName~StripeChallengeTests",
         "guard": "TheFormMatchesTheDecompiledContract",
+    },
+    {
+        "name": "round 1087 -- Stripe's method-create form loses its radar slot",
+        "file": GATEWAYS,
+        # The radar_options[hcaptcha_token] key (0x147148170) is where the challenge's answer
+        # rides into the method create; renaming it is exactly the drift the form pin forbids.
+        "find": '            ["radar_options[hcaptcha_token]"] = hcaptchaToken ?? string.Empty,',
+        "replace": '            ["radar_options[token]"] = hcaptchaToken ?? string.Empty,',
+        "test": "FullyQualifiedName~StripeMethodFormTests",
+        "guard": "TheMethodCreateFormMatchesTheDecodedContract",
     },
 ]
 

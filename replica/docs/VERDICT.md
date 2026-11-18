@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **42 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080 补 Stripe 挑战守卫 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **43 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080 补 1 条；R1087 补 Stripe radar 槽守卫 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -62985,3 +62985,40 @@ ctx 字段 29 的上游 = `sub_140B35420`（`Initialize payment`）：**双 GET*
 > **合并步幅的正确形态**：取证、落码、接线在同一轮闭合后，「实现完孤岛着」的结构性风险
 > 当轮就暴露——本轮的网关接线若按旧步幅会拖到下轮才被发现缺。孤岛不是写在清单里的风险，
 > 是合并节奏自然会逼出来的问题。
+
+---
+
+## 第 1087 轮：Stripe 六步网关面 —— 22 键表单解码落地，radar 槽接通挑战令牌
+
+### 一、共享机与双 v1 面
+
+`sub_140BDA320`（812 行 / 7 态）同时引用 `https://api.stripe.com/v1/payment_intents/`
+（0x147054f14，14 处 xref）与 `/v1/payment_methods`（0x147054f84，6 处）——多站点共用的
+Stripe 网关机。解码出：
+
+- **22 键方法创建表单**（装配序原样）：卡片四键 + `radar_options[hcaptcha_token]`
+  （0x147148170——hCaptcha 令牌的乘载槽，与 StripeChallenge 同源）+ 五冻结值
+  （`payment_user_agent` 全文 0x1471655c8 / `time_on_page=11370` / `referrer=popmart` /
+  `allow_redisplay=unspecified` / `_stripe_version=2025-01-27.acacia`——镜像第二个版本
+  字面量，与挑战面的 `2025-08-27.basil` 成对）。
+- **PopMart desk 双端点**：`/shop/v1/shop/cash/desk/stripe/customerSession`（query
+  `orderNum`）→ `/shop/v1/shop/cash/desk/stripe/pay`（四键表单，returnURL=店主机+单号+
+  `/order/`+`?payType=stripe`）。
+
+### 二、落地与接线
+
+`StripeGateway.MethodCreateForm` + `CustomerSessionAsync` + `DeskPayAsync` 落地；
+`AuthorizeAsync` 在 `stripe.deskHost` 时按原机序跑三链。**21/21 钉绿**（3 新钉：表单契约、
+desk 三链机序、路径/双版本）。变异 42 → **43**（radar 键锚）+ 指南格同步。
+
+### 三、事故（如实）
+
+一次 PowerShell 源码手术（-replace 改 intent URL）产生**静默坏串** `"${…}"`——编译通过、
+URL 字面量错误。**第七次同族事故**，读文件 + edit 工具修复三处。教训不变：
+**源码手术永远用 edit 工具，PowerShell 字符串替换是已定罪的路径。**
+
+### 教训
+
+> **冻结字面量成对出现时，一个都不能少报**——镜像有两个 `_stripe_version`
+> （acacia 表单侧 / basil 挑战侧）。此前文档只记了 basil；本轮表单解码自然带出 acacia。
+> 常量的全集来自每个消费现场的逐一解码，不是来自一次探针的命中清单。

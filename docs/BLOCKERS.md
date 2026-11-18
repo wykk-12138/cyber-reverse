@@ -38868,3 +38868,57 @@ GetThreeDsJwtQuery（原机首请求的操作名由其前驱决定）。
 
 还剩什么：Stripe 六步其余体（`GetStripePaymentIntent` 等名字 → chars-12 链，下轮主菜）；
 逐 case 的变量源精读收尾（伪代码在盘）；42 锚静树全跑。
+
+## R1087 —— 【核心②合并步幅】Stripe 六步网关面解码落地：22 键方法创建表单 + PopMart desk 双端点 + Authorize 接线
+
+**取件**：队列② Stripe 六步（YG 指定第②项收口）。
+
+改了什么：
+- **`StripeGateway` 按共享状态机 `sub_140BDA320`（812 行 / 7 态，双 v1 字面量的共同引用者）解码升级**：
+  - `MethodCreateForm`——**22 键**卡片表单按原机装配序：`billing_details[address][country]` /
+    `type=card` / `card[number|cvc|exp_year|exp_month]` / `allow_redisplay=unspecified` /
+    **`payment_user_agent`（冻结 0x1471655c8 全文 `stripe.js/20e04cd437; stripe-js-v3/…;
+    payment-element; deferred-intent; autopm`）** / `referrer=https://www.popmart.com`（冻结）/
+    `time_on_page=11370`（冻结）/**`radar_options[hcaptcha_token]`（0x147148170——hCaptcha
+    令牌的乘载槽，与 StripeChallenge 同一令牌源）** / `client_attribution_metadata[*]` 五键
+    （elements / payment-element / 2021 / deferred / automatic，全冻结）/ `guid`/`muid`/`sid` /
+    `key` / `_stripe_version=2025-01-27.acacia`（冻结——镜像第二个 API 版本字面量）。
+  - `CustomerSessionAsync`——PopMart desk 会话读
+    `/shop/v1/shop/cash/desk/stripe/customerSession`（0x146AB8A50，query `orderNum`）→ 存可发布键。
+  - `DeskPayAsync`——店面侧 SetStripePayment
+    `/shop/v1/shop/cash/desk/stripe/pay`（0x146AB8AC8，表单 `orderNum`/`paymentMethodId`/
+    `setupFutureUsage`/`returnURL`——returnURL 按原机组合：店主机+单号+`/order/`+
+    `?payType=stripe`）。
+  - `AuthorizeAsync` 接线：会话带 `stripe.deskHost` 时按**原机顺序**跑
+    session→method create→desk pay 三链；否则走原 intent 路径（也换 `ApiUrl(c)` 缝）。
+- 会话缝按惯例：`stripe.apiUrl`（v1 主机覆盖，checkStockUrl 同款）。
+- 变异套件 42 → **43**（radar 槽键改名必红锚）+ 指南格同步 42→43。
+
+验证命令与输出：
+- 取证：`str "SubmitOrderStripe|…"` → 六步名的 d__ 序号族（两流程族：JL 的 SubmitOrderStripe
+  d__32→…→GetStripePaymentIntent d__39；通用 GetStripeConfiguration→SetStripePayment→
+  CreateStripePaymentMethod→SubmitStripeOrder→HandleRequiresAction）；`str "payment_intents"`
+  → `https://api.stripe.com/v1/payment_intents/`（0x147054F14，14 处 xref）/ `payment_methods`
+  → 0x147054F84（6 处）——共同引用者 `sub_140BDA320` 反编译 + names_at 42 常量全解码。
+- `dotnet test --filter "StripeMethodForm|StripeChallenge|GatewaySelection" -m:1` → **21/21 绿**
+  （新钉 3：22 键表单契约+冻结值逐项、desk 三链机序+returnURL 组合、desk 路径/双版本）；
+  `SummaryBlockTests` 4/4 绿（指南格 43）。
+- 途中两修（真因非形变）：`MethodCreateForm` 返回类型对齐 `IDictionary`（CS1503）；
+  TokenizeAsync 打冻结常量真 URL——补 `stripe.apiUrl` 缝后三链通。
+  **事故记录**：一次 PowerShell 源码手术（-replace 改 intent URL）产生静默坏串
+  `"${…}"`（编译过但 URL 字面量错）——**第七次同族事故**，read+edit 工具修复三处并全数换缝。
+- `payment_challenges.py` → control ok、markers absent **0/5** 保持；`metrics_report --skip-tests`
+  → exit 0。
+
+数字变化：变异套件 42 → **43**（radar 锚，fired 待下次全跑）；Stripe 契约钉 0 → **3**；
+镜像第二个 `_stripe_version` 字面量入账（2025-01-27.acacia + 2025-08-27.basil 成对）。
+
+证据等级：Observation = 22 键表单全键名/键序、五冻结值（payment_user_agent/time_on_page/
+referrer/allow_redisplay/_stripe_version）、radar 槽键、desk 双路径、returnURL 组合段
+（/order/ 0x146AB6230 + ?payType=stripe 0x146B28990）、双 v1 字面量与共同引用者；
+Inference = desk 会话响应键名（publishableKey——响应体形状未反编译，测试侧自证）、
+`setupFutureUsage` 空值（原机读自上下文字段，会话值未解码）。
+
+还剩什么：Stripe 六步名中 JL 族的 `SubmitOrderStripe d__32`/`ProcessOrderStripe d__100`
+本体反编译（名字 → chars-12 链到 JL/Demandware 流）；`sub_140BDA320` 尾部 312 行
+（state 4-7 的意图确认半）；42+1 锚的静树全跑。

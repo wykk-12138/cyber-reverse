@@ -5188,3 +5188,29 @@ Emit 钉更新）；`payment_challenges.py` markers **0/5**；`core_coverage.py`
 首操作名取 JwtQuery 为 Inference。
 
 还剩什么：Stripe 六步其余体（下轮主菜）；逐 case 精读收尾；42 锚静树全跑。
+
+## R1087 —— 【核心②合并步幅】Stripe 六步网关面解码落地：22 键表单 + desk 双端点 + 接线
+
+**取件**：Stripe 六步收口。
+
+改了什么：
+- `StripeGateway` 按共享机 `sub_140BDA320`（812 行/7 态，双 v1 字面量共同引用者）升级：
+  `MethodCreateForm` **22 键**装配序含 `radar_options[hcaptcha_token]`（0x147148170 乘载槽）+
+  五冻结值（payment_user_agent 全文/time_on_page=11370/referrer=popmart/allow_redisplay/
+  _stripe_version=2025-01-27.acacia——镜像第二个版本字面量）；`CustomerSessionAsync`
+  （desk 会话，0x146AB8A50，query orderNum）+ `DeskPayAsync`（0x146AB8AC8，四键表单，
+  returnURL=店主机+单号+/order/+?payType=stripe）；`AuthorizeAsync` 在 `stripe.deskHost`
+  存在时按原机序跑三链。
+- 缝：`stripe.apiUrl`（v1 主机，checkStockUrl 惯例）。变异 42 → **43**（radar 键锚）+ 指南格同步。
+
+验证：`dec sub_140BDA320` + names_at 42 常量；**21/21 绿**（新钉 3：22 键表单+冻结值、
+desk 三链机序+returnURL、路径/双版本）；SummaryBlock 4/4（指南 43）；markers **0/5**。
+途中两修：返回类型 CS1503、Tokenize 真缝；**事故**：一次 PowerShell 源码手术产静默坏串
+`"${…}"`（编译过、URL 错）——第七次同族，read+edit 修复。
+
+数字变化：变异 42 → **43**；Stripe 契约钉 0 → **3**；双 `_stripe_version` 入账。
+
+证据等级：表单/desk 路径/returnURL/冻结值全 Observation；desk 响应键名与
+setupFutureUsage 空值为 Inference。
+
+还剩什么：JL 族 `SubmitOrderStripe`/`ProcessOrderStripe` 本体；共享机尾部 312 行；43 锚静树全跑。

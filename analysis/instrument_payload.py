@@ -1,15 +1,10 @@
-# WHY THIS EXISTS: the payload's frame array and its opcode stream live entirely inside its own
-# closure, so no shim hook can observe them. The one workable seam is a probe inserted into a COPY of
-# the fixture (the original under tests/Cybersole.Tests/fixtures/nike-p.js is never modified).
-#
-# What it emits: for every dispatch, one row capturing the program counter, the frame length, and the
-# type of slots 2..7 — enough to see which slot a call instruction reads and whether it was ever
-# written. It also records every opcode-81 read (the payload's "load a global by name" instruction),
-# which is how a missing host API shows up as `undefined` in a call slot.
+# WHY THIS EXISTS: the payload's frame array `m` lives only inside its own closure, so shim hooks cannot
+# see it. This writes an instrumented COPY of the fixture (the original is never modified) with a probe
+# that records every CHANGE of slots 5..7, together with the program counter and opcode that caused it.
+# That history is what shows whether slot 5 is ever written, and by which instruction.
 #
 # Usage:  python analysis/instrument_payload.py
-#         -> writes tests/Cybersole.Tests/fixtures/nike-p-traced.js (inside replica/)
-# The generated file is a build artifact; do not commit it.
+#         -> writes replica/tests/Cybersole.Tests/fixtures/nike-p-traced.js (a build artifact, not committed)
 import io
 import os
 
@@ -21,14 +16,12 @@ ANCHOR = "var T,E;var i=void 0;"
 
 PROBE = (
     "var T,E;var i=void 0;"
-    "if(window.__dshFrames&&window.__dshFrames.length<1000){"
+    "if(window.__dshTrace){"
     "var __q=function(v){return v===void 0?'undef':v===null?'null':typeof v==='function'?'fn':"
     "typeof v==='object'?(Array.isArray(v)?'arr'+v.length:'obj'):typeof v+':'+String(v).slice(0,10)};"
-    "window.__dshFrames.push([e.m[0],e.m.length,__q(e.m[2]),__q(e.m[3]),__q(e.m[4]),"
-    "__q(e.m[5]),__q(e.m[6]),__q(e.m[7])]);"
-    # opcode 81 is `a(n, i[0][e(n)])` — read a global by name. Log the name it asked for.
-    "if(t[e.m[0]]===81&&window.__dshGlobals&&window.__dshGlobals.length<400){"
-    "window.__dshGlobals.push(String(e.m[e.m[0]+1]));"
+    "var __s=__q(e.m[5])+'|'+__q(e.m[6])+'|'+__q(e.m[7]);"
+    "if(window.__dshLast!==__s){window.__dshLast=__s;"
+    "if(window.__dshTrace.length<1000)window.__dshTrace.push([e.m[0],t[e.m[0]],__s]);}"
     "}"
 )
 

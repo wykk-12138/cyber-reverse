@@ -41829,3 +41829,35 @@ R1155 那 4 个尾部换行是全层唯一的偏差，**且已被修掉**。
 
 证据等级：Observation = 355/33/2/0/1 的计数与两条 SUFFIX 的拼接验证；Inference = 无；
 Unknown = 那 1 条（另有 R1149 用 `off_147163128` 验证过同一字面量）。
+## R1158 —— 两条 PayPal 路径各服务谁：**REST 是店铺流程，graphql 是另一台大机器**
+
+**取件**：R1157 遗留——`PayPalThreeDs.RunAsync`（提交 + contingency + JWT，停在挑战窗口）**零调用**；
+上一轮我判断「不敢猜它该挂哪」，本轮去取判据。
+
+改了什么（**只取证，`src` 零改动**）：`analysis/_paypal_surfaces.py` —— 对三条冻结字面量各查
+`xrefs_to(obj)` + 映射到函数 + 从函数伪代码里解出若干字符串（让子系统**自己报名字**）。
+
+| 字面量 | xref | 所属函数 | 该函数的字符串（自证） |
+|---|---|---|---|
+| `https://www.paypal.com/v2/checkout/orders` | **1** | `0x140a50cd0` | **`on/demandware.store/Sites-`**、**`/Paypal-GetPurchaseUnit`**、`checkout` |
+| `https://www.paypal.com/graphql/` | 0（xref 查不到） | 字节扫描 1 site `0x14228E0DD` → **`0x14228D780`**（19,552 B） | 解不出可读串 |
+| `…/payment-authentication/threeds/v1/init-challenge` | 0 | 字节扫描 **0 site** | — |
+
+**结论**：
+- **REST 那条就是店铺结账路径**：它的唯一引用者带着 `/Paypal-GetPurchaseUnit` 与 `on/demandware.store/Sites-`
+  —— 那是 **Demandware（Salesforce Commerce Cloud）店铺控制器**。⇒ 复刻件把 REST 放在 `PayPalGateway`
+  是**对的**，R1145 修的 host 也修在这条上。
+- **graphql/3DS 是另一台机器**（19,552 字节的独立函数），与店铺网关**不是同一条路**。
+  ⇒ **上一轮我没有把 `RunAsync` 硬塞进 `AuthorizeAsync`，是对的**——那会把 hosted 路径接到店铺网关上。
+- **`init-challenge` 连字节扫描都 0 site** ⇒ 它不从 `.text` 直接引用，**很可能经 `.rdata` 指针表间接取用**。
+
+**新记一条工具边界**：`xrefs_to` 与 `disp32_scan_any.py` **都只覆盖直接引用**；
+字符串若被放进 `.rdata` 指针表（数组/字典），两者**一起失效**。
+本轮 graphql 那条正是靠字节扫描才捞到的（xref 报 0）。
+
+证据等级：Observation = 三条字面量的 xref/字节扫描结果、`0x140a50cd0` 的三条自证字符串、
+`site_to_func` 的 `0x14228D780` 区间；Inference = 「init-challenge 经 .rdata 表引用」（未直接验证表）；
+Unknown = `0x14228D780` 的子系统名（伪代码里解不出可读串）。
+
+还剩什么：① 找 `.rdata` 里是否有 threeds 家族的指针表（那能一次给出整套 hosted 步骤顺序）；
+② `RunAsync` 的正确落点仍是 hosted 流程，需先确定复刻件里 hosted 流程的入口在哪。

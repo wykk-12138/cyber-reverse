@@ -6474,3 +6474,19 @@ PayPal **42/42**；全量 **2462/0/2/2464**；变异 **59/59 fired, tree GREEN**
 
 还剩什么：① 该比法可用于 `Cybersole.Http` / `Cybersole.Ui`；
 ② `present: no` 对反射派发区间仍无效（需 root descriptor）。
+## R1158 —— 两条 PayPal 路径分离取证：REST=Demandware 店铺流程；graphql=独立大机器（src 未改）
+
+改了什么：新增 `analysis/_paypal_surfaces.py`（xref → 函数 → 函数内字符串自证）。
+
+结果：
+- **REST `v2/checkout/orders`** → 1 xref → `0x140a50cd0`，字符串含 **`/Paypal-GetPurchaseUnit`**、
+  **`on/demandware.store/Sites-`** ⇒ Demandware 店铺控制器 ⇒ `PayPalGateway`(REST) 定位正确。
+- **graphql** → xref 0，**字节扫描 1 site** → `0x14228D780`（19,552 B）⇒ 另一台独立机器（hosted 路径）。
+- **`init-challenge`** → xref 0、字节扫描 **0** ⇒ 很可能经 `.rdata` 指针表引用。
+
+**关键决定**：**不**把 `RunAsync` 塞进 `AuthorizeAsync`——那会把 hosted 接进店铺网关，且没有任何测试会红。
+
+**工具边界**：`xrefs_to` / `disp32_scan_any` 只覆盖直接引用；`.rdata` 指针表两者皆失效。
+
+还剩什么：① 找 `.rdata` 里 threeds 家族的指针表（可一次给出 hosted 步骤顺序）；
+② `RunAsync` 的落点需先确认复刻件 hosted 流程入口。

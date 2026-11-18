@@ -65435,3 +65435,26 @@ R1155 在四份 graphql 文档上找到 4 个尾部换行偏差。这一轮把�
 
 R1155 找到的 4 个尾部换行，**是全层唯一的偏差，且已修**。
 其余地址性字面量与镜像**逐字相同**——这句话现在有 355 个文件的扫描撑着，不再是一次抽样。
+---
+
+## 第 1158 轮：我差点把 hosted 路径接到店铺网关上——取到判据后没接
+
+上一轮我停在「`RunAsync` 零调用，不敢猜它挂哪」。这一轮去取判据，三次查询把两条件面分开了：
+
+| 面 | 引用者 | 自证 |
+|---|---|---|
+| REST `v2/checkout/orders` | **1 条** → `0x140a50cd0` | `/Paypal-GetPurchaseUnit`、`on/demandware.store/Sites-` |
+| graphql | xref **0**，字节扫描 **1** → `0x14228D780`（19.5 KB） | 解不出可读串 |
+| `init-challenge` | xref **0**，字节扫描 **0** | — |
+
+**REST 那条是 Demandware 店铺控制器**（`/Paypal-GetPurchaseUnit` 是它的动作名）。
+所以复刻件把 REST 放进 `PayPalGateway` 是对的，**而 graphql/3DS 是另一台 19.5 KB 的独立机器**。
+
+> **如果我上一轮「顺手」把 `RunAsync` 塞进 `AuthorizeAsync`，就是把 hosted 路径接到店铺网关上。**
+> 那不会红——因为没有任何测试会走到它。**它只会安静地错。**
+
+### 又一条工具边界
+
+`xrefs_to` 与 `disp32_scan_any` **都只覆盖直接引用**。字符串若被放进 `.rdata` 指针表，
+两者**一起失效**——`init-challenge` 的 0 site 就是这么来的。
+本轮 graphql 那条正是**字节扫描才捞到**（xref 报 0）。**两个工具都报「没有」时，不等于没有。**

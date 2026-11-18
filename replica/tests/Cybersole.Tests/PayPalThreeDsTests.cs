@@ -100,10 +100,23 @@ public sealed class PayPalThreeDsTests
     [Fact]
     public void TheStatusTextsKeepTheImageSpelling()
     {
-        Assert.Equal("Solving PayPal 3DS", PayPalThreeDs.SolvingStatus);
+        // R1081: the stage-1 literal carries its "(1)" suffix — an earlier pin trusted the doc's
+        // shorthand over the pool listing and pinned the suffix away.
+        Assert.Equal("Solving PayPal 3DS (1)", PayPalThreeDs.SolvingStatus);
         Assert.Equal("Proccesing 3D Secure", PayPalThreeDs.ProcessingStatus);   // the typo is the image's
         Assert.Equal(PayPalThreeDs.SolvingStatus, PayPalThreeDs.StatusText(challengeActive: false));
         Assert.Equal(PayPalThreeDs.ProcessingStatus, PayPalThreeDs.StatusText(challengeActive: true));
+    }
+
+    /// <summary>R1081: the decoded stage labels, and which stages this workspace can run.</summary>
+    [Fact]
+    public void TheDecodedStagesCarryTheirOwnLabels()
+    {
+        Assert.Equal("Solving PayPal 3DS (1)", PayPalThreeDs.StageLabels["1"]);
+        Assert.Equal("Solving PayPal 3DS (2)", PayPalThreeDs.StageLabels["2"]);
+        Assert.Equal("Solving PayPal 3DS (2.1)", PayPalThreeDs.StageLabels["2.1"]);
+        Assert.True(PayPalThreeDs.StageIsDecoded("2.1"));
+        Assert.False(PayPalThreeDs.StageIsDecoded("3"));
     }
 
     /// <summary>The target URL, the app name and the thirty-second budget, as frozen constants.</summary>
@@ -150,7 +163,8 @@ public sealed class PayPalThreeDsTests
 
     /// <summary>
     /// The four-state machine advances past a decoded Submit and stops where the decoded stages
-    /// end — naming the eight located bodies rather than reporting a completion nothing performed.
+    /// end — naming the six still-undecoded bodies (R1081 moved stages 2/2.1 into the decoded
+    /// map, so they are pinned by name in TheDecodedStagesCarryTheirOwnLabels instead).
     /// </summary>
     [Fact]
     public async Task TheMachineStopsWhereTheDecodedStagesEnd()
@@ -167,8 +181,9 @@ public sealed class PayPalThreeDsTests
         Assert.NotNull(outcome.Error);
         Assert.Contains("not decoded", outcome.Error);
         Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Process3DS), ctx.Session.Vars["paypal3ds.state"]);
-        foreach (var fn in new[] { "sub_141103410", "sub_141103800", "sub_141103BF0", "sub_1411090C0",
-                     "sub_141109550", "sub_141109910", "sub_14110A080", "sub_141106360" })
+        foreach (var fn in new[] { "sub_141103BF0", "sub_1411090C0", "sub_141109550",
+                     "sub_141109910", "sub_14110A080", "sub_141106360" })
             Assert.Contains(fn, outcome.Error);
+        Assert.Contains("caller-supplied", outcome.Error);
     }
 }

@@ -5059,3 +5059,24 @@ restored tree UNKNOWN（还原全量在争用下吃满 600s）、若干 fired �
 自带）；六步其余步骤体未解码（名字仍只是名字）。
 
 还剩什么：Stripe 六步其余体；PayPal 阶段 2–8；42 条锚的静树全跑；sec-ch-ua 生成器（队列③）。
+
+## R1081 —— 【核心②】PayPal 阶段 2/2.1 构建器全解码 + `(1)` 字面量修正
+
+**取件**：队列② PayPal 阶段 2–8。
+
+改了什么：
+- `PayPalThreeDs` 增 `StageLabels`（1/2/2.1）与 `StageIsDecoded`；RunAsync 停点精确化。
+- **字面量修正**：阶段 1 冻结串实为 `Solving PayPal 3DS (1)`——此前常量丢了后缀且被钉测
+  钉住（文档速记盖过亲见池列表，样本当全税复现）；常量+钉测同步修正。
+- 模板 `payment_challenges.py` §三/§六 更新并重生成。
+
+验证：`dec sub_141103410`/`sub_141103800` 与阶段 1 普通**逐字节同模板**（同头墙/预算/分发），
+仅进度串与续体槽不同（a1[4]→a1[7]→a1[8]）；`dec sub_141107DA0`/`sub_141108170` = 阶段 2 的
+hosted 孪生（108170 带 per-context origin/referer 覆写）。
+PayPalThreeDs 钉测 **10/10 绿**；markers absent **0/5** 保持。
+
+数字变化：PayPal 钉测 9 → **10**；解码阶段地图 1/9 → **3/9**（构建器层面）。
+
+证据等级：全控流/头墙/槽位/hosted 变体/后缀修正为 Observation；graphql 载荷仍调用方供给为 Inference。
+
+还剩什么：阶段 3–8 六构建器（同法机械收尾）；载荷构建函数；Stripe 六步其余体；42 锚静树全跑。

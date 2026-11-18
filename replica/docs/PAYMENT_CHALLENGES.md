@@ -34,9 +34,9 @@
 
 **→ 那是一个 4 态机：提交 → 处理 → 等待 → 完成。** 而 PayPal 侧有两个 solver 体：`<SolvePayPal3DS>` 与 `<SolvePayPalHosted3DS>` —— **普通 3DS 与 Hosted 3DS 是两条路**，不是一条。
 
-**→ R1078 反编译落地了阶段 1（两条路）**：目标是冻结字面量 **`https://www.paypal.com/graphql/`**（0x147097e78，send 步 `sub_14110D670` 以 `sub_1408B6310` 的 +24 槽 = **PUT** 发送）；头墙是 PayPal 自己的 web 客户端指纹 —— `x-app-name: checkoutuinodeweb_hermione`（0x146fc7338）、`x-paypal-internal-euat`、`paypal-client-metadata-id`、`sec-fetch-site/mode/dest = same-origin/cors/empty`、 `origin/referer = https://www.paypal.com`；Hosted 方言另带 `x-requested-with: fetch`、`x-locale: en_US`、 `x-country`、`priority: u=1, i` 且 x-app-name/referer 取自上下文。预算 30 秒（+236=30000），注册 white/StatusInfo 墙，状态分发 **200 → 成功续体，403 与 429 → 共享重试闭包**。状态文案按 ctx+144 布尔选 `Solving PayPal 3DS` 或 `Proccesing 3D Secure`（原版拼写保留）。
+**→ R1078 反编译落地了阶段 1（两条路）**：目标是冻结字面量 **`https://www.paypal.com/graphql/`**（0x147097e78，send 步 `sub_14110D670` 以 `sub_1408B6310` 的 +24 槽 = **PUT** 发送）；头墙是 PayPal 自己的 web 客户端指纹 —— `x-app-name: checkoutuinodeweb_hermione`（0x146fc7338）、`x-paypal-internal-euat`、`paypal-client-metadata-id`、`sec-fetch-site/mode/dest = same-origin/cors/empty`、 `origin/referer = https://www.paypal.com`；Hosted 方言另带 `x-requested-with: fetch`、`x-locale: en_US`、 `x-country`、`priority: u=1, i` 且 x-app-name/referer 取自上下文。预算 30 秒（+236=30000），注册 white/StatusInfo 墙，状态分发 **200 → 成功续体，403 与 429 → 共享重试闭包**。状态文案按 ctx+144 布尔选 `Solving PayPal 3DS (1)` 或 `Proccesing 3D Secure`（原版拼写保留；R1081 更正：阶段 1 字面量带 `(1)` 后缀，此前文档速记把它丢了）。
 
-**→ 九个阶段的函数地图（每条一记反编译即可结案）**：(1) `sub_141102970`/`sub_141105A80`（已落地）；(2) `sub_141103410` + `sub_141107DA0` + `sub_141108170`；(2.1) `sub_141103800`；(3) `sub_141103BF0`/`sub_141105EF0`；(4) `sub_1411090C0`；(5) `sub_141109550`；(6) `sub_141109910`/`sub_141109CF0`；(7) `sub_14110A080`；(8) `sub_141106360`。
+**→ 九个阶段的函数地图（R1081：至 2.1 的构建器已全解码）**：每阶段与阶段 1 **同一请求模板**（同头墙/同 30 秒预算/同 200→成功续体 + 403/429→共享重试分发），仅进度串与成功续体槽不同——阶段 1 续体在 a1[4]、阶段 2 在 a1[7]、阶段 2.1 在 a1[8]。(1) `sub_141102970`/`sub_141105A80`；(2) `sub_141103410` + hosted 孪生 `sub_141107DA0`/`sub_141108170`（B 变体带 per-context origin/referer 覆写）；(2.1) `sub_141103800`；其余 (3)–(8) 已定位待解码：`sub_141103BF0` · `sub_1411090C0` · `sub_141109550` · `sub_141109910` · `sub_14110A080` · `sub_141106360`。**已解码阶段各自的 graphql 操作载荷仍由调用方供给**——载荷构建函数是下一步。
 
 ## 四、Stripe
 

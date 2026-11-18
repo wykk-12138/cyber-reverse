@@ -34,8 +34,12 @@ public sealed class PayPalThreeDs
     /// <summary>PayPal's web client id (0x146fc7338) — hermione is its checkout UI node's own name.</summary>
     public const string AppName = "checkoutuinodeweb_hermione";
 
-    /// <summary>Stage text when the challenge flag is off (0x146e93fa8).</summary>
-    public const string SolvingStatus = "Solving PayPal 3DS";
+    /// <summary>
+    /// Stage 1's wall text (0x146e93fa8 = chars 0x146e93fb4 - 12). R1081 correction: the frozen
+    /// literal carries the stage suffix — an earlier version read the doc's shorthand without the
+    /// "(1)" and pinned that; the pool listing was the authority all along.
+    /// </summary>
+    public const string SolvingStatus = "Solving PayPal 3DS (1)";
 
     /// <summary>Stage text when the challenge flag is on (0x146e4a918) — the image's own spelling, kept.</summary>
     public const string ProcessingStatus = "Proccesing 3D Secure";
@@ -112,6 +116,24 @@ public sealed class PayPalThreeDs
     /// <summary>The stage text selector both builders apply to the ctx+144 flag.</summary>
     public static string StatusText(bool challengeActive) =>
         challengeActive ? ProcessingStatus : SolvingStatus;
+
+    /// <summary>
+    /// The nine observable stages' own labels (R1081: stages 2 and 2.1 decoded — sub_141103410 and
+    /// sub_141103800 share stage 1's builder template byte for byte, differing only in the label and
+    /// the success-continuation slot: stage 1 resumes at a1[4], stage 2 at a1[7], stage 2.1 at a1[8]).
+    /// Stage 2 also has hosted twins — sub_141107DA0 (the hosted dialect) and sub_141108170
+    /// (hosted with per-context origin/referer overrides).
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> StageLabels =
+        new Dictionary<string, string>
+        {
+            ["1"] = SolvingStatus,
+            ["2"] = "Solving PayPal 3DS (2)",
+            ["2.1"] = "Solving PayPal 3DS (2.1)",
+        };
+
+    /// <summary>True when the stage's request body is one this workspace has decoded.</summary>
+    public static bool StageIsDecoded(string stage) => StageLabels.ContainsKey(stage);
 
     /// <summary>
     /// The normal dialect's header wall, in the builder's own order (sub_141102970).
@@ -203,13 +225,17 @@ public sealed class PayPalThreeDs
         if (!submit.Ok) return submit;
         c.Session.Vars["paypal3ds.state"] = nameof(ThreeDsState.Process3DS);
 
-        // Process3DS and beyond run stages (2)-(8), whose bodies are located but not yet decoded:
-        // sub_141103410 (+107DA0/108170) is stage 2, sub_141103800 is 2.1, sub_141103BF0/105EF0
-        // stage 3, sub_1411090C0 stage 4, sub_141109550 stage 5, sub_141109910/109CF0 stage 6,
-        // sub_14110A080 stage 7, sub_141106360 stage 8. One decompile each closes them.
+        // Process3DS and beyond run stages (2)-(8). R1081 decoded the stage-2/2.1 builders
+        // (sub_141103410 + hosted twins sub_141107DA0/sub_141108170; sub_141103800): they share
+        // stage 1's request template byte for byte and differ only in the label and the
+        // success-continuation slot (a1[4] -> a1[7] -> a1[8]). What this workspace still does not
+        // hold are the per-stage graphql operations those continuations carry, so the runnable
+        // edge stays at Submit until the callers that build the payloads are decoded:
+        // (3) sub_141103BF0, (4) sub_1411090C0, (5) sub_141109550, (6) sub_141109910,
+        // (7) sub_14110A080, (8) sub_141106360 — one decompile each.
         return StageOutcome.Pending(
-            "paypal 3ds: stages 2-8 not decoded -- (2) sub_141103410, (2.1) sub_141103800, " +
-            "(3) sub_141103BF0, (4) sub_1411090C0, (5) sub_141109550, (6) sub_141109910, " +
-            "(7) sub_14110A080, (8) sub_141106360");
+            "paypal 3ds: stages 3-8 not decoded -- (3) sub_141103BF0, (4) sub_1411090C0, " +
+            "(5) sub_141109550, (6) sub_141109910, (7) sub_14110A080, (8) sub_141106360; " +
+            "stages 1-2.1 builders decoded, their graphql payloads remain caller-supplied");
     }
 }

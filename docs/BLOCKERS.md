@@ -38662,3 +38662,34 @@ content-type 常量）；「六步流程」其余步骤体未解码（名字仍�
 
 还剩什么：Stripe 六步的其余步骤体反编译（`SubmitOrderStripe` 等名字 → chars-12 链）；PayPal
 阶段 2–8；42 条变异锚的下一次静树全跑；sec-ch-ua 生成器（队列③）。
+
+## R1081 —— 【核心②·支付挑战层】PayPal 阶段 2/2.1 构建器全解码：同模板 + 前移续体槽；顺带一个字面量修正
+
+**取件**：队列② PayPal 阶段 2–8 逐个反编译（函数已定位）。
+
+改了什么：
+- `PayPalThreeDs` 增 `StageLabels`（1/2/2.1 的全字面量）与 `StageIsDecoded`；RunAsync 停点措辞
+  精确化（构建器解码至 2.1、graphql 载荷仍由调用方供给、3–8 六函数在册）。
+- **字面量修正**：阶段 1 的冻结串实为 `Solving PayPal 3DS (1)`（池清单 0x146e93fb4 亲见），此前
+  常量丢了 `(1)` 后缀且被钉测钉住——「文档速记盖过亲见池列表」的样本当全税复现。常量与
+  两条钉测同步修正。
+- 生成器模板 `payment_challenges.py`：§三 状态文案行改全字面量；§六 阶段地图更新为
+  「至 2.1 已解码 + 同模板 + 续体槽前移（a1[4]→a1[7]→a1[8]）」。重生成 PAYMENT_CHALLENGES.md。
+
+验证命令与输出：
+- `dec 0x141103410` / `dec 0x141103800`：与阶段 1 普通（sub_141102970）**逐字节同模板**——同头墙
+  （sec-ch-ua 系/hermione/origin/referer/sec-fetch×3/Accept-Encoding/Accept-Language/cookie=0）、
+  同 30 秒预算、同 200→成功续体 + 403/429→共享重试；仅进度串（(2)/(2.1)）与续体槽不同
+  （a1[7]/a1[8]）。
+- `dec 0x141107DA0` / `dec 0x141108170`：阶段 2 的 **hosted 孪生**（方言头墙 + per-context
+  覆写：108170 的 origin/referer/sec-fetch-site 按 a1[8] 条件取值）。
+- `dotnet test --filter "PayPalThreeDs" -m:1` → **10/10 绿**（新增 TheDecodedStagesCarryTheirOwnLabels）。
+- `payment_challenges.py` → control ok=True，markers absent **0/5** 保持。
+
+数字变化：PayPal 钉测 9 → **10**；解码阶段地图 1/9 → **3/9**（构建器层面）。
+
+证据等级：Observation = 两构建器全控流、头墙同模板、续体槽位、hosted 双变体、`（1)` 后缀修正；
+Inference = 各阶段 graphql 载荷仍由调用方供给（载荷构建函数未解码，如实标注）。
+
+还剩什么：阶段 3–8 六个构建器（同法机械收尾）；各阶段 graphql 载荷构建函数；Stripe 六步其余体；
+42 条变异锚的静树全跑；sec-ch-ua 生成器（队列③）。

@@ -42048,3 +42048,36 @@ Unknown = BSTN 是否以其他形态（locale 键、设置 schema）存在于产
 
 还剩什么：① 若要把「builder 身份」也变成观测，需读第 146/139 行的实参来源；
 ② `GroupSummaryTests` 仍出现过两次抖动，应单独立案（本轮未能复现）。
+## R1164 —— 把 R1163 自己标出的 Unknown 关掉：**GET 确实带的是那个 builder**
+
+**取件**：R1163 写在代码注释里的那句「builder 身份未追踪」。
+
+改了什么（**src 注释 + 证据**，无行为改动）：读了两条路径 append→调用之间的窗口，链路是**闭合的**：
+
+`Paypal-GetPaypalOrderId`（`0x140a31e40`）：
+`
+118  sub_141DC79E0(&v23, v5[26]);          ← 追加控制器路径
+124  sub_141D2B8E0(..., &unk_146AB03EC, 72) ← 追加 "?csrf_token=" （缓冲够用时）
+129  sub_141DC7B80(&v23, &off_146AB03E0)    ← 同一条串的 else 分支（扩容时）
+138  sub_141D2B8E0(..., v15+12, ...)        ← 追加 token
+141  v16 = sub_141DC7870(&v23);             ← **把 builder 实体化**
+143  sub_1408C22E0(v17, v16);               ← 串塞进 options
+146  v26 = sub_1408B61E0(v10, v17, v18);    ← GET(id?) 第 2 参**正是那个 options**
+`
+`Paypal-GetOrderDetails`（`0x140a51e20`）同形：121 路径、131 订单号、**134** `sub_141DC7870(&v21)`、**139** GET。
+
+**⇒ 两件事同时被观测到**：
+1. **那次 GET 带的就是这个 URL**（builder → `sub_141DC7870` → options → GET 第 2 参），不再是「函数里只有一个动词」的旁证；
+2. **追加顺序是 路径 → 查询前缀 → 值**，与 `PaypalOrderIdAsync`/`PaypalOrderDetailsAsync` 的组合顺序**一致**。
+
+代码里的两段 doc 注释已从「未追踪」改为上述链路（含行号与三个 helper 名），**Unknown 升级为 Observation**。
+
+验证：`_builder_identity.py` → 上述窗口原文；`dotnet build` **0 错**；
+全量 **2468 通过 / 0 失败 / 2 跳过 / 2470**；
+变异 `ran_at 2026-11-19T07:20:51`、**59/59 fired，decorative 0，tree GREEN**。
+
+证据等级：Observation = 六行伪代码（118/124/129/138/141/143/146 与 121/131/134/139）、三条命令输出；
+Inference = 无；Unknown = 无（本条闭环）。
+
+**一句自省**：这个 Unknown 是**我自己上一轮写进代码的**，隔一轮就关掉了——
+说明「把边界写在代码里」比「写在文档里」更容易被下一轮接手，**因为它就挡在路上**。

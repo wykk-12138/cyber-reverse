@@ -90,12 +90,14 @@ public class DemandwareFlow : StoreFlow
     }
 
     /// <summary>
-    /// The order-id lookup. R1163 supplies the verb: the containing function (0x140a31e40, 215 lines)
-    /// appends this path to a builder at line 129 and calls verb slot <c>sub_1408B61E0</c> (+8 = GET)
-    /// once, at line 146. <b>What was not traced is that the GET's builder is the same variable</b> —
-    /// the call's first argument is the client, so the pairing rests on the single verb in the function
-    /// and the seventeen lines between them. The caller passes the token rather than this method
-    /// inventing a session key for it.
+    /// The order-id lookup. R1164 closed the gap R1163 left open: the containing function
+    /// (0x140a31e40) appends the controller path at line 118, the <c>?csrf_token=</c> prefix at 124 (or
+    /// 129 on the grow path), then the token itself at 138; line 141 calls <c>sub_141DC7870(&amp;v23)</c>
+    /// — which materialises that builder — and line 143 hands the resulting string to the options object,
+    /// which is the second argument of the GET at line 146. So the request does carry this URL, and the
+    /// append order is path, query prefix, token: the same order this method composes.
+    ///
+    /// <para>The caller passes the token rather than this method inventing a session key for it.</para>
     /// </summary>
     public async Task<StepOutcome> PaypalOrderIdAsync(FlowContext c, string csrfToken,
         CancellationToken ct)
@@ -112,9 +114,10 @@ public class DemandwareFlow : StoreFlow
     }
 
     /// <summary>
-    /// The order-details lookup, same evidence shape as <see cref="PaypalOrderIdAsync"/>: containing
-    /// function 0x140a51e20 (180 lines), path appended at line 121, its single verb-slot call at line
-    /// 139 is GET. Builder identity untraced, and the order id arrives as a parameter.
+    /// The order-details lookup, traced the same way in R1164: function 0x140a51e20 appends the path at
+    /// 121, appends the order id at 131, materialises the builder at 134 via
+    /// <c>sub_141DC7870(&amp;v21)</c>, and the GET at 139 takes the options object that string was
+    /// placed into — so this URL is the one requested.
     /// </summary>
     public async Task<StepOutcome> PaypalOrderDetailsAsync(FlowContext c, string orderId,
         CancellationToken ct)

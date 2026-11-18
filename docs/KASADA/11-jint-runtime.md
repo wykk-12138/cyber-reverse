@@ -1103,6 +1103,60 @@ configure 之后                29,191      ← 差 19,902
 最后一次想 dump 全量轨迹时正好撞上这次编译失败，跑的是旧二进制，所以那份 `slice(0)` 没生效。
 下一轮重跑一次即可。
 
+### 5.48 取到了：`/mfc` 要的两个头是 `x-kpsdk-h` 和 `x-kpsdk-fc` [实测]
+
+上一轮说「`captured[293]` / `captured[294]` 存在加载阶段」——重跑全量轨迹后直接搜到了写入点：
+
+```
+16831  op=48   int:293, str:'x-kpsdk-h'
+16836  op=48   int:294, str:'x-kpsdk-fc'
+```
+
+**所以 `/mfc` 的响应必须带 `x-kpsdk-h` 和 `x-kpsdk-fc` 两个头** —— 不是 `KP_IC`/`KP_RC`
+（那两个只是字面量池里另有用途的字符串）。这也解释了上一轮为什么伪造 `KP_IC`/`KP_RC` 完全没有效果。
+
+### 5.49 带上这两个头之后，走向确实变了 [实测]
+
+| `/mfc` 假响应 | dispatch 总数 | 说明 |
+|---|---|---|
+| 空响应 | **29,191** | 走「missing headers」错误分支，绕了一大圈 |
+| `x-kpsdk-h:01` + `x-kpsdk-fc:1` | **24,858** | 校验通过，少走了 4,333 条错误分支 |
+| 上面两个 + `/r` 带 `x-kpsdk-ct` | **24,858** | 同上（`ct` 这时还没被消费） |
+
+**dispatch 少了 4,333 条**就是证据：它不再走错误路径了。
+
+### 5.50 下一个拦路的是 `/mfc` 的 **body**
+
+校验通过之后，轨迹里出现了一条新的错误字样：
+
+```
+34983  op=48   int:377, str:'input is invalid type'
+```
+
+**所以 `/mfc` 的响应体不是可有可无的** —— 它要解码，而我们的空 body 解不出来。
+（同段轨迹里还能看到 `InterrogationFailedToStart` / `InvalidDonePayload` /
+`InvalidStateTransition` 这些状态名字面量，都是这台状态机的合法出口。）
+
+### 5.51 `/mfc` 不能靠补配置键跳过 [实测]
+
+试过在配置里加 `featureFlags` / `dynamicConfig` / `interrogation`（单独加、两两加、三个都加），
+**五种配置全部仍然先 `GET /mfc` 再 `POST /r`，dispatch 数一律 29,191**。
+
+**⇒ `/mfc` 是强制步骤**（它拿的是远程配置），不是可选优化。
+
+### 5.52 现在的位置
+
+```
+✅ 脚本跑通（executed=True）
+✅ configure({resourceAddress}) 触发真实请求
+✅ GET  /mfc  → 需要 x-kpsdk-h + x-kpsdk-fc 响应头（已确认、已验证生效）
+⬜ GET  /mfc  → 响应体必须能被它的解码器吃下（空 body 报 'input is invalid type'）
+⬜ POST /r    → 响应头 x-kpsdk-ct 才是 token
+```
+
+**下一步**：把 `/mfc` 响应体的编码格式反出来。线索是 `34983` 附近那条 `input is invalid type`
+所在的解码函数 —— 用 `analysis/walk_bytecode.py trace` 往上翻几十条就能看到它按什么规则校验输入。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

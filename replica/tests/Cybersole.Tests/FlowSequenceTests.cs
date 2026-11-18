@@ -135,7 +135,8 @@ public class FlowSequenceTests
         //
         // R1135 raised it 184 -> 185 with SubmitDeliveryMethodAsync (ordinal 30).
         // R1137 raised it 185 -> 186 with GetDeliveryMethodsAsync (ordinal 29).
-        Assert.Equal(186, map.Count);
+        // R1139 raised it 186 -> 187 with AuthenticatePaymentAsync (ordinal 34).
+        Assert.Equal(187, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
         Assert.Equal(8, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");

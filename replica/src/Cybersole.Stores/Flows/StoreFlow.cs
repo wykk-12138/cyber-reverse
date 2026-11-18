@@ -817,6 +817,13 @@ public abstract class StoreFlow
     /// </summary>
     public virtual Task<StepOutcome> GetDeliveryMethodsAsync(FlowContext c, CancellationToken ct)
         => NotSupported("GetDeliveryMethods");
+
+    /// <summary>
+    /// The payment authentication touch (John Lewis ordinal 34) — what runs when the gateway hands the
+    /// session back. Declared so the name is dispatchable.
+    /// </summary>
+    public virtual Task<StepOutcome> AuthenticatePaymentAsync(FlowContext c, CancellationToken ct)
+        => NotSupported("AuthenticatePayment");
     public virtual Task<StepOutcome> SubmitAddressAsync(FlowContext c, CancellationToken ct)
         => SubmitShippingAsync(c, ct);
     public virtual Task<StepOutcome> SubmitShippingMethodAsync(FlowContext c, CancellationToken ct) => Ok();

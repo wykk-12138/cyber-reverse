@@ -6172,3 +6172,21 @@ CUA 清两个模态框后 IDA 进程退出 → 二次 doctor 仍拒连。**本�
 
 还剩什么：① `payment-page` 无体 PUT 缺步骤位；② `AuthenticatePayment`/`SubmitOrderStripe`
 两个名字同指 POST `payments`，是否也该 1:1 拆分（同型问题）。
+## R1139 —— AuthenticatePayment(34) 落到支付页的无体 PUT
+
+改了什么：
+- **归属**：`AuthenticatePayment`(34) ↔ PUT `v2/orderforms/payment-page`（无体）。
+  `sub_140A3FEC0` 对同一 URL 发 GET + PUT（PUT 第三参字面 `0`，R1132 已证）；映射表把两个支付步骤名
+  都放在 POST `payments`，使这个 PUT 无主。**分配为 Inference**，端点/动词/无体为 Observation。
+- **落实现**：`StoreFlow.AuthenticatePaymentAsync` + `JohnLewisFlow` 覆写（无体 PUT，
+  seam `jl.authenticatePaymentUrl`）；新增 4 条测试（含空体断言 `[]`、映射表「读/触」分属两步）。
+- **同步映射表 + ASCII 图示**；ratchet `StepDispatch` **186 → 187**。
+
+验证：build **0 错**；子集 **89/89**；全量 **2442/0/2**（2m42s，**一次即绿，无抖动**）；
+变异 **59/59 fired, tree GREEN, staleness 0**（03:03:06，5 秒新鲜）。
+
+数字变化：可派发步骤名 **+1**；测试 **+4**。**本轮无计数级联**——`PaymentPageV2` 早已在 `All`，
+上两轮把账补齐的直接好处。
+
+还剩什么：`SubmitOrder`/`PlaceOrder`（POST `orders`，**体未取证**，下一轮的取证目标）、
+Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步骤。

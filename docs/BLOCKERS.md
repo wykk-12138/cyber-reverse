@@ -41048,3 +41048,42 @@ build 0 错、子集 84/85、`GroupSummaryTests` 单独跑绿；Inference（已�
 - 相关子集：**84/85**（唯一红即上述抖动，已隔离验证）。
 **变异收据**：`ran_at 2026-11-19T02:36:44`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
 `staleness 0`（mtime 02:36:50，读于 02:39:08）。
+## R1139 —— 最后一个空缺归位：`AuthenticatePayment`(34) ↔ 支付页的**无体 PUT**
+
+**取件**：R1138 待办①「`payment-page` 的无体 PUT 缺步骤位」。
+
+改了什么：
+- **归属判定**：`sub_140A3FEC0` 对**同一个** `v2/orderforms/payment-page` 发**两个动词**——
+  一个状态上 GET（R1127 已落 `GetPaymentPage`），另一状态上 **PUT 且第三参是字面 `0`**（R1132 已证）。
+  映射表把两个支付步骤名都放在 POST `payments` 上，于是这个 PUT **无主**。
+  ⇒ `AuthenticatePayment`(34) ↔ PUT `payment-page`。**分配为 Inference**（形状 + 名字），
+  **端点/动词/无体为 Observation**。
+- **落实现**：`StoreFlow.AuthenticatePaymentAsync`（`NotSupported`）+ `JohnLewisFlow` 覆写（无体 PUT，
+  seam `jl.authenticatePaymentUrl`，响应存 `jl.authenticatePaymentBody`）。
+- **同步映射表**：`AuthenticatePayment` 由 POST `PaymentsV2` 改为 `PaymentPageV2`，并修 ASCII 图示；
+  注释写明 R118/R119 是按名关联、无请求捕获，那次配对让这个 PUT 无主。
+- 新增 `JohnLewisAuthenticatePaymentTests` **4 条**：PUT + **空体**（断言结尾 `[]`）、
+  映射表里「读」与「触」分属两步而同指一 URL、`Knows`、502 可重试。
+- ratchet：`StepDispatch` **186 → 187**。
+
+验证命令与输出：
+- `dotnet build` → **exit=0，0 个错误**。
+- 相关子集（JohnLewis | FlowSequence | RetailApi | SourceEncoding | StoreFlowDigest | DocsConsistency）
+  → **89/89 通过**。**本轮无计数级联**：`PaymentPageV2` 早已在 `All` 里，`Targets`/`MappedSteps` 不变。
+- 全量结果与变异收据见下条。
+
+数字变化：John Lewis 实际调用 BFF 端点仍 **9** 个，但 `payment-page` 的**两个动词现在各有其步**
+（GET 归 `GetPaymentPage`、PUT 归 `AuthenticatePayment`）；可派发步骤名 **+1**；测试 **+4**。
+
+证据等级：Observation = `sub_140A3FEC0` 的两处动词调用与字面 `0`、映射表旧配对出典、build 0 错、89/89；
+Inference（已标注在方法注释）= 34↔PUT payment-page 这条分配。
+
+还剩什么：① 19 步里仍未落实现的：`GetHome`/`FindProduct`/`AddToCart`（非 BFF）、
+`SubmitOrder`/`PlaceOrder`（POST `orders`，体未取证）、`SubmitOrderStripe`（已落）、
+`HandleRequiresAction`/`GetStripePaymentIntent`（Stripe 侧）；② v4 `deliveries` 之外剩余端点的体。
+
+**全量与收据（本轮收数）**：
+- 全量：**2442 通过 / 0 失败 / 2 跳过 / 2444**（2m42s）——**一次即绿，无抖动**。
+- 相关子集：**89/89**。
+- 变异：`ran_at 2026-11-19T03:03:06`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  `staleness 0`（mtime 03:03:13，读于 03:03:18 —— 5 秒新鲜）。

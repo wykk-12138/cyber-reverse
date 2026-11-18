@@ -1260,6 +1260,37 @@ public sealed class JohnLewisFlow : StoreFlow
     }
 
     /// <summary>
+    /// <c>AuthenticatePayment</c> — the <b>body-less</b> PUT on the payment page, the second verb the
+    /// image issues against <c>v2/orderforms/payment-page</c>.
+    ///
+    /// <para>
+    /// R1139 assigns this step here. The pair map had put both payment step names on the POST
+    /// <c>payments</c>, which left the PUT on the payment page with no step — and <c>sub_140A3FEC0</c>
+    /// carries exactly two verbs on that one URL, a GET on one state and a PUT with the literal
+    /// <c>0</c> for its body on another (R1132). A GET step and a PUT step against one URL, with the
+    /// PUT carrying nothing, is the shape of "read the page, then touch it once the gateway hands
+    /// back". The <b>assignment</b> is an inference from that shape and the name; the endpoint, the
+    /// verb and the absent body are observed.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> AuthenticatePaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.TryGetValue("jl.authenticatePaymentUrl", out var over) &&
+                  !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.PaymentPageV2;
+
+        var options = c.Options("jl-authenticate-payment");
+        var res = await c.Http.SendAsync(HttpMethod.Put, url, options, ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl payment authentication unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl payment authentication HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.authenticatePaymentBody"] = res.Body ?? string.Empty;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
     /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
     /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>

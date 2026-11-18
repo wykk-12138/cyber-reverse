@@ -22,7 +22,7 @@ namespace Cybersole.Stores.Flows;
 /// GetDeliveryMethods   → v4/orderforms/deliveries/methods (derived, R1137)
 /// SubmitDeliveryMethod → v3/orderforms/deliveries/details
 /// GetPaymentPage       → v2/orderforms/payment-page      SubmitOrderStripe    → v2/orderforms/payments
-/// SubmitOrder          → v2/orders                       AuthenticatePayment  → v2/orderforms/payments
+/// SubmitOrder          → v2/orders                       AuthenticatePayment  → v2/orderforms/payment-page (PUT, body-less, R1139)
 /// SubmitBillingAddress → v1/orderforms/payments/billing-address
 /// PlaceOrder           → v2/orders
 /// </code>
@@ -59,7 +59,10 @@ public static class JohnLewisStepMap
             ["SubmitDeliveryMethod"] = RetailApiFamilies.JohnLewisBff.DeliveryDetailsV3,
             ["GetPaymentPage"] = RetailApiFamilies.JohnLewisBff.PaymentPageV2,
             ["SubmitOrderStripe"] = RetailApiFamilies.JohnLewisBff.PaymentsV2,
-            ["AuthenticatePayment"] = RetailApiFamilies.JohnLewisBff.PaymentsV2,
+            // R1139: the payment page takes two verbs -- GetPaymentPage reads it (GET) and this
+        // step touches it (body-less PUT, sub_140A3FEC0's second call). R118/R119 had put
+        // both payment step names on the POST payments, leaving that PUT unclaimed.
+        ["AuthenticatePayment"] = RetailApiFamilies.JohnLewisBff.PaymentPageV2,
             ["SubmitOrder"] = RetailApiFamilies.JohnLewisBff.OrdersV2,
             ["PlaceOrder"] = RetailApiFamilies.JohnLewisBff.OrdersV2,
             ["SubmitBillingAddress"] = RetailApiFamilies.JohnLewisBff.BillingAddressV1,

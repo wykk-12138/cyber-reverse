@@ -75,6 +75,9 @@ solver.Transport = (url, method, headersJson, body) =>
     var opts = options.Clone();
     opts.Timeout = TimeSpan.FromSeconds(25);
     opts.Retries = 0;
+    // The live /mfc answers with empty featureFlags to a request that carries none of the page's cookies.
+    // A real browser sends them, so send them too.
+    foreach (var ck in page.Cookies) opts.Cookies[ck.Key] = ck.Value;
     try
     {
         var parsed = System.Text.Json.JsonDocument.Parse(headersJson);
@@ -93,7 +96,9 @@ solver.Transport = (url, method, headersJson, body) =>
     var res = http.SendAsync(verb, url, opts, CancellationToken.None)
                   .ConfigureAwait(false).GetAwaiter().GetResult();
 
-    seen.Add($"{verb} {url} -> {res.StatusCode}");
+    seen.Add($"{verb} {url} -> {res.StatusCode}  bodyLen={res.Body.Length}" +
+             (res.Body.Length > 0 ? "  first=" + BitConverter.ToString(System.Text.Encoding.UTF8.GetBytes(res.Body).Take(16).ToArray()) : "") +
+             "  ctype=" + (res.Headers.TryGetValue("Content-Type", out var ctyp) ? ctyp : "-"));
     var headers = res.Headers
         .Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase))
         .ToDictionary(h => h.Key, h => h.Value, StringComparer.OrdinalIgnoreCase);

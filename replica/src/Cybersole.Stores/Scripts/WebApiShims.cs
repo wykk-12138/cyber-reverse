@@ -376,7 +376,7 @@ internal static class WebApiShims
             if (/\/r(\?|$)/.test(__u)) { __hdrs["x-kpsdk-ct"] = window.__dshStubCt; __hdrs["x-kpsdk-v"] = "j-1.2.988"; }
             /* The two headers /mfc must carry: established from the payload's own execution at pc 16831/16836,
                captured[293] = "x-kpsdk-h" and captured[294] = "x-kpsdk-fc". */
-            if (/\/mfc(\?|$)/.test(__u)) { __hdrs["x-kpsdk-h"] = window.__dshStubIc || "01"; __hdrs["x-kpsdk-fc"] = window.__dshStubRc || "1"; }
+            if (/\/mfc(\?|$)/.test(__u)) { __hdrs["x-kpsdk-h"] = window.__dshStubIc || "01"; __hdrs["x-kpsdk-fc"] = window.__dshStubFc || window.__dshStubRc || "1"; }
           }
           /* If the host installed a transport, the request goes out for real: the clearance token only
              exists in the /r response headers, and the payload never reads it back itself. Without a

@@ -2194,6 +2194,33 @@ Error       = no kasada client token exposed by the script
 `analysis/kasada-live` 已经拿了 `page.Cookies`，只是没传进 `BrowserShim`/transport ——
 下一轮先把它接上再跑一次。
 
+### 5.103 排除了四个可能，问题被逼到"真实 HTTP 层"上
+
+上节的假设是"带上 cookie 也许 `featureFlags` 就非空了"。照做之后：
+
+```
+GET …/mfc -> 200  bodyLen=0  ctype=-
+```
+
+**body 是空的，两个头照旧，`/r` 依旧没发。** 于是逐个排除：
+
+| 变量 | 试法 | 结果 |
+|---|---|---|
+| 页面 cookie | 把 `page.Cookies` 灌进每个 interrogation 请求 | **无变化**，`/r` 仍不发 |
+| `x-kpsdk-fc` 的内容 | 离线三档：`"1"` / 实网那串空 flag / `{"featureFlags":{"interrogation":true},…}` | **三档都发 `/mfc` + `/r`** |
+| resource 跨源 | 离线把 resource 设成 `api.nike.com/{u1}/{u2}/`（与 `Href` 不同源） | **照样发两条** |
+| 脚本版本 | 把**实网脚本**存下来（158,809 字节）喂给离线探针 | **照样发两条** |
+
+**四条全排除。** 尤其最后一条很关键：实网脚本在离线环境里行为和钉住的 fixture 完全一致 ——
+**脚本没变、配置没差、跨源不是问题**。
+
+**⇒ 差别只能在真实 HTTP 层**：同一个脚本、同一份头、同一个 resource，
+离线会发 `POST /r`，走真实 `NetClient` 就不发。
+
+**下一轮的做法**：把实网脚本插桩（`analysis/instrument_payload.py` 对 `nike-p.js` 那套），
+在 `kasada-live` 里跑插桩版本，拿到真实 dispatch 轨迹，看它在 `/mfc` 之后停在哪条指令上。
+工具链是现成的，缺的只是"把插桩版接到实网 harness 上"这一步。
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

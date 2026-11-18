@@ -11,7 +11,9 @@ using Cybersole.Stores.Scripts;
 var fixtures = @"D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\fixtures";
 var traced = Path.Combine(fixtures, "nike-p-traced.js");
 var plain = Path.Combine(fixtures, "nike-p.js");
-var fixture = File.Exists(traced) ? traced : plain;
+// A fixture override, so a freshly captured script can be exercised without touching the pinned one.
+var fixture = Environment.GetEnvironmentVariable("KASADA_FIXTURE")
+              ?? (File.Exists(traced) ? traced : plain);
 
 var config = args.Length > 0
     ? (args[0].StartsWith("b64:", StringComparison.Ordinal)
@@ -36,6 +38,8 @@ if (!string.IsNullOrEmpty(stubCt))
     var stubRc = Environment.GetEnvironmentVariable("KASADA_STUB_RC");
     if (!string.IsNullOrEmpty(stubIc)) runtime.Execute("window.__dshStubIc = " + System.Text.Json.JsonSerializer.Serialize(stubIc) + ";");
     if (!string.IsNullOrEmpty(stubRc)) runtime.Execute("window.__dshStubRc = " + System.Text.Json.JsonSerializer.Serialize(stubRc) + ";");
+    var stubFc = Environment.GetEnvironmentVariable("KASADA_STUB_FC");
+    if (!string.IsNullOrEmpty(stubFc)) runtime.Execute("window.__dshStubFc = " + System.Text.Json.JsonSerializer.Serialize(stubFc) + ";");
 }
 
 // End-to-end with a fake transport: the sensor issues /mfc and /r, the host answers both for real, and

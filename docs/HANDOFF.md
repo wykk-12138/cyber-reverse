@@ -5410,3 +5410,25 @@ metrics exit 0。**构建被并行 testhost 锁三次**，等锁后成功；旧 
 证据等级：10 站点 URL/体键、四文档全文、REST 端点为 Observation；变量绑定与 notify 位置为 Inference。
 
 还剩什么：`notify-method-cmpl` 调用点接线；51 锚静树全跑。
+
+## R1096 —— 【核心②】PayPal 3DS2 设备数据对落地：init-method 的 JWT + notify 的 threeDSMethodData
+
+**取件**：`notify-method-cmpl` 调用点接线。
+
+改了什么：
+- `xrefs 0x147098740` → hosted solver（站点 962）+ `sub_140D8D2B0`（普通路 6,310 B）。
+- 站点 962 解出设备数据对：**门 = alive**（`sub_140F9E790`，R1091 停线里那枚）；
+  **POST `JWT` 表单**到响应自带 `deviceDataCollectionUrl.href`，缺失落冻结
+  `init-method`（0x1470985E8）；**PUT `notify-method-cmpl`** 表单
+  **`threeDSMethodData` = base64(`{"threeDSServerTransID":…}`)**。
+- 落地 `SubmitDeviceDataAsync`（两跳 + alive 门 + 零出网跳过）+ 四常量；`RunAsync` 在 JWT
+  查询后接该步。变异 51 → **52**（信封键锚）+ 指南同步。
+
+验证：`PayPalThreeDsTests` **18/18**（2 新钉）、SummaryBlock 4/4（指南 52）、
+SourceEncoding 2/2、metrics exit 0。
+
+数字变化：变异 51 → **52**；PayPal 钉 16 → **18**；3DS2 HTTP 面 **7 端点**。
+
+证据等级：两跳 URL/表单键/alive 门/信封/默认回落为 Observation；tID 位置与跳序为 Inference。
+
+还剩什么：`sub_140D8D2B0` 与 hosted 的差异对照；52 锚静树全跑。

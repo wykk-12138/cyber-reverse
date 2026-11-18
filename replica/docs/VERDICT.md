@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **51 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1095 各 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **52 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1096 各 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63298,3 +63298,37 @@ URL/体键证据推翻，并按 PayPal 自己的形状重写 `GqlAsync`。
 >
 > 附带一条：**大文档用脚本从二进制直读落盘**，比手抄可靠得多——10,370 字手抄必错，
 > 脚本读的是同一份冻结字节。
+
+---
+
+## 第 1096 轮：PayPal 设备数据对 —— `JWT` 进 init-method，`threeDSMethodData` 进 notify
+
+### 一、站点 962 的三件事
+
+`xrefs 0x147098740` 给出两处引用：hosted solver 的 PUT 站点 962，和普通路 `sub_140D8D2B0`。
+读站点上下文，设备数据对完整形状：
+
+1. **门是先决**：`sub_140F9E790(ctx)` = **alive**——正是 R1091 停线
+   `stopping after fingerprint (alive=, hasForm=)` 里打印的那一枚。没有活着挑战上下文就不采。
+2. **第一跳**：POST **`JWT`** 表单到响应自带的 `deviceDataCollectionUrl.href`；
+   缺失时落冻结默认端点 **`init-method`**（0x1470985E8）。
+3. **第二跳**：PUT **`notify-method-cmpl`**，表单 **`threeDSMethodData`**
+   = base64(`{"threeDSServerTransID": …}`)——3DS2 方法通知的标准信封。
+
+### 二、落地形状与数字
+
+`SubmitDeviceDataAsync`：两跳 + alive 门（无 jwt 直接返回、零出网）+ 四个常量。
+`RunAsync` 在 JWT 查询后接该步。**PayPal 3DS2 的 HTTP 面至此 7 个端点**
+（graphql×4 + init-method + notify-method-cmpl + 挑战窗页面）。
+
+| 度量 | R1095 | **R1096** |
+|---|---|---|
+| 变异套件 | 51 | **52**（信封键锚） |
+| PayPal 钉 | 16 | **18** |
+
+### 教训
+
+> **一个端点被两条链共用，值得追两遍**——`notify-method-cmpl` 同时出现在 hosted 与普通路
+> solver 里。追 hosted 站点拿到形状，再看普通路是否同形；若不同形，就是又一处
+> 「同端点、两套装配」。本轮先把 hosted 的形状落地，普通路的差异对照记为下一步——
+> **宁可分两步核实，也不要假设两条链一致。**

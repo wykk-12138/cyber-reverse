@@ -39257,3 +39257,41 @@ Inference = 各文档变量与快照字段的绑定（变量名逐字取自文�
 
 还剩什么：`notify-method-cmpl` 的调用点接线（本轮只落字面量）；51 锚静树全跑；
 `setupFutureUsage` 类跨站常量对照的收尾核对。
+
+## R1096 —— 【核心②】PayPal 3DS2 设备数据对落地：init-method 的 JWT 表单 + notify-method-cmpl 的 threeDSMethodData
+
+**取件**：R1095 遗留的 `notify-method-cmpl` 调用点接线。
+
+改了什么：
+- `xrefs 0x147098740` → 两处引用：hosted solver（PUT 站点 962）+ **`sub_140D8D2B0`**
+  （6,310 B 普通路 solver）——同一 REST 端点被两条链共用。
+- 读站点 962 上下文（`_paypal_hosted_solver.c` L926–970），解出设备数据对的完整形状：
+  - **门**：`sub_140F9E790(ctx)` = **`alive` 标志**（正是 R1091 停线 `stopping after fingerprint
+    (alive=, hasForm=)` 里的那一枚）；
+  - **先一跳**：POST `JWT` 表单（0x146DD3A08，值 = JWT 查询返回的 jwt）到
+    **响应自带的 `deviceDataCollectionUrl.href`**（针 0x147003A88 → 0x1470494A8），缺失时落
+    **冻结默认端点 `payment-authentication/threeds/v1/init-method`**（0x1470985E8，68 字）；
+  - **后一跳**：PUT `notify-method-cmpl`（0x147098740），表单
+    **`threeDSMethodData`（0x14716D3D0）= base64(`{"threeDSServerTransID": …}`)**
+    （0x14716D5F8）——3DS2 方法通知的标准信封。
+- 落地：`PayPalThreeDs.SubmitDeviceDataAsync`（两跳 + alive 门：无 jwt 即跳过、零出网）+
+  `ReadNeedle`/`ReadNestedNeedle` 助手 + 四常量（`InitMethodUrl`/`ThreeDsMethodDataField`/
+  `ThreeDsServerTransIdField`/`DeviceDataCollectionUrlField`）；`RunAsync` 在 JWT 查询后接该步。
+- 变异 51 → **52**（`threeDSServerTransID` 信封键改锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`xrefs` 两引用者；`names_at` 6 常量（两端点 + 两字段 + 两针）；`dec sub_140F9E790`
+  → alive 门的三行语义（状态字 + ctx+120 字节）。
+- `PayPalThreeDsTests` **18/18 绿**（2 新钉：两跳顺序 + JWT 表单 + base64 信封逐字；无 jwt
+  跳过且零出网）；`SummaryBlockTests` 4/4（指南 52）；`SourceEncodingTests` 2/2；
+  `metrics_report --skip-tests` → exit 0。
+
+数字变化：变异 51 → **52**；PayPal 钉 16 → **18**；PayPal 3DS2 **HTTP 面达 7 个端点**
+（graphql×4 + init-method + notify-method-cmpl + 挑战窗页面）。
+
+证据等级：Observation = 两跳 URL/表单键/alive 门/信封键/默认端点回落；Inference =
+`threeDSServerTransID` 在 JWT 响应中的位置（按信封语义取顶层键，原机从 ctx 字段读）、
+设备数据跳与挑战窗的先后（本轮按站点 962 位于 JWT 之后、窗口之前落）。
+
+还剩什么：`sub_140D8D2B0`（普通路 solver）与 hosted 的差异对照；52 锚静树全跑；
+队列②剩余收尾项清点。

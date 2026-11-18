@@ -219,6 +219,61 @@ public sealed class PayPalThreeDsTests
     }
 
     /// <summary>
+    /// R1096: the device-data pair — the JWT form POSTed to the answer's own
+    /// deviceDataCollectionUrl.href (or init-method when absent), then notify-method-cmpl with
+    /// threeDSMethodData carrying the base64 of {"threeDSServerTransID": …}.
+    /// </summary>
+    [Fact]
+    public async Task TheDeviceDataPairSubmitsTheJwtThenNotifiesTheMethod()
+    {
+        var seen = new System.Collections.Generic.List<string>();
+        var bodies = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, body) =>
+        {
+            seen.Add(req.Url?.PathAndQuery ?? "");
+            bodies.Add(body);
+            return (200, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+        ctx.Session.Vars["paypal3ds.initMethodUrl"] = server.BaseUrl + "/v1/init-method";
+        ctx.Session.Vars["paypal3ds.notifyUrl"] = server.BaseUrl + "/v1/notify-method-cmpl";
+
+        const string jwtBody = @"{""jwt"":""eyJhbGciOi.payload.sig"",
+            ""deviceDataCollectionUrl"":{""href"":""https://paypal.example/ddc""},
+            ""threeDSServerTransID"":""txn-42""}";
+
+        var outcome = await new PayPalThreeDs().SubmitDeviceDataAsync(ctx, Sample(), jwtBody, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Equal(2, seen.Count);
+        Assert.Equal("/v1/init-method", seen[0]);                 // the seam fronts the collection hop
+        Assert.Equal("/v1/notify-method-cmpl", seen[1]);
+        Assert.Contains("JWT=eyJhbGciOi.payload.sig", bodies[0]);  // the decoded form field
+
+        // threeDSMethodData is the base64 of {"threeDSServerTransID":"txn-42"}.
+        var expected = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+            "{\"threeDSServerTransID\":\"txn-42\"}"));
+        Assert.Contains("threeDSMethodData=" + System.Uri.EscapeDataString(expected), bodies[1]);
+        Assert.Equal(expected, ctx.Session.Vars["paypal3ds.threeDSMethodData"]);
+    }
+
+    /// <summary>Without a JWT in the answer the machine is not alive and the pair is skipped.</summary>
+    [Fact]
+    public async Task TheDeviceDataPairIsSkippedWithoutAJwt()
+    {
+        using var server = new TinyServer((_, _) => (200, "{}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+
+        var outcome = await new PayPalThreeDs().SubmitDeviceDataAsync(ctx, Sample(),
+            "{\"data\":{}}", default);
+
+        Assert.True(outcome.Ok);
+        Assert.Empty(server.Requests);   // the alive gate kept it off the wire
+    }
+
+    /// <summary>
     /// The contingency read pulls the case bodies' needles out of the response — the bank's
     /// redirect, the JWT spec, and the referenceId/card the resolver variables carry.
     /// </summary>

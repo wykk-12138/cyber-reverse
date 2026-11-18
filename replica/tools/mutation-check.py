@@ -595,6 +595,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~PayPalThreeDsTests",
         "guard": "TheStatusDispatchMirrorsTheRegisteredHandlers",
     },
+    {
+        "name": "round 1096 -- the method notification loses its transaction envelope",
+        "file": PAYPAL_3DS,
+        # threeDSMethodData carries {"threeDSServerTransID": ...} (0x14716d3d0/0x14716d5f8);
+        # renaming the envelope key is exactly the drift the device-data pin forbids.
+        "find": '        var envelope = new JObject { [ThreeDsServerTransIdField] = txnId };',
+        "replace": '        var envelope = new JObject { ["threeDSServerTransactionId"] = txnId };',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheDeviceDataPairSubmitsTheJwtThenNotifiesTheMethod",
+    },
 ]
 
 

@@ -772,6 +772,22 @@ fragment InstallmentsFragment on FundingInstrument {
     public const string NotifyMethodCompleteUrl =
         "https://www.paypal.com/payment-authentication/threeds/v1/notify-method-cmpl";
 
+    /// <summary>
+    /// The device-data initialisation endpoint (0x1470985e8, 68 chars) — the default target of
+    /// the JWT form when the response names no <c>deviceDataCollectionUrl</c> of its own.
+    /// </summary>
+    public const string InitMethodUrl =
+        "https://www.paypal.com/payment-authentication/threeds/v1/init-method";
+
+    /// <summary>The method-notification form field (0x14716d3d0) — base64 of the transaction id.</summary>
+    public const string ThreeDsMethodDataField = "threeDSMethodData";
+
+    /// <summary>The transaction id the method-notification payload carries (0x14716d5f8).</summary>
+    public const string ThreeDsServerTransIdField = "threeDSServerTransID";
+
+    /// <summary>The response needles the device-data step reads (0x147003a88 → 0x1470494a8).</summary>
+    public const string DeviceDataCollectionUrlField = "deviceDataCollectionUrl";
+
     /// <summary>The frozen document for an operation name — the four the machine sends.</summary>
     public static string DocumentFor(string operationName) => operationName switch
     {
@@ -1099,6 +1115,14 @@ fragment InstallmentsFragment on FundingInstrument {
         if (!jwt.Ok) return jwt;
         c.Session.Vars["paypal3ds.jwt"] = jwt.Body ?? string.Empty;
 
+        // R1096: the device-data pair the JWT query exists to feed, decoded from the case bodies
+        // (PUT site at line 962 of the hosted solver): the JWT form goes to the response's own
+        // deviceDataCollectionUrl.href when it names one, else to the frozen init-method endpoint
+        // (0x1470985e8); then notify-method-cmpl (0x147098740) takes the base64
+        // {"threeDSServerTransID": …} envelope in its threeDSMethodData field (0x14716d3d0).
+        var deviceStep = await SubmitDeviceDataAsync(c, input, jwt.Body, ct).ConfigureAwait(false);
+        if (!deviceStep.Ok) return deviceStep;
+
         // Waiting3DS: the window itself. Its page, size and post-back fields are the decoded
         // constants — the host drives the browser; what it posts back is JWT and MD. The machine
         // state and the resolver's inputs persist on the session so the gateway's action
@@ -1111,6 +1135,94 @@ fragment InstallmentsFragment on FundingInstrument {
         c.Session.Vars["paypal3ds.token"] = input.Token ?? string.Empty;
         c.Session.Vars["paypal3ds.state"] = nameof(ThreeDsState.Waiting3DS);
         return StageOutcome.Challenge(snapshot);
+    }
+
+    /// <summary>
+    /// The 3DS2 device-data pair (R1096). The JWT the query returned is POSTed as the
+    /// <c>JWT</c> form field to the device-data collection URL — the response's own
+    /// <c>deviceDataCollectionUrl.href</c> (needle 0x147003a88 → 0x1470494a8) when present, else
+    /// the frozen <c>init-method</c> endpoint (0x1470985e8). The completion then notifies
+    /// <c>notify-method-cmpl</c> (0x147098740) with <c>threeDSMethodData</c> (0x14716d3d0), whose
+    /// value is the base64 of <c>{"threeDSServerTransID": …}</c> (0x14716d5f8).
+    ///
+    /// <para>
+    /// The hosted solver gates this pair on its <c>alive</c> flag (sub_140f9e790 — the same flag
+    /// R1091's stop line prints), so a machine without a live challenge context skips it. That is
+    /// the gate reproduced here: without a JWT there is nothing to collect.
+    /// </para>
+    /// </summary>
+    public async Task<StageOutcome> SubmitDeviceDataAsync(FlowContext c, StageInput input,
+        string? jwtBody, CancellationToken ct)
+    {
+        var jwt = ReadNeedle(jwtBody, "jwt");
+        if (string.IsNullOrEmpty(jwt)) return StageOutcome.Success(200, null);   // not alive: skip
+
+        // The collection target: the answer's own href, else the frozen init-method endpoint.
+        var collection = ReadNestedNeedle(jwtBody,
+            DeviceDataCollectionUrlField, "href") ?? InitMethodUrl;
+        if (c.Session.Vars.TryGetValue("paypal3ds.initMethodUrl", out var initOverride) &&
+            !string.IsNullOrEmpty(initOverride))
+            collection = initOverride;
+
+        var jwtForm = new System.Net.Http.FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            [JwtFormField] = jwt,                                  // 0x146dd3a08
+        });
+        var jwtOptions = c.Options("paypal3ds-init-method");
+        jwtOptions.Timeout = TimeSpan.FromMilliseconds(StageTimeoutMs);
+        jwtOptions.Content = jwtForm;
+        foreach (var h in (input.Hosted ? HostedHeaders(input) : NormalHeaders(input)))
+            jwtOptions.Headers[h.Key] = h.Value;
+
+        var init = await c.Http.SendAsync(HttpMethod.Post, collection, jwtOptions, ct).ConfigureAwait(false);
+        c.Session.AbsorbCookies(init.Cookies);
+        if (init.StatusCode is < 200 or >= 300)
+            return StageOutcome.Failed(init.StatusCode);
+
+        // The notification: threeDSMethodData = base64({"threeDSServerTransID": <id>}).
+        var txnId = ReadNeedle(jwtBody, ThreeDsServerTransIdField)
+                    ?? c.Session.Vars.GetValueOrDefault("paypal3ds.threeDsServerTransId")
+                    ?? string.Empty;
+        var envelope = new JObject { [ThreeDsServerTransIdField] = txnId };
+        var methodData = Convert.ToBase64String(
+            System.Text.Encoding.UTF8.GetBytes(envelope.ToString(Newtonsoft.Json.Formatting.None)));
+
+        var notifyBase = c.Session.Vars.TryGetValue("paypal3ds.notifyUrl", out var notifyOverride) &&
+                         !string.IsNullOrEmpty(notifyOverride)
+            ? notifyOverride
+            : NotifyMethodCompleteUrl;
+
+        var notifyOptions = c.Options("paypal3ds-notify-method");
+        notifyOptions.Timeout = TimeSpan.FromMilliseconds(StageTimeoutMs);
+        notifyOptions.Content = new System.Net.Http.FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            [ThreeDsMethodDataField] = methodData,                  // 0x14716d3d0
+        });
+        foreach (var h in (input.Hosted ? HostedHeaders(input) : NormalHeaders(input)))
+            notifyOptions.Headers[h.Key] = h.Value;
+
+        var notify = await c.Http.SendAsync(HttpMethod.Put, notifyBase, notifyOptions, ct).ConfigureAwait(false);
+        c.Session.AbsorbCookies(notify.Cookies);
+        if (notify.StatusCode is < 200 or >= 300) return StageOutcome.Failed(notify.StatusCode);
+
+        c.Session.Vars["paypal3ds.threeDSMethodData"] = methodData;
+        return StageOutcome.Success(notify.StatusCode, notify.Body);
+    }
+
+    /// <summary>Read one top-level string out of a response body, null when absent.</summary>
+    private static string? ReadNeedle(string? body, string key)
+    {
+        if (string.IsNullOrEmpty(body)) return null;
+        try { return JObject.Parse(body)[key]?.ToString(); }
+        catch { return null; }
+    }
+
+    /// <summary>Read <c>outer.inner</c> out of a response body, null when absent.</summary>
+    private static string? ReadNestedNeedle(string? body, string outer, string inner)
+    {
+        if (string.IsNullOrEmpty(body)) return null;
+        try { return JObject.Parse(body)[outer]?[inner]?.ToString(); }
+        catch { return null; }
     }
 
     /// <summary>

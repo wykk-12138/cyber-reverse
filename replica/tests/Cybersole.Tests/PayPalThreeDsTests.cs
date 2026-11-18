@@ -274,6 +274,89 @@ public sealed class PayPalThreeDsTests
     }
 
     /// <summary>
+    /// R1097: PayPal has TWO 3DS dialects. The normal path is the heliosnext family — its four
+    /// endpoints are their own frozen literals, sharing only the method pair with the hosted path.
+    /// </summary>
+    [Fact]
+    public void TheNormalPathIsItsOwnDialect()
+    {
+        Assert.Equal("https://www.paypal.com/heliosnext/threeDS?action=verify&flow=3ds&cart_id=",
+            PayPalThreeDs.HeliosEntryUrl);
+        Assert.Equal("https://www.paypal.com/heliosnext/api/serverData", PayPalThreeDs.HeliosServerDataUrl);
+        Assert.Equal("https://www.paypal.com/heliosnext/api/session", PayPalThreeDs.HeliosSessionUrl);
+        Assert.Equal("https://www.paypal.com/heliosnext/api/processThreedsConfirmation",
+            PayPalThreeDs.HeliosProcessThreedsConfirmationUrl);
+        Assert.Equal("https://www.paypal.com/payment-authentication/threeds/v1/init-challenge",
+            PayPalThreeDs.InitChallengeUrl);
+
+        // The shared surface is only the method pair — everything else differs by dialect.
+        Assert.Equal("https://www.paypal.com/payment-authentication/threeds/v1/init-method",
+            PayPalThreeDs.InitMethodUrl);
+        Assert.Equal("https://www.paypal.com/payment-authentication/threeds/v1/notify-method-cmpl",
+            PayPalThreeDs.NotifyMethodCompleteUrl);
+
+        // The normal path's own failure report, verbatim.
+        Assert.Equal("Payment failed (3DS)", PayPalThreeDs.NormalPathFailureStatus);
+        Assert.Equal("#FB4961", PayPalThreeDs.NormalPathFailureColour);   // the image's colour literal
+    }
+
+    /// <summary>The normal path's bootstrap: serverData then session, the action naming the step.</summary>
+    [Fact]
+    public async Task TheNormalBootstrapRunsServerDataThenSession()
+    {
+        var seen = new System.Collections.Generic.List<string>();
+        var bodies = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, body) =>
+        {
+            seen.Add(req.Url?.AbsolutePath ?? "");
+            bodies.Add(body);
+            return (200, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+        ctx.Session.Vars["paypal3ds.heliosServerDataUrl"] = server.BaseUrl + "/heliosnext/api/serverData";
+        ctx.Session.Vars["paypal3ds.heliosSessionUrl"] = server.BaseUrl + "/heliosnext/api/session";
+
+        // The frozen endpoints are the defaults; the seams front them for the test.
+        var outcome = await new PayPalThreeDs().SubmitNormalBootstrapAsync(ctx, Sample(),
+            "verify", default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Equal(2, seen.Count);
+        Assert.Equal("/heliosnext/api/serverData", seen[0]);   // server-data first
+        Assert.Equal("/heliosnext/api/session", seen[1]);      // then the session hop
+        Assert.Contains("action=verify", bodies[1]);           // the step the session names
+        Assert.True(ctx.Session.Vars.ContainsKey("paypal3ds.helios.serverData"));
+        Assert.True(ctx.Session.Vars.ContainsKey("paypal3ds.helios.session"));
+    }
+
+    /// <summary>
+    /// The challenge-init hop (normal path only) posts the JWT and, on refusal, speaks the
+    /// normal dialect's own failure line in its own colour.
+    /// </summary>
+    [Fact]
+    public async Task TheChallengeInitPostsTheJwtAndReportsItsOwnFailure()
+    {
+        var bodies = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((_, body) =>
+        {
+            bodies.Add(body);
+            return (403, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+        ctx.Session.Vars["paypal3ds.initChallengeUrl"] = server.BaseUrl + "/v1/init-challenge";
+
+        var outcome = await new PayPalThreeDs().SubmitChallengeInitAsync(ctx, Sample(),
+            "{\"jwt\":\"eyJ.jwt.sig\"}", default);
+
+        Assert.False(outcome.Ok);
+        Assert.Contains("JWT=eyJ.jwt.sig", bodies.Single());
+        Assert.Contains(ctx.Events, e => e.Name == PayPalThreeDs.NormalPathFailureStatus
+                                         && e.Type == PayPalThreeDs.NormalPathFailureColour);
+    }
+
+    /// <summary>
     /// The contingency read pulls the case bodies' needles out of the response — the bank's
     /// redirect, the JWT spec, and the referenceId/card the resolver variables carry.
     /// </summary>

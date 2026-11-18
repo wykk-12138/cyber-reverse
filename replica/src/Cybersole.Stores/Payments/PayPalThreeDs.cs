@@ -788,6 +788,49 @@ fragment InstallmentsFragment on FundingInstrument {
     /// <summary>The response needles the device-data step reads (0x147003a88 → 0x1470494a8).</summary>
     public const string DeviceDataCollectionUrlField = "deviceDataCollectionUrl";
 
+    /// <summary>
+    /// The normal path's own surface (R1097) — a second PayPal 3DS dialect, the
+    /// <c>heliosnext</c> family, wholly separate from the hosted path's
+    /// <c>payment-authentication/threeds/v1</c> + graphql pair. Decoded from
+    /// <c>sub_140d8d2b0</c> (6,310 bytes): the entry page, then the session bootstrap, then the
+    /// challenge initialisation. The method pair (<c>init-method</c> / <c>notify-method-cmpl</c>)
+    /// is the one surface the two dialects share.
+    /// </summary>
+    public const string HeliosEntryUrl =
+        "https://www.paypal.com/heliosnext/threeDS?action=verify&flow=3ds&cart_id=";   // 0x1470983d8
+
+    /// <summary>The normal path's server-data hop (0x1470982f0).</summary>
+    public const string HeliosServerDataUrl =
+        "https://www.paypal.com/heliosnext/api/serverData";
+
+    /// <summary>The normal path's session hop (0x147098368).</summary>
+    public const string HeliosSessionUrl =
+        "https://www.paypal.com/heliosnext/api/session";
+
+    /// <summary>The normal path's confirmation hop (0x147098258).</summary>
+    public const string HeliosProcessThreedsConfirmationUrl =
+        "https://www.paypal.com/heliosnext/api/processThreedsConfirmation";
+
+    /// <summary>The challenge initialisation endpoint (0x147098540, 71 chars) — normal path only.</summary>
+    public const string InitChallengeUrl =
+        "https://www.paypal.com/payment-authentication/threeds/v1/init-challenge";
+
+    /// <summary>The session hop's form field (0x146f6d9a8).</summary>
+    public const string ActionField = "action";
+
+    /// <summary>The normal path's device blob field (0x147003b30) and its payload/user-agent pair.</summary>
+    public const string DeviceInfoField = "deviceInfo";
+    public const string PayloadField = "payload";
+    public const string UserAgentField = "userAgent";
+
+    /// <summary>The cart id and callback needles the normal path composes with (0x146fc1c58 / 0x146fc54d8).</summary>
+    public const string CartIdField = "cart_id";
+    public const string ChallengeCallbackUrlField = "challenge_callback_url";
+
+    /// <summary>The normal path's failure line and colour (0x146e3b5f0 / 0x146a76fd0).</summary>
+    public const string NormalPathFailureStatus = "Payment failed (3DS)";
+    public const string NormalPathFailureColour = "#FB4961";
+
     /// <summary>The frozen document for an operation name — the four the machine sends.</summary>
     public static string DocumentFor(string operationName) => operationName switch
     {
@@ -1207,6 +1250,85 @@ fragment InstallmentsFragment on FundingInstrument {
 
         c.Session.Vars["paypal3ds.threeDSMethodData"] = methodData;
         return StageOutcome.Success(notify.StatusCode, notify.Body);
+    }
+
+    /// <summary>
+    /// The normal path's session bootstrap (R1097, <c>sub_140d8d2b0</c>): the server-data hop
+    /// (0x1470982f0) then the session hop (0x147098368) whose <c>action</c> field (0x146f6d9a8)
+    /// names the step. Both carry the normal dialect's headers. The path's own failure line —
+    /// <c>Payment failed (3DS)</c> (0x146e3b5f0) in <c>#FB4961</c> (0x146a76fd0) — is emitted
+    /// when either hop is refused.
+    /// </summary>
+    public async Task<StageOutcome> SubmitNormalBootstrapAsync(FlowContext c, StageInput input,
+        string action, CancellationToken ct)
+    {
+        // The frozen endpoints are the defaults; the session seams front them (the checkStockUrl
+        // convention every other gateway here follows).
+        string Seam(string key, string frozen) =>
+            c.Session.Vars.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v) ? v : frozen;
+
+        foreach (var (target, form, tag) in new (string, Dictionary<string, string>, string)[]
+        {
+            (Seam("paypal3ds.heliosServerDataUrl", HeliosServerDataUrl),
+                new Dictionary<string, string>(), "paypal3ds-helios-serverdata"),
+            (Seam("paypal3ds.heliosSessionUrl", HeliosSessionUrl),
+                new Dictionary<string, string> { [ActionField] = action }, "paypal3ds-helios-session"),
+        })
+        {
+            var options = c.Options(tag);
+            options.Timeout = TimeSpan.FromMilliseconds(StageTimeoutMs);
+            options.Content = new System.Net.Http.FormUrlEncodedContent(form);
+            foreach (var h in (input.Hosted ? HostedHeaders(input) : NormalHeaders(input)))
+                options.Headers[h.Key] = h.Value;
+
+            var res = await c.Http.SendAsync(HttpMethod.Put, target, options, ct).ConfigureAwait(false);
+            c.Session.AbsorbCookies(res.Cookies);
+            if (res.StatusCode is < 200 or >= 300)
+            {
+                c.Emit(NormalPathFailureStatus, NormalPathFailureColour);
+                return StageOutcome.Failed(res.StatusCode);
+            }
+            c.Session.Vars["paypal3ds.helios." + (tag.EndsWith("session") ? "session" : "serverData")]
+                = res.Body ?? string.Empty;
+        }
+
+        return StageOutcome.Success(200, null);
+    }
+
+    /// <summary>
+    /// The challenge initialisation hop (R1097, normal path only): the JWT form (0x146dd3a08) to
+    /// the URL the context names at +96 when it has one, else the frozen
+    /// <c>init-challenge</c> endpoint (0x147098540) — the same "context value else frozen default"
+    /// shape the method hop uses.
+    /// </summary>
+    public async Task<StageOutcome> SubmitChallengeInitAsync(FlowContext c, StageInput input,
+        string? jwtBody, CancellationToken ct)
+    {
+        var jwt = ReadNeedle(jwtBody, "jwt");
+        if (string.IsNullOrEmpty(jwt)) return StageOutcome.Success(200, null);   // nothing to initialise
+
+        var target = c.Session.Vars.GetValueOrDefault("paypal3ds.initChallengeUrl");
+        if (string.IsNullOrEmpty(target)) target = InitChallengeUrl;
+
+        var options = c.Options("paypal3ds-init-challenge");
+        options.Timeout = TimeSpan.FromMilliseconds(StageTimeoutMs);
+        options.Content = new System.Net.Http.FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            [JwtFormField] = jwt,
+        });
+        foreach (var h in (input.Hosted ? HostedHeaders(input) : NormalHeaders(input)))
+            options.Headers[h.Key] = h.Value;
+
+        var res = await c.Http.SendAsync(HttpMethod.Put, target, options, ct).ConfigureAwait(false);
+        c.Session.AbsorbCookies(res.Cookies);
+        if (res.StatusCode is < 200 or >= 300)
+        {
+            c.Emit(NormalPathFailureStatus, NormalPathFailureColour);
+            return StageOutcome.Failed(res.StatusCode);
+        }
+
+        c.Session.Vars["paypal3ds.challengeInit"] = res.Body ?? string.Empty;
+        return StageOutcome.Success(res.StatusCode, res.Body);
     }
 
     /// <summary>Read one top-level string out of a response body, null when absent.</summary>

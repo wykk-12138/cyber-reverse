@@ -5432,3 +5432,28 @@ SourceEncoding 2/2、metrics exit 0。
 证据等级：两跳 URL/表单键/alive 门/信封/默认回落为 Observation；tID 位置与跳序为 Inference。
 
 还剩什么：`sub_140D8D2B0` 与 hosted 的差异对照；52 锚静树全跑。
+
+## R1097 —— 【核心②·结构发现】PayPal 有两套 3DS 方言：普通路 `heliosnext` 全解并落地
+
+**结构发现**：不是一条链的两半，是**两套端点面**。
+
+改了什么：
+- `sub_140D8D2B0`（6,310 B）落盘 781 行；与 hosted 差分：48 常量中 **24 个普通路独有**。
+- 独有面：`heliosnext/threeDS?action=verify&flow=3ds&cart_id=` · `/api/serverData` ·
+  `/api/session` · `/api/processThreedsConfirmation` · **`init-challenge`（普通路独有）**；
+  字段 `action`/`deviceInfo`/`payload`/`userAgent`/`cart_id`/`challenge_callback_url`；
+  失败线 **`Payment failed (3DS)` + `#FB4961`**（与 StripeChallenge 同色常量）。
+- 普通路序：GET 入口 → serverData → session(action) → init-method → notify-method-cmpl →
+  init-challenge(JWT) → processThreedsConfirmation。**两方言仅共享方法对。**
+- 落地 `SubmitNormalBootstrapAsync` + `SubmitChallengeInitAsync` + 12 常量 + 会话缝。
+- 变异 52 → **53**（`action` 锚）+ 指南同步。
+
+验证：`PayPalThreeDsTests` **21/21**（3 新钉）、SummaryBlock 4/4（指南 53）、
+SourceEncoding 2/2、metrics exit 0。
+
+数字变化：变异 52 → **53**；PayPal 钉 18 → **21**；3DS HTTP 面 **7 → 10 端点**。
+
+证据等级：常量差分/21 常量/9 站点/共享面为 Observation；普通路表单装配细节与
+processThreedsConfirmation 体形状为 Inference。
+
+还剩什么：普通路四端点逐行表单装配；方言选择入口接线；53 锚静树全跑。

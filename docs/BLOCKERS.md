@@ -39295,3 +39295,49 @@ Inference = 各文档变量与快照字段的绑定（变量名逐字取自文�
 
 还剩什么：`sub_140D8D2B0`（普通路 solver）与 hosted 的差异对照；52 锚静树全跑；
 队列②剩余收尾项清点。
+
+## R1097 —— 【核心②·结构发现】PayPal 有**两套** 3DS 方言：普通路 `heliosnext` 面全解并落地
+
+**取件**：R1096 指定的普通路 solver 差异对照。
+
+**这轮把「同一个 PayPal 3DS」拆成了两个方言——不是一条链的两半，是两套完全不同的端点面。**
+
+改了什么：
+- 把 `sub_140D8D2B0`（6,310 B 普通路）整段伪代码落盘（781 行，`analysis/_paypal_normal_solver.c`），
+  与 hosted（120 常量）做常量集差分：**48 个常量里 24 个是普通路独有**。
+- 独有常量解码出**第二套方言**：
+  - `https://www.paypal.com/heliosnext/threeDS?action=verify&flow=3ds&cart_id=`（0x1470983D8，73 字，入口）
+  - `https://www.paypal.com/heliosnext/api/serverData`（0x1470982F0）
+  - `https://www.paypal.com/heliosnext/api/session`（0x147098368）
+  - `https://www.paypal.com/heliosnext/api/processThreedsConfirmation`（0x147098258）
+  - **`payment-authentication/threeds/v1/init-challenge`**（0x147098540，71 字，普通路独有）
+  - 字段：`action`（0x146F6D9A8）/`deviceInfo`（0x147003B30）/`payload`（0x14710E630）/
+    `userAgent`（0x1471796E8）/`cart_id`（0x146FC1C58）/`challenge_callback_url`（0x146FC54D8）/
+    `&authentication_flow=`/`&go_to=next`/`state=undefined&code=undefined&liability_shift=`
+  - **失败线 `Payment failed (3DS)`（0x146E3B5F0）+ 色 `#FB4961`（0x146A76FD0）**——
+    与 StripeChallenge 同一个色常量，跨网关复用。
+- **普通路的请求序**（PUT/GET 站点 246/283/317/350/391/503/558/591/738）：
+  GET 入口 → **serverData** → **session**（`action`）→ init-method → notify-method-cmpl →
+  **init-challenge**（`JWT`，ctx+96 或冻结默认）→ **processThreedsConfirmation**。
+  **两方言唯一共享的只有方法对**（init-method / notify-method-cmpl）。
+- 落地：`SubmitNormalBootstrapAsync`（serverData → session，`action` 表单，两跳任一被拒即发
+  普通路失败线与色）+ `SubmitChallengeInitAsync`（`JWT` → ctx+96 或冻结 init-challenge，
+  被拒同报告）+ 12 常量；两跳/两 URL 均带会话缝（checkStockUrl 惯例）。
+- 变异 52 → **53**（`action` 字段改锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：常量集差分（120 vs 48，独有 24）；`names_at` 21 常量；请求站点逐一定位。
+- `PayPalThreeDsTests` **21/21 绿**（3 新钉：方言常量全表 + 共享面仅方法对 + 失败线配色；
+  bootstrap 两跳序 + action 表单 + 两会话键；init-challenge 的 JWT + 自有失败报告）；
+  `SummaryBlockTests` 4/4（指南 53）；`SourceEncodingTests` 2/2；`metrics_report` exit 0。
+
+数字变化：变异 52 → **53**；PayPal 钉 18 → **21**；PayPal 3DS **HTTP 面 7 → 10 个端点**
+（4 graphql + 3 payment-authentication + 4 heliosnext，其中方法对两方言共享）。
+
+证据等级：Observation = 常量集差分、21 个常量逐字、9 个请求站点、两方言共享面仅方法对；
+Inference = 普通路各端点的表单装配细节（serverData/session 只有 `action` 明确，其余体字段
+按站点邻域推断，未逐行读全）与 processThreedsConfirmation 的体形状。
+
+还剩什么：普通路四端点的**逐行表单装配**（本轮只落 bootstrap 与 init-challenge 两段可执行，
+processThreedsConfirmation 与 serverData 的体键待逐行读）；53 锚静树全跑；
+`PayPalThreeDs` 的方言选择入口（`StageInput.Hosted` 之外再加 normal 分支的接线）。

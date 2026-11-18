@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **52 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1096 各 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **53 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1097 各 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63332,3 +63332,40 @@ URL/体键证据推翻，并按 PayPal 自己的形状重写 `GqlAsync`。
 > solver 里。追 hosted 站点拿到形状，再看普通路是否同形；若不同形，就是又一处
 > 「同端点、两套装配」。本轮先把 hosted 的形状落地，普通路的差异对照记为下一步——
 > **宁可分两步核实，也不要假设两条链一致。**
+
+---
+
+## 第 1097 轮：PayPal 两套 3DS 方言 —— 普通路 `heliosnext` 不是 hosted 的另一半
+
+### 一、常量差分把「一条链」拆成了「两套面」
+
+`sub_140D8D2B0`（6,310 B，普通路 solver）落盘 781 行，与 hosted 的 120 常量差集：
+**48 个里 24 个是普通路独有**。独有的一解码，是另一整套端点：
+
+| 方言 | 端点面 |
+|---|---|
+| **hosted** | `graphql?<4 个操作>` + `payment-authentication/threeds/v1/{init-method, notify-method-cmpl}` + `checkoutweb/processThreedsConfirmation` 窗口 |
+| **normal** | `heliosnext/threeDS?action=verify&flow=3ds&cart_id=` · `/api/serverData` · `/api/session` · `/api/processThreedsConfirmation` · `payment-authentication/threeds/v1/init-challenge` |
+
+**两套唯一共享的，只有方法对**（init-method / notify-method-cmpl）。普通路还带自己的
+失败线 `Payment failed (3DS)` 与色 `#FB4961`——那个色常量与 StripeChallenge 用的是同一个，
+跨网关复用的展示常量。
+
+### 二、落地与数字
+
+`SubmitNormalBootstrapAsync`（serverData → session，`action` 表单，被拒即发普通路失败线）+
+`SubmitChallengeInitAsync`（`JWT` → ctx+96 或冻结 init-challenge）+ 12 常量 + 会话缝。
+
+| 度量 | R1096 | **R1097** |
+|---|---|---|
+| 变异套件 | 52 | **53**（`action` 锚） |
+| PayPal 钉 | 18 | **21** |
+| 3DS HTTP 端点 | 7 | **10** |
+
+### 教训
+
+> **「同一个厂商的同一个功能」也可以是两套实现**——hosted 与 normal 都叫 PayPal 3DS，
+> 都过 init-method / notify-method-cmpl，容易让人以为是一条链的两个分支。常量差分一算，
+> 48 里 24 个不重叠：**它们只是共享了那两个方法端点，其余全不同**。
+>
+> 差分的价值在这里最明显：**如果只看「共享了哪些」，会得出「差不多」；看「独有哪些」，才知道是两套。**

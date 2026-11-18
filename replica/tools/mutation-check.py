@@ -605,6 +605,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~PayPalThreeDsTests",
         "guard": "TheDeviceDataPairSubmitsTheJwtThenNotifiesTheMethod",
     },
+    {
+        "name": "round 1097 -- the normal path's session hop drops its action",
+        "file": PAYPAL_3DS,
+        # The session hop's action field (0x146f6d9a8) names the step; losing it is exactly the
+        # drift the bootstrap pin forbids.
+        "find": '                new Dictionary<string, string> { [ActionField] = action }, "paypal3ds-helios-session"),',
+        "replace": '                new Dictionary<string, string> { ["act"] = action }, "paypal3ds-helios-session"),',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheNormalBootstrapRunsServerDataThenSession",
+    },
 ]
 
 

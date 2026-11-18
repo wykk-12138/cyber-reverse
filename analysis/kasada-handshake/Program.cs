@@ -32,6 +32,9 @@ Console.WriteLine($"Ok    = {ok}");
 Console.WriteLine($"Root  = {handshake.Root ?? "(null)"}");
 Console.WriteLine($"Ct    = {handshake.ClientToken ?? "(null)"}");
 Console.WriteLine($"Error = {handshake.Error ?? "-"}");
+Console.WriteLine($"Cookie = {handshake.SessionCookie ?? "(none)"}");
+Console.WriteLine("issued by the server : " + string.Join(", ", KasadaHttpHandshake.IssuedHeaders));
+Console.WriteLine("NOT issued (client-side): " + string.Join(", ", KasadaHttpHandshake.UnavailableHeaders));
 foreach (var h in handshake.RequestHeaders().OrderBy(k => k.Key, StringComparer.Ordinal))
     Console.WriteLine($"  {h.Key}: {(h.Value.Length > 60 ? h.Value[..60] + "…" : h.Value)}");
 

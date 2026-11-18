@@ -39,6 +39,12 @@ if (args.Contains("--browser"))
         if (!hit) continue;
         foreach (var h in rt.RequestHeaders.Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase)))
             lines.Add($"      req {h.Key}: {Trunc(h.Value)}");
+        if (rt.Url.Contains("/tl", StringComparison.Ordinal) && rt.RequestBody.Length > 0)
+            lines.Add($"      req body [{rt.RequestBody.Length}b]: {Trunc(rt.RequestBody)}");
+        if (rt.Url.Contains("/tl", StringComparison.Ordinal))
+            foreach (var h in rt.RequestHeaders.Where(h => !h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase)))
+                if (h.Key is "content-type" or "accept" or "origin" or "referer" or "content-length")
+                    lines.Add($"      req {h.Key}: {Trunc(h.Value)}");
         foreach (var h in rt.ResponseHeaders.Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase)))
             lines.Add($"      res {h.Key}: {Trunc(h.Value)}");
         if (rt.ResponseHeaders.TryGetValue("content-type", out var ctn)) lines.Add($"      res content-type: {ctn}");

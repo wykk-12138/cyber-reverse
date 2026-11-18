@@ -2552,6 +2552,103 @@ if (await hs.RunAsync(sensorScriptUrl))        // p.js / ips.js 的完整 URL
 **测试**：`KasadaHttpHandshakeTests` 5 例（三跳顺序、build 透传、头收集、相对 URL 拒绝、首跳失败干净退出）。
 **Kasada 全套：117 例通过。**
 
+---
+
+## 8. 把这条路彻底摸清：谁能拿到、谁拿不到
+
+### 8.1 服务端自己说了它给哪些头
+
+`Access-Control-Expose-Headers` 是服务端主动声明的白名单：
+
+```
+x-kpsdk-ct, x-kpsdk-r, x-kpsdk-c, x-kpsdk-h, x-kpsdk-fc
+```
+
+**`dt` / `im` / `st` 不在里面。** 对照 §5.69 那组宿主字段
+（`_kasadaDt` `_kasadaIm` `_kasadaRst` …）—— **那些是客户端算的，不是服务端发的。**
+
+**所以纯 HTTP 能拿到的和拿不到的，是服务端画出来的线：**
+
+| 头 | 来源 | 纯 HTTP 可得 |
+|---|---|---|
+| `x-kpsdk-ct` | 服务端签发 | ✅ |
+| `x-kpsdk-h` | 服务端（回显前缀 + 配置指纹） | ✅ |
+| `x-kpsdk-fc` | 服务端（配置 JSON） | ✅ |
+| `x-kpsdk-r` | 服务端（继续指令） | ✅ |
+| `x-kpsdk-v` | 客户端给，服务端不回 | ✅（自己填） |
+| `x-kpsdk-dt` / `im` / `st` / `cd` | **客户端算** | ❌ |
+
+代码里把这两组写成常量：`KasadaHttpHandshake.IssuedHeaders` / `UnavailableHeaders`。
+
+### 8.2 `ct` 同时是 cookie
+
+```
+Set-Cookie: KP_UIDz-ssn=0EIQrCi6FKTXrJR3t67wARPdvbEF6sqvLBLJQ7kaCYif…
+x-kpsdk-ct: 0EIQrCi6FKTXrJR3t67wARPdvbEF6sqvLBLJQ7kaCYif…
+```
+
+**同一个值，两个位置。** 只带 header 不带 cookie 是抗爬系统专门盯的形状，
+所以 `RequestHeaders()` 会把 `Cookie: KP_UIDz-ssn=…` 一并放进去（`SessionCookie` 属性）。
+
+### 8.3 每一跳到底挑不挑请求头（实网七组对照）
+
+对 `/fp` 分别试：
+
+| 请求头 | 结果 | ct |
+|---|---|---|
+| 全套（v + h + Referer + Origin） | 200 | ✅ |
+| 去掉 Referer/Origin | 200 | ✅ |
+| 去掉 `h` | 200 | ✅ |
+| 去掉 `v` | 200 | ✅ |
+| `v=j-1.2.988`（旧 build） | 200 | ✅ |
+| `v=x-9.9.9`（乱写） | 200 | ✅ |
+| `h=99`（换前缀） | 200 | ✅ |
+
+**⇒ `/fp` 无条件签发，什么都不挑。**
+
+**要 `h` 的是 `/mfc`**（缺了就 304，§7.4）。两跳的性格完全不同，这点很容易搞错。
+
+### 8.4 `/mfc` 可以跳过
+
+只打 `/fp` + `ips.js?KP_UIDz=<ct₁>` 也能拿到最终 ct（长度 164，base64url 字符集）。
+**所以最短路径是两跳，不是三跳。**
+
+保留 `/mfc` 的理由：它给出 `x-kpsdk-fc`（配置）和 `x-kpsdk-h`（配置指纹），
+而 §5.107 证明某些请求形状需要 `h`。要稳就跟浏览器一样走三跳。
+
+### 8.5 `ct` 是一次性的
+
+同一秒连打两次 `/fp`，两个 ct 完全不同。**不能缓存复用，每次会话要重新取。**
+
+### 8.6 一个反直觉的事实：伪造的 `KP_UIDz` 也被接受
+
+```
+GET ips.js?KP_UIDz=FORGED-TOKEN-0000000000000000  ->  200，照样回一个新 ct
+```
+
+**⇒ 服务端签发 ct 时不校验输入。** 这意味着：
+
+- **不能用"能不能拿到 ct"来判断工具对不对** —— 随便给个字符串都能拿到
+- **ct 的有效性只能由业务端点回答**
+- 这也解释了为什么 §7 那次"成功"本身不构成证明
+
+### 8.7 到这里为止，这条路能保证什么、不能保证什么
+
+**能保证（实网可复现）：**
+
+- 无浏览器、无 JS 引擎，两到三个 GET 稳定拿到 164 字符的 `x-kpsdk-ct` 及其 cookie
+- 拿到的头集合与服务端自曝白名单完全一致，不多不少
+- 每跳的约束、跳序、可省项都测过了
+
+**不能保证：**
+
+- `dt` / `im` / `st` / `cd` —— 服务端不发，必须跑 sensor
+- **`ct` 是否被业务端点接受** —— 我没有对真实业务接口发过带这个 ct 的请求，
+  所以这只是"拿到了服务端签发的凭证"，**不是"证明它被认可"**
+
+**如果你的目标站点只认 `ct`/cookie，这条路够用；如果它还校验 `dt`/`im`，就还需要跑 payload。**
+这句话是这轮的结论，也是唯一诚实的结论。
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

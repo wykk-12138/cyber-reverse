@@ -39,6 +39,14 @@ public sealed class KasadaHttpHandshake
     /// <summary>The token a protected request should carry.</summary>
     public string? ClientToken { get; private set; }
 
+    /// <summary>
+    /// The <c>KP_UIDz-ssn</c> cookie the handshake sets. Measured: the server sends the same value as both
+    /// <c>Set-Cookie: KP_UIDz-ssn=...</c> and <c>x-kpsdk-ct</c>, and its CORS exposure list is
+    /// <c>x-kpsdk-ct,x-kpsdk-r,x-kpsdk-c,x-kpsdk-h,x-kpsdk-fc</c> -- which is how we know dt, im and st are
+    /// computed by the client rather than issued here.
+    /// </summary>
+    public string? SessionCookie { get; private set; }
+
     /// <summary>The build the sensor reports, used as x-kpsdk-v.</summary>
     public string Build { get; set; } = KasadaVersions.Observed;
 
@@ -137,6 +145,11 @@ public sealed class KasadaHttpHandshake
             foreach (var h in raw)
                 if (h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase))
                     found[h.Key] = h.Value;
+
+            // The session cookie travels with the token; a request that carries only the header is the
+            // shape anti-bot vendors are built to notice.
+            if (raw.TryGetValue("Set-Cookie", out var cookie) && cookie.StartsWith("KP_UIDz", StringComparison.Ordinal))
+                SessionCookie = cookie.Split(';')[0];
             return found;
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
@@ -159,6 +172,24 @@ public sealed class KasadaHttpHandshake
         var copy = new Dictionary<string, string>(Headers, StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrEmpty(ClientToken)) copy["x-kpsdk-ct"] = ClientToken!;
         copy["x-kpsdk-v"] = Build;
+        if (!string.IsNullOrEmpty(SessionCookie)) copy["Cookie"] = SessionCookie!;
         return copy;
     }
+
+    /// <summary>
+    /// The headers a protected request can carry from this path, and the ones it cannot. <c>dt</c> and
+    /// <c>im</c> are absent because the server never issues them -- they are computed by the sensor, and
+    /// they are not in the endpoint's own CORS exposure list. A caller that needs them needs the sensor to
+    /// run, which means a browser or a full payload execution.
+    /// </summary>
+    public static IReadOnlyList<string> IssuedHeaders { get; } = new[]
+    {
+        "x-kpsdk-ct", "x-kpsdk-h", "x-kpsdk-fc", "x-kpsdk-r", "x-kpsdk-v",
+    };
+
+    /// <summary>Headers a protected request may be checked for that this path cannot produce.</summary>
+    public static IReadOnlyList<string> UnavailableHeaders { get; } = new[]
+    {
+        "x-kpsdk-dt", "x-kpsdk-im", "x-kpsdk-st", "x-kpsdk-cd",
+    };
 }

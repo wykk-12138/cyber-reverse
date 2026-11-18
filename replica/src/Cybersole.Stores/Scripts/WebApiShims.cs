@@ -41,8 +41,17 @@ internal static class WebApiShims
             Array.prototype.splice = function (start, count) {
                 if (rec.length < 8) {
                     var head = [];
-                    for (var i = 0; i < Math.min(600, this.length); i++) head.push(this[i]);
-                    rec.push({ start: start, count: count, len: this.length, head: head });
+                    for (var i = 0; i < Math.min(9000, this.length); i++) head.push(this[i]);
+                    var entry = { start: start, count: count, len: this.length, head: head };
+                    rec.push(entry);
+                    var out = orig.apply(this, arguments);
+                    // A jump target near the end of the array can only be read after the cut.
+                    var tail = [];
+                    for (var t = Math.max(0, this.length - 40); t < this.length; t++) tail.push(this[t]);
+                    entry.tailFrom = Math.max(0, this.length - 40);
+                    entry.tailLen = this.length;
+                    entry.tail = tail;
+                    return out;
                 }
                 return orig.apply(this, arguments);
             };

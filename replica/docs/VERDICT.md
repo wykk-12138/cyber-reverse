@@ -64876,3 +64876,45 @@ doctor 报 `PROXY: MISSING` / `PORT 13337: REFUSED` / 180s 超时。
 | 变异 | **59/59 fired，tree GREEN，staleness 0** |
 
 **下一轮第一件事**：用 `Restore packed base` 恢复 IDA，再做 ordinal 判别。
+---
+
+## 第 1142 轮：一张覆盖面测试，第一次跑就红了——红在我"已经确认"的地方
+
+写完断言「19 步要么被覆写、要么在具名例外表里」，首跑：
+
+`
+Expected: ["SubmitOrder"]
+Actual:   []
+overridden (19): GetHome, FindProduct, AddToCart, ... SubmitOrder ...
+`
+
+**SubmitOrder 早就被覆写了。** 我 R1140 写的「故意不落」是错的，而那条配套测试
+（断言它返回 `!Ok`）**是假通过**——它确实失败，但失败原因是它 POST 到
+**镜像里不存在的** `{CheckoutHost}/api/order` 后解析不到 orderNumber，
+**不是因为没接线**。
+
+> **「返回失败」有无数个理由，只有一个是「我故意没接」。**
+> 我的测试只检查了「失败」这个结果，于是把一个 bug 读成了设计。
+
+### 修的过程也被守卫挡了一次
+
+先改成「返回带理由的失败」→ `FlowWorkAuditTests.MostOverridesDoWork` **立刻红**：
+它数的是「只返回结果、什么都不做」的覆写，我等于把一个 bug 换成一个占位。
+
+**最终**：**整个删掉那个覆写**——既不编造端点，也不新增占位。于是三条守卫同时成立：
+
+| 守卫 | 状态 |
+|---|---|
+| 19 步全部可派发 | ✓ |
+| 18 步由本 flow 覆写 + 1 步**具名**例外 | ✓（具名，不计数——计数会让"换掉一个"溜过去） |
+| 占位数不上升 | ✓ |
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2449 通过 / 0 失败 / 2 跳过**（2m38s） |
+| 相关子集 | **82/82** |
+| 变异 | **59/59 fired，tree GREEN，staleness 0** |
+
+**IDA 也修好了**：按上轮判断改选 **"Restore packed base"** → `status: ok` —— **unpacked 路径才是反复退出的病根。**

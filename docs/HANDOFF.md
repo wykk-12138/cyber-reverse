@@ -6224,3 +6224,22 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：① IDA 恢复（先试 Restore packed base）；② `sub_140A40F20` 的 ordinal 判别；
 ③ 19 步里只剩 `SubmitOrder`(33) 与 Stripe 侧两步。
+## R1142 —— IDA 用 Restore packed base 修复；覆盖面测试照出一处假通过 + 一处错实现
+
+改了什么：
+- **IDA 恢复**：改选 **"Restore packed base"**（不再点 unpacked）→ `status: ok`、`hexrays_ready: true`。
+  **unpacked 路径是反复退出的病根**。
+- **ordinal 判别：两条负结果**（① 类型名只在拼接串 `0x14338b455` 里，无独立对象 ⇒ 无 EEType 路径；
+  ② `.text` 地址序≠ordinal 序）⇒ 判别仍开放，但两条死路有证据。
+- **新写 `JohnLewisStepCoverageTests` 2 条**（19 步可派发；覆写或具名例外，用集合相等不用计数）。
+  **首跑即红**：`SubmitOrder` **早已被覆写** ⇒ R1140「故意不落」是错的；
+  配套那条「返回 !Ok」的测试是**假通过**（失败原因是它 POST 到镜像里不存在的 `/api/order`）。
+- **修**：先改成带理由的失败 → `FlowWorkAuditTests.MostOverridesDoWork` **红**（变成占位）→
+  **整个删掉该覆写**（不编造端点、不新增占位）；例外表恢复为 `["SubmitOrder"]`。
+
+验证：build **0 错**；子集 **82/82**；全量 **2449/0/2**；变异 **59/59 fired, tree GREEN, staleness 0**（03:52:11）。
+
+数字变化：**18/19 步由 flow 覆写 + 1 步具名例外**；删除一处镜像中不存在的端点用法；测试 **+2**。
+
+还剩什么：① `sub_140A40F20` 的 ordinal（两条路已排除，需 MethodTable 解析或动态验证）；
+② `SubmitOrder`(33) 究竟做什么（现由基类拒绝，未编造）；③ 其余站点流程（CORE_COVERAGE 占位）。

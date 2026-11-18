@@ -41175,3 +41175,58 @@ Inference = 无（顺序由 ordinal 直接给出）。
 - 相关子集：**84/84**。
 - 变异：`ran_at 2026-11-19T03:33:56`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   `staleness 0`（重跑日志末行 `wrote ...MUTATION_RESULT.json`）。
+## R1142 —— 用一条「覆盖面」测试照出了两个问题：一处**假通过**，一处**错实现**
+
+**取件**：R1141 遗留（IDA 恢复 + ordinal 判别）。
+
+改了什么：
+- **IDA 恢复成功（换招）**：按 R1141 自己的判断，这次选 **“Restore packed base”**（不再点 unpacked）——
+  `status: ok`、`hexrays_ready: true`、进程存活。**unpacked 路径才是反复退出的病根。**
+- **ordinal 判别：两条负结果（有证据）**：
+  1. `<PlaceOrder>d__36` / `<SubmitOrder>d__33` **只存在于那条拼接串**（`0x14338b455`）里，
+     **没有独立冻结对象** ⇒ 无法经「名字 → EEType → vtable」定位。
+  2. `.text` 布局**不是** ordinal 顺序：已知体的地址序为 28(0x140A3F590) → 26(0x140A3F750) →
+     31(0x140A3FEC0) → 25(0x140A407A0) → ?(0x140A40F20) → 23/24(0x140A410E0) → 30(0x140A428D0)
+     → 27(0x140A43A80)，故**不能靠地址推 ordinal**。
+  ⇒ 判别仍开放，但结论写清了「哪两条路走不通、为什么」。
+- **新写覆盖面测试**（`JohnLewisStepCoverageTests` 2 条）：断言 19 个镜像步骤**都可派发**，
+  且**要么被本 flow 覆写、要么在具名例外表里**（用集合相等而非计数——计数会让「换掉一个」溜过去）。
+- **它当场照出两件事**：
+  | 照出什么 | 细节 |
+  |---|---|
+  | **`SubmitOrder` 并非「未落」** | 它**早就被覆写**（L848）⇒ 我 R1140 那句「故意不落」是错的 |
+  | **我 R1140 那条测试是假通过** | 它断言 `SubmitOrder` 返回 `!Ok`，而它**确实** `!Ok`——但原因是它 POST 到镜像里**不存在的** `{CheckoutHost}/api/order` 后解析不到 orderNumber，**不是因为它没被接线** |
+- **修正错实现**（与 R1133 同型：能跑但打错门）：
+  `SubmitOrderAsync` 原本 `POST {CheckoutHost}/api/order` + 自造体 `"{}"` + 解析 `orderNumber`；
+  镜像里**没有这个端点**（历次普查都没有），真实的是 **PUT `bff/v2/orders` 无体**（R1140 唯一 xref 证据）。
+  → 改为**明确拒绝并给出理由**：orders 的 PUT 归 `PlaceOrder`，本步不去打一个编出来的端点。
+  **这样 19 步里恰好有一个步骤发这个 PUT，与镜像的「只有一个函数发它」一致，不重复发。**
+
+验证命令与输出：
+- `ida.py py "exec(..._sm_names.py)"` → 只命中 `0x14338b455`（拼接串）与两处 `b__36` 闭包串；
+  `strings walked: 254117`。
+- `JohnLewisStepCoverageTests` 首跑**红**：`Expected: ["SubmitOrder"] / Actual: []`，
+  日志同时打出 `overridden (19)` / `not overridden (0)` —— **红得有价值，它推翻了我的假设**。
+- 修正后 `dotnet build` → **0 错**；相关子集 → **82/82 通过**。
+
+数字变化：19/19 步骤**全部由 flow 覆写**（此前我以为是 18/19）；**删除一处镜像中不存在的端点用法**
+（`POST {CheckoutHost}/api/order`）；测试 **+2**。
+
+证据等级：Observation = 拼接串唯一性（254,117 串全扫）、`.text` 地址序、覆盖面测试的首跑输出、
+`SubmitOrderAsync` 旧实现全文、build 0 错、82/82；Inference = 无新增（R1140 的「36 拥有该 PUT」仍是推断，
+但现在是**唯一**发它的步骤，故不会重复发）。
+
+**本轮最该记住的**：**覆盖面测试的价值不在「通过」，而在它第一次跑就红了，红的正是我以为已经确认的东西。**
+
+**过程中的第二次修正（同样是守卫抓出来的）**：我先把 `SubmitOrderAsync` 改成「返回带理由的失败」——
+这样确实不再打编造端点，但 `FlowWorkAuditTests.MostOverridesDoWork` **立刻红**：
+它数的是「只返回结果、什么都不做」的覆写，我把它变成一个占位了。
+→ **最终做法：整个删掉这个覆写**（既不编造端点，也不新增占位），让基类自己拒绝；
+`JohnLewisStepCoverageTests` 的例外表恢复为 `["SubmitOrder"]`，并说明理由。
+
+于是三条守卫同时成立：**19 步全部可派发**、**18 步由本 flow 覆写 + 1 步具名例外**、**占位数不上升**。
+**全量与收据（本轮收数）**：
+- 全量：**2449 通过 / 0 失败 / 2 跳过 / 2451**（2m38s）。
+- 相关子集（JohnLewis | FlowWorkAudit | FlowSequence）：**82/82**。
+- 变异：`ran_at 2026-11-19T03:52:11`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  `staleness 0`。

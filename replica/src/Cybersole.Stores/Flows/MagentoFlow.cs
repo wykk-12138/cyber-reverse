@@ -845,20 +845,13 @@ public sealed class JohnLewisFlow : StoreFlow
         return StepOutcome.Success();
     }
 
-    public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
-    {
-        var res = await PostJsonAsync(c, $"{CheckoutHost}/api/order", "{}", "jl-order", ct)
-            .ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("jl order failed", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"jl order HTTP {res.StatusCode}", retryable: true);
-
-        var root = JObject.Parse(res.Body);
-        c.Session.OrderNumber = root["orderNumber"]?.ToString() ?? root["orderId"]?.ToString();
-        return string.IsNullOrEmpty(c.Session.OrderNumber)
-            ? StepOutcome.Fail("jl: order response had no number")
-            : StepOutcome.Success();
-    }
+    // R1142: there is no SubmitOrder override here on purpose. It used to POST
+    // {CheckoutHost}/api/order, an endpoint no census of the image has ever produced, and parse an
+    // order number out of the answer. R1140 established the real call: a body-less PUT to
+    // bff/v2/orders issued by exactly one function in the whole image -- and there are two step
+    // names for it here, so exactly one of them may issue it or the order goes twice. PlaceOrder
+    // holds that call; this name falls through to the base refusal, which is visible in the step
+    // result and named in JohnLewisStepCoverageTests, rather than to a fabricated endpoint.
 
     /// <summary>
     /// <c>SubmitOrderStripe</c> — the JL flow's Stripe payment submit, decoded R1089 from

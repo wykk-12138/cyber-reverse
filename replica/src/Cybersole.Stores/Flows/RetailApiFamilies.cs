@@ -66,11 +66,23 @@ public static class RetailApiFamilies
         // R1137: listed in All as well -- the pair map requires every paired target to be a
         // member, and a derived endpoint is still an endpoint of this family.
 
-        /// <summary>The checkout walk: hand over the session, delivery, billing, pay, order.</summary>
+        /// <summary>
+        /// The checkout walk, in the order the image's own steps run: hand over the session, the guest
+        /// callback, the delivery page, the address, the confirm, the methods read, the method submit,
+        /// the payment page, the payment, the billing address, the order.
+        ///
+        /// <para>
+        /// R1141 reordered this. It had listed the body-less confirm (step 28) before the address that
+        /// it confirms (step 27), put the delivery page (step 26) after both, and left the methods read
+        /// (step 29) out altogether. The ordinals come from the image's state-machine enumeration
+        /// (d__20 ... d__39, R1135) and the pairings from R1136-R1140, so this is the same ordering the
+        /// image executes rather than a plausible sequence.
+        /// </para>
+        /// </summary>
         public static readonly IReadOnlyList<string> Chain = new[]
         {
-            SessionHandoverV2, GuestCallbackV4, DeliveriesV4, DeliveryDetailsV3, DeliveryAddressV4,
-            DeliveryPageV3, BillingAddressV1, PaymentsV2, PaymentPageV2, OrdersV2,
+            SessionHandoverV2, GuestCallbackV4, DeliveryPageV3, DeliveryAddressV4, DeliveriesV4,
+            DeliveryMethodsV4, DeliveryDetailsV3, PaymentPageV2, PaymentsV2, BillingAddressV1, OrdersV2,
         };
 
         public static readonly IReadOnlyList<string> All = new[]

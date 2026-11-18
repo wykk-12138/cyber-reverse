@@ -6207,3 +6207,20 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：① `sub_140A40F20` 的 ordinal 判别（33 还是 36）；② 19 步里只剩 `SubmitOrder`(33)
 与 Stripe 侧 `HandleRequiresAction`(37)/`GetStripePaymentIntent`(39)。
+## R1141 —— IDA 反复退出；改交付 Chain 重排（按镜像 ordinal）
+
+改了什么：
+- **IDA 事故**：`ida.py health` 拒连；doctor `PROXY: MISSING`/`PORT 13337: REFUSED`/180s；
+  三次 CUA 清框（unpacked → id0 未关闭 → 含不一致）后**进程即退**。**「Restore packed base」本轮未试**，
+  定为下轮首选恢复动作。**始终未重建 .i64。**
+- **实质交付（不依赖 IDA）**：`RetailApiFamilies.JohnLewisBff.Chain` 与已确证证据不一致——
+  无体确认排在地址之前、DeliveryPage 位置错、缺 DeliveryMethodsV4。按镜像步骤 ordinal
+  （26→27→28→29→30→31→32→35→36）重排，**10 → 11 条**。
+
+验证：build **0 错**；子集 **84/84**；全量 **2447/0/2**（一次即绿）；
+变异 **59/59 fired, tree GREEN, staleness 0**（03:33:56）。
+
+数字变化：`Chain` **10 → 11** 条，顺序与镜像步骤一致。
+
+还剩什么：① IDA 恢复（先试 Restore packed base）；② `sub_140A40F20` 的 ordinal 判别；
+③ 19 步里只剩 `SubmitOrder`(33) 与 Stripe 侧两步。

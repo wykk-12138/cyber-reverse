@@ -41131,3 +41131,47 @@ Inference（已标注）= 「33 与 36 只有其一发这个 PUT，本轮取 36�
 - 相关子集：**84/84**。
 - 变异：`ran_at 2026-11-19T03:14:42`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   `staleness 0`（mtime 03:14:49，读于 03:14:53 —— 4 秒新鲜）。
+## R1141 —— IDA 反复退出，改做不依赖它的实质交付：`Chain` 按镜像步骤序重排
+
+**取件**：上轮待办①「`sub_140A40F20` 的 ordinal 判别」——**需要 IDA，本轮没做成**（见下）。
+
+改了什么：
+- **`Chain`（结账走查顺序）与既有证据不一致**，本轮修正（`RetailApiFamilies.cs`）：
+  | 旧 | 问题 |
+  |---|---|
+  | `DeliveriesV4` 在 `DeliveryAddressV4` **之前** | 无体确认（步骤 28）排在了它要确认的地址（步骤 27）前面 |
+  | `DeliveryPageV3` 在两者**之后** | 步骤 26 应最先 |
+  | **缺 `DeliveryMethodsV4`** | 步骤 29 的读整条漏掉 |
+  新顺序按镜像**自己的步骤 ordinal**（26 DeliveryPage → 27 delivery-address → 28 deliveries →
+  29 methods → 30 details → 31 payment-page → 32 payments → 35 billing-address → 36 orders）：
+  ```
+  SessionHandoverV2, GuestCallbackV4, DeliveryPageV3, DeliveryAddressV4, DeliveriesV4,
+  DeliveryMethodsV4, DeliveryDetailsV3, PaymentPageV2, PaymentsV2, BillingAddressV1, OrdersV2
+  ```
+  **10 → 11 条**。这不是「看起来合理」的顺序，而是**镜像执行的顺序**（ordinal 来自 R1135 的状态机枚举，
+  配对来自 R1136–R1140）。
+
+验证命令与输出：
+- `dotnet build` → **exit=0，0 个错误**；
+  相关子集（JohnLewis | RetailApi | FlowSequence | SourceEncoding）→ **84/84 通过**（无钉子钉住 Chain 顺序）。
+- 全量与变异结果见下条。
+
+数字变化：`Chain` **10 → 11** 条，顺序与镜像步骤一致。
+
+证据等级：Observation = R1135 的状态机 ordinal 枚举、R1136–R1140 的配对结论、build 0 错、84/84；
+Inference = 无（顺序由 ordinal 直接给出）。
+
+**IDA 事故（本轮，如实记）**：本轮开始 `ida.py health` 仍拒连；`ida-mcp-doctor` 报
+`PROXY: MISSING` / `PORT 13337: REFUSED` / 180s 超时；三次 CUA 清框（"Proceed with unpacked base" →
+"id0 is not closed → 是(Y)" → "database still contains inconsistencies → 确定"）后**进程退出**，
+再查已无 ida 进程。**「Restore packed base」这条路径本轮未试**，作为下一轮首选的恢复动作。
+本轮交付**不依赖 IDA**，未阻塞；**始终未重建 1375 MB 的 .i64**。
+
+还剩什么：① IDA 恢复（先试 "Restore packed base"）；② `sub_140A40F20` 的 ordinal 判别；
+③ 19 步里只剩 `SubmitOrder`(33) 与 Stripe 侧两步。
+
+**全量与收据（本轮收数）**：
+- 全量：**2447 通过 / 0 失败 / 2 跳过 / 2449**（2m52s）——一次即绿。
+- 相关子集：**84/84**。
+- 变异：`ran_at 2026-11-19T03:33:56`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  `staleness 0`（重跑日志末行 `wrote ...MUTATION_RESULT.json`）。

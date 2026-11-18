@@ -1,4 +1,4 @@
-namespace Cybersole.Stores.Scripts;
+﻿namespace Cybersole.Stores.Scripts;
 
 /// <summary>
 /// Web/host globals that a real browser has and Jint does not. The vendor payload's own bytecode VM
@@ -65,6 +65,10 @@ internal static class WebApiShims
         // that block ran at all.
         this.__dshDp = [];
         this.__dshMap = 0;
+        // The instrumented copy of the fixture (nike-p-traced.js) pushes one row per dispatch here:
+        // [pcBefore, frameLength, typeof slot2..slot7]. That is the only way to see the frame array,
+        // which otherwise lives entirely inside the payload's closure.
+        this.__dshTrace = []; this.__dshCalls12 = [];
         (function () {
             var orig = Object.defineProperty;
             var rec = this.__dshDp;

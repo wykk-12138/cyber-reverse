@@ -62670,3 +62670,41 @@ R48「14 步逐步写入同一资源」读对了资源、读错了机制。
 > **纠偏后的第 1 轮就把「等了几十轮的反编译」做完了** —— 悬案不是难，是路线偏了：
 > BINDING_BACKLOG 当主循环入口的那 20+ 轮里，这个问题一直只需要两条 `dec` 命令。
 > **队列驱动 + `chars_va - 12` 主航道，一轮一结案。**
+
+---
+
+## 第 1077 轮：Farfetch 取证闭环 —— 传输层是服务端下发的，7 占位改判「凭据受阻」
+
+### 一、镜像内 Farfetch 的全部足迹（可复算）
+
+| 冻结串 | 引用点 | 判定 |
+|---|---|---|
+| `'Farfetch Checkout'`（0x146d8e004） | 唯一 xref → `sub_1407528C0` 的 12 元任务设置数组 | **结账类型枚举**（与 Shopify×4 · Kith EU · Finishline/JD 及五家挑战并列） |
+| `'Farfetch'`（0x146d8dfdc） | 两处相邻 xref → `sub_140F7DDE0`（70KB 描述符构建器） | **站点目录条目** `{name, display, typeId 4, flag 1}` |
+| `0x14338eadc` 处 'Farfetch' | 零 xref，非 .NET 字符串对象 | 二进制数据内 ASCII 偶然串 |
+
+零路由字面量 —— bare-word 探针全库计数 3，全部是显示元数据。**传输不在二进制里，是设计如此**：
+`https://api.cybersole.io/connect/app`（0x14705357c，`sub_140F3D400`）以
+**ConfigAdded / SharedAdded / ConfigRemoved / SharedRemoved / SubscribeGroups / UnsubscribeGroups**
+六键同步服务端配置条目 —— 站点路由由配置下发。
+
+### 二、改判与守卫
+
+`FarfetchFlow` 7 条占位消息从「workspace 不知传输」改为解密事实（服务端下发 + schema 需原版登录），
+保留 `endpoint unknown` 短语使计数可比；`FarfetchIsCoveredByTheOriginalTests` 第二断言随事实改钉。
+另修一个自伤：R1076 手改生成物 §二 被本轮 regen 洗掉 —— 结案/分类散文改写入**生成器模板**
+`core_coverage.py`，regen 自带真相。
+
+### 三、数字
+
+| 度量 | R1076 | **R1077** |
+|---|---|---|
+| 核心 not captured 占位 | 13 | **13（不变 —— 分类修正）** |
+| Farfetch 占位分类 | 未探测 | **凭据受阻（B 类）** |
+| Farfetch 相关测试组 | — | **48/48 绿** |
+
+### 教训
+
+> **「生成物不要手改」不是形式要求 —— 违反它，惩罚一轮内就到。** R1076 把结案注记写进
+> CORE_COVERAGE 的 §二，本轮开头一次 `metrics_report` regen 原样洗掉。正确载体是生成器模板：
+> 文档的真相要活在生成它的代码里，否则每次重生都是一次遗忘。

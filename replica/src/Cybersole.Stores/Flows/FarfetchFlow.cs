@@ -42,6 +42,16 @@ namespace Cybersole.Stores.Flows;
 /// usually are literals -- nike.com, footlocker.com, supreme.com, mywarhammer.com and mattel.com all appear -- and also
 /// that my first counter-examples were misspellings, since zalando is present as ZalandoAndroidMobile and asos as
 /// "ASOS Sample Sale". A precise string finds only the spellings it was written for.
+///
+/// R1077 closes the question with the decompile. The binary's whole Farfetch footprint is display metadata:
+/// 'Farfetch' twice -- the site-catalog entry the settings-descriptor builder sub_140F7DDE0 constructs as
+/// {name 'Farfetch', display 'Farfetch', typeId 4, flag 1} -- and 'Farfetch Checkout' once, a checkout-type
+/// enum registered by sub_1407528C0 beside 'Shopify Checkout' / 'Kith EU Checkout' / 'Finishline / JD Sports'.
+/// No route literal exists at any spelling because the transport is server-delivered:
+/// https://api.cybersole.io/connect/app (0x14705357c, fetched by sub_140F3D400) syncs config entries through
+/// the ConfigAdded / SharedAdded / ConfigRemoved / SharedRemoved / SubscribeGroups / UnsubscribeGroups keys
+/// (0x146B9B070 .. 0x146F13F40). A Farfetch config entry's schema needs the original login to capture, so the
+/// seven steps below are Unknown with exactly that named -- not "unprobed", classified.
 /// </summary>
 public class FarfetchFlow : StoreFlow
 {
@@ -77,10 +87,11 @@ public class FarfetchFlow : StoreFlow
 
     public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
     {
-        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
-        // had no evidence behind it; R1011 settled what to do when that is true.
+        // R1077: the decompile closed the question this report used to leave open -- see the class header
+        // for the full evidence. The route is a server-delivered connect/app config entry, and the entry's
+        // schema needs the original login to capture.
         return StepOutcome.Fail(
-            "farfetch: product endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
+            "farfetch: product endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
     }
 
     public override Task<StepOutcome> FindVariantAsync(FlowContext c, CancellationToken ct)
@@ -151,50 +162,44 @@ public class FarfetchFlow : StoreFlow
 
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
-        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
-        // had no evidence behind it; R1011 settled what to do when that is true.
+        // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: add-to-cart endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
+            "farfetch: add-to-cart endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
     }
 
     public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
     {
-        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
-        // had no evidence behind it; R1011 settled what to do when that is true.
+        // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: basket endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
+            "farfetch: basket endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
     }
 
     public override async Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct)
     {
-        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
-        // had no evidence behind it; R1011 settled what to do when that is true.
+        // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: checkout endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
+            "farfetch: checkout endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
     }
 
     public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
     {
-        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
-        // had no evidence behind it; R1011 settled what to do when that is true.
+        // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: shipping endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
+            "farfetch: shipping endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
     }
 
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
-        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
-        // had no evidence behind it; R1011 settled what to do when that is true.
+        // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: payment endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
+            "farfetch: payment endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
     }
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
-        // R1036: no request is sent. The image carries no farfetch.com at any spelling, so this step's route
-        // had no evidence behind it; R1011 settled what to do when that is true.
+        // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: place-order endpoint unknown -- the original has a Farfetch checkout, this workspace does not know its transport");
+            "farfetch: place-order endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
     }
 
     /// <summary>

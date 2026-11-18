@@ -24,7 +24,7 @@
 | `BstnFlow.cs` | 12 | 4 | 191 |
 | `DemandwareFlow.cs` | 13 | 0 | 485 |
 | `DicksSportingGoodsFlow.cs` | 6 | 0 | 145 |
-| `FarfetchFlow.cs` | 13 | 7 | 218 |
+| `FarfetchFlow.cs` | 13 | 7 | 223 |
 | `FlowStoreModule.cs` | 4 | 0 | 61 |
 | `FootsitesFlow.cs` | 21 | 0 | 468 |
 | `GoatFlow.cs` | 11 | 0 | 325 |
@@ -86,12 +86,18 @@ R1044 曾对 `0x147053d8c`（`checkouts/v3`）与 `0x147053c94`（`checkout_prev
 | `checkouts/v3/` | `0x147053d8c` | `0x147053d80` | `0x140B26A5E` | **`sub_140B248A0`..`0x140B26B87`（8,935 字节）** |
 | `checkout_previews/v3/` | `0x147053c94` | `0x147053c88` | `0x140B1EDB1` | **`sub_140B1DCC0`..`0x140B1EEC9`（4,617 字节）** |
 
-**→ 结论更新**：两条候选路由各自落在独立可反编译的业务函数内，**不再记为不可得**。
-
 **→ 已结案（R1076，详见 `docs/NIKE_PARITY.md` §15）**：**两个 POST 都承接** —— 配送块内联在
 `checkout_previews/v3` 的 request 体（`sub_140B1DCC0`），订单提交是 `checkouts/v3` 的 POST
 （`sub_140B248A0`，请求级 `paymentToken`）。`NikeFlow.cs` 的 SubmitShipping / SubmitOrder
-已按反编译落地，本表 Nike 行的占位 3 → 2（GetPaymentMethods / SubmitPayment 归队列②支付层）。
+已按反编译落地（钉测 `NikeBuyRequestTests`），Nike 行占位只剩 GetPaymentMethods / SubmitPayment（归队列②支付层）。
+
+**→ Farfetch 分类结案（R1077）**：镜像内足迹仅显示名×2（站点目录条目 `{name, display, typeId 4, flag 1}`，
+构造于 70KB 设置描述符构建器 `sub_140F7DDE0`）+ 结账类型枚举 `'Farfetch Checkout'`（`sub_1407528C0` 的
+任务设置数组，与 Shopify / Kith EU / Finishline 并列）——**零路由字面量**。传输层为服务端下发：
+`https://api.cybersole.io/connect/app`（0x14705357c，`sub_140F3D400`）以 **ConfigAdded / SharedAdded /
+ConfigRemoved / SharedRemoved / SubscribeGroups / UnsubscribeGroups** 六键同步配置条目。配置条目的 schema
+需原版登录凭据捕获 —— `FarfetchFlow` 的 7 条占位据此改判为「凭据受阻」分类（消息保留 `endpoint unknown`
+短语，本表计数不变，缺的条件已在消息与流程头写明）。
 
 ## 三、风控清单（可复算）
 

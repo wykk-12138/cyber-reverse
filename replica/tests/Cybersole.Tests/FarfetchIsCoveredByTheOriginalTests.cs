@@ -19,6 +19,12 @@ namespace Cybersole.Tests;
 /// from quoting R1036's retracted sentence, which made it impossible to write the retraction down -- a guard can be too
 /// strict in a way that fights the comment it is protecting.
 /// </para>
+///
+/// <para>
+/// R1077 sharpened the second fact: the decompile showed the transport is server-delivered (connect/app's
+/// ConfigAdded sync) rather than merely "not known here", so the steps now name that channel and the
+/// credential it needs. The guard follows the fact it protects -- the wording below changed with it.
+/// </para>
 /// </summary>
 public sealed class FarfetchIsCoveredByTheOriginalTests
 {
@@ -41,12 +47,15 @@ public sealed class FarfetchIsCoveredByTheOriginalTests
     }
 
     /// <summary>
-    /// And the steps say what is actually missing -- the transport -- rather than that the store does not exist.
+    /// And the steps say what is actually missing -- the server-delivered config schema, naming the
+    /// channel (connect/app) and the credential it needs rather than the store.
     /// </summary>
     [Fact]
-    public void TheStepsNameTheUnknownTransport()
+    public void TheStepsNameTheServerDeliveredTransport()
     {
         var source = Source();
-        Assert.Contains("does not know its transport", source, StringComparison.Ordinal);
+        Assert.Contains("server-delivered", source, StringComparison.Ordinal);
+        Assert.Contains("connect/app", source, StringComparison.Ordinal);
+        Assert.Contains("schema needs the original login", source, StringComparison.Ordinal);
     }
 }

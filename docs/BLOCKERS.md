@@ -38494,3 +38494,47 @@ python analysis/ida.py str "Solving PayPal 3DS" --limit 600
 - 队列② 支付：GetPaymentMethods / SubmitPayment 的 initiatePayment 通道仍 Unknown；
   ctx[29] paymentToken 的生产者（payment/preview、paypal_mark 家族）待反编译。
 - 变异套件 staleness 已被工具自报，跑 `python tools\mutation-check.py` 清零（队列第 5 项）。
+
+## R1077 —— 【核心①·结账流程】Farfetch 取证闭环：传输层为服务端下发，7 占位改判「凭据受阻」
+
+**取件**：队列① follow-up（FarfetchFlow 7 个 not captured，按 Nike 同法核查）。
+
+改了什么：
+- FarfetchFlow 类头追加 R1077 解密段；7 个占位步消息改判 —— 从「this workspace does not know its
+  transport」（未探测语义）改为解密事实：路由是 connect/app 服务端下发配置条目，schema 需原版登录捕获。
+  消息保留 `endpoint unknown` 短语，CORE_COVERAGE 计数不变（13）。
+- FarfetchIsCoveredByTheOriginalTests 守卫随事实演进：第二断言改钉「server-delivered + connect/app +
+  schema needs the original login」（原钉「does not know its transport」措辞，已被解密证据取代）。
+- 生成器模板 core_coverage.py §二 尾部更新（R1076 已结案段 + R1077 Farfetch 分类段）—— 修复一个自伤：
+  R1076 曾手改生成物 §二，本轮开头一次 regen 即洗掉注记；正确载体是模板本身，不是生成物。
+- 重生成 docs/CORE_COVERAGE.md。
+
+验证命令与输出（全部可复算）：
+- `xrefs 0x146d8dff8`（'Farfetch Checkout' obj）→ 唯一引用 `sub_1407528C0`；`names_at` 解码其 12 元数组 =
+  [Shopify Checkpoint/Checkout/Login/Question · Kith EU Checkout · Farfetch Checkout · Finishline / JD Sports ·
+  Queue-it · Geetest · Recaptcha · HCaptcha · Cloudflare Turnstile]（任务设置枚举，非步骤表）。
+- `xrefs 0x146d8dfd0`（'Farfetch' obj）→ 两处相邻引用位于 `sub_140F7DDE0`（70,719 B，652 块，反编译失败）；
+  引用点 disasm = `new{unk_144CB3640}` + ctor('Farfetch','Farfetch')（sub_141274B20 写 +8/+16 双名）+
+  set typeId=4（sub_141274A10 → +32）+ set flag=1（sub_141274A50 → +40）—— 站点目录条目。
+- `names_at 0x14338eadc` = 二进制数据内 8 字节 ASCII 偶然串（非 .NET 字符串对象，零 xref）。
+- `str "connect/app"` → 全库恰 1 条 `0x14705357c`（未饱和）；`xrefs 0x147053570` → `sub_140F3D400`；`dec` →
+  请求编排 + 六个响应映射键 `names_at` 解码 = **ConfigAdded / SharedAdded / ConfigRemoved / SharedRemoved /
+  SubscribeGroups / UnsubscribeGroups**。
+- 邻域扫池（0x146d8c000..0x146d91000）= 字母序全局字面量池（无 Farfetch 路由簇）；顺带录得进度文案族
+  （Fetching PayPal details / Payment Info / Queue-it / BotDeflector challenge…）供队列②取用。
+- `dotnet test --filter "FullyQualifiedName~Farfetch|~FlowCatalog|~CookieEvidence|~CoreCoverage|~FlowWorkAudit|~RealPageParser|~EndpointLedger" -m:1` → **48/48 绿**。
+- `python tools\core_coverage.py` → placeholders 仍 **13**（计数不变，分类已改）。
+
+数字变化：无（占位计数 13 保持 —— 本轮是**分类修正**，不是数量变化；7 条 Farfetch 从「未探测」改判
+「凭据受阻」，属判据 (a) 的三分类结案）。
+
+证据等级：
+- Observation：三条字面量的全部引用点与函数；设置数组解码；站点条目构造形状；connect/app 端点与其六同步键；
+  全池无 farfetch 路由（bare-word 探针计数 3，全部命中显示元数据）。
+- Inference：无（本轮结论全部由 xref + 常量解码直接支撑）。
+
+还剩什么：
+- 队列① 的 flow 占位余量：Bstn 4（处置待 YG 拍板，队列 B）+ Nike 2（归队列②支付）。
+- Farfetch 7 条进入「凭据受阻」B 类 —— 与 PopMart 7 条 POST body 同类，恢复条件 = 原版登录凭据
+  （connect/app 配置捕获）。
+- 变异套件 staleness 仍在（本轮又改了三个受测文件）—— 队列第 5 项待跑。

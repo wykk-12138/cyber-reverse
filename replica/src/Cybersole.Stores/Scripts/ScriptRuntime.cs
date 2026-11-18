@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using Jint;
 using Jint.Native;
@@ -39,7 +39,37 @@ public sealed class ScriptRuntime : IDisposable
         _engine.SetValue("__dshDigest", new Func<string, int[], int[]>(Digest));
         _engine.SetValue("__dshHmac", new Func<string, int[], int[], int[]>(Hmac));
 
+        /* The sensor only ever *issues* its interrogation requests; it never surfaces the clearance token
+           itself (its state machine settles on "Configured" and the .type is never read by anything in a
+           standalone host -- measured, docs/KASADA/11 5.61). So the host has to send those requests and
+           read x-kpsdk-ct off the response. That makes this the seam: the shim's fetch calls this delegate
+           and gets back JSON {status, headers, body}. Returns null when no transport is installed, which
+           keeps every sandbox-only path offline by default. */
+        _engine.SetValue("__dshHttpCall", new Func<string, string, string, string, string?>(CallHttp));
+
         _engine.Execute(Shim.BuildPrelude());
+    }
+
+    /// <summary>
+    /// Installed by the caller that owns a real HTTP client. Arguments are (url, method, headersJson, body);
+    /// it must return JSON of the form {"status":200,"headers":{...},"body":"..."} or null to stay offline.
+    /// </summary>
+    public Func<string, string, string, string, string?>? HttpTransport { get; set; }
+
+    private string? CallHttp(string url, string method, string headersJson, string body)
+    {
+        var transport = HttpTransport;
+        if (transport is null) return null;
+        try
+        {
+            return transport(url, method, headersJson, body);
+        }
+        catch (Exception ex)
+        {
+            // A transport failure must look like a network failure to the payload, not like a host crash.
+            return "{\"status\":0,\"headers\":{},\"body\":\"\",\"error\":"
+                + System.Text.Json.JsonSerializer.Serialize(ex.Message) + "}";
+        }
     }
 
     public void Execute(string js) => _engine.Execute(js);

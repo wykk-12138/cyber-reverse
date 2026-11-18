@@ -167,6 +167,39 @@ public sealed class KasadaSolver : IDisposable
     }
 
     /// <summary>Execute the payload and read back the token that the script generated.</summary>
+    /// <summary>
+    /// What the sensor is told it is protecting, e.g. <c>https://www.nike.com/</c>. Without it the payload
+    /// idles: it appends an iframe and waits for a host configuration it will never receive. With it, it
+    /// issues GET {origin}/mfc followed by POST {origin}/r.
+    /// </summary>
+    public string? ResourceAddress { get; set; }
+
+    /// <summary>
+    /// Sends the sensor's own interrogation requests. Arguments are (url, method, headersJson, body) and
+    /// the return value is JSON {"status":int,"headers":{...},"body":string}. The clearance token only
+    /// exists in the /r response headers and the payload never reads it back, so the host must.
+    /// </summary>
+    public Func<string, string, string, string, string?>? Transport { get; set; }
+
+    private string? TryConfigure(string resourceAddress)
+    {
+        Runtime.HttpTransport = Transport;
+        var literal = System.Text.Json.JsonSerializer.Serialize(resourceAddress);
+        return Runtime.TryString(
+            "(function(){try{window.KPSDK.configure({resourceAddress:" + literal +
+            "});return 'ok';}catch(e){return 'threw:'+String((e&&e.message)||e);}})()");
+    }
+
+    /// <summary>Reads a header off whatever response the transport returned, keyed by containing path.</summary>
+    private string? HeaderFromTransport(string header)
+    {
+        var js = "(function(){var r=window.__dshResponses||{};var k=Object.keys(r);" +
+                 "for(var i=k.length-1;i>=0;i--){var h=r[k[i]].headers||{};" +
+                 "if(h[" + System.Text.Json.JsonSerializer.Serialize(header) + "])return String(h[" +
+                 System.Text.Json.JsonSerializer.Serialize(header) + "]);}return null;})()";
+        return Runtime.TryString(js);
+    }
+
     public KasadaResult Solve(string script)
     {
         if (string.IsNullOrWhiteSpace(script))
@@ -198,7 +231,16 @@ public sealed class KasadaSolver : IDisposable
             };
         }
 
-        var ct = FirstNonEmpty(CtEntryPoints);
+        /* Nike's current build exposes only configure/isReady -- there is no ct()/sb() entry point to
+           probe (measured: docs/KASADA/11 5.23). What the sensor does instead is *issue* its own
+           interrogation: with a resourceAddress it goes GET {origin}/mfc then POST {origin}/r, and the
+           clearance token only exists in that /r response. Its state machine settles on "Configured" and
+           nothing ever reads the state's .type (5.61), so the host has to send the requests and take the
+           token off the reply. That is what ResourceAddress + Transport exist for. */
+        var configured = string.IsNullOrEmpty(ResourceAddress) ? null : TryConfigure(ResourceAddress!);
+
+        var ct = FirstNonEmpty(CtEntryPoints)
+                 ?? HeaderFromTransport("x-kpsdk-ct");
         var sbsd = FirstNonEmpty(SbsdEntryPoints);
         Version = Runtime.TryString("KPSDK && KPSDK.v ? String(KPSDK.v) : (window.KPSDK && window.KPSDK.v ? String(window.KPSDK.v) : null)")
                   ?? Regex.Match(ct ?? string.Empty, @"^\s*(\d+)\|").Groups[1].Value;

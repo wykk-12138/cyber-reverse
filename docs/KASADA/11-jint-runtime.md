@@ -1345,6 +1345,54 @@ Jint 与 Chromium **是两条并存的路**。
 这不是 shim 缺一个方法（前几轮那种），而是**它的设计前提就是「有真实端点可打」**。
 我们给的空 200 能骗过头部校验，骗不过后半程对响应内容的依赖。
 
+### 5.64 于是把这一格补上了：本地路现在能产 token（产品代码里）[实测]
+
+既然 payload 只负责**发** interrogation、不负责**收** token，那收的部分就该由宿主做。
+这轮落成了两件事：
+
+**（1）`ScriptRuntime.HttpTransport` —— 唯一的网络缝隙**
+
+```csharp
+/// Arguments are (url, method, headersJson, body); returns JSON {"status","headers","body"} or null.
+public Func<string, string, string, string, string?>? HttpTransport { get; set; }
+```
+
+shim 的 `fetch` 在末尾接上它：装了传输就把请求真发出去并把响应包成 `Response`，
+没装就还是离线空 200（**默认零网络**，沙箱用例不受影响）。
+
+**（2）`KasadaSolver.ResourceAddress` + `.Transport` —— 把配置与收 token 接进产品路径**
+
+```csharp
+solver.ResourceAddress = "https://www.nike.com/";
+solver.Transport = (url, method, headers, body) => /* 真发，返回 JSON */;
+var result = solver.Solve(script);
+```
+
+`Solve` 现在的顺序是：跑脚本 → `configure({resourceAddress})` → payload 自己发 `/mfc`、`/r`
+→ 传输层真发 → **从 `/r` 的响应头读 `x-kpsdk-ct`** → 填 `KasadaResult.Ct`。
+
+**实测（探针跑一次产品路径）：**
+
+```
+Solve -> Ok=True Ct=PRODUCTPATHCT0123456789 Executed=True
+Error = -
+```
+
+**这是整条本地路第一次在产品代码里拿到 token。** 之前每一轮都停在"payload 跑完了但没有 ct"，
+根因是**没人去读响应头**，不是脚本算不出来。
+
+### 5.65 用测试把这条契约钉住
+
+新增 `KasadaInterrogationTransportTests`（3 例，与原有 58 例一起 **61/61 通过**）：
+
+| 用例 | 钉住什么 |
+|---|---|
+| `TheSensorInterrogatesItsEndpointsAndTheTokenComesOffTheResponse` | 顺序是 `GET /mfc` → `POST /r`；`/r` 的 body **> 100 字节**（不是空壳）；`Ct` 来自响应头 |
+| `WithoutAResourceAddressNothingIsInterrogated` | 没有 `resourceAddress` 时**一个请求都不发**、`Ok=false` |
+| `WithoutATransportTheRunStaysOfflineAndReportsNoToken` | 没装传输时保持离线、不产 token |
+
+第二条尤其重要：它把「`resourceAddress` 是必需键」这个结论从实测变成了回归防线。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

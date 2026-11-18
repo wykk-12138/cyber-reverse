@@ -378,6 +378,19 @@ internal static class WebApiShims
                captured[293] = "x-kpsdk-h" and captured[294] = "x-kpsdk-fc". */
             if (/\/mfc(\?|$)/.test(__u)) { __hdrs["x-kpsdk-h"] = window.__dshStubIc || "01"; __hdrs["x-kpsdk-fc"] = window.__dshStubRc || "1"; }
           }
+          /* If the host installed a transport, the request goes out for real: the clearance token only
+             exists in the /r response headers, and the payload never reads it back itself. Without a
+             transport this stays the offline stub above. */
+          if (window.__dshHttpCall) {
+            var __raw = window.__dshHttpCall(__u, (init && init.method) || "GET",
+              JSON.stringify((init && init.headers) || {}),
+              (init && init.body !== undefined && init.body !== null) ? String(init.body) : "");
+            if (__raw) {
+              var __resp = JSON.parse(__raw);
+              window.__dshLastResponse = __resp; (window.__dshResponses || (window.__dshResponses = {}))[__u] = __resp;
+              return Promise.resolve(new Response(__resp.body || "", { status: __resp.status || 200, headers: __resp.headers || {} }));
+            }
+          }
           return Promise.resolve(new Response("", { status: 200, headers: __hdrs }));
         };
         this.Headers = function () { this._h = {}; };

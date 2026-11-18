@@ -38,6 +38,30 @@ if (!string.IsNullOrEmpty(stubCt))
     if (!string.IsNullOrEmpty(stubRc)) runtime.Execute("window.__dshStubRc = " + System.Text.Json.JsonSerializer.Serialize(stubRc) + ";");
 }
 
+// End-to-end with a fake transport: the sensor issues /mfc and /r, the host answers both for real, and
+// the clearance token is read off the /r response headers -- which is exactly what the payload will not
+// do for itself.
+if (Environment.GetEnvironmentVariable("KASADA_TRANSPORT") == "1")
+{
+    runtime.HttpTransport = (url, method, headers, body) =>
+    {
+        var u = url;
+        var hdrs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (u.EndsWith("/mfc", StringComparison.Ordinal))
+        {
+            hdrs["x-kpsdk-h"] = "01";
+            hdrs["x-kpsdk-fc"] = "1";
+        }
+        else if (u.EndsWith("/r", StringComparison.Ordinal))
+        {
+            hdrs["x-kpsdk-ct"] = "REALTRANSPORTCT0123456789";
+            hdrs["x-kpsdk-v"] = "j-1.2.988";
+        }
+        Console.WriteLine($"  [transport] {method} {u} body={(body.Length)} -> {hdrs.Count} header(s)");
+        return System.Text.Json.JsonSerializer.Serialize(new { status = 200, headers = hdrs, body = "" });
+    };
+}
+
 var executed = runtime.TryExecute(script, out var error);
 Console.WriteLine($"executed = {executed}  error = {error ?? "-"}");
 
@@ -87,6 +111,7 @@ if (config is not null)
         """, out var probeErr);
     Console.WriteLine($"protected-call issued ok={probe} err={probeErr ?? "-"} result={runtime.TryString("String(window.__probeResult)")}");
     Console.WriteLine($"headers added = {runtime.TryString("JSON.stringify((window.__dshRequests||[])[0]||null)")}");
+    Console.WriteLine("ct from transport = " + runtime.TryString("JSON.stringify(window.__dshResponses||{})"));
     Console.WriteLine($"cookie    = {runtime.TryString("document.cookie")}");
     Console.WriteLine($"KPSDK keys= {runtime.TryString("JSON.stringify(Object.keys(window.KPSDK||{}))")}");
     Console.WriteLine($"ct probes = {runtime.TryString("JSON.stringify((function(){var o={};var k=window.KPSDK||{};['ct','cd','sb','v','token'].forEach(function(n){try{o[n]=typeof k[n]+':'+String(k[n]()).slice(0,30)}catch(e){o[n]='-'}});return o})())")}");
@@ -99,4 +124,18 @@ var dec = runtime.DecodedStrings;
 File.WriteAllText(@"D:\projects\cyber-reverse\.tmp-cfg2.json",
     "{\"head\":" + head + ",\"decoded\":" + System.Text.Json.JsonSerializer.Serialize(dec) + "}");
 Console.WriteLine("headLen=" + head.Length + " decodedLen=" + dec.Length);
+Console.WriteLine();
+Console.WriteLine("=== 产品路径：KasadaSolver + ResourceAddress + Transport ===");
+using var solver = new KasadaSolver(new BrowserShim { Href = "https://www.nike.com/" });
+solver.ResourceAddress = "https://www.nike.com/";
+solver.Transport = (url, method, headers, body) =>
+{
+    var h = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    if (url.EndsWith("/mfc", StringComparison.Ordinal)) { h["x-kpsdk-h"] = "01"; h["x-kpsdk-fc"] = "1"; }
+    if (url.EndsWith("/r", StringComparison.Ordinal)) { h["x-kpsdk-ct"] = "PRODUCTPATHCT0123456789"; h["x-kpsdk-v"] = "j-1.2.988"; }
+    return System.Text.Json.JsonSerializer.Serialize(new { status = 200, headers = h, body = "" });
+};
+var res = solver.Solve(File.ReadAllText(fixture));
+Console.WriteLine($"Solve -> Ok={res.Ok} Ct={res.Ct ?? "(null)"} Version={res.Version ?? "-"} Executed={res.ScriptExecuted}");
+Console.WriteLine($"Error = {res.Error ?? "-"}");
 return 0;

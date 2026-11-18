@@ -66,4 +66,18 @@ Console.WriteLine(solver.Runtime.TryString("""
     })()
     """) ?? "(null)");
 
+Console.WriteLine();
+Console.WriteLine("=== network requests the payload made ===");
+Console.WriteLine(solver.Runtime.TryString("JSON.stringify(window.__dshRequests||[], null, 1)") ?? "[]");
+Console.WriteLine();
+Console.WriteLine("=== KPSDK.configure source ===");
+Console.WriteLine(solver.Runtime.TryString("String(window.KPSDK.configure)") ?? "(null)");
+Console.WriteLine();
+Console.WriteLine("=== KPSDK.isReady source ===");
+Console.WriteLine(solver.Runtime.TryString("String(window.KPSDK.isReady)") ?? "(null)");
+Console.WriteLine();
+Console.WriteLine("=== decoded literal table (full) ===");
+var dec = solver.Runtime.DecodedStrings;
+File.WriteAllText(@"D:\projects\cyber-reverse\.tmp-literals.txt", dec);
+Console.WriteLine("length=" + dec.Length + " written to .tmp-literals.txt");
 return 0;

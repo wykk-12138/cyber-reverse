@@ -1,4 +1,4 @@
-﻿namespace Cybersole.Stores.Scripts;
+namespace Cybersole.Stores.Scripts;
 
 /// <summary>
 /// Web/host globals that a real browser has and Jint does not. The vendor payload's own bytecode VM
@@ -68,7 +68,7 @@ internal static class WebApiShims
         // The instrumented copy of the fixture (nike-p-traced.js) pushes one row per dispatch here:
         // [pcBefore, frameLength, typeof slot2..slot7]. That is the only way to see the frame array,
         // which otherwise lives entirely inside the payload's closure.
-        this.__dshTrace = []; this.__dshCalls12 = []; this.__dshRing = []; this.__dshG = []; this.__dshFail = []; this.__dshOk = [];
+        this.__dshTrace = []; this.__dshCalls12 = []; this.__dshRing = []; this.__dshG = []; this.__dshCalls = []; this.__dshM5 = {last:undefined,log:[]}; this.__dshBr = []; this.__dshZ = []; this.__dshFail = []; this.__dshOk = [];
         (function () {
             var orig = Object.defineProperty;
             var rec = this.__dshDp;
@@ -348,8 +348,27 @@ internal static class WebApiShims
         this.importScripts = function () {};
         this.postMessage = function () {};
 
-        // ---- network: never actually reached from a solver run ----
-        this.fetch = function () { return Promise.reject(new TypeError("fetch is not available in this sandbox")); };
+        // ---- network: recorded, not sent ----
+        /* A rejecting fetch stops the sensor before it can tell us what it wanted. Recording the request
+           and answering with an empty 200 lets the payload run past its own config/telemetry step, so the
+           URLs, methods and headers it asks for become observable. This is a probe, not the transport:
+           the real path has to route these through the host's HTTP client, since the clearance token is
+           issued in the response headers (see docs/KASADA/08-cd.md 9.1). */
+        this.__dshRequests = [];
+        this.fetch = function (url, init) {
+          try {
+            window.__dshRequests.push({
+              via: "fetch",
+              url: String(url),
+              method: (init && init.method) || "GET",
+              body: (init && init.body !== undefined && init.body !== null) ? String(init.body).slice(0, 300) : null,
+              headers: (init && init.headers) ? JSON.stringify(init.headers).slice(0, 500) : null,
+              mode: (init && init.mode) || null,
+              credentials: (init && init.credentials) || null
+            });
+          } catch (e) { }
+          return Promise.resolve(new Response("", { status: 200 }));
+        };
         this.Headers = function () { this._h = {}; };
         this.Headers.prototype.get = function (k) { return this._h[String(k).toLowerCase()] || null; };
         this.Headers.prototype.set = function (k, v) { this._h[String(k).toLowerCase()] = String(v); };
@@ -357,13 +376,25 @@ internal static class WebApiShims
         this.Request = function (url) { this.url = String(url); this.method = "GET"; this.headers = new Headers(); };
         this.Response = function (body, init) { this.body = body; this.status = (init && init.status) || 200; this.ok = this.status >= 200 && this.status < 300; this.headers = new Headers(); this.text = function () { return Promise.resolve(String(body === undefined ? "" : body)); }; this.json = function () { return Promise.resolve(JSON.parse(body)); }; };
         this.XMLHttpRequest = function () {
+            var self = this;
             this.readyState = 0; this.status = 0; this.responseText = ""; this.response = null;
             this.onreadystatechange = null; this.onload = null; this.onerror = null;
-            this.open = function () { this.readyState = 1; };
+            this._m = "GET"; this._u = "";
+            this.open = function (m, u) { self._m = String(m); self._u = String(u); self.readyState = 1; };
             this.setRequestHeader = function () {};
             this.getAllResponseHeaders = function () { return ""; };
             this.getResponseHeader = function () { return null; };
-            this.send = function () { this.readyState = 4; this.status = 0; if (this.onerror) this.onerror({}); };
+            this.send = function (body) {
+                try {
+                    window.__dshRequests.push({
+                        via: "xhr", url: self._u, method: self._m,
+                        body: (body !== undefined && body !== null) ? String(body).slice(0, 300) : null
+                    });
+                } catch (e) { }
+                self.readyState = 4; self.status = 200; self.responseText = ""; self.response = "";
+                try { if (self.onreadystatechange) self.onreadystatechange(); } catch (e2) { }
+                try { if (self.onload) self.onload(); } catch (e3) { }
+            };
             this.abort = function () {};
             this.addEventListener = function () {};
         };

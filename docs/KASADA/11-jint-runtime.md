@@ -632,6 +632,113 @@ this.fetch = function () { return Promise.reject(new TypeError("fetch is not ava
 （不是浏览器）→ 从响应头拿 `ct` / `dt` / `im`。** 下一步就是把 `fetch`/XHR 接到 `NetClient` 上，
 而不是让它 reject。
 
+### 5.26 `fetch` 不 reject 之后：payload 一个请求都不发 [实测]
+
+把 `fetch` 改成「记录 + 返回空 200」、XHR 改成「记录 + 触发 onload」之后跑一遍：
+
+```
+executed = True
+network requests = []        ← 一个都没有
+pending timers   = 0
+isReady(cb)      = 未触发
+```
+
+**它不是缺网络，是压根没走到发请求那一步。**
+
+### 5.27 字面量表就是它的完整词汇表 [实测]
+
+把 `DecodedStrings`（6308 字符）整张打出来，几乎每一行都在描述它期望的运行环境。关键的几组：
+
+**（1）它有一个状态机**
+
+```
+Configured  InterrogationStarting  InterrogationComplete  InterrogationFailedToStart
+InterrogationTimedOut  InterrogationSkipped  InterrogationRetrying
+InvalidStateTransition  start  finalize  done  end
+```
+
+**（2）它用 iframe 拿配置，而且是主要路径**
+
+```
+Appended iframe didn't respond with configuration within 20 seconds.
+iframe  contentWindow  postMessage  message  Appended
+```
+
+**（3）`configure` 的入参形状（错误信息把 schema 全写出来了）**
+
+```
+Configuration endpoints are not an array
+endpoints must be an array
+Endpoint definition is not valid
+: definition is not a valid object
+: domain must be a non-empty string
+: domain must not include a protocol
+: domain must not contain wildcards unless it is exactly *
+: path must be a string
+: path must start with /
+: path must contain at most 3 wildcard characters
+: path must not contain query parameters
+: method must be a valid HTTP method or *
+: if provided, caseSensitiveMatch must be a boolean
+: if provided, method must be a string
+KPSDK has already been configured
+```
+
+**（4）版本号与端点**
+
+```
+j-1.2.988 - encodedClientToken          ← 传感器版本
+InterrogationRetrying/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-…  ← 带两个 UUID 的路径模板
+_/mfc   /mfc   mfc response was missing one or more headers   KP_IC   KP_RC
+remote-configs   dynamicConfig   featureFlags   endpoints   resourceAddress
+```
+
+**（5）其余有用的事实**
+
+```
+Original fetch not found / NoOriginalFetchError    ← 它包装 window.fetch，且要求拿到原始引用
+kpsdk-load  kpsdk-ready  kpsdk-pending  kpsdkCt     ← 生命周期事件与 cookie 名
+x-kpsdk-c  x-kpsdk-cd  x-kpsdk-ct  x-kpsdk-fc  x-kpsdk-r
+workTime  serverTime  clientTime  seqNum  timestamp  validUntil  duration
+```
+
+### 5.28 结论：`p.js` 只是传感器，配置不在它里面
+
+**四条证据串起来：**
+
+1. `configure` 静默接受任何参数、且第二次调用会报 `KPSDK has already been configured`
+   → 它**设计上**只接受一次真正的配置
+2. 错误信息把 `endpoints` 的 schema 完整列了出来 → 配置必须是 `{ endpoints: [{domain, path, method, …}] }` 这种形状
+3. 字面量里有 `Appended iframe didn't respond with configuration within 20 seconds`
+   → **没有 endpoints 时，它去页面里挂 iframe 等宿主回配置**
+4. 实测一个请求都没发、也没有待执行定时器 → 它卡在「等配置」这一步
+
+**⇒ `p.js` 不自带配置。** 真页面上是**页面自己的脚本**调 `KPSDK.configure({endpoints: …})`，
+或者由 iframe 里的父页面 postMessage 递过去。**我们单独跑传感器，永远等不到。**
+
+**这也解释了 Cybersole 的本地路为什么能成**：它必然先拿到了那份配置（从页面里取），
+再喂给传感器，才有后面的 interrogation 与 `ct`。
+
+### 5.29 下一步：从 Nike 页面里把配置取出来
+
+`NikeFlow` 本来就会 GET 首页并解析 HTML（`KasadaSolver.FindScriptUrl(res.Body, …)` 就在做这件事）。
+同一份 HTML 里通常就有配置脚本，形如
+
+```html
+<script>
+  window.KPSDK = window.KPSDK || {};
+  KPSDK.configure({ endpoints: [ … ], … });
+</script>
+```
+
+**要做的**：
+1. 在页面 HTML 里找 `KPSDK.configure(` / `kpsdk-config` 之类的配置块
+2. 把它作为入参喂给 `KasadaSolver`，在跑传感器**之前**执行
+3. 再看 `isReady` 是否触发、`ct` 是否出现
+
+**顺带注意定时器的语义**：我们把定时器在脚本结束后一次性排空，
+所以那条「20 秒等 iframe」的超时会**立刻**触发而不是等 20 秒。诊断时不要把它当成真实现象。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

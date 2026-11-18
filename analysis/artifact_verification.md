@@ -8,7 +8,7 @@
 | 项 | 值 |
 |---|---|
 | 路径 | `replica\.publish-aot\Cybersole.Ui.exe` |
-| 字节 | 55349248 |
+| 字节 | 56399872 |
 
 ## locale 键存活
 
@@ -28,7 +28,7 @@
 | `Cybersole.Engine.Captcha.html` | 6757 | yes | yes |
 | `Cybersole.Engine.CaptchaEnterprise.html` | 7894 | yes | yes |
 | `Cybersole.Engine.EmptySolver.html` | 7777 | yes | yes |
-| `Cybersole.Engine.Geetest.html` | 1881 | yes | yes |
+| `Cybersole.Engine.Geetest.html` | 1826 | yes | yes |
 | `Cybersole.Engine.GeetestV4.html` | 1138 | yes | yes |
 | `Cybersole.Engine.HCaptcha.html` | 18453 | yes | yes |
 | `Cybersole.Engine.Question.html` | 4201 | yes | yes |

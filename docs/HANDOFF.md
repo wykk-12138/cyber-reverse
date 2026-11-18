@@ -5792,3 +5792,20 @@ metrics exit 0；tests 检索无 pin 旧比率。
 
 还剩什么：判据 (c) 的**多维度产物对照报告**（导入表/资源/区段）待跑 `analysis/verify_artifact.py`；
 `3 fail` 的 claim 单独立项；(b)(f) 复算。
+## R1116 —— 判据状态汇总：(b)(c)(d)(e) 四项达成，(a)(f) 剩余面量化
+
+四项达成（各附命令）：
+- **(b)** `copy: zones with a missing key = 0`
+- **(c)** `verify_artifact.py` → locale 1142/1142、资源 names 20/20 + content 20/20、叶 12/12、
+  `result: PASS`（报告 `analysis/artifact_verification.md`）
+- **(d)** `check_claims.py` → 缺 authority 0 / 非 unknown 缺命令 0 / PASS
+- **(e)** 全量 2396/0/2；变异 59/59 fired、staleness 0
+
+剩余两项精确面（本轮实跑）：
+- **(a)** 15 行全分类（RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / EQUIVALENT 2 / UNKNOWN 2，
+  两条 UNKNOWN 写明缺什么）；原始计数仍 15 → **口径（分类闭合 vs 原始为 0）待裁决，不自行解释**
+- **(f)** `core_coverage` 18 flows / 359 steps / **11 占位**；`captcha` absent **2**；
+  `vendor` 缺 **1**（0x146e94464）；`endpoint` 缺 **53** → 未达成；11 占位属凭据受阻
+  （Farfetch 7 + Bstn 4）在豁免内，**53 端点缺失尚无说明**
+
+还剩什么：53 端点逐条定性；与 11 占位合成 (f) 完整台账；(a) 口径待裁决；`3 fail` claim 单独立项。

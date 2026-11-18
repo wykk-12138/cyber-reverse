@@ -64038,3 +64038,30 @@ criterion (d) by its own stated rule: PASS
 >
 > **判定产物是不是 AOT，只看两件事：exe 的字节数，和有没有 `runtimeconfig.json`。**
 > 前者 53 MB vs 0.44 MB，后者无 vs 有——两个都在，就不用猜。
+---
+
+## 第 1116 轮：六条判据，四条有了机器收据
+
+| 判据 | 机器收据 | 状态 |
+|---|---|---|
+| (b) 不可得文案写明原因 | `copy: zones with a missing key = 0` | **达成** |
+| (c) 产物级对照可复算 | `verify_artifact.py` → locale **1142/1142**、资源 names **20/20** + content **20/20**、资源叶 **12/12**、`result: PASS` | **达成** |
+| (d) claim 台账完备 | `check_claims.py` → 缺 authority **0**、非 unknown 缺命令 **0**、`PASS` | **达成** |
+| (e) 套件绿 + 变异全 fired | 全量 **2396/0/2**；收据 **59/59 fired**，staleness **0** | **达成** |
+| (a) 类型缺口 | 15 行全分类（RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / EQUIVALENT 2 / UNKNOWN 2）；原始计数仍 15 | **口径待裁决** |
+| (f) 核心覆盖 | 18 flows / 359 steps / **11 占位**；captcha **absent 2**；vendor **缺 1**；endpoint **缺 53** | **未达成** |
+
+### 关于 (a) 的口径
+
+判据 (a) 原文允许「不可得写 Unknown + 缺什么；范围外引 R702 裁决」——按这句话，**分类层面已闭合**
+（每条都有结论、UNKNOWN 两条都写明缺什么）。但原始数字 `types absent from source` 仍是 15。
+
+**这两者哪个算数，我不替 YG 解释，记为待裁决项。**
+
+### 关于 (f)
+
+11 个核心占位据 `CORE_COVERAGE.md` 属**凭据受阻**（Farfetch 7 + Bstn 4），落在判据 (f) 的
+「真卡外部条件者写明原因」豁免内。但 **53 个端点缺失还没有这类说明**——那是下一阶段的主战场。
+
+> 这一轮没有写新代码，做的是把「已完成的」用命令钉住、把「没完成的」数到具体。
+> 六条判据里四条现在可以**一条命令复算**，另两条第一次有了分项数字而不是形容词。

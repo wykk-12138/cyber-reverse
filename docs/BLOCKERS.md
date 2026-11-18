@@ -40032,3 +40032,51 @@ publish 目标）。
 还剩什么：判据 (c) 仍需**产物级对照报告**本身（导入表/资源/区段等维度）而不只是函数计数——
 `analysis/verify_artifact.py` 与 `PARITY_PRODUCT.md` 那条线待跑；`3 fail` 的 claim 单独立项；
 判据 (b)(f) 复算。
+
+## R1116 —— 判据状态汇总：**(b)(c)(d)(e) 四项已有机器收据**，(a)(f) 剩余面已量化
+
+**本轮不新增实现，做的是「把已完成项用可复算的命令钉住、把未完成项量化到具体数目」。**
+
+### 一、四项达成（各附可复算命令）
+
+| 判据 | 要求 | 机器收据 | 状态 |
+|---|---|---|---|
+| **(b)** | 剩余仅不可得文案且每条写明原因 | `metrics`: **`copy: zones with a missing key = 0 (in 0 zone[s])`** | **达成** |
+| **(c)** | 产物级对照报告可复算 | `python analysis/verify_artifact.py` → **`result: PASS`**（locale keys **1142/1142**、嵌入资源 names **20/20** + content **20/20**、资源叶 **12/12**），报告写入 `analysis/artifact_verification.md`（55 行，含产物路径与字节 56,399,872） | **达成** |
+| **(d)** | claim 每条有 authority + 命令 + gap_reason | `python analysis/check_claims.py` → `rows without an authority: 0` / `non-unknown rows without a command: 0` / **`criterion (d) by its own stated rule: PASS`** | **达成**（R1114） |
+| **(e)** | 全量套件绿 + 变异全 fired + 数字来自 METRICS | 全量 **2396 通过 / 0 失败 / 2 跳过**；收据 **59/59 fired, decorative 0, skipped 0**，`staleness 0`；METRICS 为生成物 | **达成**（R1107，R1115 后产物更新未触守卫） |
+
+### 二、剩余两项的精确面（本轮实跑量化）
+
+**判据 (a) 类型缺口**（`docs/TYPE_PRESENCE_TRIAGE.md`，15 行全部有结论）：
+`RENAMED 8` / `OUT_OF_SCOPE 2`（R702 裁决）/ `STRUCTURAL 1` / `EQUIVALENT 2` / `UNKNOWN 2`（均写明缺什么）。
+原始计数 `types absent from source` 仍 **15**；`types with scope misses` **0**。
+→ 按判据 (a) 的措辞（「不可得写 Unknown + 缺什么；范围外引 R702 裁决」）**分类层面已闭合**，
+缺口在于**原始数字不为 0**，需明确判据以哪个为准——**记为待裁决项，不自行解释**。
+
+**判据 (f) 核心覆盖**（四个生成器本轮实跑，全 exit 0）：
+| 维度 | 当前值 |
+|---|---|
+| `core_coverage` | flows **18** / steps **359** / **placeholders 11** / provenance exit 0 |
+| `captcha_coverage` | control 17 / families 6 / **absent 2** / provider metadata 24 |
+| `vendor_coverage` | **missing checkpoint n=1**（`0x146e94464`） |
+| `endpoint_coverage` | **missing 53** |
+
+→ (f) **未达成**：11 个核心占位、53 个端点缺失、2 个 captcha 家族缺席、1 个 vendor checkpoint 缺失。
+其中 11 个核心占位据 `CORE_COVERAGE.md` 属**凭据受阻**（Farfetch 7 + Bstn 4），符合判据 (f) 的
+「真卡外部条件者写明原因」豁免；**53 个端点缺失尚无此类说明**，是下一阶段主战场。
+
+验证命令与输出：
+- `python analysis/verify_artifact.py` → 上述四行 + `result: PASS`。
+- `python analysis/check_claims.py` → 三行 + PASS。
+- `python tools/metrics_report.py --skip-tests` → exit 0，含 `copy ... 0`、`functions ratio 63.14%`、
+  `source files newer 0`。
+- `tools/{core,captcha,vendor,endpoint}_coverage.py` 逐个 exit 0，输出行如上表。
+
+数字变化：无实现层变化；**本轮把 (b)(c) 从「未核」变为「有机器收据」**，(f) 四项面值首次逐项记录。
+
+证据等级：Observation = 四条命令的原样输出与退出码、四份生成器输出；
+Inference = 判据 (a) 的口径归属（原始计数 vs 分类闭合）——**留作待裁决，不替 YG 解释**。
+
+还剩什么：**53 个端点缺失**逐条定性（实现 / 外部受阻 / 不在范围）；11 个核心占位的凭据受阻说明
+需与 53 条一起形成 (f) 的完整台账；判据 (a) 口径待裁决；`3 fail` 的 claim 单独立项。

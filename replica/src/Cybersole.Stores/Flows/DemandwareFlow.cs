@@ -46,6 +46,49 @@ public class DemandwareFlow : StoreFlow
     private string Controller(FlowContext c, string name) =>
         $"{Origin(c.Url)}/on/demandware.store/Sites-{_site}-Site/{_locale}/{name}";
 
+    /// <summary>
+    /// The three PayPal controller actions the image carries (R1162). All three are SFCC storefront
+    /// controllers, so they compose with <see cref="Controller"/> exactly like Product-Show does —
+    /// they are not gateway API calls and do not belong with the payment gateways.
+    ///
+    /// <para>
+    /// <c>GetPurchaseUnit</c> (0x146ab044c) is the one with an observed verb: in <c>sub_140a50cd0</c> the
+    /// path is appended to a builder at line 172 and the request that follows at line 179 goes through
+    /// verb slot <c>sub_1408B61E0</c> (+8 = GET), with three arguments — a GET and therefore no body.
+    /// </para>
+    /// <para>
+    /// The other two paths are frozen literals too — <c>/Paypal-GetPaypalOrderId?csrf_token=</c>
+    /// (0x146ab03ec) and <c>/Paypal-GetOrderDetails?orderId=</c> (0x146ab0394) — but neither is
+    /// referenced from that function, so their verbs are <b>Unknown</b> and nothing here sends them.
+    /// </para>
+    /// </summary>
+    public const string PaypalGetPurchaseUnit = "Paypal-GetPurchaseUnit";
+
+    /// <summary>The order-id lookup's path and its query prefix (0x146ab03ec). Verb Unknown.</summary>
+    public const string PaypalGetPaypalOrderId = "Paypal-GetPaypalOrderId";
+    public const string PaypalGetPaypalOrderIdQuery = "?csrf_token=";
+
+    /// <summary>The order-details lookup's path and its query prefix (0x146ab0394). Verb Unknown.</summary>
+    public const string PaypalGetOrderDetails = "Paypal-GetOrderDetails";
+    public const string PaypalGetOrderDetailsQuery = "?orderId=";
+
+    /// <summary>
+    /// Reads the PayPal purchase unit for the current cart. The image does this with a GET on the
+    /// controller path (see <see cref="PaypalGetPurchaseUnit"/>), and the answer is kept for the
+    /// gateway call that follows it in the same machine.
+    /// </summary>
+    public async Task<StepOutcome> PaypalPurchaseUnitAsync(FlowContext c, CancellationToken ct)
+    {
+        var res = await GetAsync(c, Controller(c, PaypalGetPurchaseUnit),
+            Tag() + "-paypal-purchase-unit", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware paypal: purchase unit unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware paypal: purchase unit HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["paypal.purchaseUnit"] = res.Body;
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
     {
         var res = await GetAsync(c, Origin(c.Url) + "/", Tag() + "-home", ct).ConfigureAwait(false);

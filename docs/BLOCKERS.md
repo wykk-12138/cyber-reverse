@@ -41973,3 +41973,45 @@ Unknown = BSTN 是否以其他形态（locale 键、设置 schema）存在于产
 
 证据等级：Observation = `LiveContractTests.cs:287-299` 的两条断言原文、`BLOCKERS.md:15376/15391`、
 `ASYNC_OPS.md:12980`；本轮复测 `str "bstn"/"BSTN"` = 0/0；Inference = 无；Unknown = Bstn 其余三条端点。
+## R1162 —— Demandware 的 PayPal 控制器动作：三条路径落库，只有一条有动词证据
+
+**取件**：R1152 遗留（`StepAction` 无 PayPal 动作）。换角度去查镜像里的 `PayPal-` 字面量，拿到 12 条，
+其中三条是 **SFCC 店铺控制器动作**（其余是 `paypal-client-*` 头名与 `x-paypal-internal-euat`）：
+
+| 地址 | 字面量 |
+|---|---|
+| `0x146ab044c` | `/Paypal-GetPurchaseUnit` |
+| `0x146ab03ec` | `/Paypal-GetPaypalOrderId?csrf_token=` |
+| `0x146ab0394` | `/Paypal-GetOrderDetails?orderId=` |
+
+改了什么（**src**）：
+- 三条控制器名 + 两个查询前缀作为常量落在 `DemandwareFlow`（它们与 `Product-Show` 同一套
+  `Sites-{site}-Site` 组合，**不是网关 API**）。
+- **只实现动词有观测的那一条**：`PaypalPurchaseUnitAsync` —— 在 `sub_140a50cd0`（385 行）里
+  该路径第 **172** 行被拼进 builder，紧随的请求第 **179** 行走动词槽 `sub_1408B61E0`（+8 = **GET**，
+  三参 ⇒ 无请求体）。
+- **另两条不发请求**：它们不在该函数里被引用，**动词 Unknown**，注释里写明了。
+- 新增 `DemandwarePaypalControllerTests` **3 条**（路径原样、查询前缀带 `?`、是控制器名而非绝对路径）。
+
+验证命令与输出：
+- 修前 `where_is`：`GetPurchaseUnit` 只在 `VERDICT`（我自己的笔记）、`GetOrderDetails` **全仓无命中**、
+  `GetPaypalOrderId` 只在 `Gateways.cs` 的**注释**里（那是步骤名，不是方法）。
+- `_demandware_paypal.py` → `GetPurchaseUnit referenced at [172]`、`172 sub_141DC7B80(&v52, &off_146AB0440)`、
+  `179 GET sub_1408B61E0(v35, v42, v43)`；另两条 `referenced at []`。
+- `dotnet build` **0 错**；Demandware 子集 **38/38**；全量 **2465 通过 / 0 失败 / 2 跳过 / 2467**。
+
+### 变异这次**不是绿的**，必须写清楚
+
+`ran_at 2026-11-19T06:41:46`、**59/59 fired**、`decorative 0`——**但 `restored tree: RED`**：
+恢复后那次校验有 **1 条失败**：`Cybersole.Tests.GroupSummaryTests.CloningCopiesTheGroupAndItsTasks`。
+
+排查：
+- `git status` 显示 `src` **没有任何未预期改动** ⇒ **恢复是完整的**，不是 `mutation-check` 弄坏了树；
+- 该类单独跑 **4/4 通过**（`--filter FullyQualifiedName~GroupSummaryTests`）。
+
+⇒ 判定为**顺序/状态相关抖动**，且是 `GroupSummaryTests` 的**第二次**（R806 记过同类
+`DeletingRemovesTheGroupOnce`）。**按纪律单列，不记通过也不记失败**；这一轮的收据状态写 **RED（1 条抖动）**，
+**不冒充 GREEN**。
+
+还剩什么：① `PaypalGetPaypalOrderId` / `PaypalGetOrderDetails` 的动词（各需先定位其所属函数）；
+② `GroupSummaryTests` 的顺序依赖是**已知顽固点**，两次都出在这个类，值得单独一案。

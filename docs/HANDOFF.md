@@ -6526,3 +6526,17 @@ PayPal **42/42**；全量 **2462/0/2/2464**；变异 **59/59 fired, tree GREEN**
 **错类**：共享词 ≠ 同一实体（R760 同类）；`live` 类 = 实机实测，≠ 镜像里有。
 
 还剩什么：Bstn 其余三条端点（cart/checkout/order）仍未取得；Farfetch 7 条为服务端下发路由（已定案）。
+## R1162 —— Demandware PayPal 三控制器路径落库；只实现动词有证据的一条；变异 RED(1 抖动)
+
+改了什么（src + tests）：
+- `DemandwareFlow` 新增：`PaypalGetPurchaseUnit`/`PaypalGetPaypalOrderId`(`?csrf_token=`)/
+  `PaypalGetOrderDetails`(`?orderId=`) 常量 + `PaypalPurchaseUnitAsync`（**GET**，有观测）。
+- 另两条**不发请求**（动词 Unknown，注释写明）。
+- 新测试 `DemandwarePaypalControllerTests` 3 条。
+
+验证：`_demandware_paypal.py` → `GetPurchaseUnit at [172]`、`179 GET`、另两条 `[]`；
+build 0 错；Demandware **38/38**；全量 **2465/0/2/2467**；
+变异 **59/59 fired 但 restored tree RED**：`GroupSummaryTests.CloningCopiesTheGroupAndItsTasks` 失败，
+`src` 无未预期改动、该类单独 **4/4 绿** ⇒ **顺序抖动**（该类第二次），单列不计。
+
+还剩什么：① 另两条的动词（需先定所属函数）；② `GroupSummaryTests` 顺序依赖应单独立案。

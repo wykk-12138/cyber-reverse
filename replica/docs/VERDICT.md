@@ -65538,3 +65538,25 @@ LiveContractTests.BstnServesItsBeastApiAndNotAShopifyOne
 
 **定性的更正**：Bstn 那 4 条占位 = **站方 `/api/beast` live 可通，缺的是其余三条端点**，
 不是「店找错了」。
+---
+
+## 第 1162 轮：三条控制器路径落库，只给一条写请求
+
+镜像里 `PayPal-` 家族的 12 条命中里，有三条是 **SFCC 店铺控制器动作**：
+`/Paypal-GetPurchaseUnit`、`/Paypal-GetPaypalOrderId?csrf_token=`、`/Paypal-GetOrderDetails?orderId=`。
+复刻件里前两条**没有实现**、第三条只在注释里出现过。
+
+我只实现了**动词有观测**的那一条：`sub_140a50cd0` 第 172 行把它拼进 builder、第 179 行走 GET 槽（三参 ⇒ 无体）。
+**另两条不发请求**——它们的动词**没有证据**，注释里写着 Unknown。
+
+> 这一轮我做对的地方不是"多写了一个方法"，而是**只写了一个**。
+> 三条路径都摆在那里，最容易的动作是照着形状把三个请求都写出来——**那会凭空造出两个动词**。
+
+### 变异这次是 RED，我不说它是绿的
+
+`59/59 fired`，但 **`restored tree: RED`**：恢复后校验里 `GroupSummaryTests.CloningCopiesTheGroupAndItsTasks` 失败。
+
+排查后：`git status` 显示 `src` 无未预期改动（**恢复是完整的**），该类单独跑 **4/4 绿**
+⇒ **顺序相关抖动**，且是这个类的**第二次**（R806 记过 `DeletingRemovesTheGroupOnce`）。
+
+**收据状态如实记为 RED（1 条抖动），不冒充 GREEN。** 抖动单列，不计通过也不计失败。

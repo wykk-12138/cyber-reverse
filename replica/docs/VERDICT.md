@@ -64132,3 +64132,44 @@ CUA 逐个消掉，取向全按 AGENTS 记载：
 
 首次 `ida.py str` 直接报 `Please report a bug!`，重跑就成功 —— 缓存首次构建的瞬时故障。
 **报错不等于没有；先重跑一次再下结论。** 这也是本轮唯一一次"几乎误判"。
+---
+
+## 第 1119 轮：确证了动词，没解出 body —— 那就写 Unknown
+
+### 一、站点汇编说清楚了三件事
+
+`notify-challenge-cmpl` 的调用点（`0x1411163C8`）走：
+
+`
+lea  …, [rip+…]            ; 该串的对象头
+call sub_141CF6230
+lea  rcx, unk_144BDF900    ; 常量 A
+call sub_143028C10
+call sub_1408C22E0         ; (A, url) 组包
+lea  rcx, unk_144FE9240    ; 常量 B
+call sub_143028C10
+call sub_142FBFE54
+call sub_1408B6310         ; ★ PUT（vtable +24）
+call sub_143028EE0         ; 响应读回
+`
+
+**确证**：动词是 **PUT**（与 `notify-method-cmpl` 同槽，也符合 +24=PUT/+16=POST/+8=GET 的既有结论）；
+响应读回与既有 PayPal 实现同型。
+
+### 二、没解出来的，就写没解出来
+
+body 的两个常量 `unk_144BDF900` / `unk_144FE9240`：按 NativeAOT 布局在 `+12` 读长度，
+得到 **1,155,229,432** 这种数。**荒谬值就是否证** —— 它们不是 `System.String`。
+`names_at` 的首字 `0x3051000000`、次字 `0x144DB66F8`（指向 `.data` 内另一处）也说明是格子，不是串。
+
+**所以本轮不写实现。** 手里有 PUT、有尾斜杠、有「与 notify-method-cmpl 是兄弟」——
+按这个编一个 `threeDSMethodData` 出来，正好是最像样的那种猜。
+缺的条件写清楚：**先解引用那两个格子，或先读死 `sub_143028C10` 的参数契约。**
+
+> **证据到哪一步，实现就只写到哪一步。**
+> 「像兄弟所以大概一样」不是证据，是**把两个函数当成了一个函数**。
+
+### 三、一个会反复咬人的工具坑
+
+`ida.py dis` 只转发 `addr`，而插件回复是**多对象拼接的 JSON 流**——
+`json.loads` 直接 `Extra data` 报错，必须 `raw_decode(text)[0]`。本轮为此白跑一次。

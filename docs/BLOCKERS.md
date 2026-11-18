@@ -40161,3 +40161,53 @@ Inference = 判据 (a) 的口径归属（原始计数 vs 分类闭合）——**
 还剩什么：读 `0x1411163C8` 前后的汇编还原 `notify-challenge-cmpl` 的**请求体形状与触发时机**
 （与 `notify-method-cmpl` 的 `threeDSMethodData` 对照），然后落地实现；
 `sub_141113680` 内的其余五个 threeds 站点可一并读出以校正既有实现。
+
+## R1119 —— `notify-challenge-cmpl` 的调用结构：**PUT 已确证**，body 常量**不是字符串**（Unknown + 缺什么）
+
+**取件**：R1118 定位到 `sub_141113680` 内的 `0x1411163C8`，本轮读站点汇编。
+
+改了什么（只取证，无实现——理由见第三节）：
+- **读通站点汇编**（`0x1411163C8` 起，逐窗口前推）：
+  ```
+  0x1411163C8  lea  …, [rip+…]            ; ← 该地址即 notify-challenge-cmpl/ 的对象头
+  0x1411163CC  call sub_141CF6230         ; -> r15
+  0x1411163D4  lea  rcx, unk_144BDF900    ; 常量 A
+  0x1411163DB  call sub_143028C10         ; -> r13
+  0x1411163E9  call sub_1408C22E0         ; (r13, r15) 组包
+  0x1411163EE  lea  rcx, unk_144FE9240    ; 常量 B
+  0x1411163F5  call sub_143028C10         ; -> r15
+  0x141116408  call sub_142FBFE54         ; (B 对象, [rsi+28h])
+  0x14111641B  call sub_1408B6310         ; ★ PUT 槽（+24）
+  0x14111642A  test dword ptr [rcx+34h], 1600000h
+  0x141116431  jnz  loc_141113AB4
+  0x141116446  call sub_143028EE0         ; 响应读回（与既有实现同型）
+  ```
+- **确证两条**：① 动词是 **PUT**（`sub_1408B6310` ＝ vtable +24，与 `notify-method-cmpl` 同槽、
+  与 R1096 建立的「+24=PUT / +16=POST / +8=无体 GET」一致）；② 响应经 `sub_143028EE0` 读回，
+  与既有 PayPal 实现的读回路径同型。
+- **没解出的部分（Unknown，写明缺什么）**：body 的两个常量 `unk_144BDF900` / `unk_144FE9240`
+  **不是冻结字符串**。按 NativeAOT 布局（MT:8 + len:4 + UTF-16）在 `+12` 处读长度得到
+  **1,155,229,432 / 1,155,244,392** 这种荒谬值，说明它们不是 `System.String` 对象，
+  更像**指针表/静态字段格**。`names_at.py` 读出的三字也印证：首字 `0x3051000000`、
+  次字 `0x144DB66F8`（指向 `.data` 内的另一个地址）。
+  **缺的条件**：需先**解引用**这两个格子到真正的对象（或改读 `sub_143028C10` 的参数契约），
+  才能拿到 body 的键名与内容类型。**在拿到之前不写实现**——按 AGENTS「不猜测编造」，
+  凭 PUT + 尾斜杠就编一个 `threeDSMethodData` 出来是猜。
+
+验证命令与输出：
+- 站点汇编：逐窗口 `disasm(addr)` 前推（见上方序列，含精确地址与调用目标）。
+- `python analysis/names_at.py 0x144BDF900 0x144FE9240` →
+  `0x144BDF900 raw 0x3051000000 0x144DB66F8 0x4208518B00000003` /
+  `0x144FE9240 raw 0x3053800000 0x144DBA168 0x3C96058100020005`。
+- `ida.py py` 按 MT/len/chars 解码 → `len=1155229432` / `len=1155244392`，**荒谬即否证**。
+- **工具坑（记录）**：`analysis/ida.py dis` 只转发 `addr`，且插件回复是**多对象拼接的 JSON 流**
+  （首个对象之后还有数据），`json.loads` 会报 `Extra data`；程序化调用必须用
+  `json.JSONDecoder().raw_decode(text)[0]`。本轮因此白跑一次。
+
+数字变化：无度量变化；`notify-challenge-cmpl` 状态 **「已定位」→「动词与读回已确证，body 待解引用」**。
+
+证据等级：Observation = 站点汇编序列、PUT 槽身份、响应读回函数、两个常量的原始字与荒谬长度；
+Unknown = **body 键名与内容类型**（缺：两个 `.data` 格子的解引用或 `sub_143028C10` 的参数契约）。
+
+还剩什么：解引用 `0x144BDF900` / `0x144FE9240`（或读 `sub_143028C10` 契约）拿到 body 键名 →
+落地 `notify-challenge-cmpl`；`sub_141113680` 内其余 threeds 站点一并校正既有实现。

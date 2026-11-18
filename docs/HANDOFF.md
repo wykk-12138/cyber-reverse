@@ -6372,3 +6372,21 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 ⇒ `artifact_probe.py` 成为**接线计量器**（`present=yes` ⇔ 被产品代码引用）。
 
 还剩什么（主线已换）：**把 3DS 链接进请求路径**，让探针 1/12 往上走；JL 的 5 条同理需确认是否接线。
+## R1151 —— 补 Process3DS → CompleteActionAsync 的边；产物证明断点在更上游
+
+改了什么：
+- **断点定位**：`PayPalGateway.CompleteActionAsync`（`Gateways.cs` L1026，解析链）**全仓零调用**；
+  `SubmitPaymentAsync` L1248 已存 `threeDsPayload` 并返回成功 ⇒ 交接有、回路无。
+- **落接线**：`StoreFlow.Process3DSAsync` 开头新增分支——会话 `paypal3ds.state == Waiting3DS` 时，
+  `PaymentGatewayRegistry.Default.Resolve(gateway)` → `CompleteActionAsync(c, threeDsPayload, ct)`；
+  成功 `Success` / 失败 `Fail(retryable)`。Adyen transStatus 分类逻辑未改。
+- **注册确认**：`PaymentGateway.cs:75` `r.Register(new PayPalGateway())`。
+
+验证：build **0 错**；支付/3DS/流程子集 **119/119**；全量 **2453/0/2**；
+变异 **59/59 fired, tree GREEN, staleness 0**（05:28:07）；AOT 发布 exit=0。
+
+**产物对照的关键否定**：新边接上后 `paypal 3ds: resolution failed` **仍被裁掉**
+⇒ `Process3DS` 这一步不在任何已执行流程路径上（推断，未直接验证）。
+
+还剩什么：① `StepAction.cs:114` 的 `Steps` 属于哪个 action、谁触发；
+② 若无人执行，从 `sub_141113680` 四态机找回入口。

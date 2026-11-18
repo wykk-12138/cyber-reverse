@@ -6,15 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 05:07:13 +0800 |
+| 生成时间 | 2026-11-19 05:28:19 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
-| 度量脚本结果 | **有非零退出，见下** |
+| 度量脚本结果 | 全部 exit 0 |
 | 完整套件 | 本次跳过（`--skip-tests`） |
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 21 个源文件比产物新（共 16912 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新（共 13603 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -36,18 +36,21 @@
 | 数据文件名对照 — datafiles: original-on-disk not in replica | 0 |
 | 数据文件名对照 — datafiles: replica-only | 2 |
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
-| 函数数量（.pdata） — functions: replica .pdata | 174,976 |
-| 函数数量（.pdata） — functions: ratio | 63.14% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 21 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 16912 |
+| 函数数量（.pdata） — functions: replica .pdata | 177,365 |
+| 函数数量（.pdata） — functions: ratio | 64.00% |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 13603 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
-| 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
+| 核心覆盖：vendor 宿主 — vendor: controls ok | True |
+| 核心覆盖：vendor 宿主 — vendor: named in image | 13 |
+| 核心覆盖：vendor 宿主 — vendor: wiring rows | 9 |
+| 核心覆盖：vendor 宿主 — vendor: missing | 5 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 28989440 |
-| 可执行段体量 — section-mass: ratio | 56.08% |
+| 可执行段体量 — section-mass: replica executable | 29281792 |
+| 可执行段体量 — section-mass: ratio | 56.64% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 0 |
 | 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1B00000 |
@@ -347,8 +350,8 @@ C:\Python312\python.exe tools/func_count.py
 ```text
 function count (non-leaf, from .pdata):
   pdata-original: 277,120
-  pdata-replica: 174,976
-  pdata-ratio: 63.14%
+  pdata-replica: 177,365
+  pdata-ratio: 64.00%
   .pdata holds one RUNTIME_FUNCTION per non-leaf function: it excludes inlined and trimmed code, so this
   compares function mass between the two images and does not establish function-level equality.
 ```
@@ -364,10 +367,10 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-18 17:43:48
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 05:03:40)
-source files newer than the artifact: 21
-lines in those files: 16912
+publish artifact mtime: 2026-11-19 05:18:20
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 05:25:17)
+source files newer than the artifact: 17
+lines in those files: 13603
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -395,48 +398,16 @@ cd D:\projects\cyber-reverse\replica
 C:\Python312\python.exe tools/vendor_coverage.py
 ```
 
-`exit 1`
-
-
-stderr:
+`exit 0`
 
 ```text
-Traceback (most recent call last):
-  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 86, in probe
-    return json.loads((p.stdout or "").strip())
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\json\__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\json\decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\json\decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 227, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 118, in main
-    controls = [(name, probe(pat).get("n", -1)) for name, pat in CONTROLS]
-                       ^^^^^^^^^^
-  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 89, in probe
-    return json.loads(m.group(0)) if m else {"n": 0, "matches": []}
-           ^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\json\__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\json\decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\json\decoder.py", line 353, in raw_decode
-    obj, end = self.scan_once(s, idx)
-               ^^^^^^^^^^^^^^^^^^^^^^
-json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+  wrote docs/VENDOR_COVERAGE.md
+  controls ok=True  vendors named=13  wiring rows=9  missing=5
+    missing: Stripe challenge   n=1   0x146e9427c
+    missing: PayPal 3DS         n=9   0x146e93fb4
+    missing: captcha            n=1   0x146e94334
+    missing: proof of work      n=1   0x146e93f74
+    missing: checkpoint         n=1   0x146e94464
 ```
 
 ### 可执行段体量
@@ -460,21 +431,21 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 56399872 bytes ===
+=== REPLICA  image base 0x140000000  file 56882688 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
-  .text      0x1000       0xFDFD8      1036288      X
-  .managed   0xFE000      0x1BA66C8    27953152     X
-  hydrated   0x1BA7000    0x2AD7B20    0            RW
-  .rdata     0x2AD8000    0x4270B66    24742912     R
-  .data      0x4271000    0x4368378    224256       RW
-  .pdata     0x4369000    0x45698F8    2099712      R
-  _RDATA     0x456A000    0x456A0F4    512          R
-  .rsrc      0x456B000    0x45B67E7    309248       R
-  .reloc     0x45B7000    0x45BEEE4    32768        R
+  .text      0x1000       0xFEA78      1039360      X
+  .managed   0xFF000      0x1BEE138    28242432     X
+  hydrated   0x1BEF000    0x2B3BCE0    0            RW
+  .rdata     0x2B3C000    0x42FC096    24904192     R
+  .data      0x42FD000    0x43F5398    224768       RW
+  .pdata     0x43F6000    0x45FD8A0    2128384      R
+  _RDATA     0x45FE000    0x45FE0F4    512          R
+  .rsrc      0x45FF000    0x464A7E7    309248       R
+  .reloc     0x464B000    0x4652F14    32768        R
 
-  section-mass-replica-executable: 28989440
-  section-mass-ratio: 56.08%
+  section-mass-replica-executable: 29281792
+  section-mass-ratio: 56.64%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
   code does: the replica links a different BCL and Avalonia, so part of the difference is not its own.
@@ -492,38 +463,38 @@ C:\Python312\python.exe tools/pdata_sections.py
 ```text
 pdata bucket histogram (bucket = 0x100000 bytes)
   original: 277,120 functions, image base 0x140000000
-  replica : 174,976 functions, image base 0x140000000
+  replica : 177,365 functions, image base 0x140000000
 
   range from     original   replica    replica/original
   ----------------------------------------------------
-  0x0            5,475      2,004        36.6%
-  0x100000       5,089      4,814        94.6%
-  0x200000       4,333      5,321       122.8%
-  0x300000       2,213      3,548       160.3%
-  0x400000       5,791      5,925       102.3%
-  0x500000       2,057      3,864       187.8%
-  0x600000       1,074      3,480       324.0%
-  0x700000       3,411      3,441       100.9%
-  0x800000       4,076      2,531        62.1%
-  0x900000       3,556      3,236        91.0%
-  0xA00000       3,178      5,274       166.0%
-  0xB00000       3,227      5,966       184.9%
-  0xC00000       3,982      6,984       175.4%
-  0xD00000       3,921      7,311       186.5%
-  0xE00000       3,371      5,109       151.6%
-  0xF00000       7,792      3,916        50.3%
-  0x1000000      5,626      8,858       157.4%
-  0x1100000      2,020      9,649       477.7%
-  0x1200000      2,046      10,018      489.6%
-  0x1300000      5,065      9,501       187.6%
-  0x1400000      10,107     9,983        98.8%
-  0x1500000      11,107     9,326        84.0%
-  0x1600000      2,864      8,991       313.9%
-  0x1700000      2,242      9,902       441.7%
-  0x1800000      4,058      7,464       183.9%
-  0x1900000      4,506      5,366       119.1%
-  0x1A00000      2,310      7,262       314.4%
-  0x1B00000      6,033      5,932        98.3%
+  0x0            5,475      1,966        35.9%
+  0x100000       5,089      4,823        94.8%
+  0x200000       4,333      5,316       122.7%
+  0x300000       2,213      3,589       162.2%
+  0x400000       5,791      5,912       102.1%
+  0x500000       2,057      3,870       188.1%
+  0x600000       1,074      3,508       326.6%
+  0x700000       3,411      3,279        96.1%
+  0x800000       4,076      2,696        66.1%
+  0x900000       3,556      3,098        87.1%
+  0xA00000       3,178      5,245       165.0%
+  0xB00000       3,227      6,043       187.3%
+  0xC00000       3,982      6,852       172.1%
+  0xD00000       3,921      7,474       190.6%
+  0xE00000       3,371      5,129       152.2%
+  0xF00000       7,792      3,923        50.3%
+  0x1000000      5,626      8,612       153.1%
+  0x1100000      2,020      9,562       473.4%
+  0x1200000      2,046      10,152      496.2%
+  0x1300000      5,065      9,467       186.9%
+  0x1400000      10,107     10,083       99.8%
+  0x1500000      11,107     9,194        82.8%
+  0x1600000      2,864      9,261       323.4%
+  0x1700000      2,242      9,640       430.0%
+  0x1800000      4,058      8,421       207.5%
+  0x1900000      4,506      5,535       122.8%
+  0x1A00000      2,310      6,343       274.6%
+  0x1B00000      6,033      8,372       138.8%
   0x1C00000      6,218      0             0.0%
   0x1D00000      6,893      0             0.0%
   0x1E00000      5,418      0             0.0%

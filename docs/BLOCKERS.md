@@ -41598,3 +41598,47 @@ Inference = 无；Unknown = 发布完成后探针的真实命中率（后台任�
 判据 (c) 因此**达标且可复算**（`probes.txt` 已入库，命令一行可跑）。
 
 数字变化：产物 **stale → current**（21 files / 16912 lines → 0）；探针 **12 条中 1 条 present**。
+
+## R1151 —— 补上一条 **零调用** 的边：`Process3DS` → `CompleteActionAsync`
+
+**取件**：R1150 定的主线「把 3DS 链接进请求路径」。
+
+改了什么（**有可执行代码**）：
+- **先定位那条断边**：`Gateways.cs` 里 `PayPalGateway.CompleteActionAsync`（L1026）包含解析链
+  （`authenticate` → `lookup` → `ResolveThreeDsContingency`），**但全仓 `src` 里没有任何调用者**；
+  而 `StoreFlow.SubmitPaymentAsync` 已经在 L1248 把 `threeDsUrl`/`threeDsPayload` 存进会话并返回成功
+  ——**交接做了，回来的路没有。**
+- **落接线**：`StoreFlow.Process3DSAsync` 开头新增分支：当会话里 `paypal3ds.state == Waiting3DS` 时，
+  用 `PaymentGatewayRegistry.Default.Resolve(gateway)` 取回网关并调用
+  `CompleteActionAsync(c, threeDsPayload, ct)`，成功 → `Success`，失败 → `Fail(retryable: true)`。
+  其余（Adyen `transStatus` 分类）**一字未改**，只在新条件成立时提前返回。
+- **注册确认**：`PaymentGateway.cs:75` `r.Register(new PayPalGateway());` ⇒ `Resolve("paypal")` 可达。
+
+验证命令与输出：
+- `dotnet build` → **exit=0，0 个错误**。
+- `dotnet test --filter "Payment|ThreeDs|Gateway|FlowWorkAudit"` → **119/119 通过**。
+- `dotnet publish … -p:PublishAot=true` → **exit=0**；随后用「必然执行的串」做产物对照：
+  `resolved` **yes（7/22）**、`paypal: capture failed` **no**、`paypal 3ds: resolution failed` **no**。
+
+**产物对照给了我没料到的答案，而它比我的判断更可信**：
+新边接上之后，`paypal 3ds: resolution failed` 这个字面量**仍然被裁掉**。
+`PayPalGateway` 确实注册了、`CompleteActionAsync` 确实被调了、构建也确实过了——
+**所以结论只能是：`Process3DS` 这一步本身不在任何已执行的流程路径上。**
+（否则 ILLink 不会把它的实现裁掉。）
+
+> R1150 我学到的「`present: no` 表示未接线」，这一轮要再进一步：
+> **`present: no` 不区分「这个方法没人调」和「调用它的那一步没人跑」。**
+> 我补了一条边，产物立刻告诉我：**断点在更上游。**
+
+证据等级：Observation = build/test/publish 三条输出 + 三条产针对照；
+Inference = 「`Process3DS` 不在任何流程路径上」（由裁剪结果反推，**未直接验证**）；
+Unknown = 哪个流程本应列出 `Process3DS`（`StepAction.cs:114` 的 `Steps` 数组里有它，但那个数组属于哪个动作、该动作是否被执行，本轮未查）。
+
+还剩什么（下一轮的直接入口）：① `StepAction.cs:114` 那个 `Steps = { "SubmitPayment", "ThreeDS", "Handle3DS", "Process3DS" }` 属于哪个 action、被谁触发；
+② 若该 action 未被执行，找出镜像里驱动它的入口（`sub_141113680` 的四态机）并接到对应步骤。
+
+**全量与收据（本轮收数）**：
+- 全量：**2453 通过 / 0 失败 / 2 跳过 / 2455**（2m47s）。
+- 支付/3DS/流程审计子集：**119/119**。
+- 变异：`ran_at 2026-11-19T05:28:07`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`。
+- 产物：AOT 发布 **exit=0**；`artifact_freshness` 应在下一轮重测（本轮发布后未再跑）。

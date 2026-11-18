@@ -1797,6 +1797,35 @@ public abstract class StoreFlow
     }
     public virtual async Task<StepOutcome> Process3DSAsync(FlowContext c, CancellationToken ct)
     {
+        // R1151: the challenge's answer is resolved here.
+        //
+        // SubmitPayment hands off with `threeDsPayload` recorded and the step reporting success
+        // (see the RequiresAction branch there), and the PayPal machine parks itself at Waiting3DS when
+        // it reaches the challenge window. What was missing is the edge back: Gateways'
+        // CompleteActionAsync — the call that drives authenticate, lookup and ResolveThreeDsContingency —
+        // had no caller anywhere in src, so the chain could not fire however well its parts were
+        // aligned. The artifact said so before any comment did: "paypal 3ds: resolution failed" was
+        // trimmed out of the published binary because no reachable code carried it.
+        if (c.Session.Vars.TryGetValue("paypal3ds.state", out var waiting) &&
+            string.Equals(waiting,
+                nameof(Cybersole.Stores.Payments.PayPalThreeDs.ThreeDsState.Waiting3DS),
+                StringComparison.Ordinal))
+        {
+            var name = c.Session.Vars.GetValueOrDefault("gateway");
+            var gateway = string.IsNullOrEmpty(name)
+                ? null
+                : Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve(name!);
+
+            if (gateway is null) return StepOutcome.Fail("3DS challenge with no gateway to resolve it");
+
+            var answer = c.Session.Vars.GetValueOrDefault("threeDsPayload") ?? string.Empty;
+            var resolved = await gateway.CompleteActionAsync(c, answer, ct).ConfigureAwait(false);
+
+            return resolved.Ok
+                ? StepOutcome.Success()
+                : StepOutcome.Fail(resolved.Error ?? "3DS resolution failed", retryable: true);
+        }
+
         var required = c.Session.Vars.TryGetValue("3dsRequired", out var r) && r == "true";
         if (!required) return StepOutcome.Success();
 

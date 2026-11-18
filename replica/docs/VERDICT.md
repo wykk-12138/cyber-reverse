@@ -65211,3 +65211,39 @@ sub_141DC7B80(&v216, &off_147163128);
 只是这次的对象从「字符串池」换成了「产物」。
 
 **下一轮的主线因此变了**：不是继续对齐常量，而是**把 3DS 那条链真正接进请求路径**，让探针从 1/12 开始往上走。
+---
+
+## 第 1151 轮：我补了一条边，产物告诉我断点在**更上游**
+
+上一轮的结论是「3DS 常量没接线」。这一轮找到具体断点：`PayPalGateway.CompleteActionAsync`
+（解析链 authenticate → lookup → ResolveThreeDsContingency）**全仓零调用**，
+而 `SubmitPaymentAsync` 早已把 `threeDsPayload` 存进会话——**交接做了，回来的路没有。**
+于是我在 `Process3DSAsync` 开头补了这条边：`Waiting3DS` 时取回网关、调 `CompleteActionAsync`。
+
+构建过、**119/119 通过**、AOT 发布也过。然后产物说：
+
+| 探针 | 结果 |
+|---|---|
+| `resolved` | **yes（7/22）** |
+| `paypal: capture failed` | no |
+| `paypal 3ds: resolution failed` | **no** |
+
+**新边接上之后，那个字面量仍然被裁掉。** 网关注册了（`PaymentGateway.cs:75`）、方法被调了、构建过了
+——所以只能是：**`Process3DS` 这一步本身不在任何已执行的流程路径上。**
+
+> 上一轮我学到「`present: no` = 未接线」。这一轮得再进一步：
+> **`present: no` 不区分「这个方法没人调」和「调用它的那一步没人跑」。**
+> 我补了一条边，产物立刻指出：**断点在更上游。**
+
+这就是产物比注释可信的地方——**它不会替我保留体面。**
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2453 通过 / 0 失败 / 2 跳过**（2m47s） |
+| 支付子集 | **119/119** |
+| 变异 | **59/59 fired，tree GREEN，staleness 0** |
+
+**下一轮入口**：`StepAction.cs:114` 的 `Steps = { SubmitPayment, ThreeDS, Handle3DS, Process3DS }`
+属于哪个 action、谁触发它；若无人执行，就从镜像 `sub_141113680` 的四态机找回入口。

@@ -10,3 +10,7 @@ deliveries/delivery-address
 deliveries/methods
 billing-address
 payment-page
+graphql?ThreeDsLookUpMutation
+graphql?ThreeDsAuthenticateMutation
+graphql?ResolveThreeDsContingency
+graphql?GetThreeDsJwtQuery

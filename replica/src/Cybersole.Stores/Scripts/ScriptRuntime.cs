@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Security.Cryptography;
 using Jint;
 using Jint.Native;
@@ -143,6 +143,9 @@ public sealed class ScriptRuntime : IDisposable
         try
         {
             _engine.Evaluate(prepared);
+            // The payload schedules its real work on timers; a browser runs them once the current
+            // task ends, so do the same instead of leaving the SDK half-initialised.
+            RunPendingTimers();
             error = null;
             return true;
         }
@@ -215,6 +218,24 @@ public sealed class ScriptRuntime : IDisposable
             {
                 return string.Empty;
             }
+        }
+    }
+
+    /// <summary>
+    /// Drain the shim's deferred-task queue. A browser runs timers after the current task completes;
+    /// the shim queues them for exactly that reason, so an anti-bot payload's setup finishes before its
+    /// own deferred steps run. Bounded, because an uncleared interval would otherwise never end.
+    /// </summary>
+    public int RunPendingTimers(int maxRuns = 2000)
+    {
+        try
+        {
+            var result = _engine.Evaluate($"window.__dshRunTimers ? window.__dshRunTimers({maxRuns}) : 0");
+            return result.IsNumber() ? (int)result.AsNumber() : 0;
+        }
+        catch (Exception)
+        {
+            return 0;
         }
     }
 

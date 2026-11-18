@@ -1,4 +1,4 @@
-﻿# 11 · 本地跑 Nike payload 的实测结构（Jint 侧）
+# 11 · 本地跑 Nike payload 的实测结构（Jint 侧）
 
 > 这份记的是**我们自己跑 nike-p.js 时量出来的东西**，不是原版二进制里的证据。
 > 用途：复刻本地路时不必从零试错。每条都标了是 [实测] 还是 [未解]。
@@ -565,6 +565,72 @@ trace 里能看到重建成功的例子（`pc=8903 → m[5]=fn`），所以机�
 
 **下一步**：脚本跑完后 dump `window.KPSDK` 的形状（有哪些属性、哪些是函数、调一次返回什么），
 用事实替换那七个猜测的入口名。
+
+### 5.23 做完了：`KPSDK` 的真实表面只有两个函数 [实测]
+
+`KasadaSolver.CtEntryPoints` 里那七个表达式（`KPSDK.ct()` / `clientToken()` / `token()` …）
+**全是猜的，一个都不存在**。实测：
+
+```
+window.KPSDK = { configure: function, isReady: function }
+```
+
+只有这两个键。没有任何 `ct` / `cd` / `sb` / `token` 之类的取值入口。
+
+配套观察：
+
+```
+document 上注册的监听器 : visibilitychange, pagehide
+实际派发过的事件        : kpsdk-load
+window.__dshCaptured    : {}
+document.cookie         : 空
+pending timers          : 0
+KPSDK.isReady(cb)       : 回调没有触发
+```
+
+`KPSDK.configure(...)` 传任何东西（`undefined` / `{}` / `{siteId:'nike'}` / `{clientId:'nike'}`）
+都不抛异常、也不改变键集合 —— 它是个静默接受的入口。
+
+**关键判断：`isReady` 的回调没触发 ⇒ 传感器从没进入 ready 状态 ⇒ 自然不会产出 token。**
+`kpsdk-load` 派发了，`kpsdk-ready`（这个字符串确实在它的字面量表里）**没有派发**。
+
+### 5.24 顺带修好的：定时器现在是真的排队
+
+原来 shim 里 `setTimeout` 是**同步立即调用**：
+
+```js
+this.setTimeout = function (fn) { if (typeof fn === "function") { try { fn(); } catch (e) {} } return 0; };
+```
+
+这会让 payload 的延后步骤在它自己的初始化过程中就执行 —— 顺序全错。
+浏览器是「当前任务结束后再跑」，所以改成**入队**，并由宿主在脚本结束后统一排空：
+
+```js
+this.setTimeout = function (fn, ms) { … __dshTimers.push({id, fn, ms, seq, repeat:false}); return id; }
+this.__dshRunTimers = function (maxRuns) { … 逐个执行，interval 最多重复 3 次 … }
+```
+
+`ScriptRuntime.TryExecute` 在 `Evaluate` 之后调用 `RunPendingTimers()`（上限 2000 次，
+因为未 clear 的 interval 否则永不结束）。
+
+**这一步没有让 `isReady` 触发**，但它是正确语义 —— 之前那种同步执行是错的。
+
+### 5.25 下一个卡点：网络
+
+把上面四条合起来看，`kpsdk-load` 之后没有 `kpsdk-ready`，而字面量表里有 `remote-configs`、
+一个 64 位十六进制串、以及 `Failed to send frontend error, fetch returned a`。
+payload 大概率在等一次远程配置拉取，而 shim 的 `fetch` 是**直接 reject** 的：
+
+```js
+this.fetch = function () { return Promise.reject(new TypeError("fetch is not available in this sandbox")); };
+```
+
+**这和我逆向侧的结论对得上**（`08-cd.md` §9.1：`rec[11] = v5[16]`，ct 由 `/tl` 响应回填）：
+**本地不需要真浏览器，但需要真网络。** 传感器要 POST `/tl`、拉 remote-config，才可能拿到 ct。
+
+**所以本地路的完整形状是：Jint 跑脚本（已通）→ 脚本内的请求走我们自己的 HTTP 客户端
+（不是浏览器）→ 从响应头拿 `ct` / `dt` / `im`。** 下一步就是把 `fetch`/XHR 接到 `NetClient` 上，
+而不是让它 reject。
 
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 

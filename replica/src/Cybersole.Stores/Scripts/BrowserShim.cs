@@ -51,7 +51,7 @@ public sealed class BrowserShim
         var parent = this;
         var frames = this;
         var __dshCookieStore = [{{cookieTokens}}];
-        var __dshDocEvents = {};
+        var __dshDocEvents = {}; this.__dshDocEvents = __dshDocEvents; this.__dshDocDispatched = [];
         var document = {
           referrer: {{JsStr(referrer)}},
           title: "",
@@ -96,6 +96,7 @@ public sealed class BrowserShim
           },
           dispatchEvent: function (ev) {
             var type = ev == null ? undefined : ev.type;
+            try { if (window.__dshDocDispatched) window.__dshDocDispatched.push(String(type)); } catch (e0) { }
             if (type === undefined || type === null) return true;
             var a = (__dshDocEvents[type] || []).slice(0);
             for (var i = 0; i < a.length; i++) {
@@ -202,11 +203,52 @@ public sealed class BrowserShim
           return "SHA256";
         }
         this.Date.prototype.getTimezoneOffset = function () { return 0; };
-        this.setTimeout = function (fn) { if (typeof fn === "function") { try { fn(); } catch (e) {} } return 0; };
-        this.setInterval = function () { return 0; };
-        this.clearTimeout = function () {};
-        this.clearInterval = function () {};
-        this.requestAnimationFrame = function (fn) { if (typeof fn === "function") { try { fn(__dshNow()); } catch (e) {} } return 0; };
+        /* Timers are QUEUED, not run inline. Running them synchronously during setup made the payload
+           fire its deferred steps out of order, which is why `KPSDK.isReady` never called back: the
+           SDK was still mid-initialisation when its own timer ran. A browser defers these until the
+           current task finishes, so this queues them and lets the host drain the queue afterwards
+           (see ScriptRuntime.RunPendingTimers). */
+        this.__dshTimers = [];
+        var __dshTimerId = 1;
+        var __dshTimerSeq = 0;
+        this.setTimeout = function (fn, ms) {
+          if (typeof fn !== "function") return 0;
+          var id = __dshTimerId++;
+          __dshTimers.push({ id: id, fn: fn, ms: Number(ms) || 0, seq: __dshTimerSeq++, repeat: false });
+          return id;
+        };
+        this.setInterval = function (fn, ms) {
+          if (typeof fn !== "function") return 0;
+          var id = __dshTimerId++;
+          __dshTimers.push({ id: id, fn: fn, ms: Number(ms) || 0, seq: __dshTimerSeq++, repeat: true, times: 0 });
+          return id;
+        };
+        this.clearTimeout = function (id) {
+          for (var i = 0; i < __dshTimers.length; i++) if (__dshTimers[i].id === id) { __dshTimers.splice(i, 1); return; }
+        };
+        this.clearInterval = this.clearTimeout;
+        this.requestAnimationFrame = function (fn) {
+          if (typeof fn !== "function") return 0;
+          var id = __dshTimerId++;
+          __dshTimers.push({ id: id, fn: function () { fn(__dshNow()); }, ms: 0, seq: __dshTimerSeq++, repeat: false });
+          return id;
+        };
+        this.cancelAnimationFrame = this.clearTimeout;
+        this.__dshRunTimers = function (maxRuns) {
+          var ran = 0, guard = 0, limit = (maxRuns || 500);
+          while (__dshTimers.length && ran < limit && guard < limit * 4) {
+            guard++;
+            var t = __dshTimers.shift();
+            if (!t) break;
+            try { t.fn(); } catch (e) { }
+            ran++;
+            /* A repeating timer is re-queued a bounded number of times: an interval that never clears
+               would otherwise spin forever, and no anti-bot payload needs more than a few ticks to
+               finish its deferred work in a sandbox. */
+            if (t.repeat && t.times < 3) { t.times++; __dshTimers.push(t); }
+          }
+          return ran;
+        };
         this.addEventListener = function (t, fn) { (__dshDocEvents[t] = __dshDocEvents[t] || []).push(fn); };
         this.removeEventListener = function (t, fn) {
           var a = __dshDocEvents[t];
@@ -216,6 +258,7 @@ public sealed class BrowserShim
         };
         this.dispatchEvent = function (ev) {
           var type = ev == null ? undefined : ev.type;
+          try { if (window.__dshDocDispatched) window.__dshDocDispatched.push('win:' + String(type)); } catch (e0) { }
           if (type === undefined || type === null) return true;
           var a = (__dshDocEvents[type] || []).slice(0);
           for (var i = 0; i < a.length; i++) { try { a[i].call(this, ev); } catch (e) { } }

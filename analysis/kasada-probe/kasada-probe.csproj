@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- WHY THIS EXISTS: the test project is temporarily unbuildable because another session is
+       mid-edit on PayPalThreeDs (StageInput.Payload removed, its test not yet updated). This harness
+       references only Cybersole.Stores so the Kasada payload can still be run and inspected.
+       It is a diagnostic tool, not product code, and lives outside replica/src on purpose. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>KasadaProbe</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\replica\src\Cybersole.Stores\Cybersole.Stores.csproj" />
+  </ItemGroup>
+</Project>

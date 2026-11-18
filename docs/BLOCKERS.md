@@ -40380,3 +40380,45 @@ Inference（标注）= `sub_141113680` 是 async moveNext（依据是包装形�
 还剩什么：①（本线）到状态机构造处取 body 键；②（**下一轮起转向**）53 个缺失端点里优先取
 **小而完整**的，例如 GOAT 的 `web-api/v1/*` 三条或 CyberSource `flex/v2/tokens`——
 单轮可结案，不再押在一个端点上连吞五轮。
+
+## R1124 —— 端点度量修正：53 条里 **5 条是拼接可达**（已实现），48 条仍开放
+
+**取件**：R1123 决定转向小而完整的缺口 → 先看 GOAT 那三条，结果发现**它们本来就实现了**。
+
+改了什么：
+- **读 `GoatFlow.cs` 发现四条全在**（不是缺）：
+  `LoginAsync`(L53 `POST /v1/login`)、`SendOtpAsync`(L59 `POST /v1/users/send_otp_token`)、
+  `GetAddressesAsync`(L64 `GET /v1/addresses`)、`GetBillingInfosAsync`(L68 `GET /v1/billing_infos`)。
+  它们被算「缺失」的唯一原因：URL 由 `Origin(c.Url) + "/web-api" + path` 拼成，
+  而 `endpoint_coverage.py` 要求 `"/web-api/v1/addresses"` **整串带引号**出现在源码里。
+- **新增可复算工具 `replica/tools/endpoint_compose.py`**（文件头写明为什么现有工具不够用）：
+  - **只在代码上工作**：手写扫描器剥掉 `//` 与 `/* */`，但**保留字符串字面量**（含串内的 `//`）——
+    R1117 证明过裸子串判定会把注释算成实现，所以这里把注释真剥掉；
+  - 判据：该路径能否切成**两段，且两段都作为「带引号的字面量」出现在代码里** ——
+    这正是源码实际执行的拼接，不是「名字在哪出现过」；
+  - **输出是第二条读数，不替换保守数字**。
+- **结果（可复算）**：
+  ```
+  endpoint_coverage reported missing: 53
+  reachable by literal concatenation: 5
+     /Checkout/v2/8um2                     = '/Checkout/v2/' + '8um2'
+     /Checkout/v2/8x1r                     = '/Checkout/v2/' + '8x1r'
+     /web-api/v1/addresses                 = '/web-api' + '/v1/addresses'
+     /web-api/v1/billing_infos             = '/web-api' + '/v1/billing_infos'
+     /web-api/v1/users/send_otp_token      = '/web-api' + '/v1/users/send_otp_token'
+  still unexplained: 48
+  ```
+- **口播口径随之更正**：**(f) 的端点面不是「缺 53」，而是「保守计 53 ＝ 5 条拼接可达 + 48 条待定性」**。
+
+验证命令与输出：
+- `python tools/endpoint_compose.py` → 上述四行计数与五条拆分（每条都印出 `head + tail`）。
+- `Read GoatFlow.cs` L42–69 → 四条方法与注释原文（含「path evidenced, no body」的旧标注）。
+
+数字变化：**53 → 5 + 48**（新增一条显式读数；保守计数不变）。
+
+证据等级：Observation = 工具输出与五条确切拆分、GoatFlow 四条实现的行号与原文；
+Inference = 「48 条仍开放」是**上界**——本工具只试**两段**拆分，需要三段拼接的路径仍会被算进 48，
+故 48 不是下界而是上限（此点已写进工具行为说明）。
+
+还剩什么：把 48 条逐条定性（实现 / 两段以上拼接 / 外部供应商自动生成 / 不在范围）；
+工具目前**依赖 `endpoint_coverage.py -v` 的输出格式**，该耦合脆弱，需在下次改动时同步。

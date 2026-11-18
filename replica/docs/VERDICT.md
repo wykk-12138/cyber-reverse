@@ -64288,3 +64288,37 @@ public const string ProcessingStatus = "Proccesing 3D Secure";
 >
 > **下一轮起换靶：先挑小而完整的（GOAT `web-api/v1/*` 三条、CyberSource `flex/v2/tokens`），
 > 单轮能结案的，而不是把一个端点的骨头啃到第五轮。**
+---
+
+## 第 1124 轮：GOAT 那三条**本来就实现了**
+
+R1123 决定换靶，第一枪就打在自己脚边：读 `GoatFlow.cs`，四条全在。
+
+`csharp
+LoginAsync      -> PostJsonAsync(WebApi(c, "/v1/login"), ...)
+SendOtpAsync    -> PostJsonAsync(WebApi(c, "/v1/users/send_otp_token"), ...)
+GetAddressesAsync   -> GetAsync(WebApi(c, "/v1/addresses"), ...)
+GetBillingInfosAsync -> GetAsync(WebApi(c, "/v1/billing_infos"), ...)
+`
+
+URL 是 `Origin(c.Url) + "/web-api" + path` 拼出来的，而 `endpoint_coverage.py` 要的是
+`"/web-api/v1/addresses"` **整串带引号**。**所以它一直在数「字面量形状」，不是「能不能发出去」。**
+
+### 补一个判定器，但这次判据是真的
+
+R1117 那次我写「裸子串」判定，被注释骗了。这次：
+
+1. **手写扫描器剥注释**（`//`、`/* */`），**保留字符串字面量**（串内的 `//` 不能剥）；
+2. 判据是「该路径能否切成**两段，且两段都作为带引号的字面量**出现在代码里」——
+   **这就是源码实际做的拼接**，不是名字碰巧出现过。
+
+`
+reported missing: 53
+reachable by concatenation: 5   （每条都印出 head + tail）
+still unexplained: 48
+`
+
+于是口径更正：**(f) 的端点面是「保守计 53 ＝ 5 拼接可达 + 48 待定性」**，不是「缺 53」。
+
+> **48 是上界不是下界** —— 我只试两段拆分，需要三段拼接的也会落进 48。
+> **一个「看起来更好」的数字，必须同时说清它偏哪一边。**

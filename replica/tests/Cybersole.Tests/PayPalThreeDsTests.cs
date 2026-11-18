@@ -300,7 +300,7 @@ public sealed class PayPalThreeDsTests
         Assert.Equal("#FB4961", PayPalThreeDs.NormalPathFailureColour);   // the image's colour literal
     }
 
-    /// <summary>The normal path's bootstrap: serverData then session, the action naming the step.</summary>
+    /// <summary>The normal path's bootstrap: serverData then session, both JSON, token + action.</summary>
     [Fact]
     public async Task TheNormalBootstrapRunsServerDataThenSession()
     {
@@ -317,17 +317,62 @@ public sealed class PayPalThreeDsTests
         ctx.Session.Vars["paypal3ds.heliosServerDataUrl"] = server.BaseUrl + "/heliosnext/api/serverData";
         ctx.Session.Vars["paypal3ds.heliosSessionUrl"] = server.BaseUrl + "/heliosnext/api/session";
 
-        // The frozen endpoints are the defaults; the seams front them for the test.
         var outcome = await new PayPalThreeDs().SubmitNormalBootstrapAsync(ctx, Sample(),
-            "verify", default);
+            "cart-9", default);
 
         Assert.True(outcome.Ok, outcome.Error);
         Assert.Equal(2, seen.Count);
         Assert.Equal("/heliosnext/api/serverData", seen[0]);   // server-data first
         Assert.Equal("/heliosnext/api/session", seen[1]);      // then the session hop
-        Assert.Contains("action=verify", bodies[1]);           // the step the session names
+
+        // R1098 correction: both hops are JSON — {"token": …} then {"token": …, "action": "verify"}.
+        var first = Newtonsoft.Json.Linq.JObject.Parse(bodies[0]);
+        Assert.Equal("cart-9", (string?)first["token"]);
+        Assert.Null(first["action"]);
+
+        var second = Newtonsoft.Json.Linq.JObject.Parse(bodies[1]);
+        Assert.Equal("cart-9", (string?)second["token"]);
+        Assert.Equal("verify", (string?)second["action"]);
+
         Assert.True(ctx.Session.Vars.ContainsKey("paypal3ds.helios.serverData"));
         Assert.True(ctx.Session.Vars.ContainsKey("paypal3ds.helios.session"));
+    }
+
+    /// <summary>
+    /// The entry URL the machine composes before the first hop: frozen prefix + cart id +
+    /// the go_to segment, verbatim.
+    /// </summary>
+    [Fact]
+    public void TheEntryUrlIsTheFrozenComposition()
+    {
+        var url = PayPalThreeDs.EntryUrlFor("cart-9");
+
+        Assert.Equal(PayPalThreeDs.HeliosEntryUrl + "cart-9" + PayPalThreeDs.GoToNextSegment, url);
+        Assert.Equal(
+            "https://www.paypal.com/heliosnext/threeDS?action=verify&flow=3ds&cart_id=cart-9&go_to=next",
+            url);
+    }
+
+    /// <summary>The confirmation hop PUTs to the frozen endpoint and reports its own failure.</summary>
+    [Fact]
+    public async Task TheProcessConfirmationHopRunsAgainstTheSeam()
+    {
+        var seen = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, _) =>
+        {
+            seen.Add(req.Url?.AbsolutePath ?? "");
+            return (200, "{\"ok\":true}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+        ctx.Session.Vars["paypal3ds.processConfirmationUrl"] = server.BaseUrl + "/heliosnext/api/processThreedsConfirmation";
+
+        var outcome = await new PayPalThreeDs().SubmitProcessConfirmationAsync(ctx, Sample(),
+            "{\"liability_shift\":\"Y\"}", default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Equal("/heliosnext/api/processThreedsConfirmation", seen.Single());
+        Assert.Equal("{\"ok\":true}", ctx.Session.Vars["paypal3ds.processConfirmation"]);
     }
 
     /// <summary>

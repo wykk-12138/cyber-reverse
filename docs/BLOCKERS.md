@@ -39341,3 +39341,41 @@ Inference = 普通路各端点的表单装配细节（serverData/session 只有 
 还剩什么：普通路四端点的**逐行表单装配**（本轮只落 bootstrap 与 init-challenge 两段可执行，
 processThreedsConfirmation 与 serverData 的体键待逐行读）；53 锚静树全跑；
 `PayPalThreeDs` 的方言选择入口（`StageInput.Hosted` 之外再加 normal 分支的接线）。
+
+## R1098 —— 【核心②】普通路 bootstrap 形状纠正：两跳都是 JSON，不是表单；confirm 与 entry URL 落地
+
+**取件**：R1097 遗留的普通路逐行表单装配。
+
+**又一处形状纠正**：R1097 把 session 跳写成了表单（只发 `action`），逐行读装配后是
+**两跳都是 JSON**，且都带 `token`。
+
+改了什么：
+- 逐行读 `sub_140D8D2B0` 的 serverData（L268–283）与 session（L296–317）站点：
+  - **serverData**：PUT **JSON `{"token": <cartId>}`**（键 0x147171D48），
+    `unk_144CBDA18` + `off_146F76688`（application/json）为其类型标记；
+  - **session**：PUT **JSON `{"token": <cartId>, "action": "verify"}`**（键 0x147171D48 +
+    0x146F6D9A8，字面量 `verify` 0x14717E4A8）；
+  - **entry URL**：L264 `sub_141CF62D0(heliosnext/threeDS?action=verify&flow=3ds&cart_id=,
+    <cartId>, &go_to=next)` → 冻结前缀 + 购物车号 + `&go_to=next`（0x146A7F400）。
+- 落地：`SubmitNormalBootstrapAsync` 改为 JSON 双跳（签名 `action` → `cartId`），并把组合出的
+  entry URL 存入会话；新增 `EntryUrlFor(cartId)` 静态组合方法；新增
+  `SubmitProcessConfirmationAsync`（L591：PUT 到 ctx+8 或冻结
+  `heliosnext/api/processThreedsConfirmation`，被拒发普通路失败线）+ 三常量
+  （`TokenField` 0x147171D48 / `VerifyAction` 0x14717E4A8 / `GoToNextSegment` 0x146A7F400）。
+- 变异 53 → **54**（`&go_to=next` 段改锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：逐行读两站点装配（JSON 类型标记 + 双键 + 字面量 verify）+ entry URL 拼接调用；
+  `names_at` 3 常量。
+- `PayPalThreeDsTests` **23/23 绿**（重写 1 钉为 JSON 双键断言；2 新钉：entry URL 冻结组合、
+  confirm 跳的缝 + 会话回写）；`SummaryBlockTests` 4/4（指南 54）；`SourceEncodingTests` 2/2；
+  `metrics_report --skip-tests` → exit 0。
+
+数字变化：变异 53 → **54**；PayPal 钉 21 → **23**；普通路可执行跳 **2 → 4**
+（serverData / session / init-challenge / processThreedsConfirmation）。
+
+证据等级：Observation = 两站的 JSON 类型标记、三个键、verify 字面量、entry URL 三段拼接；
+Inference = confirm 跳的内容体由上下文预构（本轮以调用方传入的 JSON 承接，未解其内部字段）。
+
+还剩什么：confirm 跳内容体的内部字段（`a1[5]+16` 的构造体）；方言选择入口接线
+（`StageInput.Hosted` 之外补 normal 分支）；54 锚静树全跑。

@@ -610,10 +610,20 @@ MUTATIONS = [
         "file": PAYPAL_3DS,
         # The session hop's action field (0x146f6d9a8) names the step; losing it is exactly the
         # drift the bootstrap pin forbids.
-        "find": '                new Dictionary<string, string> { [ActionField] = action }, "paypal3ds-helios-session"),',
-        "replace": '                new Dictionary<string, string> { ["act"] = action }, "paypal3ds-helios-session"),',
+        "find": '                new JObject { [TokenField] = cartId, [ActionField] = VerifyAction }',
+        "replace": '                new JObject { [TokenField] = cartId, ["act"] = VerifyAction }',
         "test": "FullyQualifiedName~PayPalThreeDsTests",
         "guard": "TheNormalBootstrapRunsServerDataThenSession",
+    },
+    {
+        "name": "round 1098 -- the entry URL loses its go_to segment",
+        "file": PAYPAL_3DS,
+        # The composed entry URL ends with &go_to=next (0x146a7f400); dropping it is the drift
+        # the entry-url pin forbids.
+        "find": '        HeliosEntryUrl + Uri.EscapeDataString(cartId) + GoToNextSegment;',
+        "replace": '        HeliosEntryUrl + Uri.EscapeDataString(cartId);',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheEntryUrlIsTheFrozenComposition",
     },
 ]
 

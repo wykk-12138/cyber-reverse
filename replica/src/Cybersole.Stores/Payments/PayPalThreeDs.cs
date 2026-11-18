@@ -818,6 +818,15 @@ fragment InstallmentsFragment on FundingInstrument {
     /// <summary>The session hop's form field (0x146f6d9a8).</summary>
     public const string ActionField = "action";
 
+    /// <summary>The bootstrap token field (0x147171d48) — both normal-path hops carry it.</summary>
+    public const string TokenField = "token";
+
+    /// <summary>The session hop's action literal (0x14717e4a8).</summary>
+    public const string VerifyAction = "verify";
+
+    /// <summary>The entry URL's trailing segment (0x146a7f400).</summary>
+    public const string GoToNextSegment = "&go_to=next";
+
     /// <summary>The normal path's device blob field (0x147003b30) and its payload/user-agent pair.</summary>
     public const string DeviceInfoField = "deviceInfo";
     public const string PayloadField = "payload";
@@ -1253,31 +1262,40 @@ fragment InstallmentsFragment on FundingInstrument {
     }
 
     /// <summary>
-    /// The normal path's session bootstrap (R1097, <c>sub_140d8d2b0</c>): the server-data hop
-    /// (0x1470982f0) then the session hop (0x147098368) whose <c>action</c> field (0x146f6d9a8)
-    /// names the step. Both carry the normal dialect's headers. The path's own failure line —
-    /// <c>Payment failed (3DS)</c> (0x146e3b5f0) in <c>#FB4961</c> (0x146a76fd0) — is emitted
-    /// when either hop is refused.
+    /// The normal path's session bootstrap (R1097, corrected in R1098 against the assembly at
+    /// <c>sub_140d8d2b0</c> lines 268–317): both hops are <b>JSON</b> PUTs, not forms —
+    /// serverData carries <c>{"token": &lt;cartId&gt;}</c> (key 0x147171d48) and the session hop
+    /// carries <c>{"token": &lt;cartId&gt;, "action": "verify"}</c> (keys 0x147171d48 +
+    /// 0x146f6d9a8, the literal 0x14717e4a8). The entry URL the first hop is built from is the
+    /// frozen <c>threeDS?action=verify&amp;flow=3ds&amp;cart_id=</c> prefix + the cart id +
+    /// <c>&amp;go_to=next</c> (0x146a7f400). Either hop refused speaks the path's own failure
+    /// line, <c>Payment failed (3DS)</c> (0x146e3b5f0) in <c>#FB4961</c> (0x146a76fd0).
     /// </summary>
     public async Task<StageOutcome> SubmitNormalBootstrapAsync(FlowContext c, StageInput input,
-        string action, CancellationToken ct)
+        string cartId, CancellationToken ct)
     {
-        // The frozen endpoints are the defaults; the session seams front them (the checkStockUrl
-        // convention every other gateway here follows).
         string Seam(string key, string frozen) =>
             c.Session.Vars.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v) ? v : frozen;
 
-        foreach (var (target, form, tag) in new (string, Dictionary<string, string>, string)[]
+        // The entry URL the machine composes before the first hop (line 264).
+        c.Session.Vars["paypal3ds.helios.entryUrl"] = EntryUrlFor(cartId);
+
+        var hops = new (string Target, string Json, string Tag)[]
         {
             (Seam("paypal3ds.heliosServerDataUrl", HeliosServerDataUrl),
-                new Dictionary<string, string>(), "paypal3ds-helios-serverdata"),
+                new JObject { [TokenField] = cartId }.ToString(Newtonsoft.Json.Formatting.None),
+                "paypal3ds-helios-serverdata"),
             (Seam("paypal3ds.heliosSessionUrl", HeliosSessionUrl),
-                new Dictionary<string, string> { [ActionField] = action }, "paypal3ds-helios-session"),
-        })
+                new JObject { [TokenField] = cartId, [ActionField] = VerifyAction }
+                    .ToString(Newtonsoft.Json.Formatting.None),
+                "paypal3ds-helios-session"),
+        };
+
+        foreach (var (target, json, tag) in hops)
         {
             var options = c.Options(tag);
             options.Timeout = TimeSpan.FromMilliseconds(StageTimeoutMs);
-            options.Content = new System.Net.Http.FormUrlEncodedContent(form);
+            options.Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
             foreach (var h in (input.Hosted ? HostedHeaders(input) : NormalHeaders(input)))
                 options.Headers[h.Key] = h.Value;
 
@@ -1293,6 +1311,39 @@ fragment InstallmentsFragment on FundingInstrument {
         }
 
         return StageOutcome.Success(200, null);
+    }
+
+    /// <summary>The entry URL composition (frozen prefix + cart id + the go_to segment).</summary>
+    public static string EntryUrlFor(string cartId) =>
+        HeliosEntryUrl + Uri.EscapeDataString(cartId) + GoToNextSegment;
+
+    /// <summary>
+    /// The normal path's confirmation hop (line 591): a PUT to the context's URL at +8 when it
+    /// carries one, else the frozen <c>processThreedsConfirmation</c> endpoint (0x147098258), with
+    /// the content the context pre-built.
+    /// </summary>
+    public async Task<StageOutcome> SubmitProcessConfirmationAsync(FlowContext c, StageInput input,
+        string? json, CancellationToken ct)
+    {
+        var target = c.Session.Vars.GetValueOrDefault("paypal3ds.processConfirmationUrl");
+        if (string.IsNullOrEmpty(target)) target = HeliosProcessThreedsConfirmationUrl;
+
+        var options = c.Options("paypal3ds-helios-process");
+        options.Timeout = TimeSpan.FromMilliseconds(StageTimeoutMs);
+        options.Content = new StringContent(json ?? "{}", System.Text.Encoding.UTF8, "application/json");
+        foreach (var h in (input.Hosted ? HostedHeaders(input) : NormalHeaders(input)))
+            options.Headers[h.Key] = h.Value;
+
+        var res = await c.Http.SendAsync(HttpMethod.Put, target, options, ct).ConfigureAwait(false);
+        c.Session.AbsorbCookies(res.Cookies);
+        if (res.StatusCode is < 200 or >= 300)
+        {
+            c.Emit(NormalPathFailureStatus, NormalPathFailureColour);
+            return StageOutcome.Failed(res.StatusCode);
+        }
+
+        c.Session.Vars["paypal3ds.processConfirmation"] = res.Body ?? string.Empty;
+        return StageOutcome.Success(res.StatusCode, res.Body);
     }
 
     /// <summary>

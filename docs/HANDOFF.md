@@ -5457,3 +5457,24 @@ SourceEncoding 2/2、metrics exit 0。
 processThreedsConfirmation 体形状为 Inference。
 
 还剩什么：普通路四端点逐行表单装配；方言选择入口接线；53 锚静树全跑。
+
+## R1098 —— 【核心②】普通路 bootstrap 形状纠正：两跳都是 JSON；confirm 与 entry URL 落地
+
+**又一处形状纠正**：R1097 把 session 跳写成表单，逐行读装配后是**两跳都 JSON 且都带 token**。
+
+改了什么：
+- serverData = PUT JSON **`{"token": <cartId>}`**（0x147171D48）；session = PUT JSON
+  **`{"token": <cartId>, "action": "verify"}`**（+0x146F6D9A8，字面量 0x14717E4A8）；
+  entry URL = 冻结前缀 + 车号 + **`&go_to=next`**（0x146A7F400）。
+- 落地：`SubmitNormalBootstrapAsync` 改 JSON 双跳（`action`→`cartId`）+ `EntryUrlFor(cartId)`
+  + `SubmitProcessConfirmationAsync`（ctx+8 或冻结 confirm 端点，被拒发普通路失败线）+ 三常量。
+- 变异 53 → **54**（`&go_to=next` 锚）+ 指南同步。
+
+验证：`PayPalThreeDsTests` **23/23**（重写 1 钉 + 2 新钉）、SummaryBlock 4/4（指南 54）、
+SourceEncoding 2/2、metrics exit 0。
+
+数字变化：变异 53 → **54**；PayPal 钉 21 → **23**；普通路可执行跳 **2 → 4**。
+
+证据等级：JSON 类型标记/三键/verify 字面量/entry 三段为 Observation；confirm 内容体为 Inference。
+
+还剩什么：confirm 内容体内部字段；方言选择入口接线；54 锚静树全跑。

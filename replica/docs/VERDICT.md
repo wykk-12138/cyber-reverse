@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **53 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1097 各 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **54 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1098 各 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63369,3 +63369,38 @@ URL/体键证据推翻，并按 PayPal 自己的形状重写 `GqlAsync`。
 > 48 里 24 个不重叠：**它们只是共享了那两个方法端点，其余全不同**。
 >
 > 差分的价值在这里最明显：**如果只看「共享了哪些」，会得出「差不多」；看「独有哪些」，才知道是两套。**
+
+---
+
+## 第 1098 轮：普通路两跳是 JSON —— 又一处形状纠正
+
+### 一、逐行读装配，推翻了本会话上一轮的写法
+
+R1097 我按「`action` 是表单字段」落了 session 跳。本轮逐行读 `sub_140D8D2B0`：
+
+| 跳 | 方法 | 体 |
+|---|---|---|
+| serverData（L268–283） | PUT | **JSON** `{"token": <cartId>}` |
+| session（L296–317） | PUT | **JSON** `{"token": <cartId>, "action": "verify"}` |
+| entry URL（L264） | — | 冻结前缀 + 车号 + `&go_to=next` |
+| processThreedsConfirmation（L591） | PUT | 上下文预构内容；URL = ctx+8 或冻结默认 |
+
+`unk_144CBDA18` + `off_146F76688`（application/json）是 JSON 类型标记——两处都有，
+而我上一轮只看到 `action` 键就当成表单。
+
+### 二、落地与数字
+
+两跳改 JSON（签名 `action` → `cartId`）、`EntryUrlFor(cartId)` 静态组合、
+`SubmitProcessConfirmationAsync` 落地。普通路可执行跳 **2 → 4**。
+
+| 度量 | R1097 | **R1098** |
+|---|---|---|
+| 变异套件 | 53 | **54**（`go_to` 锚） |
+| PayPal 钉 | 21 | **23** |
+
+### 教训
+
+> **看到键名不等于看到体形**——我上一轮从常量邻域里捞到 `action` 就断定是表单，漏了旁边
+> 的 JSON 类型标记（`unk_144CBDA18` + `content-type: application/json`）。
+> **判体形要看类型标记，不是看键名。** 这条与 R1095 的「一站一站解」是同族：
+> 键名给的是「有哪些字段」，类型标记才给「怎么装」。

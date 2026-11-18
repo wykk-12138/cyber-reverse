@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.RegularExpressions;
 using Cybersole.Http;
 
@@ -291,6 +291,12 @@ public sealed class KasadaSolver : IDisposable
     /// </summary>
     public Func<string?>? VersionProvider { get; set; }
 
+    /// <summary>
+    /// Which store this handshake is for, so the per-store sensor build can be resolved when the sensor's
+    /// own request header is not observable. Unset means the shared default.
+    /// </summary>
+    public string? Store { get; set; }
+
     /// <summary>Reads a header the sensor put on one of the requests it issued (last one wins).</summary>
     private string? HeaderFromIssuedRequest(string header)
     {
@@ -360,7 +366,8 @@ public sealed class KasadaSolver : IDisposable
            call), so that is the authoritative version -- not a guess scraped out of the token. The
            original has a VersionProvider switch for exactly this; a caller may override it. */
         Version = VersionProvider?.Invoke()
-                  ?? HeaderFromIssuedRequest("x-kpsdk-v")
+                  ?? HeaderFromIssuedRequest("x-kpsdk-v")   // authoritative: what the sensor itself reports
+                  ?? KasadaVersions.For(Store)              // per-store table, only when that is unobserved
                   ?? Runtime.TryString("KPSDK && KPSDK.v ? String(KPSDK.v) : (window.KPSDK && window.KPSDK.v ? String(window.KPSDK.v) : null)")
                   ?? Regex.Match(ct ?? string.Empty, @"^\s*(\d+)\|").Groups[1].Value;
 

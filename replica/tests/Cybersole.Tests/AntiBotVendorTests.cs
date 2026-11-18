@@ -77,16 +77,21 @@ public sealed class AntiBotVendorTests
     {
         _out.WriteLine(string.Join(", ", AntiBotVendors.KasadaVersionHeaders));
 
-        Assert.Equal(5, AntiBotVendors.KasadaVersionHeaders.Count);
-        Assert.Equal(5, AntiBotVendors.KasadaVersionHeaders.Distinct().Count());
+        // Seven, not five: the earlier five was an incomplete inventory. The image carries
+        // Nike-Kasada-Version (0x146e1779c) and Scheels-Kasada-Version (0x146e7a4d4) as well, and both
+        // flows exist — see docs/KASADA/11 5.75.
+        Assert.Equal(7, AntiBotVendors.KasadaVersionHeaders.Count);
+        Assert.Equal(7, AntiBotVendors.KasadaVersionHeaders.Distinct().Count());
         Assert.All(AntiBotVendors.KasadaVersionHeaders, h => Assert.EndsWith("-Kasada-Version", h));
+        Assert.Contains("Nike-Kasada-Version", AntiBotVendors.KasadaVersionHeaders);
+        Assert.Contains("Scheels-Kasada-Version", AntiBotVendors.KasadaVersionHeaders);
 
         // five different prefixes — one shared version would be wrong for four of them
         var stores = AntiBotVendors.KasadaVersionHeaders
             .Select(h => h[..h.IndexOf("-Kasada-Version", System.StringComparison.Ordinal)])
             .Distinct()
             .ToList();
-        Assert.Equal(5, stores.Count);
+        Assert.Equal(7, stores.Count);
     }
 
     /// <summary>The Turnstile task name is a solver-service identifier, kept verbatim.</summary>

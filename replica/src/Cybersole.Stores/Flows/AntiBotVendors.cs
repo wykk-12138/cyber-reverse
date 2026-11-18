@@ -206,8 +206,13 @@ public static class AntiBotVendors
     };
 
     /// <summary>
-    /// The per-store Kasada version headers, verbatim. A single shared version would be wrong for at
-    /// least four of these five stores.
+    /// The per-store Kasada version headers, verbatim. A single shared version would be wrong for several
+    /// of these: each site deploys its own build of the sensor.
+    /// <para>
+    /// This list used to stop at five. The image carries seven — Nike and Scheels were missing here even
+    /// though both flows exist (docs/KASADA/11 5.75). Kept in step with
+    /// <see cref="Scripts.KasadaVersions.SettingKeys"/>, which is the same seven.
+    /// </para>
     /// </summary>
     public static readonly IReadOnlyList<string> KasadaVersionHeaders = new[]
     {
@@ -216,6 +221,8 @@ public static class AntiBotVendors
         "Crocs-JP-Kasada-Version",
         "Crocs-Kasada-Version",
         "Footsites-Kasada-Version",
+        "Nike-Kasada-Version",
+        "Scheels-Kasada-Version",
     };
 
     /// <summary>A solver-service task name the image carries, verbatim.</summary>

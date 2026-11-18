@@ -1653,6 +1653,51 @@ Version = VersionProvider?.Invoke()
 因为各站部署的传感器版本不同（Nike 现在是 `j-1.2.988`）。
 复刻件目前只有 `VersionProvider` 这个钩子，**没有 per-store 的取值表** —— 这是一个明确的待补项。
 
+### 5.76 补上了 per-store 版本表，并且发现原清单少记了两个 [实测 + 修正]
+
+`KasadaVersions`（`replica/src/Cybersole.Stores/Scripts/KasadaVersions.cs`）：
+
+```csharp
+public const string Observed = "j-1.2.988";
+public static string? For(string? store);              // 未测过的站 → null
+public static IReadOnlyList<string> SettingKeys;       // 七个键，逐字
+public static string? StoreOfSetting(string key);      // "Crocs-EU-Kasada-Version" → "crocs-eu"
+```
+
+**`For` 对未测过的站返回 `null` 而不是默认值** —— 这是一轮里改过的设计：
+最初返回 `Observed`，结果把 `Version` 从"空"变成"永远有值"，**撞红了既有的
+`Solve_ReadsClientTokenFromScript`**（那条用合成脚本，本来就没有版本可得）。
+
+**而这是对的**：这张表是回退链里的一环，对一个没测过的站宣布一个版本号，
+等于让链在"猜"上停住。返回 null，链才能继续往下走。
+
+**所以 `Version` 的优先级最终是这个顺序（从权威到兜底）：**
+
+```csharp
+VersionProvider?.Invoke()            // 调用方显式指定
+?? HeaderFromIssuedRequest("x-kpsdk-v")   // payload 自己印的，权威
+?? KasadaVersions.For(Store)              // per-store 表，仅当上面观察不到
+?? Runtime.TryString("KPSDK && KPSDK.v …")
+?? Regex.Match(ct ?? "", @"^\s*(\d+)\|")
+```
+
+### 5.77 顺带修了一个少记：清单里只有 5 个，二进制里是 7 个
+
+`AntiBotVendors.KasadaVersionHeaders` 原来只写 5 个：
+
+```
+Converse / Crocs-EU / Crocs-JP / Crocs / Footsites      (5)
+```
+
+**但二进制里是 7 个** —— 多了 `Nike-Kasada-Version`（`0x146e1779c`）和
+`Scheels-Kasada-Version`（`0x146e7a4d4`），**而且这两个站的 flow 在复刻件里都实现了**。
+
+`KasadaVersionsArePerStore` 原来硬断言 `Assert.Equal(5, …)`，所以它红了一次。
+**按"数字随事实走"的规矩改成 7，并把两个新地址写进断言旁边的注释** ——
+红的不是行为，是清单本身少记了两条。
+
+**Kasada + AntiBot + profile 用例：97/97 通过。**
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **45 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087/R1088 各 1 条；R1089 补 JL methodId 锚 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **46 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087/R1088/R1089 各 1 条；R1090 补 JL fingerprint 门锚 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63091,3 +63091,35 @@ methodId → retryable 停（零出网）；CREDITCARD 选中而无卡 → 失�
 > **同一个参数名在第二条链上出现，是交叉印证不是冗余**——`setupFutureUsage` 在 PopMart
 > desk pay（R1087）与 JL payments（本轮）各出现一次，说明这是 Stripe 店面集成的公共语汇，
 > 不是某站私货。跨站重复的常量值得在文档里点名成对：它把「单站考据」升级成「协议语汇」。
+
+---
+
+## 第 1090 轮：JL 两 Stripe-direct 步 —— 针链、fingerprint 门、冻结账户
+
+### 一、真体（`sub_140A40A30`，186 行，经 TLS 包装追到）
+
+针链 `next_action` → `use_stripe_sdk` → `type`，门内联等值判定
+**`stripe_3ds2_fingerprint`**，源 `three_d_secure_2_source`，`_secret_` 切分 client_secret。
+构建器 `sub_141141680` 携带 **冻结 Stripe 账户 `acct_1S0JRiIiwyy5Cf6X`** 与 BFF 主机
+`https://checkout.johnlewis.com`——账户常量是 JL Stripe 集成的自有身份，镜像里原样冻结。
+
+### 二、落地形状
+
+`GetStripePaymentIntentAsync` 按针链解析 payments 应答（R1089 存的 `jl.paymentsBody`），
+源/type/secret 入会话；`HandleRequiresActionAsync` 的 fingerprint 门匹配后把冻结账户
+入会话供续体。fetch 与构建器的请求体未解——命名续体，不编造。
+
+### 三、数字
+
+| 度量 | R1089 | **R1090** |
+|---|---|---|
+| 变异套件 | 45 | **46**（fingerprint 门锚） |
+| JL Stripe 步钉 | 3 | **6** |
+
+**14/14 钉绿**；SummaryBlock 4/4（指南 46）。JL 十九步的三个 Stripe-direct 步至此全有执行体。
+
+### 教训
+
+> **冻结的账户 id 是协议身份，不是随机数据**——`acct_1S0JRiIiwyy5Cf6X` 看似无关紧要的一串，
+> 但它是 JL Stripe 集成的账户指纹，镜像选择把它和主机一起写死在构建器里。账户级常量
+> 值得单独钉：改它等于换了商户身份，这是最安静的协议漂移。

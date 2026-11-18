@@ -5264,3 +5264,26 @@ setupFutureUsage 空值为 Inference。
 会话字段宿主为 Inference。
 
 还剩什么：四连异步机本体（两 Stripe-direct 步的真实请求面）；45 锚静树全跑。
+
+## R1090 —— 【核心①+②】JL 两 Stripe-direct 步落地：针链 + fingerprint 门 + 冻结账户
+
+**取件**：四连跳板本体。
+
+改了什么：
+- 追链 `sub_140A371E0` → TLS 包装 → 真体 **`sub_140A40A30`**（186 行）：针链
+  `next_action`→`use_stripe_sdk`→`type`，门 `stripe_3ds2_fingerprint`（0x147165BF0），源
+  `three_d_secure_2_source`，`_secret_` 切分针（0x146F64778）；构建器 `sub_141141680` 带
+  **冻结 Stripe 账户 `acct_1S0JRiIiwyy5Cf6X`**（0x146F6D140）+ BFF 主机（0x14705D5A8）。
+- `GetStripePaymentIntentAsync`：针链解析 payments 应答→源/type/secret 入会话；
+  `HandleRequiresActionAsync`：fingerprint 门→冻结账户入会话；`StripeAccount` 常量。
+- 变异 45 → **46**（fingerprint 门锚）+ 指南同步。
+
+验证：`dec sub_140A40A30` 186 行 + names_at 8 常量；**14/14 钉绿**（3 新：针链+secret 切分、
+门+账户+他型不动、无应答可重试停）；SummaryBlock 4/4（指南 46）；metrics exit 0。
+
+数字变化：变异 45 → **46**；JL Stripe 步钉 3 → **6**；三个 Stripe-direct 步全有执行体
+（fetch/构建器本体为命名续体）。
+
+证据等级：四针/账户/主机/控制流全 Observation；步名与针链的对应及账户角色为 Inference。
+
+还剩什么：`sub_141141680` 构建器请求体；`sub_140A37540` 真体；46 锚静树全跑。

@@ -39006,3 +39006,43 @@ CREDITCARD 内联判定、四连函数跳板存在；Inference = `setupFutureUsa
 
 还剩什么：四连异步机本体（HandleRequiresAction/GetStripePaymentIntent 的真实请求面）；
 45 锚静树全跑；PayPal solver 逐 case 精读收尾。
+
+## R1090 —— 【核心①+②】JL `GetStripePaymentIntent`/`HandleRequiresAction` 落地：针链 + fingerprint 门 + 冻结 Stripe 账户
+
+**取件**：R1089 指定的四连跳板本体。
+
+改了什么：
+- 追链：`sub_140A371E0` → TLS 包装 `sub_142B31BC0` → 真体 **`sub_140A40A30`**（186 行）——
+  JL Stripe-direct 机的完整语义：
+  - **针链**：`next_action`（0x1471011A8）→ `use_stripe_sdk`（0x147179510）→ `type`（0x147175AA8）；
+  - **门**：type == `stripe_3ds2_fingerprint`（0x147165BF0，内联串等值判定）；
+  - **源**：`three_d_secure_2_source`（0x14716D850）；**`_secret_` 针**（0x146F64778）——
+    client_secret 的切分符；
+  - **构建器**：`sub_141141680`（ctx+176, **冻结 Stripe 账户 `acct_1S0JRiIiwyy5Cf6X`**
+    （0x146F6D140）, **BFF 主机 `https://checkout.johnlewis.com`**（0x14705D5A8））→ 其请求体
+    为命名续体（目标未解）。
+- `JohnLewisFlow.GetStripePaymentIntentAsync` override：按针链解析 payments 应答（R1089 存的
+  `jl.paymentsBody`）→ 源/type/secret 入会话；无应答 → retryable 停；fetch 本体（`sub_140A37540`
+  跳板链）为命名续体。
+- `JohnLewisFlow.HandleRequiresActionAsync` override：fingerprint 门——type 匹配 → 冻结账户入
+  会话供续体；其他 type 不动。
+- `StripeAccount` 常量（冻结字面量原样）。
+- 变异 45 → **46**（fingerprint 门改名锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`dec 0x142B31BC0` → `sub_140A40A30` 186 行 + names_at 8 常量（四针 + 账户 + 主机 +
+  secret 针 + type）；`dec 0x140A37540` → 跳板（真体更深，如实记）。
+- `dotnet test --filter "JohnLewisStripe|JohnLewisStepMap|StoreFlowDigest" -m:1` → **14/14 绿**
+  （3 新钉：针链解析+_secret_ 切分、fingerprint 门+冻结账户+他型不动、无应答可重试停）；
+  SummaryBlock 4/4（指南 46）；`metrics_report --skip-tests` → exit 0。
+
+数字变化：变异 45 → **46**；JL Stripe 步钉 3 → **6**；JL 十九步的三个 Stripe-direct 步
+全部有了执行体（SubmitOrderStripe 全解 · GetStripePaymentIntent 针链半 + fetch 续体命名 ·
+HandleRequiresAction 门全解 + 构建器续体命名）。
+
+证据等级：Observation = 四针/账户/主机/_secret_/type 全 names_at 直证、186 行控制流
+（state 0→1→2 三态推进 + fingerprint 分支）；Inference = GetStripePaymentIntent 步与
+针链的对应（步名来自反射序表，读取面来自本机）、账户常量在续体请求中的角色。
+
+还剩什么：`sub_141141680` 构建器请求体（fingerprint 续体的真实目标）；`sub_140A37540`
+真体（intent fetch）；46 锚静树全跑；PayPal solver 逐 case 精读收尾。

@@ -535,6 +535,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~JohnLewisStripeStepTests",
         "guard": "ThePaymentsPutCarriesTheDecodedParameters",
     },
+    {
+        "name": "round 1090 -- JL's fingerprint gate stops recognizing the action",
+        "file": MAGENTO_FLOW,
+        # The gate keys on the frozen action type stripe_3ds2_fingerprint (0x147165bf0);
+        # renaming it is exactly the drift the JL step pin forbids.
+        "find": '        if (!string.Equals(type, "stripe_3ds2_fingerprint", StringComparison.Ordinal))',
+        "replace": '        if (!string.Equals(type, "stripe_3d2_fingerprint", StringComparison.Ordinal))',
+        "test": "FullyQualifiedName~JohnLewisStripeStepTests",
+        "guard": "TheFingerprintGateStagesTheFrozenAccount",
+    },
 ]
 
 

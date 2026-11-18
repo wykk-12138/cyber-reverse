@@ -875,6 +875,69 @@ public sealed class JohnLewisFlow : StoreFlow
 
         return StepOutcome.Success();
     }
+
+    /// <summary>John Lewis's frozen Stripe account id (0x146f6d140) — the integration's own constant.</summary>
+    public const string StripeAccount = "acct_1S0JRiIiwyy5Cf6X";
+
+    /// <summary>
+    /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
+    /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
+    /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>
+    /// (0x14716d850) the source the continuation keys on and <c>_secret_</c> (0x146f64778) the
+    /// needle the client secret is split out with. The fetch itself rides the same
+    /// Stripe-direct surface the step map records — its request body lives behind the
+    /// <c>sub_140a37540</c> trampoline and is the named continuation for the next probe.
+    /// </summary>
+    public override Task<StepOutcome> GetStripePaymentIntentAsync(FlowContext c, CancellationToken ct)
+    {
+        var body = c.Session.Vars.GetValueOrDefault("jl.paymentsBody");
+        if (string.IsNullOrEmpty(body))
+            return Task.FromResult(StepOutcome.Fail("jl: no payments answer to read the intent from",
+                retryable: true));
+
+        JObject root;
+        try { root = JObject.Parse(body); }
+        catch { return Task.FromResult(StepOutcome.Fail("jl: payments answer was not JSON")); }
+
+        var sdk = root["next_action"]?["use_stripe_sdk"];
+        var type = sdk?["type"]?.ToString();
+        var source = sdk?["three_d_secure_2_source"]?.ToString();
+
+        if (string.IsNullOrEmpty(source))
+            return Task.FromResult(StepOutcome.Success());   // no 3DS asked for — nothing to stage
+
+        c.Session.Vars["jl.stripeSdkType"] = type ?? string.Empty;
+        c.Session.Vars["jl.threeDs2Source"] = source;
+        // The '_secret_' needle: the sdk block's source string carries the secret after it.
+        c.Session.Vars["jl.stripeSecret"] = source.Contains("_secret_")
+            ? source[(source.IndexOf("_secret_", StringComparison.Ordinal) + "_secret_".Length)..]
+            : string.Empty;
+
+        return Task.FromResult(StepOutcome.Success());
+    }
+
+    /// <summary>
+    /// <c>HandleRequiresAction</c> — the machine's fingerprint gate: when the sdk block's type is
+    /// <b>stripe_3ds2_fingerprint</b> the continuation builder runs with John Lewis's frozen
+    /// Stripe account (<c>acct_1S0JRiIiwyy5Cf6X</c>) and the BFF host
+    /// (<c>checkout.johnlewis.com</c>, 0x14705d5a8) — <c>sub_141141680</c>'s request is the
+    /// named continuation; the gate itself is fully decoded.
+    /// </summary>
+    public override Task<StepOutcome> HandleRequiresActionAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("jl.threeDs2Source", out var source) ||
+            string.IsNullOrEmpty(source))
+            return Task.FromResult(StepOutcome.Success());   // nothing to act on
+
+        var type = c.Session.Vars.GetValueOrDefault("jl.stripeSdkType");
+        if (!string.Equals(type, "stripe_3ds2_fingerprint", StringComparison.Ordinal))
+            return Task.FromResult(StepOutcome.Success());   // not the fingerprint action
+
+        // The gate passed: the source is staged for the account-keyed continuation, and the
+        // account the builder swears by goes out with it — the frozen literal, not a guess.
+        c.Session.Vars["jl.stripeAccount"] = StripeAccount;
+        return Task.FromResult(StepOutcome.Success());
+    }
 }
 
 /// <summary>Kith — Shopify storefront plus a drop scheduler.</summary>

@@ -2221,6 +2221,36 @@ GET …/mfc -> 200  bodyLen=0  ctype=-
 在 `kasada-live` 里跑插桩版本，拿到真实 dispatch 轨迹，看它在 `/mfc` 之后停在哪条指令上。
 工具链是现成的，缺的只是"把插桩版接到实网 harness 上"这一步。
 
+### 5.104 又排除五个，问题被逼到「两个调用路径的差异」上
+
+上节的结论是"差别在真实 HTTP 层"。这轮继续排除，结果那条也不对：
+
+| 假设 | 试法 | 结果 |
+|---|---|---|
+| 少了一次队列排空 | `configure` 之后补 `DrainMicrotasks()` + `RunPendingTimers()` | **无变化** |
+| 真实响应对象的问题 | `kasada-live` 加 `KASADA_FAKE_TRANSPORT=1`：用**实网脚本** + **不联网的假响应** | **仍然只发 `/mfc`** |
+| 超时预算被取页耗时吃掉了 | 取完脚本后**新建一个 solver** 再 Solve | **无变化** |
+| 内存/时长上限太小 | `KasadaSolver` 的运行时从 64MB/15s 提到 **256MB/60s** | **无变化** |
+| cookie 影响判断 | 离线探针带 cookie 跑 | **两条都发** |
+
+**最后一条是决定性的对比：**
+
+```
+同一份实网脚本、同一个 api.nike.com resource、同样不联网的假响应：
+
+kasada-probe（裸 TryExecute + 显式 configure）  →  /mfc + /r   两条都发
+kasada-live （KasadaSolver.Solve）              →  只发 /mfc
+```
+
+**⇒ 差别不在脚本、不在响应、不在资源、不在超时内存 —— 在 `TryExecute` 与 `KasadaSolver.Solve` 这两条驱动路径之间。**
+
+`Solve` 做而裸路径不做的事有几件：设 `Runtime.HttpTransport`、包一层捕获
+`InterrogationBody` 的 transport、`MfcEnabled` 的包装、跑完把 `Transport` 还原。
+**这四件里有一件改变了传感器的行为** —— 下一轮就是把这四件逐个摘掉做二分。
+
+**顺带保留的改动**：`KasadaSolver` 的运行时提到 256MB / 60s。实网脚本是 155KB 驱动一个私有 VM，
+64MB/15s 对线上payload 本来就偏紧 —— 这条改动本身是对的，只是它不是这次的病因。
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

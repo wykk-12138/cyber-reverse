@@ -50,7 +50,15 @@ using var solver = new KasadaSolver(new BrowserShim
     Cookie = string.Join("; ", page.Cookies.Select(c => c.Key + "=" + c.Value)),
 });
 
+// Prefer a locally instrumented copy of the same script when one is supplied, so a live run can produce a
+// dispatch trace exactly like the offline harness does.
 var (script, scriptUrl) = await solver.FetchScriptAsync(http, pageUrl, options, CancellationToken.None);
+var tracedPath = Environment.GetEnvironmentVariable("KASADA_TRACED_SCRIPT");
+if (!string.IsNullOrEmpty(tracedPath) && File.Exists(tracedPath))
+{
+    script = File.ReadAllText(tracedPath);
+    Console.WriteLine("using traced script: " + tracedPath);
+}
 Console.WriteLine("script url = " + (scriptUrl ?? "(not found)"));
 Console.WriteLine("script     = " + (script?.Length.ToString() ?? "0") + " chars");
 
@@ -69,8 +77,30 @@ solver.ResourceAddress = resource;
 solver.Store = "nike";
 
 var seen = new List<string>();
+// Isolation switch: answer the sensor with the same shapes the offline stub uses, without touching the
+// network. If the sensor then issues POST /r, the difference between the two runs is the response itself
+// rather than anything about this harness.
+var fakeTransport = Environment.GetEnvironmentVariable("KASADA_FAKE_TRANSPORT") == "1";
+if (fakeTransport) Console.WriteLine("fake transport: no network will be used");
+
 solver.Transport = (url, method, headersJson, body) =>
 {
+    if (fakeTransport)
+    {
+        seen.Add($"{method} {url} -> 200 (fake)");
+        var fh = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (url.EndsWith("/mfc", StringComparison.Ordinal))
+        {
+            fh["x-kpsdk-h"] = "01";
+            fh["x-kpsdk-fc"] = "eyJmZWF0dXJlRmxhZ3MiOnt9LCJkeW5hbWljQ29uZmlnIjp7ImZyb250ZW5kIjp7ImxvZ0xldmVsIjo1MH19fQ==";
+        }
+        else if (url.EndsWith("/r", StringComparison.Ordinal))
+        {
+            fh["x-kpsdk-ct"] = "CT-FAKE-TRANSPORT-0123456789";
+        }
+        return System.Text.Json.JsonSerializer.Serialize(new { status = 200, headers = fh, body = "" });
+    }
+
     // The real send, through the replica's own HTTP stack so the fingerprint matches.
     var opts = options.Clone();
     opts.Timeout = TimeSpan.FromSeconds(25);
@@ -112,7 +142,22 @@ solver.Transport = (url, method, headersJson, body) =>
     });
 };
 
-var result = await Task.Run(() => solver.Solve(script));
+// A fresh solver for the solve itself: ScriptRuntime measures its timeout from construction, and this
+// harness has already spent seconds fetching the page and the script on the same object.
+using var solveSolver = new KasadaSolver(new BrowserShim
+{
+    Href = pageUrl,
+    UserAgent = ua,
+    Cookie = string.Join("; ", page.Cookies.Select(c => c.Key + "=" + c.Value)),
+})
+{
+    ResourceAddress = resource,
+    Store = "nike",
+    Transport = solver.Transport,
+};
+
+var result = await Task.Run(() => solveSolver.Solve(script));
+solver.ResourceAddress = resource;
 
 Console.WriteLine();
 foreach (var line in seen) Console.WriteLine("  " + line);
@@ -123,6 +168,12 @@ Console.WriteLine($"Ct          = {result.Ct ?? "(null)"}");
 Console.WriteLine($"Version     = {result.Version ?? "(null)"}");
 Console.WriteLine($"Body     len= {result.InterrogationBody?.Length.ToString() ?? "0"}");
 Console.WriteLine($"Error       = {result.Error ?? "-"}");
+var seqLen = solver.Runtime.TryString("(window.__dshSeq||[]).length");
+Console.WriteLine("dispatch count = " + seqLen);
+var seqJson = solver.Runtime.TryString("JSON.stringify((window.__dshSeq||[]))");
+if (!string.IsNullOrEmpty(seqJson))
+    File.WriteAllText(@"D:\projects\cyber-reverse\.tmp-live-seq.json", seqJson);
+
 Console.WriteLine("headers the host would send:");
 foreach (var h in result.Headers.OrderBy(k => k.Key, StringComparer.Ordinal))
     Console.WriteLine($"  {h.Key}: {(h.Value.Length > 60 ? h.Value[..60] + "…" : h.Value)}");

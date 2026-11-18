@@ -159,8 +159,15 @@ public sealed class KasadaSolver : IDisposable
     public string? ScriptUrl { get; private set; }
     public string? Version { get; private set; }
 
-    public KasadaSolver(BrowserShim? shim = null, TimeSpan? timeout = null)
-        => Runtime = new ScriptRuntime(shim, timeout);
+    /// <summary>
+    /// The real sensor is a large bundle driving a private VM; the 64 MB default is enough for the small
+    /// fixtures the tests use but marginal for a live payload, so this class asks for more room and a
+    /// longer budget. Both were the difference between an offline fixture finishing and a live script
+    /// stopping part way through.
+    /// </summary>
+    public KasadaSolver(BrowserShim? shim = null, TimeSpan? timeout = null,
+                        long memoryLimit = 256L << 20)
+        => Runtime = new ScriptRuntime(shim, timeout ?? TimeSpan.FromSeconds(60), memoryLimit);
 
     /// <summary>Pull the ips.js payload for a host. Returns the script text on success.</summary>
     public async Task<(string? Script, string? Url)> FetchScriptAsync(NetClient http, string pageUrl,
@@ -485,6 +492,15 @@ public sealed class KasadaSolver : IDisposable
         }
 
         var configured = string.IsNullOrEmpty(ResourceAddress) ? null : TryConfigure(ResourceAddress!);
+
+        // The script's follow-up work settles on promises and timers. Jint drains microtasks when an
+        // Execute returns, but configure ran through TryString, and the interrogation chain continues from
+        // the response that resolves later -- so drive both queues before reading anything back. Without
+        // this a fast stub response happens to settle inside the same drain and a slow real one does not,
+        // which is exactly the difference observed between the offline harness and the live run.
+        Runtime.DrainMicrotasks();
+        Runtime.RunPendingTimers();
+
         Transport = priorTransport;
         LastInterrogationBody = interrogationBody ?? LastInterrogationBody;
 

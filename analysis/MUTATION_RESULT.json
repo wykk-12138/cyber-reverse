@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-19T07:20:51+08:00",
+  "ran_at": "2026-11-19T07:32:32+08:00",
   "total": 59,
   "fired": 59,
   "decorative": 0,
@@ -476,7 +476,7 @@
     "tests/Cybersole.Tests/GroupBindingAndReasonsTests.cs": "f200bfd1ccbb517943de6c5bc90455bc414aaf783fd2829e495bf2668c14b843",
     "tests/Cybersole.Tests/GroupCounterTests.cs": "331d2985006682678526492c17b1ec6dbf4c5c9a235261cea8256366c55ef91c",
     "tests/Cybersole.Tests/GroupGridTests.cs": "0aae0ba44133d60b850edbc14447f6ff2cc097e51053f476404456d51f8f2c86",
-    "tests/Cybersole.Tests/GroupSummaryTests.cs": "ddc392e5103c211b73ab3bad9f5435dad074164cbd28276ee2e2d87446ff583b",
+    "tests/Cybersole.Tests/GroupSummaryTests.cs": "a7c1b09c055bc7f802e5ac02731969a562e9684254cd2ec5734e714bbf7ecfa5",
     "tests/Cybersole.Tests/HandlerSurfaceTests.cs": "28982891b8018f072dacf0204704c625de9b332234900948535ac33a885017ae",
     "tests/Cybersole.Tests/HandoffHeadPointerTests.cs": "d1104bb0ccd3d8b2a374ffc43a4de0b6c7551e5952fcd5974fee52781a4f3942",
     "tests/Cybersole.Tests/HbxPlatformTests.cs": "7c38bf9ad673d59f5031d73379c4b3b6026b7082aeb393b81599b1cd917e24d2",
@@ -679,6 +679,7 @@
     "tests/Cybersole.Tests/SettingsUnmatchedMembersTests.cs": "81be544707651fdece389e37b056a941dc611332764a3d7d27e194d8ac388682",
     "tests/Cybersole.Tests/ShapeAuditGuardTests.cs": "6abc0888c4acdd7069df83167da707ca5ff47bbdac783d98b79c862cc8bd44f8",
     "tests/Cybersole.Tests/SharedCommerceEndpointTests.cs": "51f082dd0fc021ecc66c87c9968d2522f420ebf08c14d8de2ed2cee07761cdb7",
+    "tests/Cybersole.Tests/SharedSettingsCollection.cs": "eaef89ff3dc4b7b27e9b5035bf0772d3816d3ced82e84cf6cd832d97b741a03a",
     "tests/Cybersole.Tests/ShippingRateSelectionTests.cs": "b1c6c222d31eb8e3e4d9efcacd66645ec078c512f7aeb6f66a4c5431a1a454af",
     "tests/Cybersole.Tests/ShopifyCartEndpointTests.cs": "28d730794ec04d6b1f1ab8f4cfec8f0929153d56e982fa87e93da00441cc446c",
     "tests/Cybersole.Tests/ShopifyGraphQlTests.cs": "f15093bb8ee0eee64c3d2933c5fad2480ee1d95336f97cd74b986545a0c7a6f2",

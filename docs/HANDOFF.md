@@ -6568,3 +6568,18 @@ order details 同形（`121/131/134/139`）。**追加顺序 = 路径→前缀�
 
 还剩什么：① 三条控制器方法仍未接到任何步骤调用（接线问题，需序列证据）；
 ② `GroupSummaryTests` 抖动两次未复现，应单独立案。
+## R1165 —— 抖动机制查明：单进程共享 settings.json + 并行测试类；已串行已抖过的类
+
+改了什么（仅 tests）：
+- 新增 `SharedSettingsCollection`（`[CollectionDefinition("shared-settings", DisableParallelization = true)]`）。
+- `GroupSummaryTests` 加 `[Collection("shared-settings")]`。
+
+机制（实证）：`TestServices.Create` → `AppServices.Create`（`config.Load()` @60、`AppPaths.DataRoot` @86）
+→ `AppPaths.DataRoot` 是 static 仅初始化一次（`CYBERSOLE_DATA_ROOT` 可覆盖）⇒ 全进程共用一份 `settings.json`；
+xunit 默认并行类 ⇒ 12 个碰 `Config` 的类互相踩。**解释了「只在全套里出现、单独跑消失」。**
+
+验证：build 0 错；`GroupSummary` **4/4**；全量 **2468/0/2/2470**；
+变异 **59/59 fired，restored tree GREEN**（07:32:32）。
+
+还剩什么：① 另 11 个候选类逐个确认是否写盘，再决定是否入 collection；
+② 三条 Demandware PayPal 控制器方法仍未接到步骤调用。

@@ -16,6 +16,11 @@ namespace Cybersole.Tests;
 /// parameter list is unknown. They stay in docs/BINDING_BACKLOG.md as named-but-not-recovered.
 /// </para>
 /// </summary>
+/// <summary>
+/// R1165: serialised, because it mutates and asserts on the one on-disk settings file the whole run
+/// shares. See <see cref="SharedSettingsCollection"/> for the mechanism.
+/// </summary>
+[Collection("shared-settings")]
 public sealed class GroupSummaryTests
 {
     private readonly ITestOutputHelper _out;

@@ -42081,3 +42081,42 @@ Inference = 无；Unknown = 无（本条闭环）。
 
 **一句自省**：这个 Unknown 是**我自己上一轮写进代码的**，隔一轮就关掉了——
 说明「把边界写在代码里」比「写在文档里」更容易被下一轮接手，**因为它就挡在路上**。
+## R1165 —— 抖动**不是玄学**：一次进程内所有测试共用同一份 `settings.json`
+
+**取件**：`GroupSummaryTests` 已两次抖动（R806 `DeletingRemovesTheGroupOnce`、R1162 `CloningCopiesTheGroupAndItsTasks`，
+后者干净重跑不复现）——它直接动摇判据 (e) 的可信度，本轮去查机制而不是再记一次「偶发」。
+
+**机制（三步实证）**：
+1. `TestServices.Create()` → `AppServices.Create(register)`（`SettingsShellTests.cs:195`）；
+2. `AppServices.Create` **第 60 行 `config.Load()`**，且第 86 行用 `Store.AppPaths.DataRoot`（`AppServices.cs`）；
+3. `AppPaths.DataRoot` 是 **`static` 只初始化一次**的属性（`AppPaths.cs:22-25`），仅由
+   `CYBERSOLE_DATA_ROOT` 覆盖 ⇒ **一次测试进程里所有测试读的是同一个 `settings.json`**。
+
+而 `GroupSummaryTests` 三个用例都做 `services.Config.TaskGroups.Add(group)` 并断言 `Contains`/
+`DoesNotContain`；**每个用例的 `AppServices` 是新的，但背后那份文件是同一份**，
+xunit 默认**并行跑测试类** ⇒ 该类与另外 11 个会碰 `services.Config` 的类互不可见地共享同一块状态。
+
+**改了什么（只动 tests）**：
+- 新增 `SharedSettingsCollection.cs`：`[CollectionDefinition("shared-settings", DisableParallelization = true)]`，
+  注释里写清上面三步机制与两次抖动记录；
+- `GroupSummaryTests` 加 `[Collection("shared-settings")]`。
+
+**范围说明（不夸大）**：只串行了**已经抖过的那个类**。另 11 个碰 `Config` 的类
+（`CustomSizesPageTests`/`CustomStoresPageTests`/`CustomStoresRowsTests`/`NotificationsPageTests`/
+`PaymentViewTests`/`ProviderFetchBalanceTests`/`SettingsDialogSingleSourceTests`/`SmartActionViewTests`/
+`StatusOverwriteTests`/`TaskProfileViewTests`/`UtilitiesAndProbeTests`）**只是候选，没动**——
+collection 立好了，挪它们是各加一行的事，但要各自先确认「真的会写盘」。
+
+验证命令与输出：
+- `dotnet build` → **0 错**；`--filter GroupSummary` → **4/4**；
+- 全量 **2468 通过 / 0 失败 / 2 跳过 / 2470**；
+- 变异 `ran_at 2026-11-19T07:32:32`、**59/59 fired，decorative 0**、`restored tree: GREEN`。
+
+**这一轮的意义不在修好那一个类，而在把「偶发」变成「机制」。**
+两次抖动我都没能复现，于是两次都只记成「单列、不计」——**那等于承认自己不知道原因**。
+这次查到了：**共享磁盘状态 + 并行类**。这解释了为什么它在变异跑（59 次全套）里出现、
+在单独跑时消失。
+
+证据等级：Observation = 三处代码（`SettingsShellTests.cs:195`、`AppServices.cs:60/86`、
+`AppPaths.cs:22-25`）+ 构建/测试/变异三条输出；Inference = 「两次抖动由此机制引起」（**未构造复现用例**）；
+Unknown = 其余 11 个类是否也真的写盘。

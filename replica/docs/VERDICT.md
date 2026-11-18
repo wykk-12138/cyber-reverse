@@ -65617,3 +65617,34 @@ R1163 我在两个方法的 doc 注释里写了「**builder 身份未追踪**」
 | 全量 | **2468 通过 / 0 失败 / 2 跳过 / 2470** |
 | 变异 | **59/59 fired，decorative 0，tree GREEN**（07:20:51） |
 | 行为改动 | **无**（只把注释从 Unknown 改成带行号的 Observation） |
+---
+
+## 第 1165 轮：把「偶发」变成「机制」
+
+`GroupSummaryTests` 抖了两次，我两次都只记「单列、不计」——**那等于承认自己不知道原因。**
+
+这一轮查到了，三步：
+
+1. `TestServices.Create()` → `AppServices.Create(register)`；
+2. `AppServices.Create` 第 **60** 行 `config.Load()`、第 **86** 行用 `AppPaths.DataRoot`；
+3. `AppPaths.DataRoot` 是 **`static` 只初始化一次**（仅 `CYBERSOLE_DATA_ROOT` 可覆盖）
+
+⇒ **一次测试进程里所有测试读同一个 `settings.json`**，而 xunit 默认**并行跑测试类**。
+该类三个用例都在 `Config.TaskGroups` 上 Add + 断言，与另外 11 个碰 `Config` 的类互相踩。
+
+> 这解释了为什么它**只在变异跑（59 次全套）里出现、单独跑时消失**。
+> **「偶发」通常只是「我没找到那个共享变量」。**
+
+### 修法与范围
+
+新增 `shared-settings` collection（`DisableParallelization = true`），只把**已经抖过的那个类**放进去。
+另 11 个候选**没动**——collection 立好了，挪它们是各加一行的事，但要各自先确认「真的会写盘」。
+**我不把「可能有问题」当成「已经修好」。**
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2468 通过 / 0 失败 / 2 跳过 / 2470** |
+| `GroupSummary` 子集 | **4/4** |
+| 变异 | **59/59 fired，decorative 0，`restored tree: GREEN`**（07:32:32） |

@@ -63845,3 +63845,33 @@ UNKNOWN 6 → **4**。
 | STRUCTURAL | 1 | 1 |
 | UNKNOWN | 4 | **2（并写明缺什么）** |
 | 合计 | 15 | 15 |
+---
+
+## 第 1110 轮：`Value` 是绑定路径，不是成员名
+
+### 一、上一轮的理由本身就错了
+
+R1109 我写：「各仅 1 个成员，名字都叫 `Value`，故成员名无区分力」。本轮直接查描述符：
+
+`
+Cybersole.Ui.Localization.LocalizeEnumExtension,Cybersole.Value!Getter        (0x14320D3B4)
+Cybersole.Ui.Localization.LocalizeFallbackExtension,Cybersole.Value!Getter    (0x14320EAE3)
+`
+
+描述符形如 **`<类型名>,<绑定路径>!<成员种类>`**。所以 **`Cybersole.Value` 是目标控件上的绑定路径**，
+不是这两个扩展类型自己的成员。生成物 `TYPE_RENAME_MAP.md` 的 `1 members: Value`
+是**解析器把路径末段当成了成员名**。
+
+### 二、处理
+
+- 两行理由改写为 **`UNKNOWN (缺：类型自身成员集)`**，写明：类型自身成员集**在绑定描述符里根本不存在**，
+  要从 **MethodTable / 元数据**取。
+- `TYPE_RENAME_MAP.md` 是生成物（`tools/type_rename_map.py`），**没手改**——手改会在下次生成时被覆盖；
+  解析器缺陷记入 BLOCKERS。
+
+### 三、这一轮的教训
+
+> **「我用它当证据的东西，是不是本来就该被这么读？」**
+> 上一轮我拿 `TYPE_RENAME_MAP.md` 的成员集当硬证据，但那份文件的成员名是从**绑定路径**里切出来的。
+> **证据的来源形态决定了它能证明什么** ——路径不是成员，出现位置不是数据流向（R1102 同族），
+> 键名不是体形（R1098 同族）。这三条已经是同一个毛病的三种皮。

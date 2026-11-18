@@ -5705,3 +5705,19 @@ SourceEncoding 2/2、metrics exit 0。
 数字变化：UNKNOWN **4 -> 2**；RENAMED **6 -> 8**。
 
 还剩什么：两条 Localize 需成员集之外的证据（虚槽 / XAML 用法）；(b)(c)(d)(f) 逐项复算。
+## R1110 —— 【判据 a】纠正理由：`Value` 是绑定路径，不是成员
+
+改了什么：
+- 查描述符原文：`LocalizeEnumExtension,Cybersole.Value!Getter`（0x14320D3B4）/
+  `LocalizeFallbackExtension,Cybersole.Value!Getter`（0x14320EAE3）——形如
+  `<类型>,<绑定路径>!<种类>`，故 **`Cybersole.Value` 是绑定路径**，不是这两个类型的成员。
+  生成物 `TYPE_RENAME_MAP.md` 的 `1 members: Value` 是解析器把路径末段当成员名。
+- 两行理由改为 **`UNKNOWN (缺：类型自身成员集)`**，写明要从 MethodTable/元数据取。
+- `TYPE_RENAME_MAP.md` 是生成物，**未手改**；解析器缺陷记入 BLOCKERS。
+
+验证：6 条描述符原文与地址；分类仍 15 行（8/2/1/2/2）；文档守卫 DocsConsistency 8 / ParityDoc 9 /
+SourceEncoding 2 = **19 钉全绿**。
+
+数字变化：分布不变；**这两条的「缺什么」从错的改成对的**。
+
+还剩什么：`tools/type_rename_map.py` 成员名解析缺陷待修；两条 Localize 需元数据侧成员集；(b)(c)(d)(f)。

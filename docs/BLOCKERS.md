@@ -39784,3 +39784,41 @@ Inference = 无（本轮全部改动都由已存在的机器钉子或清单直�
 
 还剩什么：`LocalizeEnumExtension` / `LocalizeFallbackExtension` 两条需**镜像侧成员集之外的证据**
 （如 MethodTable 虚槽或 XAML 用法）才能定性；判据 (b)(c)(d)(f) 逐项复算。
+
+## R1110 —— 【判据 a】纠正我上一轮的理由：`Value` 是**绑定路径**，不是该类型的成员
+
+**取件**：R1109 留下的两条 `Localize*` UNKNOWN（「缺成员集之外的证据」）。
+
+改了什么（一轮自我纠错）：
+- R1109 我写「各仅 1 个成员，名字都叫 `Value`，故成员名无区分力」。本轮直接查描述符原文，
+  **这个前提本身就是误读**：
+  - `Cybersole.Ui.Localization.LocalizeEnumExtension,Cybersole.Value!Getter`（0x14320D3B4；
+    另有 0x14320D3FB / 0x14363910B）
+  - `Cybersole.Ui.Localization.LocalizeFallbackExtension,Cybersole.Value!Getter`（0x14320EAE3；
+    另有 0x14320EB2E / 0x143639E4B）
+  描述符形如 **`<类型名>,<绑定路径>!<成员种类>`** —— **`Cybersole.Value` 是目标控件上的绑定路径**，
+  不是这两个扩展类型自己的成员。生成物 `docs/TYPE_RENAME_MAP.md` 的
+  `1 members: Value`（L282 / L290）是**解析器把路径末段当成了成员名**。
+- 故两行的理由改写为 **`UNKNOWN (缺：类型自身成员集)`**，并写明：
+  **类型自身的成员集在绑定描述符里根本不存在**，需从 **MethodTable / 类型元数据**取得，
+  不是从绑定表。
+- `docs/TYPE_RENAME_MAP.md` 是 `tools/type_rename_map.py` 的**生成物**，**未手改**（否则下次生成即被覆盖）；
+  解析器缺陷另记入 BLOCKERS 待修。
+
+验证命令与输出：
+- `python analysis/ida.py str "LocalizeFallbackExtension" --limit 4` → 4 条描述符全为
+  `<类型>,Cybersole.Value!<Kind>` 形态；`LocalizeEnumExtension` 同形（前轮同法取证）。
+- 生成物来源确认：`tools/type_rename_map.py` / `tools/member_owner_map.py` /
+  `analysis/binding_descriptors.py` 均提到该文件。
+- 分类计数自检：**15 行 = RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / UNKNOWN 2 / EQUIVALENT 2**。
+- 文档守卫：DocsConsistency 8/8、ParityDoc 9/9、SourceEncoding 2/2 = **19 钉全绿**。
+
+数字变化：分类分布不变（UNKNOWN 仍 2 条），但**这两条的「缺什么」从错的（成员名无区分力）
+改成对的（类型自身成员集缺失）**。
+
+证据等级：Observation = 六条描述符原文与地址、描述符的 `<类型>,<路径>!<种类>` 形态、
+生成物来源脚本、分类计数、三个守卫类逐类通过；Inference = 解析器「取路径末段当成员名」的
+具体代码路径（未逐行读该脚本）。
+
+还剩什么：`tools/type_rename_map.py` 的成员名解析缺陷待修（修后 L282/L290 会自动变正确）；
+两条 `Localize*` 需 MethodTable/元数据侧成员集；判据 (b)(c)(d)(f) 逐项复算。

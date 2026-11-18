@@ -473,19 +473,23 @@ public sealed class PayPalThreeDsTests
     }
 
     /// <summary>
-    /// R1099: the normal dialect end to end — its three hops have a real caller, in the normal
-    /// solver's own order, stopping where the challenge window opens exactly as the hosted path
-    /// does. Without this the three methods were an island reachable only from tests.
+    /// R1099, strengthened in R1105: the normal dialect end to end, with the method pair and the
+    /// challenge initialisation actually going out on the wire. The first cut left the JWT answer
+    /// without a <c>jwt</c>, so the alive gate skipped those hops and the R1099 mutation came back
+    /// DECORATIVE — the pin could not see the code it was meant to nail.
     /// </summary>
     [Fact]
     public async Task TheNormalDialectRunsEndToEndAndStopsAtTheWindow()
     {
         var seen = new System.Collections.Generic.List<string>();
-        using var server = new TinyServer((req, _) =>
+        var bodies = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, body) =>
         {
             seen.Add(req.Url?.AbsolutePath ?? "");
+            bodies.Add(body);
             if ((req.Url?.AbsolutePath ?? "").Contains("graphql"))
-                return (200, @"{""data"":{""paymentContingencies"":{
+                return (200, @"{""jwt"":""eyJ.normal.sig"",""threeDSServerTransID"":""txn-9"",
+                    ""data"":{""paymentContingencies"":{
                     ""threeDomainSecure"":{""status"":""CHALLENGE_REQUIRED"",
                         ""redirectUrl"":{""href"":""https://bank.example/challenge""}},
                     ""threeDSContingencyData"":{""resolution"":{
@@ -510,14 +514,20 @@ public sealed class PayPalThreeDsTests
         Assert.True(outcome.AwaitingChallenge, outcome.Error);
         Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Waiting3DS), ctx.Session.Vars["paypal3ds.state"]);
 
-        // The normal solver's own order: bootstrap, submit, JWT query, then the method pair.
+        // The normal solver's own order, all seven hops: bootstrap, submit, JWT query, then the
+        // method pair and the challenge initialisation.
+        Assert.Equal(7, seen.Count);
         Assert.Equal("/heliosnext/api/serverData", seen[0]);
         Assert.Equal("/heliosnext/api/session", seen[1]);
         Assert.Contains("/graphql", seen[2]);
         Assert.Contains("/graphql", seen[3]);
-        // The remaining hops only run when the JWT answer carries a jwt; this stub does not, so
-        // the machine's alive gate keeps them off the wire — which is itself the decoded gate.
-        Assert.Equal(4, seen.Count);
+        Assert.Equal("/v1/init-method", seen[4]);            // the JWT form hop
+        Assert.Equal("/v1/notify-method-cmpl", seen[5]);     // the threeDSMethodData hop
+        Assert.Equal("/v1/init-challenge", seen[6]);         // the normal path's own hop
+
+        Assert.Contains("JWT=eyJ.normal.sig", bodies[4]);
+        Assert.Contains("threeDSMethodData=", bodies[5]);
+        Assert.Contains("JWT=eyJ.normal.sig", bodies[6]);
         Assert.Equal("0", ctx.Session.Vars["paypal3ds.hosted"]);   // the normal dialect's flag
     }
 

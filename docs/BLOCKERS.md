@@ -39598,3 +39598,38 @@ Unknown = 59 锚全跑的真实产物（本轮未取得）。
 
 还剩什么：**59 锚全跑取绿收据**（需在内存 > 3 GB 且并行会话静默的窗口跑，并落
 `MUTATION_RESULT.json` 后立即核对 mtime/时间戳）；`WallDispatchTests` 待并行会话收尾后复算。
+
+## R1105 —— 59 锚全跑取得新鲜收据；**我自己的钉被判 DECORATIVE，已修**
+
+**本轮首次拿到带正确时间戳的全套件收据，并据此发现自己一条钉是空的。**
+
+改了什么：
+- 全跑（`python -u tools/mutation-check.py`，绝对路径 + 后台 + 落盘）取得
+  **16:36:33 的新鲜收据**：`total 59 / fired 57 / decorative 1 / skipped 0 / tree RED`。
+  上一轮那份是 6 小时前的旧产物，本轮这份 7 秒前（mtime 16:36:36）。
+- **`GUARD IS DECORATIVE`：`round 1099 -- the normal chain skips its method pair`** ——
+  **是我 R1099 自己加的锚。** 原因是我的钉太弱：`TheNormalDialectRunsEndToEndAndStopsAtTheWindow`
+  的桩应答**不含 `jwt` 字段**，于是 `SubmitDeviceDataAsync` 被 alive 门直接挡回、零出网；
+  把方法对整段删掉，出口完全一样，测试自然全绿——**钉看不见它要钉的代码**。
+- 修钉：桩应答补 `"jwt":"eyJ.normal.sig","threeDSServerTransID":"txn-9"`，
+  断言从「4 跳」改为**七跳全序**（serverData → session → graphql×2 → init-method →
+  notify-method-cmpl → init-challenge），并逐个断言三条请求体的关键字段。
+- **复验：该锚现在 `guard fired`**（`--only "1099"` 输出确认）。
+
+验证命令与输出：
+- 全跑收据：`ran_at 2026-11-18T16:36:33+08:00`，`total 59 / fired 57 / decorative 1`。
+- 摘要区另一条非 fired：**`DID NOT COMPILE — the guard never ran`：`round 112`
+  （mojibake 注释）**。日志同期满是 `CS2012` / `MSB3027` / `MSB3021` 文件锁错误，
+  即**并行会话 testhost 抢占构建产物**所致，**不是变异缺陷**；该条需在静默窗口重验。
+- 修钉后 `PayPalThreeDsTests` **26/26 绿**；`--only "1099"` → **guard fired**。
+- `restored tree: RED`，唯一失败仍是
+  `WallDispatchTests.DetectionDispatchesToTheStrategy`（并行会话在途 Kasada 改动，非本轮文件）。
+
+数字变化：锚数仍 **59**；**decorative 1 → 0**（全跑应得 58 fired / 59，余 1 条待静默重验）。
+
+证据等级：Observation = 新鲜收据的 `ran_at` 与四个计数、`DID NOT COMPILE` 与文件锁错误的同期性、
+修钉后 `guard fired`、整树唯一失败项归属；Unknown = `round 112` 在静默树下的真实结果。
+
+还剩什么：**静默窗口复跑全 59 锚**取 `fired 59 / decorative 0 / skipped 0` 与 `tree GREEN`
+（判据 e 的完整形态）；`WallDispatchTests` 待并行会话收尾。注：`analysis/MUTATION_RESULT.json`
+本轮被多次窄口径运行覆写，**未纳入提交**，以免冒充全套收据。

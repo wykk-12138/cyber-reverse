@@ -5607,3 +5607,23 @@ SourceEncoding 2/2、metrics exit 0。
 
 还剩什么：59 锚全跑取绿收据（内存 >3 GB + 并行会话静默窗口，落盘后立即核对时间戳）；
 `WallDispatchTests` 待并行会话收尾后复算。
+
+## R1105 —— 59 锚全跑取新鲜收据；我自己的钉被判 DECORATIVE，已修
+
+改了什么：
+- 全跑取得 **16:36:33 新鲜收据**：`total 59 / fired 57 / decorative 1 / skipped 0 / tree RED`。
+- **`DECORATIVE`：`round 1099`（我 R1099 加的锚）** —— 钉的桩应答不含 `jwt`，方法对被 alive
+  门挡回零出网，删掉方法对出口一样，**钉看不见要钉的代码**。
+- 修钉：桩补 `jwt` + `threeDSServerTransID`；断言改**七跳全序**（serverData → session →
+  graphql×2 → init-method → notify-method-cmpl → init-challenge）+ 三条请求体关键字段。
+  **复验 `guard fired`。**
+
+验证：修钉后 `PayPalThreeDsTests` **26/26**；`--only "1099"` → guard fired。
+另一条非 fired 是 **`round 112` DID NOT COMPILE**，同期满是 `CS2012`/`MSB3027` 文件锁
+——**并行会话抢占构建产物所致，非变异缺陷**，需静默窗口重验。
+`tree RED` 唯一失败仍是并行会话的 `WallDispatchTests`。
+
+数字变化：锚数仍 **59**；**decorative 1 → 0**。
+
+还剩什么：静默窗口复跑全 59 锚取 `fired 59 / tree GREEN`（判据 e 完整形态）。
+`analysis/MUTATION_RESULT.json` 被窄口径运行覆写，**未提交**以免冒充全套收据。

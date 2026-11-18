@@ -5502,3 +5502,25 @@ SummaryBlock 4/4（指南 55）、SourceEncoding 2/2、metrics exit 0。
 
 还剩什么：两方言分派判据（哪个字段选 `sub_140D8D2B0` vs `sub_141113680`）；confirm 内容体；
 55 锚静树全跑。
+
+## R1100 —— 【核心②】分派判据解出：按对象类型，不是字段；方言选择器落地
+
+**推翻了「某字段决定走哪条」的预设**：两 solver 四次引用链**形状逐条对称**，是同一接口的
+两个实现类型。
+
+改了什么：
+- 两 solver 的 4 条引用：`0xb` thunk + `0xce/0xcf` 启动包装 + **`0xa4` MethodTable 槽函数**
+  （模板同一，仅目标异）+ 一个 MethodTable 槽数据引用。
+- 槽内 = 32 位 RVA：`0x1475D4950 → 0xD8D2B0`（普通）、`0x14760B61C → 0x1113680`（hosted）。
+  再追包装层 → 两个类各一组**平行虚槽**（`0x028E69E0`+`0x028E6AB0` / `0x0258A600`+`0x0258A6CF`）。
+- **结论**：没有共享的字段分派；选哪条链由**构造哪个类型**决定 → 落地
+  `ThreeDsDialect { Hosted, Normal }` + `RunDialectAsync(...)`，两分支各一钉。
+- 变异 55 → **56**（选择器塌缩锚）+ 指南同步。
+
+验证：`PayPalThreeDsTests` **25/25**（1 新钉覆盖两分支互斥面）、SummaryBlock 4/4（指南 56）、
+SourceEncoding 2/2、metrics exit 0。
+
+数字变化：变异 55 → **56**；PayPal 钉 24 → **25**；**分派机制 Unknown → Observation（类型分派）**，
+字段级判据的未知项**撤销**（它不存在）。
+
+还剩什么：confirm 内容体内部字段；56 锚静树全跑。

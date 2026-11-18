@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-18 15:56:56 +0800 |
+| 生成时间 | 2026-11-18 16:02:07 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,9 +14,9 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 25 个源文件比产物新（共 17833 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 25 个源文件比产物新（共 17862 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`5236 -- src/Cybersole.Stores/Flows/AntiBotVendors.cs (+5235 more) differs from the run's manifest`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`5563 -- src/Cybersole.Stores/Flows/AntiBotVendors.cs (+5562 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -41,7 +41,7 @@
 | 函数数量（.pdata） — functions: replica .pdata | 174,293 |
 | 函数数量（.pdata） — functions: ratio | 62.89% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 25 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 17833 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 17862 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 359 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -60,7 +60,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 41 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 5236 -- src/Cybersole.Stores/Flows/AntiBotVendors.cs (+5235 more) differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 5563 -- src/Cybersole.Stores/Flows/AntiBotVendors.cs (+5562 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -374,9 +374,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 22:30:56
-newest source: src\Cybersole.Stores\Scripts\KasadaSolvers.cs (2026-11-18 15:53:52)
+newest source: src\Cybersole.Stores\Scripts\KasadaSolvers.cs (2026-11-18 16:02:11)
 source files newer than the artifact: 25
-lines in those files: 17833
+lines in those files: 17862
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -554,7 +554,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: UNKNOWN (cut off)
-  mutation-fit-staleness: 5236 -- src/Cybersole.Stores/Flows/AntiBotVendors.cs (+5235 more) differs from the run's manifest
+  mutation-fit-staleness: 5563 -- src/Cybersole.Stores/Flows/AntiBotVendors.cs (+5562 more) differs from the run's manifest
 
   The counts above are from 2026-11-18T10:29:38+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.

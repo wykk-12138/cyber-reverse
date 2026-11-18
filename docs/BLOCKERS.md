@@ -39416,3 +39416,46 @@ Inference = confirm 跳的内容体由上下文预构（本轮以调用方传入
 
 还剩什么：两方言的**分派判据**（哪个字段决定走 `sub_140D8D2B0` 还是 `sub_141113680`）；
 confirm 内容体的内部字段；55 锚静树全跑。
+
+## R1100 —— 【核心②】分派判据解出：**按对象类型，不是字段**；方言选择器落地
+
+**取件**：R1099 遗留的「两方言分派判据」。
+
+**结论推翻了「某个字段决定走哪条」的预设**——四次引用链追踪，两 solver 的形状完全对称，
+是**同一接口/基类的两个实现类型**。
+
+改了什么：
+- `xrefs sub_140D8D2B0`（普通）与 `xrefs sub_141113680`（hosted）各得 4 条，**形状逐条对称**：
+  - `0xb` 小 thunk（0x1428E6950 / 0x14258A570）
+  - `0xce`/`0xcf` 状态机启动包装（0x1428E69E0 / 0x14258A600）
+  - **`0xa4` MethodTable 槽函数**（0x142BF1F80 / 0x142C76EC0）——两者都是同一模板的 TLS 包装
+    （`NtCurrentTeb()->ThreadLocalStoragePointer[TlsIndex]+16/+320` → 三段保存/恢复 → 调目标），
+    只差被调目标；
+  - 一个 **MethodTable 槽**数据引用（普通 0x1475D4950 / hosted 0x14760B61C）。
+- 读槽内容：`0x1475D4950 → 0xD8EB5600D8D2B0`、`0x14760B61C → 0x111737F01113680` ——
+  **低 32 位就是 solver 的 RVA**（`0x140D8D2B0 - 0x140000000 = 0xD8D2B0`；
+  `0x141113680 - 0x140000000 = 0x1113680`），NativeAOT 的 32 位 RVA fixup 形态。
+- 再追包装层的三引用（0x5/0x7 小 thunk + 一个数据引用），数据引用（0x1477DBC20 / 0x14777A9A8）
+  读出**成对 RVA**（`0x028E69E0`+`0x028E6AB0` / `0x0258A600`+`0x0258A6CF`）——
+  **两个类各自一组平行的 MethodTable 虚槽**。
+- **判据结论**：镜像里**没有**「读某字段再 if」的共享分派；选哪条链由**构造的是哪个类型**决定。
+  故不能凭字段猜判据——只能把选择做成 API 层显式项。
+- 落地：`ThreeDsDialect { Hosted, Normal }` + `RunDialectAsync(...)` 选择器（Hosted → `RunAsync`，
+  Normal → `RunNormalAsync`），两条分支各由独立测试覆盖。
+- 变异 55 → **56**（选择器塌缩锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：两 solver 的 xrefs 逐条对称、`dec` 两槽函数（模板相同仅目标异）、槽内 RVA 校验、
+  包装层三引用与成对 RVA。
+- `PayPalThreeDsTests` **25/25 绿**（1 新钉：Normal 分支走 heliosnext 且不触 checkoutweb、
+  Hosted 分支不触 heliosnext）；`SummaryBlockTests` 4/4（指南 56）；`SourceEncodingTests` 2/2；
+  `metrics_report` exit 0。
+- 自省并修复一处手工失误：插入新钉时挤掉了原钉的文档注释（结构未坏），已补回。
+
+数字变化：变异 55 → **56**；PayPal 钉 24 → **25**；**分派机制从 Unknown 降级为 Observation
+（类型分派）**，字段级判据的未知项撤销——因为它不存在。
+
+证据等级：Observation = 四条对称引用、两槽函数的模板同一性、槽内 RVA、成对虚槽；
+Inference = 两类型共同实现的接口名（未被本轮解出，但不影响「按类型分派」这一结论）。
+
+还剩什么：confirm 内容体的内部字段（`sub_142FABDD8 → sub_140D8CF60` 深链）；56 锚静树全跑。

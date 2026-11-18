@@ -1318,6 +1318,29 @@ fragment InstallmentsFragment on FundingInstrument {
         HeliosEntryUrl + Uri.EscapeDataString(cartId) + GoToNextSegment;
 
     /// <summary>
+    /// Which PayPal 3DS surface to drive. R1100 established that the image does not branch on a
+    /// field inside a shared function: the two solvers are two implementation types with parallel
+    /// method tables (normal at 0x1475d4950, hosted at 0x14760b61c — each slot pair holding its
+    /// own starter plus one more method), so the choice is made by which type is constructed.
+    /// This enum is that choice made explicit at the API.
+    /// </summary>
+    public enum ThreeDsDialect { Hosted, Normal }
+
+    /// <summary>
+    /// Drives the dialect that was selected. <see cref="ThreeDsDialect.Hosted"/> walks the
+    /// graphql + <c>payment-authentication</c> chain; <see cref="ThreeDsDialect.Normal"/> walks
+    /// the <c>heliosnext</c> chain. The two share only the method pair, which is why they are two
+    /// entry points rather than one function with a flag.
+    /// </summary>
+    public Task<StageOutcome> RunDialectAsync(FlowContext c, StageInput input,
+        ThreeDsDialect dialect, CancellationToken ct, string? graphqlUrl = null,
+        string? cartId = null) => dialect switch
+    {
+        ThreeDsDialect.Normal => RunNormalAsync(c, input, cartId ?? string.Empty, ct, graphqlUrl),
+        _ => RunAsync(c, input, ct, graphqlUrl),
+    };
+
+    /// <summary>
     /// The normal dialect end to end (R1099) — the counterpart of <see cref="RunAsync"/> for the
     /// <c>heliosnext</c> surface, mirroring how the image has two solver entry points
     /// (<c>sub_140d8d2b0</c> for this one, <c>sub_141113680</c> for the hosted one). The order is

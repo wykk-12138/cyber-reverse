@@ -635,6 +635,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~PayPalThreeDsTests",
         "guard": "TheNormalDialectRunsEndToEndAndStopsAtTheWindow",
     },
+    {
+        "name": "round 1100 -- the dialect selector collapses both branches onto hosted",
+        "file": PAYPAL_3DS,
+        # The two solvers are two types; collapsing the selector is exactly the drift the
+        # dialect pin forbids.
+        "find": '        ThreeDsDialect.Normal => RunNormalAsync(c, input, cartId ?? string.Empty, ct, graphqlUrl),',
+        "replace": '        ThreeDsDialect.Normal => RunAsync(c, input, ct, graphqlUrl),',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheDialectSelectorWalksTheChosenSurface",
+    },
 ]
 
 

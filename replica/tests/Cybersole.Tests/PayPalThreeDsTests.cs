@@ -376,6 +376,56 @@ public sealed class PayPalThreeDsTests
     }
 
     /// <summary>
+    /// R1100: the dialect choice is explicit, and each branch walks its own surface. The image
+    /// has no field-based branch in a shared function — it has two implementation types with
+    /// parallel method tables — so the selector is the API-level expression of that choice.
+    /// </summary>
+    [Fact]
+    public async Task TheDialectSelectorWalksTheChosenSurface()
+    {
+        static TinyServer Server(out System.Collections.Generic.List<string> seen)
+        {
+            var log = new System.Collections.Generic.List<string>();
+            seen = log;
+            return new TinyServer((req, _) =>
+            {
+                log.Add(req.Url?.AbsolutePath ?? "");
+                return (200, "{\"data\":{\"paymentContingencies\":{}}}");
+            });
+        }
+
+        // Normal branch → the heliosnext surface.
+        using (var server = Server(out var normalSeen))
+        {
+            using var http = new NetClient { Transport = TransportMode.SChannel };
+            var ctx = Context(http);
+            ctx.Session.Vars["paypal3ds.heliosServerDataUrl"] = server.BaseUrl + "/heliosnext/api/serverData";
+            ctx.Session.Vars["paypal3ds.heliosSessionUrl"] = server.BaseUrl + "/heliosnext/api/session";
+
+            var outcome = await new PayPalThreeDs().RunDialectAsync(ctx, Sample(),
+                PayPalThreeDs.ThreeDsDialect.Normal, default, server.BaseUrl + "/graphql", "cart-9");
+
+            Assert.True(outcome.Ok, outcome.Error);   // no challenge asked → completes
+            Assert.Contains("/heliosnext/api/serverData", normalSeen[0]);
+            Assert.DoesNotContain(normalSeen, u => u.Contains("checkoutweb"));
+        }
+
+        // Hosted branch → the payment-authentication surface, no heliosnext hop.
+        using (var server = Server(out var hostedSeen))
+        {
+            using var http = new NetClient { Transport = TransportMode.SChannel };
+            var ctx = Context(http);
+
+            var outcome = await new PayPalThreeDs().RunDialectAsync(ctx, Sample(hosted: true),
+                PayPalThreeDs.ThreeDsDialect.Hosted, default, server.BaseUrl + "/graphql");
+
+            Assert.True(outcome.Ok, outcome.Error);
+            Assert.DoesNotContain(hostedSeen, u => u.Contains("heliosnext"));
+            Assert.NotEmpty(hostedSeen);
+        }
+    }
+
+    /// <summary>
     /// R1099: the normal dialect end to end — its three hops have a real caller, in the normal
     /// solver's own order, stopping where the challenge window opens exactly as the hosted path
     /// does. Without this the three methods were an island reachable only from tests.

@@ -1736,6 +1736,60 @@ BrowserShim.IosUserAgents            // 五台的 UA，顺序与上面一致
 
 **Kasada + BrowserShim + AntiBot 用例：103/103 通过。**
 
+### 5.80 `KasadaCdSolver` 的边界查清了：它没有可调的入口，`cd` 材料只能"接"
+
+`KasadaCdSolver`（`0x143321dfa`）在整张表里**只有这一个字符串出现**：
+
+- 没有 `get_`/`set_` 属性名，没有 `SolveCd`/`GetCd` 之类的方法名
+- 没有任何绑定路径（`KasadaCdSolver,` 搜出 **0 条**）——说明它不在 XAML 里，是纯代码组件
+- 而 `IKasadaSolver` / `KasadaSolveResult` / `KasadaSolveRequest` 都在同一元数据块（`0x143321xxx`）
+
+**所以：它是个内部组件，名字可读、内部不可读。**
+
+**复刻件这边的现状更值得记**：`KasadaSolver.EncryptBody` 走的是 `BodyEntryPoints`
+（`KPSDK.cd(...)` 这类表达式）—— **和 `CtEntryPoints` 是同一个死胡同**，
+Nike 现在的构建只暴露 `configure`/`isReady`（§5.23），那些入口不存在，所以它永远返回 null。
+
+**⇒ 结论：`cd` 那部分材料不是"算"出来的，是传感器自己组好、宿主只负责搬运。**
+
+### 5.81 于是改成"接"：`KasadaResult.InterrogationBody`
+
+传感器为 `/r` 组出来那个 460 字节的编码体，就是同一类材料。落地成：
+
+```csharp
+public string? InterrogationBody { get; init; }   // 传感器自己组的那一份，原样
+```
+
+**在传输包装里捕获，不加新钩子**：
+
+```csharp
+Transport = (url, method, headers, body) =>
+{
+    if (url.EndsWith("/r", StringComparison.Ordinal) && body.Length > 0) interrogationBody = body;
+    return inner(url, method, headers, body);
+};
+```
+
+`KasadaInterrogationBodyTests`（3 例）：
+
+| 用例 | 断言 |
+|---|---|
+| `TheBodyTheSensorBuiltIsCapturedWhole` | 非空、**> 200 字符**（截断会看起来成功但没用）、不含 `{`（不是把明文原样搬回来） |
+| `TheBodyIsStableWhenEveryInputIsHeldConstant` | 三次同环境跑出**完全相同**的 body |
+| `NoTransportMeansNoBodyToReport` | 没装传输时为 null |
+
+### 5.82 一条被实测推翻的预期：body **是确定性的**
+
+我原本写了个「多次运行 body 应该不同」的断言，**它红了**。三次运行同一份 body。
+
+**这不是 bug，是正确行为**：编码器本身是确定性的，真实页面上看到的差异来自**时钟与指纹输入**，
+不是编码内部有随机源。
+
+**断言改成钉住"确定性"**，并在注释里写明：以后若有人往里加随机性，那是一次有意的设计变更，
+而不是无声漂移。**把"我以为"改成"我量到的"，这条测试的价值才成立。**
+
+**Kasada + BrowserShim + AntiBot 用例：106/106 通过。**
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

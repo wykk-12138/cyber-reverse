@@ -63,6 +63,13 @@ public sealed class KasadaResult
     /// </summary>
     public long WorkTimeMs { get; init; }
 
+    /// <summary>
+    /// The encoded body the sensor built for its interrogation POST. This is the same material the
+    /// x-kpsdk-cd header carries -- the sensor composes it, the host only ships it -- so it is captured
+    /// here rather than recomputed through an entry point that does not exist on this build.
+    /// </summary>
+    public string? InterrogationBody { get; init; }
+
     private string? Header(string name) => Headers.TryGetValue(name, out var v) ? v : null;
 
     /// <summary>Every <c>x-kpsdk-*</c> header the browser emitted, for diagnostics.</summary>
@@ -347,7 +354,17 @@ public sealed class KasadaSolver : IDisposable
            token off the reply. That is what ResourceAddress + Transport exist for. */
         // MfcEnabled=false means the sensor must not reach its remote configuration endpoint at all.
         // Refusing it here (rather than after the fact) keeps the host from making the call.
+        string? interrogationBody = null;
         var priorTransport = Transport;
+        if (priorTransport is not null)
+        {
+            var inner = priorTransport;
+            Transport = (url, method, headers, body) =>
+            {
+                if (url.EndsWith("/r", StringComparison.Ordinal) && body.Length > 0) interrogationBody = body;
+                return inner(url, method, headers, body);
+            };
+        }
         if (!MfcEnabled && priorTransport is not null)
         {
             Transport = (url, method, headers, body) =>
@@ -395,6 +412,7 @@ public sealed class KasadaSolver : IDisposable
             ScriptUrl = ScriptUrl,
             Cookies = cookies.ToList(),
             WorkTimeMs = clock.ElapsedMilliseconds,
+            InterrogationBody = interrogationBody,
             Error = ct is null ? "no kasada client token exposed by the script" : null,
         };
 

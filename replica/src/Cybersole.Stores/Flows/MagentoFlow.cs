@@ -1291,6 +1291,41 @@ public sealed class JohnLewisFlow : StoreFlow
     }
 
     /// <summary>
+    /// <c>PlaceOrder</c> — the <b>body-less</b> PUT to <c>v2/orders</c> that turns the finished order
+    /// form into an order.
+    ///
+    /// <para>
+    /// R1140: the orders literal (chars 0x14705d7cc, object 0x14705d7c0) has exactly <b>one</b> data
+    /// reference in the whole image — <c>sub_140A40F20</c> — and that function sets no keys and calls
+    /// <c>sub_1408B6310(v2, v3, 0, v4)</c>, so the request has no body. Everything the order needs is
+    /// already on the server from the earlier steps.
+    /// </para>
+    ///
+    /// <para>
+    /// Which of the two step names owns that one call is <b>not settled</b>: the pair map puts both
+    /// <c>SubmitOrder</c> (33) and <c>PlaceOrder</c> (36) on this endpoint, while the image has only one
+    /// function issuing it, so exactly one of them does. This override takes <c>PlaceOrder</c> because
+    /// it is the terminal step and the order is placed last; <c>SubmitOrder</c> is deliberately left
+    /// unlanded so the PUT cannot be issued twice. The discriminator that settles it is the ordinal of
+    /// the state machine that owns <c>sub_140A40F20</c>, which needs MethodTable resolution.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> PlaceOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.TryGetValue("jl.ordersUrl", out var over) && !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.OrdersV2;
+
+        var options = c.Options("jl-orders");
+        var res = await c.Http.SendAsync(HttpMethod.Put, url, options, ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl orders unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"jl orders HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.ordersBody"] = res.Body ?? string.Empty;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
     /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
     /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>

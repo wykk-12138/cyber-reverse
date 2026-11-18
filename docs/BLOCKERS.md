@@ -41087,3 +41087,47 @@ Inference（已标注在方法注释）= 34↔PUT payment-page 这条分配。
 - 相关子集：**89/89**。
 - 变异：`ran_at 2026-11-19T03:03:06`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   `staleness 0`（mtime 03:03:13，读于 03:03:18 —— 5 秒新鲜）。
+## R1140 —— `orders` 端点：**无体 PUT**，且全镜像只有**一个**函数发出它
+
+**取件**：R1139 待办里点名的「`orders` 的 POST 体」。
+
+改了什么（取证 + 落地）：
+- **取证链**（可重算）：
+  1. `ida.py str "bff/v2/orders"` → `chars_va = 0x14705d7cc`，**`saturated: false`, total 1**；
+  2. `obj_va = 0x14705d7cc - 12 = 0x14705d7c0`；
+  3. `xrefs_to(obj_va)` → **全镜像只有 1 条 data xref**：site `0x140a40fac`，属函数
+     **`sub_140A40F20`**（size 0x178）；
+  4. 反编译该函数（1357 字符）→ **引用串只有它自己的 URL**、**0 次设键**、
+     动词调用是 `sub_1408B6310(v2, v3, 0, v4)`——**第三参字面 `0`**。
+  ⇒ `orders` 是 **无体 PUT**。**先前我把它记成「POST 且体未取证」，两处都错**：
+  动词是 PUT，而且**根本没有体**（不是「体还没挖到」）。
+- **落实现**：`JohnLewisFlow.PlaceOrderAsync` 覆写（`StoreFlow` 里该虚步骤**已存在**，故无 ratchet 变动）：
+  无体 PUT 到 `OrdersV2`（字面量 `0x14705d7c2`… 实为 `chars 0x14705d7cc`），seam `jl.ordersUrl`，
+  响应存 `jl.ordersBody`。
+- **命名问题没有猜**：映射表把 `SubmitOrder`(33) 与 `PlaceOrder`(36) **都**放在这个端点上，
+  而镜像**只有一个函数**发出它 ⇒ **只有一个名字真正发**。本轮把它落在 `PlaceOrder`（终止步），
+  **`SubmitOrder` 故意不落**，理由写进代码与被测事实：**两个名字都接线会导致 PUT 发两次**。
+  判别所需的下一步探针已写明：`sub_140A40F20` 所属状态机的 ordinal（MethodTable 解析）。
+- 新增 `JohnLewisPlaceOrderTests` **5 条**：PUT + **空体**（断言 `[]`）、`Knows("PlaceOrder")`、
+  409 可重试、**`SubmitOrder` 仍拒绝**（把「故意不落」钉成事实，防止后人好心接错）、常量等于镜像字面量。
+
+验证命令与输出：
+- `dotnet build` → **exit=0，0 个错误**；
+  相关子集（JohnLewis | FlowSequence | RetailApi | SourceEncoding）→ **84/84 通过**。
+- 全量结果与变异收据见下条。
+
+数字变化：John Lewis 实际调用 BFF 端点 **9 → 10**（`orders` PUT 首次被调用）；测试 **+5**；
+**无 ratchet 变动**（`PlaceOrderAsync` 早已是虚步骤，本轮只是覆写）。
+
+证据等级：Observation = 唯一 data xref、`sub_140A40F20` 的 0 设键与字面 0 第三参、build 0 错、84/84；
+Inference（已标注）= 「33 与 36 只有其一发这个 PUT，本轮取 36」；未知项 = 该函数所属 ordinal。
+
+还剩什么：① `sub_140A40F20` 的 ordinal 判别（决定 33/36 谁发）；
+② `SubmitBillingAddress`(35) 已落（R1128）、`SubmitOrderStripe`(32) 已落——
+19 步里只剩 `SubmitOrder`(33) 与 Stripe 侧 `HandleRequiresAction`(37)/`GetStripePaymentIntent`(39)。
+
+**全量与收据（本轮收数）**：
+- 全量：**2447 通过 / 0 失败 / 2 跳过 / 2449**（2m45s）——**一次即绿**。
+- 相关子集：**84/84**。
+- 变异：`ran_at 2026-11-19T03:14:42`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  `staleness 0`（mtime 03:14:49，读于 03:14:53 —— 4 秒新鲜）。

@@ -6190,3 +6190,20 @@ CUA 清两个模态框后 IDA 进程退出 → 二次 doctor 仍拒连。**本�
 
 还剩什么：`SubmitOrder`/`PlaceOrder`（POST `orders`，**体未取证**，下一轮的取证目标）、
 Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步骤。
+## R1140 —— orders 是无体 PUT；只在 PlaceOrder 落地，SubmitOrder 故意不落
+
+改了什么：
+- **取证链**：`str` → `chars 0x14705d7cc` → `obj 0x14705d7c0` → **唯一** data xref `0x140a40fac`
+  → `sub_140A40F20` → 0 设键 + `sub_1408B6310(..., 0, ...)` ⇒ **无体 PUT**。
+  **我此前把动词记成 POST、把体记成「未取证」，两处都错**；正确说法是「没有体」。
+- **落地**：`JohnLewisFlow.PlaceOrderAsync` 覆写（虚步骤已存在，无 ratchet）：无体 PUT `OrdersV2`，
+  seam `jl.ordersUrl`；新增 5 条测试（含**断言 `SubmitOrder` 仍拒绝**，把「故意不落」钉住）。
+- **未猜命名**：33/36 两名字对一端点、而镜像只有一个函数发它 ⇒ 只接一个；判别需 `sub_140A40F20` 的 ordinal。
+
+验证：build **0 错**；子集 **84/84**；全量 **2447/0/2**（一次即绿）；
+变异 **59/59 fired, tree GREEN, staleness 0**（03:14:42，4 秒新鲜）。
+
+数字变化：JL 实际调用 BFF 端点 **9 → 10**；测试 **+5**。
+
+还剩什么：① `sub_140A40F20` 的 ordinal 判别（33 还是 36）；② 19 步里只剩 `SubmitOrder`(33)
+与 Stripe 侧 `HandleRequiresAction`(37)/`GetStripePaymentIntent`(39)。

@@ -65508,3 +65508,33 @@ str "beast" → ARROW & BEAST / arrowandbeast.com / arrowbeast.myshopify.com
 
 `ASYNC_OPS.md:6588` 那行 `www.bstn.com → True` 看着像镜像证据，但同一段的 `utf16=True/False`
 查的是**复刻件自己的字符串**。**同一张表里混着两种来源，是我这次差点又读错的地方。**
+---
+
+## 第 1161 轮：撤回——east 与 ARROW & BEAST 只是共享一个词
+
+上一轮我写下「名字错了，端点必然找错」，还把它当成这一轮的收获。**这一轮追出处，把它推翻了。**
+
+项目里早已有：
+
+`
+LiveContractTests.BstnServesItsBeastApiAndNotAShopifyOne
+  bstn.com/api/beast/geoIP → Status < 500      （真的通）
+  bstn.com/cart.js         → 必须不是 Shopify  （测试名就写着 NotAShopifyOne）
+`
+
+而 `BLOCKERS.md` 里早有一句我没读到的口径：**「`/api/beast` 从 R91 起就归在这一档。
+『镜像里没有』不等于『不该有』。」**
+
+### 我错在两处，都很典型
+
+1. **词的重合当成身份的证明。** `ARROW & BEAST` 与 BSTN 的 `/api/beast` 共享一个词，
+   我就推断「beast 属于另一家店」。R760 已经记过同类（显示名 vs 域名），**我又犯了一次。**
+2. **把「`live` 类」读成「镜像里有」。** 它在本项目里的定义是**「代码里能指名一个证明它的响应」**
+   ——**实机实测**，与「镜像字符串表里有」是两回事。我在 R1157/R1160 反复误用这个类别。
+
+> **上一轮我说得越漂亮，这一轮就越好笑：**
+> 「一个名字错了的商店，会把『端点未知』伪装成『还没找到』。」——
+> **事实是这家店没被认错，是我把一个词认成了两家店。**
+
+**定性的更正**：Bstn 那 4 条占位 = **站方 `/api/beast` live 可通，缺的是其余三条端点**，
+不是「店找错了」。

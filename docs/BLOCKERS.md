@@ -41938,3 +41938,38 @@ Unknown = BSTN 是否以其他形态（locale 键、设置 schema）存在于产
 
 还剩什么：① 追 `/api/beast` 的 `live` 原始出处（哪次实测、什么响应）；
 ② Bstn 家族应先确认「这家店在原版里叫什么」，再谈端点——**名字错了，端点必然找错**。
+## R1161 —— **撤回 R1160 的结论**：east 与 ARROW & BEAST 只是共享一个词
+
+**取件**：R1160 遗留「追 `/api/beast` 的 `live` 原始出处」。追到了，而它把我的结论推翻了。
+
+**证据链**（全部是项目里已有的，本轮只做追查）：
+1. `BLOCKERS.md:15376` 记着 **`LiveContractTests.BstnServesItsBeastApiAndNotAShopifyOne`**；
+2. `docs/ASYNC_OPS.md:12980` 早就写过 `/api/beast n=0 ← Bstn 自己的消息说 cart 在那儿，而镜像里零次`；
+3. `BLOCKERS.md:15391` 更早就定了口径：**「`/api/beast` 从 R91 起就归在这一档。『镜像里没有』不等于『不该有』」**；
+4. `LiveContractTests.cs:287-299` 实测两条断言：
+   - `https://www.bstn.com/api/beast/geoIP` → `Status < 500`（**真的通**）；
+   - `https://www.bstn.com/cart.js` → **必须不是** Shopify 购物车（测试名本身就是 `…AndNotAShopifyOne`）。
+
+**⇒ R1160 我写的三句话，撤回两句**：
+
+| R1160 的说法 | 现在的判定 |
+|---|---|
+| 「镜像里没有 bstn / beast 属另一家店」 | **前半成立**（本轮复测 0/0），**后半撤回** |
+| 「beast 那族属 ARROW & BEAST（Shopify）⇒ 店名识别错了」 | **撤回**。`bstn.com/api/beast/geoIP` live 实测可通，且该站**不是** Shopify |
+| 「名字错了，端点必然找错」 | **撤回**。端点在真实站点上是活的，只是**不在镜像字符串表里** |
+
+**错在哪**：`ARROW & BEAST` 与 BSTN 的 `/api/beast` **共享一个词**，我把「共享词」当成了「同一实体」。
+这正是本项目已经记过两次的错类：
+- R760：店名以**显示名**出现 vs 存的是域名与端点字段名 → 7 个站被误判可疑；
+- R1013/R1014：换一个猜测只是移动失败。
+
+> **词的重合不构成身份的证明。**
+> 我这轮还把「`live` 类」读成了「镜像里有」——可它在本项目里的定义是
+> **「代码里能指名一个证明它的响应」**，也就是**实机实测**，恰恰与「镜像里有」是两回事。
+
+**仍然成立的部分**：字符串表里没有 `bstn`（大小写皆无）⇒ **该店的证据不在二进制字符串层面**，
+它是**实机 live 证据**。所以 Bstn 那 4 条占位的定性应为：
+**「端点unknown 但站方接口 live 可通，缺的是其余三条端点」**，而不是「店找错了」。
+
+证据等级：Observation = `LiveContractTests.cs:287-299` 的两条断言原文、`BLOCKERS.md:15376/15391`、
+`ASYNC_OPS.md:12980`；本轮复测 `str "bstn"/"BSTN"` = 0/0；Inference = 无；Unknown = Bstn 其余三条端点。

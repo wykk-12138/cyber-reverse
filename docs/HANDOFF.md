@@ -6512,3 +6512,17 @@ PayPal **42/42**；全量 **2462/0/2/2464**；变异 **59/59 fired, tree GREEN**
 - **不推论**：不能说原版不支持 BSTN（字符串表是下界）；`/api/beast` 的 `live` 出处需追。
 
 还剩什么：① 追 `/api/beast` 的 `live` 原始实测出处；② 先确认该店在原版里的真名，再谈端点。
+## R1161 —— 撤回 R1160：beast ≠ ARROW & BEAST（仅共享词）；live 类=实机实测而非镜像证据
+
+追溯结果：
+- `LiveContractTests.BstnServesItsBeastApiAndNotAShopifyOne`（`LiveContractTests.cs:287`）实测
+  `bstn.com/api/beast/geoIP` **通**、`/cart.js` **必须不是** Shopify 购物车。
+- `BLOCKERS.md:15391` 早有口径：「`/api/beast` 从 R91 起归这一档，『镜像里没有』≠『不该有』」。
+- `ASYNC_OPS.md:12980` 早写过 `/api/beast n=0`。
+
+**撤回**：①「beast 属 ARROW & BEAST(Shopify) ⇒ 店识别错」②「名字错了，端点必然找错」。
+**保留**：镜像无 `bstn`/`beast`（本轮复测 0/0）——该店证据是 **live 实测**，非二进制字符串。
+
+**错类**：共享词 ≠ 同一实体（R760 同类）；`live` 类 = 实机实测，≠ 镜像里有。
+
+还剩什么：Bstn 其余三条端点（cart/checkout/order）仍未取得；Farfetch 7 条为服务端下发路由（已定案）。

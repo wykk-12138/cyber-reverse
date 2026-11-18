@@ -466,7 +466,15 @@ public abstract class StoreFlow
                 .ApplyAsync(c, sensor, c.Url ?? string.Empty, ct).ConfigureAwait(false);
         }
 
-        var kasada = Cybersole.Stores.Scripts.KasadaStrategyRunner.Default();
+        // Every road that can actually produce a token has to be supplied, or the runner reports a
+        // give-up and the flow carries on without one. The script road is the one that works without an
+        // external service and without a browser (see ScriptKasadaSolver); the browser road is offered too
+        // when one is installed.
+        var kasada = Cybersole.Stores.Scripts.KasadaStrategyRunner.Default(
+            local: Cybersole.Stores.Scripts.ChromiumKasadaSolver.IsAvailable
+                ? new Cybersole.Stores.Scripts.ChromiumKasadaSolver()
+                : null,
+            script: new Cybersole.Stores.Scripts.ScriptKasadaSolver(c.Http));
         return await Cybersole.Stores.Scripts.KasadaClearance
             .ApplyAsync(c, kasada, c.Url ?? string.Empty, ct).ConfigureAwait(false);
     }

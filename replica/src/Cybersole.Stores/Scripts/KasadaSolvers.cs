@@ -183,6 +183,65 @@ public sealed class NamedFallbackSolver : IKasadaSolver
 /// <c>Failed Kasada (Retry limit reached)</c>, with the list of statuses that led there.
 /// </para>
 /// </summary>
+/// <summary>
+/// WHY THIS EXISTS: the strategy runner had three roads (an external service, a browser, and two named
+/// fallbacks) and none of them ran the page's own script. For every store except Nike that left the whole
+/// Kasada step unable to produce a token, and the flow carried on without one. This road runs the payload
+/// locally with the interrogation path the Nike flow already uses: configure the sensor with the page
+/// origin, let it issue GET /mfc then POST /r through the caller's HTTP stack, and read x-kpsdk-ct off the
+/// reply.
+/// </summary>
+public sealed class ScriptKasadaSolver : IKasadaSolver
+{
+    private readonly Cybersole.Http.NetClient _http;
+
+    public ScriptKasadaSolver(Cybersole.Http.NetClient http) => _http = http;
+
+    public KasadaStrategy.Mode Mode => KasadaStrategy.Mode.Local;
+
+    public async Task<KasadaToken> GetAsync(string pageUrl, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(pageUrl))
+            return KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada", Mode);
+
+        var origin = KasadaSolver.OriginOf(pageUrl);
+        if (origin is null) return KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada", Mode);
+
+        // Bounded: this is on the checkout path, so a slow interrogation endpoint must not hold the flow.
+        var options = new Cybersole.Http.RequestOptions
+        {
+            Timeout = TimeSpan.FromSeconds(15),
+            Retries = 0,
+        };
+
+        using var solver = new KasadaSolver(new BrowserShim { Href = pageUrl });
+        string? script;
+        try
+        {
+            (script, _) = await solver.FetchScriptAsync(_http, pageUrl, options, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
+        {
+            // A road reports failure; it does not abort the runner. An escaping exception here would stop
+            // the remaining roads from being tried, which is the opposite of what a fallback chain is for.
+            return KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada: " + ex.Message, Mode);
+        }
+
+        if (script is null) return KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada", Mode);
+
+        solver.ResourceAddress = origin;
+        solver.Transport = KasadaSolver.NetTransport(_http, options);
+
+        // The transport resolves asynchronously beneath a synchronous script call, so keep that wait off
+        // this thread instead of blocking on it.
+        var result = await Task.Run(() => solver.Solve(script), ct).ConfigureAwait(false);
+
+        return result.Ok && !string.IsNullOrEmpty(result.Ct)
+            ? new KasadaToken(result.Ct!, Mode, KasadaStrategy.Verb(Mode) + " kasada")
+            : KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada", Mode);
+    }
+}
+
 public sealed class KasadaStrategyRunner
 {
     public const string GaveUpStatus = "Failed Kasada (Retry limit reached)";
@@ -195,12 +254,17 @@ public sealed class KasadaStrategyRunner
     /// <summary>The default order, with only the roads that were supplied.</summary>
     public static KasadaStrategyRunner Default(string? apiEndpoint = null,
         ChromiumKasadaSolver? local = null,
-        System.Func<string, string, CancellationToken, Task<string?>>? apiCall = null)
+        System.Func<string, string, CancellationToken, Task<string?>>? apiCall = null,
+        IKasadaSolver? script = null)
     {
+        // Exactly four roads, matching the four modes the image declares. Local is always present so the
+        // runner can report why it could not solve, even with nothing supplied -- but a script road wins
+        // over a browser one when both are available, because it needs no Chromium install to work.
+        var localRoad = script ?? new LocalKasadaSolver(local);
         return new KasadaStrategyRunner(new IKasadaSolver[]
         {
             new ApiKasadaSolver(apiEndpoint, apiCall),
-            new LocalKasadaSolver(local),
+            localRoad,
             new NamedFallbackSolver(KasadaStrategy.Mode.Fallback),
             new NamedFallbackSolver(KasadaStrategy.Mode.MobileFallback),
         });

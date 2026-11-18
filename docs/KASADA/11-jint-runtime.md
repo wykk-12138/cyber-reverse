@@ -1908,6 +1908,88 @@ public static string? OriginOf(string? url)   // 非法 URL → null，不抛；
 
 **Kasada + Nike + BrowserShim + AntiBot：166/166 通过。**
 
+### 5.90 上一轮的检查揪出更大的问题：**通用 Kasada 路一条能用的都没有**
+
+顺着"接线"这条线去审所有构造点，发现只有 `NikeFlow` 有两处 `new KasadaSolver` —— 那么**别的站怎么拿 token？**
+
+`StoreFlow` 的 anti-bot 步骤是这样拿的（L469）：
+
+```csharp
+var kasada = Cybersole.Stores.Scripts.KasadaStrategyRunner.Default();
+return await Cybersole.Stores.Scripts.KasadaClearance.ApplyAsync(c, kasada, c.Url ?? "", ct);
+```
+
+而 `Default()` 只组合四条路：
+
+```csharp
+new ApiKasadaSolver(apiEndpoint, apiCall),      // apiEndpoint = null  ❌
+new LocalKasadaSolver(local),                   // local = null        ❌
+new NamedFallbackSolver(Fallback),              // 只报名字            ❌
+new NamedFallbackSolver(MobileFallback),        // 只报名字            ❌
+```
+
+**四条路没有一条能工作。** 而且 `KasadaClearance.ApplyAsync` 在 `!token.Usable` 时是
+`Emit(status)` 然后 **`StepOutcome.Success()`** —— **流程带着"没有 token"继续往前走**。
+
+**⇒ 除 Nike 外，所有站的 Kasada 清关实际上是个静默空转。** 这比上一轮那个"分支永远失败"更严重：
+那个至少会失败，这个连失败都不报。
+
+### 5.91 补上第四条能干活的路：`ScriptKasadaSolver`
+
+```csharp
+public sealed class ScriptKasadaSolver : IKasadaSolver
+{
+    public ScriptKasadaSolver(Cybersole.Http.NetClient http);
+    public KasadaStrategy.Mode Mode => KasadaStrategy.Mode.Local;
+    public async Task<KasadaToken> GetAsync(string pageUrl, CancellationToken ct);
+}
+```
+
+它做的就是 Nike 那条路已经验证过的事：取脚本 → `ResourceAddress = origin` →
+装 `NetTransport(_http, 15s/0重试)` → `Task.Run(() => solver.Solve(script))` → 拿 `Ct`。
+
+**`Default()` 的形态保持四条（这是原版声明的四种模式）**，只是 Local 那格优先用脚本路：
+
+```csharp
+var localRoad = script ?? new LocalKasadaSolver(local);   // 脚本路优先，因为它不需要装 Chromium
+```
+
+**第一次改错了一次**：我原本在 `local` 为 null 时**把 Local 整条路去掉**，结果撞红了
+`KasadaSolverChainTests.TheOrderIsApiLocalFallbackMobileFallback` —— 那条钉的是"四种模式永远都在"。
+
+**那次红是对的**：去掉一条路等于**把失败原因藏起来**。原版的设计是每条路都回报自己的状态
+（「Failed getting Kasada」/「Failed solving Kasada」），让 UI 能说清为什么没成功。
+所以正确的修法是**保留四条、让 Local 那格换成能干活的那个**，不是删路。
+
+### 5.92 又一个测试逼出来的真缺陷：这路会把异常抛给 runner
+
+`ScriptKasadaSolver` 第一版没有兜 `FetchScriptAsync` 的异常。打一个不可达端点时它直接把
+`HttpRequestException` 抛出去 —— **那会让 runner 停在第一条路上，后面三条根本不会被试**，
+和回退链的语义正好相反。
+
+```csharp
+catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
+{
+    return KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada: " + ex.Message, Mode);
+}
+```
+
+**"一条路失败"和"整个策略失败"必须分开** —— 前者是正常结果，后者是 bug。
+
+### 5.93 测试
+
+`KasadaStrategyRoadsTests`（5 例）：
+
+| 用例 | 钉什么 |
+|---|---|
+| `ADefaultRunnerStillDeclaresAllFourModes` | 空参 `Default()` 的 `Order` 恰为 `[Api, Local, Fallback, MobileFallback]` |
+| `ADefaultRunnerCannotProduceATokenWhenNothingWasSupplied` | 声明四条 ≠ 有一条能用：空参下 `GetAsync` 返回不可用 token |
+| `SuppliedRoadsAppearInTheOrderTheyAreTried` | 给了脚本路之后 `Local` 出现在 `Fallback` **之前** |
+| `TheScriptRoadFailsCleanlyOnAnUnreachablePage` | 不可达端点 → 返回失败 token，**不抛** |
+| `AnEmptyPageUrlIsRejectedWithoutAnyNetworkWork` | 空 URL 直接拒绝，不发请求 |
+
+**Kasada + Nike + Scheels + Flow 全量：272 通过 / 1 跳过。**
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

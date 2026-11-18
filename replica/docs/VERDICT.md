@@ -62948,3 +62948,40 @@ JWT 查询 → 3DS 认证 → 挑战窗（processThreedsConfirmation 回帖 JWT/
 > **大函数别整读——先落盘再 grep**。15,615 B 的 solver 整段伪代码一次性塞进对话会把上下文
 > 烧光；落盘成文件后，case 结构、状态槽、常量调用一眼分层。IDA 的产出是数据，
 > 数据就该按数据的方式处理。
+
+---
+
+## 第 1086 轮：合并步幅首轮 —— PayPal 3DS 机器全收口、Nike 支付链翻正，占位 13 → 11
+
+### 一、四层收口成一台可执行机器
+
+R1082 构建器层 → R1083 载荷层 → R1084 绑定源层 → R1085 case 体层，四层的证据在本轮汇成
+`PayPalThreeDs` 的完整状态机：`GqlAsync`（持久化操作体 + PUT + 双方言头墙 + 200/403/429 分发）
+→ `ReadContingency`（case 体针）→ `RunAsync`（提交 → JWT 查询 → 挑战窗 Waiting3DS，
+原机的真实停点）→ `ContinueAsync`（认证 → 查找 → `ResolveThreeDsContingency` 六变量）。
+**接线**：`PayPalGateway.CompleteActionAsync` 在 Waiting3DS 态驱动解析链——孤岛消除，
+端到端执行链打通。
+
+### 二、Nike 支付链顺上游翻正
+
+ctx 字段 29 的上游 = `sub_140B35420`（`Initialize payment`）：**双 GET** ——
+`OrderV5/{order}/InitiatePayment?singleStep=true&deliveryCountryIso={country}` → eshopworld
+`PaymentMethods?paymentId=` → 令牌入会话 → checkout POST 的 `paymentToken`。Nike 三步支付链
+（发起点 → 方法读取 → 订单提交）端到端打通，两个 not captured 占位消除。
+
+### 三、数字与修正
+
+| 度量 | R1085 | **R1086** |
+|---|---|---|
+| 核心 not captured 占位 | 13 | **11** |
+| PayPalThreeDs 钉测 | 10 | **14** |
+| Nike 支付钉测 | 0 | **3** |
+| 合并测试面 | — | **94/94 绿** |
+
+顺手修正：StripeChallenge Emit 第二参改事件类型；NikeFlow JP 分支 address3 空值一致性。
+
+### 教训
+
+> **合并步幅的正确形态**：取证、落码、接线在同一轮闭合后，「实现完孤岛着」的结构性风险
+> 当轮就暴露——本轮的网关接线若按旧步幅会拖到下轮才被发现缺。孤岛不是写在清单里的风险，
+> 是合并节奏自然会逼出来的问题。

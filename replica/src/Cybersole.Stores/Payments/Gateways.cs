@@ -757,10 +757,45 @@ public sealed class PayPalGateway : IPaymentGateway
             : PaymentResult.Fail($"paypal: status {status}");
     }
 
-    public Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct)
+    public async Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct)
     {
+        // The 3-D Secure completion (R1086): when a PayPal payment hit the 3DS wall,
+        // PayPalThreeDs.RunAsync stopped at the challenge window and left the machine state on
+        // the session. This is the call that runs the resolver chain the original's
+        // SolvePayPal3DS drives — authenticate, lookup, then ResolveThreeDsContingency with the
+        // six variables (token / authId / referenceId / creditCardId / status / experiences).
+        if (c.Session.Vars.TryGetValue("paypal3ds.state", out var state) &&
+            state == nameof(PayPalThreeDs.ThreeDsState.Waiting3DS))
+        {
+            var snapshot = new PayPalThreeDs.ContingencySnapshot
+            {
+                ReferenceId = c.Session.Vars.GetValueOrDefault("paypal3ds.referenceId"),
+                CreditCardId = c.Session.Vars.GetValueOrDefault("paypal3ds.creditCardId"),
+            };
+
+            JObject answer;
+            try { answer = JObject.Parse(string.IsNullOrEmpty(payload) ? "{}" : payload); }
+            catch { answer = new JObject(); }
+
+            var input = new PayPalThreeDs.StageInput
+            {
+                Euat = c.Session.Vars.GetValueOrDefault("paypal3ds.euat"),
+                Hosted = c.Session.Vars.GetValueOrDefault("paypal3ds.hosted") == "1",
+                Token = c.Session.Vars.GetValueOrDefault("paypal3ds.token"),
+            };
+
+            var outcome = await new PayPalThreeDs().ContinueAsync(c, input, snapshot,
+                answer["authId"]?.ToString() ?? string.Empty,
+                answer["status"]?.ToString() ?? PayPalThreeDs.ResolveStatusSucceeded,
+                ct).ConfigureAwait(false);
+
+            return outcome.Ok
+                ? PaymentResult.Success("resolved")
+                : PaymentResult.Fail(outcome.Error ?? "paypal 3ds: resolution failed");
+        }
+
         if (!string.IsNullOrEmpty(payload)) c.Session.Vars["paypal.payerId"] = payload;
-        return AuthorizeAsync(c, ct);
+        return await AuthorizeAsync(c, ct).ConfigureAwait(false);
     }
 }
 

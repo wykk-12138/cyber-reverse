@@ -107,6 +107,6 @@ public sealed class StripeChallengeTests
         Assert.False(outcome.Ok);
         Assert.Empty(server.Requests);
         Assert.Contains(ctx.Events, e => e.Name == StripeChallenge.CaptchaFailedStatus
-                                         && e.Type == StripeChallenge.CaptchaFailedColour);
+                                         && e.Type == "error");   // R1086: Emit's second arg is the event type
     }
 }

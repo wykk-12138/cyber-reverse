@@ -38815,3 +38815,56 @@ Inference = 针式解析器服务于 solver 的响应解析（case 体未读，�
 
 还剩什么：逐 case 的变量源绑定精读（伪代码已在盘上，纯阅读工作，无需新取证）；
 Stripe 六步其余体；42 锚静树全跑。
+
+## R1086 —— 【核心②合并步幅】PayPal 3DS 四态机全收口并接线网关；Nike 支付双 GET 链落地：占位 13 → 11
+
+**取件**：YG 三条节奏微调后的合并轮——同轮内取证+落码+接线+验证一气呵成。
+
+改了什么：
+- **`PayPalThreeDs` 完整状态机**（消除 Submit 后的 Pending 截断）：
+  - `GqlAsync`：持久化操作体 `{"operationName":N,"variables":{…}}` + PUT + 双方言头墙 +
+    200/403/429 分发 + 30 秒预算——所有阶段共用的请求模板，反编译 case 体的直接落地；
+  - `ReadContingency`：case 体针（status/redirectUrl.href/method/parameter +
+    jwtSpecification.jwtIssuer/jwtOrgUnitId + referenceId + paymentCard.id）双路径解析；
+  - `RunAsync`（Submit3DS→Process3DS）：提交 → 读偶发 → 无挑战即 Complete3DS；有挑战跑
+    `GetThreeDsJwtQuery` → 停在挑战窗 Waiting3DS（快照与续体字段入会话——原机的真实停点，
+    窗口由宿主浏览器驱动）；
+  - `ContinueAsync`（Process3DS→Complete3DS）：`ThreeDsAuthenticateMutation` →
+    `ThreeDsLookUpMutation` → `ResolveThreeDsContingency` 六变量
+    （token/authId/referenceId/creditCardId/status/experiences，方言集 HERMES+EXPRESS_CHECKOUT）；
+  - `StageIsDecoded` 名实相符（对机器而非仅标签表）；`SubmitAsync` 改走 GqlAsync。
+- **接线**（反孤岛）：`PayPalGateway.CompleteActionAsync` 在 Waiting3DS 态重建快照驱动解析链
+  ——`StoreFlow.SubmitPaymentAsync` → 注册表 → 网关 → 3DS 机器的端到端执行链打通。
+- **Nike 支付两步**（顺 ctx[29] 上游 `sub_140B35420` 反编译落地）：
+  `GetPaymentMethodsAsync` = GET `OrderV5/{order}/InitiatePayment?singleStep=true&deliveryCountryIso={country}`
+  （进度 `Initialize payment` 0x146dbca08；+8 槽 GET 无载荷；参数 0x14715d7e8/0x147173de8/0x147001c30；
+  内联段 0x145e92700；URL 前缀 = OrderV5 0x1470969f0）；
+  `SubmitPaymentAsync` = GET eshopworld `PaymentMethods?paymentId=`（0x147078698）→ 令牌入
+  `Session.PaymentToken`（ctx 字段 29 的复刻件宿主）→ checkout POST 体使用（R1076 已落地）——
+  Nike 三步支付链（发起点→方法读取→订单提交）端到端打通，两占位消除。
+- 顺手修正：`StripeChallenge` Emit 第二参改事件类型 `"error"`（色码保留为常量非通道）；
+  `NikeFlow` JP 分支 `address3` 空值一致性（`?? string.Empty`）。
+- 会话缝按仓库惯例（`checkStockUrl` 同款）：`nike.initiatePaymentUrl`/`nike.paymentMethodsUrl`
+  覆盖**前缀**（组合永远是机器自己的）；`paypal3ds.graphqlUrl` 供网关驱动解析链。
+
+验证命令与输出：
+- 取证：`dec 0x140B35420` + names_at 12 常量（InitiatePayment 全组合：URL 前缀 50 字、双参数、
+  内联 16 字段、'Initialize payment'）+ case 体针 names_at 10 常量（operationName/jwtSpecification/
+  jwtIssuer/jwtOrgUnitId/referenceId/bankIdentificationNumber）。
+- `dotnet test --filter "PayPalThreeDs|NikePaymentChain|StripeChallenge|NikeBuyRequest|GatewaySelection|
+  Payment|StoreFlowParity" -m:1` → **94/94 绿**（新钉：GqlAsync 持久化体、双 contingency 场景、
+  三步续体序+六变量、网关接线、Nike 双 GET 链×3；途中修两处测试侧真因：Sample 的
+  ChallengeActive 极性、TinyServer Path 不含查询串）。
+- `payment_challenges.py` → control ok、markers absent **0/5**；`core_coverage.py` →
+  占位 **13 → 11**；`metrics_report --skip-tests` → exit 0。
+
+数字变化：核心 not captured 占位 **13 → 11**（Nike 支付两步翻正）；PayPalThreeDs 钉测 10 → **14**
+（94/94 面内）；Nike 支付钉测 0 → **3**。
+
+证据等级：Observation = Nike 双 GET 全组合与参数常量、case 体响应针、persisted 操作体键
+（operationName 0x147109320）、`{0:0.00}` 金额格式（0x147193208）；Inference = 变量名到
+快照字段的映射（amount/jwtIssuer 等按 case 体读针对应）、SubmitAsync 的首操作取
+GetThreeDsJwtQuery（原机首请求的操作名由其前驱决定）。
+
+还剩什么：Stripe 六步其余体（`GetStripePaymentIntent` 等名字 → chars-12 链，下轮主菜）；
+逐 case 的变量源精读收尾（伪代码在盘）；42 锚静树全跑。

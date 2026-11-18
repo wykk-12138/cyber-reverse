@@ -3,20 +3,16 @@ using Cybersole.Http;
 using Cybersole.Stores.Flows;
 using Cybersole.Stores.Payments;
 using Cybersole.Tests.Support;
+using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace Cybersole.Tests;
 
 /// <summary>
-/// R1078: PayPal 3-D Secure, pinned to the decompiled stage-1 builders — sub_141102970 (normal)
-/// and sub_141105A80 (hosted), with the send step sub_14110D670 (PUT to the frozen
-/// https://www.paypal.com/graphql/ literal 0x147097e78).
-///
-/// <para>
-/// Every value asserted here is a decoded frozen constant; the header casing differences between
-/// the two dialects (Accept-Encoding vs accept-encoding, en-GB vs en-US) are the image's own and
-/// are pinned as-is rather than normalised.
-/// </para>
+/// PayPal 3-D Secure, pinned to the decompiled surface — the request builders (sub_141102970 /
+/// sub_141105A80), the send step (sub_14110D670: PUT to the frozen graphql literal 0x147097e78),
+/// the persisted-operation bodies (R1085's case bodies: {"operationName": N, "variables": {...}}),
+/// the contingency needles, and the machine's four states wired through the gateway (R1086).
 /// </summary>
 public sealed class PayPalThreeDsTests
 {
@@ -32,7 +28,8 @@ public sealed class PayPalThreeDsTests
         UserAgent = "UA/1",
         SecChUa = @"""Ch"";v=""1""",
         SecChUaPlatform = @"""Windows""",
-        Payload = "{\"query\":\"{}\"}",
+        Token = "tok-9",
+        Amount = 150m,
     };
 
     private static FlowContext Context(NetClient http) => new()
@@ -63,17 +60,13 @@ public sealed class PayPalThreeDsTests
         Assert.Equal("en-GB", h["Accept-Language"]);
         Assert.Equal("UA/1", h["user-agent"]);
 
-        // The sec-fetch family is the normal dialect's; the hosted-only headers are absent.
         Assert.False(h.ContainsKey("x-requested-with"));
         Assert.False(h.ContainsKey("x-locale"));
         Assert.False(h.ContainsKey("priority"));
         Assert.False(h.ContainsKey("x-country"));
     }
 
-    /// <summary>
-    /// The hosted dialect's wall (sub_141105A80): its own headers, its own casing, and the app
-    /// name / referer / country taken from the context instead of literals.
-    /// </summary>
+    /// <summary>The hosted dialect's wall (sub_141105A80) — its own headers, casing and context fields.</summary>
     [Fact]
     public void TheHostedDialectCarriesItsOwnHeadersAndCasing()
     {
@@ -90,7 +83,6 @@ public sealed class PayPalThreeDsTests
         Assert.Equal("en-US,en;q=0.9", h["accept-language"]);
         Assert.Equal("u=1, i", h["priority"]);
 
-        // The hosted wall does not send the sec-fetch family the normal one does.
         Assert.False(h.ContainsKey("sec-fetch-site"));
         Assert.False(h.ContainsKey("sec-fetch-mode"));
         Assert.False(h.ContainsKey("sec-fetch-dest"));
@@ -108,38 +100,40 @@ public sealed class PayPalThreeDsTests
         Assert.Equal(PayPalThreeDs.ProcessingStatus, PayPalThreeDs.StatusText(challengeActive: true));
     }
 
-    /// <summary>R1081/R1082: the nine decoded stage labels, each matching its pool address.</summary>
+    /// <summary>The nine decoded stage labels, each matching its pool address; the map is closed.</summary>
     [Fact]
     public void TheDecodedStagesCarryTheirOwnLabels()
     {
         Assert.Equal(9, PayPalThreeDs.StageLabels.Count);
         Assert.Equal("Solving PayPal 3DS (1)", PayPalThreeDs.StageLabels["1"]);
-        Assert.Equal("Solving PayPal 3DS (2)", PayPalThreeDs.StageLabels["2"]);
-        Assert.Equal("Solving PayPal 3DS (2.1)", PayPalThreeDs.StageLabels["2.1"]);
-        Assert.Equal("Solving PayPal 3DS (3)", PayPalThreeDs.StageLabels["3"]);
-        Assert.Equal("Solving PayPal 3DS (4)", PayPalThreeDs.StageLabels["4"]);
-        Assert.Equal("Solving PayPal 3DS (5)", PayPalThreeDs.StageLabels["5"]);
-        Assert.Equal("Solving PayPal 3DS (6)", PayPalThreeDs.StageLabels["6"]);
-        Assert.Equal("Solving PayPal 3DS (7)", PayPalThreeDs.StageLabels["7"]);
         Assert.Equal("Solving PayPal 3DS (8)", PayPalThreeDs.StageLabels["8"]);
         Assert.True(PayPalThreeDs.StageIsDecoded("8"));
         Assert.False(PayPalThreeDs.StageIsDecoded("9"));   // there is no stage nine — the map is closed
     }
 
-    /// <summary>The target URL, the app name and the thirty-second budget, as frozen constants.</summary>
+    /// <summary>The frozen literals: target, app name, budget, window, and the four machine states.</summary>
     [Fact]
     public void TheStageConstantsMatchTheFrozenLiterals()
     {
         Assert.Equal("https://www.paypal.com/graphql/", PayPalThreeDs.GraphqlUrl);
         Assert.Equal("checkoutuinodeweb_hermione", PayPalThreeDs.AppName);
         Assert.Equal(30000, PayPalThreeDs.StageTimeoutMs);
+        Assert.Equal("https://www.paypal.com/checkoutweb/processThreedsConfirmation",
+            PayPalThreeDs.ChallengeWindowUrl);
+        Assert.Equal((500, 600), (PayPalThreeDs.ChallengeWindowWidth, PayPalThreeDs.ChallengeWindowHeight));
+        Assert.Equal("JWT", PayPalThreeDs.JwtFormField);
+        Assert.Equal("MD", PayPalThreeDs.MdFormField);
+        Assert.Equal("GetThreeDsJwtQuery", PayPalThreeDs.JwtQueryOperation);
+        Assert.Equal("ThreeDsAuthenticateMutation", PayPalThreeDs.AuthenticateOperation);
+        Assert.Equal("ThreeDsLookUpMutation", PayPalThreeDs.LookUpOperation);
+        Assert.Equal("ResolveThreeDsContingency", PayPalThreeDs.ResolveOperation);
         Assert.Equal(new[] { "Submit3DS", "Process3DS", "Waiting3DS", "Complete3DS" },
             System.Enum.GetNames<PayPalThreeDs.ThreeDsState>());
     }
 
     /// <summary>
     /// The dispatch the builders register: 200 reaches the success continuation, 403 and 429 share
-    /// the retry closure, and the machine stops with the located stages named.
+    /// the retry closure — and every request is a PUT carrying a persisted-operation body.
     /// </summary>
     [Theory]
     [InlineData(200, true, false)]
@@ -162,32 +156,177 @@ public sealed class PayPalThreeDsTests
         // The white StatusInfo wall went out with the stage text before the request.
         Assert.Contains(ctx.Events, e => e.Name == PayPalThreeDs.SolvingStatus && e.Type == "StatusInfo");
 
-        // And the request itself was the PUT the send step performs.
-        Assert.Equal("PUT", server.Requests.Single().Method);
-        Assert.Equal("/graphql/", server.Requests.Single().Path);
-        Assert.Equal("{\"query\":\"{}\"}", server.Requests.Single().Body);
+        // The request is the PUT the send step performs, and its body is the persisted-operation
+        // form the case bodies assemble: the operation's NAME with its variables.
+        var req = server.Requests.Single();
+        Assert.Equal("PUT", req.Method);
+        Assert.Equal("/graphql/", req.Path);
+        var body = JObject.Parse(req.Body);
+        Assert.Equal("GetThreeDsJwtQuery", (string?)body["operationName"]);
+        Assert.Equal("tok-9", (string?)body["variables"]!["token"]);
+        Assert.Equal("150.00", (string?)body["variables"]!["amount"]);   // the {0:0.00} format
     }
 
     /// <summary>
-    /// The four-state machine advances past a decoded Submit and stops naming what is actually
-    /// missing — the payload builders, not the stage builders (R1082 decoded all nine of those).
+    /// The contingency read pulls the case bodies' needles out of the response — the bank's
+    /// redirect, the JWT spec, and the referenceId/card the resolver variables carry.
     /// </summary>
     [Fact]
-    public async Task TheMachineStopsWhereTheDecodedStagesEnd()
+    public void TheContingencyReadPullsTheCaseBodiesNeedles()
+    {
+        const string body = @"{""data"":{""paymentContingencies"":{
+            ""threeDomainSecure"":{
+                ""status"":""CHALLENGE_REQUIRED"",
+                ""redirectUrl"":{""href"":""https://bank.example/challenge""},
+                ""method"":""GET"",
+                ""parameter"":""p-1""},
+            ""threeDSContingencyData"":{
+                ""resolution"":{
+                    ""paymentCard"":{""id"":""card-77""},
+                    ""contingencyContext"":{
+                        ""jwtSpecification"":{""jwtIssuer"":""iss-1"",""jwtOrgUnitId"":""org-2""},
+                        ""referenceId"":""ref-9""}}}}}}";
+
+        var snap = PayPalThreeDs.ReadContingency(body);
+
+        Assert.True(snap.RequiresChallenge);
+        Assert.Equal("CHALLENGE_REQUIRED", snap.Status);
+        Assert.Equal("https://bank.example/challenge", snap.RedirectUrl);
+        Assert.Equal("GET", snap.Method);
+        Assert.Equal("p-1", snap.Parameter);
+        Assert.Equal("iss-1", snap.JwtIssuer);
+        Assert.Equal("org-2", snap.JwtOrgUnitId);
+        Assert.Equal("ref-9", snap.ReferenceId);
+        Assert.Equal("card-77", snap.CreditCardId);
+
+        // No challenge asked for: the machine is done, not waiting.
+        var calm = PayPalThreeDs.ReadContingency("{\"data\":{\"paymentContingencies\":{}}}");
+        Assert.False(calm.RequiresChallenge);
+    }
+
+    /// <summary>
+    /// The machine, scenario one: a response that asks for no challenge completes on the spot.
+    /// </summary>
+    [Fact]
+    public async Task AMachineWithNoChallengeCompletes()
+    {
+        using var server = new TinyServer((_, _) => (200, "{\"data\":{\"paymentContingencies\":{}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+
+        var outcome = await new PayPalThreeDs().RunAsync(ctx, Sample(), default, server.BaseUrl + "/graphql/");
+
+        Assert.True(outcome.Ok);
+        Assert.False(outcome.AwaitingChallenge);
+        Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Complete3DS), ctx.Session.Vars["paypal3ds.state"]);
+        // Submit only — no JWT query when there is nothing to challenge.
+        Assert.Single(server.Requests);
+    }
+
+    /// <summary>
+    /// The machine, scenario two: a challenge response runs the JWT query, then hands the window
+    /// to the host — a real Waiting3DS stop with the snapshot and the window's decoded constants.
+    /// </summary>
+    [Fact]
+    public async Task AMachineWithAChallengeStopsAtTheWindow()
+    {
+        const string challenge = @"{""data"":{""paymentContingencies"":{
+            ""threeDomainSecure"":{""status"":""CHALLENGE_REQUIRED"",
+                ""redirectUrl"":{""href"":""https://bank.example/challenge""}},
+            ""threeDSContingencyData"":{""resolution"":{
+                ""paymentCard"":{""id"":""card-77""},
+                ""contingencyContext"":{
+                    ""jwtSpecification"":{""jwtIssuer"":""iss-1"",""jwtOrgUnitId"":""org-2""},
+                    ""referenceId"":""ref-9""}}}}}}";
+        using var server = new TinyServer((_, _) => (200, challenge));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+
+        var outcome = await new PayPalThreeDs().RunAsync(ctx, Sample(), default, server.BaseUrl + "/graphql/");
+
+        Assert.False(outcome.Ok);                       // not done — waiting on the host-driven window
+        Assert.True(outcome.AwaitingChallenge);
+        Assert.NotNull(outcome.Contingency);
+        Assert.Equal("https://bank.example/challenge", outcome.Contingency!.RedirectUrl);
+        Assert.Equal("ref-9", outcome.Contingency.ReferenceId);
+        Assert.Equal("card-77", outcome.Contingency.CreditCardId);
+
+        Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Waiting3DS), ctx.Session.Vars["paypal3ds.state"]);
+        Assert.Equal("ref-9", ctx.Session.Vars["paypal3ds.referenceId"]);
+        Assert.Equal("card-77", ctx.Session.Vars["paypal3ds.creditCardId"]);
+        Assert.Equal("tok-9", ctx.Session.Vars["paypal3ds.token"]);
+
+        // Submit + the JWT query — the machine's own synchronous reach.
+        Assert.Equal(2, server.Requests.Count);
+        var jwtBody = JObject.Parse(server.Requests[1].Body);
+        Assert.Equal("GetThreeDsJwtQuery", (string?)jwtBody["operationName"]);
+        Assert.Equal("iss-1", (string?)jwtBody["variables"]!["jwtIssuer"]);
+        Assert.Equal("org-2", (string?)jwtBody["variables"]!["jwtOrgUnitId"]);
+        Assert.Equal("ref-9", (string?)jwtBody["variables"]!["referenceId"]);
+    }
+
+    /// <summary>
+    /// The machine's completion: after the window answered, authenticate, lookup, and resolve —
+    /// the resolver's six variables in the last PUT, in the case bodies' own order.
+    /// </summary>
+    [Fact]
+    public async Task TheContinuationRunsAuthenticateLookupResolveInOrder()
     {
         using var server = new TinyServer((_, _) => (200, "{}"));
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = Context(http);
 
-        var solver = new PayPalThreeDs();
-        var outcome = await solver.RunAsync(ctx, Sample(), default, server.BaseUrl + "/graphql/");
+        var snapshot = new PayPalThreeDs.ContingencySnapshot
+        {
+            ReferenceId = "ref-9", CreditCardId = "card-77",
+        };
+        var outcome = await new PayPalThreeDs().ContinueAsync(ctx, Sample(), snapshot,
+            "auth-1", "SUCCESS", default, server.BaseUrl + "/graphql/");
 
-        Assert.False(outcome.Ok);
-        Assert.False(outcome.Retryable);
-        Assert.NotNull(outcome.Error);
-        Assert.Contains("payloads identified as the frozen threeDomainSecure graphql family", outcome.Error);
-        Assert.Contains("ResolveThreeDsContingency", outcome.Error);
-        Assert.Contains("per-case", outcome.Error);
-        Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Process3DS), ctx.Session.Vars["paypal3ds.state"]);
+        Assert.True(outcome.Ok);
+        Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Complete3DS), ctx.Session.Vars["paypal3ds.state"]);
+
+        var names = server.Requests.Select(r => (string?)JObject.Parse(r.Body)["operationName"]).ToArray();
+        Assert.Equal(new[]
+        {
+            "ThreeDsAuthenticateMutation", "ThreeDsLookUpMutation", "ResolveThreeDsContingency",
+        }, names);
+
+        var resolve = JObject.Parse(server.Requests[2].Body)["variables"]!;
+        Assert.Equal("tok-9", (string?)resolve["token"]);
+        Assert.Equal("auth-1", (string?)resolve["authId"]);
+        Assert.Equal("ref-9", (string?)resolve["referenceId"]);
+        Assert.Equal("card-77", (string?)resolve["creditCardId"]);
+        Assert.Equal("SUCCESS", (string?)resolve["status"]);
+        Assert.Equal(new JArray("HERMES", "EXPRESS_CHECKOUT"), resolve["experiences"]);   // the decoded dialect set
+    }
+
+    /// <summary>
+    /// The wiring (R1086): the gateway's action completion drives the resolver chain when the
+    /// machine left a Waiting3DS state on the session — PayPalThreeDs is reachable from the
+    /// payment dispatch, not just from these tests.
+    /// </summary>
+    [Fact]
+    public async Task TheGatewayCompletionDrivesTheResolver()
+    {
+        using var server = new TinyServer((_, _) => (200, "{}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+
+        ctx.Session.Vars["paypal3ds.state"] = nameof(PayPalThreeDs.ThreeDsState.Waiting3DS);
+        ctx.Session.Vars["paypal3ds.referenceId"] = "ref-9";
+        ctx.Session.Vars["paypal3ds.creditCardId"] = "card-77";
+        ctx.Session.Vars["paypal3ds.euat"] = "euat-7";
+        ctx.Session.Vars["paypal3ds.hosted"] = "0";
+        ctx.Session.Vars["paypal3ds.token"] = "tok-9";
+        ctx.Session.Vars["paypal3ds.graphqlUrl"] = server.BaseUrl + "/graphql/";
+
+        var gateway = new PayPalGateway();
+        var result = await gateway.CompleteActionAsync(ctx,
+            "{\"authId\":\"auth-1\",\"status\":\"SUCCESS\"}", default);
+
+        Assert.True(result.Ok, result.Error);
+        Assert.Equal(3, server.Requests.Count);   // authenticate, lookup, resolve — the machine ran
+        Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Complete3DS), ctx.Session.Vars["paypal3ds.state"]);
     }
 }

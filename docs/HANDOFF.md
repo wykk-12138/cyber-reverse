@@ -5159,3 +5159,32 @@ control ok、markers absent **0/5** 保持。
 证据等级：伪代码存档/常量解码/状态槽为 Observation；编排次序为 Inference（逐 case 变量源待精读）。
 
 还剩什么：逐 case 变量源精读（伪代码在盘，纯阅读）；Stripe 六步其余体；42 锚静树全跑。
+
+## R1086 —— 【核心②合并步幅】PayPal 3DS 四态机全收口并接线；Nike 支付双 GET 链落地：占位 13 → 11
+
+**取件**：YG 三条节奏微调后的首个合并轮。
+
+改了什么：
+- `PayPalThreeDs` 完整状态机（Pending 截断消除）：`GqlAsync`（持久化操作体
+  `{"operationName":N,"variables":{…}}` + PUT + 双方言头墙 + 分发 + 30 秒）· `ReadContingency`
+  （case 体针）· `RunAsync`（提交 → 偶发读取 → 无挑战即完成；有挑战跑 GetThreeDsJwtQuery →
+  停挑战窗 Waiting3DS，快照入会话）· `ContinueAsync`（认证 → 查找 → Resolve 六变量，
+  方言集 HERMES+EXPRESS_CHECKOUT）。`StageIsDecoded` 对机器而非标签表。
+- **接线**：`PayPalGateway.CompleteActionAsync` 在 Waiting3DS 态驱动解析链——支付分发层
+  到 3DS 机器端到端打通，孤岛消除。
+- **Nike 支付两步**（上游 `sub_140B35420` 反编译）：`GetPaymentMethodsAsync` = GET
+  `OrderV5/{order}/InitiatePayment?singleStep=true&deliveryCountryIso={country}`（进度
+  'Initialize payment'）；`SubmitPaymentAsync` = GET eshopworld `PaymentMethods?paymentId=`
+  → 令牌入 `Session.PaymentToken` → checkout POST 使用——三步支付链打通，两占位消除。
+- 顺手修正：StripeChallenge Emit 第二参改事件类型 `"error"`；NikeFlow JP 分支 address3 空值一致性。
+
+验证：`dec 0x140B35420` + names_at 22 常量（双 GET 全组合 + case 体响应针）；
+合并测试面 **94/94 绿**（PayPalThreeDs 钉 10→14、NikePaymentChain 3 新钉、StripeChallenge
+Emit 钉更新）；`payment_challenges.py` markers **0/5**；`core_coverage.py` 占位 **13 → 11**。
+
+数字变化：核心 not captured **13 → 11**；PayPalThreeDs 钉 10 → **14**；Nike 支付钉 0 → **3**。
+
+证据等级：双 GET 全组合/参数常量/响应针/persisted 键为 Observation；变量名→快照字段映射与
+首操作名取 JwtQuery 为 Inference。
+
+还剩什么：Stripe 六步其余体（下轮主菜）；逐 case 精读收尾；42 锚静树全跑。

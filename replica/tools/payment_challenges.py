@@ -176,7 +176,19 @@ def main():
         "表单字段 **`JWT` + `MD`**（0x146DD3A08/0x146DF88D0，sub_14130CC50 表单编码）——"
         "银行挑战页的回帖字段。方言常量 `HERMES`（0x146DA8128）· `EXPRESS_CHECKOUT` · `PAYPAL` · "
         "`PRE_AUTH` · `en`。全链顺序：**JWT 查询 → 3DS 认证 → 挑战窗（processThreedsConfirmation "
-        "回帖 JWT/MD）→ 查找 → 解析**。每 case 的精确变量源绑定仍需逐 case 读取，但链路形状已定型。")
+        "回帖 JWT/MD）→ 查找 → 解析**。")
+    add("")
+    add("**→ R1086：四层全收口，机器可执行落地并接线**——`PayPalThreeDs` 现在是完整状态机："
+        "`GqlAsync`（持久化操作体 `{\"operationName\":N,\"variables\":{…}}`，PUT + 双方言头墙 + "
+        "200/403/429 分发）· `ReadContingency`（case 体针：status/redirectUrl/jwtSpecification/"
+        "referenceId/paymentCard.id）· `RunAsync`（提交 → 读偶发 → JWT 查询 → 停在挑战窗"
+        " Waiting3DS，快照与续体字段入会话）· `ContinueAsync`（认证 → 查找 → `ResolveThreeDs-"
+        "Contingency` 六变量解析，HERMES/EXPRESS_CHECKOUT 方言集）。**接线**："
+        "`PayPalGateway.CompleteActionAsync` 在 Waiting3DS 态驱动解析链——支付分发层到 3DS 机器"
+        "的端到端执行链打通。同时 Nike 支付两步按反编译 `sub_140B35420` 落地（双 GET："
+        "`OrderV5/{order}/InitiatePayment?singleStep=true&deliveryCountryIso={country}` → "
+        "eshopworld `PaymentMethods?paymentId=` → 令牌入会话 → checkout POST 的 paymentToken）。"
+        "四态机名实相符：`StageIsDecoded` 对机器而非仅对标签表。")
     add("")
     add("## 四、Stripe")
     add("")

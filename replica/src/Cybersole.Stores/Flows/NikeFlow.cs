@@ -509,75 +509,94 @@ public class NikeFlow : StoreFlow
     }
 
     /// <summary>
-    /// Step <c>GetPaymentMethods</c>, ordinal 57, which sits between <c>GetShopperIp</c> and
-    /// <c>SubmitOrder</c> in the image's sequence (<c>StoreFlowSteps.Nike</c>, source Literal).
+    /// Step <c>GetPaymentMethods</c>, ordinal 57 — the first half of the decoded payment-initiation
+    /// chain (<c>sub_140B35420</c>, progress string <c>Initialize payment</c> at 0x146dbca08).
     ///
     /// <para>
-    /// <b>R1012: this is the first override of this step anywhere in the replica.</b> R1008 found that
-    /// <c>StoreFlow.GetPaymentMethodsAsync</c> had none, and R963 established that an unoverridden base method is
-    /// trimmed -- so the step existed in no artifact and read <c>Vars["paymentMethodsUrl"]</c>, a key name that is
-    /// absent from the image in both encodings. An override both gives the step a caller and lets the address come
-    /// from the image instead of from a session variable nobody sets.
-    /// </para>
-    ///
-    /// <para>
-    /// The address is <see cref="NikeEndpoints.Checkouts"/>, which the image carries at <c>0x147053d8c</c> and which
-    /// <c>NikeEndpoints</c>' header describes as the single resource every checkout step writes to. Nike's own
-    /// <c>GetPaymentMethods</c> is a read of the checkout, not a separate route -- the image names no
-    /// payment-methods path for this host at all, so inventing one would be the join-two-fragments mistake.
+    /// <b>R1086: the chain is decompiled, and this step carries its first GET</b> —
+    /// <c>https://www.nike.com/gs/checkout-api/api/v5/Order/{order}/InitiatePayment</c> with the
+    /// two query parameters the machine assembles (<c>singleStep=true</c>, 0x14715d7e8/0x147173de8,
+    /// and <c>deliveryCountryIso</c>, 0x147001c30, ← the profile's shipping country). The URL
+    /// prefix is the frozen <c>OrderV5</c> constant the image has carried since R127
+    /// (<c>0x1470969f0</c>, 50 chars) and the <c>/InitiatePayment</c> segment is the inline
+    /// literal at <c>0x145e92700</c>. The answer carries a payment id this step stores for
+    /// <see cref="SubmitPaymentAsync"/>'s half of the chain.
     /// </para>
     /// </summary>
     public override async Task<StepOutcome> GetPaymentMethodsAsync(FlowContext c, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(c.Session.CartId))
-            return StepOutcome.Fail("nike: no checkout to read payment methods from", retryable: true);
+        var orderId = c.Session.CartId;
+        if (string.IsNullOrEmpty(orderId))
+            return StepOutcome.Fail("nike: no order to read payment methods for", retryable: true);
 
-        // R1014: R1012 read this from NikeEndpoints.Checkouts, on the same header sentence the delivery step used, and
-        // for the same insufficient reason -- the image says every step writes to one checkout resource but not which
-        // step writes what, and it names no payment-methods route for this host at all. Reading a guess is worse than
-        // saying nothing, because a read that returns the checkout's JSON parses to "no methods offered" and reads like
-        // a shop that refuses cards.
-        //
-        // What stays is the part that was never a guess: the step has an override, so it is no longer trimmed (R963),
-        // and it names the candidate resources so the next attempt has somewhere to start.
-        return StepOutcome.Fail(
-            "nike: payment-methods endpoint not captured -- the image names no such route for this host; the buy "
-            + "surface is checkout_previews/v3 and checkouts/v3 with their jobs, and which one carries the list is not "
-            + "established", retryable: false);
+        var country = c.Shipping?.Country ?? "US";
+
+        // The decoded machine's progress label, then its GET: the +8 verb slot (sub_1408b61e0,
+        // no payload — the parameters ride the query string the builder assembles). The prefix is
+        // the frozen OrderV5 constant; the session var is the replica's standard test/config seam
+        // (the checkStockUrl convention) — it overrides the PREFIX, so the composition (order id,
+        // segment, the two decoded parameters) is always the machine's own.
+        c.Emit("Initialize payment", "StatusInfo");
+        var prefix = c.Session.Vars.TryGetValue("nike.initiatePaymentUrl", out var urlOverride) &&
+                     !string.IsNullOrEmpty(urlOverride)
+            ? urlOverride
+            : NikeEndpoints.OrderV5;
+        var url = prefix.TrimEnd('/') + "/" + orderId + "/InitiatePayment?singleStep=true" +
+                  "&deliveryCountryIso=" + Uri.EscapeDataString(country);
+        var res = await GetAsync(c, url, "nike-initiate-payment", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("nike: initiate-payment unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"nike initiate-payment HTTP {res.StatusCode}", retryable: true);
+
+        // The payment id the machine's resume state reads (ctx field 53) and hands to the
+        // payment-methods half. Whatever shape the answer takes, an id-shaped field is the
+        // contract the second GET keys on.
+        c.Session.Vars["nike.paymentBody"] = res.Body ?? string.Empty;
+        var paymentId = TryRead(res.Body, "paymentId") ?? TryRead(res.Body, "id");
+        if (!string.IsNullOrEmpty(paymentId)) c.Session.Vars["nike.paymentId"] = paymentId!;
+
+        return StepOutcome.Success();
     }
 
     /// <summary>
-    /// Payment goes through two calls: InitiatePayment hands back a token, then the payment
-    /// block is PUT onto the order. Kasada guards both, which is why the sensor has to be
-    /// submitted earlier in the flow.
+    /// The second half of the decoded chain (<c>sub_140B35420</c>'s resume state): the frozen
+    /// eshopworld panel read <c>https://payments-panel.production.eshopworld.com/api/v2/PaymentMethods?paymentId={id}</c>
+    /// (0x147078698 + ctx field 53), again a GET. Its answer is the payment-methods list and the
+    /// token the checkout POST's <c>paymentToken</c> carries (ctx field 29) —
+    /// <see cref="SubmitOrderAsync"/> sends it, so this step stores it on the session.
     /// </summary>
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(c.Session.CartId))
-            return StepOutcome.Fail("nike: no order to pay for");
-
         var card = c.Card;
         if (card?.Number is null) return StepOutcome.Fail("nike: no card");
 
-        // R1011: this step used to POST to buy/orders/v2/.../initiatePayment and PUT to .../payment. Neither family
-        // exists. `NikeEndpoints`' own header has said so since R87 -- it records that the replica was calling two URL
-        // families the binary does not contain -- and the two literals survived anyway, inside an override, which means
-        // they are compiled into the artifact and would go out on the wire.
-        //
-        // What the image does name, in address order:
-        //   0x147053d8c  https://api.nike.com/buy/checkouts/v3/                     one resource every step writes to
-        //   0x147053c94  https://api.nike.com/buy/checkout_previews/v3/             the preview half
-        //   0x146ab768c  /rpc/payment/pay/initiatePayment                           an RPC form, host not paired
-        //   0x146aafe84  /InitiatePayment                                           a controller name
-        //
-        // So the operation is real and its address is not established: the RPC path has no host literal beside it, and
-        // pairing it with api.nike.com would be the join-two-seen-fragments mistake `EndpointProvenanceTests` was
-        // written to stop. Reporting that is worth more than sending a request that can only 404 -- the old code turned
-        // a missing endpoint into "nike initiatePayment HTTP 404", which reads like the store refusing us.
-        return StepOutcome.Fail(
-            "nike: payment endpoint not captured -- the image names /rpc/payment/pay/initiatePayment without a host "
-            + "and buy/checkouts/v3 as the resource, while buy/orders/v2 (what this step used) is in it zero times",
-            retryable: false);
+        if (!c.Session.Vars.TryGetValue("nike.paymentId", out var paymentId) ||
+            string.IsNullOrEmpty(paymentId))
+        {
+            // The chain's first half has not run — run it, as the decoded machine does, before
+            // its own half. One state machine, two GETs, in the image's own order.
+            var first = await GetPaymentMethodsAsync(c, ct).ConfigureAwait(false);
+            if (!first.Ok) return first;
+            paymentId = c.Session.Vars.TryGetValue("nike.paymentId", out var id) ? id : null;
+        }
+
+        var methodsPrefix = c.Session.Vars.TryGetValue("nike.paymentMethodsUrl", out var methodsOverride) &&
+                           !string.IsNullOrEmpty(methodsOverride)
+            ? methodsOverride
+            : "https://payments-panel.production.eshopworld.com/api/v2/PaymentMethods";
+        var url = methodsPrefix.TrimEnd('/') + "?paymentId=" +
+                  Uri.EscapeDataString(paymentId ?? string.Empty);
+        var res = await GetAsync(c, url, "nike-payment-methods", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("nike: payment-methods unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"nike payment-methods HTTP {res.StatusCode}", retryable: true);
+
+        // The token is the contract this step exists to feed: ctx field 29 in the checkout body.
+        c.Session.Vars["nike.methodsBody"] = res.Body ?? string.Empty;
+        var token = TryRead(res.Body, "paymentToken") ?? TryRead(res.Body, "token");
+        if (string.IsNullOrEmpty(token))
+            return StepOutcome.Fail("nike: payment-methods answer carried no token", retryable: false);
+        c.Session.PaymentToken = token;
+
+        return StepOutcome.Success();
     }
 
     // R1013: the card-attaching half used to live here as a private AttachCardAsync, kept "for when the address is
@@ -779,7 +798,7 @@ public class NikeFlow : StoreFlow
             // 0x146A622F8 when absent) and the postal address gains address3 = address2.
             recipient["altFirstName"] = profile?.JapaneseName ?? string.Empty;
             recipient["altLastName"] = profile?.JapaneseSurname ?? string.Empty;
-            postal["address3"] = ship.Address2;
+            postal["address3"] = ship.Address2 ?? string.Empty;
         }
 
         item["recipient"] = recipient;

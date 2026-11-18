@@ -113,7 +113,10 @@ public sealed class StripeChallenge
         c.Emit(WaitingForCaptcha, "StatusInfo");
         if (string.IsNullOrEmpty(input.CaptchaToken))
         {
-            c.Emit(CaptchaFailedStatus, CaptchaFailedColour);
+            // R1086: Emit's second parameter is the event TYPE (the original reports the failure
+            // with its colour, 0x146a76fd0, as part of the message's presentation — kept as the
+            // CaptchaFailedColour constant — not as the event's channel).
+            c.Emit(CaptchaFailedStatus, "error");
             return ChallengeOutcome.Failed(0);
         }
 

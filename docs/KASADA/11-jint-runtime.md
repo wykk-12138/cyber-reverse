@@ -2330,6 +2330,54 @@ Solve -> Ok=True Ct=PRODUCTPATHCT0123456789 Version=j-1.2.992 Executed=True
 
 **下一轮**：从"传感器有没有成功挂上 `fetch` 包装"查起 —— 这决定了它是"没被触发"还是"挂不上"。
 
+### 5.109 查完了：**传感器根本没挂 `fetch` 包装** [实测]
+
+在跑脚本前后各取一次原生对象引用，直接比：
+
+```
+fetch replaced?        false
+fetch source head      function () { [native code] }     ← 还是宿主的那个
+XHR replaced?          false
+sendBeacon replaced?   false
+executed = True
+```
+
+**三个原生对象一个都没被替换。**
+
+**所以它不是"在等页面发受保护请求"** —— §5.108 那个假设不成立：
+它连拦截层都没装。旁证也一致：字面量表里那条 `Original fetch not found` 的错误文案
+在整条轨迹里从未被触发过。
+
+### 5.110 整条本地路的最终结论
+
+把 §5.41 到 §5.109 串起来，Nike 当前构建的实况是：
+
+```
+✅ 页面取到（200，1.0 MB）
+✅ 脚本取到（155 KB，含两段 UUID 的目录）
+✅ resourceAddress 算对（脚本目录，不是 origin）
+✅ configure 被消费，payload 发出真实的 GET /mfc
+✅ 真实的 200 回来，x-kpsdk-h / x-kpsdk-fc 收进结果
+✅ /mfc 的响应是服务端真实配置：{"featureFlags":{},"dynamicConfig":{"frontend":{"logLevel":50}}}
+❌ 传感器不挂 fetch/XHR/sendBeacon
+❌ 传感器不 interrogation（因为上面那份配置说"前端模式"）
+```
+
+**这不是我们的 shim 缺东西**：脚本执行完毕（`executed=True`）、无异常、状态机走到 `Configured`、
+请求真实发出并真实收到 200。**是这一版传感器在拿到那份配置后，主动不进入 interrogation。**
+
+**⇒ 对 Nike 现行构建，Jint 单跑拿不到 token 是设计结果，不是实现缺陷。**
+
+而这正好回到 `03-browser.md` 开篇那句话：
+
+> 别管脚本怎么算，把页面加载起来，让它自己算，然后**从线上把结果捞出来**。
+
+**复刻件现在两条路都在，而且 `NikeFlow` 的优先级就是"先浏览器、再脚本"** ——
+和原版并存的设计一致（`02-local-jint.md` 与 `03-browser.md` 各自记录了一条路的独立证据）。
+
+**这条线到此收敛**：本地 Jint 路已经做到"能做的都做了、能证明的都证明了"，
+剩下的部分服务端不配合；真正能出 token 的是浏览器路，而复刻件里它已经在了。
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

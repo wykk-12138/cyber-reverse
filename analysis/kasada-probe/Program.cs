@@ -66,7 +66,17 @@ if (Environment.GetEnvironmentVariable("KASADA_TRANSPORT") == "1")
     };
 }
 
+// Snapshot the natives the sensor is documented to wrap, so a run can say whether it actually did.
+runtime.Execute("window.__f0 = window.fetch; window.__x0 = window.XMLHttpRequest; window.__b0 = navigator.sendBeacon;");
+
 var executed = runtime.TryExecute(script, out var error);
+
+Console.WriteLine("=== fetch wrapper check ===");
+Console.WriteLine("fetch replaced?        " + runtime.TryString("String(window.fetch !== window.__f0)"));
+Console.WriteLine("fetch source head      " + (runtime.TryString("String(window.fetch).slice(0, 90)") ?? "-"));
+Console.WriteLine("XHR replaced?          " + runtime.TryString("String(window.XMLHttpRequest !== window.__x0)"));
+Console.WriteLine("sendBeacon replaced?   " + runtime.TryString("String(navigator.sendBeacon !== window.__b0)"));
+Console.WriteLine();
 Console.WriteLine($"executed = {executed}  error = {error ?? "-"}");
 
 string SeqLen() => runtime.TryString("(window.__dshSeq||[]).length") ?? "0";

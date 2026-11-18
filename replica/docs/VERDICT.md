@@ -64380,3 +64380,39 @@ still unexplained: 40
 > 因为 base-后缀这条本身就是锚定的（两头都要落在真实字面量的边界上）。
 >
 > **判据的「形状」决定了它会不会骗你。** 锚定的判据不需要事后补守卫。
+---
+
+## 第 1127 轮：把动词表变成代码
+
+上一轮捞到 12 条 BFF 端点的动词表，这一轮回灌。
+
+### 一、查出来的现状比想的糟
+
+`JohnLewisFlow` 只用了 12 条里的 **1 条**（`MagentoFlow.cs:855` 的 `payments` PUT）。
+其余 11 条只在 `RetailApiFamilies` 里**声明着，从未调用**。
+
+更关键的是：`GetPaymentPageAsync` 在基类（`StoreFlow.cs:1269`）里打的是
+`Origin(c.Url) + "/payments"` —— **对 John Lewis 来说那根本不是它自己的端点。**
+
+> **「能跑」和「打对门」是两件事。** 基类给了一个能返回 200 的默认实现，
+> 于是没有人发现 John Lewis 的支付页其实一直打在别处。
+
+### 二、落了什么
+
+`JohnLewisFlow.GetPaymentPageAsync` 覆写：
+
+| | |
+|---|---|
+| URL | `RetailApiFamilies.JohnLewisBff.PaymentPageV2`（镜像字面量 `0x14705d6b4`） |
+| 动词 | **GET**（站点 `0x140a3ff44`，槽 `0x1408b61e0`，调用点 `0x140a3ff75`） |
+| seam | `jl.paymentPageUrl`（沿用 `jl.paymentsUrl` 的既有约定） |
+| 落点 | `jl.paymentPageBody` **与** 基类契约键 `paymentPage` 都写 |
+
+4 条新事实 + 12 条兄弟事实 = **16/16 通过**。
+
+### 三、没做的那 10 条，原因写清楚
+
+`billing-address`(POST)、`deliveries/details`(POST)、`deliveries`(PUT)、`deliveries/`(GET)、
+`payment-page` 的 **PUT 那一半** —— **动词已确证，请求体未知**。
+
+**动词是白的，体不是。** 有了动词就编一个 JSON 体出来，是这四轮里我一直在躲的那件事。

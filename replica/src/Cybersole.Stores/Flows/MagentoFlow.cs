@@ -880,6 +880,39 @@ public sealed class JohnLewisFlow : StoreFlow
     public const string StripeAccount = "acct_1S0JRiIiwyy5Cf6X";
 
     /// <summary>
+    /// <c>GetPaymentPage</c> — reads John Lewis's payment page before the method is submitted.
+    ///
+    /// <para>
+    /// R1127: the step map pairs this step with <c>v2/orderforms/payment-page</c>, and the image calls
+    /// that URL with <b>two</b> verbs — a GET at site 0x140a3ff44 (verb slot 0x1408b61e0, called at
+    /// 0x140a3ff75) and a PUT at 0x140a4003b (slot 0x1408b6310, called at 0x140a4006f). The read is
+    /// the one this step is named for, so the GET is what runs here; the base class was answering on
+    /// <c>Origin + "/payments"</c>, which is not a John Lewis URL at all.
+    /// </para>
+    ///
+    /// <para>
+    /// The answer is kept under both <c>jl.paymentPageBody</c> (this flow's key) and the base
+    /// class's <c>paymentPage</c>, so a later step reading either spelling still finds it.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetPaymentPageAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.TryGetValue("jl.paymentPageUrl", out var over) &&
+                  !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.PaymentPageV2;
+
+        var res = await GetAsync(c, url, "jl-payment-page", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl payment page unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl payment page HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.paymentPageBody"] = res.Body;
+        c.Session.Vars["paymentPage"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
     /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
     /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>

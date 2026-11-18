@@ -5969,3 +5969,19 @@ threeds 站点可一并校正既有实现。
 
 还剩什么：① **动词表回灌实现**（`payment-page` 双动词、`deliveries`/`deliveries/` 之别）；
 ② 剩余大块 `api/v1`(8)、`api/v2`(5)。
+## R1127 —— 动词表回灌：John Lewis GetPaymentPage 落地（GET）
+
+改了什么（可执行）：
+- 现状：`JohnLewisFlow` 只用 12 条 BFF 端点中的 1 条（`MagentoFlow.cs:855` payments PUT）；
+  `GetPaymentPageAsync` 是基类虚步骤（`StoreFlow.cs:1269`）打 `Origin + "/payments"`，**全仓无重写**。
+- 落 `JohnLewisFlow.GetPaymentPageAsync` 覆写：URL 用 `JohnLewisBff.PaymentPageV2`（字面量 0x14705d6b4）、
+  **GET**（站点 0x140a3ff44 / 槽 0x1408b61e0 / 调用点 0x140a3ff75）、seam `jl.paymentPageUrl`、
+  答案写 `jl.paymentPageBody` 与 `paymentPage` 两键。
+- 新增 `JohnLewisPaymentPageTests` 4 条。
+
+验证：build 无 error；`dotnet test` 过滤两类 → **16/16 通过**。
+
+数字变化：覆写者 **0 → 1**；JL 实际调用的 BFF 端点 **1 → 2**。
+
+还剩什么：其余 10 条 BFF 端点**动词已确证、请求体未知**，故未实现（不编体）；
+`payment-page` 的 PUT 那一半需单独步骤承接。

@@ -40530,3 +40530,38 @@ Inference = 「48 条仍开放」是**上界**——本工具只试**两段**拆
 还剩什么：① **动词表要回灌到实现**——`payment-page` 的 GET/PUT 双动词、`deliveries` 的 PUT 与
 `deliveries/` 的 GET，需核对 `JohnLewisFlow` 现有调用是否用了对的动词；② `api/v1`(8) 与
 `api/v2`(5) 是剩下最大的两块。
+
+## R1127 —— 动词表回灌：John Lewis `GetPaymentPage` 从基类的假 URL 改成**镜像自己的 GET**
+
+**取件**：R1126 的待办①「动词表要回灌到实现」。
+
+改了什么（本轮**有可执行代码**）：
+- **查实现现状**：`JohnLewisFlow` 只用了 12 条 BFF 端点中的 **1 条**
+  （`MagentoFlow.cs:855` 的 `payments` PUT ✓）；其余 11 条只在 `RetailApiFamilies` 里声明、
+  **从未被调用**。`GetPaymentPageAsync` 在 `StoreFlow.cs:1269` 是**基类虚步骤，全仓无任何站点重写**。
+- **落实现**（`MagentoFlow.cs`，插在 `StripeAccount` 常量之后，整块锚点）：
+  `JohnLewisFlow.GetPaymentPageAsync` 覆写 ——
+  - 默认 URL 用 `RetailApiFamilies.JohnLewisBff.PaymentPageV2`
+    ＝ `https://checkout.johnlewis.com/bff/v2/orderforms/payment-page`（镜像字面量 `0x14705d6b4`）；
+  - **动词 GET**（站点 `0x140a3ff44`，动词槽 `0x1408b61e0`，调用点 `0x140a3ff75`）；
+  - session seam `jl.paymentPageUrl`（沿用 `jl.paymentsUrl` 的既有约定）；
+  - 答案同时写入 `jl.paymentPageBody` 与基类契约键 `paymentPage`。
+- **为什么必须覆写**：基类实现打的是 `Origin(c.Url) + "/payments"` —— 对 John Lewis 而言
+  **那根本不是它自己的端点**，属于「能跑但打错门」。
+
+验证命令与输出：
+- `dotnet build` → 无 error；`dotnet test --filter "JohnLewisPaymentPageTests|JohnLewisStripeStepTests"`
+  → **`已通过! 失败 0 / 通过 16 / 总计 16`**（4 条新事实 + 12 条既有兄弟事实）。
+- 新增 `tests/Cybersole.Tests/JohnLewisPaymentPageTests.cs` 4 条：GET 到 bff 路径、
+  两个键都写、503 可重试、常量等于镜像字面量。
+- 动词与站点地址来源：R1126 的 `analysis/_bff_verbs.py` 输出（13 站点表）。
+
+数字变化：**`GetPaymentPageAsync` 的覆写者 0 → 1**；John Lewis 被实际调用的 BFF 端点 **1 → 2**
+（`payments` PUT、`payment-page` GET）。判定器读数不变（仍是常量拼接，工具本就已解释）。
+
+证据等级：Observation = `MagentoFlow.cs:855` 唯一一处 BFF 调用、`StoreFlow.cs:1269` 基类实现、
+R1126 的站点/动词表、16/16 通过；Inference = 无（本轮每处改动都挂在已取得的地址或既有约定上）。
+
+还剩什么：① 其余 **10 条** BFF 端点仍只声明未调用，其中 `billing-address`(POST)、
+`deliveries/details`(POST)、`deliveries`(PUT)、`deliveries/`(GET)、`payment-page`(**PUT 那一半**) 的
+**请求体**尚未取证——动词已确证、体未知，故未实现；② `payment-page` 的 PUT 这一半需单独一个步骤承接。

@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- WHY THIS EXISTS: the browserless Kasada handshake with no dependency on the replica, so the file can be
+       lifted into another solution unchanged. Everything it needs is System.Net.Http. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>KasadaStandalone</RootNamespace>
+  </PropertyGroup>
+</Project>

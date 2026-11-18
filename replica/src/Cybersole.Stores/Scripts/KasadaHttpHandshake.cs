@@ -157,8 +157,14 @@ public sealed class KasadaHttpHandshake
 
             // The session cookie travels with the token; a request that carries only the header is the
             // shape anti-bot vendors are built to notice.
-            if (raw.TryGetValue("Set-Cookie", out var cookie) && cookie.StartsWith("KP_UIDz", StringComparison.Ordinal))
-                SessionCookie = cookie.Split(';')[0];
+            // Two cookies, same value: KP_UIDz-ssn (HttpOnly; Secure; SameSite=None) and KP_UIDz (HttpOnly).
+            // Both are kept, because dropping either is the shape these systems look for.
+            var jar = raw.Where(kv => kv.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase))
+                         .SelectMany(kv => kv.Value.Split(new[] { "\n" }, StringSplitOptions.RemoveEmptyEntries))
+                         .Where(c => c.StartsWith("KP_UIDz", StringComparison.Ordinal))
+                         .Select(c => c.Split(';')[0])
+                         .ToList();
+            if (jar.Count > 0) SessionCookie = string.Join("; ", jar);
             return found;
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)

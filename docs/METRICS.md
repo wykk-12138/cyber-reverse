@@ -6,15 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 04:36:31 +0800 |
+| 生成时间 | 2026-11-19 04:50:55 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
-| 度量脚本结果 | 全部 exit 0 |
+| 度量脚本结果 | **有非零退出，见下** |
 | 完整套件 | 本次跳过（`--skip-tests`） |
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 21 个源文件比产物新（共 16887 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 21 个源文件比产物新（共 16902 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -39,15 +39,12 @@
 | 函数数量（.pdata） — functions: replica .pdata | 174,976 |
 | 函数数量（.pdata） — functions: ratio | 63.14% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 21 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 16887 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 16902 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
-| 核心覆盖：vendor 宿主 — vendor: controls ok | True |
-| 核心覆盖：vendor 宿主 — vendor: named in image | 1 |
-| 核心覆盖：vendor 宿主 — vendor: wiring rows | 9 |
-| 核心覆盖：vendor 宿主 — vendor: missing | 0 |
+| 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
 | 可执行段体量 — section-mass: original executable | 51695104 |
 | 可执行段体量 — section-mass: replica executable | 28989440 |
 | 可执行段体量 — section-mass: ratio | 56.08% |
@@ -368,9 +365,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-18 17:43:48
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 04:33:50)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 04:47:47)
 source files newer than the artifact: 21
-lines in those files: 16887
+lines in those files: 16902
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -398,11 +395,10 @@ cd D:\projects\cyber-reverse\replica
 C:\Python312\python.exe tools/vendor_coverage.py
 ```
 
-`exit 0`
+`exit 2`
 
 ```text
-  wrote docs/VENDOR_COVERAGE.md
-  controls ok=True  vendors named=1  wiring rows=9  missing=0
+  !! controls failed (kpsdk=0, datadome=0) -- IDA is not ready; refusing to overwrite docs/VENDOR_COVERAGE.md with false zeros
 ```
 
 ### 可执行段体量

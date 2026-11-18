@@ -65091,3 +65091,47 @@ method 侧孪生是 `…/notify-method-cmpl`（**无**斜杠），challenge 侧�
 | 变异 | **59/59 fired，tree GREEN，staleness 0** |
 
 **本轮只落 URL，不发请求**——它的**请求体仍未解码**（在 `sub_141113680` 里经没走过的路径拼装）。**Unknown 就写 Unknown。**
+---
+
+## 第 1148 轮：那个「缺失的请求体」，**不存在**
+
+上一轮我把 `notify-challenge-cmpl/` 落成常量，并写「请求体仍未解码」。这一轮定点去挖它。
+
+`sub_141113680` 共 **2582 行**，那个 URL **只出现一次**，在第 **1967** 行：
+
+`c
+v563 = sub_141CF6230(&off_147098688, v9[9]);
+`
+
+`sub_141CF6230` 全文 37 行：
+
+`c
+v7 = sub_143028CD0(&unk_144DB6A40, v6);   // 分配 builder
+sub_141CF5DD0(v7, 0,  a1);                // 追加 a1
+sub_141CF5DD0(v7, v4, a2);                // 追加 a2
+return v7;                                // 返回合并串
+`
+
+**它是字符串拼接。** 所以这个 URL 从来没被 POST 过——它被拼上 challenge id，作为
+`challenge_callback_url` **交给 PayPal**。
+
+> **我上一轮说的「请求体仍未解码」，是在描述一个不存在的东西。**
+> 而它之所以"解不出来"，不是证据不够，是**它本来就没有**。
+> **「找不到」和「没有」我这一周第二次搞混了**（上一次是 `orders` 的体）。
+
+### 更正 + 补上缺的半条链
+
+- 常量注释改为「callback URL 的 **base**，不是请求目标」；
+- 新增 `ChallengeCallbackBaseFor(challengeId)`；
+- 与**既有**的 `ChallengeCallbackFragment`（`0x147163128`）和 `ChallengeCallbackUrlFor` 正好接上：
+  `ChallengeCallbackBaseFor` → `ChallengeCallbackUrlFor` 现在是完整一条链。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2453 通过 / 0 失败 / 2 跳过**（3m01s） |
+| PayPal 子集 | **36/36** |
+| 变异 | **59/59 fired，tree GREEN，staleness 0** |
+
+**仍标为推断**：被拼接的 `v9[9]` **就是 challenge id**——未追类型，注释里已如此标注。

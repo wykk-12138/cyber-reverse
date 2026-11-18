@@ -6322,3 +6322,20 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：① `notify-challenge-cmpl` 的请求体（需走通 `sub_141113680` 的拼装路径）；
 ② `sub_141113680` 仍是整个支付流程的关键函数。
+## R1148 —— notify-challenge-cmpl 不是端点，是 callback base；补 ChallengeCallbackBaseFor
+
+改了什么：
+- **定点取证**：`sub_141113680`（2582 行）里 `0x147098688` **只在第 1967 行**出现：
+  `sub_141CF6230(&off_147098688, v9[9])`。而 `sub_141CF6230`（37 行）是**字符串拼接**（builder + 两次追加）。
+  ⇒ **该 URL 从未被 POST**，它被拼上 challenge id 后作为 `challenge_callback_url` 交给 PayPal。
+- **更正 R1147**：常量注释改为「callback URL 的 base，不是请求目标」；**R1147 说的「请求体未解码」= 描述不存在的东西**。
+- **补链**：新增 `ChallengeCallbackBaseFor(challengeId)`，与既有的 `ChallengeCallbackFragment`(0x147163128)
+  和 `ChallengeCallbackUrlFor` 接成完整一条。
+- 测试重写为 `PayPalChallengeCallbackBaseTests` **4 条**（尾斜杠、id 作路径段、composer 接查询串、孪生不可按词替换）。
+
+验证：`_notify_challenge_body.py` → `2582 行 / 引用行 [1967]`、3DS 形状键段为空；
+`_cf6230.py` → 拼接体全文；build **0 错**；PayPal **36/36**；全量 **2453/0/2**；
+变异 **59/59 fired, tree GREEN, staleness 0**（04:50:42）。
+
+还剩什么：① `v9[9]` 类型（确认即 challenge id，当前标为推断）；
+② `state`/`code` 在镜像里以 `undefined` 字面出现（0x147163128），是否另有真实取值需再证。

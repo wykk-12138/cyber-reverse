@@ -816,19 +816,34 @@ fragment InstallmentsFragment on FundingInstrument {
         "https://www.paypal.com/payment-authentication/threeds/v1/init-challenge";
 
     /// <summary>
-    /// The challenge-complete notification (0x147098688) — the one member of this family the class was
-    /// missing, while its method-side twin <see cref="NotifyMethodCompleteUrl"/> has been here since
-    /// R1097. Note the <b>trailing slash</b>: the image's literal carries it, and
-    /// <c>…/notify-challenge-cmpl</c> without one is a different URL to the server.
+    /// The <b>base</b> of the challenge callback URL (0x147098688) — not a request target.
     ///
     /// <para>
-    /// R1147 lands the URL only. Its request body is still undecoded — the literal is referenced from
-    /// <c>sub_141113680</c>, the payment state machine, whose body assembles the payload through paths
-    /// this class has not walked yet — so nothing here sends it.
+    /// R1148 corrects R1147. The literal is met exactly once in the image, at line 1967 of
+    /// <c>sub_141113680</c>:
+    /// <c>v563 = sub_141CF6230(&amp;off_147098688, v9[9])</c>. That helper is a string builder — it
+    /// allocates a builder, appends its first argument, appends its second and returns the join — so the
+    /// URL is <b>concatenated with a value and handed to PayPal</b>, never posted to. So this endpoint
+    /// has no request body; R1147's "payload still undecoded" was describing something that does not
+    /// exist. The value it is joined with is the challenge id, and the joined result is the
+    /// <c>challenge_callback_url</c> field (0x146fc54d8) that
+    /// <see cref="ChallengeCallbackUrlFor"/> then appends its own query to.
+    /// </para>
+    ///
+    /// <para>
+    /// Note the <b>trailing slash</b>: it is what makes the join a path segment rather than a suffix.
     /// </para>
     /// </summary>
     public const string NotifyChallengeCompleteUrl =
         "https://www.paypal.com/payment-authentication/threeds/v1/notify-challenge-cmpl/";
+
+    /// <summary>
+    /// The callback base for one challenge: the literal above joined with the challenge id, which is the
+    /// join the machine performs before handing the value to PayPal (R1148). Feed the result to
+    /// <see cref="ChallengeCallbackUrlFor"/> to get the URL the solver actually visits.
+    /// </summary>
+    public static string ChallengeCallbackBaseFor(string challengeId) =>
+        NotifyChallengeCompleteUrl + challengeId;
 
     /// <summary>The session hop's form field (0x146f6d9a8).</summary>
     public const string ActionField = "action";

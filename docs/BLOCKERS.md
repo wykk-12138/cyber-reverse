@@ -41453,3 +41453,50 @@ Unknown = **该端点的请求体**（`sub_141113680` 里经未走过的路径�
 - 全量：**2452 通过 / 0 失败 / 2 跳过 / 2454**（2m29s）。
 - PayPal 子集：**35/35**。
 - 变异：`ran_at 2026-11-19T04:36:18`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`。
+## R1148 —— `notify-challenge-cmpl` **不是端点**：它是拼 `challenge_callback_url` 的前缀
+
+**取件**：R1147 定的「解出 `notify-challenge-cmpl` 的请求体」。**结果是没有请求体可解。**
+
+改了什么（**有可执行代码，且更正自己上一轮**）：
+- **定点取证**（`analysis/_notify_challenge_body.py`）：`sub_141113680` 共 **2582 行**，
+  `0x147098688` **只出现一次**，在 **第 1967 行**：
+  ```c
+  v563 = sub_141CF6230(&off_147098688, v9[9]);
+  ```
+  而 `sub_141CF6230`（37 行）是**字符串拼接助手**：
+  ```c
+  v7 = sub_143028CD0(&unk_144DB6A40, v6);   // 分配 builder
+  sub_141CF5DD0(v7, 0,  a1);                // 追加 a1
+  sub_141CF5DD0(v7, v4, a2);                // 追加 a2
+  return v7;                                // 返回合并串
+  ```
+  ⇒ **这个 URL 是被拼上 challenge id 后交给 PayPal 的，从来没有被 POST。**
+- **所以 R1147 写的「请求体仍未解码」描述的是一个不存在的东西**。已改正：常量注释改为
+  「challenge callback URL 的 **base**，不是请求目标」，并新增
+  **`ChallengeCallbackBaseFor(challengeId)`** = 该字面量 + challengeId。
+- **与既有代码正好接上**：`ChallengeCallbackFragment`（`0x147163128` = `state=undefined&code=undefined&liability_shift=`）
+  与 `ChallengeCallbackUrlFor(base, state, code, liabilityShift)` 早已存在（R1078/R1103），
+  **缺的就是这个 base**。现在 `ChallengeCallbackBaseFor` → `ChallengeCallbackUrlFor` 是一条完整链。
+- 测试重写为 `PayPalChallengeCallbackBaseTests` **4 条**：尾斜杠、id 作为**路径段**拼接、
+  **composer 把查询串接在这个 base 上**（base 无 `?` ⇒ 分隔符为 `?`）、两个孪生不能按词替换归一化。
+
+验证命令与输出：
+- `ida.py py "exec(..._notify_challenge_body.py)"` → `total lines: 2582 / URL object referenced at lines: [1967]`，
+  窗口内只有那一行；`3DS-shaped keys anywhere in the function` 段为空（**该函数没有围绕它设键**）。
+- `ida.py py "exec(..._cf6230.py)"` → 37 行全文，可见 builder 分配 + 两次追加 + 返回。
+- `dotnet build` → **0 个错误**；`dotnet test --filter "FullyQualifiedName~PayPal"` → **36/36 通过**。
+
+数字变化：新增 `ChallengeCallbackBaseFor` 1 个函数；测试 **4 条**（原 3 条重写并 +1）；
+**更正一处上一轮的结论**（不是端点、没有请求体）。
+
+证据等级：Observation = 2582 行里唯一一处引用、`sub_141CF6230` 的拼接体、36/36 通过；
+Unknown = 被拼接的那个值「就是 challenge id」是**推断**（`v9[9]` 未追类型），注释里已如此标注；
+Inference 已明确：`v9[9]` 的语义 = challenge id。
+
+还剩什么：① `v9[9]` 的类型/来源（确认它就是 challenge id）；② `ChallengeCallbackUrlFor` 的
+`state`/`code` 两个占位在镜像里以 `undefined` 字面出现（`0x147163128`），是否另有真实取值需再证。
+
+**全量与收据（本轮收数）**：
+- 全量：**2453 通过 / 0 失败 / 2 跳过 / 2455**（3m01s）。
+- PayPal 子集：**36/36**。
+- 变异：`ran_at 2026-11-19T04:50:42`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`。

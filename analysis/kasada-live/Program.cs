@@ -1,4 +1,4 @@
-// WHY THIS EXISTS: the offline harness can only prove the shape of things. This one runs the whole local
+﻿// WHY THIS EXISTS: the offline harness can only prove the shape of things. This one runs the whole local
 // path against the live site: fetch the real page, find the real sensor URL (which carries two UUID path
 // segments), configure the sensor with that directory, and let it issue GET /mfc and POST /r for real.
 //
@@ -8,7 +8,31 @@
 using Cybersole.Http;
 using Cybersole.Stores.Scripts;
 
-var pageUrl = args.Length > 0 ? args[0] : "https://www.nike.com/";
+var pageUrl = args.FirstOrDefault(a => !a.StartsWith("--")) ?? "https://www.nike.com/";
+
+// The browser road: load the real page in the replica's own Chromium and read whatever x-kpsdk-* the
+// sensor puts on the wire. This is the road that is expected to produce a token for Nike's current build
+// (docs/KASADA/11 5.110), so it is worth being able to run it directly.
+if (args.Contains("--browser"))
+{
+    Console.WriteLine("browser available = " + ChromiumKasadaSolver.IsAvailable);
+    if (!ChromiumKasadaSolver.IsAvailable)
+    {
+        Console.WriteLine("no browser installed; stopping");
+        return 1;
+    }
+
+    var browser = new ChromiumKasadaSolver();
+    var live = await browser.SolveAsync(pageUrl, TimeSpan.FromSeconds(60));
+    Console.WriteLine($"Ok      = {live.Ok}");
+    Console.WriteLine($"Ct      = {live.Ct ?? "(null)"}");
+    Console.WriteLine($"Version = {live.Version ?? "(null)"}");
+    Console.WriteLine($"Error   = {live.Error ?? "-"}");
+    foreach (var h in live.Headers.OrderBy(k => k.Key, StringComparer.Ordinal))
+        Console.WriteLine($"  {h.Key}: {(h.Value.Length > 70 ? h.Value[..70] + "…" : h.Value)}");
+    return live.Ok ? 0 : 2;
+}
+
 var ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
          "Chrome/131.0.0.0 Safari/537.36";
 

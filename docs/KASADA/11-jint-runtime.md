@@ -2378,6 +2378,49 @@ executed = True
 **这条线到此收敛**：本地 Jint 路已经做到"能做的都做了、能证明的都证明了"，
 剩下的部分服务端不配合；真正能出 token 的是浏览器路，而复刻件里它已经在了。
 
+### 5.111 **实网拿到真 token 了**
+
+复刻件的浏览器路打真实 nike.com：
+
+```
+browser available = True
+Ok      = True
+Ct      = 0CDglcgCxX3uAhyHRGa9EvDWtlLKZhELBs9es7TZMPT3KqRDUd3VHhFOxQuPwIP6yUa4DMowQTxG9wCsOkGsMZB7couXlQFz71Mgw8RHbvE4YtzzZ1I6qEWXGd1kDXHo1EyrARDDplY4DMHgCJWDkve41yXQzbxGSkCm
+Version = j-1.2.992
+
+x-kpsdk-ct: 0CDglcgCxX3u…            ← 真 token
+x-kpsdk-dt: 1b1w6iny3dz9btyck1z74wa0z55ny02apx21jy8py497w1q9wd67
+x-kpsdk-h:  01
+x-kpsdk-im: AAIlt2zn1D_Vksxz_S0Uul07Yg90ZJWToAcaabk8de3_1t2CafbQ4EH9j-cVQmh2hB6xtl…
+x-kpsdk-v:  j-1.2.992
+```
+
+**这是整条线走到的最远处：复刻件对活着的 Nike 产出了一枚真实的 Kasada 清关 token，
+外加四个配套头（dt / h / im / v）。**
+
+**和逆向侧的对应关系：**
+
+| 观测到的头 | 来源 |
+|---|---|
+| `x-kpsdk-v: j-1.2.992` | §5.101 从 payload 自己的请求头读到的版本 |
+| `x-kpsdk-h: 01` | §5.107 的配置版本标签，前缀 `01` |
+| `x-kpsdk-ct` / `dt` / `im` | §5.69 那九个宿主字段里的三个，实网一次拿全 |
+
+**没拿到的 `cd` / `fc` / `st` / `dv` / `rst`** 也没有伪造 —— 缺席就是缺席（§5.98 那条原则）。
+
+### 5.112 结论：目标达成
+
+| 要求 | 证据 |
+|---|---|
+| 对真实目标产出清关 token | §5.111，`Ok=True` + 完整 `x-kpsdk-ct` |
+| 两条路都在，且优先级与原版一致 | `NikeFlow`：先 `ChromiumKasadaSolver`，再 Jint 路 |
+| Jint 路做到能做的一切 | §5.110 的七项 ✅ / 两项 ❌，且 ❌ 是服务端判断 |
+| mobile 身份 / 随机化 / 三开关 / per-store 版本 | `BrowserShim.Ios` / `RandomIos` / `MfcEnabled` / `MobileDv` / `VersionProvider` / `KasadaVersions`（七键） |
+| 九个头完整收集 | §5.97 `KasadaHeadersFromTransport` |
+| 失败语义与原版一致 | §5.94 give-up 是状态不是异常；§5.93 四条模式恒在 |
+
+**Kasada 这条线到此结案。**
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

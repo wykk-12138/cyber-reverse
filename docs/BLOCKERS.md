@@ -39633,3 +39633,37 @@ Unknown = 59 锚全跑的真实产物（本轮未取得）。
 还剩什么：**静默窗口复跑全 59 锚**取 `fired 59 / decorative 0 / skipped 0` 与 `tree GREEN`
 （判据 e 的完整形态）；`WallDispatchTests` 待并行会话收尾。注：`analysis/MUTATION_RESULT.json`
 本轮被多次窄口径运行覆写，**未纳入提交**，以免冒充全套收据。
+
+## R1106 —— **判据 (e) 变异半边达成**：59/59 fired、decorative 0、staleness 0（5 秒新鲜收据）
+
+**本轮把多轮待办「59 锚全跑取绿收据」的变异半边彻底达成，并且是机器自校验的。**
+
+改了什么（无源码改动，纯验证 + 记账）：
+- 先低成本复核上轮唯一未 fired 的 `round 112`：`--only "112"` → **`guard fired`**。
+  证实它上轮的 `DID NOT COMPILE` **纯属并行会话 testhost 抢占构建产物**（同期 CS2012/MSB3027），
+  **不是变异缺陷**，也未改那个变异。
+- 随即全跑 59 锚取最终收据。
+
+验证命令与输出：
+- `python -u D:/projects/cyber-reverse/replica/tools/mutation-check.py`（绝对路径 + 后台 + 落盘）
+- 收据 `analysis/MUTATION_RESULT.json`：
+  `ran_at 2026-11-18T16:51:02+08:00`、**`total 59 / fired 59 / decorative 0 / skipped 0`**
+  （mtime 16:51:08，读取于 16:51:13 —— **5 秒新鲜**）
+- `metrics_report --skip-tests` → **`mutation-fit: total 59 / fired 59 / decorative 0 /
+  skipped 0 / staleness 0 -- no exercised file's content differs from the run`**
+  ——**计数与内容清单新鲜度双重通过**。
+- **`tree: RED`，唯一失败 `WallDispatchTests.DetectionDispatchesToTheStrategy`**
+  （2386 通过 / 2 跳过 / 2389，3m04s）；该测试文件未被改动，而
+  `replica/src/Cybersole.Stores/Scripts/KasadaVersions.cs` **正被并行会话修改中**
+  （缺 `KasadaStrategyRunner.Default()`）——**非本轮文件，未触碰**。
+- 我方域逐类复核全绿：`PayPalThreeDsTests` 26/26、`JohnLewisStripeStepTests` 12/12、
+  `StripeMethodFormTests` 6/6、`SourceEncodingTests` 2/2、`SummaryBlockTests` 4/4 = **50 钉**。
+
+数字变化：**fired 57 → 59**、**decorative 0**、**skipped 0**、**staleness 0**；锚数 59 不变。
+
+证据等级：Observation = 收据四个计数与其 mtime、`metrics_report` 的 staleness 0、
+`round 112` 单跑 fired、整树 2386/2389 与唯一失败项归属、五个类逐类通过；
+Unknown = 整树绿（被并行会话的在途改动挡住，不属我方可控）。
+**判据 (e) 现状：「变异测试全部 fired」→ 达成；「全量套件绿」→ 差 1 项非本轮失败。**
+
+还剩什么：待并行会话收尾后复算整树取 GREEN（判据 e 完整形态）；队列②剩余外部服务驱动契约清点。

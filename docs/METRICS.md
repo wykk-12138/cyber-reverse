@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-18 16:13:04 +0800 |
+| 生成时间 | 2026-11-18 16:51:25 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,9 +14,7 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 25 个源文件比产物新（共 18021 行）。它描述的是更旧的一次构建，不是当前源码。
->
-> **变异套件那一组数来自上一次运行，而它已经过期**：`6543 -- src/Cybersole.Stores/Flows/AntiBotVendors.cs (+6542 more) differs from the run's manifest`。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 26 个源文件比产物新（共 18322 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -40,8 +38,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 174,293 |
 | 函数数量（.pdata） — functions: ratio | 62.89% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 25 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 18021 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 26 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 18322 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 359 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -56,11 +54,11 @@
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 0 |
 | 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1B00000 |
-| 变异套件（上次运行） — mutation-fit: total | 41 |
-| 变异套件（上次运行） — mutation-fit: fired | 41 |
+| 变异套件（上次运行） — mutation-fit: total | 59 |
+| 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 6543 -- src/Cybersole.Stores/Flows/AntiBotVendors.cs (+6542 more) differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file's content differs from the run |
 
 ## 逐条命令与原始输出
 
@@ -374,9 +372,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 22:30:56
-newest source: src\Cybersole.Stores\Scripts\KasadaVersions.cs (2026-11-18 16:13:18)
-source files newer than the artifact: 25
-lines in those files: 18021
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-18 16:47:54)
+source files newer than the artifact: 26
+lines in those files: 18322
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -549,15 +547,14 @@ C:\Python312\python.exe tools/mutation_report.py
 `exit 0`
 
 ```text
-  mutation-fit-total: 41
-  mutation-fit-fired: 41
+  mutation-fit-total: 59
+  mutation-fit-fired: 59
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
-  mutation-fit-tree: UNKNOWN (cut off)
-  mutation-fit-staleness: 6543 -- src/Cybersole.Stores/Flows/AntiBotVendors.cs (+6542 more) differs from the run's manifest
+  mutation-fit-tree: RED
+  mutation-fit-staleness: 0 -- no exercised file's content differs from the run
 
-  The counts above are from 2026-11-18T10:29:38+08:00 and the tree has moved since. They are a record of that run, not a
-  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
+  Every mutation fired, none was decorative and none was skipped at the time of that run.
 ```
 
 ### 完整套件

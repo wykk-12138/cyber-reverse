@@ -5627,3 +5627,24 @@ SourceEncoding 2/2、metrics exit 0。
 
 还剩什么：静默窗口复跑全 59 锚取 `fired 59 / tree GREEN`（判据 e 完整形态）。
 `analysis/MUTATION_RESULT.json` 被窄口径运行覆写，**未提交**以免冒充全套收据。
+
+## R1106 —— 判据 (e) 变异半边达成：59/59 fired、decorative 0、staleness 0
+
+改了什么（纯验证 + 记账，无源码改动）：
+- `--only "112"` → **guard fired**：证实上轮 `DID NOT COMPILE` 纯属并行会话 testhost 抢占
+  构建产物（同期 CS2012/MSB3027），**不是变异缺陷**，未改该变异。
+- 全跑取最终收据。
+
+验证：
+- 收据 `ran_at 2026-11-18T16:51:02+08:00`、**`total 59 / fired 59 / decorative 0 / skipped 0`**
+  （mtime 16:51:08，读于 16:51:13，**5 秒新鲜**）。
+- `metrics_report --skip-tests` → **`mutation-fit: 59/59 fired, decorative 0, skipped 0,
+  staleness 0 -- no exercised file's content differs from the run`**（计数 + 新鲜度双通过）。
+- **`tree RED`，唯一失败 `WallDispatchTests.DetectionDispatchesToTheStrategy`**
+  （2386/2/2389，3m04s）；测试文件未动，`KasadaVersions.cs` 正被并行会话修改——**未触碰**。
+- 我方域全绿：PayPal 26 + JL 12 + StripeForm 6 + Encoding 2 + Summary 4 = **50 钉**。
+
+数字变化：**fired 57 → 59**、decorative 0、skipped 0、staleness 0。
+**判据 (e)：「变异全部 fired」达成；「全量套件绿」差 1 项非本轮失败。**
+
+还剩什么：待并行会话收尾后复算整树 GREEN；队列②外部服务驱动契约清点。

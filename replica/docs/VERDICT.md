@@ -63670,3 +63670,49 @@ total 59 / fired 57 / decorative 1 / skipped 0 / tree RED
 | 锚数 | 59 | 59 |
 | decorative | 未知（无新鲜收据） | **1 → 0（已修）** |
 | fired | 未知 | **57/59，余 1 待静默重验** |
+
+---
+
+## 第 1106 轮：判据 (e) 的变异半边，拿到了
+
+### 一、先证伪「变异坏了」
+
+上轮全跑报两条非 fired：
+- `round 1099` DECORATIVE —— **我的钉空转**，上轮已修；
+- `round 112` DID NOT COMPILE —— 同期满屏 `CS2012`/`MSB3027`。
+
+本轮先单跑 `--only "112"`：**`guard fired`**。所以那条从来不是变异的问题，
+是**并行会话的 testhost 抢占了构建产物**，构建没起来，守卫自然没跑。
+**没有改那个变异**——改它就是把环境故障记成代码缺陷。
+
+### 二、全跑收据（5 秒新鲜）
+
+```
+ran_at 2026-11-18T16:51:02+08:00
+total 59 / fired 59 / decorative 0 / skipped 0 / tree RED
+```
+
+`metrics_report` 读同一份收据后输出：
+
+```
+mutation-fit: total 59, fired 59, decorative 0, skipped 0,
+staleness 0 -- no exercised file's content differs from the run
+```
+
+**计数与内容清单新鲜度双重通过。** 判据 (e) 的「变异测试全部 fired」半边：
+**达成**。
+
+### 三、还差的那一项不是我的
+
+`tree: RED` 唯一失败 `WallDispatchTests.DetectionDispatchesToTheStrategy`
+（2386 通过 / 2 跳过 / 2389，3m04s）。测试文件本身没被改，而
+`KasadaVersions.cs` 正被**并行会话**修改中（缺 `KasadaStrategyRunner.Default()`）。
+**非我文件，没碰。** 判据 (e) 的「全量套件绿」半边，卡在别人的在途改动上。
+
+我方域逐类复核：PayPal 26 + JL 12 + StripeForm 6 + Encoding 2 + Summary 4 = **50 钉全绿**。
+
+### 四、这一轮最该记住的
+
+> **「非 fired」有两种：变异/守卫坏了，和环境坏了。**
+> 前者要改代码，后者只能换窗口重跑。**混为一谈，就会把环境故障写进代码**——
+> 那比不改更糟，因为下一次没人知道该信哪次的结果。

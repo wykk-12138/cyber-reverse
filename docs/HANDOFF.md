@@ -5386,3 +5386,27 @@ JohnLewisStepMap 6/6、StoreFlowDigest 2/2、StripeMethodForm 6/6、SummaryBlock
 Observation；frontend_execution 取值与 notify 第二段语义为 Inference。
 
 还剩什么：notify 段 `_stripe_account` 语义确认；50 锚静树全跑。
+
+## R1095 —— 【核心②·重大纠正】PayPal graphql 载荷全解：四段文档 + URL 查询串形状
+
+**这是一轮纠正轮**：R1086 把 Stripe 的持久化信封套到了 PayPal 上，本轮用 evidence 推翻。
+
+改了什么：
+- 逐 case 定位 10 个 PUT 站点 → PayPal 的操作名走 **URL 查询串**
+  （`graphql?GetThreeDsJwtQuery` 0x147097F60 等四条），体是
+  **`{"variables":{…},"query":"<完整文档>"}`**（非 `{"operationName":N,…}`）；另有 REST 端点
+  `payment-authentication/threeds/v1/notify-method-cmpl`（0x147098740）。
+- **四段文档从 IDB 直读落为常量**（零手抄，13,305 字）：JwtQuery 631 字 / Authenticate 813 字 /
+  LookUp 871 字 / Resolve **10,370 字**（含八 fragment）。
+- `GqlAsync` 改形状（`?operationName` + `query` 文档）+ `DocumentFor` 映射 +
+  `NotifyMethodCompleteUrl`。变异 50 → **51**（`?`→`/` 锚）+ 指南同步。
+
+验证：`PayPalThreeDsTests` **16/16**（2 新钉）、SummaryBlock 4/4（指南 51）、SourceEncoding 2/2、
+metrics exit 0。**构建被并行 testhost 锁三次**，等锁后成功；旧 dll 上的 6 失败不计入。
+
+数字变化：变异 50 → **51**；PayPal 钉 14 → **16**；**PayPal 载荷层闭合**（R1083 起追的
+「载荷构建方」至此闭环）。
+
+证据等级：10 站点 URL/体键、四文档全文、REST 端点为 Observation；变量绑定与 notify 位置为 Inference。
+
+还剩什么：`notify-method-cmpl` 调用点接线；51 锚静树全跑。

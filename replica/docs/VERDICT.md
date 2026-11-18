@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **50 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1094 各 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **51 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1095 各 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63250,3 +63250,51 @@ R1088 读 Stripe 网关的 3DS2 表单时记的是 **false/false/true/true/true 
 > **别把上一轮的常量表当成本轮的真值**——R1088 的硬编码五指族是 Stripe 网关那条链的实测，
 > 套到 JL 上就会把条件驱动的三个旗标写成常量，`spc_eligible` 一错，指纹提交的服务端判定就
 > 跟着错。**同键名 ≠ 同取值策略**；每遇到一个同名键族，回读它那一处的赋值语句。
+
+---
+
+## 第 1095 轮：PayPal 载荷层闭合 —— 四段文档落地，纠正 R1086 的形状误用
+
+### 一、逐 case 定位 10 个 PUT 站点，真相是 URL 查询串
+
+PayPal 的 graphql 操作名**不在体里**，在 URL 上：
+
+| 站点 | URL | 体 |
+|---|---|---|
+| 855 / 1547 | `graphql?GetThreeDsJwtQuery` (0x147097F60) | `{"variables":…,"query":"<文档>"}` |
+| 1987 | `graphql?ThreeDsAuthenticateMutation` (0x1470980E0) | 同上 |
+| 1293 | `graphql?ThreeDsLookUpMutation` (0x147098170) | 同上 |
+| 2236 | `graphql?ResolveThreeDsContingency` (0x147098058) | 同上 |
+| 962 | `payment-authentication/threeds/v1/notify-method-cmpl` (0x147098740) | REST |
+
+**R1086 写的是 `{"operationName":N,"variables":{…}}`——那是 Stripe 的持久化信封**，
+套到 PayPal 上就是「把另一个集成的形状当成本集成的形状」。本轮以 10 个站点的
+URL/体键证据推翻，并按 PayPal 自己的形状重写 `GqlAsync`。
+
+### 二、四段文档（IDB 直读，零手抄）
+
+| 文档 | 字数 | 变量 |
+|---|---|---|
+| `GetThreeDsJwtQuery` | 631 | referenceId!, cardBin, jwtIssuer!, jwtOrgUnitId!, returnUrl, redirectUrl, transactionId, paymentAuthenticationRequest, authenticationProvider, cardType |
+| `ThreeDsAuthenticateMutation` | 813 | token, amount!, productDetails, threeDsServerTransactionId!, paymentAuthenticationRequest!, authenticatePayload! → 12 字段 |
+| `ThreeDsLookUpMutation` | 871 | token!, amount!, productDetails, browserInfo, threedsLookUpPayload! → 17 字段含 acsURL |
+| `ResolveThreeDsContingency` | **10,370** | token!, authId!, referenceId!, creditCardId!, status!, experiences + 八 fragment |
+
+生成方式：脚本直读冻结 String 对象（`[MT:8][len:4][utf16]`）→ 逐字写 C# verbatim 常量，
+13,305 字块**零乱码**校验后插入。
+
+### 三、数字
+
+| 度量 | R1094 | **R1095** |
+|---|---|---|
+| 变异套件 | 50 | **51**（`?`→`/` 组合锚） |
+| PayPal 钉 | 14 | **16** |
+
+### 教训
+
+> **「上一站解码出的形状」不是「这个站的形状」**——R1086 已经看到 PayPal 的请求模板、头墙、
+> 分发都很像 Stripe，就把 Stripe 的体信封也一起搬了。可这两家只有**传输层像**，载荷层完全
+> 不同：一家持久化信封、一家完整文档 + 查询串操作名。**形状要一站一站解，不能一站解完到处用。**
+>
+> 附带一条：**大文档用脚本从二进制直读落盘**，比手抄可靠得多——10,370 字手抄必错，
+> 脚本读的是同一份冻结字节。

@@ -142,7 +142,12 @@ public sealed class PayPalThreeDsTests
     [InlineData(500, false, false)]
     public async Task TheStatusDispatchMirrorsTheRegisteredHandlers(int status, bool ok, bool retry)
     {
-        using var server = new TinyServer((_, _) => (status, status == 200 ? "{\"done\":true}" : "{}"));
+        var seen = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, _) =>
+        {
+            seen.Add(req.Url?.PathAndQuery ?? "");
+            return (status, status == 200 ? "{\"done\":true}" : "{}");
+        });
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = Context(http);
 
@@ -156,15 +161,61 @@ public sealed class PayPalThreeDsTests
         // The white StatusInfo wall went out with the stage text before the request.
         Assert.Contains(ctx.Events, e => e.Name == PayPalThreeDs.SolvingStatus && e.Type == "StatusInfo");
 
-        // The request is the PUT the send step performs, and its body is the persisted-operation
-        // form the case bodies assemble: the operation's NAME with its variables.
+        // The request is the PUT the send step performs, and R1095 corrected its shape: PayPal
+        // puts the operation name in the URL query string and the full document in the body.
         var req = server.Requests.Single();
         Assert.Equal("PUT", req.Method);
-        Assert.Equal("/graphql/", req.Path);
+        Assert.EndsWith("/graphql?GetThreeDsJwtQuery", seen.Single());
         var body = JObject.Parse(req.Body);
-        Assert.Equal("GetThreeDsJwtQuery", (string?)body["operationName"]);
         Assert.Equal("tok-9", (string?)body["variables"]!["token"]);
         Assert.Equal("150.00", (string?)body["variables"]!["amount"]);   // the {0:0.00} format
+        Assert.StartsWith("query GetThreeDsJwtQuery(", (string?)body["query"]);
+        Assert.Null(body["operationName"]);                              // NOT the Stripe envelope
+    }
+
+    /// <summary>
+    /// R1095: the four graphql documents are the frozen literals, verbatim — the payload layer
+    /// the machine sends. Each operation maps to its own document, and each document declares
+    /// the variables the resolver chain binds.
+    /// </summary>
+    [Fact]
+    public void TheFourDocumentsAreTheFrozenLiterals()
+    {
+        Assert.StartsWith("query GetThreeDsJwtQuery(", PayPalThreeDs.JwtQueryDocument);
+        Assert.Contains("$jwtIssuer: String!", PayPalThreeDs.JwtQueryDocument);
+        Assert.Contains("$jwtOrgUnitId: String!", PayPalThreeDs.JwtQueryDocument);
+        Assert.Contains("threeDSJwt(", PayPalThreeDs.JwtQueryDocument);
+
+        Assert.StartsWith("mutation ThreeDsAuthenticateMutation($token: String, $amount: AmountInput!",
+            PayPalThreeDs.AuthenticateDocument);
+        Assert.Contains("threeDSAuthenticate(", PayPalThreeDs.AuthenticateDocument);
+        Assert.Contains("liabilityShift", PayPalThreeDs.AuthenticateDocument);
+
+        Assert.StartsWith("mutation ThreeDsLookUpMutation($token: String!", PayPalThreeDs.LookUpDocument);
+        Assert.Contains("threeDSLookUp(", PayPalThreeDs.LookUpDocument);
+        Assert.Contains("acsURL", PayPalThreeDs.LookUpDocument);
+
+        Assert.StartsWith("mutation ResolveThreeDsContingency($token: String!, $authId: String!",
+            PayPalThreeDs.ResolveDocument);
+        Assert.Contains("resolveThreeDsContingency(", PayPalThreeDs.ResolveDocument);
+        Assert.Contains("fragment ThreeDomainSecureFields", PayPalThreeDs.ResolveDocument);
+
+        // Each operation name maps to its own document, and the resolver is the long one.
+        Assert.Equal(PayPalThreeDs.JwtQueryDocument, PayPalThreeDs.DocumentFor(PayPalThreeDs.JwtQueryOperation));
+        Assert.Equal(PayPalThreeDs.AuthenticateDocument,
+            PayPalThreeDs.DocumentFor(PayPalThreeDs.AuthenticateOperation));
+        Assert.Equal(PayPalThreeDs.LookUpDocument, PayPalThreeDs.DocumentFor(PayPalThreeDs.LookUpOperation));
+        Assert.Equal(PayPalThreeDs.ResolveDocument, PayPalThreeDs.DocumentFor(PayPalThreeDs.ResolveOperation));
+        Assert.True(PayPalThreeDs.ResolveDocument.Length > 10000);   // 10,370 chars of fragments
+        Assert.Equal(string.Empty, PayPalThreeDs.DocumentFor("NotAnOperation"));
+    }
+
+    /// <summary>The REST hop beside graphql is the frozen literal.</summary>
+    [Fact]
+    public void TheNotifyMethodCompleteEndpointIsTheFrozenLiteral()
+    {
+        Assert.Equal("https://www.paypal.com/payment-authentication/threeds/v1/notify-method-cmpl",
+            PayPalThreeDs.NotifyMethodCompleteUrl);
     }
 
     /// <summary>
@@ -238,7 +289,12 @@ public sealed class PayPalThreeDsTests
                 ""contingencyContext"":{
                     ""jwtSpecification"":{""jwtIssuer"":""iss-1"",""jwtOrgUnitId"":""org-2""},
                     ""referenceId"":""ref-9""}}}}}}";
-        using var server = new TinyServer((_, _) => (200, challenge));
+        var seen = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, _) =>
+        {
+            seen.Add(req.Url?.PathAndQuery ?? "");
+            return (200, challenge);
+        });
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = Context(http);
 
@@ -256,10 +312,12 @@ public sealed class PayPalThreeDsTests
         Assert.Equal("card-77", ctx.Session.Vars["paypal3ds.creditCardId"]);
         Assert.Equal("tok-9", ctx.Session.Vars["paypal3ds.token"]);
 
-        // Submit + the JWT query — the machine's own synchronous reach.
+        // Submit + the JWT query — the machine's own synchronous reach. R1095: the operation
+        // name rides the URL query string; the body carries the frozen document instead.
         Assert.Equal(2, server.Requests.Count);
+        Assert.EndsWith("/graphql?GetThreeDsJwtQuery", seen[1]);
         var jwtBody = JObject.Parse(server.Requests[1].Body);
-        Assert.Equal("GetThreeDsJwtQuery", (string?)jwtBody["operationName"]);
+        Assert.Null(jwtBody["operationName"]);
         Assert.Equal("iss-1", (string?)jwtBody["variables"]!["jwtIssuer"]);
         Assert.Equal("org-2", (string?)jwtBody["variables"]!["jwtOrgUnitId"]);
         Assert.Equal("ref-9", (string?)jwtBody["variables"]!["referenceId"]);
@@ -272,7 +330,12 @@ public sealed class PayPalThreeDsTests
     [Fact]
     public async Task TheContinuationRunsAuthenticateLookupResolveInOrder()
     {
-        using var server = new TinyServer((_, _) => (200, "{}"));
+        var seen = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, _) =>
+        {
+            seen.Add(req.Url?.PathAndQuery ?? "");
+            return (200, "{}");
+        });
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = Context(http);
 
@@ -286,7 +349,7 @@ public sealed class PayPalThreeDsTests
         Assert.True(outcome.Ok);
         Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Complete3DS), ctx.Session.Vars["paypal3ds.state"]);
 
-        var names = server.Requests.Select(r => (string?)JObject.Parse(r.Body)["operationName"]).ToArray();
+        var names = seen.Select(u => u[(u.LastIndexOf('?') + 1)..]).ToArray();
         Assert.Equal(new[]
         {
             "ThreeDsAuthenticateMutation", "ThreeDsLookUpMutation", "ResolveThreeDsContingency",

@@ -39207,3 +39207,53 @@ Inference = confirm 响应体未逐字解（本步只验状态码即完成）、
 
 还剩什么：`_stripe_account` 在 notify 段的语义确认（本轮按 ctx+32 字面组合如实落）；
 50 锚静树全跑；PayPal solver 逐 case 精读收尾。
+
+## R1095 —— 【核心②·重大纠正】PayPal graphql 载荷全解：四段文档 + URL 查询串形状，纠正 R1086 的 Stripe 形状误用
+
+**取件**：队列②最后一项——PayPal solver 逐 case 精读（`analysis/_paypal_hosted_solver.c` 在盘）。
+
+**这是一轮纠正轮：R1086 把 Stripe 的持久化信封形状套到了 PayPal 上，本轮用反编译证据推翻并落地。**
+
+改了什么：
+- **逐 case 定位 10 个 PUT 站点**，每站的 URL 与体键解码出真相：
+  - PayPal 的操作名走 **URL 查询串**：`https://www.paypal.com/graphql?GetThreeDsJwtQuery`
+    （0x147097F60，49 字）/ `?ThreeDsAuthenticateMutation`（0x1470980E0）/ `?ThreeDsLookUpMutation`
+    （0x147098170）/ `?ResolveThreeDsContingency`（0x147098058）；
+  - 体是 **`{"variables":{…},"query":"<完整文档>"}`**（`variables` 0x14717D2E8 / `query` 0x14711CCB0）——
+    **不是** `{"operationName":N,"variables":{…}}`；
+  - 另有 REST 端点 **`https://www.paypal.com/payment-authentication/threeds/v1/notify-method-cmpl`**
+    （0x147098740，75 字）。
+- **四段 graphql 文档从 IDB 逐字取出并落为常量**（脚本直读冻结 String 对象，零手抄）：
+  - `JwtQueryDocument` 631 字：`query GetThreeDsJwtQuery($referenceId: String!, $cardBin,
+    $jwtIssuer!, $jwtOrgUnitId!, $returnUrl, $redirectUrl, $transactionId,
+    $paymentAuthenticationRequest, $authenticationProvider, $cardType)` → `threeDSJwt(...)`；
+  - `AuthenticateDocument` 813 字：`mutation ThreeDsAuthenticateMutation($token, $amount!,
+    $productDetails, $threeDsServerTransactionId!, $paymentAuthenticationRequest!,
+    $authenticatePayload!)` → `threeDSAuthenticate(...)` 返回 12 字段；
+  - `LookUpDocument` 871 字：`mutation ThreeDsLookUpMutation($token!, $amount!, $productDetails,
+    $browserInfo, $threedsLookUpPayload!)` → `threeDSLookUp(...)` 返回 17 字段含 acsURL；
+  - `ResolveDocument` **10,370 字**：`mutation ResolveThreeDsContingency($token!, $authId!,
+    $referenceId!, $creditCardId!, $status!, $experiences)` + 八个 fragment 全量。
+- `GqlAsync` 改为 PayPal 自己的形状：`target = baseUrl.TrimEnd('/') + "?" + operationName`，
+  体 `{"variables":…, "query": DocumentFor(operationName)}`；`DocumentFor` 映射表 +
+  `NotifyMethodCompleteUrl` 常量。
+- 变异 50 → **51**（`?` → `/` 组合锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`names_at` 10 常量（四 URL + 两体键 + 两端点）；`ida.py py` 直读四个冻结 String 对象
+  （obj 0x1471213F8 / 0x1470E1FA0 / 0x1470E2CC0 / 0x1470DC9B0），13,305 字块零乱码落盘后插入。
+- `PayPalThreeDsTests` **16/16 绿**（2 新钉：四文档逐段校验 + 操作→文档映射 + 10,370 字长度；
+  REST 端点字面量；dispatch/续体三钉改读 URL 查询串）；`SummaryBlockTests` 4/4（指南 51）；
+  `SourceEncodingTests` 2/2；`metrics_report --skip-tests` → exit 0。
+- **构建被并行会话 testhost 连续锁三次**（184888 / 101928 / 又一次）——每次等锁退出后重建，
+  第三次成功；期间旧 dll 上的 6 失败是**陈旧断言对旧代码**，不计入结论。
+
+数字变化：变异 50 → **51**；PayPal 钉 14 → **16**；**PayPal 载荷层四段文档全部落地**
+（R1083 起追的「载荷构建方」至此闭环）。
+
+证据等级：Observation = 10 个 PUT 站点的 URL/体键、四段文档全文（IDB 直读）、REST 端点字面量；
+Inference = 各文档变量与快照字段的绑定（变量名逐字取自文档声明，取值来自 case 体读针）、
+`notify-method-cmpl` 在链中的位置（本轮只落常量，未接调用）。
+
+还剩什么：`notify-method-cmpl` 的调用点接线（本轮只落字面量）；51 锚静树全跑；
+`setupFutureUsage` 类跨站常量对照的收尾核对。

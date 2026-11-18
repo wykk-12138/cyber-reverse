@@ -92,6 +92,696 @@ public sealed class PayPalThreeDs
     public const string ResolveStatusSucceeded = "SUCCESS";
     public const string ResolveStatusFailed = "FAILED";
 
+    /// <summary>The GetThreeDsJwtQuery document, verbatim (631 chars) - obj 0x1471213F8.</summary>
+    public const string JwtQueryDocument = @"query GetThreeDsJwtQuery($referenceId: String!, $cardBin: String, $jwtIssuer: String!, $jwtOrgUnitId: String!, $returnUrl: String, $redirectUrl: String, $transactionId: String, $paymentAuthenticationRequest: String, $authenticationProvider: String, $cardType: String) {
+  threeDSJwt(
+    referenceId: $referenceId
+    cardBin: $cardBin
+    jwtIssuer: $jwtIssuer
+    jwtOrgUnitId: $jwtOrgUnitId
+    returnUrl: $returnUrl
+    redirectUrl: $redirectUrl
+    transactionId: $transactionId
+    paymentAuthenticationRequest: $paymentAuthenticationRequest
+    authenticationProvider: $authenticationProvider
+    cardType: $cardType
+  )
+}
+
+";
+
+    /// <summary>The ThreeDsAuthenticateMutation document, verbatim (814 chars) - obj 0x1470E1FA0.</summary>
+    public const string AuthenticateDocument = @"mutation ThreeDsAuthenticateMutation($token: String, $amount: AmountInput!, $productDetails: ProductDetails, $threeDsServerTransactionId: String!, $paymentAuthenticationRequest: String!, $authenticatePayload: threedsLookUpPayload!) {
+  threeDSAuthenticate(
+    token: $token
+    amount: $amount
+    productDetails: $productDetails
+    authenticatePayload: $authenticatePayload
+    threeDsServerTransactionId: $threeDsServerTransactionId
+    paymentAuthenticationRequest: $paymentAuthenticationRequest
+  ) {
+    cavv
+    threeDSStatus
+    threeDSVersion
+    liabilityShift
+    enrollmentStatus
+    cardBrandProcessed
+    threeDSUcafIndicator
+    threeDSTransactionId
+    threeDSEcommerceIndicator
+    signatureVerificationStatus
+    authenticationThreeDSStatus
+    threeDsAuthenticationReason
+    __typename
+  }
+}
+
+";
+
+    /// <summary>The ThreeDsLookUpMutation document, verbatim (872 chars) - obj 0x1470E2CC0.</summary>
+    public const string LookUpDocument = @"mutation ThreeDsLookUpMutation($token: String!, $amount: AmountInput!, $productDetails: ProductDetails, $browserInfo: ThreedsBrowserDetailsInput, $threedsLookUpPayload: threedsLookUpPayload!) {
+  threeDSLookUp(
+    token: $token
+    amount: $amount
+    productDetails: $productDetails
+    browserInfo: $browserInfo
+    threedsLookUpPayload: $threedsLookUpPayload
+  ) {
+    acsURL {
+      href
+      __typename
+    }
+    redirectURL {
+      href
+      __typename
+    }
+    cavv
+    threeDSStatus
+    transactionId
+    liabilityShift
+    enrollmentStatus
+    cardBrandProcessed
+    threeDSUcafIndicator
+    threeDSEcommerceIndicator
+    threeDsServerTransactionId
+    threeDsProcessorTraceNumber
+    authenticationThreeDSStatus
+    signatureVerificationStatus
+    threeDsAuthenticationReason
+    paymentAuthenticationRequest
+    authenticationProvider
+    __typename
+  }
+}
+
+";
+
+    /// <summary>The ResolveThreeDsContingency document, verbatim (10371 chars) - obj 0x1470DC9B0.</summary>
+    public const string ResolveDocument = @"mutation ResolveThreeDsContingency($token: String!, $authId: String!, $referenceId: String!, $creditCardId: String!, $status: ResolveThreeDsContingencyStatus!, $experiences: [ThreeDSPaymentExperience]) {
+  resolveThreeDsContingency(
+    token: $token
+    authId: $authId
+    status: $status
+    referenceId: $referenceId
+    creditCardId: $creditCardId
+  ) {
+    state
+    flags {
+      is3DSecureRequired
+      __typename
+    }
+    paymentContingencies {
+      ...PaymentContingenciesFragment
+      __typename
+    }
+    fundingOptions(returnAllPlans: true, groupSourcesOnType: INCENTIVE) {
+      ...FundingOptionFragment
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment PaymentContingenciesFragment on PaymentContingencies {
+  confirmCreditCardCvvData {
+    ...ConfirmCreditCardCvvFields
+    __typename
+  }
+  sepaMandateAcceptanceNeeded {
+    ...SepaMandateAcceptanceNeededFragment
+    __typename
+  }
+  threeDomainSecure(experiences: $experiences) {
+    ...ThreeDomainSecureFields
+    __typename
+  }
+  threeDSContingencyData {
+    ...ThreeDomainSecureContingencyFragment
+    __typename
+  }
+  needConsentForBankAccountInfoRetrieval {
+    encryptedId
+    __typename
+  }
+  needRealTimeBalanceForBankAccount {
+    encryptedId
+    __typename
+  }
+  strongCustomerAuthenticationRequired {
+    contextId
+    __typename
+  }
+  __typename
+}
+
+fragment ConfirmCreditCardCvvFields on ConfirmCreditCardCvvContingency {
+  encryptedId
+  lastFourDigits
+  type
+  __typename
+}
+
+fragment SepaMandateAcceptanceNeededFragment on BankAccount {
+  id
+  type
+  accountNumber
+  accountNumberShort
+  bankIdentifierCode
+  currencyCode
+  beneficiaries {
+    fullName
+    __typename
+  }
+  billingAddress {
+    city
+    country
+    state
+    fullAddress
+    __typename
+  }
+  issuer {
+    name
+    __typename
+  }
+  creditor {
+    id
+    name
+    address {
+      fullAddress
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment ThreeDomainSecureFields on ThreeDomainSecureContingency {
+  redirectUrl {
+    href
+    __typename
+  }
+  status
+  method
+  parameter
+  encryptedId
+  experience
+  requestParams {
+    key
+    value
+    __typename
+  }
+  __typename
+}
+
+fragment ThreeDomainSecureContingencyFragment on ThreeDomainSecureResolutionContingency {
+  name
+  causeName
+  resolution {
+    type
+    resolutionName
+    paymentCard {
+      id
+      type
+      number
+      encryptedNumber
+      bankIdentificationNumber
+      billingAddress {
+        line1
+        line2
+        state
+        city
+        postalCode
+        country
+        __typename
+      }
+      expireYear
+      expireMonth
+      currencyCode
+      cardProductClass
+      __typename
+    }
+    contingencyContext {
+      source
+      reason
+      referenceId
+      deviceDataCollectionUrl {
+        href
+        __typename
+      }
+      jwtSpecification {
+        jwtIssuer
+        jwtOrgUnitId
+        jwtDuration
+        __typename
+      }
+      authenticationProvider
+      cardBrandProcessed
+      dataOnlyIndicator
+      deviceDataCollectionBin
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment FundingOptionFragment on FundingOption {
+  id
+  availableAmount {
+    currencyCode
+    currencyValue
+    currencyFormatSymbolISOCurrency
+    currencyFormat
+    __typename
+  }
+  fundingInstrument {
+    id
+    name
+    nameDescription
+    label
+    issuerProductDescription
+    type
+    instrumentSubType
+    lastDigits
+    image {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    placeholderImage: image(size: S) {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    largeImage: image(size: XL) {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    institutionImages(category: BRAND) {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    isPreferred
+    attribution
+    attributionDetails {
+      compactDescription
+      shortDescription
+      __typename
+    }
+    ...RewardsFragment
+    creditFields {
+      creditOffer {
+        presentmentType
+        product
+        offerCategory
+        creditOfferType
+        financingCode
+        crcOfferId
+        crossCurrencyInfo {
+          ...CrossCurrencyInfoFragment
+          __typename
+        }
+        uiElements {
+          ...CreditUIElementsFragment
+          __typename
+        }
+        creditPayLater {
+          ...CreditPayLaterFragment
+          __typename
+        }
+        __typename
+      }
+      repaymentInstrument {
+        id
+        name
+        type
+        instrumentSubType
+        lastDigits
+        __typename
+      }
+      __typename
+    }
+    payerDisclaimer
+    cryptocurrencyHoldingDetails {
+      symbol
+      quantity
+      __typename
+    }
+    __typename
+  }
+  allPlans {
+    id
+    fundingSources {
+      fundingInstrument {
+        id
+        name
+        type
+        instrumentSubType
+        lastDigits
+        ...InstallmentsFragment
+        __typename
+      }
+      fundingMethodType
+      delayedPaymentDate {
+        dateShort
+        d
+        y
+        M
+        __typename
+      }
+      amount {
+        currencyCode
+        currencyFormat
+        currencyFormatSymbolISOCurrency
+        currencySymbol
+        currencyValue
+        __typename
+      }
+      groupedSources {
+        fundingInstrument {
+          id
+          name
+          type
+          label
+          __typename
+        }
+        amount {
+          currencyCode
+          currencyFormat
+          currencySymbol
+          currencyValue
+          __typename
+        }
+        incentives {
+          id
+          balanceType
+          shortTitle
+          maxDiscount {
+            currencyCode
+            currencyValue
+            currencyFormat
+            __typename
+          }
+          type
+          percentOff
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    isSelected
+    backupFundingInstrument {
+      id
+      name
+      lastDigits
+      __typename
+    }
+    currencyConversion {
+      type
+      isReadOnly
+      from {
+        currencyValue
+        currencyFormatSymbolISOCurrency
+        currencyCode
+        __typename
+      }
+      to {
+        currencyValue
+        currencyFormatSymbolISOCurrency
+        currencyCode
+        __typename
+      }
+      convertedAmount {
+        currencyValue
+        currencyFormatSymbolISOCurrency
+        currencyCode
+        currencyFormat
+        __typename
+      }
+      rateFormatted
+      __typename
+    }
+    preAuthorizationData {
+      authType
+      amount {
+        currencyFormat
+        currencyFormatSymbolISOCurrency
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment RewardsFragment on FundingInstrument {
+  rewards {
+    id
+    relatedCardId
+    rewardType
+    availableRewards {
+      value
+      denominationTypeDescription
+      monetaryValue {
+        currencySymbol
+        currencyValue
+        currencyCode
+        currencyFormat
+        __typename
+      }
+      __typename
+    }
+    conversionMetadata {
+      conversionFactor
+      decimalPrecision {
+        toAmount
+        toRewards
+        __typename
+      }
+      roundingMode {
+        toAmount
+        toRewards
+        __typename
+      }
+      __typename
+    }
+    constraints {
+      minimumSpend {
+        currencySymbol
+        currencyValue
+        currencyCode
+        __typename
+      }
+      maximumSpend {
+        currencySymbol
+        currencyValue
+        currencyCode
+        __typename
+      }
+      maximumUsable {
+        currencySymbol
+        currencyValue
+        currencyCode
+        __typename
+      }
+      __typename
+    }
+    balance {
+      targetCurrencyCode
+      isConvertable
+      __typename
+    }
+    issuer {
+      name
+      instrumentType
+      issuerProductDescription
+      __typename
+    }
+    redemptionType
+    termsUrl
+    image(size: S) {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment CrossCurrencyInfoFragment on CreditCrossCurrency {
+  currencyConversionRate
+  fromCurrencyCode
+  fromFormattedCurrencyConversionValue
+  fxAuditTrailId
+  toCurrencyCode
+  toFormattedCurrencyConversionValue
+  rateDescriptor
+  learnMoreText
+  learnMoreLink
+  currencyConversionDescriptor
+  __typename
+}
+
+fragment CreditUIElementsFragment on CreditUIElements {
+  creditOffer {
+    sectionHeadlineText
+    headlineText
+    descriptorText
+    continueButtonText
+    __typename
+  }
+  creditOnlyFI {
+    descriptorText
+    headlineText
+    paymentFormattedText
+    termFormattedText
+    termsText
+    __typename
+  }
+  creditFI {
+    headlineText
+    descriptorText
+    payButtonText
+    continueButtonText
+    __typename
+  }
+  isMultiOffer
+  fiHighlightText
+  logoAltText
+  logo {
+    href
+    __typename
+  }
+  __typename
+}
+
+fragment CreditPayLaterFragment on CreditPayLater {
+  totalCost {
+    currencyFormat
+    __typename
+  }
+  totalFee {
+    currencyFormat
+    __typename
+  }
+  totalInterest {
+    currencyFormat
+    __typename
+  }
+  installmentsSchedule {
+    principal {
+      currencyFormat
+      __typename
+    }
+    paymentType
+    paymentNumber
+    interest {
+      currencyFormat
+      __typename
+    }
+    consumerFee {
+      currencyFormat
+      __typename
+    }
+    paymentDate
+    totalPayment {
+      currencyCode
+      currencyFormat
+      currencyFormatSymbolISOCurrency
+      currencyValue
+      currencySymbol
+      __typename
+    }
+    __typename
+  }
+  noDownPaymentAmt {
+    currencyCode
+    currencyFormat
+    currencyFormatSymbolISOCurrency
+    currencyValue
+    currencySymbol
+    __typename
+  }
+  __typename
+}
+
+fragment InstallmentsFragment on FundingInstrument {
+  installments {
+    term
+    monthlyPayment {
+      currencyCode
+      currencyFormat
+      currencyFormatSymbolISOCurrency
+      currencySymbol
+      currencyValue
+      __typename
+    }
+    totalCost {
+      currencyCode
+      currencyFormat
+      currencyFormatSymbolISOCurrency
+      currencySymbol
+      currencyValue
+      __typename
+    }
+    discount {
+      amount {
+        currencyCode
+        currencyFormat
+        currencyFormatSymbolISOCurrency
+        currencySymbol
+        currencyValue
+        __typename
+      }
+      percentage
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+";
+
+    /// <summary>The PayPal REST hop beside the graphql surface: the method-complete notification (0x147098740).</summary>
+    public const string NotifyMethodCompleteUrl =
+        "https://www.paypal.com/payment-authentication/threeds/v1/notify-method-cmpl";
+
+    /// <summary>The frozen document for an operation name — the four the machine sends.</summary>
+    public static string DocumentFor(string operationName) => operationName switch
+    {
+        JwtQueryOperation => JwtQueryDocument,
+        AuthenticateOperation => AuthenticateDocument,
+        LookUpOperation => LookUpDocument,
+        ResolveOperation => ResolveDocument,
+        _ => string.Empty,
+    };
+
     /// <summary>The four state-machine names the image carries for the 3DS challenge.</summary>
     public enum ThreeDsState { Submit3DS, Process3DS, Waiting3DS, Complete3DS }
 
@@ -282,12 +972,16 @@ public sealed class PayPalThreeDs
     };
 
     /// <summary>
-    /// One persisted-graphql stage request — the shape every decoded builder sends (R1085's
-    /// case bodies: the body is <c>{"operationName": N, "variables": {...}}</c>, the queries live
-    /// server-side under their names). The wall, the budget and the dispatch are the builders' own.
+    /// One graphql stage request. R1095 corrects the shape: PayPal puts the operation name in
+    /// the <b>URL query string</b> (<c>https://www.paypal.com/graphql?GetThreeDsJwtQuery</c>,
+    /// 0x147097f60) and sends the <b>full document</b> in the body's <c>query</c> field beside
+    /// <c>variables</c> — the four documents are the frozen literals above. R1086 had inferred
+    /// Stripe's persisted-operation envelope (<c>{"operationName": N, ...}</c>) here; that was
+    /// the wrong integration's shape and this helper now follows PayPal's own.
+    /// The wall, the budget and the dispatch are the builders' own.
     /// </summary>
     public static async Task<StageOutcome> GqlAsync(FlowContext c, StageInput input, string operationName,
-        JObject variables, CancellationToken ct, string? url = null)
+        JObject variables, CancellationToken ct, string? url = null, string? document = null)
     {
         c.Emit(StatusText(input.ChallengeActive), "StatusInfo");
 
@@ -298,8 +992,8 @@ public sealed class PayPalThreeDs
 
         var body = new JObject
         {
-            ["operationName"] = operationName,
             ["variables"] = variables,
+            ["query"] = document ?? DocumentFor(operationName),
         };
         options.Content = new StringContent(body.ToString(Newtonsoft.Json.Formatting.None),
             System.Text.Encoding.UTF8, "application/json");
@@ -307,11 +1001,13 @@ public sealed class PayPalThreeDs
         // The frozen literal is the target; the session var is the replica's standard test/config
         // seam (StoreFlow's checkStockUrl convention), so the gateway can drive the resolver
         // against a configured endpoint without the frozen URL being mutable in the protocol.
-        var target = url
-                     ?? (c.Session.Vars.TryGetValue("paypal3ds.graphqlUrl", out var gqlOverride) &&
-                         !string.IsNullOrEmpty(gqlOverride)
-                         ? gqlOverride
-                         : GraphqlUrl);
+        // The operation name rides the query string, which is the image's own composition.
+        var baseUrl = url
+                      ?? (c.Session.Vars.TryGetValue("paypal3ds.graphqlUrl", out var gqlOverride) &&
+                          !string.IsNullOrEmpty(gqlOverride)
+                          ? gqlOverride
+                          : GraphqlUrl);
+        var target = baseUrl.TrimEnd('/') + "?" + operationName;
 
         var res = await c.Http.SendAsync(HttpMethod.Put, target, options, ct).ConfigureAwait(false);
         c.Session.AbsorbCookies(res.Cookies);

@@ -585,6 +585,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~JohnLewisStripeStepTests",
         "guard": "TheNoFormFingerprintReportsNotSupported",
     },
+    {
+        "name": "round 1095 -- PayPal's operation stops riding the query string",
+        "file": PAYPAL_3DS,
+        # The image composes graphql?<OperationName> (0x147097f60); dropping the '?' breaks the
+        # composition the dispatch pin nails.
+        "find": '        var target = baseUrl.TrimEnd(\'/\') + "?" + operationName;',
+        "replace": '        var target = baseUrl.TrimEnd(\'/\') + "/" + operationName;',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheStatusDispatchMirrorsTheRegisteredHandlers",
+    },
 ]
 
 

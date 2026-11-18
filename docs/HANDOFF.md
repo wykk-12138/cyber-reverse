@@ -6490,3 +6490,13 @@ PayPal **42/42**；全量 **2462/0/2/2464**；变异 **59/59 fired, tree GREEN**
 
 还剩什么：① 找 `.rdata` 里 threeds 家族的指针表（可一次给出 hosted 步骤顺序）；
 ② `RunAsync` 的落点需先确认复刻件 hosted 流程入口。
+## R1159 —— 指针表探索四次撞墙后收手；IDA 已恢复（src 未改）
+
+- 工具 `analysis/_pointer_tables.py`（8 字节指针搜索 + 邻接聚类）。
+- **四次失败**：① `bin_search` 6 参重载拒收（R1143 同处三撞）；② 分块读途中 HTTP 断连；
+  ③④ 插件 `sync.py profilefunc` 抛 `TypeError`（deadline 逻辑自损）。
+- **收手理由**：换的是实现不是目标；指针表本就只是探索项。
+- IDA 恢复：launch → Restore packed base → 55s，`status: ok`、`hexrays_ready: true`。
+
+还剩什么：① 若要查表，先用 `pe_sections.py` 挑出非常规段再单目标窄扫；
+② 更值钱：对 `CORE_COVERAGE` 其余流程逐步 `where_is`，找真正缺的接线。

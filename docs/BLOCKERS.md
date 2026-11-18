@@ -41861,3 +41861,32 @@ Unknown = `0x14228D780` 的子系统名（伪代码里解不出可读串）。
 
 还剩什么：① 找 `.rdata` 里是否有 threeds 家族的指针表（那能一次给出整套 hosted 步骤顺序）；
 ② `RunAsync` 的正确落点仍是 hosted 流程，需先确定复刻件里 hosted 流程的入口在哪。
+## R1159 —— 找 `.rdata` 指针表：**四次撞墙，收手**
+
+**取件**：R1158 遗留①「找 threeds 家族的指针表，它可能一次给出 hosted 步骤顺序」。
+
+改了什么（**只加分析工具，`src` 零改动**）：`analysis/_pointer_tables.py` —— 取 17 条已知 PayPal 字面量的
+对象地址，在镜像里找它们作为 **8 字节 LE 指针**出现的位置，再把「64 字节内有 ≥3 个指针」的聚成一簇（即一张表），
+逐指针解出字符串，顺序即步骤顺序。
+
+**四次尝试，四次失败，全部是工具侧**：
+
+| 次 | 做法 | 结果 |
+|---|---|---|
+| 1 | `ida_bytes.bin_search(ea, hi, needle, None, 8, 0)` | `TypeError: Wrong number or type of arguments`（该版本 6 参重载拒收 `bytes`+`None`）**——R1143 已在同一处撞过三次** |
+| 2 | 改成分段读字节 + `bytes.find` | 跑到一半 **HTTP 连接中断**（扫描量大） |
+| 3 | 收窄到只看数据段（跳过 `SEG_CODE`） | 插件内部 `sync.py: profilefunc` 抛 `TypeError: 'builtin_function_or_method' object does not support the context manager protocol`（其 deadline 逻辑自身出错） |
+| 4 | 恢复 IDA 后重试 | 同 3 |
+
+**收手的依据是我自己立的规矩**：**同一招用三次都失败，第四次就该换招。**
+这一轮我在第 2 次之后就已经换了招（换读法、换范围），但**换的是同一目标的实现方式，不是目标本身**——
+真正该换的是**目标**：指针表是「顺带可能拿到步骤顺序」的探索项，不是判据要求的东西。
+
+**本轮唯一实质产出**：IDA 已恢复（launch → Restore packed base → 55s，`status: ok`、`hexrays_ready: true`），
+工具四次失败的成因写清楚了，下一个人不必再撞。
+
+证据等级：Observation = 四条报错原文（含 `bin_search` 的两个原型签名、`profilefunc` 的 traceback）；
+Inference = 无；Unknown = threeds 家族是否真的被放进 `.rdata` 指针表（**未取得证据**，不作为结论）。
+
+还剩什么：① 若仍要查表，可先用 `pe_sections.py` 列出「非代码且非字符串堆」的段，再用**单目标、单段**的窄扫描降低负载；
+② 更值钱的替代路线：`CORE_COVERAGE` 里 Farfetch/Bstn 之外的流程逐步过一遍 where_is，找真正缺的接线。

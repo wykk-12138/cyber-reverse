@@ -62920,3 +62920,31 @@ R1082 关构建器层、R1083 关载荷层、本轮关绑定源层——PayPal 3
 
 > **变量绑定别默认只有一条路**——探了 JSON 针还要探 DOM 选择器。`input[id='referenceId']`
 > 在池里躺着，只因没问「页面里会不会也有」就差点漏掉整条挑战页读取路。
+
+---
+
+## 第 1085 轮：hosted solver case 体 —— 3DS 操作面 11 个，挑战窗回帖 JWT/MD
+
+### 一、11 态机全貌（2,288 行伪代码存 `analysis/_paypal_hosted_solver.c`）
+
+状态槽 `a1+88` 逐级 0→8，每 case 组装字段并挂 await。case 常量解码出：
+
+- **第三组操作名**：`GetThreeDsJwtQuery` · `ThreeDsAuthenticateMutation` ·
+  `ThreeDsLookUpMutation`——与 R1083 的 8 条合计 **11 个具名 3DS 操作**。
+- **挑战窗**：`_500_x_600`（尺寸）、页面
+  `https://www.paypal.com/checkoutweb/processThreedsConfirmation`、回帖字段 **`JWT` + `MD`**——
+  银行挑战页的回帖就是这两个字段。
+- 方言：`HERMES` · `EXPRESS_CHECKOUT` · `PAYPAL` · `PRE_AUTH` · `en`。
+
+### 二、四轮收网
+
+R1082 构建器层（9 阶段）→ R1083 载荷层（8 操作）→ R1084 绑定源（JSON 针 + 挑战页 DOM）→
+本轮 case 体（+3 操作、挑战窗、JWT/MD）。**链路形状已完全定型**：
+JWT 查询 → 3DS 认证 → 挑战窗（processThreedsConfirmation 回帖 JWT/MD）→ 查找 → 解析。
+剩余的是逐 case 变量源精读——伪代码已在盘上，是阅读工作，不再是取证工作。
+
+### 教训
+
+> **大函数别整读——先落盘再 grep**。15,615 B 的 solver 整段伪代码一次性塞进对话会把上下文
+> 烧光；落盘成文件后，case 结构、状态槽、常量调用一眼分层。IDA 的产出是数据，
+> 数据就该按数据的方式处理。

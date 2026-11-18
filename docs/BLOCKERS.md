@@ -38783,3 +38783,35 @@ Inference = 针式解析器服务于 solver 的响应解析（case 体未读，�
 
 还剩什么：两台 solver（`sub_14110FDB0` / `sub_141113680`）的 switch case 体反编译——
 每 case 用哪条绑定源，是 PayPal 3DS 层的最后一块拼图；Stripe 六步其余体；42 锚静树全跑。
+
+## R1085 —— 【核心②·支付挑战层】hosted solver case 体定型：3DS graphql 面扩到 11 个具名操作 + 挑战窗 JWT/MD 回帖
+
+**取件**：队列② 两台 solver 的 switch case 体（R1084 指定的最后一块）。
+
+改了什么：纯取证轮——hosted solver（`sub_141113680`，15,615 B / 394 块 / 11 case）的
+**2,288 行伪代码落盘**为 `analysis/_paypal_hosted_solver.c`（证据存档）；case 体常量批量解码；
+生成器模板 §六 追加 R1085 case 体段；重生成 PAYMENT_CHALLENGES.md。
+
+验证命令与输出：
+- py_eval 全量反编译 → `analysis/_paypal_hosted_solver.c`（2,288 行）；grep case 结构 →
+  11 态机状态槽 `*((_DWORD *)a1+22)` 逐级 0→1→…→8 推进，每 case 以一组冻结常量
+  `sub_141ADAE90`/`sub_14130CC50` 组装字段并挂 await。
+- `names_at` 17 个 case 体常量解码：
+  - **第三组 3DS 操作名**：`GetThreeDsJwtQuery`（0x146DA0CF0）· `ThreeDsAuthenticateMutation`
+    （0x146EEF8A0）· `ThreeDsLookUpMutation`（0x146EEF8F0）——与 R1083 的 8 条合计
+    **3DS graphql 面 11 个具名操作**；
+  - **挑战窗**：尺寸 `_500_x_600`（0x146F5FF08）、页面
+    `https://www.paypal.com/checkoutweb/processThreedsConfirmation`（0x147097D08）、
+    回帖表单字段 **`JWT`**（0x146DD3A08）+ **`MD`**（0x146DF88D0）；
+  - 方言常量：`HERMES`（0x146DA8128）· `EXPRESS_CHECKOUT`（0x146D00F38）· `PAYPAL`
+    （0x146E312C8）· `PRE_AUTH`（0x146E355E8）· `en`。
+- `payment_challenges.py` → control ok=True，markers absent **0/5** 保持。
+
+数字变化：3DS 具名操作 8 → **11**；hosted solver 链路形状定型：
+**JWT 查询 → 3DS 认证 → 挑战窗（processThreedsConfirmation 回帖 JWT/MD）→ 查找 → 解析**。
+
+证据等级：Observation = 2,288 行伪代码存档、11 个操作名/页面 URL/表单字段/方言常量解码、
+状态槽推进；Inference = 全链顺序的编排次序（各 case 体已读但逐 case 变量源仍待精读）。
+
+还剩什么：逐 case 的变量源绑定精读（伪代码已在盘上，纯阅读工作，无需新取证）；
+Stripe 六步其余体；42 锚静树全跑。

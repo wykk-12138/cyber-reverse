@@ -5140,3 +5140,22 @@ PayPalThreeDs **10/10 绿**；markers absent **0/5** 保持。
 证据等级：针/选择器/引用函数为 Observation；解析器服务对象为 Inference（case 体未读）。
 
 还剩什么：两台 solver 的 switch case 体——PayPal 3DS 层的最后一块拼图。
+
+## R1085 —— 【核心②】hosted solver case 体定型：3DS 具名操作扩到 11 个 + 挑战窗 JWT/MD
+
+**取件**：队列② solver case 体（最后一块）。
+
+改了什么：纯取证轮——2,288 行伪代码存 `analysis/_paypal_hosted_solver.c`；case 常量解码；
+模板 §六 追加 R1085 段并重生成。
+
+验证：11 态机状态槽 `a1+88` 逐级 0→8；**第三组操作名** `GetThreeDsJwtQuery` /
+`ThreeDsAuthenticateMutation` / `ThreeDsLookUpMutation`（3DS graphql 面合计 **11 个具名操作**）；
+**挑战窗** `_500_x_600` + 页面 `checkoutweb/processThreedsConfirmation` + 回帖字段 **`JWT`+`MD`**；
+方言 `HERMES`/`EXPRESS_CHECKOUT`/`PAYPAL`/`PRE_AUTH`/`en`。
+control ok、markers absent **0/5** 保持。
+
+数字变化：3DS 具名操作 8 → **11**；链路形状定型：JWT 查询 → 认证 → 挑战窗（JWT/MD）→ 查找 → 解析。
+
+证据等级：伪代码存档/常量解码/状态槽为 Observation；编排次序为 Inference（逐 case 变量源待精读）。
+
+还剩什么：逐 case 变量源精读（伪代码在盘，纯阅读）；Stripe 六步其余体；42 锚静树全跑。

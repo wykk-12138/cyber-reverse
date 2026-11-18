@@ -40422,3 +40422,52 @@ Inference = 「48 条仍开放」是**上界**——本工具只试**两段**拆
 
 还剩什么：把 48 条逐条定性（实现 / 两段以上拼接 / 外部供应商自动生成 / 不在范围）；
 工具目前**依赖 `endpoint_coverage.py -v` 的输出格式**，该耦合脆弱，需在下次改动时同步。
+
+## R1125 —— 判定器两次收紧（各被一个假阳性逼出来）：53 = **5 拼接 + 8 锚定嵌入 + 40 开放**
+
+**取件**：R1124 的 `48 是上界`（只试两段）。
+
+改了什么：
+- **扩展一：允许 2–3 段拼接**。结果多出 1 条：`/Checkout/v2/{_encodedMerchantId}/…`
+  被解释成 `'/' + 'Checkout' + '/v2/'`。**这是假阳性**——单字符 `'/'` 当证据，任何路径都能被
+  地上的零碎字面量「解释」掉。
+  → **加守卫：每段长度 ≥ 2**。加上后 3 段一条正当的都没有，回到 **5 条**。
+- **扩展二：新增「锚定嵌入」判据**（第三种盲区）。PayPal 的 3DS 路径写在一个**含 host 的整串字面量**
+  里（`"https://www.paypal.com/…/init-method"`），既过不了「裸路径带引号」，也过不了「两段拼接」。
+  判据：存在更长的字面量 `L`，满足 **`L.startswith(path)` 或 `L.endswith(path)`** —— **锚定，不是任意包含**
+  （任意包含正是 R1117 的错误）。
+  初次跑出 **9 条**，其中三条是**散文串**：`gmo:` / `mollie:` / `touchtech:` 的
+  「tokenise endpoint not captured … 只给出 /api/…」——**它们以路径结尾**，所以过了锚定测试。
+  → **加守卫：URL 不含空格**（`" " in lit` 则跳过）。这是唯一的判据差别，剩下 **8 条**全是真的。
+- **最终读数（可复算）**：
+  ```
+  reported missing: 53
+  reachable by literal concatenation: 5   (two-part 5, three-part 0)
+  carried by a longer anchored literal: 8
+  still unexplained: 40
+  ```
+  8 条锚定命中逐条印出，例如 `'/catalog-productdetails/v4/byPartNumber/'`（尾斜杠变体）、
+  `'{ApiHost}/api/v1/:select'`（Touchtech 模板串）、PayPal 三条含 host 整串。
+- **40 条按族分桶**（给后续轮次排班，可复算）：
+  | 族 | 条数 |
+  |---|---|
+  | `bff/*`（v1+v2+v3+v4，同一结账后端家族） | **10** |
+  | `api/v1` | 8 |
+  | `api/v2` | 5 |
+  | `activity/v1` / `Checkout/v2` | 2 / 2 |
+  | 其余单条（`payment-authentication/threeds`＝已停的 `notify-challenge-cmpl`、`flex/v2`、`forms/api`、`turnstile/v0`、`data/dtd` 等） | 13 |
+
+验证命令与输出：
+- `python tools/endpoint_compose.py` → 上述四行 + 8 条 EMBEDDED（含各自容器字面量）+ 40 条 OPEN。
+- 分族统计：对 OPEN 行按「第 1–2 个路径段」分组，输出见上表。
+- 两次守卫的因果链在工具注释里各留一行（`len(seg) < 2` 与 `" " in lit`）。
+
+数字变化：**53 = 5 + 8 + 40**（R1124 是 5 + 48；本轮把其中 8 条解释清楚，另把 3 条散文假阳性挡在门外）。
+保守计数 **53 不变**。
+
+证据等级：Observation = 工具三条读数、8 条锚定命中及其容器字面量、40 条分族计数、
+两次守卫各自的因果；Inference = 40 仍是**上界**（三路判据之外可能还有别的写法，如运行期拼接词表）。
+
+还剩什么：**`bff/*` 10 条是最大单块**，且属同一后端家族——下一轮取它；
+`data/dtd/v11/ibmxhtml1-transitional.dtd` 属**文档类型声明**、`turnstile/v0/api.js` 属**第三方脚本**，
+需先判是否在范围内。

@@ -80,12 +80,54 @@ def literals():
     return found
 
 
-def splittable(path, lits):
-    """Is `path` two adjacent quoted literals the source actually carries?"""
-    for i in range(2, len(path) - 1):
-        head, tail = path[:i], path[i:]
-        if head in lits and tail in lits:
-            return head, tail
+def compose(path, lits, max_parts=3):
+    """Return a tuple of 2..max_parts quoted literals that concatenate to `path`, or None.
+
+    R1125: the first version tried two segments only, which left every three-part composition in the
+    "unexplained" bucket and made that number an upper bound without saying so. The search is the same
+    idea generalised -- still only literals that the source actually carries, never a fuzzy substring.
+    """
+    best = []
+
+    def dfs(start, parts):
+        if best:
+            return
+        if start == len(path):
+            if len(parts) >= 2:
+                best.extend(parts)
+            return
+        if len(parts) >= max_parts:
+            return
+        for end in range(start + 1, len(path) + 1):
+            seg = path[start:end]
+            # R1125: a one-character segment ('/' or '.') proves nothing -- it would let almost any
+            # path be "explained" by generic fragments lying around the source. Every segment has to
+            # carry real path text before the concatenation is admitted as evidence.
+            if len(seg) < 2:
+                continue
+            if seg in lits:
+                dfs(end, parts + [seg])
+
+    dfs(0, [])
+    return tuple(best) if best else None
+
+
+def embedded(path, lits):
+    """Is `path` carried by a longer quoted literal, anchored at one end?
+
+    R1125: this is the third blind spot. PayPal's 3DS paths live in single literals that already
+    include the host ("https://www.paypal.com/payment-authentication/threeds/v1/init-method"), so they
+    match neither the bare-quoted test nor a two-part split. Anchoring at the start or the end keeps
+    this precise: an arbitrary substring hit is exactly the R1117 mistake.
+    """
+    for lit in lits:
+        # R1125: a prose description literal can end with a path and would pass the anchor test --
+        # three "tokenise endpoint not captured ..." notes did exactly that. A URL never contains a
+        # space, so requiring one is enough to separate a real endpooint literal from a sentence.
+        if " " in lit:
+            continue
+        if len(lit) > len(path) and (lit.endswith(path) or lit.startswith(path)):
+            return lit
     return None
 
 
@@ -100,16 +142,26 @@ def main():
             missing.append((parts[0], parts[2]))
 
     lits = literals()
-    composed, unresolved = [], []
+    composed, embedded_rows, unresolved = [], [], []
     for key, path in missing:
         probe = path.split("?")[0].split("{")[0]
-        hit = splittable(probe, lits)
-        (composed if hit else unresolved).append((key, path, hit))
+        hit = compose(probe, lits)
+        if hit:
+            composed.append((key, path, hit))
+            continue
+        anchor = embedded(probe, lits)
+        (embedded_rows if anchor else unresolved).append((key, path, anchor))
 
+    two = sum(1 for _, _, h in composed if len(h) == 2)
+    three = sum(1 for _, _, h in composed if len(h) == 3)
     print("endpoint_coverage reported missing: %d" % len(missing))
-    print("reachable by literal concatenation: %d" % len(composed))
+    print("reachable by literal concatenation: %d  (two-part %d, three-part %d)"
+          % (len(composed), two, three))
     for key, path, hit in composed:
-        print("   COMPOSED %-7s %-60s = %r + %r" % (key, path[:60], hit[0], hit[1]))
+        print("   COMPOSED %-7s %-58s = %s" % (key, path[:58], " + ".join(repr(p) for p in hit)))
+    print("carried by a longer anchored literal: %d" % len(embedded_rows))
+    for key, path, lit in embedded_rows:
+        print("   EMBEDDED %-7s %-58s in %r" % (key, path[:58], lit[:70]))
     print("still unexplained: %d" % len(unresolved))
     for key, path, _ in unresolved:
         print("   OPEN     %-7s %s" % (key, path[:80]))

@@ -58,6 +58,31 @@ internal static class WebApiShims
         }).call(this);
 
         // TEMPORARY diagnostic: the payload wraps its opcode table in `new Proxy(...)`, and Proxy is a
+
+        // TEMPORARY diagnostic: opcode 3 builds a closure, decorates it with Object.defineProperty
+        // (inside a try/catch) and then pushes it with a(n,p). If the decoration throws outside the try,
+        // the push never happens and the slot stays undefined — recording these calls tells us whether
+        // that block ran at all.
+        this.__dshDp = [];
+        this.__dshMap = 0;
+        (function () {
+            var orig = Object.defineProperty;
+            var rec = this.__dshDp;
+            Object.defineProperty = function (obj, prop, desc) {
+                if (rec.length < 500) rec.push(String(prop) + ":" + (obj === undefined ? "undef" : typeof obj));
+                return orig(obj, prop, desc);
+            };
+            // Opcode 3 takes the `new Map(Array.from(n.Q…))` branch only when the frame already carries
+            // an exception. If that branch is never taken, the throw has to come from elsewhere.
+            var OrigMap = this.Map;
+            var self = this;
+            this.Map = function (it) {
+                self.__dshMap++;
+                return new OrigMap(it);
+            };
+            this.Map.prototype = OrigMap.prototype;
+        }).call(this);
+
         // global constructor, so wrapping it records the exact sequence of opcodes the VM dispatches.
         // That sequence plus the static per-opcode stack effect is what localises the imbalance.
         this.__dshOpcodes = [];

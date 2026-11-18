@@ -41689,3 +41689,31 @@ Unknown = 反射派发在 AOT 下的完整存活面（需看 `ILLink` 的 `--ver
 还剩什么（下一轮的直接入口）：① 若要产物能证明步骤接线，需要给 `StoreFlow` 加
 `[DynamicallyAccessedMembers]` 或 root descriptor——**这是让尺子有效的先决条件**；
 ② 在尺子有效之前，**不要再拿 `present: no` 当作未接线的结论**。
+
+## R1153 —— 给上一轮那条「自己接的边」补上它欠的测试
+
+**取件**：R1152 的遗留——我把 PayPal 解析从 `Process3DS` 移到 `ProcessPayment`，**改了行为却没有一条测试**。
+
+改了什么（**测试**，`src` 未改）：
+- 新增 `tests/Cybersole.Tests/PaymentChallengeResolutionTests.cs` **3 条**，全部不碰网络：
+  1. `AWaitingChallengeWithoutAGatewayIsReportedRatherThanClassified`：`paymentStatus=requires_action` +
+     `paypal3ds.state=Waiting3DS` + **无 gateway** ⇒ 必须 `Fail` 且错误里含 `no gateway`，
+     **且不得是** `payment requires action`（后者会让「什么都没尝试」看起来像「分类器判过了」）。
+  2. `AClassifiedPaymentStillGoesThroughTheClassifier`：只有 `requires_action` ⇒ 仍是分类器的话术
+     → 证明新分支是**有条件**的，没有吞掉原有行为。
+  3. `AnAuthorisedPaymentSucceeds`：`authorised` ⇒ `Ok`。
+- 测试替身 `BareFlow : StoreFlow` 只实现 `Id`/`Name`/`Domains` 三个抽象成员，
+  **不加任何行为**，所以三条断言测的都是基类。
+
+验证命令与输出：
+- `dotnet build` → **exit=0**（中途两次编译失败：`StoreFlow` 是 `abstract`，`new StoreFlow()` 不合法；
+  补替身时又漏了 `Domains` 抽象属性——**两次都是编译器直接指出来的**，不是我猜的）。
+- `dotnet test --filter PaymentChallengeResolution` → **3/3 通过**。
+- 全量 → **2456 通过 / 0 失败 / 2 跳过 / 2458**（2m35s；比上轮 2453 多出的正是这 3 条）。
+- 变异 → `ran_at 2026-11-19T05:54:05+08:00`、**59/59 fired，decorative 0，skipped 0，tree GREEN**。
+
+**这轮的意义不在 3 条测试，在于把「我改了什么」和「谁能证明」对齐。**
+前两轮我连续改了两次 3DS 接线（R1151 挂错步骤、R1152 移对），**两次都没有一条测试盯着它**——
+全量一直是绿的，因为**没有任何用例会走过那条分支**。绿是「没测到」，不是「对」。
+
+证据等级：Observation = 3/3、2456/0/2、变异收据；Inference = 无；Unknown = 无（本条已闭环）。

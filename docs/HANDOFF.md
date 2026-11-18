@@ -6406,3 +6406,18 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：① 加 `[DynamicallyAccessedMembers]` / root descriptor 让产物尺子对步骤方法有效；
 ② 在那之前不要把 `present: no` 当未接线结论；③ 3DS 解析链的真实运行验证需靠单测（已 235/235）。
+## R1153 —— 为 R1151/R1152 的 3DS 接线补 3 条行为测试（此前零覆盖）
+
+改了什么（仅 tests）：
+- 新增 `PaymentChallengeResolutionTests` 3 条：① 挑战挂起但无 gateway ⇒ `Fail` 含 `no gateway`，
+  **不得**是 `payment requires action`；② 仅 `requires_action` ⇒ 仍走分类器（证明分支有条件）；
+  ③ `authorised` ⇒ `Ok`。
+- 替身 `BareFlow : StoreFlow` 只实现 `Id`/`Name`/`Domains`，不加行为。
+
+验证：build exit=0（两次编译失败均由编译器指出：`StoreFlow` 抽象、漏 `Domains`）；
+新用例 **3/3**；全量 **2456/0/2/2458**；变异 **成功 fired、tree GREEN**。
+
+**教训**：R1151/R1152 两次改行为，全量一直绿——因为**没有用例走过那条分支**。绿 ≠ 对。
+
+还剩什么：① `present: no` 对反射派发区间仍无效（R1152 结论），若要产物可证需 root descriptor；
+② 3DS 真实 HTTP 路径（`ContinueAsync` 的 graphql 请求体）仍靠单测而非产物验证。

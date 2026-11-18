@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-19T05:42:29+08:00",
+  "ran_at": "2026-11-19T05:54:05+08:00",
   "total": 59,
   "fired": 59,
   "decorative": 0,
@@ -603,6 +603,7 @@
     "tests/Cybersole.Tests/ParityDocTests.cs": "a3117ac37db7571f673779fee12e5642ba48728c5dbc528798701c657ebaf674",
     "tests/Cybersole.Tests/PatchJournalTests.cs": "9d49df28ebb88726fbffc7c9110862d0b5ffc37fb77c91c438d343fe6a9edb84",
     "tests/Cybersole.Tests/PayloadCoverageTests.cs": "32272d2e503b595a9e3b82d707e4117e1efb3cafe7c7d307dda1a3c5cf443371",
+    "tests/Cybersole.Tests/PaymentChallengeResolutionTests.cs": "0cf58d5413d2ec41df4aafcbe5ad35cf270326265d9a51b63a5e67eea9415e38",
     "tests/Cybersole.Tests/PaymentGatewayNamingTests.cs": "67e9fb96eb8ae2ff4f95ed929ee28c84602817e4a5413b00fb76ef1d68d092d9",
     "tests/Cybersole.Tests/PaymentHostGapTests.cs": "3f4204e0967a8a6a95014e95db3a5325250f8e64d379a5b6c0960a65eaad9466",
     "tests/Cybersole.Tests/PaymentPageTests.cs": "dec796c2d13ed127c162b9788fa289c6ad8ac8179ccf6bcf5b8959ed53cbc7e3",

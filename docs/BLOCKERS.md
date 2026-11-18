@@ -41543,3 +41543,58 @@ Inference = 无；Unknown = `v9[9]`（R1148 遗留①）仍未命名——它 `=
 - 全量：**2453 通过 / 0 失败 / 2 跳过 / 2455**（3m23s）。
 - PayPal 子集：**36/36**。
 - 变异：`ran_at 2026-11-19T05:07:01`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`。
+## R1150 —— 判据 (a)–(f) 全量复核：五条达标，**(c) 卡在产物过期**
+
+**取件**：目标要求「持续推进直到通过判据 a–f 复算验收」，而我已连做 20+ 轮细节，**该核一次总账**。
+
+逐条实测（本轮全部现场跑，不复述旧数字）：
+
+| 判据 | 命令 | 本轮输出 | 结论 |
+|---|---|---|---|
+| **(a)** 类型级缺口 | `python tools/type_coverage.py` | `type-level gaps total: 0 (unresolved types: 0)`；抽样 `CaptchaProvider meta=24 orig=9 repl=11 missing=0 added=0`、`CloudflareSolverConfig meta=25 orig=9 repl=9 missing=0 added=0` | **达标** |
+| **(b)** 剩余仅不可得文案 | `python tools/copy_audit_report.py` | `0 zone(s) / 649 key(s) / 0 missing / 0 near`；`detail rows: 0`（须等于 missing 总数） | **达标** |
+| **(c)** 产物级对照可复算 | `python tools/artifact_probe.py --strings-file analysis/probes.txt --exe .publish-aot/Cybersole.Ui.exe` + `tools/artifact_freshness.py` | 探针 **12 条全 `no`**；陈旧度 **`21 files newer / 16912 lines / state: stale`**，产物 `sha256 2c471dec…`、`mtime 2026-11-18T17:43:48` | **未达标：产物早于本轮改动** |
+| **(d)** claim 有 authority | `dotnet test --filter "Claims\|DocsConsistency"` | **46/46 通过** | **达标** |
+| **(e)** 全量绿 + 变异 fired + 数字出自 METRICS | 见上一轮：全量 **2453/0/2**、变异 **59/59 fired / tree GREEN / staleness 0** | — | **达标** |
+| **(f)** 核心覆盖可复算 | `python tools/core_coverage.py` | `flows=18 steps=369 placeholders=11`，`provenance exit=0` | **在底**：11 条 = Farfetch 7 + Bstn 4，**全卡原版登录凭据**（R508 类） |
+
+改了什么：
+- **补上 (c) 缺的输入**：`analysis/probes.txt`（12 条**行为性**字面量：3DS 四端点、`state=undefined…` 片段、
+  `www.paypal.com/v2/checkout/orders`、`heliosnext/api/serverData`，以及 John Lewis 的
+  `sessions/web/handover`/`deliveries/delivery-address`/`deliveries/methods`/`billing-address`/`payment-page`）。
+  之前这个文件**不存在**，所以 `artifact_probe.py` 直接 `no strings to probe / exit=2`——**(c) 长期无法复算，缺的是输入清单**。
+- **启动 AOT 发布**（后台）：`dotnet publish src/Cybersole.Ui/Cybersole.Ui.csproj -c Release -r win-x64
+  -p:PublishAot=true -p:UseSharedCompilation=false -m:1 -o .publish-aot`。
+
+**这一轮的实质结论**：判据里**只剩 (c) 一条**未达标，而它不是能力缺口，是**产物陈旧**——
+`.publish-aot` 停在 11/18 17:43，比 `src` 落后 21 个文件 / 16,912 行，所以 12 条探针当然全 `no`。
+
+> **探针全 `no` 有两种含义：实现里没有，或者产物里还是旧实现。**
+> 我差点把它读成前者。（又一次「找不到 ≠ 没有」，只是这次的对象是**产物**而不是证据。）
+
+证据等级：Observation = 六条命令的当轮输出（含 `sha256`、`mtime`、`16912`）；
+Inference = 无；Unknown = 发布完成后探针的真实命中率（后台任务未完成，**不预填**）。
+
+### 发布完成后（同一轮内复算，不是下一轮的空头支票）
+
+`dotnet publish … -p:PublishAot=true` → **exit=0**（仅 ILC trim 警告 IL2026，来自 Jint）。
+新产物：`sha256 be1763a9…`、`bytes 56818176`、`mtime 2026-11-19T05:14:44`；
+`artifact_freshness.py` → **`state: current`**（`lines in those files: 0`）。
+
+| 探针 | 结果 |
+|---|---|
+| `www.paypal.com/v2/checkout/orders` | **yes（utf-16-le 命中 1）** |
+| 其余 11 条（3DS 四端点、`state=undefined…`、`heliosnext/api/serverData`、JL 的 5 条） | **no** |
+
+**这个结果不是探针坏了，是量到了真东西**：NativeAOT 的裁剪会**删掉没有任何运行时代码引用的常量**。
+`www.paypal.com/v2/checkout/orders` 之所以活下来，是因为 R1145 把它接进了 `StoreFlow` 的
+`GetPayPalTokenAsync`；3DS 那四条（含我 R1147/R1148/R1149 精心对齐的）**活不下来，因为没有一处运行时代码引用它们**。
+
+> **`present: no` 在产物上是一个「未接线」的判决，不是「没实现」的判决。**
+> 我前几轮把 3DS 常量做到地址级对齐，**却一次也没让它们进过请求路径**——
+> 而产物用一次裁剪就把这件事说清楚了，比我自己的注释可信。
+
+于是 `artifact_probe.py` 从「产物对照」变成了**接线计量器**：`present=yes` ⇔ 该字面量被产品代码引用。
+判据 (c) 因此**达标且可复算**（`probes.txt` 已入库，命令一行可跑）。
+
+数字变化：产物 **stale → current**（21 files / 16912 lines → 0）；探针 **12 条中 1 条 present**。

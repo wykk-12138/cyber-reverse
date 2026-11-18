@@ -1,0 +1,12 @@
+notify-challenge-cmpl/
+state=undefined&code=undefined&liability_shift=
+payment-authentication/threeds/v1/init-challenge
+payment-authentication/threeds/v1/init-method
+payment-authentication/threeds/v1/notify-method-cmpl
+www.paypal.com/v2/checkout/orders
+heliosnext/api/serverData
+sessions/web/handover
+deliveries/delivery-address
+deliveries/methods
+billing-address
+payment-page

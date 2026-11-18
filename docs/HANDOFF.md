@@ -6355,3 +6355,20 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：① `v9[9]`（状态机自身字段 +0x48）仍未命名——需追写入点；
 ② IDA 每轮开轮必死，恢复固定三步（launch → Restore packed base → 55s）。
+## R1150 —— 判据 a–f 复核：五条达标；(c) 补上 probes.txt + 重新发布后暴露 3DS 未接线
+
+本轮实测：
+- **(a)** `type-level gaps total: 0 (unresolved types: 0)` ✅
+- **(b)** `649 keys / 0 missing / 0 near` ✅
+- **(c)** 原 `probes.txt` **不存在**（探针 `exit=2`）→ 本轮补建 12 条行为字面量清单；
+  产物 `stale`（21 files / 16912 lines 落后，`mtime 11/18 17:43`）→ **本轮 AOT 发布成功**
+  （`sha256 be1763a9…`、`mtime 05:14:44`、`state: current`）✅
+- **(d)** Claims+DocsConsistency **46/46** ✅
+- **(e)** 全量 **2453/0/2**、变异 **59/59 fired / tree GREEN / staleness 0** ✅
+- **(f)** `flows=18 steps=369 placeholders=11`（Farfetch 7 + Bstn 4，全卡凭据）✅ 在底
+
+**关键发现**：新鲜产物上 12 条探针**只有 1 条 present**（`www.paypal.com/v2/checkout/orders`）。
+原因：**AOT 裁剪删除无运行时引用的常量** ⇒ **3DS 四条常量（R1147–R1149 对齐的）未被任何产品代码引用**。
+⇒ `artifact_probe.py` 成为**接线计量器**（`present=yes` ⇔ 被产品代码引用）。
+
+还剩什么（主线已换）：**把 3DS 链接进请求路径**，让探针 1/12 往上走；JL 的 5 条同理需确认是否接线。

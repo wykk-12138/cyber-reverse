@@ -2148,6 +2148,52 @@ public static string? ResourceAddressOf(string? scriptUrl)   // origin + 脚本�
 
 **Kasada + Nike：163 通过。**
 
+### 5.101 第一次真跑端到端：`/mfc` 通了，`/r` 没发
+
+`analysis/kasada-live` 打真实站点，结果：
+
+```
+page status = 200   body = 1,021,926 字符
+script url  = https://api.nike.com/149e9513-…/2d206a39-…/p.js   （155,850 字符）
+resource    = https://api.nike.com/149e9513-…/2d206a39-…/
+
+GET …/mfc -> 200                                   ← 真实请求、真实 200
+Version     = j-1.2.992                            ← 传感器自己报的版本
+headers     = x-kpsdk-fc / x-kpsdk-h / x-kpsdk-v   ← 真实响应头
+Ok          = False
+Error       = no kasada client token exposed by the script
+```
+
+**这是一路走下来最远的一次**：页面取到、脚本取到、resource 算对、`/mfc` 真发出并真收到 200、
+两个头真收进结果。**但 `POST /r` 没有发** —— 传感器拿到 `/mfc` 之后就不往下走了。
+
+**同时发现一件重要的事：实网版本是 `j-1.2.992`，不是 `j-1.2.988`。**
+
+镜像字符串池里记的是 1.2.988（那是手上的构建**出厂时**的值），实网部署已经推到 1.2.992。
+**观察值优先**，所以 `KasadaVersions.Observed` 改成 `j-1.2.992`，注释里写明两个值的来源与日期。
+
+### 5.102 下一个问题很具体：为什么拿到 `/mfc` 还不发 `/r`
+
+`/mfc` 回的 `x-kpsdk-fc` 解出来是：
+
+```json
+{"featureFlags":{},"dynamicConfig":{"frontend":{"logLevel":50}}}
+```
+
+**`featureFlags` 是空的。**
+
+而 `dynamicConfig` 里只有 `frontend.logLevel`。**没有 interrogation 相关的配置。**
+
+**假设（待验证）**：传感器是看 `featureFlags` / `dynamicConfig` 决定要不要 interrogation 的。
+一个裸 `GET /mfc`（没有 cookie、没有真实浏览器上下文）拿到的是空 flag，于是它认为"无需提问"。
+
+**验证方式**：带上真实页面拿到的 cookie（`kasada.scriptUrl` 那一次页面请求是有 `Set-Cookie` 的）
+再打 `/mfc`，看 `featureFlags` 是否变非空。
+
+**这一步不需要改代码，只需要把页面响应里的 cookie 带进请求。** 而
+`analysis/kasada-live` 已经拿了 `page.Cookies`，只是没传进 `BrowserShim`/transport ——
+下一轮先把它接上再跑一次。
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

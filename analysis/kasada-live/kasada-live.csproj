@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- WHY THIS EXISTS: runs the whole local Kasada path against the live site. Kept separate from the
+       offline probe so that one can stay network-free; this one is expected to make real requests. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>KasadaLive</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\replica\src\Cybersole.Stores\Cybersole.Stores.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,125 @@
+// WHY THIS EXISTS: the offline harness can only prove the shape of things. This one runs the whole local
+// path against the live site: fetch the real page, find the real sensor URL (which carries two UUID path
+// segments), configure the sensor with that directory, and let it issue GET /mfc and POST /r for real.
+//
+// It is deliberately separate from kasada-probe: that one must stay offline-only so it can run anywhere.
+//
+// Usage: dotnet exec kasada-live.dll [pageUrl]
+using Cybersole.Http;
+using Cybersole.Stores.Scripts;
+
+var pageUrl = args.Length > 0 ? args[0] : "https://www.nike.com/";
+var ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
+         "Chrome/131.0.0.0 Safari/537.36";
+
+using var http = new NetClient();
+var options = new RequestOptions
+{
+    Timeout = TimeSpan.FromSeconds(25),
+    Retries = 0,
+};
+options.Headers["User-Agent"] = ua;
+options.Headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
+options.Headers["Accept-Language"] = "en-US,en;q=0.9";
+
+Console.WriteLine("page = " + pageUrl);
+
+NetResponse page;
+try
+{
+    page = await http.GetAsync(pageUrl, options);
+}
+catch (Exception ex)
+{
+    Console.WriteLine("page fetch failed: " + ex.Message);
+    return 1;
+}
+
+Console.WriteLine($"page status = {page.StatusCode}  body = {page.Body.Length} chars");
+if (page.StatusCode != 200)
+{
+    Console.WriteLine("page did not load; stopping");
+    return 1;
+}
+
+// The real sensor URL, with whatever UUID segments the site chose this time.
+using var solver = new KasadaSolver(new BrowserShim
+{
+    Href = pageUrl,
+    UserAgent = ua,
+    Cookie = string.Join("; ", page.Cookies.Select(c => c.Key + "=" + c.Value)),
+});
+
+var (script, scriptUrl) = await solver.FetchScriptAsync(http, pageUrl, options, CancellationToken.None);
+Console.WriteLine("script url = " + (scriptUrl ?? "(not found)"));
+Console.WriteLine("script     = " + (script?.Length.ToString() ?? "0") + " chars");
+
+var resource = KasadaSolver.ResourceAddressOf(scriptUrl);
+Console.WriteLine("resource   = " + (resource ?? "(null)"));
+if (script is null || resource is null)
+{
+    Console.WriteLine("no sensor or no resource address; stopping");
+    return 1;
+}
+
+Console.WriteLine();
+Console.WriteLine("--- running the payload with that resource address ---");
+
+solver.ResourceAddress = resource;
+solver.Store = "nike";
+
+var seen = new List<string>();
+solver.Transport = (url, method, headersJson, body) =>
+{
+    // The real send, through the replica's own HTTP stack so the fingerprint matches.
+    var opts = options.Clone();
+    opts.Timeout = TimeSpan.FromSeconds(25);
+    opts.Retries = 0;
+    try
+    {
+        var parsed = System.Text.Json.JsonDocument.Parse(headersJson);
+        foreach (var p in parsed.RootElement.EnumerateObject())
+            opts.Headers[p.Name] = p.Value.GetString() ?? string.Empty;
+    }
+    catch (System.Text.Json.JsonException)
+    {
+    }
+
+    var verb = new HttpMethod(string.IsNullOrEmpty(method) ? "GET" : method.ToUpperInvariant());
+    if (!string.IsNullOrEmpty(body))
+        opts.Content = new StringContent(body, System.Text.Encoding.UTF8,
+            new System.Net.Http.Headers.MediaTypeHeaderValue("text/plain"));
+
+    var res = http.SendAsync(verb, url, opts, CancellationToken.None)
+                  .ConfigureAwait(false).GetAwaiter().GetResult();
+
+    seen.Add($"{verb} {url} -> {res.StatusCode}");
+    var headers = res.Headers
+        .Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase))
+        .ToDictionary(h => h.Key, h => h.Value, StringComparer.OrdinalIgnoreCase);
+    headers.TryAdd("content-type-echo", res.Headers.TryGetValue("Content-Type", out var ct) ? ct : "");
+
+    return System.Text.Json.JsonSerializer.Serialize(new
+    {
+        status = res.StatusCode,
+        headers,
+        body = res.Body,
+    });
+};
+
+var result = await Task.Run(() => solver.Solve(script));
+
+Console.WriteLine();
+foreach (var line in seen) Console.WriteLine("  " + line);
+
+Console.WriteLine();
+Console.WriteLine($"Ok          = {result.Ok}");
+Console.WriteLine($"Ct          = {result.Ct ?? "(null)"}");
+Console.WriteLine($"Version     = {result.Version ?? "(null)"}");
+Console.WriteLine($"Body     len= {result.InterrogationBody?.Length.ToString() ?? "0"}");
+Console.WriteLine($"Error       = {result.Error ?? "-"}");
+Console.WriteLine("headers the host would send:");
+foreach (var h in result.Headers.OrderBy(k => k.Key, StringComparer.Ordinal))
+    Console.WriteLine($"  {h.Key}: {(h.Value.Length > 60 ? h.Value[..60] + "…" : h.Value)}");
+
+return result.Ok ? 0 : 2;

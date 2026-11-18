@@ -14,8 +14,13 @@ namespace Cybersole.Stores.Scripts;
 /// </summary>
 public static class KasadaVersions
 {
-    /// <summary>The build the payload reports today for the stores that have been measured.</summary>
-    public const string Observed = "j-1.2.988";
+    /// <summary>
+    /// The build the payload reports today. Measured against the live site on 2026-11-18: the sensor served
+    /// from api.nike.com stamps <c>x-kpsdk-v: j-1.2.992</c> on its own /mfc request. The value recorded
+    /// earlier from the binary's string pool was j-1.2.988, which is what the build in hand shipped — the
+    /// live deployment has moved on, so the observed value wins.
+    /// </summary>
+    public const string Observed = "j-1.2.992";
 
     /// <summary>
     /// Store key → x-kpsdk-v. Keys are the store's short name, matched case-insensitively; the three

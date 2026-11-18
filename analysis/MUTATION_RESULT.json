@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-19T04:23:07+08:00",
+  "ran_at": "2026-11-19T04:36:18+08:00",
   "total": 59,
   "fired": 59,
   "decorative": 0,
@@ -182,7 +182,7 @@
     "src/Cybersole.Stores/Payments/PaymentGateway.cs": "7d4605b78c6cec77277ce79e46ed01085f6227619fd8854a4eeccae9a57c9a88",
     "src/Cybersole.Stores/Payments/PaymentHostGaps.cs": "5a793a786b67e6a713734623a73d538b32e939ce5d0d614019dcb4cd85fdec03",
     "src/Cybersole.Stores/Payments/PaynamicsShield.cs": "803ba22917a5e54ce25e6ea7bac3b8003f80ba6a90dc480c2955f58abea265a0",
-    "src/Cybersole.Stores/Payments/PayPalThreeDs.cs": "0891dbad4ff28c2ab29a42865f6b8eb936e76ee81ce34381c0b712e8434a3776",
+    "src/Cybersole.Stores/Payments/PayPalThreeDs.cs": "2d39b90b86b3a87302d94abed5be5b301cd411be1347014507e4306cc24eee6b",
     "src/Cybersole.Stores/Payments/PurpleDot.cs": "322ba91ec1c9774cba9e4b4fc4f24d3599e4dcd6cdc19f88166436937e17f6d0",
     "src/Cybersole.Stores/Payments/StripeChallenge.cs": "2a339814fb8d3539ba66bf956fff2906ee5fe731cf49ed20a5fb7eb760913be2",
     "src/Cybersole.Stores/Payments/VivaPayments.cs": "fe7b562c7efeb3c3ebdeea75c54338ecefda7076ab2a554093e114f622281400",
@@ -609,6 +609,7 @@
     "tests/Cybersole.Tests/PaymentViewTests.cs": "e57e75946d852f39893ebbddb325615ace8e0376f9387727d5d2c0f36338cbc8",
     "tests/Cybersole.Tests/PaynamicsShieldStepTests.cs": "e6efb954e2452f3e9d42e58de34ec890ec845424a2159f7d85ebc8fb576a88ca",
     "tests/Cybersole.Tests/PaynamicsShieldTests.cs": "fa19fb615b04ee067edd788d8e7063b3755f2b8f86d7fa510524103e31251a24",
+    "tests/Cybersole.Tests/PayPalChallengeNotificationUrlTests.cs": "e2a7ace3952aec08f788f94314517cbc7db3f04ef3dcaa9447425f82a10c03e2",
     "tests/Cybersole.Tests/PayPalThreeDsTests.cs": "816b1a1a3a5a08cbcda5b131a327628f908bace9fb317a09aa29be669e447e76",
     "tests/Cybersole.Tests/PerformanceTests.cs": "af2bdf0f178483e8331a507607d4471836bb3e3146f903e73abba860bda6d815",
     "tests/Cybersole.Tests/PerimeterXMarkerTests.cs": "82e30fee945803db73a5b4e98255327aadca726eff9ca9e46c4907347cd81bda",

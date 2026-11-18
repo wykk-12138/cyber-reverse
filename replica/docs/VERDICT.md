@@ -65054,3 +65054,40 @@ R1144 那 24 条「确证缺失」里：
 ### 收数
 
 `src`/`tests` 零改动，变异收据保持 `staleness 0`；`EndpointLedgerTests` **3/3 通过**。
+---
+
+## 第 1147 轮：3DS 家族缺的第四条，差在**一个尾斜杠**
+
+`where_is` 先查重（R1146 的教训）：
+
+| 名字 | 状态 |
+|---|---|
+| `init-challenge` | **已实现**（3 处 + 5 条测试） |
+| `notify-challenge-cmpl` | **只在** `docs/VERDICT.md` **里出现——我自己的笔记**，零实现 |
+
+于是只缺一条。取证：`0x147098694` ⇒ `obj_va 0x147098688` ⇒ 唯一 xref `0x1411163c5` ⇒
+`sub_141113680`（支付大状态机）。字面量是 **`…/notify-challenge-cmpl/`，带尾斜杠**。
+
+### 那个尾斜杠不是格式
+
+method 侧孪生是 `…/notify-method-cmpl`（**无**斜杠），challenge 侧是 `…/notify-challenge-cmpl/`（**有**）。
+
+> 所以 `NotifyMethodCompleteUrl.Replace("method", "challenge")` 得到的**是错的**。
+> 我把这条写成了测试（`TheTwoNotificationsDifferInMoreThanTheirMiddleWord`）——
+> **下一个人最容易做的"归一化"，正好是错的那个方向。**
+
+### 顺手验证了既有实现
+
+同一份取证里，三条既有常量的地址（`init-challenge` 0x147098540、`init-method` 0x1470985e8、
+`notify-method-cmpl` 0x147098740）与 `PayPalThreeDs` 注释里标注的**逐条一致**——
+**说明前人那条取证链是对的**，这比多写一条常量更让我安心。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2452 通过 / 0 失败 / 2 跳过** |
+| PayPal 子集 | **35/35** |
+| 变异 | **59/59 fired，tree GREEN，staleness 0** |
+
+**本轮只落 URL，不发请求**——它的**请求体仍未解码**（在 `sub_141113680` 里经没走过的路径拼装）。**Unknown 就写 Unknown。**

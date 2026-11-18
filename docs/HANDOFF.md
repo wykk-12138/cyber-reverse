@@ -6307,3 +6307,18 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 `EndpointLedgerTests` **3/3 通过**；`src`/`tests` 零改动（`staleness 0`）。
 
 还剩什么：① 两条真空缺归类入账（先读门的类定义）；② 支付层 3DS 四端点可着手落地。
+## R1147 —— 3DS 家族补齐 notify-challenge-cmpl/（带尾斜杠）
+
+改了什么：
+- **查重**：`init-challenge` 已实现（3 处 + 5 测试）；`notify-challenge-cmpl` **只在 VERDICT 里出现**（零实现）。
+- **取证**：`0x147098694` → `obj 0x147098688` → 唯一 xref `0x1411163c5` → `sub_141113680`；
+  字面量含**尾斜杠**。
+- **落地**：`PayPalThreeDs.NotifyChallengeCompleteUrl`（保留尾斜杠）；注明**只落 URL、不发请求**（体未解码）。
+- **测试** `PayPalChallengeNotificationUrlTests` 3 条：值、**method 侧无斜杠故不能按词替换归一化**、四条共享前缀。
+
+验证：build **0 错**；PayPal 子集 **35/35**；全量 **2452/0/2**；变异 **59/59 fired, tree GREEN, staleness 0**（04:36:18）。
+
+**顺带**：三条既有常量的地址与注释标注逐条一致 ⇒ 前人取证链正确。
+
+还剩什么：① `notify-challenge-cmpl` 的请求体（需走通 `sub_141113680` 的拼装路径）；
+② `sub_141113680` 仍是整个支付流程的关键函数。

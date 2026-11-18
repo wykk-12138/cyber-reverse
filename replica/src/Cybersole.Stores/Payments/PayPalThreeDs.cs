@@ -815,6 +815,21 @@ fragment InstallmentsFragment on FundingInstrument {
     public const string InitChallengeUrl =
         "https://www.paypal.com/payment-authentication/threeds/v1/init-challenge";
 
+    /// <summary>
+    /// The challenge-complete notification (0x147098688) — the one member of this family the class was
+    /// missing, while its method-side twin <see cref="NotifyMethodCompleteUrl"/> has been here since
+    /// R1097. Note the <b>trailing slash</b>: the image's literal carries it, and
+    /// <c>…/notify-challenge-cmpl</c> without one is a different URL to the server.
+    ///
+    /// <para>
+    /// R1147 lands the URL only. Its request body is still undecoded — the literal is referenced from
+    /// <c>sub_141113680</c>, the payment state machine, whose body assembles the payload through paths
+    /// this class has not walked yet — so nothing here sends it.
+    /// </para>
+    /// </summary>
+    public const string NotifyChallengeCompleteUrl =
+        "https://www.paypal.com/payment-authentication/threeds/v1/notify-challenge-cmpl/";
+
     /// <summary>The session hop's form field (0x146f6d9a8).</summary>
     public const string ActionField = "action";
 

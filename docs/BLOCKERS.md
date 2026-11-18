@@ -41412,3 +41412,44 @@ Unknown = 无（39 条每条都查了两种形状）。
 还剩什么：① `/checkout/#payment`、`/geoIP` 两条真空缺需归类入账（要先读门的类定义再定 class）；
 ② 其余 37 条**不再需要修**——它们在门里已有分类；③ 支付层 3DS 四端点（`init-challenge`、
 `init-method`、`notify-challenge-cmpl/`、`notify-method-cmpl`）可着手落地。
+
+## R1147 —— 3DS 家族补齐缺的那一条：`notify-challenge-cmpl/`
+
+**取件**：R1146 待办②「支付层 3DS 四端点可着手落地」。
+
+改了什么（**有可执行代码**）：
+- **先查重**（R1146 的教训）：`where_is init-challenge` → **已实现**（`PayPalThreeDs.cs` 3 处 + 5 条测试）；
+  `where_is notify-challenge-cmpl` → **只出现在 `docs/VERDICT.md`（我自己的笔记里），零实现**。
+- **读既有形状**：`PayPalThreeDs` 里同类三条都在（`InitChallengeUrl` 0x147098540、
+  `InitMethodUrl` 0x1470985e8、`NotifyMethodCompleteUrl` 0x147098740），**独缺挑战完成那条**。
+- **取证**：`notify-challenge-cmpl` 的字符首地址 `0x147098694` ⇒ `obj_va = 0x147098688`，
+  只有 **1 条 xref**（`0x1411163c5`），属函数 **`sub_141113680`**（支付大状态机）。
+  字面量形态是 **`…/payment-authentication/threeds/v1/notify-challenge-cmpl/`（带尾斜杠）**。
+- **落实现**：`PayPalThreeDs.NotifyChallengeCompleteUrl` 常量，**保留尾斜杠**，
+  注释写明「带斜杠与不带是**两个不同 URL**」，并注明**本轮只落 URL、不发请求**（体仍未解码）。
+- 新增 `PayPalChallengeNotificationUrlTests` **3 条**：
+  ① 值 = 带尾斜杠的镜像字面量；② method 侧孪生**没有**尾斜杠，两者**不能按词替换归一化**
+  （`.Replace("method","challenge")` 得到的是错的那个）；③ 四条共享前缀。
+
+验证命令与输出：
+- `ida.py py "exec(..._threeds_shape.py)"` → 四个端点的 xref 与所属函数、引用串、动词槽
+  （详见下条「形状」）；`notify-challenge-cmpl` 的 xref 只有 `0x1411163c5` → `sub_141113680`。
+- `dotnet build` → **exit=0，0 个错误**；`dotnet test --filter "FullyQualifiedName~PayPal"`
+  → **35/35 通过**。
+
+**同一份取证顺手确认了三条既有实现的地址**（都在 `sub_141113680` 或 `sub_140d8d2b0` 里）：
+`init-challenge` 0x147098540、`init-method` 0x1470985e8、`notify-method-cmpl` 0x147098740 —— 与
+`PayPalThreeDs` 里注释标注的地址**逐条一致**，说明既有实现的取证链是对的。
+
+数字变化：3DS 家族常量 **3 → 4**（`payment-authentication/threeds/v1/` 前缀下四条齐全）；测试 **+3**。
+
+证据等级：Observation = 字符地址、唯一 xref 与所属函数、字面量含尾斜杠、35/35 通过；
+Unknown = **该端点的请求体**（`sub_141113680` 里经未走过的路径拼装，本轮不猜）；Inference = 无。
+
+还剩什么：① `notify-challenge-cmpl` 的请求体（需走通 `sub_141113680` 里那段拼装）；
+② 其 method 孪生已有的实现可作模板；③ `sub_141113680` 仍是整个支付流程的关键函数。
+
+**全量与收据（本轮收数）**：
+- 全量：**2452 通过 / 0 失败 / 2 跳过 / 2454**（2m29s）。
+- PayPal 子集：**35/35**。
+- 变异：`ran_at 2026-11-19T04:36:18`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`。

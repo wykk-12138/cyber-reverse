@@ -565,6 +565,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~JohnLewisStripeStepTests",
         "guard": "TheHostedGetCarriesTheFiveComposedSegments",
     },
+    {
+        "name": "round 1093 -- the intent confirm loses its account segment",
+        "file": MAGENTO_FLOW,
+        # The confirm GET carries _stripe_account (0x146a7afd8) -- the JL variant's own segment
+        # on the shared v1 surface; dropping it is the drift the confirm pin forbids.
+        "find": '                         "&_stripe_account=" + StripeAccount;',
+        "replace": '                         "&stripe_account=" + StripeAccount;',
+        "test": "FullyQualifiedName~JohnLewisStripeStepTests",
+        "guard": "TheIntentConfirmGetCarriesTheJlSegmentsAndClosesTheChain",
+    },
 ]
 
 

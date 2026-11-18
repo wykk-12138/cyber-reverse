@@ -123,6 +123,7 @@ public sealed class JohnLewisStripeStepTests
             "{\"id\":\"pi_77\",\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
             "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
         ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.apiUrl"] = server.BaseUrl;
         await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
 
         var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);
@@ -153,13 +154,15 @@ public sealed class JohnLewisStripeStepTests
             "{\"id\":\"pi_77\",\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
             "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
         ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.apiUrl"] = server.BaseUrl;
         ctx.Session.Vars["stripe.publishableKey"] = "pk_jl";
         await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
 
         var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);
 
         Assert.True(outcome.Ok, outcome.Error);
-        var url = seen.Single();
+        // R1093 added the intent confirm after the hosted page; this pin is about the hosted GET.
+        var url = seen.First(u => u.Contains("3d_secure_2/hosted"));
         Assert.Contains("/3d_secure_2/hosted", url);
         Assert.Contains("merchant=acct_1S0JRiIiwyy5Cf6X", url);
         Assert.Contains("payment_intent=pi_77", url);
@@ -172,6 +175,49 @@ public sealed class JohnLewisStripeStepTests
             e.Name == "GetHostedPage: returnUrl=https://checkout.johnlewis.com/back"
             && e.Type == "STRIPE");
         Assert.Equal("https://checkout.johnlewis.com/back", ctx.Session.Vars["jl.hostedReturnUrl"]);
+    }
+
+    /// <summary>
+    /// R1093: the chain's second request — the intent confirm as a GET on the v1 surface with
+    /// the JL variant's own segments (is_stripe_sdk, client_secret, key, _stripe_account), and
+    /// the chain's closing line on the STRIPE channel.
+    /// </summary>
+    [Fact]
+    public async Task TheIntentConfirmGetCarriesTheJlSegmentsAndClosesTheChain()
+    {
+        var seen = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, _) =>
+        {
+            seen.Add(req.Url?.PathAndQuery ?? "");
+            if ((req.Url?.AbsolutePath ?? "").Contains("3d_secure_2/hosted"))
+                return (200, "{\"returnUrl\":\"https://checkout.johnlewis.com/back\"}");
+            return (200, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http, card: null);
+        ctx.Session.Vars["jl.paymentsBody"] =
+            "{\"id\":\"pi_77\",\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
+            "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
+        ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.apiUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.publishableKey"] = "pk_jl";
+        await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
+
+        var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Equal(2, seen.Count);
+
+        // The confirm is the /v1 intent URL with the four JL segments, in the machine's order.
+        var confirm = seen[1];
+        Assert.Contains("/v1/payment_intents/pi_77", confirm);
+        Assert.Contains("is_stripe_sdk=true", confirm);
+        Assert.Contains("client_secret=ABC123", confirm);
+        Assert.Contains("key=pk_jl", confirm);
+        Assert.Contains("_stripe_account=acct_1S0JRiIiwyy5Cf6X", confirm);
+
+        // The chain's closing line, verbatim, on the same channel.
+        Assert.Contains(ctx.Events, e => e.Name == "Process complete" && e.Type == "STRIPE");
     }
 
     /// <summary>The no-3DS stop line is the machine's own message, on the same channel.</summary>
@@ -201,6 +247,7 @@ public sealed class JohnLewisStripeStepTests
             "{\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
             "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
         ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.apiUrl"] = server.BaseUrl;
         await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
 
         var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);

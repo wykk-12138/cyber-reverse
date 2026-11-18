@@ -991,6 +991,27 @@ public sealed class JohnLewisFlow : StoreFlow
         c.Emit("GetHostedPage: returnUrl=" + (string.IsNullOrEmpty(returnUrl) ? res.Url.ToString() : returnUrl),
             "STRIPE");
 
+        // R1093: the chain's second request, decoded from sub_1411458f0 — the intent confirm as
+        // a GET on the v1 surface with the JL variant's own segments: is_stripe_sdk=true
+        // (0x146b28808), the client secret, the publishable key, and the frozen account riding
+        // the dedicated _stripe_account segment (0x146a7afd8).
+        var apiUrl = c.Session.Vars.TryGetValue("stripe.apiUrl", out var apiOverride) &&
+                     !string.IsNullOrEmpty(apiOverride)
+            ? apiOverride.TrimEnd('/')
+            : "https://api.stripe.com";
+        var confirmUrl = apiUrl + "/v1/payment_intents/" + Uri.EscapeDataString(intentId ?? string.Empty) +
+                         "?is_stripe_sdk=true" +
+                         "&client_secret=" + Uri.EscapeDataString(secret) +
+                         "&key=" + Uri.EscapeDataString(publishable ?? string.Empty) +
+                         "&_stripe_account=" + StripeAccount;
+
+        var confirm = await GetAsync(c, confirmUrl, "jl-stripe-intent", ct).ConfigureAwait(false);
+        if (confirm is null) return StepOutcome.Fail("jl: intent confirm unreachable", retryable: true);
+        if (!confirm.IsSuccess)
+            return StepOutcome.Fail($"jl intent confirm HTTP {confirm.StatusCode}", retryable: true);
+
+        // The chain's closing line, verbatim (0x146e4aa00).
+        c.Emit("Process complete", "STRIPE");
         return StepOutcome.Success();
     }
 }

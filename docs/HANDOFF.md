@@ -5333,3 +5333,28 @@ setupFutureUsage 空值为 Inference。
 publishable_key 宿主为 Inference。
 
 还剩什么：链后两件（挑战应答回投与完成）；48 锚静树全跑。
+
+## R1093 —— 【核心①+②】JL 意图 confirm GET 落地：四段查询串 + 过程链收尾句
+
+**取件**：三请求链第二件。
+
+改了什么：
+- 追链 `sub_141141910` → TLS 包装 → 真体 **`sub_1411458F0`**（187 行 / 2 态）：
+  **GET `api.stripe.com/v1/payment_intents/{id}?is_stripe_sdk=true&client_secret={s}&key={pk}
+  &_stripe_account={冻结账户}`**（42 字基址共享 R1088 同址面 + 三段名 0x146B28808/0x146A84588/
+  **0x146A7AFD8 JL 独有账户段**）；收尾句 `Process complete`（0x146E4AA00）发 STRIPE 频道。
+- 落地：hosted GET 后接 confirm GET → 成功发收尾句。**过程链三请求端到端跑通**。
+- 两处早钉补 `stripe.apiUrl` 缝；变异 48 → **49**（`_stripe_account` 锚）+ 指南同步。
+
+验证（**可用内存 1,191 MB < 2 GB，按纪律逐类单跑**）：JohnLewisStripeStepTests **10/10**、
+SourceEncodingTests **2/2**、JohnLewisStepMapTests **6/6**、StoreFlowDigestTests **2/2**
+= **20/20**；SummaryBlock 4/4（指南 49）；metrics exit 0。
+**崩溃单列**：四类合跑一次 testhost 崩溃（内存），不计入结论。
+**构建状态单列**：收尾构建被并行会话 `KasadaSolver.cs` 在途改动打断（CS0103/CS1503），
+非本轮文件未触碰。
+
+数字变化：变异 48 → **49**；JL Stripe 步钉 9 → **10**。
+
+证据等级：基址/三段/GET 槽/收尾句/控制流为 Observation；confirm 响应体与两个会话宿主为 Inference。
+
+还剩什么：链尾第三件（9B0/A00 两分支请求面）；49 锚静树全跑（需 >2 GB 窗口）。

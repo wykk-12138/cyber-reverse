@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **48 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087/R1088/R1089/R1090/R1091 各 1 条；R1092 补 hosted 页 merchant 段锚 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **49 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1093 各 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63182,3 +63182,35 @@ methodId → retryable 停（零出网）；CREDITCARD 选中而无卡 → 失�
 > **URL 组合的段名和段序都是协议**——五个查询段各就各位，顺序即原机的拼接顺序。
 > 复刻时把它们当作五个常量而非一个模板串：段名锚钉住每一个，任何一段漂移都在
 > 守卫上红，而不是在服务器 404 上静默。
+
+---
+
+## 第 1093 轮：JL 意图 confirm —— 四段查询串，`_stripe_account` 是 JL 的独有段
+
+### 一、真体（`sub_1411458F0`，187 行，2 态）
+
+**GET** `api.stripe.com/v1/payment_intents/{id}?is_stripe_sdk=true&client_secret={s}
+&key={pk}&_stripe_account={acct}`——42 字基址就是 R1088 Stripe 3DS2 的同址面，但 JL 变体
+多带一个 **`&_stripe_account=`** 段（0x146A7AFD8）：同一个 v1 端点，不同集成商加自己的账户
+标注。链尾 `Process complete` 发 STRIPE 频道。**过程链三请求（墙 → hosted → confirm）至此
+端到端跑通。**
+
+### 二、本轮的两次「单列」
+
+- **崩溃单列**：四类合跑时 testhost 在 18 通过后崩溃 —— 可用内存 1.19 GB。按纪律改逐类
+  单跑，取得 20/20；合跑那次**不计入结论**（「没跑成」既不是通过也不是失败）。
+- **构建状态单列**：收尾构建被并行会话的 `KasadaSolver.cs` 在途改动打断（CS0103/CS1503
+  在其 225 行）。非本轮文件，未触碰；我的 20 钉是在该改动落盘前编译的产物上取得的绿。
+
+### 三、数字
+
+| 度量 | R1092 | **R1093** |
+|---|---|---|
+| 变异套件 | 48 | **49**（`_stripe_account` 锚） |
+| JL Stripe 步钉 | 9 | **10** |
+
+### 教训
+
+> **共享端点的「变体段」才是集成商指纹**——同一个 `/v1/payment_intents/{id}` 端点，Stripe 的
+> 3DS2 面与 JL 的 confirm 都打，差别在 `_stripe_account` 这种变体段。把「共用基址 + 各自变体段」
+> 分开记，才不会在复刻时把两个集成的请求写成同一个形状。

@@ -39117,3 +39117,46 @@ Inference = returnUrl 的响应键形状（正则读 returnUrl 字段——原�
 
 还剩什么：链后两件（`sub_141141910`/`9B0`/`A00` 的请求面——挑战应答回投与完成）；
 48 锚静树全跑；PayPal solver 逐 case 精读收尾。
+
+## R1093 —— 【核心①+②】JL 意图 confirm GET 落地：四段查询串 + 过程链收尾句
+
+**取件**：三请求链第二件（R1092 指定）。
+
+改了什么：
+- 追链：`sub_141141910` → TLS 包装 `sub_142C7C500` → 真体 **`sub_1411458F0`**（187 行，
+  2 态）——过程链第二请求全解：
+  - **GET `https://api.stripe.com/v1/payment_intents/{id}?is_stripe_sdk=true
+    &client_secret={s}&key={pk}&_stripe_account={冻结账户}`**
+    ——基址 42 字（共享 `unk_147054F14`，与 R1088 的 Stripe 3DS2 同址面）+ 三段名
+    （`?is_stripe_sdk=true&client_secret=` 34 字 0x146B28808 / `&key=` 5 字 0x146A84588 /
+    **`&_stripe_account=` 17 字 0x146A7AFD8——JL 变体独有的账户段**），+8 槽 GET 无载荷；
+  - **收尾句**：`Process complete`（16 字 0x146E4AA00）发 STRIPE 频道（过程机 state 3 的
+    结束路径）。
+- 落地：`HandleRequiresActionAsync` 在 hosted GET 之后接 confirm GET（四段组合原样，
+  `stripe.apiUrl` 缝）→ 成功即发 `Process complete`。**过程链三请求（墙 → hosted → confirm）
+  端到端跑通**。
+- 两处早前钉随之补 `stripe.apiUrl` 缝（链现在两次出网，只设 hooks 缝会打真 api 主机）。
+- 变异 48 → **49**（`_stripe_account` 段改名锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`dec sub_141141910` → `sub_142C7C500` → **`sub_1411458F0`** 187 行 + names_at 3 常量。
+- 按类单跑（**可用内存 1,191 MB < 2 GB 阈值，纪律要求只跑单类**）：
+  `JohnLewisStripeStepTests` **10/10 绿**（1 新钉：四段 confirm + 收尾句）、
+  `SourceEncodingTests` **2/2 绿**、`JohnLewisStepMapTests` **6/6 绿**、
+  `StoreFlowDigestTests` **2/2 绿** —— 合计 **20/20**。
+  `SummaryBlockTests` 4/4（指南 49）；`metrics_report --skip-tests` → exit 0。
+- **崩溃如实单列**：四类合跑一次时 testhost 在 18 通过后崩溃（可用内存 1.19 GB）——
+  按 AGENTS.md §2.6「没跑成 ≠ 通过」，该合跑不计入结论，逐类重跑取得上述 20/20。
+- **构建状态如实单列**：收尾时 `Cybersole.Stores` 构建被**并行会话的 `KasadaSolver.cs`
+  在途改动**打断（CS0103/CS1503 在该文件 225 行）——非本轮文件，按仓库礼节未触碰；
+  我的 20 钉是在该改动落盘前编译的产物上跑出的绿。
+
+数字变化：变异 48 → **49**；JL Stripe 步钉 9 → **10**；过程链三请求全部落地
+（墙 → hosted GET → confirm GET）。
+
+证据等级：Observation = 42 字基址 + 三段名逐字 + +8 槽 GET + 收尾句 16 字 + 187 行控制流；
+Inference = confirm 响应体未逐字解（本步只验状态码即完成）、publishable_key 与 secret 的
+会话宿主（沿用前步）。
+
+还剩什么：链尾第三件（`sub_1411419B0`/`A00` —— ctx+40 有形与 alive+hasForm 两分支的请求面）；
+49 锚静树全跑（需内存 > 2 GB 的窗口）；PayPal solver 逐 case 精读收尾。

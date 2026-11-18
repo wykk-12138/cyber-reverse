@@ -1,4 +1,4 @@
-namespace Cybersole.Stores.Scripts;
+﻿namespace Cybersole.Stores.Scripts;
 
 /// <summary>
 /// Web/host globals that a real browser has and Jint does not. The vendor payload's own bytecode VM
@@ -41,7 +41,7 @@ internal static class WebApiShims
             Array.prototype.splice = function (start, count) {
                 if (rec.length < 8) {
                     var head = [];
-                    for (var i = 0; i < Math.min(9000, this.length); i++) head.push(this[i]);
+                    for (var i = 0; i < Math.min(32000, this.length); i++) head.push(this[i]);
                     var entry = { start: start, count: count, len: this.length, head: head };
                     rec.push(entry);
                     var out = orig.apply(this, arguments);
@@ -68,7 +68,7 @@ internal static class WebApiShims
         // The instrumented copy of the fixture (nike-p-traced.js) pushes one row per dispatch here:
         // [pcBefore, frameLength, typeof slot2..slot7]. That is the only way to see the frame array,
         // which otherwise lives entirely inside the payload's closure.
-        this.__dshTrace = []; this.__dshCalls12 = []; this.__dshRing = []; this.__dshG = []; this.__dshCalls = []; this.__dshM5 = {last:undefined,log:[]}; this.__dshBr = []; this.__dshZ = []; this.__dshFail = []; this.__dshOk = [];
+        this.__dshTrace = []; this.__dshCalls12 = []; this.__dshRing = []; this.__dshG = []; this.__dshCalls = []; this.__dshSeq = []; this.__dshM5 = {last:undefined,log:[]}; this.__dshBr = []; this.__dshZ = []; this.__dshFail = []; this.__dshOk = [];
         (function () {
             var orig = Object.defineProperty;
             var rec = this.__dshDp;

@@ -367,14 +367,23 @@ internal static class WebApiShims
               credentials: (init && init.credentials) || null
             });
           } catch (e) { }
-          return Promise.resolve(new Response("", { status: 200 }));
+          /* Optional stub so the request/response contract can be explored without a live endpoint:
+             window.__dshStubCt is echoed back as x-kpsdk-ct on the interrogation response, which is
+             where the real clearance token arrives. Purely a probe; production must hit the real host. */
+          var __hdrs = {};
+          var __u = String(url);
+          if (window.__dshStubCt) {
+            if (/\/r(\?|$)/.test(__u)) { __hdrs["x-kpsdk-ct"] = window.__dshStubCt; __hdrs["x-kpsdk-v"] = "j-1.2.988"; }
+            if (/\/mfc(\?|$)/.test(__u)) { __hdrs["KP_IC"] = window.__dshStubIc || "1"; __hdrs["KP_RC"] = window.__dshStubRc || "1"; }
+          }
+          return Promise.resolve(new Response("", { status: 200, headers: __hdrs }));
         };
         this.Headers = function () { this._h = {}; };
         this.Headers.prototype.get = function (k) { return this._h[String(k).toLowerCase()] || null; };
         this.Headers.prototype.set = function (k, v) { this._h[String(k).toLowerCase()] = String(v); };
         this.Headers.prototype.has = function (k) { return this.get(k) !== null; };
         this.Request = function (url) { this.url = String(url); this.method = "GET"; this.headers = new Headers(); };
-        this.Response = function (body, init) { this.body = body; this.status = (init && init.status) || 200; this.ok = this.status >= 200 && this.status < 300; this.headers = new Headers(); this.text = function () { return Promise.resolve(String(body === undefined ? "" : body)); }; this.json = function () { return Promise.resolve(JSON.parse(body)); }; };
+        this.Response = function (body, init) { this.body = body; this.status = (init && init.status) || 200; this.ok = this.status >= 200 && this.status < 300; this.headers = new Headers(); if (init && init.headers) { for (var hk in init.headers) this.headers.set(hk, init.headers[hk]); } this.text = function () { return Promise.resolve(String(body === undefined ? "" : body)); }; this.json = function () { return Promise.resolve(JSON.parse(body)); }; };
         this.XMLHttpRequest = function () {
             var self = this;
             this.readyState = 0; this.status = 0; this.responseText = ""; this.response = null;

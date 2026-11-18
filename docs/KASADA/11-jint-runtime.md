@@ -973,6 +973,67 @@ def word(pc): return head[pc] if pc < 13772 else head[pc + 6283]
 **下一步很明确**：在这条已解出来的轨迹里找 `InterrogationStarting` / `InterrogationSkipped` 这类状态字样
 被写进哪个槽位，以及写之前那个 `op=11` 的条件读了什么。工具和轨迹都已经在手上了。
 
+### 5.41 找到了：配置键是 `resourceAddress`，不是 `endpoints` [实测]
+
+把 configure 那 834 条按轨迹解出来后，出现频率最高的字符串里有一条很关键：
+
+```
+object x11   length x10   endpoints x5   push x4   isArray x4   getOwnPropertySymbols x4
+* x3         http://example.com x2   domain x2   path x2   method x2
+resourceAddress x1        'resourceAddress is required' x1
+```
+
+对应的指令片段：
+
+```
+25649  op=51   slot:5, str:'resourceAddress', slot:8     slot8 = cfg.resourceAddress
+25658  op=18   slot:6, slot:8, slot:5, slot:4            slot4 = validate(slot8, ...)
+...
+22731  op=51   slot:5, str:'push', slot:6
+22740  op=7    slot:7, int:0, str:'resourceAddress is required'
+22746  op=12   slot:5, slot:6, slot:7                    errors.push('resourceAddress is required')
+```
+
+**`endpoints` 只是它读的众多键之一，真正必需的是 `resourceAddress`。**
+
+### 5.42 给了 `resourceAddress` 之后：它发出真实请求了 [实测]
+
+```json
+{"resourceAddress":"https://www.nike.com/"}
+```
+
+仅这一个键，payload 就产出两条真实请求（`fetch` 记录器抓到的原文）：
+
+```json
+[
+  { "via": "fetch", "method": "GET", "url": "https://www.nike.com/mfc",
+    "headers": "{\"x-kpsdk-v\":\"j-1.2.988\",\"x-kpsdk-h\":\"01\"}" },
+  { "via": "fetch", "method": "POST", "url": "https://www.nike.com/r",
+    "headers": "{\"Content-Type\":\"text/plain\"}",
+    "body": "exNATQUBXRsXQRVBEA1VRRMMDRASVEFBVlFTAgQJAA1aVwAPSm1BZQpCFhkNAkFBXQ0cQVIcQVcDUQIYAwEGDhxvQ2UMQxQZQ1BHGRJCHklMGlkOUUkOAAlUGQ1bDQAEZUJrVhUTERkDFxRQQxlD…" }
+]
+```
+
+**注意 `x-kpsdk-v: j-1.2.988`** —— 和字面量里那个版本号对得上；`x-kpsdk-h: 01` 是 homepage 标记。
+
+**这是整条本地路第一次产出真实的 Kasada interrogation 请求。**
+之前每一轮都以为缺的是 `endpoints` 或更多配置键，实际只差 `resourceAddress` 这一个。
+
+### 5.43 现在的位置：只差真实的响应
+
+`/mfc` 与 `/r` 的**响应**才是 token 的来源（和 `08-cd.md` §9.1 的逆向结论一致：ct 是服务端回填的）。
+
+试过把 `x-kpsdk-ct` 塞进 `/r` 的假响应头，**没有效果** —— 因为字面量里写着
+`mfc response was missing one or more headers` / `KP_IC` / `KP_RC`：
+
+**`/mfc` 是先决条件，它的响应头要先通过校验，SDK 才会去用 `/r` 的结果。**
+我用 `KP_IC: "1"` / `KP_RC: "1"` 瞎填，显然不满足它的格式要求。
+
+**所以下一个具体目标**：从字面量与轨迹里把 `/mfc` 的响应契约反出来（需要哪几个头、什么格式），
+再让 `/r` 的响应头带上 `x-kpsdk-ct`，看 `isReady()` 是否翻成 true、token 落在哪。
+
+**这一步已经不需要浏览器，也不需要猜配置键了** —— 只需要把两个 HTTP 响应的形状做对。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

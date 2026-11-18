@@ -26,6 +26,14 @@ using var runtime = new ScriptRuntime(
     new BrowserShim { Href = Environment.GetEnvironmentVariable("KASADA_HREF") ?? "https://www.nike.com/" },
     TimeSpan.FromMinutes(3), 512L << 20);
 
+// Optional stub token: the real clearance token arrives as an x-kpsdk-ct response header, so with no
+// live endpoint the only way to see where it gets consumed is to echo one back.
+var stubCt = Environment.GetEnvironmentVariable("KASADA_STUB_CT");
+if (!string.IsNullOrEmpty(stubCt))
+{
+    runtime.Execute("window.__dshStubCt = " + System.Text.Json.JsonSerializer.Serialize(stubCt) + ";");
+}
+
 var executed = runtime.TryExecute(script, out var error);
 Console.WriteLine($"executed = {executed}  error = {error ?? "-"}");
 
@@ -50,7 +58,10 @@ if (config is not null)
     var drained = runtime.RunPendingTimers();
     Console.WriteLine($"timers drained after configure = {drained}, left = {runtime.TryString("(window.__dshTimers||[]).length")}");
     Console.WriteLine($"isReady() = {runtime.TryString("String(window.KPSDK.isReady())")}");
-    Console.WriteLine($"requests  = {runtime.TryString("JSON.stringify(window.__dshRequests||[])")}");
+    Console.WriteLine($"requests  = {runtime.TryString("JSON.stringify((window.__dshRequests||[]).map(function(r){{return {{m:r.method,u:r.url,h:r.headers,len:(r.body?String(r.body).length:0)}}}}))")}");
+    Console.WriteLine($"cookie    = {runtime.TryString("document.cookie")}");
+    Console.WriteLine($"KPSDK keys= {runtime.TryString("JSON.stringify(Object.keys(window.KPSDK||{}))")}");
+    Console.WriteLine($"ct probes = {runtime.TryString("JSON.stringify((function(){var o={};var k=window.KPSDK||{};['ct','cd','sb','v','token'].forEach(function(n){try{o[n]=typeof k[n]+':'+String(k[n]()).slice(0,30)}catch(e){o[n]='-'}});return o})())")}");
 }
 
 Console.WriteLine();

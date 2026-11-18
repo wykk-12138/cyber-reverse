@@ -41890,3 +41890,51 @@ Inference = 无；Unknown = threeds 家族是否真的被放进 `.rdata` 指针�
 
 还剩什么：① 若仍要查表，可先用 `pe_sections.py` 列出「非代码且非字符串堆」的段，再用**单目标、单段**的窄扫描降低负载；
 ② 更值钱的替代路线：`CORE_COVERAGE` 里 Farfetch/Bstn 之外的流程逐步过一遍 where_is，找真正缺的接线。
+## R1160 —— 12 条占位**不是全卡凭据**；而 "Bstn" 这个店名在镜像里**一次都没有**
+
+**取件**：R1159 改的路线——「对 `CORE_COVERAGE` 其余流程逐条找真正缺的接线」。先跑 `flow_work_audit.py`：
+**197 覆写 / 185 有实现 / 12 占位（93.9%）**，再用镜像脚本（`analysis/_placeholder_names.py`，同一套判据）
+把 12 条**按名字列出来**——原工具只给计数，匿名数字没法动手。
+
+**12 条占位分三类（此前我一律记成「全卡凭据」，那是错的）**：
+
+| 类 | 条数 | 明细 |
+|---|---|---|
+| 故意不编造兜底 | 1 | Shopify `GetCsrf`（注释：`GetHomeAsync` 已从 `authenticity_token` 取，不另造） |
+| 服务端下发路由 | 7 | Farfetch `FindProduct/AddToCart/GetCart/GetCheckout/SubmitShipping/SubmitPayment/SubmitOrder`（R1077 反编译已定案） |
+| **endpoint unknown** | 4 | Bstn `AddToCart/GetCart/GetCheckout/SubmitOrder` |
+
+**然后去攻 Bstn 那 4 条，得到的是本轮最重要的结果**：
+
+`
+ida.py str "bstn"  → n=0   (saturated: false)
+ida.py str "BSTN"  → n=0   (saturated: false)
+ida.py str "beast" → 3 条，全部是 ARROW & BEAST：
+     0x146b3332c  "ARROW & BEAST"
+     0x147056a04  "https://arrowandbeast.com/"
+     0x147056a54  "https://arrowbeast.myshopify.com/"
+`
+
+**⇒ 镜像的字符串表里没有任何 "bstn"（大小写皆无）；而 `beast` 那族属于另一家店
+「Arrow & Beast」，且它是 **Shopify**（`arrowbeast.myshopify.com`）。**
+
+推论与**不**推论：
+- **可以说的**：`BstnFlow` 的 4 条占位**不是卡在外部凭据**，是**卡在证据**——
+  这与此前 BLOCKERS 里「11 条占位全卡凭据」的记录不符，该记录**在此更正**。
+- **可以说的**：`/api/beast` 在 `ENDPOINT_PROVENANCE` 里被标 `live`（「代码里可指名响应的证明」），
+  但那**不是镜像字符串证据**；本轮实测镜像无 `bstn` ⇒ 该 `live` 的依据需要重新审视。
+- **不能说的**：不能说「原版不支持 BSTN」。店名可能只存在于 locale/设置数据而非二进制字符串表；
+  本轮只证明**字符串表里没有**，这是**下界**，不是全称否定。
+
+**顺带更正我自己的两处旧记录**：
+1. `ASYNC_OPS.md:6588` 有一行 `www.bstn.com → True`，看着像「镜像里有」。但同一段（6503/6573）的
+   `utf16=True/False` 是在查**复刻件自己的字符串**，不是镜像 —— 那行不能当镜像证据用。
+2. 我一直把 `core_coverage` 的 11 条与 `flow_work_audit` 的 12 条混着说，二者口径不同
+   （前者数流程步骤，后者数覆写），差的那 1 条是 Shopify `GetCsrf`。
+
+证据等级：Observation = 三条 `ida.py str` 结果（含 3 条 beast 命中与地址）、12 条占位名单与三类归属；
+Inference = `/api/beast` 的 `live` 可能据 Arrow & Beast 而来（**未追其原始出处**）；
+Unknown = BSTN 是否以其他形态（locale 键、设置 schema）存在于产品中。
+
+还剩什么：① 追 `/api/beast` 的 `live` 原始出处（哪次实测、什么响应）；
+② Bstn 家族应先确认「这家店在原版里叫什么」，再谈端点——**名字错了，端点必然找错**。

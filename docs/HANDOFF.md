@@ -6500,3 +6500,15 @@ PayPal **42/42**；全量 **2462/0/2/2464**；变异 **59/59 fired, tree GREEN**
 
 还剩什么：① 若要查表，先用 `pe_sections.py` 挑出非常规段再单目标窄扫；
 ② 更值钱：对 `CORE_COVERAGE` 其余流程逐步 `where_is`，找真正缺的接线。
+## R1160 —— 12 条占位分类更正；镜像无 "bstn"，beast 属 Arrow & Beast(Shopify)（src 未改）
+
+改了什么（分析 + 更正记录）：
+- `analysis/_placeholder_names.py`：用 `flow_work_audit` 同一判据**列出 12 条占位名字**。
+  分三类：**故意不兜底 1**（Shopify `GetCsrf`）/ **服务端下发路由 7**（Farfetch，R1077 定案）/
+  **endpoint unknown 4**（Bstn）。
+- **更正**：此前「占位全卡凭据」的记录不成立，仅 Farfetch 一类可归入；Bstn 是**证据缺口**。
+- **Bstn 取证**：`str "bstn"/"BSTN"` → **0/0**；`str "beast"` → `ARROW & BEAST`、
+  `arrowandbeast.com`、`arrowbeast.myshopify.com`（**Shopify**）。
+- **不推论**：不能说原版不支持 BSTN（字符串表是下界）；`/api/beast` 的 `live` 出处需追。
+
+还剩什么：① 追 `/api/beast` 的 `live` 原始实测出处；② 先确认该店在原版里的真名，再谈端点。

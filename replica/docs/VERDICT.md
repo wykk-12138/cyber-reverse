@@ -65477,3 +65477,34 @@ R1155 找到的 4 个尾部换行，**是全层唯一的偏差，且已修**。
 
 本轮唯一实质产出：IDA 恢复（`status: ok`），四次失败成因写清，**下一个人不必再撞**。
 `threeds 家族是否真在指针表里`——**未取得证据，不作为结论**。
+---
+
+## 第 1160 轮：名字错了，端点必然找错
+
+`flow_work_audit` 报 **12 条占位**，但工具只给计数。我把它们的**名字**列出来，发现此前
+「11 条全卡凭据」的记录是**错的**——它们分三类：故意不兜底 1（Shopify `GetCsrf`）、
+服务端下发路由 7（Farfetch）、**endpoint unknown 4（Bstn）**。
+
+然后去攻 Bstn，得到这一轮真正的结果：
+
+`
+str "bstn"  → 0
+str "BSTN"  → 0
+str "beast" → ARROW & BEAST / arrowandbeast.com / arrowbeast.myshopify.com
+`
+
+**镜像里根本没有 "bstn"；`beast` 那族是另一家店，而且是 Shopify。**
+
+> **`bstn: cart endpoint unknown — /cart.js is 404`**
+> 它找错了地方：`beast` 背后是 Shopify，而 Shopify 的购物车正好就是 `cart/add.js`。
+> **一个名字错了的商店，会把「端点未知」伪装成「还没找到」。**
+
+### 我不说的一句
+
+**不能说「原版不支持 BSTN」。** 店名可能只在 locale/设置数据里。本轮只证明**字符串表里没有**——
+**这是下界，不是全称否定。**（R816 那条规矩的反面用法。）
+
+### 顺带更正旧记录
+
+`ASYNC_OPS.md:6588` 那行 `www.bstn.com → True` 看着像镜像证据，但同一段的 `utf16=True/False`
+查的是**复刻件自己的字符串**。**同一张表里混着两种来源，是我这次差点又读错的地方。**

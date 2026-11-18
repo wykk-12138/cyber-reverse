@@ -138,4 +138,8 @@ solver.Transport = (url, method, headers, body) =>
 var res = solver.Solve(File.ReadAllText(fixture));
 Console.WriteLine($"Solve -> Ok={res.Ok} Ct={res.Ct ?? "(null)"} Version={res.Version ?? "-"} Executed={res.ScriptExecuted}");
 Console.WriteLine($"Error = {res.Error ?? "-"}");
+Console.WriteLine();
+var dec2 = runtime.DecodedStrings;
+File.WriteAllText(@"D:\projects\cyber-reverse\.tmp-decoded.txt", dec2);
+Console.WriteLine("decoded table -> .tmp-decoded.txt (" + dec2.Length + " chars)");
 return 0;

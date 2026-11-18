@@ -1505,6 +1505,64 @@ catch (Exception ex) when (ex is not OutOfMemoryException)
 第二个解算器 + 四个 mobile 开关 + `KasadaMobileHandler`，共 7 个符号、一条五步链。
 这些不是"再猜"，是从字符串池直接读出来的地址与名字。
 
+### 5.70 回答了上轮的问题：**同一份脚本，不是两套脚本** [实测]
+
+上轮留的问题是「mobile 路是另一套脚本 + iOS UA，还是同一脚本换配置」。查 payload 自己的字面量表
+（6,309 字符，全量）：
+
+```
+userAgent   x1
+iPhone      x0      iPad    x0      iPod    x0      iOS   x0
+Android     x0      Mobile  x0      Safari  x0      Touch x0
+maxTouchPoints x0   platform x0     Apple   x0      MacIntel x0
+```
+
+**一个移动端标记都没有。** 它只读 `navigator.userAgent`（出现一次），其余全靠宿主给什么就用什么。
+
+**⇒ Nike 的 `p.js` 是设备无关的。原版那两个解算器类（`d__46`–`d__50` 与 `d__32`–`d__36`）
+跑的是同一份脚本，差别在宿主侧的身份与开关**（`IsMobile` / `MfcEnabled` / `MobileDv` /
+`SpoofMobile` / `GenRandomIos` / `VersionProvider`）。
+
+顺带说明为什么按符号直接找 `KasadaMobileHandler` 走不通：它是**元数据里的类型名**，
+`obj_va = chars_va - 12` 的 xref 为 0，`disp32_scan_any.py` 全 `.text` 滑窗也是 **0 site** ——
+反射用的名字，没有代码直接引用它。这条路到此为止，改从脚本侧取证才是对的。
+
+### 5.71 落了 mobile 身份的地基：`BrowserShim` 现在能如实扮演一台 iPhone
+
+原来 shim 里有三个字段是**写死的**，对移动路是硬伤：
+
+```js
+platform: platform, vendor: "Google Inc.",          // vendor 恒为 Google
+hardwareConcurrency: cores, deviceMemory: 8, maxTouchPoints: 0,   // 触摸点恒为 0
+```
+
+**「UA 说是 iPhone、触摸点报 0」是自相矛盾的指纹**，站点一眼看穿。现在三项都可配：
+
+```csharp
+public int    MaxTouchPoints { get; init; }        // 默认 0（桌面正确值）
+public string Vendor         { get; init; } = "Google Inc.";
+public double DeviceMemory   { get; init; } = 8;
+```
+
+外加一个现成的 iPhone 档：
+
+```csharp
+var shim = BrowserShim.Ios();   // iPhone OS 17_5 / Safari 604.1 / platform iPhone /
+                                // vendor Apple Computer, Inc. / touch 5 / cores 6 / 390x844
+```
+
+**`BrowserShimMobileProfileTests`（3 例）钉住**：
+
+| 用例 | 断言 |
+|---|---|
+| `TheIosProfileReportsATouchDeviceConsistently` | UA 含 iPhone、platform=iPhone、vendor=Apple、`maxTouchPoints=5`，且 `iPhone && maxTouchPoints>0` 为真 |
+| `TheDesktopDefaultStillReportsNoTouch` | 桌面默认仍是 `0` 触摸点、`Google Inc.` —— 防止加 mobile 时把这个值带漂 |
+| `AProfileCanOverrideEveryFieldSitesRead` | Android 档能逐项覆盖 UA/platform/vendor/touch/cores/memory |
+
+第二条是回归防线：这个 `0` 在本次改动前是全仓所有沙箱运行的值，不能被顺手改掉。
+
+**Kasada 相关用例 + 这三个 = 78 例全绿。**
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

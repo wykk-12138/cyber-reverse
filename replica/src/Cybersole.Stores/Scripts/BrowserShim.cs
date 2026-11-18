@@ -19,6 +19,14 @@ public sealed class BrowserShim
     public int ScreenWidth { get; init; } = 1920;
     public int ScreenHeight { get; init; } = 1080;
     public int HardwareConcurrency { get; init; } = 8;
+    /// <summary>
+    /// Sites branch to their mobile experience on touch points, and a sensor that reports zero while the
+    /// user agent claims iPhone is self-contradictory. Defaults to 0, which is what a desktop reports.
+    /// </summary>
+    public int MaxTouchPoints { get; init; }
+    /// <summary>"Google Inc." for Chromium, "Apple Computer, Inc." for Safari -- sites read this too.</summary>
+    public string Vendor { get; init; } = "Google Inc.";
+    public double DeviceMemory { get; init; } = 8;
     public bool Headless { get; init; }
 
     public string Href { get; init; } = "about:blank";
@@ -27,6 +35,24 @@ public sealed class BrowserShim
 
     /// <summary>Values the script writes back into document.cookie.</summary>
     public List<string> WrittenCookies { get; } = new();
+
+    /// <summary>
+    /// An iPhone/Safari profile. The sensor itself is device-agnostic -- its literal table carries no
+    /// iPhone/Android/maxTouchPoints strings at all (measured, docs/KASADA/11 5.70) -- so the mobile path
+    /// is the same script presented with a mobile identity, not a second script.
+    /// </summary>
+    public static BrowserShim Ios(string? userAgent = null) => new()
+    {
+        UserAgent = userAgent ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) " +
+                                 "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+        Platform = "iPhone",
+        Vendor = "Apple Computer, Inc.",
+        MaxTouchPoints = 5,
+        HardwareConcurrency = 6,
+        DeviceMemory = 4,
+        ScreenWidth = 390,
+        ScreenHeight = 844,
+    };
 
     public string BuildPrelude()
     {
@@ -38,6 +64,9 @@ public sealed class BrowserShim
         var h = ScreenHeight;
         var cores = HardwareConcurrency;
         var webdriver = Headless ? "true" : "false";
+        var touchPoints = MaxTouchPoints;
+        var vendor = Vendor;
+        var deviceMemory = DeviceMemory;
         var href = Href;
         var cookieTokens = string.Join(", ", Cookie
             .Split(';', StringSplitOptions.RemoveEmptyEntries)
@@ -151,10 +180,10 @@ public sealed class BrowserShim
         var navigator = {
           userAgent: {{JsStr(ua)}}, appVersion: {{JsStr(ua.Replace("Mozilla/", ""))}},
           appName: "Netscape", appCodeName: "Mozilla", product: "Gecko",
-          platform: {{JsStr(platform)}}, vendor: "Google Inc.",
+          platform: {{JsStr(platform)}}, vendor: {{JsStr(vendor)}},
           language: {{JsStr(lang)}}, languages: [{{JsStr(lang)}}, {{JsStr(langBase)}}],
           onLine: true, cookieEnabled: true, doNotTrack: null,
-          hardwareConcurrency: {{cores}}, deviceMemory: 8, maxTouchPoints: 0,
+          hardwareConcurrency: {{cores}}, deviceMemory: {{deviceMemory}}, maxTouchPoints: {{touchPoints}},
           webdriver: {{webdriver}},
           plugins: { length: 5, item: function () { return null; }, namedItem: function () { return null; } },
           mimeTypes: { length: 2 },

@@ -1,3 +1,4 @@
+﻿using System.Text;
 using System.Text.RegularExpressions;
 using Cybersole.Http;
 
@@ -198,6 +199,77 @@ public sealed class KasadaSolver : IDisposable
                  "if(h[" + System.Text.Json.JsonSerializer.Serialize(header) + "])return String(h[" +
                  System.Text.Json.JsonSerializer.Serialize(header) + "]);}return null;})()";
         return Runtime.TryString(js);
+    }
+
+    /// <summary>
+    /// The production transport: sends the sensor's interrogation through the replica's own HTTP stack, so
+    /// the TLS/HTTP-2 fingerprint matches everything else the flow sends. JavaScript cannot await, so the
+    /// async send is completed synchronously here -- drive the solver from a thread that may block.
+    /// <para>
+    /// Everything the payload asked for is honoured (its method, headers and body), because the /r body is
+    /// the encoded interrogation and a request that differs from it would not be the one Kasada validated.
+    /// </para>
+    /// </summary>
+    public static Func<string, string, string, string, string?> NetTransport(
+        NetClient http, RequestOptions? options = null)
+    {
+        if (http is null) throw new ArgumentNullException(nameof(http));
+        return (url, method, headersJson, body) =>
+        {
+            var opts = options?.Clone() ?? new RequestOptions();
+            foreach (var kv in ParseHeaders(headersJson)) opts.Headers[kv.Key] = kv.Value;
+
+            var verb = string.IsNullOrWhiteSpace(method)
+                ? HttpMethod.Get
+                : new HttpMethod(method!.Trim().ToUpperInvariant());
+            if (!string.IsNullOrEmpty(body))
+                opts.Content = new StringContent(body, Encoding.UTF8, new System.Net.Http.Headers.MediaTypeHeaderValue("text/plain"));
+
+            try
+            {
+                var res = http.SendAsync(verb, url, opts, CancellationToken.None)
+                              .ConfigureAwait(false).GetAwaiter().GetResult();
+                return System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    status = res.StatusCode,
+                    headers = res.Headers,
+                    body = res.Body,
+                });
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                /* A dead endpoint has to look like a failed request, not like a host fault: the caller is a
+                   script engine, and an escaping exception there reads as "this site needs a browser"
+                   instead of "that host was unreachable". */
+                return System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    status = 0,
+                    headers = new Dictionary<string, string>(),
+                    body = "",
+                    error = ex.Message,
+                });
+            }
+        };
+    }
+
+    private static Dictionary<string, string> ParseHeaders(string headersJson)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(headersJson)) return result;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(headersJson);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) return result;
+            foreach (var p in doc.RootElement.EnumerateObject())
+                result[p.Name] = p.Value.ValueKind == System.Text.Json.JsonValueKind.String
+                    ? p.Value.GetString() ?? string.Empty
+                    : p.Value.ToString();
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // A malformed header bag must not abort an otherwise valid interrogation.
+        }
+        return result;
     }
 
     public KasadaResult Solve(string script)

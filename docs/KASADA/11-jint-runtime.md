@@ -1393,6 +1393,55 @@ Error = -
 
 第二条尤其重要：它把「`resourceAddress` 是必需键」这个结论从实测变成了回归防线。
 
+### 5.66 生产传输：`KasadaSolver.NetTransport`（走复刻件自己的 HTTP 栈）
+
+```csharp
+var transport = KasadaSolver.NetTransport(http);   // http 是 NetClient
+```
+
+它做的事就是把 payload 的请求**原样**翻译成 `NetClient.SendAsync`：
+
+- 方法用它给的（`POST` / `GET`），不做"优化"
+- 头用它给的（`x-kpsdk-v` 之类），合并进 `RequestOptions.Headers`
+- 请求体用它给的（`/r` 那个 460 字节的编码串），`StringContent(..., text/plain)`
+- 响应回来原样序列化成 `{status, headers, body}` 交回脚本
+
+**为什么必须走 `NetClient` 而不是 `HttpClient`**：复刻件的 TLS/HTTP-2 指纹（`Ja3` / `TlsProfile` / `BouncyH2Client`）
+是整条结账流程共用的，interrogation 请求如果用别的栈发，指纹就和后面那些请求不一致。
+
+### 5.67 一个真实的健壮性缺口，是测试逼出来的
+
+写适配器测试时发现：`NetClient.SendAsync` 对**连不上**的端点会**抛异常**，不是返回 status 0。
+如果这个异常从 `NetTransport` 逃出去，脚本引擎会把它读成「这个站需要浏览器」，
+而不是「那个主机没通」—— **错误归因反了**。
+
+所以 `NetTransport` 内部兜住：
+
+```csharp
+catch (Exception ex) when (ex is not OutOfMemoryException)
+{
+    return JsonSerializer.Serialize(new { status = 0, headers = ..., body = "", error = ex.Message });
+}
+```
+
+**并且保留 `ScriptRuntime.CallHttp` 外面那层兜底** —— 两层，因为传输层是可插拔的，
+别人写的传输不该能靠一个异常把整个 solve 打成"需要浏览器"。
+
+### 5.68 用原始 TcpListener 把适配器钉住
+
+新增 `KasadaNetTransportTests`（3 例）。服务端是**手写的 TcpListener**，不是 `HttpListener` ——
+后者在 Windows 上要 URL ACL，测试会变成"看权限脸色"；手写的一个端口就够，还能**读到线上真实字节**：
+
+| 用例 | 断言什么 |
+|---|---|
+| `TheTransportSendsThePayloadsMethodHeadersAndBodyAndReturnsTheResponseHeaders` | 线上第一行是 `POST /r `；body 里有 `encoded-interrogation-body`；`x-kpsdk-v` 到了；响应头 `x-kpsdk-ct` 原样回来 |
+| `TheTransportSurfacesUnreachableEndpointsWithoutThrowing` | 打 `127.0.0.1:1`（本机立即 refused）→ 返回可解析 JSON 且**不抛** |
+| `TheTransportRefusesToBeBuiltWithoutAClient` | 空 `NetClient` 直接 `ArgumentNullException` |
+
+第一个用例是关键：它验证的不是"函数被调用了"，而是**线上字节就是 payload 想发的那一份**。
+
+**非浏览器 Kasada 用例现在 64 例全绿**（58 + 3 契约 + 3 适配器）。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

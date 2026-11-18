@@ -40116,3 +40116,48 @@ Inference = 判据 (a) 的口径归属（原始计数 vs 分类闭合）——**
 还剩什么：**53 条需要一个能区分「代码 / 注释 / 文档」的判定器**（按行过滤 `//`、`///`、`/* */`
 后再匹配，并区分字符串字面量用途），才谈得上拆分；(f) 的真正推进点是
 **`notify-challenge-cmpl` 的调用形状取证**（需 IDA 解出表单字段）与其落地。
+
+## R1118 —— IDA 停摆后恢复，并把 `notify-challenge-cmpl` 钉到**单一函数**（两源一致）
+
+**本轮前 3/4 用在恢复 IDA 上（机器重启后工具链全断），后半拿到一条可复算的定位证据。**
+
+改了什么：
+- **IDA 恢复**（按 `~/.dsh/AGENTS.md` 的三段链处置纪律）：
+  - 起始：`ida.py health` 连接被拒；`ida-mcp-doctor.ps1 -Path ...i64` 报
+    `PROXY: MISSING` / `PORT 13337: REFUSED` / `TIMEOUT: no listener after 180s`。
+  - IDA 进程在（pid 32132）但内存仅 320 MB、端口不起 → **GUI 侧被模态框挡住**，不是进程问题。
+  - CUA 逐个消框（三个，全部按 AGENTS 记载的取向）：
+    1. **「unpacked version」** → **`Proceed with unpacked base`**（保留上次打包后的分析，不回到旧包）；
+    2. **「id0 is not closed → repair?」** → **`是(Y)`**；
+    3. **「警告：Database still contains inconsistencies」**（唯一按钮 `确定`）→ 关掉；
+  - 结果：`{"status":"ok", "hexrays_ready":true, "strings_cache_ready":true, "strings_cache_size":324895}`。
+- **`notify-challenge-cmpl` 取证**（R1117 判定的真缺口）：
+  - `ida.py str "notify-challenge-cmpl"` → **`chars_va 0x147098694`**，
+    原文 **`https://www.paypal.com/payment-authentication/threeds/v1/notify-challenge-cmpl/`**
+    （**尾带 `/`**），`saturated: false`、`total: 1`（唯一）；
+  - `obj_va = chars_va - 12 = 0x147098688`；
+  - **`xrefs_to(0x147098688)` → 1 个引用**：`0x1411163C5`（data）位于
+    **`sub_141113680`**（size `0x3cff`＝15,615 字节）；
+  - **`disp32_scan_any(0x147098688)` 独立复算** → `.text` 全扫 **1 个站点** `0x1411163C8`
+    —— **两个独立来源指向同一处**。
+- **一步没成**：`ida.py dec 0x141113680` 的输出是**单行 44 KB**且其中**不含**该字符串，
+  即该函数的 Hex-Rays 文本没有内联这个字面量。故调用形状须从**站点处的汇编**读（下一轮）。
+
+验证命令与输出：
+- `python analysis/ida.py health` → `status: ok` / `hexrays_ready: true` / `strings_cache_size: 324895`。
+- `python analysis/ida.py str "notify-challenge-cmpl" --limit 5` → 上述地址与原文（第二次运行才成功：
+  **首次运行直接报 `Please report a bug!`**，判断为缓存首次构建的瞬时故障，重跑即好）。
+- `python analysis/ida.py xrefs 0x147098688` → `xref_count: 1`，站点与函数如上。
+- `python analysis/disp32_scan_any.py 0x147098688` → `TOTAL sites: 1`，`VA 0x1411163C8`。
+- 反编译留档 `analysis/_r1118_notify_challenge.c`（44,896 字节）。
+
+数字变化：无度量变化；**(f) 的 endpoint 缺口里，`notify-challenge-cmpl` 从「零命中」升级为
+「已定位到函数、待读汇编」**。
+
+证据等级：Observation = health 三字段、字符串原文与地址、`xref_count 1`、disp32 独立扫描 1 站点、
+三个模态框的标题与按钮原文、`dec` 输出不含该串；Inference = 首次 `str` 失败属缓存构建瞬时故障
+（只观察到「重跑即好」，未查插件日志）。
+
+还剩什么：读 `0x1411163C8` 前后的汇编还原 `notify-challenge-cmpl` 的**请求体形状与触发时机**
+（与 `notify-method-cmpl` 的 `threeDSMethodData` 对照），然后落地实现；
+`sub_141113680` 内的其余五个 threeds 站点可一并读出以校正既有实现。

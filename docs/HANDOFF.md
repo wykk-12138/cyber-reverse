@@ -5825,3 +5825,21 @@ metrics exit 0；tests 检索无 pin 旧比率。
 
 还剩什么：53 条需要能区分**代码/注释/文档**的判定器；`notify-challenge-cmpl` 的调用形状
 需 IDA 取证后落地。
+## R1118 —— IDA 恢复 + notify-challenge-cmpl 单点定位
+
+改了什么：
+- **IDA 恢复**：health 拒连、doctor 报 PROXY MISSING / 180s 无监听；进程在但内存仅 320 MB
+  → **GUI 被三个模态框挡住**（非进程问题）。CUA 依次：unpacked version → **Proceed with unpacked base**；
+  id0 not closed → **是(Y)**；警告框 → **确定**。结果 `status ok / hexrays_ready true /
+  strings_cache_size 324895`。
+- **`notify-challenge-cmpl`**：`chars_va 0x147098694`（原文尾带 `/`，全库唯一）；
+  `obj_va 0x147098688` → `xrefs_to` **1 个引用** `0x1411163C5` 在 `sub_141113680`（0x3cff）；
+  `disp32_scan_any` 独立复算 **1 站点** `0x1411163C8` —— **两源一致**。
+- 未成：`dec` 输出 44 KB 单行且**不含**该串（Hex-Rays 未内联），调用形状需读站点汇编。
+
+验证：health 三字段；`str` 地址与原文（首次报 bug、重跑成功）；`xrefs` count 1；disp32 scan 1 站点。
+
+数字变化：无；`notify-challenge-cmpl` 从「零命中」→「已定位待读汇编」。
+
+还剩什么：读 `0x1411163C8` 附近汇编还原请求体与触发时机后落地；`sub_141113680` 内其余
+threeds 站点可一并校正既有实现。

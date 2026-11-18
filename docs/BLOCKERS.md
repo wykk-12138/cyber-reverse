@@ -39992,3 +39992,43 @@ Inference = `-p:PublishAot=true` 未生效的**具体原因**（未查 csproj �
 还剩什么：**查明 AOT 真正生效的 invocation**（csproj 门控 / 所需 NuGet / 是否需要
 `PublishTrimmed`+`SelfContained`），然后重做判据 (c)；`3 fail` 的 claim 是真实 parity 缺口，
 需单独立项；判据 (b)(f) 复算。
+
+## R1115 —— 【判据 c】AOT 真镜像重建成功：**根因是「按目录发布」**，产物转为 current，比率 62.89% → 63.14%
+
+**取件**：R1114 失败的 AOT 重建（`-p:PublishAot=true` exit 0 却产出托管 apphost）。
+
+改了什么：
+- **查门控**：`replica/src/Cybersole.Ui/Cybersole.Ui.csproj` 与 `replica/Directory.Build.props`
+  都**没有** `PublishAot` / `PublishTrimmed` / `SelfContained` 的任何设置——**没有任何东西把它关掉**。
+- **对照两次 publish 的产物构成**（关键证据）：
+  | | 旧（真 AOT） | 目录发布（坏） | 项目发布（新） |
+  |---|---|---|---|
+  | `Cybersole.Ui.exe` | 53.56 MB | **0.44 MB** | **53.79 MB** |
+  | `runtimeconfig.json` | 无 | **有** | **无** |
+  | exe 个数 | 1 | **4** | 1 |
+  | 总文件数 | — | 35 | 9 |
+- **根因**：在 `replica/` 目录下跑 `dotnet publish` 会把**多个可发布项目**一起塞进同一个 `-o`，
+  Ui 的 AOT 镜像没出来（同一次里 `TlsProbe.Cli.exe` 却是 19 MB 的 AOT 形态——正是这个混淆的证据）。
+  **正确做法：显式指定项目** `dotnet publish src\Cybersole.Ui\Cybersole.Ui.csproj ...`。
+- **换入并按上轮教训先量**：`artifact_freshness` → **`source files newer: 0` / `state: current`**；
+  `func_count` → **`pdata-replica: 174,976`、`ratio 63.14%`**（旧 174,293 / 62.89%）。
+- `docs/METRICS.md` 已刷：函数比率 **63.14%**、产物陈旧度 **0**（此前 27）。
+
+验证命令与输出：
+- 两次 publish 均 exit 0；差别只在**是否指定项目**与随后产物构成（上表四行）。
+- `python tools/artifact_freshness.py` → `0` / `current`。
+- `python tools/func_count.py` → `pdata-original 277,120` / `pdata-replica 174,976` / `ratio 63.14%`。
+- `python tools/metrics_report.py --skip-tests` → exit 0；变异收据仍 `59/59 fired, staleness 0`。
+- 检索 `tests/` 无任何 pin 住旧比率（`62.89` / `pdata-ratio` 零命中），故产物更新不触守卫。
+
+数字变化：**函数比率 62.89% → 63.14%**（分母不变，分子随新代码增加）；
+**产物陈旧度 27 源文件 → 0**；`pdata-replica` 174,293 → **174,976**。
+
+证据等级：Observation = 两个 props/csproj 无门控、两次发布产物构成四行对照、
+freshness/func_count 的实测值、METRICS 的新数字、tests 检索零命中；
+Inference = 「目录发布导致 Ui 未 AOT」的**机制**（观察到产物形态差异，未逐行读 SDK 的多项目
+publish 目标）。
+
+还剩什么：判据 (c) 仍需**产物级对照报告**本身（导入表/资源/区段等维度）而不只是函数计数——
+`analysis/verify_artifact.py` 与 `PARITY_PRODUCT.md` 那条线待跑；`3 fail` 的 claim 单独立项；
+判据 (b)(f) 复算。

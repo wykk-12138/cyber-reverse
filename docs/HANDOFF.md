@@ -5774,3 +5774,21 @@ runtimeconfig 存在性。
 数字变化：**(d) 未知 → PASS**；(c) 陈旧度未改善（仍 27 源文件更新）；artifact 与度量回到原状。
 
 还剩什么：查明 AOT 真正生效的 invocation 后重做 (c)；`3 fail` 的 claim 单独立项；(b)(f) 复算。
+## R1115 —— 【判据 c】AOT 真镜像重建成功，产物转 current，比率 62.89% → 63.14%
+
+改了什么：
+- 查门控：`Cybersole.Ui.csproj` 与 `Directory.Build.props` **都没有** PublishAot/Trimmed/SelfContained
+  ——没有东西把它关掉。
+- 产物构成对照定死根因：旧 53.56 MB 无 runtimeconfig / 目录发布 **0.44 MB 带 runtimeconfig、4 个 exe** /
+  项目发布 **53.79 MB 无 runtimeconfig、1 个 exe**。同一次目录发布里 `TlsProbe.Cli.exe` 却是 19 MB
+  的 AOT 形态——**混淆的来源**。
+- **根因：按目录发布会把多个项目塞进同一个 `-o`；必须显式指定项目。**
+- 换入前先量：`freshness 0 / current`；`func_count 174,976 / 63.14%`。METRICS 已刷。
+
+验证：两次 publish 均 exit 0（差别只在是否指定项目）；freshness、func_count 实测；
+metrics exit 0；tests 检索无 pin 旧比率。
+
+数字变化：**比率 62.89% → 63.14%**；**陈旧度 27 → 0**；pdata-replica 174,293 → **174,976**。
+
+还剩什么：判据 (c) 的**多维度产物对照报告**（导入表/资源/区段）待跑 `analysis/verify_artifact.py`；
+`3 fail` 的 claim 单独立项；(b)(f) 复算。

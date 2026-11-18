@@ -128,6 +128,30 @@ Console.WriteLine("--- running the payload with that resource address ---");
 solver.ResourceAddress = resource;
 solver.Store = "nike";
 
+// Walk the handshake first, exactly as the browser does, then hand the answers to the sensor instead of
+// letting it ask for them. This mirrors what the original does (docs/KASADA/11 section 10).
+if (Environment.GetEnvironmentVariable("KASADA_PRESET") == "1")
+{
+    var hs = new KasadaHttpHandshake(http);
+    var ok = await hs.RunAsync(scriptUrl!, options);
+    Console.WriteLine("handshake = " + ok + (ok ? "" : "  (" + hs.Error + ")"));
+    foreach (var line in hs.Trace) Console.WriteLine("  " + line);
+
+    if (ok)
+    {
+        var ctHdr = hs.RequestHeaders();
+        // Echo test: stamp an unmistakable value over the real token. If the final result still says the
+        // real token, the payload did something with it; if it says this marker, we only read our own
+        // input back and the "success" is hollow.
+        var echoMarker = Environment.GetEnvironmentVariable("KASADA_ECHO_MARKER");
+        if (!string.IsNullOrEmpty(echoMarker)) ctHdr["x-kpsdk-ct"] = echoMarker!;
+        solver.PresetResponses["mfc"] = ctHdr;
+        solver.PresetResponses["fp"] = ctHdr;
+        solver.PresetResponses["ips.js"] = ctHdr;
+        Console.WriteLine("preset installed with ct=" + (hs.ClientToken ?? "")[..16] + "...");
+    }
+}
+
 var seen = new List<string>();
 // Isolation switch: answer the sensor with the same shapes the offline stub uses, without touching the
 // network. If the sensor then issues POST /r, the difference between the two runs is the response itself
@@ -207,6 +231,9 @@ using var solveSolver = new KasadaSolver(new BrowserShim
     Store = "nike",
     Transport = solver.Transport,
 };
+
+// The preset lives on the solver that actually runs the payload, not the one used for fetching.
+foreach (var kv in solver.PresetResponses) solveSolver.PresetResponses[kv.Key] = kv.Value;
 
 var result = await Task.Run(() => solveSolver.Solve(script));
 solver.ResourceAddress = resource;

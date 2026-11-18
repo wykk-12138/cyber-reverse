@@ -2800,6 +2800,79 @@ return sub_142389CA0(v14, 200, v13, 1);      // 构造一个 200 响应，v13 �
 
 **这是下一步，也是这条线唯一剩下的实质工作。**
 
+---
+
+## 11. 照第 ③ 步做了预置响应 —— 结果是一次假成功，已拒掉
+
+### 11.1 实现
+
+`KasadaSolver.PresetResponses`：按路径片段（`mfc` / `fp` / `ips.js` / `tl`）预置 200 响应。
+装上之后 `TryConfigure` 不再把 `HttpTransport` 指向真网络，而是指向预置表 ——
+这正是 §10 里原版 `sub_1408EFC50` 干的事。
+
+先跑 `KasadaHttpHandshake` 拿到真 ct，再预置，再让 payload 加载。第一次跑：
+
+```
+Ok  = True
+Ct  = 0EBQyboE3NbGOY1gshzoYLC4OyEmeVQt08kXAg4EmIlhqjcHgQIEne3wZhe7xaiyJaFh1w7giIkR5nSD2…
+```
+
+**看起来成了。但它是假的。**
+
+### 11.2 回声测试把它拆穿了
+
+预置的时候把 `x-kpsdk-ct` 换成一个明显的标记串，再看最终结果：
+
+```
+preset installed with ct=0Emep2rtvDXpTGIY...
+Ok  = True
+Ct  = ECHO-MARKER-ABCDEFGH
+```
+
+**payload 把我们喂进去的值原样返回了。** `Ok = True` 是"我们能读到自己注入的东西"，
+不是"传感器算出了一个 token"。
+
+### 11.3 修掉：回声不算成功
+
+```csharp
+var echoed = !string.IsNullOrEmpty(ct) && ct == _injectedToken;
+Ok = !string.IsNullOrEmpty(ct) && !echoed;
+Error = echoed ? "the sensor returned the token that was injected, not one it computed" : …
+```
+
+两种情形现在的输出：
+
+| 预置值 | Ok | Error |
+|---|---|---|
+| 标记串 | **False** | the sensor returned the token that was injected… |
+| 真 ct | **False** | 同上 |
+
+**第二次那条尤其重要**：预置真 ct 也判 False。**因为 payload 对它同样只是回声。**
+
+### 11.4 这个结果说明什么
+
+**`ct` 本来就不是 payload 算的东西** —— 它是服务端签发的，§7 已经证明纯 HTTP 三跳就能拿到，
+而且 §8.6 证明连伪造的输入都能换到一个。
+
+**payload 真正的产出是 `dt` / `im`**（服务端自己声明不发，见 §8.1）。
+预置 ct 之后 payload 确实完成了初始化，**但它没有产出 `dt`/`im`** —— 结果头里只有
+`ct / fc / h / r / v`，那五个全是我们预置的。
+
+### 11.5 于是对"无浏览器取 ct"这件事的结论收敛了
+
+| 问题 | 答案 |
+|---|---|
+| 无浏览器能拿 `ct` 吗 | **能，而且不需要 Jint** —— 三跳 GET，见 §7 |
+| Jint 路对取 `ct` 有额外价值吗 | **没有** |
+| Jint 路唯一的剩余价值是什么 | **算 `dt` / `im`**，而那部分没打通 |
+| 预置响应能让它算 `dt`/`im` 吗 | **不能**，实测只得到回声 |
+
+**给你的落地建议因此很明确**：
+
+- **只需要 `ct`（或它的 cookie `KP_UIDz-ssn`）→ 用 `KasadaHttpHandshake`，别带 Jint。**
+  依赖只有 `NetClient`，三跳，164 字符，实网可复现。
+- **需要 `dt` / `im` → 得跑 payload 或浏览器。** 前者没打通（本节），后者复刻件里已有。
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

@@ -226,7 +226,27 @@ public sealed class KasadaSolver : IDisposable
 
     private string? TryConfigure(string resourceAddress)
     {
-        Runtime.HttpTransport = Transport;
+        // The original does not let the sensor ask the network for its own handshake: sub_1408EFC50 builds
+        // the answer itself, carrying x-kpsdk-ct/dt/im/v plus sec-ch-ua* and user-agent, and hands it over
+        // (docs/KASADA/11 section 10). So anything a caller already obtained -- by walking the same three
+        // GETs the browser walks -- is installed here first, and the sensor reads it instead of reaching out.
+        if (PresetResponses.Count > 0)
+        {
+            var preset = System.Text.Json.JsonSerializer.Serialize(
+                PresetResponses.ToDictionary(k => k.Key, v => new { status = 200, headers = v.Value, body = "" }));
+            Runtime.Execute("window.__dshPreset = " + preset + ";");
+            // Taken from whichever preset carries a token: the sensor may ask for any of the paths, and
+            // keying the guard to one of them silently disabled it for every other.
+            _injectedToken = PresetResponses.Values
+                .Select(p => p.TryGetValue("x-kpsdk-ct", out var v) ? v : null)
+                .FirstOrDefault(v => !string.IsNullOrEmpty(v));
+            Runtime.HttpTransport = PresetTransport;
+        }
+        else
+        {
+            Runtime.HttpTransport = Transport;
+        }
+
         var literal = System.Text.Json.JsonSerializer.Serialize(resourceAddress);
         return Runtime.TryString(
             "(function(){try{window.KPSDK.configure({resourceAddress:" + literal +
@@ -239,6 +259,30 @@ public sealed class KasadaSolver : IDisposable
     /// _kasadaFc / _kasadaH, plus _kasadaWorkTime) because the gate checks them together: shipping only the
     /// token and dropping the rest is a request the site can tell apart from a real one.
     /// </summary>
+    /// <summary>
+    /// Answers keyed by path fragment ("mfc", "fp", "ips.js", "tl"), served before any real request. The
+    /// shape mirrors what the original injects: a 200 with the x-kpsdk-* headers the sensor expects.
+    /// </summary>
+    public Dictionary<string, Dictionary<string, string>> PresetResponses { get; } =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The token this solver injected, if any. A result equal to this is the sensor reading our own input
+    /// back, not computing anything -- measured: presetting x-kpsdk-ct to a marker makes Solve return that
+    /// marker verbatim. Success has to mean the sensor produced something, so this value is refused below.
+    /// </summary>
+    private string? _injectedToken;
+
+    private string? PresetTransport(string url, string method, string headersJson, string body)
+    {
+        foreach (var kv in PresetResponses)
+        {
+            if (!url.Contains(kv.Key, StringComparison.OrdinalIgnoreCase)) continue;
+            return System.Text.Json.JsonSerializer.Serialize(new { status = 200, headers = kv.Value, body = "" });
+        }
+        return null;
+    }
+
     private Dictionary<string, string> KasadaHeadersFromTransport()
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -532,9 +576,14 @@ public sealed class KasadaSolver : IDisposable
                 headers["x-" + name] = c;
         }
 
+        // A token identical to the one we injected is our own input read back. The sensor may legitimately
+        // echo it (it caches what the "server" told it), but that is not the sensor computing a token, so it
+        // must not be reported as one.
+        var echoed = !string.IsNullOrEmpty(ct) && ct == _injectedToken;
+
         var result = new KasadaResult
         {
-            Ok = !string.IsNullOrEmpty(ct),
+            Ok = !string.IsNullOrEmpty(ct) && !echoed,
             ScriptExecuted = true,
             Ct = ct,
             Sbsd = sbsd,
@@ -543,7 +592,9 @@ public sealed class KasadaSolver : IDisposable
             Cookies = cookies.ToList(),
             WorkTimeMs = clock.ElapsedMilliseconds,
             InterrogationBody = interrogationBody,
-            Error = ct is null ? "no kasada client token exposed by the script" : null,
+            Error = echoed
+                ? "the sensor returned the token that was injected, not one it computed"
+                : ct is null ? "no kasada client token exposed by the script" : null,
         };
 
         foreach (var kv in headers) result.Headers[kv.Key] = kv.Value;

@@ -42,6 +42,7 @@ COPY_AUDIT = os.path.join(REPO, "tools", "copy_audit_report.py")
 NIKE_FLOW = os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "NikeFlow.cs")
 PAYPAL_3DS = os.path.join(REPO, "src", "Cybersole.Stores", "Payments", "PayPalThreeDs.cs")
 FARFETCH_FLOW = os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "FarfetchFlow.cs")
+STRIPE_CHALLENGE = os.path.join(REPO, "src", "Cybersole.Stores", "Payments", "StripeChallenge.cs")
 
 MUTATIONS = [
     {
@@ -491,6 +492,16 @@ MUTATIONS = [
         "replace": '            "farfetch: product endpoint unknown");',
         "test": "FullyQualifiedName~FarfetchIsCoveredByTheOriginalTests",
         "guard": "TheStepsNameTheServerDeliveredTransport",
+    },
+    {
+        "name": "round 1080 -- Stripe's challenge confesses the wrong vendor",
+        "file": STRIPE_CHALLENGE,
+        # captcha_vendor_name is the frozen literal 0x147045DF0 -- Stripe's challenge is an
+        # hCaptcha gate, and swapping the vendor is exactly the drift the form pin forbids.
+        "find": '    public const string CaptchaVendor = "hcaptcha";',
+        "replace": '    public const string CaptchaVendor = "recaptcha";',
+        "test": "FullyQualifiedName~StripeChallengeTests",
+        "guard": "TheFormMatchesTheDecompiledContract",
     },
 ]
 

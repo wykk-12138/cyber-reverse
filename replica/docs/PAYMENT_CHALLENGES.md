@@ -58,13 +58,17 @@
 |---|---|---|
 | `PayPal3DS` | `PayPalThreeDs.cs` · `WallSolving.cs` | 名字被引用 |
 | `PayPalThreeDs` | `PayPalThreeDs.cs` | 名字被引用 |
-| `StripeChallenge` | **（无）** | **完全缺失** |
+| `StripeChallenge` | `StripeChallenge.cs` | 名字被引用 |
 | `Submit3DS` | `PayPalThreeDs.cs` | 名字被引用 |
 | `CreateStripePaymentMethod` | `DemandwareStepMap.cs` · `RetailFlows.cs` · `StoreFlow.cs` · `StoreFlowSteps.cs` | 名字被引用 |
 
 **→ 「名字被引用」不等于「实现了」**：`PayPal3DS` 出现在 `WallSolving.cs`（风控侧），`CreateStripePaymentMethod` 出现在步骤映射表与 `RetailFlows`（flow 的步骤名）。两者都是**这个名字被提到**，不是支付挑战被执行 —— 与 R1042 那条「有文案不等于有 solver」同族。
 
-**→ R1078 后这两行的答案分半**：PayPal 侧**阶段 1 已落地**为可执行实现（`PayPalThreeDs.cs`：双方言头墙、PUT、30 秒预算、200/403/429 分发、四态机停在已解码边界），阶段 2–8 的八个函数体已定位、每条一记反编译即可结案；Stripe 侧（`StripeChallenge` 与六步流程）**仍未实现** —— 队列②的下一件。
+**→ R1080：挑战确认步已解码落地**：`Solving Stripe challenge`（0x146e94270）唯一引用者 `sub_140BE31F0` 是**橙色墙** + hCaptcha 供词的确认机 —— 状态文案 `Submit billing`（0x146E9FFB8）、墙色 `orange`（0x1471099B0）、等待标签 `Waiting for captcha`（0x146F25E60）、失败文案 `Stripe challenge captcha failed` + UI 色 `#FB4961`（0x146E9F310/0x146A76FD0）；表单五字段：`challenge_response_token`（验证码令牌）、`challenge_response_ekey`=""（空串哨兵）、`client_secret`（ctx728）、`captcha_vendor_name`=`hcaptcha`（0x147045DF0）、`key`（ctx704，可发布密钥）→ **PUT `https://api.stripe.com`（0x147054DD8）+ ctx800 的逐单路径**（+24 槽）。已落地为 `Payments/StripeChallenge.cs` 并由 `StripeChallengeTests` 钉住。
+
+**→ 而「六步流程」的名字（`SubmitOrderStripe` 等六条）仍只是名字**：它们的方法体尚未按 `chars_va - 12` 链解码；挑战确认是六步中第一块落地的可执行协议。
+
+**→ R1078/R1080 后复刻件侧分半**：PayPal 阶段 1 + Stripe 挑战确认均已落地（`PayPalThreeDs.cs` / `StripeChallenge.cs`，判据 e 变异各配可杀锚）；PayPal 阶段 2–8 与 Stripe 六步的其余步骤体已定位、每条一记反编译即可结案。
 
 ## 六、边界
 

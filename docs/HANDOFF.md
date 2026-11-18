@@ -5033,3 +5033,29 @@ python analysis/ida.py str "Solving PayPal 3DS" --limit 600
 证据等级：全部 Observation（含两起事故现场）。
 
 还剩什么：#7 收据；并行会话活动期避免长独占跑；队列② Stripe 六步 + PayPal 阶段 2–8。
+
+## R1080 —— 【核心②·支付挑战层】Stripe 挑战确认步反编译落地，支付标记 1/5 → 0/5
+
+**取件**：队列②第 2 件（`sub_140BE31F0`）。另收 #7 终跑回执。
+
+改了什么：
+- 新增 `Payments/StripeChallenge.cs`：`https://api.stripe.com`（0x147054DD8）+ **橙墙**
+  `Solving Stripe challenge`（0x146E94270/1471099B0）→ `Waiting for captcha`（0x146F25E60）→
+  无令牌报 `Stripe challenge captcha failed`+色 `#FB4961`；有令牌 **PUT** 五字段表单：
+  `challenge_response_token`/`challenge_response_ekey`=""/`client_secret`(ctx728)/
+  `captcha_vendor_name`=`hcaptcha`/`key`(ctx704)，路径 = ctx800 逐单段（+24 槽）。
+- 新钉测 `StripeChallengeTests` 4 用例；变异 +1（42 条：captcha_vendor_name → recaptcha 必红）；
+  指南格 41→42 同轮更新。
+- 模板 `payment_challenges.py` §四/§五 更新并重生成。
+
+验证：`dec 0x140BE31F0` + `names_at` 13 常量全解码；StripeChallenge **4/4 绿**（一次构建被并行
+会话 testhost 锁 50s 后过）；SummaryBlock 4/4 绿；`payment_challenges.py` → **markers absent 0/5**。
+**#7 回执**：41/41 fired（E 跑 4 条 find_re SKIP 全复活——匹配/还原分离确认）、
+restored tree UNKNOWN（还原全量在争用下吃满 600s）、若干 fired 带构建冲突尾巴——干净回执需静树。
+
+数字变化：支付标记 **1/5 → 0/5**；变异套件 41 → **42**；mutation-fit 41/41（#7）。
+
+证据等级：全常量/PUT/表单/墙色为 Observation；urlencoded Content-Type 为 Inference（编码器类型
+自带）；六步其余步骤体未解码（名字仍只是名字）。
+
+还剩什么：Stripe 六步其余体；PayPal 阶段 2–8；42 条锚的静树全跑；sec-ch-ua 生成器（队列③）。

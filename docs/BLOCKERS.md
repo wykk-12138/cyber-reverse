@@ -38621,3 +38621,44 @@ staleness 10:50:13 → **0**（A 跑后）→ 内容口径上线。当前在盘�
 
 还剩什么：终跑 #7 收据（41/41 + 对称清单 + staleness 0）；并行会话活动期避免再发长独占跑；
 队列② Stripe 六步（`sub_140BE31F0`）与 PayPal 阶段 2–8。
+
+## R1080 —— 【核心②·支付挑战层】Stripe 挑战确认步反编译落地：橙色墙 + hCaptcha 供词 + PUT，支付标记 1/5 → 0/5
+
+**取件**：队列②第 2 件（Stripe 挑战，入口 `sub_140BE31F0` 已定位）。另收 #7 终跑回执。
+
+改了什么：
+- 新增 `Cybersole.Stores/Payments/StripeChallenge.cs`（可执行运行时代码）：
+  - 常量：`https://api.stripe.com`（0x147054DD8）、`Solving Stripe challenge`（0x146E94270）、
+    **墙色 `orange`**（0x1471099B0，对照 PayPal 的 white）、`Waiting for captcha`（0x146F25E60）、
+    失败文案 `Stripe challenge captcha failed` + UI 色 `#FB4961`（0x146E9F310/0x146A76FD0）、
+    供词 `hcaptcha`（0x147045DF0）。
+  - Form 五字段（编码器原序）：`challenge_response_token`（验证码令牌）、
+    `challenge_response_ekey`=""（空串哨兵 0x146A622F8）、`client_secret`（ctx728）、
+    `captcha_vendor_name`=hcaptcha、`key`（ctx704 可发布密钥）。
+  - ConfirmAsync：橙墙注册 → 验证码门（无令牌→失败文案+色、不发请求）→
+    **PUT ApiHost+ctx800 逐单路径**（+24 槽，请求 DTO unk_144BDF900，表单编码体）。
+- 新钉测 `StripeChallengeTests` 4 用例（常量/表单契约/TinyServer 观测 PUT+表单体+墙序/无令牌路径）。
+- 变异套件 +1（42 条）：Stripe 守卫的可杀锚（captcha_vendor_name → recaptcha 必红）；
+  VERDICT 指南格 41→42 同轮更新（R1079 的教训）。
+- 生成器模板 `payment_challenges.py`：§四 追加 R1080 契约、§五 更新分半叙述；重生成
+  PAYMENT_CHALLENGES.md。
+
+验证命令与输出：
+- 取证：`dec 0x140BE31F0` 全控流 + `names_at` 13 常量全解码（含外层进度 `Submit billing`）。
+- `dotnet test --filter "StripeChallenge" -m:1` → **4/4 绿**（一次构建被并行会话的
+  testhost(115612) 锁住 MSB3021——等 50s 锁释后过，争用如实记录）；`SummaryBlockTests` 4/4 绿。
+- `payment_challenges.py` → control ok=True，**markers absent 0/5**（StripeChallenge 翻正）。
+- **#7 终跑回执收割**：41/41 fired（E 跑 4 条 SKIP 的 find_re 全复活——匹配/还原分离修复确认）、
+  `restored tree: UNKNOWN (cut off)`（还原全量在并行会话构建争用下吃满 600s）、若干 fired 带
+  MSB3026/27/21 构建冲突尾巴（污染如实记录；干净回执需静树）。MUTATION_RESULT.json 更新为
+  #7 记录。
+
+数字变化：支付标记缺失 **1/5 → 0/5**；变异套件 **41 → 42 条**（Stripe 锚，fired 待下轮随套件验）；
+mutation-fit 41/41（#7 回执）；内容陈旧度自报 328 文件（并行会话大活跃 + 本轮新文件，如实）。
+
+证据等级：Observation = 全部 13 常量、PUT 槽、表单编码体、墙色/文案/色码、#7 回执原文；
+Inference = 表单 Content-Type 走标准 urlencoded（表单编码器类型自带，未在反编译里显式看到
+content-type 常量）；「六步流程」其余步骤体未解码（名字仍只是名字）。
+
+还剩什么：Stripe 六步的其余步骤体反编译（`SubmitOrderStripe` 等名字 → chars-12 链）；PayPal
+阶段 2–8；42 条变异锚的下一次静树全跑；sec-ch-ua 生成器（队列③）。

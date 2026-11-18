@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **41 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 R1076–R1078 新钉测的 5 条） | `tools/mutation-check.py` |
+| 变异检查 | **42 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080 补 Stripe 挑战守卫 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -62779,3 +62779,35 @@ G 跑挂死 28 分钟被杀——期间工作区出现**并行会话的未跟踪
 > **「工具自己打印自己的陈旧度」还不够——打印的口径本身要对。** mtime 口径在字节相同的
 > 还原后误报，行尾口径又被 git 的双重归一掩盖了十年。度量链的每一环都要能被一个
 > 已知假阳性试验杀死，否则它报的是日历，不是事实。
+
+---
+
+## 第 1080 轮：Stripe 挑战确认步落地 —— 支付标记 0/5 全翻正
+
+### 一、契约（sub_140BE31F0 全解，13 常量）
+
+**橙色墙** `Solving Stripe challenge`（对照 PayPal 的 white）→ 等待 `Waiting for captcha` →
+无令牌报 `Stripe challenge captcha failed` 配 UI 色 `#FB4961`；有令牌则 **PUT
+`https://api.stripe.com` + 逐单路径** 五字段表单：`challenge_response_token` /
+`challenge_response_ekey`=""（空串哨兵）/ `client_secret` / `captcha_vendor_name`=`hcaptcha` /
+`key`。外层进度文案 `Submit billing`。落地 `StripeChallenge.cs` + 4 钉测。
+
+### 二、数字
+
+| 度量 | R1079 | **R1080** |
+|---|---|---|
+| 支付标记缺失 | 1/5 | **0/5**（五个全实装） |
+| 变异套件 | 41 条 | **42 条**（Stripe 供词锚） |
+| mutation-fit | 37/4（E 跑） | **41/41**（#7 回执，find_re 全复活） |
+
+### 三、#7 回执与争用（如实）
+
+41/41 fired 但 `restored tree: UNKNOWN`——还原全量在并行会话构建争用下吃满 600s；若干 fired
+带 MSB3026/27/21 构建冲突尾巴。本会话构建也曾被其 testhost 锁住 50s。**干净回执需要静树**——
+内容清单口径（R1079）会把下一次静树全跑变成一条可信的 42/42。
+
+### 教训
+
+> **「队列②的下一件」从取件到全绿只花了一轮**——入口已定位的函数，dec + names_at 两步就是
+> 一个完整契约。R1078（PayPal）与本轮（Stripe）证明：反编译链打通后，支付层的结案速度由
+> 定位速度决定，而不是实现速度。

@@ -6039,3 +6039,23 @@ threeds 站点可一并校正既有实现。
 
 还剩什么：① v4 `deliveries` 的体（现已有 `SubmitShippingAsync` 可挂，缺的只是体）；
 ② `deliveries/` GET 与 `GuestCallback` PUT 尚无虚步骤（同法可解）；③ `payment-page` 的 PUT 半边。
+## R1131 —— GuestCallback 落地；两个 URL 只有一个拿 PUT
+
+改了什么：
+- 取证 `sub_140A407A0`：三条字面量（非 BFF `callback/login/guest?email=` 0x14705dcd8、BFF
+  `v4/callback/guest` 0x14705da88、键 `email` 0x14701ac58）；伪代码显示非 BFF 那条交给
+  `sub_141CF6230`，**PUT 的 URL 参数是 BFF 那条**，body 只有 `email` 一键。
+- 基类加 `GuestCallbackAsync`（NotSupported）；`JohnLewisFlow` 覆写：PUT + 单键体 + seam
+  `jl.guestCallbackUrl`，无邮箱直接失败。
+- 新增 `JohnLewisGuestCallbackTests` 5 条（含断言 `firstName` **不出现**、`Knows("GuestCallback")`）。
+
+验证：`dotnet test` 全量 → **2417/0/2**（2m23s）；变异收据 `59/59 fired, tree GREEN, staleness 0`。
+
+**本轮修的一处自己撞的红**：`FlowSequenceTests` 的 `StepDispatch` **179 → 182**（+3 个基类虚步骤），
+按该测试既有先例（172→174→175→179）更新并写明原因。
+
+数字变化：JL 实际调用 BFF 端点 **4 → 5**；可派发步骤名 **+3**；测试 **+5**。
+
+还剩什么：① `deliveries/`(v4 GET) 函数里出现 `'/methods'`（0x146ab5dd0），疑似派生
+`…/deliveries/methods`，需确认是拼接还是另一个端点；② v4 `deliveries` PUT 的体未定位；
+③ `payment-page` 的 PUT 半边。

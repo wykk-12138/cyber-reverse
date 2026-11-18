@@ -122,7 +122,12 @@ public class FlowSequenceTests
         // finding, not an accident of counting -- the image's step vocabulary is wider than any one flow's sequence.
         // R958 added three RPC steps -- CheckStock, ValidateBuyRule and GetPaymentMethods -- taken from the
         // ten-ordinal descriptor the image carries, so the map goes from 176 to 179.
-        Assert.Equal(179, map.Count);
+        //
+        // R1131 raised it 179 -> 182 by declaring three John Lewis step names on StoreFlow
+        // (WebHandOver, SessionHandover, GuestCallback). Those are not Pop Mart steps, and that is the
+        // point: StepDispatch is built from the methods the base class declares, so every store's map
+        // grows together. The coverage number below is what stays specific to this flow.
+        Assert.Equal(182, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
         Assert.Equal(8, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");

@@ -1046,6 +1046,44 @@ public sealed class JohnLewisFlow : StoreFlow
     }
 
     /// <summary>
+    /// <c>GuestCallback</c> — the PUT to <c>v4/callback/guest</c> whose body is a single
+    /// <c>email</c> key.
+    ///
+    /// <para>
+    /// R1131: read off <c>sub_140A407A0</c>. That function touches <b>two</b> URLs, and they are not
+    /// interchangeable: <c>…/callback/login/guest?email=</c> (0x14705dcd8) is passed to
+    /// <c>sub_141CF6230</c>, while the PUT's URL argument is built from
+    /// <c>…/bff/v4/callback/guest</c> (0x14705da88); the body object gets one key, <c>email</c>
+    /// (0x14701ac58). So the request is <c>PUT …/bff/v4/callback/guest {"email": …}</c>, and the other
+    /// URL belongs to something else in the same function that this step does not perform.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GuestCallbackAsync(FlowContext c, CancellationToken ct)
+    {
+        var email = c.Session.Vars.TryGetValue("jl.email", out var own) && !string.IsNullOrEmpty(own)
+            ? own!
+            : c.Session.Vars.TryGetValue("email", out var shared) ? shared! : string.Empty;
+        if (string.IsNullOrEmpty(email))
+            return StepOutcome.Fail("jl: no email for the guest callback");
+
+        var body = new JObject { ["email"] = email }.ToString(Newtonsoft.Json.Formatting.None);
+
+        var url = c.Session.Vars.TryGetValue("jl.guestCallbackUrl", out var over) &&
+                  !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.GuestCallbackV4;
+
+        var res = await SendJsonAsync(c, HttpMethod.Put, url, body, "jl-guest-callback", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl guest callback unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl guest callback HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.guestCallbackBody"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
     /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
     /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>

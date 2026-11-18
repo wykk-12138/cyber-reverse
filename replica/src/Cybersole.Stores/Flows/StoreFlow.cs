@@ -781,6 +781,13 @@ public abstract class StoreFlow
     /// <summary>The image's second name for the same hand-over (ordinal 24).</summary>
     public virtual Task<StepOutcome> SessionHandoverAsync(FlowContext c, CancellationToken ct)
         => WebHandOverAsync(c, ct);
+
+    /// <summary>
+    /// The guest checkout callback (John Lewis ordinal 25): the checkout backend needs to know which
+    /// guest the session belongs to before the order form will accept an address.
+    /// </summary>
+    public virtual Task<StepOutcome> GuestCallbackAsync(FlowContext c, CancellationToken ct)
+        => NotSupported("GuestCallback");
     public virtual Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct) => NotSupported("SubmitShipping");
     public virtual Task<StepOutcome> SubmitAddressAsync(FlowContext c, CancellationToken ct)
         => SubmitShippingAsync(c, ct);

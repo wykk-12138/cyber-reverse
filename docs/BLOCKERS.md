@@ -40702,3 +40702,57 @@ Inference（标注，未落实现）= v4 `deliveries` 的体是前一步 GET 的
 还剩什么：① `deliveries`(v4, PUT) 的体仍未定位（R1129 的负结果）——它现在**有**虚步骤 `SubmitShippingAsync`
 可挂，缺的只是体；② `deliveries/`(v4, GET) 与 `GuestCallback`(v4, PUT) 尚无虚步骤，同法可解；
 ③ `payment-page` 的 PUT 半边。
+
+## R1131 —— `GuestCallback` 落地：一个函数里**两个 URL**，一个是 PUT 的、一个不是
+
+**取件**：R1130 的剩余清单 —— `GuestCallback`(v4 PUT)。
+
+改了什么（本轮**有可执行代码**）：
+- **形状取证**（`analysis/_bff_body3.py`，IDA 内反编译 + 冻结串解码 + 设键顺序）：
+  `sub_140A407A0` 里有**三处关键字面量**：
+  | 地址 | 原文 |
+  |---|---|
+  | `0x14705dcd8` | `https://checkout.johnlewis.com/callback/login/guest?email=` |
+  | `0x14705da88` | `https://checkout.johnlewis.com/bff/v4/callback/guest` |
+  | `0x14701ac58` | `email`（唯一的 body 键） |
+  再读伪代码定**哪个 URL 拿 PUT**：
+  ```c
+  v6 = sub_141CF6230(&off_14705DCD8, v5);       // 非 BFF 那条，交给别的帮手
+  sub_14130D9B0(v7);                            // 根对象
+  sub_141FD2660(v10, &off_14701AC58, v8);       // 根 <- email
+  sub_1408C22E0(v12, &off_14705DA88);           // v12 = BFF 那条
+  v17[0] = sub_1408B6310(v11, v12, v7, v13);    // PUT(url=v12, body=v7)
+  ```
+  **⇒ `PUT …/bff/v4/callback/guest  {"email": …}`**；而 `…/callback/login/guest?email=` 是**同一个函数里别的事**
+  （交给 `sub_141CF6230`），不属于这一步。**两个 URL 不可互换**，这条就是要防的错。
+- **加基类虚步骤**：`GuestCallbackAsync`（默认 `NotSupported`）——按 R1130 查明的派发规则，
+  步骤名 `GuestCallback` 立即可派发。
+- **落实现**：`JohnLewisFlow.GuestCallbackAsync` 覆写：PUT 到 `GuestCallbackV4`（字面量 `0x14705da88`），
+  body **只有一个键** `email`，值取 `jl.email` → 回落 `email`，两者皆空则**直接失败**（不空发）；
+  seam `jl.guestCallbackUrl`；响应存 `jl.guestCallbackBody`。
+- 新增 `JohnLewisGuestCallbackTests` **5 条**：URL/动词/单键体（并断言 `firstName` **不出现**）、
+  共享 `email` 键回落、无邮箱即停、`StepActionRunner.Knows("GuestCallback")` 为真、常量等于镜像字面量。
+
+验证命令与输出：
+- `ida.py py "exec(..._bff_body3.py)"` → 两函数的字符串与设键顺序（guest-callback 3 串 / 1 次设键；
+  `deliveries/` 2 串 / 0 次设键）。
+- `ida.py py "exec(..._bff_guest_dump.py)"` → 上方五行伪代码，URL 与 PUT 的先后关系逐行可见。
+- `dotnet build` → 无 error；`dotnet test --filter "JohnLewis|SourceEncodingTests|StepAction|StoreFlow"`
+  → **`已通过! 失败 0 / 通过 70 / 总计 70`**；随后**全量**（`Speed!=Slow`）复核结果见下。
+
+数字变化：John Lewis 实际调用的 BFF 端点 **4 → 5**；可派发步骤名 **+1**；测试 **+5**。
+
+证据等级：Observation = 三个字面量与地址、伪代码里 `PUT(v12…)` 与 `sub_141CF6230(&off_14705DCD8…)` 的分工、
+70/70 通过、`Knows("GuestCallback")` 为真；Inference = 无（body 单键由「唯一一次设键」直接确定）。
+
+还剩什么：① `deliveries/`(v4, GET) 的函数里有 `'/methods'`（`0x146ab5dd0`）——
+**疑似把 `…/orderforms/deliveries/methods` 派生出来**，属新的 GET，需确认是拼接还是另一个端点；
+② v4 `deliveries` PUT 的体仍未定位；③ `payment-page` 的 PUT 半边。
+
+**全量与守卫（本轮收数）**：
+- 首次全量 → **1 处失败**：FlowSequenceTests.OnePopMartImageStepIsDispatchable，Assert.Equal **179 vs 182**
+  —— 我加的 3 个基类虚步骤把 StepDispatch 从 179 抬到 182。该测试自身注释里就有先例
+  （R891 172→174、R908 174→175、176→179），故按同一惯例把数字更新为 **182** 并写明
+  「这是 StoreFlow 声明的方法，所有站点的表一起长；下面那个 coverage 数字才是本站点特有的」。
+- 修后**全量 GREEN：2417 通过 / 0 失败 / 2 跳过 / 2419**（2m23s）；FlowSequenceTests 7/7。
+- 变异套件因改了 src 与 	ests 已重跑（结果见收据），避免拿旧 manifest 说事。

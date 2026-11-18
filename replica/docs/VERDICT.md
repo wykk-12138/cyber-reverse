@@ -64514,3 +64514,44 @@ public instance / 名以 `Async` 结尾 / 返回 `Task<StepOutcome>` / 2 参 —
 **46/46 通过**，其中一条专门断言 `StepActionRunner.Knows("WebHandOver")` 为真 —— **测的是接线本身。**
 
 顺手修掉我自己写的一处**自满足断言**（先 `Replace` 再 `Contains` 替换后的串，恒真）。
+---
+
+## 第 1131 轮：一个函数里两个 URL，只有一个拿 PUT
+
+`sub_140A407A0` 里躺着三条关键字面量：
+
+| 地址 | 原文 |
+|---|---|
+| `0x14705dcd8` | `…/callback/login/guest?email=` |
+| `0x14705da88` | `…/bff/v4/callback/guest` |
+| `0x14701ac58` | `email` |
+
+伪代码把分工写得很清楚：
+
+`c
+v6 = sub_141CF6230(&off_14705DCD8, v5);     // 非 BFF 那条，交给别的帮手
+sub_141FD2660(v10, &off_14701AC58, v8);     // 根 <- email
+sub_1408C22E0(v12, &off_14705DA88);         // v12 = BFF 那条
+v17[0] = sub_1408B6310(v11, v12, v7, v13);  // PUT(url = v12)
+`
+
+**PUT 拿的是 BFF 那条。** 另一条是同一个函数里**别的事**。
+
+> 如果只按「这个函数里有哪个 URL」去实现，**两条都像**——它们都在同一段代码里、
+> 都带 `email` 字样。**「出现过」不是「属于这一步」。**
+
+### 顺手撞出一个 ratchet
+
+加了 3 个基类虚步骤 → `FlowSequenceTests` 红：`StepDispatch` **179 → 182**。
+那个测试自己的注释里就有三次先例（172→174→175→179），所以照惯例把数改成 182，
+并写明「这是 StoreFlow 声明的方法，所有站点的表一起长；下面那个 coverage 数才是本站点特有的」。
+
+**ratchet 红不一定是坏事，但「为什么变」必须写在数字旁边** —— 否则下一个人只看到 179 变 182。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2417 通过 / 0 失败 / 2 跳过**（2m23s） |
+| 变异收据 | **59/59 fired，decorative 0，skipped 0，tree GREEN**，`staleness 0` |
+| JL 实际调用 BFF 端点 | **4 → 5** |

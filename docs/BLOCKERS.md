@@ -42120,3 +42120,40 @@ collection 立好了，挪它们是各加一行的事，但要各自先确认「
 证据等级：Observation = 三处代码（`SettingsShellTests.cs:195`、`AppServices.cs:60/86`、
 `AppPaths.cs:22-25`）+ 构建/测试/变异三条输出；Inference = 「两次抖动由此机制引起」（**未构造复现用例**）；
 Unknown = 其余 11 个类是否也真的写盘。
+## R1166 —— R1165 的结论对，但**取证路径错了一格**
+
+**取件**：R1165 遗留「另 11 个候选类是否真的写盘」。
+
+**查到的东西，先纠正自己**：我按 R1165 的说法去查**测试文件**里有没有 `.Save(` —— 11 个类里 9 个是 0 处，
+于是差点得出「它们只读、风险低」。**这个检查问错了对象**：
+
+`
+src/Cybersole.Ui/Views/Tasks/TasksViews.cs
+ 789   _services.Config.TaskGroups.Add(copy);
+ 790   _services.Config.Save();          ← CloneCore 自己保存
+ 797   if (!_services.Config.TaskGroups.Remove(_summaryGroup)) return false;
+ 799   _services.Config.Save();          ← DeleteCore 也保存
+`
+
+**写盘发生在「被测代码」里，不在测试文件里。** 所以：
+- **R1165 的机制仍然成立**（`AppServices.Create` → `config.Load()` 读同一个 `AppPaths.DataRoot`；
+  而 `CloneCore`/`DeleteCore` 会 `Config.Save()` 写它；xunit 并行跑类 ⇒ 一边写一边读）；
+- **但 R1165 里「我查了测试有没有写盘」这句是错的**：我查的是测试，证据其实在被测方法里。
+- **连带作废一个我本来要下的结论**：「9 个类 0 处持久化 ⇒ 风险低」**不成立**，因为它们调用的生产方法
+  可能照样写盘。**候选名单仍然全开**，不能用测试文件的 grep 来缩小。
+
+**正确的工具（下一轮用）**：先列出**生产代码**里所有 `Config.Save()` 的调用点（上面已见 `TasksViews.cs`
+的 4 处 789/790/799/895），再反查哪些测试类会走到这些方法上。
+
+**这已经是同一类错误的第三次**：
+| 轮 | 我查了 | 真该查 |
+|---|---|---|
+| R1160 | 字符串表没有 `bstn` ⇒ 店认错了 | 项目里已有 live 契约测试 |
+| R1165 | 测试文件有没有写盘 | 被测方法有没有写盘 |
+| 本轮 | 同上（差点据 9 个「0 处」缩小名单） | 生产代码的 `Config.Save()` 调用点 |
+
+**共同点：我在「离结论最近的那个文件」里找证据，而不是在「能决定结论的那个文件」里找。**
+
+证据等级：Observation = `TasksViews.cs` 789/790/797/799 与 881-895 的 `Config.Save()` 调用、
+11 个测试类的 0/1/2 计数；Inference = 抖动由「写读竞争」引起（**仍未有复现用例**）；
+Unknown = 哪些测试类真的会走到那 4 个 `Save()` 调用点。

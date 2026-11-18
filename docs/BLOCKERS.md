@@ -39911,3 +39911,38 @@ Inference = 35 段陈旧的全部逐条核对（只抽查了 1 条）。
 ——**总数 2248 ≠ 独立全量的 2398**，即那次还原验证**只跑了部分用例**、进程非零退出。
 按 AGENTS.md §2.6 记作**「跑不全」而非「红」**；整树权威判定用本轮独立全量
 **2396 通过 / 0 失败 / 2 跳过（2m22s）**。
+## R1113 —— 关闭 R1112 的 Inference：39 段移除**逐条**核实，无一段藏掉缺席
+
+**取件**：R1112 遗留的「35 段陈旧只抽查了 1 条」。
+
+改了什么：
+- 写一次性核对脚本：从 R1112 的 diff 里取出**全部 39 个被移除段落的类型全名**，
+  对 `replica/src` 全量 `.cs` 语料做**声明级**匹配
+  （`\b(class|record|struct|enum|interface)\s+<短名>\b`，不是「出现即算」）。
+- 结果：**39 = 35 + 4**。
+  - **35 个**：在 `src/` 里都有声明 → **确实是已实现才退出候选表**；
+  - **4 个**：正是四个 `Localize*Extension` —— **仍缺席**，它们退出的是「候选表」（零成员无法产生候选），
+    不是「缺席名单」。
+- 顺带核对**缺席名册没被藏起来**：`metrics` 的 `types absent from source` 仍是 **15（未变）**、
+  `types with scope misses` 仍 **0**；`backlog: types absent` 从 4 → **2**，
+  正是 R1109 改判 RENAMED 的两条退出了待办桶。三个数字互相自洽。
+- **修一处我上轮留下的隐患**：`analysis/xaml_bindings.json` 被我的 `Move-Item` 移走后
+  `git status` 显示为删除。查消费方发现 **`analysis/decl_coverage.py` L31 按绝对路径读它**——
+  不能删。已把修正后的表**同步回该路径**，两处一致（各 20,886 字节，
+  逐字段比对 `identical: True`，174 类型 / 814 成员）。
+
+验证命令与输出：
+- 核对脚本输出：`removed sections: 39` / `still absent after the removal: 4`，
+  并逐个列出这 4 个（全是 `Cybersole.Ui.Localization.Localize*Extension`）。
+- `metrics_report --skip-tests` → exit 0；
+  `types absent from source 15` / `types with scope misses 0` / `backlog: types absent 2`。
+- 两处表一致性：字节数相同且 `json` 逐字段相等。
+- `decl_coverage.py` L31 原文确认按绝对路径读 `analysis\xaml_bindings.json`。
+
+数字变化：无度量变化（缺席仍 15、scope 0、backlog 2）；**R1112 的 Inference 关闭为 Observation**。
+
+证据等级：Observation = 39 段全量声明级匹配结果、4 个仍缺席者逐名、三个度量值、
+两处表一致性与字节数、`decl_coverage.py` 的绝对路径；Inference = 无。
+
+还剩什么：两条 `Localize*` 的元数据侧成员集（它们在缺席名册里，三分类已写明缺什么）；
+判据 (b)(c)(d)(f) 逐项复算。

@@ -28,13 +28,8 @@
   "Name",
   "Store"
  ],
- "Cybersole.Ui.Localization.LocalizeSwitchExtension": [
-  "Condition"
- ],
- "Cybersole.Ui.Localization.LocalizeFormatExtension": [
-  "Value",
-  "Value2"
- ],
+ "Cybersole.Ui.Localization.LocalizeSwitchExtension": [],
+ "Cybersole.Ui.Localization.LocalizeFormatExtension": [],
  "Cybersole.Models.Account": [
   "Created",
   "Email",
@@ -86,9 +81,7 @@
   "MovePrevious",
   "OpenRelease"
  ],
- "Cybersole.Ui.Localization.LocalizeEnumExtension": [
-  "Value"
- ],
+ "Cybersole.Ui.Localization.LocalizeEnumExtension": [],
  "Cybersole.Models.Analytics": [
   "Spent",
   "Success"
@@ -197,9 +190,7 @@
   "Last4",
   "Name"
  ],
- "Cybersole.Ui.Localization.LocalizeFallbackExtension": [
-  "Value"
- ],
+ "Cybersole.Ui.Localization.LocalizeFallbackExtension": [],
  "Cybersole.Models.AsyncCommand": [
   "IsExecuting"
  ],

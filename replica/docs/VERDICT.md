@@ -63941,3 +63941,30 @@ Cybersole.Ui.Localization.LocalizeFallbackExtension,Cybersole.Value!Getter    (0
 
 **教训：RED 也要看它自己的计数。** 「0 失败 + 总数偏少」不是红，是没跑完——
 和「没跑成 ≠ 通过」是同一个币的另一面。
+---
+
+## 第 1113 轮：39 = 35 + 4，一段都没藏
+
+R1112 我只抽查了 1/35，留着一条 Inference。本轮把 39 个被移除段落的类型全名全部取出，
+对 `replica/src` 做**声明级**匹配（`\b(class|record|struct|enum|interface)\s+<短名>\b`，
+不是「出现即算」）：
+
+| | 数 | 结论 |
+|---|---|---|
+| 移除段落 | 39 | |
+| 其中已在 src 有声明 | **35** | 确实「实现了才退出候选表」 |
+| 其中仍缺席 | **4** | 四个 `Localize*Extension` —— 退出的是**候选表**（零成员无法产生候选），**不是缺席名单** |
+
+**缺席名册没被藏起来**，三个数字互相自洽：`types absent from source` 仍 **15**（未变）、
+`types with scope misses` 仍 **0**、`backlog: types absent` 4 → **2**（正是 R1109 改判 RENAMED 的两条退出待办桶）。
+
+### 一处我自己埋的隐患
+
+`analysis/xaml_bindings.json` 被我上轮的 `Move-Item` 移走，`git status` 显示删除。
+查消费方才发现 **`analysis/decl_coverage.py` L31 按绝对路径读它** —— 差点删掉一个别人在用的文件。
+
+已把修正后的表同步回去，两处一致（20,886 字节，逐字段 `identical: True`，174/814）。
+
+> **移动/删除一个文件之前，先查「谁按什么路径读它」。**
+> 文件名相同不代表可以合并——一个走 `ROOT/docs`，一个走绝对路径 `analysis/`，
+> 看着重复，其实是两条读取路径。

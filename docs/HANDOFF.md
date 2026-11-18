@@ -5738,3 +5738,21 @@ SourceEncoding 2 = **19 钉全绿**。
 数字变化：分布不变；两条 UNKNOWN 的依据 **Inference → Observation**。
 
 还剩什么：`xaml_bindings.json` 转换器位修复（专用轮）；两条 Localize 需元数据侧成员集；(b)(c)(d)(f)。
+## R1113 —— 关闭 R1112 的 Inference：39 段移除逐条核实
+
+改了什么：
+- 从 diff 取出**全部 39 个移除段落的类型全名**，对 `replica/src` 做**声明级**匹配
+  （`class|record|struct|enum|interface + 短名`，非「出现即算」）。
+- 结果 **39 = 35 + 4**：35 个在 src 有声明（实现了才退出候选表）；4 个仍缺席
+  （四个 `Localize*Extension`，退出的是候选表而非缺席名单）。
+- **缺席名册没被藏**：`types absent from source` 仍 **15**、`scope misses` **0**、
+  `backlog types absent` 4 → **2**（R1109 改判的两条退出）。
+- **修我自己埋的隐患**：`analysis/xaml_bindings.json` 被上轮 `Move-Item` 移走，
+  而 `analysis/decl_coverage.py` L31 **按绝对路径读它** —— 已同步回该路径，两处一致（20,886 B，
+  逐字段 identical、174 类型 / 814 成员）。
+
+验证：核对脚本 39/4 输出；metrics exit 0 且三数自洽；两处表字节与内容一致。
+
+数字变化：无度量变化；**R1112 Inference → Observation**。
+
+还剩什么：两条 Localize 的元数据侧成员集；(b)(c)(d)(f) 逐项复算。

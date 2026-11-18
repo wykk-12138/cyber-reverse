@@ -6421,3 +6421,17 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：① `present: no` 对反射派发区间仍无效（R1152 结论），若要产物可证需 root descriptor；
 ② 3DS 真实 HTTP 路径（`ContinueAsync` 的 graphql 请求体）仍靠单测而非产物验证。
+## R1154 —— GqlAsync 端到端钉子 6 条；graphql 动词核实为 PUT（sub_14110D670 第 37 行）
+
+改了什么（tests + 取证，src 未改）：
+- **动词取证**：`sub_14110D670` 第 37 行 → `sub_1408B6310`（+24 = **PUT**）。
+- 新增 `PayPalGraphqlStageTests` 6 例：① 操作名走查询串 + 动词 PUT（`RawUrl` 断言）；
+  ② 体为 `{"variables":…,"query":<DocumentFor(op)>}`；③ 分派 200/403/429/500 四态。
+- 中途一条红（`Actual "/"`）成因：`TinyServer.Requests` 只记 `AbsolutePath`，而缝指向服务器根
+  ⇒ 记录约束：**该缝必须带 `/graphql` 路径**。
+
+验证：`_gql_verb.py` → `verb slots called: [(37,'6310')] -> PUT`；新用例 **6/6**；
+全量 **2462/0/2/2464**；变异 **59/59 fired, tree GREEN**（2026-11-19T06:05:31+08:00）。
+
+还剩什么：① `DocumentFor` 的四个文档与镜像冻结文本是否逐字一致（未比对）；
+② `present: no` 对反射派发区间仍无效（需 root descriptor）。

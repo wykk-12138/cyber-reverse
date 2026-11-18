@@ -41717,3 +41717,30 @@ Unknown = 反射派发在 AOT 下的完整存活面（需看 `ILLink` 的 `--ver
 全量一直是绿的，因为**没有任何用例会走过那条分支**。绿是「没测到」，不是「对」。
 
 证据等级：Observation = 3/3、2456/0/2、变异收据；Inference = 无；Unknown = 无（本条已闭环）。
+## R1154 —— 3DS 的 graphql 阶段第一次被真发一次请求；动词从注释变成观测
+
+**取件**：R1153 遗留②「`ContinueAsync` 的 graphql 请求体仍靠单测假设，未被验证」。实际上**连假设都没有**：
+`where_is GqlAsync` 显示它只出现在 implementation 与 docs，**tests 组为空**。
+
+改了什么（**测试为主 + 一条取证**）：
+- **取证（动词）**：类注释说「PUT 到冻结字面量 0x147097e78，发送步 `sub_14110D670`」。
+  本轮直接反编译该发送步（88 行）→ **第 37 行调用动词槽 `sub_1408B6310`（+24 = PUT）**。
+  **PUT 从「注释里的说法」变成「本轮可重算的观测」。**
+- **新测试** `tests/Cybersole.Tests/PayPalGraphqlStageTests.cs` **6 个用例**（Theory 计 4）：
+  1. **操作名走查询串、斜杠被吃掉** → `RawUrl == "/graphql?GetThreeDsJwtQuery"`，且动词 `PUT`；
+  2. **体形状**：`{"variables":{...},"query":<DocumentFor(op)>}`；
+  3. **分派表**：200 → Ok、403/429 → Retryable、500 → 失败（参数化四例）。
+
+验证命令与输出：
+- `ida.py py _gql_verb.py` → `lines: 88 / verb slots called: [(37,'6310')] / line 37 -> PUT`。
+- 中途一次红：`Expected "/graphql?GetThreeDsJwtQuery" / Actual "/"` ——
+  **不是代码错，是我的断言读错了字段**：`TinyServer.Requests` 只记 `AbsolutePath`，
+  而我把测试缝指向了服务器根，于是操作名落在根路径的 query 上。改用 `req.RawUrl` 并把缝指向
+  `/graphql` 后转绿。**这条红提示了一个真实约束：这个缝必须带路径，否则组合会退化成根路径。**
+- `dotnet test --filter PayPalGraphqlStage` → **6/6**；全量 → **2462 通过 / 0 失败 / 2 跳过 / 2464**；
+  变异 → `ran_at 2026-11-19T06:05:31+08:00`、**59/59 fired，decorative 0，tree GREEN**。
+
+数字变化：测试 **+6**；全量 2456 → **2462**；`src` **零改动**（本轮只补钉子与取证）。
+
+证据等级：Observation = 动词槽调用行号、6/6、2462/0/2、变异收据；Inference = 无；
+Unknown = 四个 graphql 文档（`DocumentFor` 返回的长串）与镜像冻结文本是否**逐字**一致（本轮未比对）。

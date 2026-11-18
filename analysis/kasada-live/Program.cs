@@ -23,11 +23,29 @@ if (args.Contains("--browser"))
     }
 
     var browser = new ChromiumKasadaSolver();
+    // Traffic control: a checkout page pulls everything a shopper needs and nothing a sensor does. Over a
+    // metered proxy that is the whole bill, so block the categories that cannot matter.
+    var blockList = Environment.GetEnvironmentVariable("KASADA_BLOCK");
+    if (!string.IsNullOrEmpty(blockList))
+    {
+        var patterns = blockList.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var pattern in patterns) browser.BlockPatterns.Add(pattern);
+        Console.WriteLine("blocking " + patterns.Length + " pattern(s): " + string.Join(" ", patterns));
+    }
+
     var live = await browser.SolveAsync(pageUrl, TimeSpan.FromSeconds(60));
 
     // The full ordered trace: the only way to see which request actually produced the token.
     var trace = browser.LastRoundtrips;
     Console.WriteLine($"roundtrips = {trace.Count}");
+    // CDP accounts for what actually crossed the wire; summing per-request response sizes is the closest
+    // proxy for proxy traffic that a run can report about itself.
+    Console.WriteLine($"wire bytes (CDP loadingFinished) = {browser.WireBytes:N0} across {trace.Count} requests");
+    Console.WriteLine($"requests dropped locally = {browser.BlockedRequestCount}");
+    Console.WriteLine("largest responses:");
+    foreach (var (u, b) in browser.WireBreakdown.Take(12))
+        Console.WriteLine($"  {b,10:N0}  {(u.Length > 95 ? u[..95] : u)}");
+    Console.WriteLine($"blocked = {browser.BlockedPatterns.Count} pattern(s)");
     var dumpPath = Environment.GetEnvironmentVariable("KASADA_DUMP_TRACE");
     var lines = new List<string>();
     foreach (var rt in trace)
@@ -58,6 +76,30 @@ if (args.Contains("--browser"))
     Console.WriteLine($"Error   = {live.Error ?? "-"}");
     foreach (var h in live.Headers.OrderBy(k => k.Key, StringComparer.Ordinal))
         Console.WriteLine($"  {h.Key}: {(h.Value.Length > 70 ? h.Value[..70] + "…" : h.Value)}");
+
+    // The token proving anything requires a gated endpoint. cart.get is the handoff pack's main criterion.
+    var cartUrl = Environment.GetEnvironmentVariable("KASADA_CART_URL");
+    if (!string.IsNullOrEmpty(cartUrl) && live.Ok)
+    {
+        using var probeHttp = new NetClient();
+        var probeOptions = new RequestOptions { Timeout = TimeSpan.FromSeconds(20), Retries = 0 };
+        probeOptions.Headers["User-Agent"] = ChromiumBridge.DefaultUserAgent();
+        probeOptions.Headers["Referer"] = pageUrl;
+        probeOptions.Headers["Origin"] = KasadaSolver.OriginOf(pageUrl)?.TrimEnd('/') ?? "";
+        probeOptions.Headers["Accept"] = "application/json";
+        foreach (var kv in live.Headers.Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase)))
+            probeOptions.Headers[kv.Key] = kv.Value;
+
+        // Two calls: one bare, one credentialed. The difference is the only evidence the token mattered.
+        var bare = await probeHttp.GetAsync(cartUrl!, new RequestOptions
+        {
+            Timeout = TimeSpan.FromSeconds(20), Retries = 0,
+        }).ConfigureAwait(false);
+        var withToken = await probeHttp.GetAsync(cartUrl!, probeOptions).ConfigureAwait(false);
+        Console.WriteLine();
+        Console.WriteLine($"cart.get bare={bare.StatusCode}({bare.Body.Length}b) token={withToken.StatusCode}({withToken.Body.Length}b)");
+    }
+
     return live.Ok ? 0 : 2;
 }
 

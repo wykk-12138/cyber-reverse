@@ -792,6 +792,71 @@ public sealed class ChromiumBridge : IAsyncDisposable
     /// <summary>Set once the stealth script is registered; a navigation then has to wait for it to have run.</summary>
     private bool _stealthInstalled;
 
+    /// <summary>
+    /// Stop the page from loading anything except the paths in <paramref name="allowed"/>.
+    /// <para>
+    /// WHY THIS EXISTS: a checkout page pulls JavaScript, CSS, fonts, images, analytics and consent
+    /// trackers -- everything a shopper needs and nothing a sensor does. Over a metered proxy that traffic is
+    /// the whole bill, and the challenge itself only needs the sensor's own requests. Patterns are CDP URL
+    /// patterns (* wildcards); anything not matching is failed before it leaves the machine.
+    /// </para>
+    /// <para>
+    /// Requires Fetch domain interception, which is request-level: the request never reaches the network, so
+    /// it costs no proxy traffic at all.
+    /// </para>
+    /// </summary>
+    public async Task RestrictToAsync(IEnumerable<string> allowed, CancellationToken ct = default)
+    {
+        _allowedPatterns = allowed.ToList();
+        // Fetch interception would need this class to answer Fetch.requestPaused from inside its own event
+        // loop, which holds the send gate -- a deadlock. The blocked-URL list needs no per-request answer and
+        // reaches the same outcome for everything the caller did not allow.
+        var blocked = _allowedPatterns.Contains("*")
+            ? Array.Empty<string>()
+            : new[] { "*" };
+        await SendAsync("Network.setBlockedURLs", new { urls = blocked }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Block by CDP URL pattern without needing a per-request answer. This is the practical lever: the
+    /// browser drops the request itself, so it never touches the proxy.
+    /// </summary>
+    public async Task BlockAsync(IEnumerable<string> patterns, CancellationToken ct = default)
+    {
+        var list = patterns.ToList();
+        await SendAsync("Network.setBlockedURLs", new { urls = list }, ct).ConfigureAwait(false);
+        BlockedPatterns = list;
+    }
+
+    /// <summary>The patterns currently being dropped, for diagnostics.</summary>
+    public List<string> BlockedPatterns { get; private set; } = new();
+
+    private List<string>? _allowedPatterns;
+
+    /// <summary>
+    /// Bytes the page has actually pulled over the network, from CDP's own accounting. Only meaningful after
+    /// interception is on, which is the point: it is how a caller sees what a restriction saved.
+    /// </summary>
+    public long TransferredBytes { get; private set; }
+
+    /// <summary>Requests that were failed before leaving the machine.</summary>
+    public int BlockedRequests { get; private set; }
+
+    private static bool MatchesAny(string url, List<string> patterns)
+    {
+        foreach (var pattern in patterns)
+        {
+            if (pattern == "*") return true;
+            if (pattern.EndsWith("*", StringComparison.Ordinal))
+            {
+                if (url.StartsWith(pattern[..^1], StringComparison.OrdinalIgnoreCase)) return true;
+                continue;
+            }
+            if (url.Equals(pattern, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
     public async Task NavigateAsync(string url, CancellationToken ct = default)
     {
         await SendAsync("Page.navigate", new { url }, ct).ConfigureAwait(false);
@@ -885,6 +950,77 @@ public sealed class ChromiumBridge : IAsyncDisposable
     /// across requestWillBeSent and responseReceived.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Bytes the browser reports having actually received, from Network.loadingFinished. This is the number
+    /// that matters: content-length is absent on chunked responses, so summing it undercounts badly, and a
+    /// blocked request never produces a loadingFinished at all.
+    /// </summary>
+    public long WireBytes()
+    {
+        long total = 0;
+        foreach (var evt in Events)
+        {
+            if (!evt.TryGetProperty("method", out var method)) continue;
+            if (method.GetString() != "Network.loadingFinished") continue;
+            if (!evt.TryGetProperty("params", out var p)) continue;
+            if (p.TryGetProperty("encodedDataLength", out var n)) total += (long)n.GetDouble();
+        }
+        return total;
+    }
+
+    /// <summary>
+    /// Bytes per request URL, largest first. A single total says the page is expensive; this says which
+    /// requests are paying for it, which is the only thing a caller can act on.
+    /// </summary>
+    public List<(string Url, long Bytes)> WireBytesByUrl()
+    {
+        var urls = new Dictionary<string, string>(StringComparer.Ordinal);
+        var bytes = new Dictionary<string, long>(StringComparer.Ordinal);
+
+        foreach (var evt in Events)
+        {
+            if (!evt.TryGetProperty("method", out var method)) continue;
+            if (!evt.TryGetProperty("params", out var p)) continue;
+
+            var name = method.GetString();
+            if (name == "Network.requestWillBeSent")
+            {
+                if (!p.TryGetProperty("requestId", out var idEl)) continue;
+                var id = idEl.GetString();
+                if (string.IsNullOrEmpty(id)) continue;
+                if (p.TryGetProperty("request", out var req) && req.TryGetProperty("url", out var u))
+                    urls[id!] = u.GetString() ?? "";
+            }
+            else if (name == "Network.loadingFinished")
+            {
+                if (!p.TryGetProperty("requestId", out var idEl)) continue;
+                var id = idEl.GetString();
+                if (string.IsNullOrEmpty(id) || !urls.ContainsKey(id!)) continue;
+                var n = p.TryGetProperty("encodedDataLength", out var len) ? (long)len.GetDouble() : 0;
+                bytes[id!] = bytes.TryGetValue(id!, out var have) ? have + n : n;
+            }
+        }
+
+        return bytes.Select(kv => (Url: urls[kv.Key], Bytes: kv.Value))
+                    .OrderByDescending(x => x.Bytes)
+                    .ToList();
+    }
+
+    /// <summary>Requests the browser refused to send, from Network.loadingFailed with a blocked reason.</summary>
+    public int BlockedCount()
+    {
+        var n = 0;
+        foreach (var evt in Events)
+        {
+            if (!evt.TryGetProperty("method", out var method)) continue;
+            if (method.GetString() != "Network.loadingFailed") continue;
+            if (!evt.TryGetProperty("params", out var p)) continue;
+            if (p.TryGetProperty("blockedReason", out _) || p.TryGetProperty("errorText", out var err)
+                && err.GetString() is "net::ERR_BLOCKED_BY_CLIENT" or "net::ERR_FAILED") n++;
+        }
+        return n;
+    }
+
     public List<ChromiumRoundtrip> SniffRoundtrips()
     {
         var byId = new Dictionary<string, ChromiumRoundtrip>(StringComparer.Ordinal);

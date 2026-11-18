@@ -24,6 +24,26 @@ public sealed class ChromiumKasadaSolver
     public List<ChromiumRoundtrip> LastRoundtrips { get; private set; } = new();
 
     /// <summary>
+    /// URL patterns to drop before they reach the network. A checkout page is mostly things a sensor never
+    /// reads -- images, fonts, media, analytics -- and over a metered proxy those are the entire bill.
+    /// </summary>
+    public List<string> BlockPatterns { get; } = new();
+
+    /// <summary>Patterns currently in force, for diagnostics.</summary>
+    public List<string> BlockedPatterns => _bridge?.BlockedPatterns ?? new List<string>();
+
+    private ChromiumBridge? _bridge;
+
+    /// <summary>Per-URL bytes, largest first, so a caller can see what to block.</summary>
+    public List<(string Url, long Bytes)> WireBreakdown { get; private set; } = new();
+
+    /// <summary>Bytes the browser actually pulled, per CDP's own accounting.</summary>
+    public long WireBytes { get; private set; }
+
+    /// <summary>Requests dropped locally and never sent.</summary>
+    public int BlockedRequestCount { get; private set; }
+
+    /// <summary>
     /// Cookie/DOM expressions probed only after header sniffing has failed. The live Nike
     /// build exposes just <c>configure</c> and <c>isReady</c> on <c>KPSDK</c>, so these are a
     /// long shot kept for other builds — the wire is the reliable source.
@@ -93,6 +113,13 @@ public sealed class ChromiumKasadaSolver
             // Look like desktop Chrome before the first request: the UA token, the UA-CH
             // brands and navigator.webdriver are all checked before a token is issued.
             await bridge.ApplyStealthAsync(ct: ct).ConfigureAwait(false);
+
+            // Before the first request, so nothing gets pulled and then discarded: the browser drops these
+            // itself, and over a metered proxy that is the difference between a few hundred KB and several MB.
+            _bridge = bridge;
+            if (BlockPatterns.Count > 0)
+                await bridge.BlockAsync(BlockPatterns, ct).ConfigureAwait(false);
+
             await bridge.NavigateAsync(pageUrl, ct).ConfigureAwait(false);
 
             var deadline = DateTime.UtcNow + limit;
@@ -123,6 +150,9 @@ public sealed class ChromiumKasadaSolver
                 // the /mfc reply whose config decides whether the sensor interrogates at all.
                 var replies = bridge.SniffKasadaResponses();
                 LastRoundtrips = bridge.SniffRoundtrips();
+                WireBytes = bridge.WireBytes();
+                WireBreakdown = bridge.WireBytesByUrl();
+                BlockedRequestCount = bridge.BlockedCount();
                 if (sniffed.TryGetValue("x-kpsdk-ct", out var hdrCt) && hdrCt.Length > 8)
                 {
                     ctToken = hdrCt;

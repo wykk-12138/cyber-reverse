@@ -769,6 +769,18 @@ public abstract class StoreFlow
     public virtual Task<StepOutcome> GenerateCheckoutAsync(FlowContext c, CancellationToken ct)
         => GetCheckoutAsync(c, ct);
     public virtual Task<StepOutcome> SubmitEmailAsync(FlowContext c, CancellationToken ct) => Ok();
+
+    /// <summary>
+    /// The session hand-over: the client hands its basket to the checkout backend before the order
+    /// form exists. Named here because John Lewis's own step list carries it (ordinal 23) and
+    /// <see cref="Actions.StepActionRunner"/> dispatches by method name, so a store that implements
+    /// the hand-over needs a virtual to override rather than a method nothing reaches.
+    /// </summary>
+    public virtual Task<StepOutcome> WebHandOverAsync(FlowContext c, CancellationToken ct) => NotSupported("WebHandOver");
+
+    /// <summary>The image's second name for the same hand-over (ordinal 24).</summary>
+    public virtual Task<StepOutcome> SessionHandoverAsync(FlowContext c, CancellationToken ct)
+        => WebHandOverAsync(c, ct);
     public virtual Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct) => NotSupported("SubmitShipping");
     public virtual Task<StepOutcome> SubmitAddressAsync(FlowContext c, CancellationToken ct)
         => SubmitShippingAsync(c, ct);

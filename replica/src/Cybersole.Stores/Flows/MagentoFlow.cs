@@ -980,6 +980,72 @@ public sealed class JohnLewisFlow : StoreFlow
     }
 
     /// <summary>
+    /// <c>WebHandOver</c> / <c>SessionHandover</c> — the PUT to <c>v2/sessions/web/handover</c> that
+    /// hands the basket to the checkout backend. Both of the image's step names (ordinals 23 and 24)
+    /// hit this one endpoint, which is why one core serves both.
+    ///
+    /// <para>
+    /// R1130: the body's <b>shape</b> is read off <c>sub_140A410E0</c>. The three <c>time*</c> keys are
+    /// set on the inner object built from <c>unk_144DFD730</c> (variable <c>v20</c>), and then
+    /// <c>timestamps</c> is set to that very object; <c>express</c>, <c>basketId</c> and
+    /// <c>discountsInBasketUIEnabled</c> are set on the root. So:
+    /// <c>{express, basketId, discountsInBasketUIEnabled, timestamps:{timeContinueToCheckoutClicked,
+    /// timeToCheckoutSpinner, timeToReactLoaded}}</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// The <b>types</b> are not in that evidence: the machine builds <c>basketId</c> through the same
+    /// token helper the billing address uses for its strings, while the three stamps are computed
+    /// values, so this sends <c>basketId</c> as a string, the two flags as booleans and the three
+    /// stamps as numbers. That reading is an inference from how the values are produced, and it is
+    /// recorded here rather than buried, because a type that is wrong fails at the server.
+    /// </para>
+    /// </summary>
+    public override Task<StepOutcome> WebHandOverAsync(FlowContext c, CancellationToken ct)
+        => HandOverAsync(c, ct);
+
+    /// <inheritdoc/>
+    public override Task<StepOutcome> SessionHandoverAsync(FlowContext c, CancellationToken ct)
+        => HandOverAsync(c, ct);
+
+    private async Task<StepOutcome> HandOverAsync(FlowContext c, CancellationToken ct)
+    {
+        string V(string key, string fallback) =>
+            c.Session.Vars.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v) ? v! : fallback;
+
+        static long Ticks(string raw) =>
+            long.TryParse(raw, out var n) ? n : 0L;
+
+        static bool Flag(string raw) =>
+            string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase);
+
+        var body = new JObject
+        {
+            ["express"] = Flag(V("jl.express", "false")),
+            ["basketId"] = V("jl.basketId", string.Empty),
+            ["discountsInBasketUIEnabled"] = Flag(V("jl.discountsInBasketUIEnabled", "false")),
+            ["timestamps"] = new JObject
+            {
+                ["timeContinueToCheckoutClicked"] = Ticks(V("jl.timeContinueToCheckoutClicked", "0")),
+                ["timeToCheckoutSpinner"] = Ticks(V("jl.timeToCheckoutSpinner", "0")),
+                ["timeToReactLoaded"] = Ticks(V("jl.timeToReactLoaded", "0")),
+            },
+        }.ToString(Newtonsoft.Json.Formatting.None);
+
+        var url = c.Session.Vars.TryGetValue("jl.handoverUrl", out var over) && !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.SessionHandoverV2;
+
+        var res = await SendJsonAsync(c, HttpMethod.Put, url, body, "jl-handover", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl handover unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"jl handover HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.handoverBody"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
     /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
     /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>

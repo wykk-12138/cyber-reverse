@@ -40661,3 +40661,44 @@ Inference（标注，未落实现）= v4 `deliveries` 的体是前一步 GET 的
 
 还剩什么：① 先给 `HandOver` 与 `deliveries` GET 在步骤序列里找到真实位置（或确认它们由既有虚步骤承担）；
 ② v4 `deliveries` 的体来源需要追一次前一步 GET 的结果如何流入（这是推断转 Observation 的那一步）。
+
+## R1130 —— `WebHandOver`/`SessionHandover` **落地**（R1129 的阻碍被证伪：不是孤岛）
+
+**取件**：R1129 说「`WebHandOver`/`SessionHandover` 在 `StoreFlow` 无虚步骤，落实现就是孤岛」。
+
+改了什么：
+- **先证伪自己的阻碍**：读 `Actions/StepAction.cs` 的 `StepActionRunner.Build()`（L203–223）——
+  它扫 `typeof(StoreFlow)` 的 **public instance、名以 `Async` 结尾、返回 `Task<StepOutcome>`、2 参**的方法，
+  用 `m.Invoke` 建「步骤名 → 委托」表。
+  **⇒ 给 `StoreFlow` 加一个 `XxxAsync` 虚方法，步骤名 `Xxx` 立刻可派发——这不是孤岛。**
+  R1129 的结论错在：我把「没有同名虚步骤」当成了「无法接线」，而派发其实是**按方法名反射**的。
+- **加基类虚步骤**（`StoreFlow.cs`，紧随 `SubmitEmailAsync`）：
+  `WebHandOverAsync`（默认 `NotSupported("WebHandOver")`）与 `SessionHandoverAsync`（转调前者）——
+  注释写明「镜像的步骤序 23/24 两个名字打同一个端点」。
+- **落实现**（`MagentoFlow.cs`）：`JohnLewisFlow` 覆写两个名字，共用 `HandOverAsync` 核心 ——
+  PUT 到 `JohnLewisBff.SessionHandoverV2`（字面量 `0x14705d830`），body 按 R1129 的嵌套证据构造：
+  `{express, basketId, discountsInBasketUIEnabled, timestamps:{timeContinueToCheckoutClicked,
+  timeToCheckoutSpinner, timeToReactLoaded}}`，seam `jl.handoverUrl`。
+- **类型是推断，已显式标注**：镜像用与 `billing-address` 相同的 token 助手造 `basketId`（故按字符串），
+  三个时间戳是**计算值**（故按数字），两个开关按布尔。注释里写明「类型不在那条证据里，
+  这是从值的产生方式推断的，且类型错了会在服务端失败」——**没有把它伪装成 Observation**。
+
+验证命令与输出：
+- `dotnet build` → 无 error；`dotnet test --filter "JohnLewis|SourceEncodingTests|StepAction"`
+  → **`已通过! 失败 0 / 通过 46 / 总计 46`**。
+- 新增 `JohnLewisHandoverTests` **5 条**，其中 `BothStepNamesAreKnownToTheRunner` 直接断言
+  `StepActionRunner.Knows("WebHandOver")` 与 `Knows("SessionHandover")` **为真**——
+  **这条测的就是「接线是真的」**，不是测字符串。
+- 另修掉我自己写的一处**自满足断言**（先 `Replace` 再 `Contains` 替换后的子串，恒真），
+  改成断言 `"timeToReactLoaded":125` 的实值。
+
+数字变化：John Lewis 实际调用的 BFF 端点 **3 → 4**（+`session-handover` PUT，两个步骤名）；
+`StoreFlow` 可派发步骤名 **+2**；测试 **+5**。
+
+证据等级：Observation = `Build()` 的反射规则与四道过滤条件、`StoreFlowSteps.JohnLewis` 的步骤序 23/24、
+`StoreActionRunner.Knows` 两条断言通过、46/46 通过；Inference（已标注）= 三个时间戳为数字、
+两个开关为布尔（来自值的产生方式，非机器明示）。
+
+还剩什么：① `deliveries`(v4, PUT) 的体仍未定位（R1129 的负结果）——它现在**有**虚步骤 `SubmitShippingAsync`
+可挂，缺的只是体；② `deliveries/`(v4, GET) 与 `GuestCallback`(v4, PUT) 尚无虚步骤，同法可解；
+③ `payment-page` 的 PUT 半边。

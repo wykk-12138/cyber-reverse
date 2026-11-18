@@ -6020,3 +6020,22 @@ threeds 站点可一并校正既有实现。
 
 还剩什么：① 给 HandOver 与 `deliveries` GET 找到真实步骤位；② 追 v4 `deliveries` 的体数据流
 （把 Inference 转成 Observation 的那一步）。
+## R1130 —— WebHandOver/SessionHandover 落地（R1129 的「孤岛」判断被证伪）
+
+改了什么：
+- **证伪**：`StepActionRunner.Build()`（`StepAction.cs:203-223`）按**方法名反射**建派发表
+  （public instance + `*Async` + `Task<StepOutcome>` + 2 参 → `m.Invoke`）。
+  给 `StoreFlow` 加同名虚方法即可派发，**不是孤岛**。R1129 把「没有同名虚步骤」当成了「无法接线」。
+- 基类加 `WebHandOverAsync`（NotSupported）+ `SessionHandoverAsync`（转调）；
+  `JohnLewisFlow` 覆写两者 → 共用 `HandOverAsync`：PUT `0x14705d830`，
+  body `{express, basketId, discountsInBasketUIEnabled, timestamps:{三个 time*}}`，seam `jl.handoverUrl`。
+- **类型为推断并标注**（`basketId` 串、三戳数字、两开关布尔），未伪装成 Observation。
+- 新增 `JohnLewisHandoverTests` 5 条，含 `BothStepNamesAreKnownToTheRunner`（断言 `Knows` 为真）。
+  另修掉一处自满足断言。
+
+验证：build 无 error；`dotnet test --filter "JohnLewis|SourceEncodingTests|StepAction"` → **46/46 通过**。
+
+数字变化：JL 实际调用 BFF 端点 **3 → 4**；可派发步骤名 **+2**；测试 **+5**。
+
+还剩什么：① v4 `deliveries` 的体（现已有 `SubmitShippingAsync` 可挂，缺的只是体）；
+② `deliveries/` GET 与 `GuestCallback` PUT 尚无虚步骤（同法可解）；③ `payment-page` 的 PUT 半边。

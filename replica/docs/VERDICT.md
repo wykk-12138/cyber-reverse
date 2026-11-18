@@ -64487,3 +64487,30 @@ bag(v8/v11/v18) <- express / basketId / discountsInBasketUIEnabled
 
 `WebHandOver` / `SessionHandover` 在 `StoreFlow` 里**没有虚步骤**；`deliveries` 的体位置未知。
 落不被派发的方法 = 孤岛。**形状已经够下一步直接接线，缺的是「步骤序列里的位置」。**
+---
+
+## 第 1130 轮：上一轮那句「孤岛」，是我自己没查派发方式
+
+R1129 我写：`WebHandOver`/`SessionHandover` 没有虚步骤，落实现就是孤岛，所以只取证不落地。
+
+这一轮去查了**派发到底怎么做的**：`StepActionRunner.Build()` 扫 `StoreFlow` 的
+public instance / 名以 `Async` 结尾 / 返回 `Task<StepOutcome>` / 2 参 —— 用 `m.Invoke` 建表。
+
+**所以只要给 `StoreFlow` 加一个 `WebHandOverAsync`，步骤名 `WebHandOver` 立刻可派发。**
+
+> 我把「没有同名虚步骤」直接读成了「无法接线」。
+> **「没有」和「不能有」之间，隔着一个「派发是按什么找的」。**
+> 这句查一下就有答案，我却拿它当结论用了一轮。
+
+### 落了什么
+
+| | |
+|---|---|
+| 基类 | `WebHandOverAsync`（`NotSupported`）+ `SessionHandoverAsync`（转调） |
+| 实现 | `JohnLewisFlow` 覆写两者 → 共用 `HandOverAsync`：PUT 到 `0x14705d830` |
+| body | `{express, basketId, discountsInBasketUIEnabled, timestamps:{三个 time*}}`（R1129 的嵌套证据） |
+| 类型 | **推断并标注**：`basketId` 字符串（同 billing-address 的 token 助手）、三戳数字、两开关布尔 |
+
+**46/46 通过**，其中一条专门断言 `StepActionRunner.Knows("WebHandOver")` 为真 —— **测的是接线本身。**
+
+顺手修掉我自己写的一处**自满足断言**（先 `Replace` 再 `Contains` 替换后的串，恒真）。

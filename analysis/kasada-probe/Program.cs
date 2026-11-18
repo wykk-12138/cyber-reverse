@@ -1,4 +1,4 @@
-// WHY THIS EXISTS: the xUnit project is shared with other sessions and can be mid-edit; this harness
+﻿// WHY THIS EXISTS: the xUnit project is shared with other sessions and can be mid-edit; this harness
 // references only Cybersole.Stores so the Kasada payload can be run and probed independently.
 //
 // It runs the INSTRUMENTED copy of the payload (analysis/instrument_payload.py) so every dispatch is
@@ -42,7 +42,7 @@ if (config is not null)
 
     // The interesting part: what did configure actually execute?
     var slice = runtime.TryString(
-        $"JSON.stringify((window.__dshSeq||[]).slice({before}, {after}).slice(0, 400))") ?? "[]";
+        $"JSON.stringify((window.__dshSeq||[]).slice({before}, {after}).slice(0, 1200))") ?? "[]";
     File.WriteAllText(@"D:\projects\cyber-reverse\.tmp-cfgseq.json", slice);
     Console.WriteLine("configure opcode slice written to .tmp-cfgseq.json");
     // configure may hand its follow-up work to a timer/promise; a browser would run those after the

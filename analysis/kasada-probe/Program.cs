@@ -1,9 +1,12 @@
-// WHY THIS EXISTS: the xUnit project is temporarily unbuildable (another session is mid-edit on
-// PayPalThreeDs: StageInput.Payload was removed and its test not yet updated). This harness references
-// only Cybersole.Stores, so the Kasada payload can still be executed and inspected.
+// WHY THIS EXISTS: the xUnit project is shared with other sessions and can be mid-edit; this harness
+// references only Cybersole.Stores so the Kasada payload can be run and probed independently.
 //
-// What it answers: what the sensor actually exposes after a full run (the real `KPSDK` surface),
-// which DOM events it wires and fires, and whether it ever reaches its ready state.
+// The payload's literal table says `configure` takes `{ endpoints: [{domain, path, method, ...}] }` and
+// that the SDK waits for a host-supplied configuration before interrogation. This harness feeds one
+// candidate configuration per run (one runtime = one `configure` call, the SDK refuses a second) and
+// reports what changes: requests, lifecycle events, readiness, cookies.
+//
+// Usage: dotnet run --project kasada-probe.csproj -- '<config-json>'   (omit for no configuration)
 using Cybersole.Stores.Scripts;
 
 var fixture = @"D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\fixtures\nike-p.js";
@@ -13,71 +16,83 @@ if (!File.Exists(fixture))
     return 1;
 }
 
+// PowerShell strips double quotes when passing arguments to a native exe, which silently turned
+// "path":"/tl" into path:/tl and made the parser read /tl as a regex. Base64 sidesteps quoting entirely.
+var config = args.Length > 0
+    ? (args[0].StartsWith("b64:", StringComparison.Ordinal)
+        ? System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(args[0].Substring(4)))
+        : args[0])
+    : null;
 var script = File.ReadAllText(fixture);
-using var solver = new KasadaSolver(new BrowserShim());
-var executed = solver.Runtime.TryExecute(script, out var error);
 
-Console.WriteLine($"executed = {executed}");
-Console.WriteLine($"error    = {error}");
-Console.WriteLine($"offset   = {solver.Runtime.LastErrorColumn}");
+// Raised limits on purpose: with a real endpoint the call throws a JS-uncatchable exception, which in
+// Jint usually means a statement/time/memory limit rather than a bug in the payload.
+using var runtime = new ScriptRuntime(new BrowserShim(), TimeSpan.FromMinutes(3), 512L << 20);
+var executed = runtime.TryExecute(script, out var error);
+var solver = new { Runtime = runtime };
+
+Console.WriteLine($"executed = {executed}  error = {error ?? "-"}");
+Console.WriteLine($"surface  = {solver.Runtime.TryString("JSON.stringify(Object.keys(window.KPSDK||{}))")}");
+
+if (config is not null)
+{
+    // `configure` is one-shot: a second call reports "KPSDK has already been configured", so each
+    // candidate gets a fresh runtime and this is the only call made.
+    // TryExecute surfaces the C#-level exception text; TryString swallows it, and the interesting
+    // failures here are Jint exceptions JavaScript cannot catch.
+    var cfgOk = solver.Runtime.TryExecute("window.KPSDK.configure(" + config + ");", out var cfgErr);
+    Console.WriteLine($"configure ok={cfgOk} err={cfgErr ?? "-"} runtimeError={solver.Runtime.LastErrorWasRuntime}");
+
+
+    var ran = solver.Runtime.RunPendingTimers();
+
+    // isReady.length === 0: it is a boolean getter, not a callback registrar. Ask it, do not hand it a fn.
+    Console.WriteLine($"isReady()= {solver.Runtime.TryString("""
+        (function () {
+          var out = { value: null, type: 'unknown' };
+          try { var r = window.KPSDK.isReady(); out.type = typeof r; out.value = String(r); }
+          catch (e) { out.err = String((e && e.message) || e).slice(0, 160); }
+          return JSON.stringify(out);
+        })()
+        """)}");
+    Console.WriteLine($"timers   = {ran} drained, {solver.Runtime.TryString("(window.__dshTimers||[]).length")} left");
+    Console.WriteLine($"requests = {solver.Runtime.TryString("JSON.stringify(window.__dshRequests||[])")}");
+    Console.WriteLine($"events   = {solver.Runtime.TryString("JSON.stringify(window.__dshDocDispatched||[])")}");
+    Console.WriteLine($"cookie   = {solver.Runtime.TryString("document.cookie")}");
+}
+else
+{
+    Console.WriteLine("(no configuration supplied)");
+    Console.WriteLine($"events   = {solver.Runtime.TryString("JSON.stringify(window.__dshDocDispatched||[])")}");
+    Console.WriteLine($"requests = {solver.Runtime.TryString("JSON.stringify(window.__dshRequests||[])")}");
+}
+
 Console.WriteLine();
-
-Console.WriteLine("KPSDK surface:");
+Console.WriteLine("=== KPSDK deep introspection ===");
 Console.WriteLine(solver.Runtime.TryString("""
     (function () {
-      var k = window.KPSDK || window._KPSDK || window.kpsdk;
-      var out = { found: !!k, keys: [], probes: {} };
-      if (!k) {
-        out.kpsdkish = [];
-        for (var g in window) if (String(g).toLowerCase().indexOf('kpsdk') >= 0) out.kpsdkish.push(String(g));
-        return JSON.stringify(out);
-      }
-      for (var p in k) out.keys.push(String(p) + ':' + typeof k[p]);
-      var names = ['ct','cd','sb','sbds','token','clientToken','getCt','getCd','v','version','state'];
-      for (var i = 0; i < names.length; i++) {
-        var n = names[i];
-        if (typeof k[n] === 'function') {
-          try { var r = k[n](); out.probes[n] = (r === undefined ? 'undef' : typeof r + ':' + String(r).slice(0, 40)); }
-          catch (e) { out.probes[n] = 'threw'; }
-        } else if (k[n] !== undefined) {
-          out.probes[n] = typeof k[n];
-        }
-      }
-      return JSON.stringify(out);
-    })()
-    """) ?? "(null)");
-Console.WriteLine();
-
-Console.WriteLine("doc events registered = " + (solver.Runtime.TryString("JSON.stringify(Object.keys(window.__dshDocEvents||{}))") ?? "[]"));
-Console.WriteLine("doc dispatch log      = " + (solver.Runtime.TryString("JSON.stringify(window.__dshDocDispatched||[])") ?? "[]"));
-Console.WriteLine("pending timers        = " + (solver.Runtime.TryString("(window.__dshTimers||[]).length") ?? "0"));
-Console.WriteLine("document.cookie       = " + (solver.Runtime.TryString("document.cookie") ?? ""));
-Console.WriteLine("__dshCaptured         = " + (solver.Runtime.TryString("JSON.stringify(window.__dshCaptured||{})") ?? "{}"));
-Console.WriteLine();
-
-Console.WriteLine("isReady(cb) fires?");
-Console.WriteLine(solver.Runtime.TryString("""
-    (function () {
-      var out = { fired: false };
+      var k = window.KPSDK;
+      var out = { own: Object.getOwnPropertyNames(k), syms: [], nested: {} };
       try {
-        window.KPSDK.isReady(function () { out.fired = true; });
-      } catch (e) { out.err = String((e && e.message) || e).slice(0, 60); }
-      return JSON.stringify(out);
+        var syms = Object.getOwnPropertySymbols ? Object.getOwnPropertySymbols(k) : [];
+        for (var i = 0; i < syms.length; i++) out.syms.push(String(syms[i]));
+      } catch (e) { }
+      for (var j = 0; j < out.own.length; j++) {
+        var n = out.own[j];
+        try {
+          var v = k[n];
+          if (v && typeof v === 'object') {
+            var keys = Object.getOwnPropertyNames(v);
+            var flat = {};
+            for (var m = 0; m < keys.length && m < 40; m++) flat[keys[m]] = typeof v[keys[m]];
+            out.nested[n] = flat;
+          }
+        } catch (e2) { out.nested[n] = 'threw'; }
+      }
+      out.configureLen = k.configure.length;
+      out.isReadyLen = k.isReady.length;
+      out.configureName = k.configure.name;
+      return JSON.stringify(out, null, 1).slice(0, 2500);
     })()
     """) ?? "(null)");
-
-Console.WriteLine();
-Console.WriteLine("=== network requests the payload made ===");
-Console.WriteLine(solver.Runtime.TryString("JSON.stringify(window.__dshRequests||[], null, 1)") ?? "[]");
-Console.WriteLine();
-Console.WriteLine("=== KPSDK.configure source ===");
-Console.WriteLine(solver.Runtime.TryString("String(window.KPSDK.configure)") ?? "(null)");
-Console.WriteLine();
-Console.WriteLine("=== KPSDK.isReady source ===");
-Console.WriteLine(solver.Runtime.TryString("String(window.KPSDK.isReady)") ?? "(null)");
-Console.WriteLine();
-Console.WriteLine("=== decoded literal table (full) ===");
-var dec = solver.Runtime.DecodedStrings;
-File.WriteAllText(@"D:\projects\cyber-reverse\.tmp-literals.txt", dec);
-Console.WriteLine("length=" + dec.Length + " written to .tmp-literals.txt");
 return 0;

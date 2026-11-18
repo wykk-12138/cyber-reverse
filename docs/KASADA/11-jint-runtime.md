@@ -739,6 +739,85 @@ workTime  serverTime  clientTime  seqNum  timestamp  validUntil  duration
 **顺带注意定时器的语义**：我们把定时器在脚本结束后一次性排空，
 所以那条「20 秒等 iframe」的超时会**立刻**触发而不是等 20 秒。诊断时不要把它当成真实现象。
 
+### 5.30 一个把自己坑了三次的坑：PowerShell 会吃掉双引号
+
+把配置当命令行参数传给探针时，PowerShell 对原生 exe **会剥掉双引号**：
+
+```
+传 {"endpoints":[{"domain":"www.nike.com","path":"/tl","method":"POST"}]}
+到 →  {endpoints:[{domain:www.nike.com,path:/tl,method:POST}]}
+```
+
+于是 `path:/tl` 里的 `/tl` 被当成**正则表达式开头**，Jint 报
+`Invalid regular expression: missing / (payload:1:62)`。
+
+**在这个坑里浪费了三次试验**：早先看到「`configure({})` 返回 ok、`{endpoints:[…]}` 无声失败」，
+其实**全都是被剥引号之后的假象**。现在改成 base64 传参：
+
+```powershell
+$b64 = "b64:" + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
+dotnet exec bin\Debug\net8.0\kasada-probe.dll $b64
+```
+
+**教训**：拿 JSON 当 CLI 参数喂给脚本引擎时，先确认到达引擎的字节和你想的一样。
+
+### 5.31 合法 endpoints 被静默接受，然后什么都不做 [实测]
+
+用 base64 保证引号完整后重测：
+
+| 配置 | configure | isReady | requests | events |
+|---|---|---|---|---|
+| `{"endpoints":[{"domain":"www.nike.com","path":"/tl","method":"POST"}]}` | ok | 未触发 | `[]` | `["kpsdk-load"]` |
+| 同上但 `method:"*"` | ok | 未触发 | `[]` | `["kpsdk-load"]` |
+| `{"endpoints":[{"domain":"*","path":"/*","method":"*"}],"verbose":true}` | ok | 未触发 | `[]` | `["kpsdk-load"]` |
+
+**三种都被接受（不报 schema 错），但没有任何后续动作** —— 不发请求、不派发新事件、不进入 ready。
+
+而 schema 校验是**真的在工作**的：早先 `{"endpoints":[{"domain":"www.nike.com"}]}`（缺 `path`）
+确实抛了错。**所以「接受」不是「忽略」，而是「接受了但没触发 interrogation」。**
+
+### 5.32 这意味着 `configure` 不是唯一的入口
+
+`configure` 通过 schema 校验却什么都不启动，说明还差一步 —— 候选：
+
+1. **它还要求别的键**（`dynamicConfig` / `featureFlags` / `remoteConfig` / `siteId` 之类，
+   字面量表里都有），缺了就走「等 iframe」那条静默路径
+2. **调用时机**：真页面上 `KPSDK` 是**页面先放的 stub**，`p.js` 加载后**重放队列**。
+   我们是「跑完 p.js 再 configure」，顺序可能不对
+3. **`configure` 需要一个回调参数**（两个形参，`isReady` 一个）
+
+**要继续往下，最省力的路是把真页面拿到手**：Nike 首页 HTML 里那段 `KPSDK.configure(...)`
+或等价的 loader 脚本，直接照抄 —— 比猜 schema 快得多，也是唯一能保证「和真浏览器一致」的办法。
+
+**本轮到此为止**：`configure` 的方向没错，但凭字面量拼配置拼不出来。
+
+### 5.33 更正一个我读错的地方：`isReady` 是取值函数，不是回调注册
+
+上一轮和这一轮我都写过「`isReady(cb)` 的回调没触发」—— **那是用法错了**。内省出来：
+
+```
+Object.getOwnPropertyNames(KPSDK) = ["configure", "isReady"]
+KPSDK.configure.length = 1
+KPSDK.isReady.length   = 0        ← 它不接受参数
+KPSDK.configure.name   = "bound "  ← 都是 bind 过的函数
+Object.getOwnPropertySymbols(KPSDK) = []
+KPSDK 上没有嵌套对象（nested = {}）
+```
+
+**`isReady()` 是布尔取值函数**，问它「好了没」，而不是「好了叫我」。实测：
+
+```
+configure({"endpoints":[{domain:"www.nike.com", path:"/tl", method:"POST"}]})  → ok
+KPSDK.isReady()                                                              → false
+requests                                                                     → []
+```
+
+**所以「回调没触发」这个观察是假的** —— 它本来就不注册回调。真实结论只有一句：
+**配了合法 endpoints 之后，`isReady()` 仍然是 `false`。**
+
+同时 `configure.name === "bound "` 说明这两个都是 `Function.bind` 的产物 ——
+和 opcode 41（`new (Function.bind.apply(v,i))`）对得上，是 payload 自己生成的导出面。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

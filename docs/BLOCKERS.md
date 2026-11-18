@@ -38538,3 +38538,45 @@ python analysis/ida.py str "Solving PayPal 3DS" --limit 600
 - Farfetch 7 条进入「凭据受阻」B 类 —— 与 PopMart 7 条 POST body 同类，恢复条件 = 原版登录凭据
   （connect/app 配置捕获）。
 - 变异套件 staleness 仍在（本轮又改了三个受测文件）—— 队列第 5 项待跑。
+
+## R1078 —— 【核心②·支付挑战层】PayPal 3DS 阶段 1 反编译落地：graphql PUT + 双方言头墙 + 200/403/429 分发
+
+**取件**：队列②第 1 件（PayPal 3DS 双路径状态机，入口已定位）。
+
+改了什么：
+- 新增 `Cybersole.Stores/Payments/PayPalThreeDs.cs`（可执行运行时代码，无台账类）：
+  - 常量：GraphqlUrl = `https://www.paypal.com/graphql/`（0x147097e78）、
+    AppName = `checkoutuinodeweb_hermione`（0x146fc7338）、双状态文案（0x146E93FA8 / 0x146E4A918，
+    原版 'Proccesing' 拼写保留）、StageTimeoutMs = 30000（+236）、四态机枚举。
+  - NormalHeaders / HostedHeaders：两堵头墙逐头复刻（普通 16 头带 sec-fetch 族与 en-GB/gzip,deflate；
+    Hosted 17 头带 x-requested-with:fetch / x-locale:en_US / x-country / priority 且 x-app-name/referer
+    取自 ctx，en-US/gzip,deflate,br,zstd；双方言大小写差异原样保留；原版手钉的 content-length:0 与
+    null cookie 按传输层等价语义省略并注释）。
+  - SubmitAsync：white/StatusInfo 墙注册、30 秒预算、PUT 到 graphql、载荷由前一阶段供给、
+    状态分发 200→Success(body) / 403+429→共享 Retry / 其余→Failed。
+  - RunAsync：四态机，Submit 解码落地，停在已解码边界并以 Pending 命名八个已定位未解码函数。
+- 新钉测 `PayPalThreeDsTests`（9 用例：双方言头墙逐值、状态文案拼写、冻结常量、
+  TinyServer 驱动的 200/403/429/500 分发 + PUT/路径/载荷观测 + 墙注册、状态机停点命名八函数）。
+- 生成器模板 `payment_challenges.py`：REPLICA_MARKERS 增 PayPalThreeDs；§三 追加 R1078 契约与
+  九阶段函数地图；§五「没有一处实现」更新为分半状态。重生成 PAYMENT_CHALLENGES.md。
+
+验证命令与输出：
+- 取证链：`dec 0x141102970` / `dec 0x141105A80`（孪生构建器）→ xrefs 唯一/相邻引用 →
+  `sub_14110D670`（URL 常量 + `sub_1408B6310` = +24 槽 PUT + 载荷 a1[2]）→ `names_at` 43 常量全解码 →
+  py_eval 一次打九阶段 obj 引用地图。
+- Hosted 全 solver `sub_141113680`（15,615 B，394 块，**switch 11 cases**）—— 11 态 MoveNext 机体确认。
+- `dotnet test --filter "PayPalThreeDs|Payment|Wall" -m:1` → **78/78 绿**。
+- `payment_challenges.py` → control ok=True, stages=9, **markers absent 1/5**（仅 StripeChallenge）。
+
+数字变化：复刻件侧支付标记缺失 2/4 → **1/5**（PayPal 侧从缺失到阶段 1 落地；Stripe 侧仍缺）。
+
+证据等级：
+- Observation：URL 字面量、两堵头墙全部头名/头值、30 秒预算、200/403/429 分发注册、
+  white/StatusInfo 墙、状态文案与 ctx+144 选择器、九阶段→函数地图、Hosted solver 11-case 机体。
+- Inference：载荷由前一阶段供给（send 步读 a1[2] 状态字段）；ctx+144 布尔的业务名 ChallengeActive；
+  verb 槽 +24 = PUT（与 Nike 面的 61E0/63B0/6310 三槽对照）。
+
+还剩什么：
+- 队列② 下一步：Stripe 挑战六步（入口 `sub_140BE31F0` 1,017 B）；PayPal 阶段 2–8 逐个反编译
+  （函数已定位，每条一记 dec）；sec-ch-ua/platform 生成器 `sub_140F9A950`/`sub_140F9BCE0`（队列③指纹面）。
+- 变异 staleness 连续三轮自报 —— 队列第 5 项待跑。

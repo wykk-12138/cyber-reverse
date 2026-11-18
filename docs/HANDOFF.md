@@ -4973,3 +4973,33 @@ python analysis/ida.py str "Solving PayPal 3DS" --limit 600
 - 队列① 占位余量：Bstn 4（待 YG 拍板）+ Nike 2（归队列②支付）；Farfetch 7 进「凭据受阻」B 类
   （恢复条件 = 原版登录凭据，connect/app 配置捕获）。
 - 变异 staleness 仍在（本轮又改三个受测文件）—— 队列第 5 项。
+
+## R1078 —— 【核心②·支付挑战层】PayPal 3DS 阶段 1 反编译落地：graphql PUT + 双方言头墙 + 200/403/429 分发
+
+**取件**：队列②第 1 件（PayPal 3DS 双路径状态机）。
+
+改了什么：
+- 新增 `Cybersole.Stores/Payments/PayPalThreeDs.cs`（可执行运行时代码）：GraphqlUrl
+  （0x147097e78）、AppName `checkoutuinodeweb_hermione`、双状态文案（'Proccesing' 原版拼写保留）、
+  30 秒预算（+236）、四态机；NormalHeaders/HostedHeaders 两堵头墙逐头复刻（普通 16 头带
+  sec-fetch 族，Hosted 17 头带 x-requested-with/x-locale/x-country/priority 且 x-app-name/referer
+  取自 ctx）；SubmitAsync = 墙注册 + PUT + 200→Success / 403+429→共享 Retry / 其余→Failed；
+  RunAsync 停在已解码边界并以 Pending 命名八个已定位函数。
+- 新钉测 `PayPalThreeDsTests` 9 用例（含 TinyServer 驱动的分发/PUT/墙观测）。
+- 生成器模板 `payment_challenges.py` 更新（markers + §三契约与九阶段地图 + §五分半叙述），
+  重生成 PAYMENT_CHALLENGES.md。
+
+验证命令与输出：
+- 取证链：`dec sub_141102970`/`sub_141105A80`（孪生）→ `sub_14110D670`（URL + `sub_1408B6310`
+  +24 槽 PUT）→ `names_at` 43 常量 → py_eval 九阶段引用地图；Hosted 全 solver `sub_141113680`
+  （15,615 B，**switch 11 cases**）。
+- `dotnet test --filter "PayPalThreeDs|Payment|Wall" -m:1` → **78/78 绿**；
+  `payment_challenges.py` → **markers absent 1/5**（仅 StripeChallenge）。
+
+数字变化：复刻件侧支付标记缺失 2/4 → **1/5**（PayPal 阶段 1 落地；Stripe 仍缺）。
+
+证据等级：Observation = URL/头墙/预算/分发注册/墙文案/九阶段地图/11-case 机体；Inference = 载荷由
+前一阶段供给、ChallengeActive 业务名、+24 槽 = PUT（三槽对照）。
+
+还剩什么：Stripe 六步（`sub_140BE31F0`）；PayPal 阶段 2–8 逐个反编译；sec-ch-ua 生成器（队列③指纹面）；
+变异 staleness 三轮自报待清。

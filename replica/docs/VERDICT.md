@@ -62708,3 +62708,41 @@ R48「14 步逐步写入同一资源」读对了资源、读错了机制。
 > **「生成物不要手改」不是形式要求 —— 违反它，惩罚一轮内就到。** R1076 把结案注记写进
 > CORE_COVERAGE 的 §二，本轮开头一次 `metrics_report` regen 原样洗掉。正确载体是生成器模板：
 > 文档的真相要活在生成它的代码里，否则每次重生都是一次遗忘。
+
+---
+
+## 第 1078 轮：PayPal 3DS 阶段 1 反编译落地 —— 支付挑战层的第一个真实实现
+
+### 一、目标面定音
+
+`'Solving PayPal 3DS'`（obj 0x146e93fa8）全库仅两个引用者：**孪生构建器** `sub_141102970`
+（普通，927 B）/ `sub_141105A80`（Hosted，1,047 B）。send 步 `sub_14110D670` 把 URL 钉在冻结串
+**`https://www.paypal.com/graphql/`**（0x147097e78）并以 `sub_1408B6310`（+24 槽）= **PUT** 发送。
+Hosted 全 solver `sub_141113680`（15,615 B）是 **11-case 状态机** —— 九条分期文案的运行时载体。
+
+### 二、头墙契约（names_at 43 常量全解码）
+
+PayPal 自己的 web 客户端指纹：`x-app-name: checkoutuinodeweb_hermione`、`x-paypal-internal-euat`
+（普通 ctx[2] / Hosted ctx[3]）、`paypal-client-metadata-id`、`origin/referer = www.paypal.com`、
+`sec-fetch-site/mode/dest = same-origin/cors/empty`、30 秒预算、white/StatusInfo 墙、
+状态文案按 ctx+144 选 `'Solving PayPal 3DS'` / `'Proccesing 3D Secure'`（原版拼写保留）、
+**200 → 成功续体，403 与 429 → 共享重试闭包**。Hosted 方言：+x-requested-with:fetch / x-locale:en_US /
+x-country / priority:u=1, i，x-app-name/referer 改取上下文，编码与语言方言不同（br,zstd / en-US）。
+
+### 三、落地与数字
+
+`PayPalThreeDs.cs`（双方言头墙 + PUT + 分发 + 四态机停在已解码边界）+ `PayPalThreeDsTests` 9 用例
+（TinyServer 观测 PUT/路径/载荷/墙）→ **78/78 绿**。生成器模板 `payment_challenges.py` 更新后
+**markers absent 1/5**（仅 StripeChallenge）——「这一层不存在」的缺口从 PayPal 侧闭合。
+
+| 度量 | R1077 | **R1078** |
+|---|---|---|
+| 支付标记缺失 | 2/4 | **1/5（仅 Stripe）** |
+| PayPal 3DS | 仅名字被引用 | **阶段 1 双路径可执行** |
+| 九阶段 | 仅分期文案 | **函数地图 + 阶段 1 落地** |
+
+### 教训
+
+> **两个 builder 差一个字段名时，别合并成一个「带开关的」表** —— 普通/Hosted 是两堵不同的墙
+> （sec-fetch 族 vs x-requested-with 族、en-GB vs en-US、大小写都不同），按原样逐头复刻、
+> 用测试钉死差异，比抽象一个「公共 + 开关」更能保住 1:1。

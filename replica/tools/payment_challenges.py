@@ -40,7 +40,7 @@ PROBES = [
 ]
 
 # The replica's payment layer, checked rather than asserted.
-REPLICA_MARKERS = ["PayPal3DS", "StripeChallenge", "Submit3DS", "CreateStripePaymentMethod"]
+REPLICA_MARKERS = ["PayPal3DS", "PayPalThreeDs", "StripeChallenge", "Submit3DS", "CreateStripePaymentMethod"]
 
 
 def probe(pattern, limit=600):
@@ -132,6 +132,20 @@ def main():
         " 而 PayPal 侧有两个 solver 体：`<SolvePayPal3DS>` 与 `<SolvePayPalHosted3DS>` ——" +
         " **普通 3DS 与 Hosted 3DS 是两条路**，不是一条。")
     add("")
+    add("**→ R1078 反编译落地了阶段 1（两条路）**：目标是冻结字面量 **`https://www.paypal.com/graphql/`**" +
+        "（0x147097e78，send 步 `sub_14110D670` 以 `sub_1408B6310` 的 +24 槽 = **PUT** 发送）；" +
+        "头墙是 PayPal 自己的 web 客户端指纹 —— `x-app-name: checkoutuinodeweb_hermione`（0x146fc7338）、" +
+        "`x-paypal-internal-euat`、`paypal-client-metadata-id`、`sec-fetch-site/mode/dest = same-origin/cors/empty`、" +
+        " `origin/referer = https://www.paypal.com`；Hosted 方言另带 `x-requested-with: fetch`、`x-locale: en_US`、" +
+        " `x-country`、`priority: u=1, i` 且 x-app-name/referer 取自上下文。预算 30 秒（+236=30000），" +
+        "注册 white/StatusInfo 墙，状态分发 **200 → 成功续体，403 与 429 → 共享重试闭包**。" +
+        "状态文案按 ctx+144 布尔选 `Solving PayPal 3DS` 或 `Proccesing 3D Secure`（原版拼写保留）。")
+    add("")
+    add("**→ 九个阶段的函数地图（每条一记反编译即可结案）**：(1) `sub_141102970`/`sub_141105A80`（已落地）；" +
+        "(2) `sub_141103410` + `sub_141107DA0` + `sub_141108170`；(2.1) `sub_141103800`；" +
+        "(3) `sub_141103BF0`/`sub_141105EF0`；(4) `sub_1411090C0`；(5) `sub_141109550`；" +
+        "(6) `sub_141109910`/`sub_141109CF0`；(7) `sub_14110A080`；(8) `sub_141106360`。")
+    add("")
     add("## 四、Stripe")
     add("")
     add("| 名字 | 命中 | 首条地址 |")
@@ -157,10 +171,10 @@ def main():
         "`CreateStripePaymentMethod` 出现在步骤映射表与 `RetailFlows`（flow 的步骤名）。" +
         "两者都是**这个名字被提到**，不是支付挑战被执行 —— 与 R1042 那条「有文案不等于有 solver」同族。")
     add("")
-    add("**→ 所以这两个缺口「为什么未覆盖」的答案是**：" +
-        "镜像把两条支付挑战写全了（9 条分期、4 态机、两个 PayPal solver、Stripe 六步），" +
-        "而本工作里**没有一处实现它们**：`StripeChallenge` 与 `Submit3DS` 连名字都没有，" +
-        "另两个只在别处被引用。")
+    add("**→ R1078 后这两行的答案分半**：PayPal 侧**阶段 1 已落地**为可执行实现" +
+        "（`PayPalThreeDs.cs`：双方言头墙、PUT、30 秒预算、200/403/429 分发、四态机停在已解码边界），" +
+        "阶段 2–8 的八个函数体已定位、每条一记反编译即可结案；" +
+        "Stripe 侧（`StripeChallenge` 与六步流程）**仍未实现** —— 队列②的下一件。")
     add("")
     add("## 六、边界")
     add("")

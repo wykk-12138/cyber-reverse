@@ -1602,6 +1602,57 @@ Version = VersionProvider?.Invoke()
 
 **Kasada + profile 用例现在 82 例全绿。**
 
+### 5.74 两个解算器类到底是什么关系：**不是 desktop/mobile 之分**
+
+上轮留的问题是「第二个类（`d__32`–`d__35`）是 mobile 专用，还是另一种站点构型」。
+把整张 Kasada 符号表拉出来之后，答案很清楚：
+
+**三个 Handler 类型：**
+
+```
+0x143334518   KasadaHandler
+0x143334b22   KasadaMobileHandler
+0x143321dfa   KasadaCdSolver          ← cd 有专门的解算器
+```
+
+**两个状态机块的差异（关键）：**
+
+| 块 | 方法 | 有没有 `GetMfc` |
+|---|---|---|
+| `0x14345a632` / `0x14345a681` | `<HandleResponse>d__46` `<GetScript>d__47` `<GetKasada>d__48` **`<GetMfc>d__49`** `<GetWorkTime>d__50` | **有** |
+| `0x14345abb1` | `<HandleResponse>d__32` `<GetScript>d__33` `<GetKasada>d__34` `<GetWorkTime>d__35` | **没有** |
+
+**而 `IsMobile` / `MfcEnabled` / `VersionProvider` 三个属性和它们的 BackingField
+（`0x14345a7e8` / `0x14345a802` / `0x14345a811` / `0x14345aaee`）落在第一块里。**
+
+⇒ **第一块是「带远程配置能力、可切 desktop/mobile」的完整 handler；
+第二块是一个更简的 handler，干脆没有 `/mfc` 这一步。**
+
+**所以第二个类不是"mobile 版"，而是"不需要远程配置的站点版"。**
+**复刻件不需要拆成两个类** —— 一个 `KasadaSolver` 加 `IsMobile` + `MfcEnabled` 就能表达两者，
+这正好和 §5.70「payload 本身设备无关」对上：差别在配置，不在脚本，也不在类。
+
+### 5.75 顺带查到两件之前没记账的事
+
+**（1）`cd` 有独立解算器**：`KasadaCdSolver`（`0x143321dfa`）。
+`08-cd.md` 花了一整篇追 `cd` 的来源，原来原版把它做成了**独立组件**，不是主解算器里的一步。
+
+**（2）`x-kpsdk-v` 的版本号是 per-store 配置键**，一共 7 个：
+
+```
+0x146b9ec2c  Converse-Kasada-Version
+0x146ba9d64  Crocs-EU-Kasada-Version
+0x146ba9eec  Crocs-JP-Kasada-Version
+0x146baa03c  Crocs-Kasada-Version
+0x146d93f64  Footsites-Kasada-Version
+0x146e1779c  Nike-Kasada-Version
+0x146e7a4d4  Scheels-Kasada-Version
+```
+
+**这和 §5.72 的 `VersionProvider` 是一回事**：原版给每个站单独存 Kasada 版本号，
+因为各站部署的传感器版本不同（Nike 现在是 `j-1.2.988`）。
+复刻件目前只有 `VersionProvider` 这个钩子，**没有 per-store 的取值表** —— 这是一个明确的待补项。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

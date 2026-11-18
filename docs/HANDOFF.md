@@ -5985,3 +5985,21 @@ threeds 站点可一并校正既有实现。
 
 还剩什么：其余 10 条 BFF 端点**动词已确证、请求体未知**，故未实现（不编体）；
 `payment-page` 的 PUT 那一半需单独步骤承接。
+## R1128 —— 两个 POST 的体形状读出（含嵌套）；billing-address 落地
+
+改了什么：
+- 新方法：反编译 + 自动解码冻结字符串（`analysis/_bff_body_ida.py`，IDA 内 `ida_hexrays`+`ida_bytes`）。
+  一次拿全：billing-address 9 键 + URL、deliveries/details 4 键 + URL。
+- **再读伪代码定嵌套**：`addressee`←{firstName,lastName}、`address`←{addressLine1,townOrCity,postcode,countryCode}、
+  `phoneNumber` 在根；`deliveries` 是**单元素数组**包 `{deliveryId, fulfilment:{fulfilmentOfferId}}`。
+- 落 `JohnLewisFlow.SubmitBillingAddressAsync`（基类 `StoreFlow.cs:780` 虚步骤，此前无重写）：
+  POST 到 `BillingAddressV1`（字面量 0x14705d600）、三层 `JObject`、seam `jl.billingAddressUrl`、基类四键照写。
+  值来源如实标注（4 个由 `Address` 映射，3 个取自 session 变量）。
+- 新增 `JohnLewisBillingAddressTests` 4 条（**断嵌套**）。
+
+验证：`build` 无 error（修 `Formatting` 全限定）；`dotnet test` 三类 → **20/20 通过**。
+
+数字变化：覆写者 **0 → 1**；JL 实际调用 BFF 端点 **2 → 3**；测试 **+4**。
+
+还剩什么：`deliveries/details` **形状已读出但未落**（基类无对应虚步骤，落则成孤岛）；
+其余 8 条 BFF 端点的体；`payment-page` 的 PUT 半边。

@@ -64416,3 +64416,40 @@ still unexplained: 40
 `payment-page` 的 **PUT 那一半** —— **动词已确证，请求体未知**。
 
 **动词是白的，体不是。** 有了动词就编一个 JSON 体出来，是这四轮里我一直在躲的那件事。
+---
+
+## 第 1128 轮：键名只是门票，**嵌套**才是门里的东西
+
+上一轮我说那 10 条「动词是白的，体不是」。这一轮把体挖出来了，**并且发现光有键名会做错**。
+
+### 一、键名（一次调用拿全）
+
+| 端点 | 键 |
+|---|---|
+| `POST billing-address` | `firstName` `lastName` `addressee` `addressLine1` `townOrCity` `postcode` `countryCode` `address` `phoneNumber` |
+| `POST deliveries/details` | `deliveryId` `fulfilmentOfferId` `fulfilment` `deliveries` |
+
+### 二、嵌套（关键）
+
+键名给你 9 个词，**不告诉你谁装在谁里面**。读伪代码里 `sub_141FD2660(bag,&key,value)` 的调用顺序：
+
+`
+addressee  <- { firstName, lastName }
+address    <- { addressLine1, townOrCity, postcode, countryCode }
+phoneNumber 直接挂根
+`
+
+而 `deliveries` 那边：`deliveryId` 与内层 `fulfilmentOfferId` 先合成一个对象，装进**单元素数组**，
+数组才挂到 `deliveries`。
+
+> **只看键名会做出一个扁平的 9 字段对象，而且它「看起来完全合理」。**
+> 上一轮我拒绝猜体是对的，但**这一轮差点在拿到键名之后立刻猜结构**。
+> **同一个字段名在「根上」和「内层」是完全不同的两个请求。**
+
+### 三、落了什么
+
+`SubmitBillingAddressAsync` 覆写（基类有虚步骤、此前**全仓无重写**）：POST 到镜像字面量
+`0x14705d600`，body 按三层 `JObject` 构造，seam `jl.billingAddressUrl`，基类四键照写。
+**20/20 通过**（4 新 + 4 + 12）。
+
+`deliveries/details` **没落**：形状已读出，但基类没有对应虚步骤——落了就是孤岛。**形状记在账上，接线时直接用。**

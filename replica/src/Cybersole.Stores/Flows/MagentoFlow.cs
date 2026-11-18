@@ -913,6 +913,73 @@ public sealed class JohnLewisFlow : StoreFlow
     }
 
     /// <summary>
+    /// <c>SubmitBillingAddress</c> — the POST to <c>v1/orderforms/payments/billing-address</c>.
+    ///
+    /// <para>
+    /// R1128: the body's shape is <b>read off the machine</b>, not assumed. In <c>sub_140A424B0</c> the
+    /// key order is: a nested object built with <c>firstName</c> + <c>lastName</c> is stored under
+    /// <c>addressee</c>; a second nested object built with <c>addressLine1</c> + <c>townOrCity</c> +
+    /// <c>postcode</c> + <c>countryCode</c> is stored under <c>address</c>; then <c>phoneNumber</c> goes
+    /// on the root. So the request is
+    /// <c>{"addressee":{firstName,lastName},"address":{addressLine1,townOrCity,postcode,countryCode},"phoneNumber":…}</c>
+    /// — <b>not</b> a flat object, which is what the key list alone would suggest.
+    /// </para>
+    ///
+    /// <para>
+    /// The values come from the task's own address (the image reads its profile object; the fields that
+    /// map one-to-one are taken from the address, the three with no counterpart there come from session
+    /// vars so the caller decides). The step still records the base class's four session keys.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitBillingAddressAsync(FlowContext c, CancellationToken ct)
+    {
+        var bill = c.Billing ?? c.Shipping;
+        if (bill is null) return StepOutcome.Fail("jl: no billing address to submit");
+
+        string V(string key, string? fallback) =>
+            c.Session.Vars.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v)
+                ? v!
+                : (fallback ?? string.Empty);
+
+        var addressee = new JObject
+        {
+            ["firstName"] = V("jl.firstName", null),
+            ["lastName"] = V("jl.lastName", null),
+        };
+        var address = new JObject
+        {
+            ["addressLine1"] = V("jl.addressLine1", bill.Address1),
+            ["townOrCity"] = V("jl.townOrCity", bill.City),
+            ["postcode"] = V("jl.postcode", bill.ZipCode),
+            ["countryCode"] = V("jl.countryCode", bill.Country),
+        };
+        var body = new JObject
+        {
+            ["addressee"] = addressee,
+            ["address"] = address,
+            ["phoneNumber"] = V("jl.phoneNumber", null),
+        }.ToString(Newtonsoft.Json.Formatting.None);
+
+        var url = c.Session.Vars.TryGetValue("jl.billingAddressUrl", out var over) &&
+                  !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.BillingAddressV1;
+
+        var res = await SendJsonAsync(c, HttpMethod.Post, url, body, "jl-billing-address", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl billing address unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl billing address HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.billingAddressBody"] = res.Body;
+        c.Session.Vars["billing.address1"] = bill.Address1 ?? string.Empty;
+        c.Session.Vars["billing.city"] = bill.City ?? string.Empty;
+        c.Session.Vars["billing.zip"] = bill.ZipCode ?? string.Empty;
+        c.Session.Vars["billing.country"] = bill.Country ?? string.Empty;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
     /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
     /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>

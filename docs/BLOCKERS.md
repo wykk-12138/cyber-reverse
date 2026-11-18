@@ -40565,3 +40565,54 @@ R1126 的站点/动词表、16/16 通过；Inference = 无（本轮每处改动�
 还剩什么：① 其余 **10 条** BFF 端点仍只声明未调用，其中 `billing-address`(POST)、
 `deliveries/details`(POST)、`deliveries`(PUT)、`deliveries/`(GET)、`payment-page`(**PUT 那一半**) 的
 **请求体**尚未取证——动词已确证、体未知，故未实现；② `payment-page` 的 PUT 这一半需单独一个步骤承接。
+
+## R1128 —— 两个 POST 的**请求体形状**从机器读出（含嵌套），billing-address 落地
+
+**取件**：R1127 明确「动词已确证、请求体未知」的那 10 条里的两个 POST。
+
+改了什么：
+- **新方法：反编译函数 + 自动解码其引用的冻结字符串**（`analysis/_bff_body_ida.py`，
+  在 IDA 内用 `ida_hexrays.decompile` + `ida_bytes`，按 `[MT:8][len:4][UTF-16]` 解码，
+  只打印可打印载荷）。一次调用拿到两个 POST 的全部键：
+  - `sub_140A424B0`（billing-address）：`firstName` `lastName` `addressee` `addressLine1`
+    `townOrCity` `postcode` `countryCode` `address` `phoneNumber`
+  - `sub_140A428D0`（deliveries/details）：`deliveryId` `fulfilmentOfferId` `fulfilment` `deliveries`
+- **再读伪代码定嵌套（关键一步）**：建对象用 `sub_14130D9B0`（根）／`sub_143028C10(&unk_144DFD730)`（子对象）
+  ＋ `sub_141FD2660(bag, &key, value)`（设键）。按调用顺序可读出**挂载关系**：
+  - billing-address：`firstName`+`lastName` → 挂在 **`addressee`**；`addressLine1`+`townOrCity`+
+    `postcode`+`countryCode` → 挂在 **`address`**；`phoneNumber` 直接在根。
+    **⇒ `{ "addressee": {…}, "address": {…}, "phoneNumber": … }`，不是扁平对象。**
+  - deliveries/details：`deliveryId` 与内层 `fulfilmentOfferId`（挂在 **`fulfilment`**）合成一个元素，
+    再装进**单元素数组**（`sub_141FD0AA0(v10,&v19)` 且 `LODWORD(v20)=1`），数组挂在 **`deliveries`**。
+    **⇒ `{ "deliveries": [ { "deliveryId": …, "fulfilment": { "fulfilmentOfferId": … } } ] }`。**
+- **落实现**：`JohnLewisFlow.SubmitBillingAddressAsync` 覆写（基类 `StoreFlow.cs:780` 有虚步骤，
+  **全仓此前无任何重写**）——POST 到 `JohnLewisBff.BillingAddressV1`（字面量 `0x14705d600`），
+  body **按上述嵌套**构造（`JObject` 三层），seam `jl.billingAddressUrl`，
+  同时仍写基类四个 session 键（`billing.address1`/`city`/`zip`/`country`）。
+- **值来源如实标注**：`addressLine1`/`townOrCity`/`postcode`/`countryCode` 由 `Address` 一一对应；
+  `firstName`/`lastName`/`phoneNumber` 在 `Address` 上无对应字段，**取自 session 变量**（由调用方决定），
+  已在方法注释里写明——镜像从它自己的 profile 对象取，映射不了一一对应。
+
+验证命令与输出：
+- `ida.py py "exec(..._bff_body_ida.py)"` → 两函数的 `distinct frozen strings` 分别为 **10** 与 **5**，
+  逐条打印（地址＋原文），见上。
+- `ida.py py "exec(..._bff_body_dump.py)"` → 两函数完整伪代码（首轮 4055 / 2694 字符），
+  嵌套关系从 `sub_141FD2660` 的调用顺序直接读出。
+- `dotnet build` → 无 error（修掉一处 `Formatting` 未导入，改全限定）；
+  `dotnet test --filter "JohnLewisBillingAddressTests|JohnLewisPaymentPageTests|JohnLewisStripeStepTests"`
+  → **`已通过! 失败 0 / 通过 20 / 总计 20`**。
+- 新增 `tests/Cybersole.Tests/JohnLewisBillingAddressTests.cs` 4 条：**断嵌套**（`"addressee":{"firstName"…`）、
+  基类四键、无地址则停、常量等于镜像字面量。
+
+数字变化：`SubmitBillingAddressAsync` 覆写者 **0 → 1**；John Lewis 实际调用的 BFF 端点 **2 → 3**
+（`payments` PUT、`payment-page` GET、`billing-address` POST）。测试 **+4**。
+
+证据等级：Observation = 两函数的冻结字符串全集与其地址、伪代码里的建对象/设键调用顺序、
+20/20 通过；Inference = 无（结构由调用顺序直接给出；值来源的映射差异已显式声明）。
+**未实现**：`deliveries/details` 的 POST——形状已读出，但基类**没有**与之对应的虚步骤
+（`StoreFlow` 里查无 `SubmitDeliveryMethodAsync`），落实现就得造一个不被派发的方法，
+故本轮止步于此并记下形状，供接线时直接用。
+
+还剩什么：① `deliveries/details` 需要先有一条真实的步骤序列位（否则就是孤岛）；
+② 其余 8 条 BFF 端点的体（`deliveries` PUT、`deliveries/` GET、`payment-page` 的 PUT 半边等）；
+③ `payment-page` 的 PUT 半边现在有 PUT 的站点地址可单独取证。

@@ -41642,3 +41642,50 @@ Unknown = 哪个流程本应列出 `Process3DS`（`StepAction.cs:114` 的 `Steps
 - 支付/3DS/流程审计子集：**119/119**。
 - 变异：`ran_at 2026-11-19T05:28:07`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`。
 - 产物：AOT 发布 **exit=0**；`artifact_freshness` 应在下一轮重测（本轮发布后未再跑）。
+## R1152 —— 步骤挂错了：解析该在 `ProcessPayment`，不在 `Process3DS`
+
+**取件**：R1151 的遗留「`StepAction.cs:114` 那个 `Steps` 属于哪个 action」。
+
+改了什么（**有可执行代码**）：
+- **答案**：那是 **`Adyen-Authorize3DS2`**（`Steps = { SubmitPayment, ThreeDS, Handle3DS, Process3DS }`）。
+  而 **`StepAction` 里 PayPal 注册项 = 0** —— `Process3DS` 只属于 Adyen 的动作。
+- **流程自己的步骤顺序给了正确落点**（`StoreFlowSteps.cs` L184–188 / L211–216，带镜像 ordinal）：
+  `SubmitPayment 44 → GetPayPalToken 45 → SubmitPayPal 46 → **ProcessPayment 47**`（另一流程 48–51 同序）。
+  ⇒ **PayPal 挑战的解析该挂在 `ProcessPayment`，我 R1151 挂在了 Adyen 的 `Process3DS` 上。**
+- **改正**：把 R1151 的整块从 `Process3DSAsync` **移走**（该分支恢复原样、一字未动），
+  改放进 `ProcessPaymentAsync` 的 `requires_action`/`pending` 分支：条件仍是
+  `paypal3ds.state == Waiting3DS`，取 `PaymentGatewayRegistry.Default.Resolve(gateway)` 调
+  `CompleteActionAsync(c, threeDsPayload, ct)`。
+
+验证命令与输出：
+- `dotnet build` → **exit=0**；`dotnet test --filter "Payment|Flow|ThreeDs"` → **235/235 通过**；
+  全量 **2453 通过 / 0 失败 / 2 跳过**；变异 **59/59 fired（见收据）**。
+- `dotnet publish -p:PublishAot=true` → exit=0；随后产物探针**仍然 `no`**（详见下）。
+
+### 产物这次给的不是「你挂错了」，而是「这个尺子有边界」
+
+| 探针 | 结果 |
+|---|---|
+| `PayPalGateway` / `PaymentGatewayRegistry` / `PayPalThreeDs`（类型名） | **yes** |
+| `paypal3ds.state` | **no** |
+| `payment requires action` | **yes** |
+| `login did not stick` | **no** |
+| `3DS rejected by issuer` | **no** |
+
+`payment requires action` 活着、`login did not stick` 死掉——**两者都在 `StoreFlow` 的步骤方法里**。
+同一个类、同样的可达性，结果不同 ⇒ **裁剪是按方法逐个发生的，不是按类**。
+
+因由**几乎肯定是反射**：`StepActionRunner.Build()` 靠 `typeof(StoreFlow)` 上反射找 `*Async` 方法，
+**ILLink 看不见反射目标**，于是没有被静态引用的步骤方法被整段删掉。
+
+**这直接修正了我 R1150/R1151 的一个过度自信**：
+> `present: no` **只在「静态可达」这个范围内**是「未接线」的证据。
+> 对**反射派发**的代码，它既不证明没接线，也不证明没实现——**它是一个测不到的区间。**
+
+证据等级：Observation = 上表六条探针、`235/235`、`2453/0/2`、build/publish exit=0；
+Inference = 「反射是裁剪动因」（由「同类两个方法一活一死」反推，未直接读 ILLink 日志）；
+Unknown = 反射派发在 AOT 下的完整存活面（需看 `ILLink` 的 `--verbose` 或加 `TrimmerRootDescriptor` 才能定）。
+
+还剩什么（下一轮的直接入口）：① 若要产物能证明步骤接线，需要给 `StoreFlow` 加
+`[DynamicallyAccessedMembers]` 或 root descriptor——**这是让尺子有效的先决条件**；
+② 在尺子有效之前，**不要再拿 `present: no` 当作未接线的结论**。

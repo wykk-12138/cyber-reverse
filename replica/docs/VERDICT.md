@@ -65247,3 +65247,41 @@ sub_141DC7B80(&v216, &off_147163128);
 
 **下一轮入口**：`StepAction.cs:114` 的 `Steps = { SubmitPayment, ThreeDS, Handle3DS, Process3DS }`
 属于哪个 action、谁触发它；若无人执行，就从镜像 `sub_141113680` 的四态机找回入口。
+---
+
+## 第 1152 轮：步骤挂错了——而产物顺手告诉我，**这把握尺子有测不到的区间**
+
+R1151 我把 PayPal 解析挂到了 `Process3DS`，产物不认。这一轮查清：
+
+`StepAction.cs:114` 的 `Steps = { SubmitPayment, ThreeDS, Handle3DS, Process3DS }` 属于
+**`Adyen-Authorize3DS2`**；而 **`StepAction` 里 PayPal 注册项 = 0**。
+流程自己的顺序（带镜像 ordinal）是：
+`SubmitPayment 44 → GetPayPalToken 45 → SubmitPayPal 46 → **ProcessPayment 47**`。
+
+**⇒ 解析该挂 `ProcessPayment`。我上一轮挂错了步骤。** 已改正（Adyen 分支恢复原样）。
+
+### 然后是这轮真正的收获
+
+改对之后产物**仍然说 
+o**。但同一批探针里：
+
+| 探针 | 结果 |
+|---|---|
+| `payment requires action`（在 `ProcessPaymentAsync`） | **yes** |
+| `login did not stick`（在 `HandleLoginAsync`） | **no** |
+
+**同一个类、同样在步骤方法里，一活一死。**
+
+因由几乎肯定是**反射**：`StepActionRunner.Build()` 反射找 `*Async`，**ILLink 看不见反射目标**，
+于是没被静态引用的步骤方法整段被删。
+
+> **这修正了我两轮的过度自信。**
+> `present: no` **只在「静态可达」范围内**是「未接线」的证据；
+> 对反射派发的代码，它是**测不到的区间**——既不证明没接，也不证明没实现。
+
+**下一轮先决条件**：给 `StoreFlow` 加 `[DynamicallyAccessedMembers]` 或 root descriptor，
+**先让尺子有效**；在那之前，不再拿 `present: no` 当结论。
+
+### 收数
+
+全量 **2453 / 0 / 2**；支付子集 **235/235**；变异 **59/59 fired，tree GREEN，staleness 0**。

@@ -6390,3 +6390,19 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：① `StepAction.cs:114` 的 `Steps` 属于哪个 action、谁触发；
 ② 若无人执行，从 `sub_141113680` 四态机找回入口。
+## R1152 —— 解析移入 ProcessPayment（StepAction 无 PayPal 动作）；产物探针对反射派发无效
+
+改了什么：
+- **R1151 挂错步骤**：`Steps={SubmitPayment,ThreeDS,Handle3DS,Process3DS}` 属 **`Adyen-Authorize3DS2`**；
+  `StepAction` 里 **0 个 PayPal 注册项**。流程 ordinal 顺序为
+  `SubmitPayment 44 → GetPayPalToken 45 → SubmitPayPal 46 → ProcessPayment 47`。
+- **移块**：R1151 的解析块从 `Process3DSAsync` 移到 `ProcessPaymentAsync` 的 `requires_action` 分支；
+  `Process3DSAsync` 恢复原样。
+- **产物结论（重要）**：`payment requires action` **yes** 而 `login did not stick` **no** ——
+  同类同形态一活一死 ⇒ **裁剪按方法逐个发生**，因由是 `StepActionRunner` 的**反射派发**（ILLink 看不见）。
+  ⇒ **`present: no` 只对静态可达代码有效；反射派发区间测不到。**
+
+验证：build **0 错**；支付/流程子集 **235/235**；全量 **2453/0/2**；变异 **59/59 fired**；AOT 发布 exit=0。
+
+还剩什么：① 加 `[DynamicallyAccessedMembers]` / root descriptor 让产物尺子对步骤方法有效；
+② 在那之前不要把 `present: no` 当未接线结论；③ 3DS 解析链的真实运行验证需靠单测（已 235/235）。

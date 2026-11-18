@@ -1,0 +1,5 @@
+login did not stick
+3DS challenge with no gateway to resolve it
+payment requires action
+3DS rejected by issuer
+login credentials missing

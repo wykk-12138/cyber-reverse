@@ -57,7 +57,14 @@ public sealed class BindingGapRatchetTests
 
         _out.WriteLine($"{types} types, {members} members");
         Assert.True(types >= 174);
-        Assert.True(members >= 819);
+        // R1112: the floor drops 819 -> 814 because five of those members were artifacts. A markup
+        // extension or converter sits in a descriptor's FIRST position as the binding helper and
+        // never as the owner, so the property recorded against it belongs to the owner. Measured
+        // over 2,474 descriptor pairs: the four Localize*Extension types appear only in the first
+        // position (15 occurrences) and never in the owner position. The generator now records them
+        // with no members (analysis/_xaml_bindings.py), and this ratchet follows the corrected
+        // inventory rather than the inflated one.
+        Assert.True(members >= 814);
     }
 
     private static (int Noise, int Real, List<string> Missing) Measure()

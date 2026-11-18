@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-18 17:05:32 +0800 |
+| 生成时间 | 2026-11-18 17:34:48 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,32 +14,32 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 26 个源文件比产物新（共 18322 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 27 个源文件比产物新（共 18800 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
 | 指标 | 值 |
 |---|---|
-| 名字级绑定缺口 — real gap | 4 |
-| 名字级绑定缺口 — missing | 16 |
+| 名字级绑定缺口 — real gap | 2 |
+| 名字级绑定缺口 — missing | 14 |
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
 | 成员形状差异 — total mismatches | 94 |
 | 成员形状差异 — core mismatches | 17 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
-| 绑定缺口分桶 — backlog: types absent | 4 |
+| 绑定缺口分桶 — backlog: types absent | 2 |
 | 原版绑定描述符表 — descriptor entries | 951 |
 | 原版绑定描述符表 — descriptor types | 215 |
-| 原版绑定描述符表 — only in descriptors | 132 |
+| 原版绑定描述符表 — only in descriptors | 137 |
 | 原版绑定描述符表 — only in xaml table | 0 |
 | 数据文件名对照 — datafiles: original-on-disk not in replica | 0 |
 | 数据文件名对照 — datafiles: replica-only | 2 |
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 174,293 |
 | 函数数量（.pdata） — functions: ratio | 62.89% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 26 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 18322 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 27 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 18800 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 359 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -72,14 +72,12 @@ C:\Python312\python.exe tools/bind_diff.py --buckets
 `exit 0`
 
 ```text
-scope: whole-source   types: 174   members: 819
-missing: 16
+scope: whole-source   types: 174   members: 814
+missing: 14
 
 noise (HasMultiple_NN): 12
-real gap              : 4
+real gap              : 2
 
-  Ui.Localization.LocalizeFormatExtension             1  Value2
-  Ui.Localization.LocalizeSwitchExtension             1  Condition
   Ui.Views.Auth.AuthWindow                            1  Logout
   Ui.Views.Auth.LicenseControl                        1  Authenticate
 ```
@@ -117,10 +115,10 @@ type presence: 174 declared in bindings, 159 present in source, 15 absent
   ABSENT  Cybersole.Models.Concurrency               (members: Maximum, Mode, Ratio)
   ABSENT  Cybersole.Services.ImapProvider            (members: Host, MessageCount, Status, Username)
   ABSENT  Cybersole.SmartActions.ActionConfig        (members: Name, Required)
-  ABSENT  Cybersole.Ui.Localization.LocalizeEnumExtension (members: Value)
-  ABSENT  Cybersole.Ui.Localization.LocalizeFallbackExtension (members: Value)
-  ABSENT  Cybersole.Ui.Localization.LocalizeFormatExtension (members: Value, Value2)
-  ABSENT  Cybersole.Ui.Localization.LocalizeSwitchExtension (members: Condition)
+  ABSENT  Cybersole.Ui.Localization.LocalizeEnumExtension (members: )
+  ABSENT  Cybersole.Ui.Localization.LocalizeFallbackExtension (members: )
+  ABSENT  Cybersole.Ui.Localization.LocalizeFormatExtension (members: )
+  ABSENT  Cybersole.Ui.Localization.LocalizeSwitchExtension (members: )
   ABSENT  Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView (members: Add, Close)
   ABSENT  Cybersole.Ui.Views.Auth.AuthWindow         (members: Exit, Logout, Minimise)
   ABSENT  Cybersole.Ui.Views.Auth.LicenseControl     (members: Authenticate, Dashboard, Refresh)
@@ -294,9 +292,7 @@ C:\Python312\python.exe tools/backlog_report.py
 ```text
 classes that EXIST in the replica but miss members: 0 -> 0 members
 
-types that DO NOT exist (structural): 4 -> 4 members
-  LocalizeSwitchExtension          Condition
-  LocalizeFormatExtension          Value2
+types that DO NOT exist (structural): 2 -> 2 members
   AuthWindow                       Logout
   LicenseControl                   Authenticate
 ```
@@ -314,9 +310,9 @@ C:\Python312\python.exe tools/descriptor_report.py
 descriptor entries      : 951
 descriptor types        : 215
 entries with a setter   : 687
-xaml table entries      : 819
-shared                  : 819
-only in descriptors     : 132
+xaml table entries      : 814
+shared                  : 814
+only in descriptors     : 137
 only in xaml table      : 0
 ```
 
@@ -372,9 +368,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 22:30:56
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-18 17:03:14)
-source files newer than the artifact: 26
-lines in those files: 18322
+newest source: src\Cybersole.Stores\Scripts\KasadaHttpHandshake.cs (2026-11-18 17:33:35)
+source files newer than the artifact: 27
+lines in those files: 18800
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -551,7 +547,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-fired: 59
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
-  mutation-fit-tree: GREEN
+  mutation-fit-tree: RED
   mutation-fit-staleness: 0 -- no exercised file's content differs from the run
 
   Every mutation fired, none was decorative and none was skipped at the time of that run.

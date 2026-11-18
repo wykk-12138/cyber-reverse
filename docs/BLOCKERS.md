@@ -39865,3 +39865,49 @@ owner 位 0 个应用 Extension、80+ 消费方清点、两个守卫类通过；
 
 还剩什么：`xaml_bindings.json` 的转换器位修复（专用轮 + ≥3 GB 窗口，全链重生成后跑全量守卫）；
 两条 `Localize*` 需元数据侧成员集；判据 (b)(c)(d)(f) 逐项复算。
+
+## R1112 —— 【判据 a】转换器位真实修复：`xaml_bindings.json` 修正（819 → 814 成员），ratchet 按证据下调
+
+**这是 R1111 只定案不动手的那件事，本轮在 4.9 GB 内存窗口内完成了。**
+
+改了什么：
+- **生成器修复**（`analysis/_xaml_bindings.py` L6–15）：标记扩展/转换器在描述符里坐**第一组**是
+  绑定助手、从不是 owner，第二组的属性属于 owner。新增一条：
+  `typ` 短名以 `Extension`/`Converter` 结尾时 → **建立类型键但不记成员**（`types[typ]`）。
+  **是「记零成员」而不是剔除**——剔除去会把真实缺席一起藏起来。
+- **重生成 `replica/docs/xaml_bindings.json`**：类型 **174 不变**，成员 **819 → 814**；
+  逐条 diff 显示**只有那 4 个转换器条目变化**（`LocalizeSwitch/Format/Enum/FallbackExtension`
+  各自的 `['Condition']` / `['Value','Value2']` / `['Value']` / `['Value']` → `[]`），
+  **其余 170 个条目一字未动**。
+- **重生成 `docs/TYPE_RENAME_MAP.md`**：39 段移除、16 段保留。其中 **4 段是我的修复**，
+  **35 段是既有陈旧**（那些类型早已实现，不再是 absent）。抽查验证：`AycdInboxAccount`
+  已有 `src/Cybersole.Core/Models/AycdInboxAccount.cs`，故移除其段落是**正确刷新**，
+  不是藏缺席。
+- **ratchet 按证据下调**：`BindingGapRatchetTests` 的成员下限 `>= 819` → **`>= 814`**，
+  注释写明这 5 条本就是伪影、附 2,474 描述符对的实测依据。**这是有证据的下调，不是削弱断言。**
+
+验证命令与输出：
+- 生成器运行输出：`bound Cybersole types: 174` / `bound members: 1447`（去重前口径）。
+- 新旧表对账：**old (174, 819) / new (174, 814)**；`guard needs: types >= 174, members >= 819`
+  → 正是这次失败的原因，**先量清楚再改**。
+- `BindingGapRatchetTests` **3/3 绿**；**全量守卫 GREEN：2396 通过 / 0 失败 / 2 跳过 / 2398**（2m22s）。
+- **崩溃单列**：修好 ratchet 前的那次全量跑在 2224 通过后 testhost 崩溃（内存压力），
+  另有一次构建被残留 testhost(216348) 锁住导致跑的是旧 dll——两者均不计入结论，
+  等锁重建后重跑取得上述 GREEN。
+
+数字变化：`xaml_bindings.json` 成员 **819 → 814**（伪影 5 条剔除）；类型 174 不变；
+`TYPE_RENAME_MAP.md` 段落 55 → 16（39 段 = 4 修复 + 35 既有陈旧）。
+
+证据等级：Observation = 生成器改动、逐条 diff（只有 4 条变）、old/new 计数、ratchet 失败原因、
+`AycdInboxAccount` 的实现存在性、ratchet 3/3、全量 2396/0/2 与两次崩溃/锁的记录；
+Inference = 35 段陈旧的全部逐条核对（只抽查了 1 条）。
+
+还剩什么：变异套件重跑（改了测试文件，收据 manifest 已旧）——**本轮已在后台启动并在提交前收数**；
+35 段陈旧类型的逐条确认；两条 `Localize*` 的元数据侧成员集；判据 (b)(c)(d)(f)。
+
+**变异套件（提交前收数）**：收据 `ran_at 2026-11-18T17:34:36`、
+`total 59 / fired 59 / decorative 0 / skipped 0`、`staleness 0`；
+但其 `tree` 字段为 **RED 而自带计数是「失败 0 / 通过 2246 / 跳过 2 / 总计 2248」**
+——**总数 2248 ≠ 独立全量的 2398**，即那次还原验证**只跑了部分用例**、进程非零退出。
+按 AGENTS.md §2.6 记作**「跑不全」而非「红」**；整树权威判定用本轮独立全量
+**2396 通过 / 0 失败 / 2 跳过（2m22s）**。

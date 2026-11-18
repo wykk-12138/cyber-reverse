@@ -107,3 +107,83 @@ POST {dir}/tl   body=0 bytes  ->  200，正文 0 字节
   所以"中间 ct 能过宽松端点"这条只在交接包里有，我没复现。
 - **没有拿到任何成功的 `/tl` 回合**，所以 CD 相关的结论全部来自交接包文档，不是实测。
 - 只测了 US 站点，没测 CA。
+
+---
+
+## 8. 对 Arc 跑了一次 payload（Jint）—— 交接包那条结论复现了，机制也找到了
+
+交接包 §6 说"纯引擎（Node/jsdom/Jint）在 Arc 上过不了"。**我用复刻件的 Jint 路对 Arc 跑了一遍，
+结论一致，而且找到了为什么。**
+
+### 8.1 跑的过程
+
+`analysis/kasada-live` 打 `https://arcteryx.com/us/en/checkout`：
+
+```
+page status = 200  body = 78,346 字符
+script url  = https://arcteryx.com/{u1}/{u2}/p.js
+script      = 154,827 字符
+
+GET …/mfc -> 200  bodyLen=0
+Ok          = False
+Ct          = (null)
+Error       = no kasada client token exposed by the script
+```
+
+**只发了 `/mfc`，没有 `/tl`。** 和 Nike 上的行为一模一样（`11-jint-runtime.md` §5.110）。
+
+### 8.2 换版本也不行
+
+| build | Version 读到 | 发 `/tl` |
+|---|---|---|
+| `j-1.2.904`（交接包见过） | j-1.2.904 | **N** |
+| `j-1.2.797`（交接包也见过） | j-1.2.797 | **N** |
+
+### 8.3 找到机制：`/mfc` 根本不下发挑战参数
+
+交接包 §2 记的成功采集 fc 是：
+
+```json
+{"dynamicConfig":{"frontend":{"cryptoChallenge":{"currentParameters":
+  {"difficulty":77,"subchallengeCount":4,"seedSuffix":"melt-u-bot"}},"logLevel":40}}}
+```
+
+**带 `cryptoChallenge`。** 而我们拿到的 fc 是：
+
+```json
+{"featureFlags":{},"dynamicConfig":{"frontend":{"logLevel":40}}}
+```
+
+**没有 `cryptoChallenge`。** 四种打法都是这个：
+
+| 打法 | fc 里有 cryptoChallenge 吗 |
+|---|---|
+| `h=01`，无 ct | ✗ |
+| `h=01` + `/fp` 的 ct | ✗ |
+| 全套 `sec-fetch-*` + `accept-language` + `referer` + `origin` + ct + cookie | ✗ |
+| 换 build 到 1.2.904 / 1.2.797 | ✗ |
+
+**⇒ 服务端不给挑战参数，payload 就没有挑战可解，自然不发 `/tl`。**
+
+**这就把"纯引擎过不了"从一句经验变成了一个可复现的机制：**
+不是引擎算不动，是**服务端依据指纹决定给不给题目**；给了题才有密文，
+有密文才能换到 `/tl` 响应头里那个可用 ct。
+
+### 8.4 与 Nike 的对照
+
+| | Nike | Arc |
+|---|---|---|
+| `/mfc` 的 fc | `{"featureFlags":{},"dynamicConfig":{"frontend":{"logLevel":50}}}` | `{"featureFlags":{},"dynamicConfig":{"frontend":{"logLevel":40}}}` |
+| 有 `cryptoChallenge` 吗 | 无 | **真浏览器下才有** |
+| payload 行为 | 只发 `/mfc` | 只发 `/mfc` |
+| 纯 HTTP 能拿可用 ct 吗 | 能（虽然 Nike 上没有需要它的门） | **不能** |
+
+**两边的 payload 行为一样，差别在服务端：Nike 直接把可用 token 放在 `/fp`，
+Arc 要求先解题。**
+
+### 8.5 这轮不能证明的
+
+- **没跑过 Node/jsdom**，只跑了 Jint。交接包说两者都过不了，我只验证了 Jint 这一侧。
+- **没观察到真浏览器下发的 fc** —— 那是交接包里的记录，我没有在浏览器里抓一次对照。
+- **没试过伪造 `cryptoChallenge`**：即使把那份参数塞进 fc 交给 payload，
+  解出来的密文服务端也不会认（挑战是服务端签的）。这条是推断，没有实测。

@@ -127,6 +127,8 @@ Console.WriteLine("--- running the payload with that resource address ---");
 
 solver.ResourceAddress = resource;
 solver.Store = "nike";
+var forcedBuild = Environment.GetEnvironmentVariable("KASADA_BUILD");
+if (!string.IsNullOrEmpty(forcedBuild)) solver.VersionProvider = () => forcedBuild;
 
 // Walk the handshake first, exactly as the browser does, then hand the answers to the sensor instead of
 // letting it ask for them. This mirrors what the original does (docs/KASADA/11 section 10).
@@ -234,6 +236,8 @@ using var solveSolver = new KasadaSolver(new BrowserShim
 
 // The preset lives on the solver that actually runs the payload, not the one used for fetching.
 foreach (var kv in solver.PresetResponses) solveSolver.PresetResponses[kv.Key] = kv.Value;
+// The build override has to reach the instance that actually runs, same as the presets.
+if (solver.VersionProvider is not null) solveSolver.VersionProvider = solver.VersionProvider;
 
 var result = await Task.Run(() => solveSolver.Solve(script));
 solver.ResourceAddress = resource;

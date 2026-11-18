@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using Jint;
 using Jint.Native;
 using Jint.Runtime;
@@ -31,11 +32,70 @@ public sealed class ScriptRuntime : IDisposable
         _engine.SetValue("__dshUuid", new Func<string>(BrowserShim.Uuid));
         _engine.SetValue("__dshBtoa", new Func<string, string>(BrowserShim.Btoa));
         _engine.SetValue("__dshAtob", new Func<string, string>(BrowserShim.Atob));
+        // crypto.subtle needs a real digest: the payload's own literal table contains "sha256", and
+        // a browser only exposes `subtle` in a secure context, which is exactly the trap noted in
+        // the Kasada dossier. Answering with a stub would be worse than answering with nothing,
+        // because the payload would carry a wrong hash into its token instead of failing loudly.
+        _engine.SetValue("__dshDigest", new Func<string, int[], int[]>(Digest));
+        _engine.SetValue("__dshHmac", new Func<string, int[], int[], int[]>(Hmac));
 
         _engine.Execute(Shim.BuildPrelude());
     }
 
     public void Execute(string js) => _engine.Execute(js);
+
+    private static byte[] AsBytes(int[] data)
+    {
+        var bytes = new byte[data.Length];
+        for (var i = 0; i < data.Length; i++) bytes[i] = (byte)(data[i] & 0xFF);
+        return bytes;
+    }
+
+    private static int[] AsInts(byte[] data)
+    {
+        var ints = new int[data.Length];
+        for (var i = 0; i < data.Length; i++) ints[i] = data[i];
+        return ints;
+    }
+
+    private static HashAlgorithmName ParseHash(string algorithm)
+    {
+        var a = algorithm.Replace("-", string.Empty).ToUpperInvariant();
+        return a switch
+        {
+            "SHA1" => HashAlgorithmName.SHA1,
+            "SHA256" => HashAlgorithmName.SHA256,
+            "SHA384" => HashAlgorithmName.SHA384,
+            "SHA512" => HashAlgorithmName.SHA512,
+            _ => throw new NotSupportedException("unsupported digest: " + algorithm),
+        };
+    }
+
+    private static int[] Digest(string algorithm, int[] data)
+        => AsInts(HashData(ParseHash(algorithm), AsBytes(data)));
+
+    private static int[] Hmac(string algorithm, int[] key, int[] data)
+        => AsInts(HmacData(ParseHash(algorithm), AsBytes(key), AsBytes(data)));
+
+    // The polymorphic HashAlgorithm.HashData only exists from .NET 9; the concrete types have had
+    // their own static one since .NET 5/6, so dispatch by name.
+    private static byte[] HashData(HashAlgorithmName name, byte[] data) => name.Name switch
+    {
+        "SHA1" => SHA1.HashData(data),
+        "SHA256" => SHA256.HashData(data),
+        "SHA384" => SHA384.HashData(data),
+        "SHA512" => SHA512.HashData(data),
+        _ => throw new NotSupportedException("unsupported digest: " + name.Name),
+    };
+
+    private static byte[] HmacData(HashAlgorithmName name, byte[] key, byte[] data) => name.Name switch
+    {
+        "SHA1" => HMACSHA1.HashData(key, data),
+        "SHA256" => HMACSHA256.HashData(key, data),
+        "SHA384" => HMACSHA384.HashData(key, data),
+        "SHA512" => HMACSHA512.HashData(key, data),
+        _ => throw new NotSupportedException("unsupported hmac: " + name.Name),
+    };
 
     public JsValue Evaluate(string js) => _engine.Evaluate(js);
 
@@ -133,6 +193,27 @@ public sealed class ScriptRuntime : IDisposable
             catch (Exception)
             {
                 return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Everything the payload rebuilt through <c>String.fromCharCode</c>, concatenated. The vendor
+    /// payload keeps its literals encoded, so this is the only place its real strings (property
+    /// names, host-API probes) become visible. Empty unless the diagnostic recorder is installed.
+    /// </summary>
+    public string DecodedStrings
+    {
+        get
+        {
+            try
+            {
+                return _engine.Evaluate("(__dshDecoded && __dshDecoded.join) ? __dshDecoded.join('') : ''")
+                              .ToString() ?? string.Empty;
+            }
+            catch (Exception)
+            {
+                return string.Empty;
             }
         }
     }

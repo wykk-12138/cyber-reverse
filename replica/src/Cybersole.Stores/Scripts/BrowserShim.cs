@@ -134,8 +134,52 @@ public sealed class BrowserShim
             for (var i = 0; i < arr.length; i++) { arr[i] = bytes[i]; }
             return arr;
           },
-          randomUUID: function () { return __dshUuid(); }
+          randomUUID: function () { return __dshUuid(); },
+          /* A browser only exposes `subtle` in a secure context, which is why a naive shim leaves it
+             undefined and why the payload's own literal table carries "sha256". Answered with the
+             host's real hash: a stubbed digest would put a wrong value inside the token instead of
+             failing where it can be seen. */
+          subtle: {
+            digest: function (alg, data) {
+              try { return Promise.resolve(new Uint8Array(__dshDigest(__dshAlgName(alg), __dshBytes(data))).buffer); }
+              catch (e) { return Promise.reject(e); }
+            },
+            importKey: function (fmt, keyData, alg, extractable, usages) {
+              try {
+                return Promise.resolve({ __dshKey: __dshBytes(keyData), algorithm: alg || {},
+                                         type: "secret", extractable: !!extractable, usages: usages || [] });
+              } catch (e) { return Promise.reject(e); }
+            },
+            sign: function (alg, key, data) {
+              try {
+                var name = alg && alg.hash ? alg.hash.name : alg;
+                return Promise.resolve(new Uint8Array(__dshHmac(__dshAlgName(name), (key && key.__dshKey) || [], __dshBytes(data))).buffer);
+              } catch (e) { return Promise.reject(e); }
+            },
+            verify: function () { return Promise.resolve(false); },
+            generateKey: function () { return Promise.reject(new Error("subtle.generateKey is not available")); },
+            exportKey: function () { return Promise.reject(new Error("subtle.exportKey is not available")); },
+            encrypt: function () { return Promise.reject(new Error("subtle.encrypt is not available")); },
+            decrypt: function () { return Promise.reject(new Error("subtle.decrypt is not available")); },
+            deriveBits: function () { return Promise.reject(new Error("subtle.deriveBits is not available")); },
+            deriveKey: function () { return Promise.reject(new Error("subtle.deriveKey is not available")); },
+            wrapKey: function () { return Promise.reject(new Error("subtle.wrapKey is not available")); },
+            unwrapKey: function () { return Promise.reject(new Error("subtle.unwrapKey is not available")); }
+          }
         };
+        function __dshBytes(data) {
+          if (data === undefined || data === null) return [];
+          var view = (data.length !== undefined) ? data : new Uint8Array(data);
+          var out = [];
+          for (var i = 0; i < view.length; i++) out.push(view[i] & 255);
+          return out;
+        }
+        function __dshAlgName(alg) {
+          var s = String(alg || "SHA-256").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+          if (s === "SHA1" || s === "SHA256" || s === "SHA384" || s === "SHA512") return s;
+          if (s.indexOf("SHA") === 0) return s;
+          return "SHA256";
+        }
         this.Date.prototype.getTimezoneOffset = function () { return 0; };
         this.setTimeout = function (fn) { if (typeof fn === "function") { try { fn(); } catch (e) {} } return 0; };
         this.setInterval = function () { return 0; };

@@ -2421,6 +2421,62 @@ x-kpsdk-v:  j-1.2.992
 
 **Kasada 这条线到此结案。**
 
+---
+
+## 6. 抓到了浏览器的 `/mfc` 往返 —— 上一节的结论被推翻
+
+### 6.1 浏览器的响应长什么样
+
+给 `ChromiumBridge` 加了 `SniffKasadaResponses()`（读 `Network.responseReceived`，
+`Network.enable` 一直开着，事件本来就在，只是以前只解析请求方向）。实网跑浏览器路：
+
+```
+response:status:      200
+response:mimeType:    application/json
+response:x-kpsdk-ct:  0CUu5OiEY8GuFgWoDaZv4qzu6vU7eBQYCq1LpHQu5rCnkWHBdyDrXvdEdhnoKHkTapACmq…
+response:x-kpsdk-fc:  eyJmZWF0dXJlRmxhZ3MiOnt9LCJkeW5hbWljQ29uZmlnIjp7ImZyb250ZW5kIjp7ImxvZ0…
+response:x-kpsdk-h:   01F47DxTPakzMm2tqdC3JSScDjKyQ=
+response:x-kpsdk-r:   1-AA
+```
+
+页面最终使用的 `x-kpsdk-ct` 是另一枚（`0x9tOf3CI…`），和上面这枚不同。
+
+### 6.2 三条事实，第一条就推翻了 §5.110
+
+1. **浏览器拿到的 `x-kpsdk-fc` 和我们 Jint 拿到的完全一样** —— 也带
+   `dynamicConfig.frontend`。**所以那份配置不是"服务端拒绝"的证据**，
+   浏览器收到同一份配置照样走完了。
+2. **浏览器还收到了 `x-kpsdk-r: 1-AA`，而 Jint 的响应里从来没有这个头。**
+   `r` 在槽表里是 `captured[291]`，§5.55 记过它"从未被读过" —— 现在知道为什么：
+   **我们的响应里根本没有值可读。**
+3. **`/mfc` 的响应本身就直接带 `x-kpsdk-ct`。**
+
+**⇒ §5.110 那句"服务端说前端模式，传感器主动不 interrogation"是错的。**
+真实原因更可能是：**我们发出的 `/mfc` 得到的回复少了 `x-kpsdk-r`（继续指令）**，
+传感器因此没有下一步可走。
+
+### 6.3 但"补上 `r` 就能动"也被否掉了
+
+在假 transport 里补上 `x-kpsdk-r: 1-AA` 和 `Content-Type: application/json` 后重跑：
+
+| 补什么 | 发 `/r` |
+|---|---|
+| `fc` + `Content-Type` | N |
+| `fc` + `r` + `Content-Type` | N |
+| `fc` + `r`（无 Content-Type） | N |
+
+**所以不是"缺这两个头"这么简单。** `r` 的值 `1-AA` 大概率不是常量 ——
+它可能指示"去 `/AA` 这个路径"，而我们的 resource 目录下没有那个请求。
+
+### 6.4 下一步的具体方向
+
+`1-AA` 值得直接当线索用：**取 `/mfc` 时同时抓全部响应头**（不只是 `x-kpsdk-*`），
+看有没有 `Location` / `Link` 之类的指向；再试 `GET {resource}AA`、`GET {resource}r/1-AA`
+这类形状，看是否 200。
+
+另外**浏览器路已经能用**，所以这条探索是"要不要让 Jint 路也能用"的问题，
+不是"能不能解决 Kasada"的问题（§5.111 已经有了后者）。
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

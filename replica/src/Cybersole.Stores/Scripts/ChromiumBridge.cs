@@ -835,6 +835,47 @@ public sealed class ChromiumBridge : IAsyncDisposable
         return found;
     }
 
+    /// <summary>
+    /// Every x-kpsdk-* header the page saw on a *response*, keyed by the request URL whose reply carried it.
+    /// <para>
+    /// WHY THIS EXISTS: the interrogation handshake is only observable from both sides. SniffKasadaHeaders
+    /// reads what the page sent; this reads what the server answered, which is where the token, the config
+    /// and the two headers the sensor validates actually arrive. Without it there is no way to tell a run
+    /// that never asked apart from one that asked and was refused.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, Dictionary<string, string>> SniffKasadaResponses()
+    {
+        var byUrl = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var evt in Events)
+        {
+            if (!evt.TryGetProperty("method", out var method)) continue;
+            if (method.GetString() != "Network.responseReceived") continue;
+            if (!evt.TryGetProperty("params", out var p)) continue;
+            if (!p.TryGetProperty("response", out var resp)) continue;
+            if (!resp.TryGetProperty("headers", out var headers)) continue;
+
+            var url = resp.TryGetProperty("url", out var u) ? u.GetString() : null;
+            if (string.IsNullOrEmpty(url)) continue;
+
+            var found = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var h in headers.EnumerateObject())
+            {
+                if (h.Name.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase))
+                    found[h.Name] = h.Value.GetString() ?? string.Empty;
+            }
+
+            // The status travels with it: 200 and 304 mean different things for /mfc (docs/KASADA/11 5.107).
+            if (resp.TryGetProperty("status", out var st)) found["status"] = st.ToString();
+            if (resp.TryGetProperty("mimeType", out var mt)) found["mimeType"] = mt.GetString() ?? string.Empty;
+
+            if (found.Count > 0) byUrl[url!] = found;
+        }
+
+        return byUrl;
+    }
+
     public async ValueTask DisposeAsync()
     {
         try

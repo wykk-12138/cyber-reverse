@@ -113,6 +113,9 @@ public sealed class ChromiumKasadaSolver
 
                 // 1) the wire is the reliable source — the page decorates its own requests
                 var sniffed = bridge.SniffKasadaHeaders();
+                // Both directions, so a caller can show what the server answered -- in particular
+                // the /mfc reply whose config decides whether the sensor interrogates at all.
+                var replies = bridge.SniffKasadaResponses();
                 if (sniffed.TryGetValue("x-kpsdk-ct", out var hdrCt) && hdrCt.Length > 8)
                 {
                     ctToken = hdrCt;
@@ -122,6 +125,9 @@ public sealed class ChromiumKasadaSolver
                     // Keep every x-kpsdk-* the request carried: a real checkout needs
                     // h / dt / im / cd as well, and cd is what ciphers the body.
                     foreach (var kv in sniffed) sniffedHeaders[kv.Key] = kv.Value;
+                    foreach (var reply in replies)
+                        foreach (var kv in reply.Value)
+                            sniffedHeaders["response:" + kv.Key] = kv.Value;
                     break;
                 }
 

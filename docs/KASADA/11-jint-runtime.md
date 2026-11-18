@@ -527,7 +527,18 @@ trace 里能看到重建成功的例子（`pc=8903 → m[5]=fn`），所以机�
 ```powershell
 # 侧装 SDK（机器的 C:\Program Files\dotnet 只有 runtime）
 $env:DOTNET_ROOT='D:\tools\dotnet8'
-D:\tools\dotnet8\dotnet.exe test tests\Cybersole.Tests --filter "FullyQualifiedName~Kasada" -m:1
+
+# 纯脚本路径的用例（不启浏览器）—— 应全绿
+D:\tools\dotnet8\dotnet.exe test tests\Cybersole.Tests -m:1 `
+  --filter "FullyQualifiedName~Kasada&FullyQualifiedName!~NikeKasadaFlowTests&FullyQualifiedName!~KasadaIntrospectionTests&FullyQualifiedName!~KasadaHeaderSurfaceTests"
 ```
 
-`KasadaPayloadBootstrapTests` 会打印（断言失败时）或钉住：`start/count/len` 三个数与字节码头四个值。
+`KasadaPayloadBootstrapTests` 会钉住：`start/count/len` 三个数与字节码头四个值。
+
+**浏览器依赖的三个类**（`NikeKasadaFlowTests` / `KasadaIntrospectionTests` / `KasadaHeaderSurfaceTests`，共 11 个用例）
+**不要和全量一起跑**：它们各自会拉起 DotNetBrowser 的 Chromium，整批跑时互相抢资源，
+表现为随机失败（每次挂的成员都不一样，耗时 18–51 秒），而且退出后残留 chrome 进程会累积
+（实测一次跑到 48 个）。**单独跑一个类或一个用例时通过。**
+
+这和 AGENTS §4 记的那条是同一件事：浏览器用例不进默认全量，需要时一次一个。
+判据：**单独跑通过 + 整批跑失败 + 失败成员每次不同 ⇒ 资源问题，不是回归。**

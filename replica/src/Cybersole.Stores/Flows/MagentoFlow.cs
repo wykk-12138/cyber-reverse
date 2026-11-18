@@ -821,6 +821,60 @@ public sealed class JohnLewisFlow : StoreFlow
             ? StepOutcome.Fail("jl: order response had no number")
             : StepOutcome.Success();
     }
+
+    /// <summary>
+    /// <c>SubmitOrderStripe</c> — the JL flow's Stripe payment submit, decoded R1089 from
+    /// <c>sub_140a42bc0</c> (the five-state payments machine that PUTs the BFF's
+    /// <c>v2/orderforms/payments</c>, 0x14705d744).
+    ///
+    /// <para>
+    /// The request is a PUT carrying two query parameters the machine assembles from its payment
+    /// context: <c>methodId</c> (0x1470c29a0, the context's field 23) and
+    /// <c>setupFutureUsage</c> (0x147159a48 — the same parameter name PopMart's desk pay sends,
+    /// R1087). The response path then gates on the selected method reading
+    /// <b>CREDITCARD</b> before its four-request continuation runs
+    /// (<c>sub_140a371e0</c> → <c>sub_140a370f0</c> → <c>sub_140a37140</c> → <c>sub_140a37190</c>,
+    /// trampolines into async machines whose bodies are the next probe) — which is the
+    /// <c>HandleRequiresAction</c> / <c>GetStripePaymentIntent</c> pair the step map already
+    /// records as Stripe-direct.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitOrderStripeAsync(FlowContext c, CancellationToken ct)
+    {
+        // The payment context's method id — the decoded machine reads its field 23.
+        var methodId = c.Session.Vars.GetValueOrDefault("jl.methodId")
+                       ?? c.Session.Vars.GetValueOrDefault("paymentMethodId");
+        if (string.IsNullOrEmpty(methodId))
+            return StepOutcome.Fail("jl: no payment method id to submit with", retryable: true);
+
+        // The frozen BFF host, with the standard session seam (the checkStockUrl convention)
+        // so a configured endpoint can front it.
+        var paymentsBase = c.Session.Vars.TryGetValue("jl.paymentsUrl", out var paymentsOverride) &&
+                           !string.IsNullOrEmpty(paymentsOverride)
+            ? paymentsOverride.TrimEnd('/')
+            : CheckoutHost + "/bff/v2/orderforms/payments";
+        var url = paymentsBase + "?methodId=" +
+                  Uri.EscapeDataString(methodId) + "&setupFutureUsage=false";
+
+        var res = await SendJsonAsync(c, HttpMethod.Put, url, "{}", "jl-payments-stripe", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl payments unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl payments HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.paymentsBody"] = res.Body;
+
+        // The machine's CREDITCARD gate: the method the context selected decides whether the
+        // four-request Stripe-direct continuation runs. When it does, its requests are the
+        // flow's HandleRequiresAction / GetStripePaymentIntent steps — already declared in the
+        // step sequence, and not yet decoded from their trampolines (the named continuation).
+        var selected = c.Session.Vars.GetValueOrDefault("jl.paymentMethod");
+        if (string.Equals(selected, "CREDITCARD", StringComparison.OrdinalIgnoreCase) &&
+            string.IsNullOrEmpty(c.Card?.Number))
+            return StepOutcome.Fail("jl: credit card method selected but no card loaded");
+
+        return StepOutcome.Success();
+    }
 }
 
 /// <summary>Kith — Shopify storefront plus a drop scheduler.</summary>

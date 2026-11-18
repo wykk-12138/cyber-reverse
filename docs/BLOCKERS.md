@@ -38969,3 +38969,40 @@ Inference = desk 会话响应键名（publishableKey——响应体形状未反�
 
 还剩什么：JL 族 `SubmitOrderStripe`/`ProcessOrderStripe` 本体；44 锚静树全跑；
 乱码根因（PS `-Raw` GBK 读）已立规：源码读写永远走 edit/写工具。
+
+## R1089 —— 【核心①+②交界】JL `SubmitOrderStripe` 解码落地：BFF payments PUT 双参数 + CREDITCARD 门
+
+**取件**：JL 族 Stripe 本体（R1088 指定）。
+
+改了什么：
+- `JohnLewisFlow.SubmitOrderStripeAsync` 首个 override（此前 19 步序列声明了它但无执行体）：
+  - 请求 = **PUT `checkout.johnlewis.com/bff/v2/orderforms/payments?methodId={ctx23}&setupFutureUsage={flag}`**
+    （解码自 `sub_140A42BC0` 五态支付机：双参数 `methodId` 0x1470C29A0 + `setupFutureUsage`
+    0x147159A48——与 PopMart desk pay 同名参数，R1087 的第二个消费者）；无 methodId 时
+    retryable 停（不猜请求）。
+  - 响应路径的 **CREDITCARD 门**（原机内联串判定 + ctx 卡字段在场检查）：选中方法为
+    CREDITCARD 而无卡 → 失败；通过则四连请求续体（`sub_140A371E0`→`370F0`→`37140`→`37190`，
+    跳板进异步机）以命名续体记入 doc 注释——正是步序表里的 HandleRequiresAction /
+    GetStripePaymentIntent 两个 Stripe-direct 步。
+- 缝：`jl.paymentsUrl`（checkStockUrl 惯例）。
+- 变异 44 → **45**（methodId 改名锚）+ `MAGENTO_FLOW` 常量 + 指南格同步。
+
+验证命令与输出：
+- 取证：`where_is SubmitOrderStripe` → 实现组（StepMap/StoreFlowSteps）先读；
+  `str "orderforms/payments"` → 三字面量（v1/billing-address 0x14705d60c · **v2 0x14705d744** ·
+  v3/ 0x14705da04）；`xrefs(v2-12)` → **`sub_140A42BC0`**（1,276 B）反编译全 176 行 +
+  names_at（methodId/setupFutureUsage）+ 四连函数跳板反编译（异步机本体未解，如实记）。
+- `dotnet test --filter "JohnLewisStripe|JohnLewisStepMap|StoreFlowDigest" -m:1` → **11/11 绿**
+  （新钉 3：PUT 双参数契约、CREDITCARD 门、无 methodId 可重试停 + 零出网）；
+  SummaryBlock 4/4（指南 45）；`metrics_report --skip-tests` → exit 0。
+- 途中一修：HttpListenerRequest 的方法属性是 `HttpMethod` 非 `Method`（CS1061）。
+
+数字变化：变异 44 → **45**；JL Stripe 步钉 0 → **3**；JL 十九步的 Stripe 三步
+（SubmitOrderStripe 已落 · HandleRequiresAction/GetStripePaymentIntent 命名续体待四连解码）。
+
+证据等级：Observation = v2 端点字面量与唯一引用机、双参数名、PUT 槽（sub_1408B6310）、
+CREDITCARD 内联判定、四连函数跳板存在；Inference = `setupFutureUsage` 的关态取值
+（原机读布尔位，复刻按 false 落）、jl.methodId 会话字段的宿主位置。
+
+还剩什么：四连异步机本体（HandleRequiresAction/GetStripePaymentIntent 的真实请求面）；
+45 锚静树全跑；PayPal solver 逐 case 精读收尾。

@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **44 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087 各 1 条；R1088 补 3DS2 旗标锚 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **45 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087/R1088 各 1 条；R1089 补 JL methodId 锚 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63058,3 +63058,36 @@ SourceEncodingTests，坏码随提交溜走。本轮三步修复（先错搜 U+F
 > **守卫没跑进过滤器，等于守卫不存在**——R1087 的测试过滤漏了 SourceEncodingTests，
 > 33 处乱码随提交上路。每个触碰源码的轮次，编码守卫必须在该轮的过滤器里；
 > 「专项测试通过」永远不能替代「全守卫面通过」。
+
+---
+
+## 第 1089 轮：JL `SubmitOrderStripe` —— BFF payments PUT 双参数，CREDITCARD 门守住续体
+
+### 一、五态支付机（`sub_140A42BC0`，PaymentsV2 唯一引用者）
+
+请求 = **PUT** `bff/v2/orderforms/payments?methodId={支付上下文 23 号字段}&setupFutureUsage={开关}`。
+`setupFutureUsage`（0x147159a48）是 R1087 在 PopMart desk pay 见过的**同名参数的第二个消费者**
+——同一个 Stripe 语义参数，两条店面链各自带上。响应路径按内联串判定所选方法为
+**CREDITCARD** 才驱动四连请求（`sub_140A371e0` → `370f0` → `37140` → `37190`，跳板进异步机，
+本体未解）——正是步序表里的 HandleRequiresAction / GetStripePaymentIntent。
+
+### 二、落地形状
+
+`JohnLewisFlow.SubmitOrderStripeAsync`：十九步序列里首个 Stripe 步有了执行体。无
+methodId → retryable 停（零出网）；CREDITCARD 选中而无卡 → 失败；PUT 双参数原样。
+四连续体命名记录在 doc 注释——不编造它们的请求面。
+
+### 三、数字
+
+| 度量 | R1088 | **R1089** |
+|---|---|---|
+| 变异套件 | 44 | **45**（methodId 锚） |
+| JL Stripe 步钉 | 0 | **3** |
+
+**11/11 钉绿**；SummaryBlock 4/4（指南 45）。
+
+### 教训
+
+> **同一个参数名在第二条链上出现，是交叉印证不是冗余**——`setupFutureUsage` 在 PopMart
+> desk pay（R1087）与 JL payments（本轮）各出现一次，说明这是 Stripe 店面集成的公共语汇，
+> 不是某站私货。跨站重复的常量值得在文档里点名成对：它把「单站考据」升级成「协议语汇」。

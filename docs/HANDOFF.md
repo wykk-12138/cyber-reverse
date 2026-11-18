@@ -5242,3 +5242,25 @@ setupFutureUsage 空值为 Inference。
 指纹两默认值为 Inference。
 
 还剩什么：JL 族两本体；44 锚静树全跑。
+
+## R1089 —— 【核心①+②】JL `SubmitOrderStripe` 落地：payments PUT 双参数 + CREDITCARD 门
+
+**取件**：JL 族 Stripe 本体。
+
+改了什么：`JohnLewisFlow.SubmitOrderStripeAsync` 首个 override——**PUT
+`bff/v2/orderforms/payments?methodId={ctx23}&setupFutureUsage=false`**（解码自
+`sub_140A42BC0` 五态机，双参数 0x1470C29A0/0x147159A48）；CREDITCARD 门（内联串判定，
+选中该方法而无卡 → 失败）；四连请求续体（`sub_140A371E0`→`370F0`→`37140`→`37190`，
+跳板未解）命名记录 = 步序表的 HandleRequiresAction/GetStripePaymentIntent。缝
+`jl.paymentsUrl`。变异 44 → **45**（methodId 锚）+ 指南同步。
+
+验证：`str "orderforms/payments"` → v2 0x14705d744 唯一引用机 `sub_140A42BC0`（176 行全解）；
+**11/11 钉绿**（3 新：双参数契约、CREDITCARD 门、无 id 可重试停+零出网）；SummaryBlock 4/4
+（指南 45）；metrics exit 0。途中一修：HttpListenerRequest 的 `.HttpMethod`。
+
+数字变化：变异 44 → **45**；JL Stripe 步钉 0 → **3**。
+
+证据等级：端点/双参/PUT 槽/CREDITCARD 判定/四连跳板为 Observation；setupFutureUsage 关态与
+会话字段宿主为 Inference。
+
+还剩什么：四连异步机本体（两 Stripe-direct 步的真实请求面）；45 锚静树全跑。

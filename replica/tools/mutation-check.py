@@ -44,6 +44,7 @@ PAYPAL_3DS = os.path.join(REPO, "src", "Cybersole.Stores", "Payments", "PayPalTh
 FARFETCH_FLOW = os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "FarfetchFlow.cs")
 STRIPE_CHALLENGE = os.path.join(REPO, "src", "Cybersole.Stores", "Payments", "StripeChallenge.cs")
 GATEWAYS = os.path.join(REPO, "src", "Cybersole.Stores", "Payments", "Gateways.cs")
+MAGENTO_FLOW = os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "MagentoFlow.cs")
 
 MUTATIONS = [
     {
@@ -523,6 +524,16 @@ MUTATIONS = [
         "replace": '        ["one_click_authn_device_support[spc_eligible]"] = "false",       // 0x147108420',
         "test": "FullyQualifiedName~StripeMethodFormTests",
         "guard": "TheThreeDs2AuthenticateFormMatchesTheDecodedContract",
+    },
+    {
+        "name": "round 1089 -- JL's payments submit loses its method parameter",
+        "file": MAGENTO_FLOW,
+        # The BFF payments PUT keys on methodId (0x1470c29a0); renaming it is exactly the
+        # drift the JL step pin forbids.
+        "find": '        var url = paymentsBase + "?methodId=" +',
+        "replace": '        var url = paymentsBase + "?method=" +',
+        "test": "FullyQualifiedName~JohnLewisStripeStepTests",
+        "guard": "ThePaymentsPutCarriesTheDecodedParameters",
     },
 ]
 

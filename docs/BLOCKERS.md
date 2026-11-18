@@ -40756,3 +40756,54 @@ Inference（标注，未落实现）= v4 `deliveries` 的体是前一步 GET 的
   「这是 StoreFlow 声明的方法，所有站点的表一起长；下面那个 coverage 数字才是本站点特有的」。
 - 修后**全量 GREEN：2417 通过 / 0 失败 / 2 跳过 / 2419**（2m23s）；FlowSequenceTests 7/7。
 - 变异套件因改了 src 与 	ests 已重跑（结果见收据），避免拿旧 manifest 说事。
+## R1132 —— 两个更正：`/methods` 是**派生端点**；`payment-page` 的 PUT 是**无体**且**不在 GET 之后**
+
+**取件**：R1131 的两条待办（`'/methods'` 的含义、`payment-page` 的 PUT 半边）。
+
+改了什么：
+- **`deliveries/`（v4 GET）的 `/methods` 是拼接**（Observation）：
+  ```c
+  v4 = sub_141CF62D0(&off_14705DB98 /*…/v4/orderforms/deliveries/*/, v2, &off_146AB5DD0 /*"/methods"*/);
+  sub_1408C22E0(v5, v4);            // v5 = 拼好的 URL
+  v10[0] = sub_1408B61E0(v3, v5, v6);  // GET(v5)
+  ```
+  ⇒ 真实请求是 **`GET …/bff/v4/orderforms/deliveries/methods`**。
+  **这是一个普查看不见的端点**：它从来不以整串字面量出现，基串还**必须带尾斜杠**才拼得对。
+  → 在 `RetailApiFamilies.JohnLewisBff` 增加 `DeliveryMethodsV4`（注释写明 `sub_141CF62D0` 与两个地址），
+  并加 2 条测试（值、以及尾斜杠是拼接正确的前提）。
+- **`payment-page` 的 PUT 是「无体」且与 GET 是不同分支**（Observation）：
+  ```c
+  v13[0] = sub_1408B61E0(v3, v4, v5);        // state 0: GET
+  ...
+  v13[0] = sub_1408B6310(v8, v9, 0, v10);    // 另一状态: PUT(url, body = 0)
+  ```
+  **body 参数是字面 `0`** ⇒ 无体 PUT；且 GET 在 `state 0` 分支（成功后 `a1+2 = 1`），
+  PUT 在**另一入口状态**分支（之后 `a1+2 = 0`）——**两者不是「先读后写」的序列**。
+  → 因此**没有**把 PUT 折进 `GetPaymentPageAsync`（上轮它已在，本轮确认了不折是对的）。
+  → 该 PUT 没有对应的镜像步骤名，仍不落地。
+
+验证命令与输出：
+- `ida.py py "exec(..._bff_open2.py)"` → 两函数的 URL 构造/设键/动词行：`deliveries/` 显示
+  三参 `sub_141CF62D0`；`payment-page` 显示 `sub_1408B6310(..., 0, ...)`。
+- `ida.py py "exec(..._bff_pp_dump.py)"` → 该函数 93 行全文，`state 0 → GET → a1+2=1` 与
+  `另一状态 → PUT(body=0) → a1+2=0` 的分支关系逐行可见。
+- `dotnet build` 无 error；`dotnet test --filter "JohnLewis|RetailApi|SourceEncodingTests|FlowSequenceTests"`
+  → **`已通过! 失败 0 / 通过 56 / 总计 56`**；全量结果见下条。
+
+数字变化：`JohnLewisBff` 家族表 **12 → 13** 条常量（含派生端点）；测试 **+2**。
+
+证据等级：Observation = 三参拼接调用、`body = 0` 的字面参数、state 分支的赋值、56/56 通过；
+Inference = 无（两条结论都由伪代码直接给出）。
+**同时标注一条新疑点（不擅自改）**：现有 `JohnLewisStepMap` 把 `GetDeliveryMethods` 与
+`SubmitDeliveryMethod` **都**配到 `DeliveryDetailsV3`（POST），那是 R118/R119 按**名字关联**推出的
+（当时无请求捕获）。本轮证据显示存在一个 **GET `…/deliveries/methods`**，故
+「`GetDeliveryMethods` 究竟打哪条」需重新判定——**未改映射，只把疑点写在这里。**
+
+还剩什么：① `GetDeliveryMethods` 的归属待判（GET methods vs POST details）；
+② v4 `deliveries` PUT 的体仍未定位；③ `payment-page` 的无体 PUT 需要步骤位。
+
+**全量与收据（本轮收数）**：
+- 全量：**2419 通过 / 0 失败 / 2 跳过 / 2421**（2m30s）；相关子集（JohnLewis|RetailApi|SourceEncodingTests|FlowSequenceTests）**56/56**。
+- 动作顺序：改 src 后先查 staleness → **2**（RetailApiFamilies.cs +1 在被变异集内）→ **重跑变异套件** →
+  新收据 an_at 2026-11-19T01:07:13、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  staleness 0（mtime 01:07:20，读于 01:07:26 —— 6 秒新鲜）。

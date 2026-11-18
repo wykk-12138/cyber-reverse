@@ -6059,3 +6059,20 @@ threeds 站点可一并校正既有实现。
 还剩什么：① `deliveries/`(v4 GET) 函数里出现 `'/methods'`（0x146ab5dd0），疑似派生
 `…/deliveries/methods`，需确认是拼接还是另一个端点；② v4 `deliveries` PUT 的体未定位；
 ③ `payment-page` 的 PUT 半边。
+## R1132 —— 两处更正：/methods 是派生端点；payment-page 的 PUT 无体且不在 GET 之后
+
+改了什么：
+- **`/methods` 是拼接**（Observation）：`sub_141CF62D0(base…/deliveries/, v2, "/methods")` → 真实请求
+  **`GET …/bff/v4/orderforms/deliveries/methods`**。新增常量 `JohnLewisBff.DeliveryMethodsV4` + 2 条测试
+  （值、以及「基串带尾斜杠」是拼对的前提）。**这是判定器的第五种盲区（三参拼接）。**
+- **`payment-page` 的 PUT 是「无体」且与 GET 属不同状态**：`sub_1408B6310(..., 0, ...)` body 为字面 0；
+  GET 在 state 0（成功后 `a1+2=1`），PUT 在另一入口状态。→ **没把它折进 `GetPaymentPageAsync`**（上轮未折，本轮确认正确）。
+- **不改映射**：`JohnLewisStepMap` 把 `GetDeliveryMethods` 与 `SubmitDeliveryMethod` 都配 POST `details`（R118/R119 按名关联），
+  与新增证据（存在 GET `…/deliveries/methods`）冲突 → **只记疑点，不擅自改**。
+
+验证：`_bff_open2.py` / `_bff_pp_dump.py` 输出；全量 **2419/0/2**；子集 **56/56**；
+变异收据重跑后 **59/59 fired，tree GREEN，staleness 0**（01:07:13，6 秒新鲜）。
+
+数字变化：家族表 **12 → 13** 条常量；测试 **+2**。
+
+还剩什么：① `GetDeliveryMethods` 归属待判；② v4 `deliveries` PUT 的体；③ `payment-page` 无体 PUT 的步骤位。

@@ -50,6 +50,20 @@ public static class RetailApiFamilies
         public const string DeliveriesSlashV4 = Base + "v4/orderforms/deliveries/";
         public const string DeliveryAddressV4 = Base + "v4/orderforms/deliveries/delivery-address";
 
+        /// <summary>
+        /// The delivery methods, which the image never writes as one literal.
+        ///
+        /// <para>
+        /// R1132: <c>sub_140A3FB10</c> builds it at run time —
+        /// <c>sub_141CF62D0(&amp;off_14705DB98, v2, &amp;off_146AB5DD0)</c> — where the first argument is
+        /// <c>…/bff/v4/orderforms/deliveries/</c> (0x14705db98) and the third is the suffix
+        /// <c>/methods</c> (0x146ab5dd0), and the joined value is what the GET call receives. So the
+        /// endpoint is <c>…/deliveries/methods</c>: a census keyed on single literals can never see it,
+        /// and the trailing slash on the base is what makes the join come out right.
+        /// </para>
+        /// </summary>
+        public const string DeliveryMethodsV4 = DeliveriesSlashV4 + "methods";
+
         /// <summary>The checkout walk: hand over the session, delivery, billing, pay, order.</summary>
         public static readonly IReadOnlyList<string> Chain = new[]
         {

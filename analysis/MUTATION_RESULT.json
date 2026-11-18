@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-19T00:53:55+08:00",
+  "ran_at": "2026-11-19T01:07:13+08:00",
   "total": 59,
   "fired": 59,
   "decorative": 0,
@@ -148,7 +148,7 @@
     "src/Cybersole.Stores/Flows/PopMartFlow.cs": "7e14f5fdeb6dd5bd6a3424af6bc642188370c4456b86ac575fd81d57cf923f2a",
     "src/Cybersole.Stores/Flows/PopMartStepMap.cs": "dcc7fa7ef418ee5dffa18b3406012b145741e3cba5188a07d6ac49bb0cbb94a3",
     "src/Cybersole.Stores/Flows/PoqAppFlow.cs": "01de48425f221a536026bdc7ac1ab7ac60c94bd4c4fc3cd3f697d69c4444b65c",
-    "src/Cybersole.Stores/Flows/RetailApiFamilies.cs": "8b81c25e0fb9c72dc2a7c4068f771107391cc98b34eae172c5a4600a51a2f14e",
+    "src/Cybersole.Stores/Flows/RetailApiFamilies.cs": "a9dbd41618cdabc67229153fc9632e3d6da7a0bca02eca5bd264c78a1fd3645a",
     "src/Cybersole.Stores/Flows/RetailFlows.cs": "c6446d919b8181a7b3aa02dd1543778ef3185047bed627e5fd57081066e73ee0",
     "src/Cybersole.Stores/Flows/ScapiAppPath.cs": "0c95e1d81319927482f6229cfdae9f8bcbb24dfe07493ccc071924f8a05dc7b5",
     "src/Cybersole.Stores/Flows/ScapiEndpoints.cs": "69c23d0702992379cbb2b7cfeb859311a74ba2c68765095de08d244483af098c",
@@ -495,6 +495,7 @@
     "tests/Cybersole.Tests/Ja3Tests.cs": "5e0a492ffdfdfe2e8c65ad87d60c47afbacaf9ac2022ce40c49cf55190aca04b",
     "tests/Cybersole.Tests/JbHiFiPlatformTests.cs": "4611284b1695f6689164931bfbdaa78117226f93f3cc7ff836b08d46e3e25452",
     "tests/Cybersole.Tests/JohnLewisBillingAddressTests.cs": "f11f2989829acc1d17970d25cd833f67b5dc8bb7e08dd164fdbc28dc425ba34a",
+    "tests/Cybersole.Tests/JohnLewisDeliveryMethodsUrlTests.cs": "e82e77a448109028a83d67e2d92b05ad665ff882f5efd1ea72635fa7e90fe208",
     "tests/Cybersole.Tests/JohnLewisGuestCallbackTests.cs": "45629207a8ac7d5f531d9ab43e87a4e3d8128f3fd4970b41f0a2f33de2f0e4d9",
     "tests/Cybersole.Tests/JohnLewisHandoverTests.cs": "4b15c0cebab2f720e723dcc846ac499efb211795e305a5689b20a6aff795d0ca",
     "tests/Cybersole.Tests/JohnLewisPaymentPageTests.cs": "c83658267589c3deb3c394c9653349136f753313d64d938c88619d4675333e90",

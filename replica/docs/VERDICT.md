@@ -64555,3 +64555,36 @@ v17[0] = sub_1408B6310(v11, v12, v7, v13);  // PUT(url = v12)
 | 全量 | **2417 通过 / 0 失败 / 2 跳过**（2m23s） |
 | 变异收据 | **59/59 fired，decorative 0，skipped 0，tree GREEN**，`staleness 0` |
 | JL 实际调用 BFF 端点 | **4 → 5** |
+---
+
+## 第 1132 轮：两个更正，都推翻了我自己原先的想法
+
+### 一、`/methods` 是**拼出来的**
+
+`c
+v4 = sub_141CF62D0(&off_14705DB98 /*…/deliveries/*/, v2, &off_146AB5DD0 /*"/methods"*/);
+v10[0] = sub_1408B61E0(v3, v5, v6);   // GET(v5)
+`
+
+真实请求是 `GET …/bff/v4/orderforms/deliveries/methods` —— **一个普查看不见的端点**：
+它从不以整串字面量出现，而且**基串必须带尾斜杠**才拼得对。
+
+**这就是我那个「53 缺失」判定器的第五种盲区**：三参拼接（base + 中间 + 后缀）。
+
+### 二、`payment-page` 的 PUT 不是「读完再写」
+
+`c
+v13[0] = sub_1408B61E0(v3, v4, v5);      // state 0: GET
+v13[0] = sub_1408B6310(v8, v9, 0, v10);  // 另一状态: PUT(body = 0)
+`
+
+两件事：**body 参数是字面 `0`**（无体 PUT），且**分属不同状态**（GET 在 state 0，PUT 在另一入口）。
+
+> 上一轮我差点把 PUT 折进 `GetPaymentPageAsync` 做成「先读后写」——
+> **读一遍状态机赋值就否掉了**。**「同一个函数里」不等于「同一个顺序里」**（与 R1131 的「同一个函数里不等于同一步」是同一条）。
+
+### 三、一条我不动的疑点
+
+`JohnLewisStepMap` 把 `GetDeliveryMethods` 与 `SubmitDeliveryMethod` **都**配到 POST `details`，
+那是按**名字关联**推的（当时无请求捕获）。现在我知道存在一个 **GET `…/deliveries/methods`** ——
+「`GetDeliveryMethods` 打哪条」需要重新判定。**没改映射，只把疑点写清楚。**

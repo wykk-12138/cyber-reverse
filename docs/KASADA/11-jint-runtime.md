@@ -1442,6 +1442,69 @@ catch (Exception ex) when (ex is not OutOfMemoryException)
 
 **非浏览器 Kasada 用例现在 64 例全绿**（58 + 3 契约 + 3 适配器）。
 
+### 5.69 反查原版：它有一条完整的 mobile 解算链，复刻件一条都没有 [Obs]
+
+这轮把原版的 Kasada 解算器结构从字符串池里读出来了（`ida.py str`，地址是 `chars_va`）：
+
+**解算器的主链路（第一个类，异步状态机 `d__46`–`d__50`）：**
+
+```
+0x14345a632   <HandleResponse>d__46  <GetScript>d__47  <GetKasada>d__48
+0x14345a681   <GetMfc>d__49  <GetWorkTime>d__50
+              <<-ctor>b__43_0>d   <<GetKasada>b__48_2>d   <<GetMfc>b__49_1>d
+```
+
+**第二个类（`d__32`–`d__36`），同样的五步：**
+
+```
+0x14345abb1   <HandleResponse>d__32  <GetScript>d__33  <GetKasada>d__34  <Ge…
+```
+
+**两个类的五步完全同构：`HandleResponse → GetScript → GetKasada → GetMfc → GetWorkTime`。**
+
+**接口与 DTO：**
+
+```
+0x1433216f6   IKasadaSolver
+0x143321733   KasadaSolveResult
+0x1433218dc   KasadaSolveRequest
+```
+
+**mobile / MFC 开关与处理器：**
+
+```
+0x14345a7e8   get_IsMobile / set_IsMobile
+0x14345a802   get_MfcEnabled / set_MfcEnabled
+0x14345a811   get_VersionProvider / set_VersionProvider
+0x14345aaee   <IsMobile>k__BackingField  <MfcEnabled>k__BackingField  <VersionProvider>k__BackingField
+0x14344855b   get_MobileDv / MobileDv
+0x143448fbe   GenRandomIos
+0x1433048fd   get_SpoofMobile / set_SpoofMobile
+0x143334b22   KasadaMobileHandler
+0x143370d5b   _kasadaMobile
+```
+
+**对照复刻件：**
+
+| 原版 | 复刻件 | 状态 |
+|---|---|---|
+| `GetScript` | `FetchScriptAsync` | ✅ |
+| `GetKasada` | `Solve`（Jint + 传输 + 收 token） | ✅ |
+| `GetMfc` | 由 payload 自己发 `/mfc` | ⚠️ **语义不同**：原版是宿主侧独立方法 |
+| `GetWorkTime` | `WorkTimeMs` 只测不调 | ⚠️ 原版是独立方法 |
+| `HandleResponse` | `HeaderFromTransport` | ⚠️ 只取了头，没做完整响应处理 |
+| 第二个解算器类（`d__32`–`d__36`） | **无** | ❌ |
+| `IsMobile` / `MfcEnabled` / `VersionProvider` | **无** | ❌ |
+| `MobileDv` / `SpoofMobile` / `GenRandomIos` | **无** | ❌ |
+| `KasadaMobileHandler` / `_kasadaMobile` | **无** | ❌ |
+
+**这正是 `mfc` 这轮出现的原因**：`GetMfc` 在原版里是**独立一步**，
+我们之前一直以为 `/mfc` 只是 payload 内部的一个请求 —— 原来是**宿主也要参与的一步**。
+
+**⇒ 「完整复刻」的剩余工作面现在有明确清单了**：
+第二个解算器 + 四个 mobile 开关 + `KasadaMobileHandler`，共 7 个符号、一条五步链。
+这些不是"再猜"，是从字符串池直接读出来的地址与名字。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

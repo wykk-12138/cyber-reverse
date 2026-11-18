@@ -64669,3 +64669,48 @@ addressDetails: {
 | 全量 | **2428 通过 / 0 失败 / 2 跳过** |
 | 变异 | **59/59 fired，tree GREEN，staleness 0** |
 | JL 实际调用 BFF 端点 | **6 → 7** |
+---
+
+## 第 1135 轮：所谓「19 个步骤」，其实是 **19 个异步状态机**
+
+对账第一步不是查表，是**先看步骤名在镜像里长什么样**：
+
+`
+<GetHome>d__20  <WebHandOver>d__23  <SessionHandover>d__24  <GuestCallback>d__25
+<DeliveryPage>d__26  <SubmitShipping>d__27  <CreateDelivery>d__28  <GetDeliveryMethods>d__29
+<SubmitDeliveryMethod>d__30  <GetPaymentPage>d__31  <SubmitOrderStripe>d__32  <SubmitOrder>d__33
+<AuthenticatePayment>d__34  <SubmitBillingAddress>d__35  <PlaceOrder>d__36
+<HandleRequiresAction>d__37  <GetStripePaymentIntent>d__39
+`
+
+**它们不是一张「步骤名→URL」表，是一条逐个枚举状态机类型的冻结串**（`0x14338b455`）。
+
+这解释了我前几轮反复观察到的现象：**每个步骤体是一个独立函数** —— 因为它们本来就是各自的 `MoveNext`。
+序号 20–39，缺 21/22/38：**21/22 是没有状态机的同步步**。
+
+### 复刻件对得上
+
+`StoreFlowSteps.JohnLewis` 与这条枚举**逐条吻合**（20,21,22,23…37,39，共 19 条）——**无需修改**。
+**对账的结果是「一致」，不是「缺口」。** 这比找到一个缺口更值得记下来。
+
+### 顺带落了一个
+
+`SubmitDeliveryMethod`（序号 30）→ POST `v3/orderforms/deliveries/details`，
+体用 R1128 已取证的形状，**单元素数组**是关键：
+
+`json
+{"deliveries":[{"deliveryId":…,"fulfilment":{"fulfilmentOfferId":…}}]}
+`
+
+5 条测试，其中一条**断言整个数组+嵌套的 JSON 子串**——不是只断言键名。
+
+### 一条我不敢跳的路
+
+`ida.py funcs --pattern` **不支持**（静默返回第一页），IDB **无符号名**（全 `sub_`）。
+所以「状态机类型 → `MoveNext` 函数」仍要 MethodTable 解析。**本轮不猜，探针已写明。**
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2433 通过 / 0 失败 / 2 跳过** |
+| 变异 | **59/59 fired，tree GREEN，staleness 0** |
+| JL 实际调用 BFF 端点 | **7 → 8** |

@@ -6,15 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 01:35:32 +0800 |
+| 生成时间 | 2026-11-19 01:49:51 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
-| 度量脚本结果 | 全部 exit 0 |
+| 度量脚本结果 | **有非零退出，见下** |
 | 完整套件 | 本次跳过（`--skip-tests`） |
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 20 个源文件比产物新（共 16545 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 20 个源文件比产物新（共 16599 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -39,15 +39,12 @@
 | 函数数量（.pdata） — functions: replica .pdata | 174,976 |
 | 函数数量（.pdata） — functions: ratio | 63.14% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 20 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 16545 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 16599 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
-| 核心覆盖：store 宿主 — core: override steps | 366 |
+| 核心覆盖：store 宿主 — core: override steps | 367 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
-| 核心覆盖：vendor 宿主 — vendor: controls ok | True |
-| 核心覆盖：vendor 宿主 — vendor: named in image | 13 |
-| 核心覆盖：vendor 宿主 — vendor: wiring rows | 9 |
-| 核心覆盖：vendor 宿主 — vendor: missing | 5 |
+| 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
 | 可执行段体量 — section-mass: original executable | 51695104 |
 | 可执行段体量 — section-mass: replica executable | 28989440 |
 | 可执行段体量 — section-mass: ratio | 56.08% |
@@ -368,9 +365,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-18 17:43:48
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 01:32:51)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 01:46:42)
 source files newer than the artifact: 20
-lines in those files: 16545
+lines in those files: 16599
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -388,7 +385,7 @@ C:\Python312\python.exe tools/core_coverage.py
 
 ```text
   wrote docs/CORE_COVERAGE.md
-  flows=18 steps=366 placeholders=11 provenance exit=0
+  flows=18 steps=367 placeholders=11 provenance exit=0
 ```
 
 ### 核心覆盖：vendor 宿主
@@ -398,16 +395,10 @@ cd D:\projects\cyber-reverse\replica
 C:\Python312\python.exe tools/vendor_coverage.py
 ```
 
-`exit 0`
+`exit 2`
 
 ```text
-  wrote docs/VENDOR_COVERAGE.md
-  controls ok=True  vendors named=13  wiring rows=9  missing=5
-    missing: Stripe challenge   n=1   0x146e9427c
-    missing: PayPal 3DS         n=9   0x146e93fb4
-    missing: captcha            n=1   0x146e94334
-    missing: proof of work      n=1   0x146e93f74
-    missing: checkpoint         n=1   0x146e94464
+  !! controls failed (kpsdk=17, datadome=0) -- IDA is not ready; refusing to overwrite docs/VENDOR_COVERAGE.md with false zeros
 ```
 
 ### 可执行段体量

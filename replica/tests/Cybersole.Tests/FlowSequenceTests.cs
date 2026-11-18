@@ -132,7 +132,9 @@ public class FlowSequenceTests
         // (ordinal 28), which pairs with the same endpoint as SubmitShipping.
         //
         // R1134 raised it 183 -> 184 with DeliveryPageAsync (ordinal 26), which had no virtual at all.
-        Assert.Equal(184, map.Count);
+        //
+        // R1135 raised it 184 -> 185 with SubmitDeliveryMethodAsync (ordinal 30).
+        Assert.Equal(185, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
         Assert.Equal(8, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");

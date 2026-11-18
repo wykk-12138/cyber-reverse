@@ -40902,3 +40902,51 @@ Inference = 无（两条结论都由伪代码直接给出）。
 - 全量：**2428 通过 / 0 失败 / 2 跳过 / 2430**（2m35s）。
 - 改 `src`+`tests` 后重跑变异套件 → 新收据 `ran_at 2026-11-19T01:35:19`、
   **59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`（mtime 01:35:26，读于 01:35:32 —— 6 秒新鲜）。
+## R1135 —— `SubmitDeliveryMethod`(序号 30) 落地；「19 步」的真相是**19 个状态机**
+
+**取件**：R1134 定的「步骤名 ↔ 端点」对账。
+
+改了什么：
+- **对账第一步：查镜像里步骤名的形态**（`ida.py str "GetDeliveryMethods"`）——
+  返回的**不是**一张「步骤名→URL」表，而是一条**逐个枚举状态机类型名**的冻结串（`0x14338b455`）：
+  ```
+  <GetHome>d__20 <WebHandOver>d__23 <SessionHandover>d__24 <GuestCallback>d__25
+  <DeliveryPage>d__26 <SubmitShipping>d__27 <CreateDelivery>d__28 <GetDeliveryMethods>d__29
+  <SubmitDeliveryMethod>d__30 <GetPaymentPage>d__31 <SubmitOrderStripe>d__32 <SubmitOrder>d__33
+  <AuthenticatePayment>d__34 <SubmitBillingAddress>d__35 <PlaceOrder>d__36
+  <HandleRequiresAction>d__37 <GetStripePaymentIntent>d__39
+  ```
+  ⇒ **所谓「19 个步骤」其实是 19 个异步状态机类型**（序号 20–39，缺 21/22/38；
+  21/22＝`FindProduct`/`AddToCart` 是**同步步、没有状态机**）。
+  这解释了此前几轮的观察：**每个步骤体是一个独立函数**，因为它们本来就是各自的 `MoveNext`。
+- **核对复刻件**：`StoreFlowSteps.JohnLewis`（`StoreFlowSteps.cs:106-117`）与这条枚举**逐条吻合**
+  （20,21,22,23…37,39，共 19 条），**无需修改**——对账结果是一致的，不是缺口。
+- **落一个有名字有位的**：`SubmitDeliveryMethod`（序号 30）→ `v3/orderforms/deliveries/details`（POST），
+  体用 R1128 已取证的形状：`{"deliveries":[{"deliveryId":…,"fulfilment":{"fulfilmentOfferId":…}}]}`
+  （**单元素数组**是关键，R1128 由 `sub_141FD0AA0(v10,&v19)` 与计数 1 读出）。
+  `SubmitDeliveryMethodAsync` 此前**无虚步骤** → 加 `StoreFlow` 虚方法 + `JohnLewisFlow` 覆写，
+  seam `jl.deliveryDetailsUrl`，缺 `deliveryId` 直接失败。
+- 新增 `JohnLewisDeliveryMethodTests` **5 条**：**断言整个数组+嵌套的 JSON 子串**、缺 id 即停、
+  `Knows`、409 可重试、常量等于字面量 `0x14705d8c0`。
+- ratchet 同步：`StepDispatch` **184 → 185**。
+
+验证命令与输出：
+- `ida.py str "GetDeliveryMethods" --limit 6` → 5 条匹配，第一条即那条枚举串（`saturated: false`）。
+- `ida.py funcs --pattern ...` → **不支持**（返回第一页、忽略 pattern），且 IDB **无符号名**（全 `sub_`）——
+  故「状态机类型 → `MoveNext` 函数」的配对仍需 MethodTable 解析，**本轮不猜**。
+- `dotnet build` 无 error；全量 **2433 通过 / 0 失败 / 2 跳过 / 2435**（2m23s）。
+
+数字变化：John Lewis 实际调用 BFF 端点 **7 → 8**；可派发步骤名 **+1**；测试 **+5**。
+
+证据等级：Observation = 那条枚举串的全文与地址、复刻件步骤表逐条吻合、全量 2433/0/2；
+Inference = 无。
+
+还剩什么：① 「状态机类型 → 体函数」需 MethodTable/vtable 解析（下一步的具体探针已明确）；
+② `delivery-address`(PUT, 11 键三层) 与 `payment-page` 无体 PUT 仍缺步骤位；
+③ `GetDeliveryMethods`（GET `…/deliveries/methods`）归属仍待判——它与 `SubmitDeliveryMethod`
+   现在**分开**了（后者已确证打 POST `details`），前者的候选只剩 GET `methods` 与 POST `details` 两种。
+
+**全量与收据（本轮收数）**：
+- 全量：**2433 通过 / 0 失败 / 2 跳过 / 2435**（2m23s）。
+- 变异重跑 → 新收据 `ran_at 2026-11-19T01:49:39`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  `staleness 0`（mtime 01:49:46，读于 01:49:51 —— 5 秒新鲜）。

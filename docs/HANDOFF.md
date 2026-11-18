@@ -6115,3 +6115,22 @@ threeds 站点可一并校正既有实现。
 
 还剩什么：**下一轮做「步骤名 ↔ 端点」对账**——`delivery-address` 缺位、`payment-page` 无体 PUT 缺位、
 `GetDeliveryMethods` 归属不明，三件事是同一个问题的三个面。
+## R1135 —— SubmitDeliveryMethod 落地；「19 步」= 19 个状态机
+
+改了什么：
+- **对账发现**：步骤名在镜像里是**状态机类型名枚举串**（`0x14338b455`）：
+  `<GetHome>d__20 … <GetStripePaymentIntent>d__39`，序号 20–39 缺 21/22/38（21/22 为同步步）。
+  ⇒ **「19 个步骤」＝19 个异步状态机**，每个步骤体即其 `MoveNext`。这解释了「每步一个独立函数」。
+- **复刻件核对一致**：`StoreFlowSteps.JohnLewis` 与枚举逐条吻合，**无需改动**。
+- **落地**：`SubmitDeliveryMethod`(30) → POST `v3/orderforms/deliveries/details`，体
+  `{"deliveries":[{"deliveryId":…,"fulfilment":{"fulfilmentOfferId":…}}]}`（单元素数组，R1128 已取证）；
+  加 `StoreFlow.SubmitDeliveryMethodAsync` 虚方法 + `JohnLewisFlow` 覆写（seam `jl.deliveryDetailsUrl`）。
+- 新增 `JohnLewisDeliveryMethodTests` 5 条（含整串数组断言）；ratchet `StepDispatch` **184 → 185**。
+- **未做**：`ida.py funcs --pattern` 不支持、IDB 无符号名 ⇒ 状态机→体函数需 MethodTable 解析，本轮不猜。
+
+验证：全量 **2433/0/2**（2m23s）；变异 **59/59 fired, tree GREEN, staleness 0**（01:49:39，5 秒新鲜）。
+
+数字变化：JL 实际调用 BFF 端点 **7 → 8**；可派发步骤名 **+1**；测试 **+5**。
+
+还剩什么：① MethodTable 解析（探针已明确）；② `delivery-address` 与 `payment-page` 无体 PUT 缺步骤位；
+③ `GetDeliveryMethods` 候选只剩 GET `methods` 或 POST `details`。

@@ -804,6 +804,12 @@ public abstract class StoreFlow
     /// </summary>
     public virtual Task<StepOutcome> DeliveryPageAsync(FlowContext c, CancellationToken ct)
         => NotSupported("DeliveryPage");
+
+    /// <summary>
+    /// Picking a delivery method (John Lewis ordinal 30). Declared so the name is dispatchable.
+    /// </summary>
+    public virtual Task<StepOutcome> SubmitDeliveryMethodAsync(FlowContext c, CancellationToken ct)
+        => NotSupported("SubmitDeliveryMethod");
     public virtual Task<StepOutcome> SubmitAddressAsync(FlowContext c, CancellationToken ct)
         => SubmitShippingAsync(c, ct);
     public virtual Task<StepOutcome> SubmitShippingMethodAsync(FlowContext c, CancellationToken ct) => Ok();

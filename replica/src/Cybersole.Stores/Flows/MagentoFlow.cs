@@ -1129,6 +1129,54 @@ public sealed class JohnLewisFlow : StoreFlow
     }
 
     /// <summary>
+    /// <c>SubmitDeliveryMethod</c> — the POST to <c>v3/orderforms/deliveries/details</c> that picks one
+    /// fulfilment offer.
+    ///
+    /// <para>
+    /// R1135: the body's shape is read off <c>sub_140A428D0</c> (R1128): <c>deliveryId</c> and an inner
+    /// object holding <c>fulfilmentOfferId</c> under <c>fulfilment</c> are built first, that pair goes
+    /// into a <b>single-element array</b> (<c>sub_141FD0AA0(v10, &amp;v19)</c> with the count set to 1),
+    /// and the array is stored under <c>deliveries</c>. So the request is
+    /// <c>{"deliveries":[{"deliveryId":…,"fulfilment":{"fulfilmentOfferId":…}}]}</c> — the array is the
+    /// part a flat reading gets wrong.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitDeliveryMethodAsync(FlowContext c, CancellationToken ct)
+    {
+        var deliveryId = c.Session.Vars.TryGetValue("jl.deliveryId", out var d) ? d : string.Empty;
+        if (string.IsNullOrEmpty(deliveryId))
+            return StepOutcome.Fail("jl: no deliveryId to submit a method for");
+
+        var offerId = c.Session.Vars.TryGetValue("jl.fulfilmentOfferId", out var f) ? f : string.Empty;
+
+        var body = new JObject
+        {
+            ["deliveries"] = new JArray
+            {
+                new JObject
+                {
+                    ["deliveryId"] = deliveryId,
+                    ["fulfilment"] = new JObject { ["fulfilmentOfferId"] = offerId },
+                },
+            },
+        }.ToString(Newtonsoft.Json.Formatting.None);
+
+        var url = c.Session.Vars.TryGetValue("jl.deliveryDetailsUrl", out var over) &&
+                  !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.DeliveryDetailsV3;
+
+        var res = await SendJsonAsync(c, HttpMethod.Post, url, body, "jl-delivery-details", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl delivery details unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl delivery details HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.deliveryDetailsBody"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
     /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
     /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>

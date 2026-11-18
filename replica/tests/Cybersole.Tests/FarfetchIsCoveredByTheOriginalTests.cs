@@ -48,7 +48,9 @@ public sealed class FarfetchIsCoveredByTheOriginalTests
 
     /// <summary>
     /// And the steps say what is actually missing -- the server-delivered config schema, naming the
-    /// channel (connect/app) and the credential it needs rather than the store.
+    /// channel (connect/app) and the credential it needs rather than the store. The fourth assertion
+    /// pins one message whole: the short phrases appear in every step's message, so only a
+    /// full-message assertion can be killed by a single-line mutation.
     /// </summary>
     [Fact]
     public void TheStepsNameTheServerDeliveredTransport()
@@ -57,5 +59,8 @@ public sealed class FarfetchIsCoveredByTheOriginalTests
         Assert.Contains("server-delivered", source, StringComparison.Ordinal);
         Assert.Contains("connect/app", source, StringComparison.Ordinal);
         Assert.Contains("schema needs the original login", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "farfetch: product endpoint unknown -- server-delivered route (connect/app config), schema needs the original login",
+            source, StringComparison.Ordinal);
     }
 }

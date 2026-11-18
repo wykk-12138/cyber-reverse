@@ -38580,3 +38580,44 @@ python analysis/ida.py str "Solving PayPal 3DS" --limit 600
 - 队列② 下一步：Stripe 挑战六步（入口 `sub_140BE31F0` 1,017 B）；PayPal 阶段 2–8 逐个反编译
   （函数已定位，每条一记 dec）；sec-ch-ua/platform 生成器 `sub_140F9A950`/`sub_140F9BCE0`（队列③指纹面）。
 - 变异 staleness 连续三轮自报 —— 队列第 5 项待跑。
+
+## R1079 —— 【判据 e 维护】变异套件清陈旧 + 扩到 41 条 + 根因修复：restore 一直在改写受测文件行尾
+
+**取件**：队列第 5 项（staleness 被工具连续三轮自报）。
+
+改了什么：
+- **五条新变异**入列（R1076–R1078 的新守卫各得一条能杀死自己的锚）：Nike totals 的
+  NOT_CALCULATED、Nike ASTLA/CA 哨兵的 CA 半、PayPal hermione 应用名、PayPal 403+429 共享
+  重试闭包的 429 半、Farfetch 改判消息。套件 36 → **41**。
+- `FarfetchIsCoveredByTheOriginalTests` 加**全消息前缀**断言（短短语在 7 条消息里都出现，
+  单行变异杀不死——断言必须钉到唯一可杀的长度）。
+- **staleness 从 mtime 改为内容比对**：`mutation-check.py` 运行结束写 22,111 文件的 sha256
+  清单（对称排除 mutation_report.py——读方编辑不能改变判决）；`mutation_report.py` 比哈希，
+  mtime 只作旧记录回退。
+- **根因修复（本轮最大发现）**：harness 的 restore 一直是 text-mode 读写——universal-newline
+  读把 CRLF 归一成 \n，text-mode 写在 Windows 上又翻回 CRLF——**每次运行都在改写全部受测文件
+  的行尾**（git 的 ignore-cr 与 autocrlf 提交归一掩盖了它，工作区每次震荡；此前几轮的
+  BLOCKERS/NikeFlow「行尾扰动」全是它干的）。修法：**备份/还原走原始字节（rb/wb）+ 瞬态
+  EINVAL 重试**（还原时 testhost 退场中句柄未放，重试即过）；**匹配继续留在归一文本**（第一次
+  修复让 find_re 的 \n 锚在 CRLF 上失配、4 条变 SKIP——匹配与还原分离是第二刀的教训）。
+- VERDICT 阅读指南计数格 36 → 41（计数棘轮守卫逼出来的，先红后绿是它的工作方式）。
+
+验证命令与输出（可复算链）：
+- `python tools\mutation-check.py` ×多次：36/36 fired GREEN（A 跑）；41/41 fired GREEN（C 跑，
+  还原全量 2294/0/2 = 2277+19 新钉测对账吻合）；字节忠实修复后**还原树零行尾扰动**
+  （git status 干净，对照此前每跑必脏 3-4 个文件）。
+- 事故链如实记录：E 跑 37/4（4 条 find_re SKIP —— 匹配期病，已修）；F 跑 Geetest.html 还原
+  EINVAL 中断（瞬态句柄，已加重试）；G 跑挂死 ~28 分钟被杀——**工作区同时出现并行会话的
+  未跟踪文件（ProbeSlotWrite.cs / .tmp-slot.json）**，文件锁碰撞假说成立，非本会话产物、
+  不碰、只记录。终跑 #7 以无缓冲后台作业重发（pwsh-5c27d1250e764182），收据在下轮收割。
+- `git diff --ignore-cr-at-eol` 为空判定「纯行尾」→ 单文件 checkout 还原（先验证内容零差异，
+  绝不 blanket checkout）。
+
+数字变化：mutation-fit total **36 → 41**；fired 36/36 → 41/41（C 跑回执，终跑在途）；
+staleness 10:50:13 → **0**（A 跑后）→ 内容口径上线。当前在盘记录为 E 跑（37/4 GREEN +
+22,111 清单），METRICS 如实引用它并自报「harness 晚于该跑」——真话。
+
+证据等级：全部 Observation（工具自身输出；两次事故的现场都保留在记录里）。
+
+还剩什么：终跑 #7 收据（41/41 + 对称清单 + staleness 0）；并行会话活动期避免再发长独占跑；
+队列② Stripe 六步（`sub_140BE31F0`）与 PayPal 阶段 2–8。

@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-18 09:10:41 +0800 |
+| 生成时间 | 2026-11-18 09:42:34 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,9 +14,9 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 3 个源文件比产物新（共 1373 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 14 个源文件比产物新（共 8893 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`10:50:13 -- payment_challenges.py changed after the run`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`2 -- tools/mutation-check.py (+1 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -40,8 +40,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 174,293 |
 | 函数数量（.pdata） — functions: ratio | 62.89% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 3 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 1373 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 14 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 8893 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 356 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 13 |
@@ -56,11 +56,11 @@
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 0 |
 | 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1B00000 |
-| 变异套件（上次运行） — mutation-fit: total | 36 |
-| 变异套件（上次运行） — mutation-fit: fired | 36 |
+| 变异套件（上次运行） — mutation-fit: total | 41 |
+| 变异套件（上次运行） — mutation-fit: fired | 37 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
-| 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 10:50:13 -- payment_challenges.py changed after the run |
+| 变异套件（上次运行） — mutation-fit: skipped | 4 |
+| 变异套件（上次运行） — mutation-fit: staleness | 2 -- tools/mutation-check.py (+1 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -374,9 +374,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 22:30:56
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-18 09:09:15)
-source files newer than the artifact: 3
-lines in those files: 1373
+newest source: src\Cybersole.Ui\Views\SolverWindow.cs (2026-11-18 09:42:24)
+source files newer than the artifact: 14
+lines in those files: 8893
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -549,14 +549,14 @@ C:\Python312\python.exe tools/mutation_report.py
 `exit 0`
 
 ```text
-  mutation-fit-total: 36
-  mutation-fit-fired: 36
+  mutation-fit-total: 41
+  mutation-fit-fired: 37
   mutation-fit-decorative: 0
-  mutation-fit-skipped: 0
+  mutation-fit-skipped: 4
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 10:50:13 -- payment_challenges.py changed after the run
+  mutation-fit-staleness: 2 -- tools/mutation-check.py (+1 more) differs from the run's manifest
 
-  The counts above are from 2026-11-17T22:20:21+08:00 and the tree has moved since. They are a record of that run, not a
+  The counts above are from 2026-11-18T09:40:29+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
 ```
 

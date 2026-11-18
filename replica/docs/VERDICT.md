@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **36 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫） | `tools/mutation-check.py` |
+| 变异检查 | **41 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 R1076–R1078 新钉测的 5 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -62746,3 +62746,36 @@ x-country / priority:u=1, i，x-app-name/referer 改取上下文，编码与语�
 > **两个 builder 差一个字段名时，别合并成一个「带开关的」表** —— 普通/Hosted 是两堵不同的墙
 > （sec-fetch 族 vs x-requested-with 族、en-GB vs en-US、大小写都不同），按原样逐头复刻、
 > 用测试钉死差异，比抽象一个「公共 + 开关」更能保住 1:1。
+
+---
+
+## 第 1079 轮：变异套件 41 条 + 两个根因 —— restore 一直在改写行尾，staleness 不该看 mtime
+
+### 一、套件扩张（36 → 41）
+
+R1076–R1078 的三组新守卫各得一条可杀锚：Nike totals 的 `NOT_CALCULATED`、ASTLA/CA 哨兵的
+CA 半、PayPal hermione 应用名、403+429 共享闭包的 429 半、Farfetch 改判消息。C 跑回执：
+**41/41 fired、还原树 GREEN、全量 2294/0/2**（2277 + 19 新钉测对账吻合）。
+
+### 二、两个根因（比清陈旧本身更值钱）
+
+1. **harness 的 restore 是 text-mode 读写**——universal-newline 读归一 CRLF，text-mode 写在
+   Windows 翻回 CRLF，**每次运行都在改写全部受测文件的行尾**。此前几轮 BLOCKERS/NikeFlow 的
+   「行尾扰动」全是它干的，git 的 ignore-cr 与提交归一掩盖了真相。修法：备份/还原走原始字节
+   （rb/wb）+ 瞬态 EINVAL 重试；**匹配留在归一文本**——第一刀让 find_re 的 \n 锚失配（4 条 SKIP），
+   匹配与还原分离是第二刀的教训。修复后**还原树零扰动**。
+2. **staleness 从 mtime 改内容哈希**——mtime 在字节相同的 git 还原后也会动，假阳性让人不再读它。
+   运行结束写 22,111 文件 sha256 清单（对称排除报告器），报告端比哈希。
+
+### 三、事故与并行会话（如实）
+
+E 跑 37/4（匹配期病，已修）；F 跑 Geetest.html 还原 EINVAL 中断（瞬态句柄，已加重试）；
+G 跑挂死 28 分钟被杀——期间工作区出现**并行会话的未跟踪文件**（ProbeSlotWrite.cs /
+.tmp-slot.json），文件锁碰撞假说成立，不碰只记录。终跑 #7 无缓冲后台在途，收据下轮收割；
+在盘记录为 E 跑（37/4 GREEN + 清单），METRICS 如实引用。
+
+### 教训
+
+> **「工具自己打印自己的陈旧度」还不够——打印的口径本身要对。** mtime 口径在字节相同的
+> 还原后误报，行尾口径又被 git 的双重归一掩盖了十年。度量链的每一环都要能被一个
+> 已知假阳性试验杀死，否则它报的是日历，不是事实。

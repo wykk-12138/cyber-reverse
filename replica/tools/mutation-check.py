@@ -37,6 +37,11 @@ METRIC_CLAIMS = os.path.join(os.path.dirname(REPO), "docs", "METRIC_CLAIMS.md")
 BLOCKERS_DOC = os.path.join(os.path.dirname(REPO), "docs", "BLOCKERS.md")
 TRIAGE_SCRIPT = os.path.join(os.path.dirname(REPO), "analysis", "type_presence_triage.py")
 COPY_AUDIT = os.path.join(REPO, "tools", "copy_audit_report.py")
+# R1076-R1078: the three rounds that landed decompiled checkout/3DS behaviour. Their guards are new, so each
+# gets a mutation of its own -- a guard that has never been killed is not evidence (the harness's own rule).
+NIKE_FLOW = os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "NikeFlow.cs")
+PAYPAL_3DS = os.path.join(REPO, "src", "Cybersole.Stores", "Payments", "PayPalThreeDs.cs")
+FARFETCH_FLOW = os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "FarfetchFlow.cs")
 
 MUTATIONS = [
     {
@@ -438,6 +443,55 @@ MUTATIONS = [
         "test": "FullyQualifiedName~CopyAuditConsistencyTests",
         "guard": "DetailRowsMatchTheSummaryTotal",
     },
+    {
+        "name": "round 1076 -- the checkout totals lose a NOT_CALCULATED marker",
+        "file": NIKE_FLOW,
+        # BuildTotals is pinned by an exact-JSON assertion, so flipping one marker back to a
+        # pre-decompile shape ("CALCULATED") has to redden the pin.
+        "find": '                    ["items"] = new JObject { ["tax"] = 0, ["type"] = "NOT_CALCULATED" },',
+        "replace": '                    ["items"] = new JObject { ["tax"] = 0, ["type"] = "CALCULATED" },',
+        "test": "FullyQualifiedName~NikeBuyRequestTests",
+        "guard": "TheCheckoutRequestCarriesPaymentTokenEmailFirstAndTotals",
+    },
+    {
+        "name": "round 1076 -- the ASTLA/CA state sentinel loses its CA half",
+        "file": NIKE_FLOW,
+        # The sentinel branch is decompiled behaviour (0x146B34B08/0x146B655C8), not a formatting
+        # choice; dropping one literal puts the raw state where the join belonged.
+        "find": '        return state == "ASTLA" || state == "CA"',
+        "replace": '        return state == "ASTLA"',
+        "test": "FullyQualifiedName~NikeBuyRequestTests",
+        "guard": "TheStateSentinelsJoinCountryAndState",
+    },
+    {
+        "name": "round 1078 -- PayPal's hermione app name drifts",
+        "file": PAYPAL_3DS,
+        # The frozen literal 0x146fc7338 is pinned by value, not by self-reference.
+        "find": '    public const string AppName = "checkoutuinodeweb_hermione";',
+        "replace": '    public const string AppName = "hermione";',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheStageConstantsMatchTheFrozenLiterals",
+    },
+    {
+        "name": "round 1078 -- the 429 half of the shared retry closure disappears",
+        "file": PAYPAL_3DS,
+        # Both builders register ONE closure for 403 and 429 (sub_141102970/sub_141105A80's
+        # status dispatch); splitting them is precisely the behaviour the pin forbids.
+        "find": "        if (res.StatusCode is 403 or 429) return StageOutcome.Retry(res.StatusCode);",
+        "replace": "        if (res.StatusCode == 403) return StageOutcome.Retry(res.StatusCode);",
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheStatusDispatchMirrorsTheRegisteredHandlers",
+    },
+    {
+        "name": "round 1077 -- a Farfetch step forgets why its route is unknown",
+        "file": FARFETCH_FLOW,
+        # The reclassified message names the server-delivered config and the credential it needs;
+        # shortening it back to a bare "unknown" is the retraction the guard exists to catch.
+        "find": '            "farfetch: product endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");',
+        "replace": '            "farfetch: product endpoint unknown");',
+        "test": "FullyQualifiedName~FarfetchIsCoveredByTheOriginalTests",
+        "guard": "TheStepsNameTheServerDeliveredTransport",
+    },
 ]
 
 
@@ -445,6 +499,61 @@ MUTATIONS = [
 #: it neither fails nor finishes. Rounds 180-181 hit exactly that: every mutation looked identical to a hang. So each
 #: run is bounded, and a bound is reported as its own verdict ("hung") rather than folded into "caught".
 RUN_TIMEOUT_SECONDS = 600
+
+
+def restore_bytes(path, data, attempts=5):
+    """Byte-exact restore that tolerates a lingering handle.
+
+    R1079: the first wb-restore crashed with EINVAL on one file while the test host was still
+    tearing down after its run -- transient, and a plain retry succeeded moments later. A restore
+    that dies mid-loop leaves the tree mutated, which is worse than any delay, so it retries with
+    a growing pause; if the file still refuses, the crash-proof copy in .mutation-backup holds
+    the same bytes and the next run's repair path restores from it.
+    """
+    import time
+    for attempt in range(attempts):
+        try:
+            with io.open(path, "wb") as handle:
+                handle.write(data)
+            return
+        except OSError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.4 * (attempt + 1))
+
+
+def content_manifest():
+    """sha256 of every file a mutation run exercises, keyed by repo-relative path.
+
+    R1079: the reporter's staleness used mtimes, and a git restore of the run's own line-ending
+    churn (identical bytes, new timestamp) read as staleness. Hashes do not have that failure
+    mode. The set walked here must stay the same as the one mutation_report.py walks: src,
+    tests and tools, .cs/.py only, no obj/bin/.mutation-backup, and the reporter itself excluded
+    there (reading cannot change a verdict) — while this checker is INCLUDED, because editing
+    the mutation list is exactly the kind of change that makes the last run stop describing it.
+    """
+    import hashlib
+    manifest = {}
+    for base in ("src", "tests", "tools"):
+        for dp, _d, fns in os.walk(os.path.join(REPO, base)):
+            if f"{os.sep}obj{os.sep}" in dp or f"{os.sep}bin{os.sep}" in dp or ".mutation-backup" in dp:
+                continue
+            for fn in fns:
+                if not (fn.endswith(".cs") or fn.endswith(".py")):
+                    continue
+                p = os.path.join(dp, fn)
+                rel = os.path.relpath(p, REPO).replace(os.sep, "/")
+                if rel == "tools/mutation_report.py":
+                    # Symmetric with mutation_report.py's own walk, which excludes itself (R982):
+                    # editing the reader cannot change a verdict, and a manifest that hashed it
+                    # would make every reporter improvement mark the run stale.
+                    continue
+                try:
+                    data = io.open(p, "rb").read()
+                except OSError:
+                    continue
+                manifest[rel] = hashlib.sha256(data).hexdigest()
+    return manifest
 
 
 def run_tests(test_filter, trx=None):
@@ -560,14 +669,20 @@ def main():
 
     for m in selected:
         path = m["file"]
-        original = io.open(path, encoding="utf-8").read()
+        # R1079 byte-faithful round-trip, second cut. The first cut read with newline="" as well,
+        # which keeps \r\n in the working string -- and the find_re anchors (R980) match on \n, so
+        # four patterns stopped matching and their mutations reported SKIPPED. Matching stays on
+        # the universal-newline text exactly as it always was; only the BACKUP and the RESTORE go
+        # byte-exact, so what leaves the run is the same bytes that entered it.
+        original = io.open(path, encoding="utf-8").read()   # matching text: newline-normalised
+        saved_raw = io.open(path, "rb").read()              # restore bytes: verbatim
 
         # keep a crash-proof copy so an interrupted run can be repaired by the next one
         backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".mutation-backup")
         os.makedirs(backup_dir, exist_ok=True)
         backup = os.path.join(backup_dir, os.path.basename(path).replace(os.sep, "_"))
-        with io.open(backup, "w", encoding="utf-8", newline="") as handle:
-            handle.write(original)
+        with io.open(backup, "wb") as handle:
+            handle.write(saved_raw)
 
         # R980: a mutation may name its anchor as a regular expression instead of a literal. A literal that contains a
         # number which moves -- a module count, a section count -- silently stops matching the moment the number changes,
@@ -590,7 +705,7 @@ def main():
             mutated = original.replace(m["find"], m["replace"], -1 if m.get("all") else 1)
 
         try:
-            io.open(path, "w", encoding="utf-8").write(mutated)
+            io.open(path, "w", encoding="utf-8", newline="").write(mutated)
             code, tail = run_tests(m["test"])
             verdict = classify_hung()["verdict"] if code is None else classify(code, tail)
             results.append((m["name"], verdict))
@@ -598,7 +713,7 @@ def main():
             for line in tail:
                 print(f"        {line[:110]}")
         finally:
-            io.open(path, "w", encoding="utf-8").write(original)
+            restore_bytes(path, saved_raw)
             print(f"        restored {os.path.basename(path)}")
 
     print("\n== summary ==")
@@ -634,6 +749,13 @@ def main():
         "skipped": skipped,
         "tree": state,
     }
+    # R1079: staleness by CONTENT, not mtime. The mtime check mis-fired the same round it was healthy:
+    # restoring a mutation's own EOL churn with git rewrites the file with identical bytes and a new mtime,
+    # and the reporter then called the run stale over a change that did not happen. The manifest hashes
+    # every file a run exercises; tools/mutation_report.py compares hashes, so a byte-identical restore
+    # is fresh and a real edit is stale regardless of timestamps.
+    record["content_manifest"] = content_manifest()
+
     out = os.path.join(os.path.dirname(REPO), "analysis", "MUTATION_RESULT.json")
     with io.open(out, "w", encoding="utf-8", newline="") as handle:
         handle.write(json.dumps(record, indent=2, ensure_ascii=False) + "\n")

@@ -37,6 +37,10 @@ def newest_input():
     A mutation edits source and runs tests; a paragraph in a document changes neither. This file is excluded for the same
     reason plus its own: it only reads the record, so editing it cannot change a verdict, and counting it would make every
     improvement to the reporter invalidate what it reports.
+
+    R1079: this is now the FALLBACK -- used only for records too old to carry a content manifest. The
+    primary check is content_diff(), because an mtime moves on a byte-identical git restore of the
+    run's own line-ending churn, and a staleness that fires on no change is one nobody reads.
     """
     newest, which = 0.0, None
     me = os.path.abspath(__file__)
@@ -59,6 +63,44 @@ def newest_input():
     return newest, which
 
 
+def exercised_files():
+    """The same walk both sides hash: src/tests/tools, .cs/.py, this reporter excluded."""
+    import hashlib
+    me = os.path.abspath(__file__)
+    current = {}
+    for base in (os.path.join(ROOT, "src"), os.path.join(ROOT, "tests"), os.path.join(ROOT, "tools")):
+        for dp, _d, fns in os.walk(base):
+            if f"{os.sep}obj{os.sep}" in dp or f"{os.sep}bin{os.sep}" in dp or ".mutation-backup" in dp:
+                continue
+            for fn in fns:
+                if not (fn.endswith(".cs") or fn.endswith(".py")):
+                    continue
+                p = os.path.join(dp, fn)
+                if os.path.abspath(p) == me:
+                    continue
+                try:
+                    data = open(p, "rb").read()
+                except OSError:
+                    continue
+                current[os.path.relpath(p, ROOT).replace(os.sep, "/")] = hashlib.sha256(data).hexdigest()
+    return current
+
+
+def content_diff(record):
+    """Files whose CONTENT differs from the run's manifest -- or None when the record predates manifests.
+
+    A file that is new since the run counts too: the run never exercised it, which is what
+    staleness exists to say. Byte-identical restores (git rewriting line endings) do NOT count.
+    """
+    manifest = record.get("content_manifest")
+    if manifest is None:
+        return None
+    current = exercised_files()
+    changed = [rel for rel, digest in current.items() if manifest.get(rel) != digest]
+    changed += [rel + " (deleted since)" for rel in manifest if rel not in current]
+    return changed
+
+
 def main():
     if not os.path.exists(RESULT):
         print("  mutation-fit-total: 0")
@@ -77,20 +119,37 @@ def main():
     print("  mutation-fit-tree: %s" % record["tree"])
 
     ran_at = datetime.datetime.fromisoformat(record["ran_at"])
+
+    # R1079: content first, mtime only as the fallback for records that predate manifests.
+    changed = content_diff(record)
+    if changed is not None:
+        if changed:
+            print("  mutation-fit-staleness: %d -- %s differs from the run's manifest"
+                  % (len(changed), changed[0] + (" (+%d more)" % (len(changed) - 1) if len(changed) > 1 else "")))
+            print()
+            print("  The counts above are from %s and the tree has moved since. They are a record of that run, not a"
+                  % record["ran_at"])
+            print("  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.")
+        else:
+            print("  mutation-fit-staleness: 0 -- no exercised file's content differs from the run")
+            print()
+            print("  Every mutation fired, none was decorative and none was skipped at the time of that run.")
+        return 0
+
     run_stamp = ran_at.timestamp()
     newest, which = newest_input()
 
     if newest > run_stamp:
         behind = int(newest - run_stamp)
         age = str(datetime.timedelta(seconds=behind))
-        print("  mutation-fit-staleness: %s -- %s changed after the run"
+        print("  mutation-fit-staleness: %s -- %s changed after the run (mtime fallback: record predates manifests)"
               % (age, os.path.basename(which or "?")))
         print()
         print("  The counts above are from %s and the tree has moved since. They are a record of that run, not a"
               % record["ran_at"])
         print("  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.")
     else:
-        print("  mutation-fit-staleness: 0 -- no exercised file is newer than the run")
+        print("  mutation-fit-staleness: 0 -- no exercised file is newer than the run (mtime fallback)")
         print()
         print("  Every mutation fired, none was decorative and none was skipped at the time of that run.")
     return 0

@@ -6,15 +6,17 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-18 01:05:44 +0800 |
+| 生成时间 | 2026-11-18 08:56:18 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
-| 生成命令 | `python tools/metrics_report.py` |
+| 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2258 通过 / 0 失败 / 0 跳过 / 2258 总计** |
+| 完整套件 | 本次跳过（`--skip-tests`） |
 
 ## 时效警告（生成）
 
-> **变异套件那一组数来自上一次运行，而它已经过期**：`2:34:13 -- metrics_report.py changed after the run`。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 1 个源文件比产物新（共 936 行）。它描述的是更旧的一次构建，不是当前源码。
+>
+> **变异套件那一组数来自上一次运行，而它已经过期**：`10:35:18 -- NikeBuyRequestTests.cs changed after the run`。
 
 ## 摘要素值
 
@@ -38,11 +40,11 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 174,293 |
 | 函数数量（.pdata） — functions: ratio | 62.89% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 1 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 936 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 356 |
-| 核心覆盖：store 宿主 — core: unknown placeholders | 14 |
+| 核心覆盖：store 宿主 — core: unknown placeholders | 13 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
 | 核心覆盖：vendor 宿主 — vendor: controls ok | True |
 | 核心覆盖：vendor 宿主 — vendor: named in image | 13 |
@@ -58,7 +60,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 36 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 2:34:13 -- metrics_report.py changed after the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 10:35:18 -- NikeBuyRequestTests.cs changed after the run |
 
 ## 逐条命令与原始输出
 
@@ -129,7 +131,7 @@ type presence: 174 declared in bindings, 159 present in source, 15 absent
   ABSENT  Cybersole.Ui.Views.Tasks.TaskCreatorMainView (members: ProfileGroupItems, ProfileItems, ShowCartView, SizeItems)
 
 note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed to rename
-      types (AGENTS.md §0), so each ABSENT must be classified as RENAMED (record the mapping)
+      types (AGENTS.md ��0), so each ABSENT must be classified as RENAMED (record the mapping)
       or UNIMPLEMENTED (a real gap) before the number is used as a gap count.
 ```
 
@@ -372,10 +374,13 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 22:30:56
-newest source: src\Cybersole.Stores\Flows\ShopifyFlow.cs (2026-11-17 22:16:53)
-source files newer than the artifact: 0
-lines in those files: 0
-publish artifact state: current
+newest source: src\Cybersole.Stores\Flows\NikeFlow.cs (2026-11-18 08:54:36)
+source files newer than the artifact: 1
+lines in those files: 936
+publish artifact state: stale
+
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -389,7 +394,7 @@ C:\Python312\python.exe tools/core_coverage.py
 
 ```text
   wrote docs/CORE_COVERAGE.md
-  flows=18 steps=356 placeholders=14 provenance exit=0
+  flows=18 steps=356 placeholders=13 provenance exit=0
 ```
 
 ### 核心覆盖：vendor 宿主
@@ -549,7 +554,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 2:34:13 -- metrics_report.py changed after the run
+  mutation-fit-staleness: 10:35:18 -- NikeBuyRequestTests.cs changed after the run
 
   The counts above are from 2026-11-17T22:20:21+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
@@ -557,30 +562,7 @@ C:\Python312\python.exe tools/mutation_report.py
 
 ### 完整套件
 
-```
-cd D:\projects\cyber-reverse\replica
-D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
-```
-
-`exit 0` · 2258 通过 / 0 失败 / 0 跳过 / 2258 总计
-
-```text
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\MethodPatchTableTests.cs(77,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(34,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayloadCoverageTests.cs(35,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(109,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SizePaletteTests.cs(24,9): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SportsshoesFlowTests.cs(128,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StepActionTests.cs(293,89): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\UnmatchedGatewaysTests.cs(58,78): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-  Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
-VSTest 版本 17.11.1 (x64)
-正在启动测试执行，请稍候...
-总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2258，已跳过:     0，总计:  2258，持续时间: 2 m 18 s - Cybersole.Tests.dll (net8.0)
-```
+本次未运行（`--skip-tests`）。**这不等于通过**：判据 e 需要它。
 
 ---
 

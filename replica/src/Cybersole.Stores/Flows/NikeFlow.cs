@@ -458,55 +458,54 @@ public class NikeFlow : StoreFlow
 
 
     /// <summary>
-    /// Nike's checkout API takes the delivery block as a PUT on the order. The region segment
-    /// (the "US" in the path) is the same one <see cref="SubmitOrderAsync"/> uses.
+    /// The delivery half of Nike's buy API — R1014's open question, answered by decompilation.
+    ///
+    /// <para>
+    /// <c>sub_140B1DCC0</c> (reached from the frozen <c>checkout_previews/v3</c> literal at
+    /// <c>0x147053c94</c> via the <c>chars_va - 12</c> chain) POSTs one request whose
+    /// <c>request</c> object carries the delivery block inline —
+    /// <c>fulfillmentDetails.location.postalAddress</c>, <c>recipient</c>, <c>contactInfo</c>.
+    /// So the resource that takes a delivery write is <b>the preview POST itself</b>; there is no
+    /// separate orders surface and never was.
+    /// </para>
+    ///
+    /// <para>
+    /// The state machine then makes exactly one more call: <c>checkout_previews_jobs/v3/{suffix}</c>
+    /// with no body (the 3-arg send <c>sub_1408B61E0</c>), and never reads the response. The
+    /// suffix is the same context field the preview URL read; the reading that explains both
+    /// calls is that the transport's response mapper replaced it with the preview job reference
+    /// between the awaits — the same mapper path that fills <c>priceId</c> / <c>priceSnapshotId</c> /
+    /// <c>paymentToken</c> for the checkout body. The replica follows the job reference when the
+    /// response carries one, and the marketplace otherwise.
+    /// </para>
     /// </summary>
     public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(c.Session.CartId))
-            return StepOutcome.Fail("nike: no order to attach a delivery to");
-
         var ship = c.Shipping;
         if (ship is null) return StepOutcome.Fail("nike: no shipping address");
+        if (string.IsNullOrEmpty(c.Session.VariantId)) return StepOutcome.Fail("nike: no sku id to preview");
 
-        var payload = new JObject
-        {
-            ["deliveryType"] = "SHIP_AND_HANDLE",
-            ["address"] = new JObject
-            {
-                ["address1"] = ship.Address1 ?? string.Empty,
-                ["address2"] = ship.Address2 ?? string.Empty,
-                ["city"] = ship.City ?? string.Empty,
-                ["state"] = ship.State ?? string.Empty,
-                ["postalCode"] = ship.ZipCode ?? string.Empty,
-                ["country"] = ship.Country ?? "US",
-            },
-            ["phoneNumber"] = c.ProfileData?.Phone ?? string.Empty,
-            ["recipient"] = new JObject
-            {
-                ["firstName"] = ship.FirstName ?? string.Empty,
-                ["lastName"] = ship.LastName ?? string.Empty,
-            },
-        };
+        var body = new JObject { ["request"] = BuildBuyRequest(c, checkout: false) };
+        var res = await PostJsonAsync(c, NikeEndpoints.CheckoutPreviews + CountryCode,
+            body.ToString(Newtonsoft.Json.Formatting.None), "nike-preview", ct).ConfigureAwait(false);
 
-        // R1014: this PUT to buy/orders/v2/US/{cart}/delivery until R1013, and to NikeEndpoints.Checkouts after it. Both
-        // were wrong in the same way, and the second was worse.
-        //
-        // buy/orders/v2 is in the image zero times -- there is no cart endpoint and no order endpoint, only
-        // checkout_previews/v3, its jobs, checkouts/v3 and checkouts_jobs/v3. So the old address could only 404, and it
-        // said so. R1013 replaced it with checkouts/v3 on the strength of a header sentence -- "the resource every step
-        // writes to" -- which is true and does not settle which resource carries a delivery write. CartUrl()'s own note
-        // had already ruled on exactly this move: "there is no way to tell which of checkouts/v3 and checkout_previews/v3
-        // carries the add. Swapping one guess for another would move the failure, not remove it."
-        //
-        // A swapped guess is worse than the 404 because it comes back with 200 or with an error about the payload, and
-        // then the message no longer points at the address. So this reports instead, and the three candidates are named
-        // in the text so the next attempt starts from them rather than from scratch.
-        _ = payload;  // built below and unused until the resource is established
-        return StepOutcome.Fail(
-            "nike: delivery endpoint not captured -- buy/orders/v2 is in the image zero times; the buy surface is "
-            + "checkout_previews/v3 and checkouts/v3 with their jobs, and which one takes a delivery write is not "
-            + "established", retryable: false);
+        if (res is null) return StepOutcome.Fail("nike preview request failed", retryable: true);
+        if (res.StatusCode == 403) return StepOutcome.Fail("nike preview blocked (kasada)", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"nike preview HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["nike.preview"] = res.Body ?? string.Empty;
+        var previewJob = TryRead(res.Body, "id");
+        if (!string.IsNullOrEmpty(previewJob)) c.Session.Vars["nike.previewJob"] = previewJob;
+
+        // The follow-up the original always makes (state 0 resume inside sub_140B1DCC0). Its
+        // body is discarded there too — the call itself and the mapper's absorption are the point.
+        var suffix = c.Session.Vars.TryGetValue("nike.previewJob", out var job) && !string.IsNullOrEmpty(job)
+            ? job
+            : CountryCode;
+        await GetAsync(c, NikeEndpoints.CheckoutPreviewsJobs + suffix, "nike-preview-job", ct)
+            .ConfigureAwait(false);
+
+        return StepOutcome.Success();
     }
 
     /// <summary>
@@ -587,39 +586,295 @@ public class NikeFlow : StoreFlow
     // the binary, which is the opposite of what leaving evidence was for. The body is recorded in the round's dossier
     // instead; a comment cannot be compiled.
 
+    /// <summary>
+    /// The order submit, decompiled end to end (<c>sub_140B248A0</c>, reached from the frozen
+    /// <c>checkouts/v3</c> literal at <c>0x147053d8c</c>).
+    ///
+    /// <para>
+    /// The original reports the progress string <c>Submit order</c> (0x146EA00F0, through
+    /// sub_140F9EDF0 before and sub_140F9EE50 after) around one POST to
+    /// <c>buy/checkouts/v3/{market}</c> whose <c>request</c> body is the preview shape plus
+    /// <c>paymentToken</c>, a <c>totals</c> block, and the checkout-only item decorations. No
+    /// guest-proxy order route runs here — <c>gs/checkout-api … v5/Order/</c>
+    /// (<see cref="NikeEndpoints.OrderV5"/>) belongs to the GS surface, so the constant stays
+    /// in <see cref="NikeEndpoints"/> unused by this flow.
+    /// </para>
+    /// </summary>
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(c.Session.CartId)) return StepOutcome.Fail("nike: no cart to submit");
+        if (string.IsNullOrEmpty(c.Session.VariantId)) return StepOutcome.Fail("nike: no sku id to submit");
 
-        var order = TryRead(c.Session.Vars.TryGetValue("cart", out var cart) ? cart : "{}", "orderNumber");
-        if (order is not null)
-        {
-            c.Session.OrderNumber = order;
-            return StepOutcome.Success();
-        }
-
-        // R129: this used to post to a hand-built `api.nike.com/buy/orders/v2/US/{id}/submit` — the
-        // R87 invention. The image's only order endpoint is NikeEndpoints.OrderV5, on the guest-checkout
-        // proxy host, so the cart id travels in the body instead of the path.
-        var payload = new JObject
-        {
-            ["cartId"] = c.Session.CartId,
-            ["country"] = CountryCode,
-        };
-
-        var res = await PostJsonAsync(c, NikeEndpoints.OrderV5,
-            payload.ToString(Newtonsoft.Json.Formatting.None), "nike-order", ct).ConfigureAwait(false);
+        var body = new JObject { ["request"] = BuildBuyRequest(c, checkout: true) };
+        var res = await PostJsonAsync(c, NikeEndpoints.Checkouts + CountryCode,
+            body.ToString(Newtonsoft.Json.Formatting.None), "nike-submit-order", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("nike order submit failed", retryable: true);
+        if (res.StatusCode == 403) return StepOutcome.Fail("nike order blocked (kasada)", retryable: true);
         if (!res.IsSuccess) return StepOutcome.Fail($"nike order HTTP {res.StatusCode}", retryable: true);
 
-        var body = JObject.Parse(res.Body);
-        c.Session.OrderNumber = body["orderNumber"]?.ToString() ?? body["id"]?.ToString();
-        c.Session.OrderId = body["id"]?.ToString();
-        return string.IsNullOrEmpty(c.Session.OrderNumber)
-            ? StepOutcome.Fail("nike: order response had no number")
-            : StepOutcome.Success();
+        c.Session.Vars["nike.checkout"] = res.Body ?? string.Empty;
+        var checkoutJob = TryRead(res.Body, "id");
+        if (!string.IsNullOrEmpty(checkoutJob)) c.Session.Vars["nike.checkoutJob"] = checkoutJob;
+
+        // The original hands the response to the transport's mapper and reports Submit order
+        // done; the order number surfaces through the checkout job. Read it when the response
+        // already carries one, and leave the session's value alone otherwise.
+        var number = TryRead(res.Body, "orderNumber");
+        if (!string.IsNullOrEmpty(number)) c.Session.OrderNumber = number;
+
+        return StepOutcome.Success();
     }
+
+    // ── buy API request assembly (decompiled from sub_140B1DCC0 / sub_140B248A0) ──────────
+
+    /// <summary>
+    /// The buy-API request object both POSTs share, assembled the way the two decompiled
+    /// builders assemble it. The preview (<c>sub_140B1DCC0</c>) and the checkout
+    /// (<c>sub_140B248A0</c>) differ exactly where the pseudocode shows: the checkout reads its
+    /// email first, adds <c>paymentToken</c> and a <c>totals</c> block, sends empty promotion
+    /// arrays unless a discount code exists, and decorates the item with
+    /// <c>priceId</c>/<c>priceSnapshotId</c> plus a <c>taxes</c> slot.
+    /// </summary>
+    internal JObject BuildBuyRequest(FlowContext c, bool checkout)
+    {
+        var ship = c.Shipping!;
+        var profile = c.ProfileData;
+        var discount = DiscountCode(c);
+
+        var request = new JObject();
+        if (checkout) request["email"] = profile?.Email;   // checkout reads email first (sub_140B248A0)
+        request["country"] = ship.Country;
+        request["currency"] = CurrencyFor(CountryCode);
+        request["locale"] = c.Session.Vars.TryGetValue("nike.locale", out var loc) && !string.IsNullOrEmpty(loc)
+            ? loc
+            : $"{Language}_{CountryCode}";
+        request["channel"] = "NIKECOM";   // frozen literal 0x146E11460
+        request["items"] = new JArray(BuildBuyItem(c, checkout, discount));
+
+        if (checkout)
+        {
+            // ctx field 29 — whatever the payment step produced; the original does not gate on it.
+            request["paymentToken"] = c.Session.PaymentToken;
+            // The checkout leaves the promotion arrays empty unless a discount code exists (the
+            // marker-only arrays of sub_140B248A0 are serializer metadata, not wire elements).
+            request["promotionCodes"] = discount is null
+                ? new JArray()
+                : new JArray(new JValue(discount));
+            request["totals"] = BuildTotals();
+        }
+        else
+        {
+            // The preview always sends the code cell, null when the task has none.
+            request["promotionCodes"] = new JArray(
+                discount is null ? (JToken)JValue.CreateNull() : new JValue(discount));
+            request["email"] = profile?.Email;   // preview reads email last (sub_140B1DCC0)
+        }
+
+        return request;
+    }
+
+    /// <summary>
+    /// One item of the buy request. <c>id</c> and <c>skuId</c> are two distinct context fields
+    /// in the original (ctx 19 and 17); both trace to the selected sku and their exact feeders
+    /// are not yet decoded, so the replica sends the sku id in both slots (Inference).
+    /// </summary>
+    internal JObject BuildBuyItem(FlowContext c, bool checkout, string? discount)
+    {
+        var ship = c.Shipping!;
+        var profile = c.ProfileData;
+
+        string? productId = null, priceId = null, priceSnapshotId = null;
+        if (c.Session.Vars.TryGetValue("thread", out var threadJson))
+        {
+            try
+            {
+                var first = (JObject.Parse(threadJson)["productInfo"] as JArray)?.FirstOrDefault();
+                productId = first?["merchProduct"]?["id"]?.ToString();
+                // merchPrice carries the price ids the checkout body asks for; the original
+                // reads them from fields its own feed step filled (ctx 30 / 31).
+                priceId = first?["merchPrice"]?["priceId"]?.ToString();
+                priceSnapshotId = first?["merchPrice"]?["priceSnapshotId"]?.ToString();
+            }
+            catch
+            {
+                // A thread we cannot re-read leaves the ids null — the original's feed step
+                // is the next probe, and a missing id must not take the whole step down.
+            }
+        }
+
+        var item = new JObject
+        {
+            ["id"] = c.Session.VariantId,
+            ["skuId"] = c.Session.VariantId,
+            ["productId"] = productId,
+            ["offers"] = new JArray(),
+        };
+
+        var priceInfo = new JObject
+        {
+            ["price"] = JValue.CreateNull(),
+            ["fullPrice"] = JValue.CreateNull(),
+            ["subtotal"] = JValue.CreateNull(),
+            ["discount"] = 0,
+            ["valueAddedServices"] = 0,
+            ["taxTotal"] = 0,
+            ["total"] = JValue.CreateNull(),
+            ["fullPriceTotal"] = JValue.CreateNull(),
+        };
+        if (checkout)
+        {
+            priceInfo["priceId"] = priceId;
+            priceInfo["priceSnapshotId"] = priceSnapshotId;
+        }
+
+        var itemCosts = new JObject { ["priceInfo"] = priceInfo };
+        if (checkout) itemCosts["taxes"] = new JArray();
+        itemCosts["promotionDiscounts"] = checkout
+            ? (discount is null
+                ? new JArray()
+                : new JArray(new JObject { ["code"] = discount }))
+            : new JArray(new JObject
+            {
+                ["code"] = discount is null ? (JToken)JValue.CreateNull() : new JValue(discount),
+            });
+        item["itemCosts"] = itemCosts;
+
+        item["quantity"] = c.Session.Quantity;
+
+        var postal = new JObject
+        {
+            ["country"] = ship.Country,
+            ["address1"] = ship.Address1 ?? string.Empty,
+            ["address2"] = ship.Address2 ?? string.Empty,
+            ["postalCode"] = ship.ZipCode ?? string.Empty,
+            ["city"] = ship.City ?? string.Empty,
+            ["state"] = NikeStateValue(ship.State, ship.Country),
+        };
+
+        item["fulfillmentDetails"] = new JObject
+        {
+            ["type"] = "SHIP",   // frozen literal 0x146E747F0
+            ["getBy"] = c.Session.Vars.TryGetValue("nike.getBy", out var getBy) ? getBy : null,
+            ["location"] = new JObject
+            {
+                ["id"] = c.Session.Vars.TryGetValue("nike.locationId", out var locId) ? locId : null,
+                ["postalAddress"] = postal,
+                ["type"] = "address/shipping",   // frozen literal 0x146F6EAB0
+            },
+        };
+
+        item["valueAddedServices"] = new JArray();
+
+        var recipient = new JObject
+        {
+            ["firstName"] = ship.FirstName ?? string.Empty,
+            ["lastName"] = ship.LastName ?? string.Empty,
+        };
+
+        if (checkout && CountryCode == "JP")
+        {
+            // The JP decoration from sub_140B248A0's tail: when the task's channel string is
+            // the interned 'Nike JP' (0x146E173E8), the recipient gains the kana names the
+            // profile carries (kana_first_name / kana_last_name keys, empty-string sentinel
+            // 0x146A622F8 when absent) and the postal address gains address3 = address2.
+            recipient["altFirstName"] = profile?.JapaneseName ?? string.Empty;
+            recipient["altLastName"] = profile?.JapaneseSurname ?? string.Empty;
+            postal["address3"] = ship.Address2;
+        }
+
+        item["recipient"] = recipient;
+        item["contactInfo"] = new JObject
+        {
+            ["phoneNumber"] = profile?.Phone ?? string.Empty,
+            ["email"] = profile?.Email ?? string.Empty,
+        };
+
+        return item;
+    }
+
+    /// <summary>
+    /// The <c>totals</c> block, checkout only, exactly as sub_140B248A0 builds it: null
+    /// placeholders where the server computes, zeroes and <c>NOT_CALCULATED</c> (0x146E11E58)
+    /// where the client asserts nothing yet.
+    /// </summary>
+    private static JObject BuildTotals()
+    {
+        return new JObject
+        {
+            ["total"] = JValue.CreateNull(),
+            ["items"] = new JObject
+            {
+                ["total"] = JValue.CreateNull(),
+                ["details"] = new JObject { ["price"] = JValue.CreateNull(), ["discount"] = 0 },
+            },
+            ["taxes"] = new JObject
+            {
+                ["total"] = 0,
+                ["details"] = new JObject
+                {
+                    ["items"] = new JObject { ["tax"] = 0, ["type"] = "NOT_CALCULATED" },
+                    ["shipping"] = new JObject { ["type"] = "NOT_CALCULATED" },
+                    ["valueAddedServices"] = new JObject { ["tax"] = 0, ["type"] = "NOT_CALCULATED" },
+                    ["fulfillment"] = new JObject { ["tax"] = 0, ["type"] = "NOT_CALCULATED" },
+                },
+            },
+            ["valueAddedServices"] = new JObject
+            {
+                ["total"] = 0,
+                ["details"] = new JObject { ["price"] = 0, ["discount"] = 0 },
+            },
+            ["fulfillment"] = new JObject
+            {
+                ["total"] = JValue.CreateNull(),
+                ["details"] = new JObject { ["price"] = JValue.CreateNull(), ["discount"] = 0 },
+            },
+        };
+    }
+
+    /// <summary>
+    /// The state the buy API receives, with the sentinel branch both builders carry: when the
+    /// profile's state equals one of two interned literals — <c>ASTLA</c> (0x146B34B08) or
+    /// <c>CA</c> (0x146B655C8), compared by reference and again by value — the original sends
+    /// <c>{country}-{state}</c>; otherwise the raw state field.
+    /// </summary>
+    private static string? NikeStateValue(string? state, string? country)
+    {
+        return state == "ASTLA" || state == "CA"
+            ? string.Concat(country, "-", state)
+            : state;
+    }
+
+    /// <summary>
+    /// The task's promotion code. The original reads it out of the task's settings map under
+    /// the key <c>discount_code</c> (frozen literal 0x147006180, via sub_140B104F0); the
+    /// replica reads the same key from the session vars the task config seeds.
+    /// </summary>
+    private static string? DiscountCode(FlowContext c) =>
+        c.Session.Vars.TryGetValue("discount_code", out var code) && !string.IsNullOrEmpty(code)
+            ? code
+            : null;
+
+    /// <summary>
+    /// Inference: the ISO-4217 currency for each of the forty-two marketplaces. The original
+    /// converts an int enum the task config holds (sub_141CEDAC0) whose table is not yet
+    /// decoded; the wire needs the string either way, and the marketplace table is the
+    /// standard one Nike publishes.
+    /// </summary>
+    private static string CurrencyFor(string country) =>
+        MarketplaceCurrency.TryGetValue(country, out var cur) ? cur : "USD";
+
+    private static readonly Dictionary<string, string> MarketplaceCurrency = new()
+    {
+        ["AT"] = "EUR", ["AU"] = "AUD", ["BE"] = "EUR", ["BG"] = "EUR", ["CH"] = "CHF",
+        ["CZ"] = "CZK", ["DE"] = "EUR", ["DK"] = "DKK", ["ES"] = "EUR", ["FI"] = "EUR",
+        ["FR"] = "EUR", ["GB"] = "GBP", ["GR"] = "EUR", ["GS"] = "USD", ["HR"] = "EUR",
+        ["HU"] = "HUF", ["IE"] = "EUR", ["IL"] = "ILS", ["IN"] = "INR", ["IT"] = "EUR",
+        ["JP"] = "JPY", ["LU"] = "EUR", ["MX"] = "MXN", ["MY"] = "MYR", ["NL"] = "EUR",
+        ["NO"] = "NOK", ["NZ"] = "NZD", ["PH"] = "PHP", ["PL"] = "PLN", ["PT"] = "EUR",
+        ["RO"] = "RON", ["SE"] = "SEK", ["SG"] = "SGD", ["SI"] = "EUR", ["SK"] = "EUR",
+        ["TH"] = "THB", ["TR"] = "TRY", ["TW"] = "TWD", ["US"] = "USD", ["VN"] = "VND",
+        ["ZA"] = "ZAR",
+    };
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -639,11 +894,11 @@ public class NikeFlow : StoreFlow
     /// ``buy/carts/v2`` is a real Nike route — SNKRS used it — so this is not invented; it is
     /// simply not the route the original takes.
     ///
-    /// Not changed, deliberately. The original's fourteen checkout steps share those five URLs,
-    /// which means most of them write to one checkout resource rather than hitting fourteen
-    /// endpoints; without the decompiled step bodies there is no way to tell which of
-    /// ``checkouts/v3`` and ``checkout_previews/v3`` carries the add. Swapping one guess for
-    /// another would move the failure, not remove it.
+    /// Not changed, deliberately. The original's checkout steps share those five URLs, and
+    /// R1076 settled the question this note used to leave open: the delivery write rides the
+    /// <c>checkout_previews/v3</c> POST body and the order submit is the <c>checkouts/v3</c>
+    /// POST (sub_140B1DCC0 / sub_140B248A0), so the cart surface this method models is a
+    /// different route family, kept because the task config still speaks it.
     ///
     /// See docs/NIKE_PARITY.md — it lists the fourteen steps, which of them are missing here,
     /// and why closing the gap needs ``auto_analysis_ready``.

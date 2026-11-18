@@ -301,3 +301,69 @@ d__58 SubmitOrder
 正好对上第 13 节那 6 个 `persisted?operationName=`（`Proposal` / `SubmitForCompletion` /
 `PollForReceipt` / `PaypalDetails` / `PaypalToken` / `CheckoutExtensionSessionToken`）。
 **两条独立证据指向同一个形状：Nike 的结账后半段是持久化 GraphQL，不是 REST 子路径。**
+
+## 15. 两个 POST 反编译落地 —— R1014 的悬案终局（第 1076 轮）
+
+`chars_va - 12` 链把承载全部结账语义的两个函数直接定位出来，全部键名用
+`names_at.py` 从冻结常量解出（可复算命令见 `docs/BLOCKERS.md` R1076）：
+
+| 冻结串 | chars_va | 对象头 | `.text` 引用点 | 所属函数（.pdata） |
+|---|---|---|---|---|
+| `https://api.nike.com/buy/checkout_previews/v3/` | `0x147053c94` | `0x147053c88` | `0x140B1EDB1` | **`sub_140B1DCC0`**（4,617 B） |
+| `https://api.nike.com/buy/checkouts/v3/` | `0x147053d8c` | `0x147053d80` | `0x140B26A5E` | **`sub_140B248A0`**（8,935 B） |
+
+**第 12 节结尾那句「哪一步写哪个子路径仍然没有证据」就此作废：根本没有子路径。**
+两个 POST 的 `request` 对象把一切内联 —— 配送块写在 preview POST 的
+`items[].fulfillmentDetails.location.postalAddress` + `recipient` + `contactInfo`，
+订单提交是 checkout POST 加 `paymentToken` 与 `totals`。R48 的「14 步对 5 URL =
+逐步写入同一资源」读对了资源、读错了机制：**不是逐步 PATCH，是两个大 POST 加 jobs 调用。**
+
+### preview POST（`sub_140B1DCC0`，两段状态机）
+
+```
+POST https://api.nike.com/buy/checkout_previews/v3/{市场}
+{"request":{
+  "country"        ← 收货地址的 country（B+64）
+  "currency"       ← 任务枚举转字符串（sub_141CEDAC0，表未解）
+  "locale"         ← ctx[23]
+  "channel"        ← "NIKECOM"（0x146E11460）
+  "items":[{ id(ctx19), skuId(ctx17), productId(ctx16),
+             "offers":[], "itemCosts":{ priceInfo{8 个占位}, promotionDiscounts:[{code}] },
+             "quantity"←购物车数量, "fulfillmentDetails":{ "type":"SHIP"(0x146E747F0),
+               "getBy"←ctx32, "location":{ "id"←ctx27,
+                 "postalAddress":{ country,address1,address2,postalCode,city,state },
+                 "type":"address/shipping"(0x146F6EAB0) } },
+             "valueAddedServices":[], "recipient":{firstName,lastName},
+             "contactInfo":{phoneNumber,email} }]
+  "promotionCodes":[discount_code]   ← 无码时 [null]（无条件发送 cell）
+  "email"                            ← 最后一个键
+}}
+→ 之后必发一记 checkout_previews_jobs/v3/{同字段}（3 参 sub_1408B61E0，响应被丢弃）
+```
+
+priceInfo 占位与原版逐格对应：`price/fullPrice/subtotal/total/fullPriceTotal = null`，
+`discount/valueAddedServices/taxTotal = 0`。
+
+### checkout POST（`sub_140B248A0`，'Submit order' 0x146EA00F0）
+
+同形再加：`email` **提到第一个键**、请求级 `paymentToken`←ctx29、`promotionCodes`
+**有码才发**（`[]` 否则）、`items[0]` 多 `priceId`(ctx30)/`priceSnapshotId`(ctx31) 与
+`taxes:[]`、以及完整 `totals` 块（null / 0 / `"NOT_CALCULATED"`(0x146E11E58) 逐位钉死在
+`NikeBuyRequestTests`）。**JP 构型**（任务 channel == `'Nike JP'`(0x146E173E8)）：
+recipient 加 `altFirstName`/`altLastName`（profile 的 `kana_first_name`/`kana_last_name`，
+缺省空串哨兵 0x146A622F8），postalAddress 加 `address3` = address2。
+
+**state 哨兵分支**：state ∈ {`ASTLA`(0x146B34B08), `CA`(0x146B655C8)}（先引用相等再逐值）
+→ 发 `"{country}-{state}"`；否则原样发 state 字段。
+
+### 落地与剩余
+
+- `SubmitShippingAsync` = preview POST + jobs 跟进；`SubmitOrderAsync` = checkout POST。
+  两者均为**可执行运行时实现**（`NikeFlow.BuildBuyRequest`/`BuildBuyItem`/`BuildTotals`），
+  由 `NikeBuyRequestTests` 10 个用例钉住键序、字面量与占位形状。
+- 证据等级：以上全部字段与控制流为 **Observation**；货币 ISO 表、locale 格式、
+  jobs 跟进动词（GET，与 AYCD verify 共用 `+8` 槽）、ctx[26] 在两次调用之间被响应
+  映射器改写为 job id 的读法、id/skuId 双 ctx 字段的 feeder、kana→JapaneseName 映射
+  为 **Inference**（各自写入实现注释，可被后续反编译修正）。
+- **剩余 Unknown**：`GetPaymentMethods`/`SubmitPayment` 的 initiatePayment 通道
+  （`/rpc/payment/pay/initiatePayment` 无 host 配对，见 §12 与 PAYMENT_CHALLENGES.md）。

@@ -62630,3 +62630,43 @@ kpsdk 17 · datadome 15   ← 同一次运行，两个已知串都 > 0
 > 而它们在那个判据下长得和真厂商缺口一模一样。**
 > **→ (f) 的「未覆盖的每条写为什么」不是形式要求 —— 它要求**每条先定类别**，
 > 因为「为什么未覆盖」的答案随类别完全不同。**
+
+---
+
+## 第 1076 轮：Nike 两个 buy POST 反编译落地 —— 核心占位 14 → 13
+
+（R1049–R1075 只记于 `docs/BLOCKERS.md` / `docs/HANDOFF.md`；本节从 R1076 起恢复。）
+
+### 一、R1014 的悬案有了终局答案
+
+`chars_va - 12` 链定位出 `sub_140B1DCC0`（preview，4,617 B）与 `sub_140B248A0`（checkout，
+8,935 B），`names_at.py` 解出 49 个冻结常量：**没有子路径，两个 POST 的 request 体把一切内联**。
+配送块在 preview POST 里，订单提交是 checkout POST 加请求级 `paymentToken` 与 `totals`。
+R48「14 步逐步写入同一资源」读对了资源、读错了机制。
+
+### 二、落地
+
+| 步骤 | 旧 | 新 |
+|---|---|---|
+| `SubmitShippingAsync` | 占位 Fail（not captured） | preview POST + jobs 跟进（`sub_140B1DCC0` 两段状态机） |
+| `SubmitOrderAsync` | OrderV5 客结代理（误配） | checkout POST（'Submit order' 0x146EA00F0） |
+
+新增 `BuildBuyRequest` / `BuildBuyItem` / `BuildTotals` / `NikeStateValue` / `CurrencyFor` /
+`DiscountCode`（可执行运行时代码，无台账类）；`NikeBuyRequestTests` 10 用例钉住键序、
+字面量（NIKECOM / SHIP / address/shipping / NOT_CALCULATED / ASTLA·CA 哨兵 / discount_code）
+与 totals 六块。证据分级与 Inference 清单见 `NIKE_PARITY.md` §15 与 BLOCKERS R1076。
+
+### 三、数字
+
+| 度量 | R1048 | **R1076** |
+|---|---|---|
+| 核心 not captured 占位 | 14 | **13** |
+| NikeFlow Unknown 步 | 3 | **2**（GetPaymentMethods / SubmitPayment，归队列②支付层） |
+| NikeFlow 行数 | 682 | **937** |
+| 相关测试组 | — | **77/77 + 74/74 绿** |
+
+### 教训
+
+> **纠偏后的第 1 轮就把「等了几十轮的反编译」做完了** —— 悬案不是难，是路线偏了：
+> BINDING_BACKLOG 当主循环入口的那 20+ 轮里，这个问题一直只需要两条 `dec` 命令。
+> **队列驱动 + `chars_va - 12` 主航道，一轮一结案。**

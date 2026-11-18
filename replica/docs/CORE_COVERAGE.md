@@ -9,7 +9,7 @@
 |---|---|---|
 | flow 文件 | 18 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
 | 覆写步骤总数 | 356 | 本文件生成时统计 |
-| 其中报告「端点为 Unknown」的 | 14 | 同上（匹配 `endpoint unknown` / `not captured`） |
+| 其中报告「端点为 Unknown」的 | 13 | 同上（匹配 `endpoint unknown` / `not captured`） |
 | 含报告的 flow | 3 | 同上 |
 | 端点常量 / 逐字在池 | 214 / 214 | `python tools/endpoint-provenance.py` |
 | 常量 invented / unresolved | 0 / 0 | 同上 |
@@ -31,7 +31,7 @@
 | `HbxFlow.cs` | 13 | 0 | 330 |
 | `HybrisFlow.cs` | 13 | 0 | 371 |
 | `MagentoFlow.cs` | 44 | 0 | 880 |
-| `NikeFlow.cs` | 23 | 3 | 682 |
+| `NikeFlow.cs` | 23 | 2 | 937 |
 | `NikeGsFlow.cs` | 4 | 0 | 47 |
 | `PopMartFlow.cs` | 27 | 0 | 685 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
@@ -87,8 +87,11 @@ R1044 曾对 `0x147053d8c`（`checkouts/v3`）与 `0x147053c94`（`checkout_prev
 | `checkout_previews/v3/` | `0x147053c94` | `0x147053c88` | `0x140B1EDB1` | **`sub_140B1DCC0`..`0x140B1EEC9`（4,617 字节）** |
 
 **→ 结论更新**：两条候选路由各自落在独立可反编译的业务函数内，**不再记为不可得**。
-下一步直接用 IDA 反编译 `sub_140B248A0` 与 `sub_140B1DCC0`，并用 `python analysis/names_at.py` 解码伪代码里的 `&off_146xxxxxx` 冻结字符串，
-即可从控制流与字段常量确定哪一个承接 shipping/payment 写入，替换 `NikeFlow.cs` 中的 `not captured` 占位。
+
+**→ 已结案（R1076，详见 `docs/NIKE_PARITY.md` §15）**：**两个 POST 都承接** —— 配送块内联在
+`checkout_previews/v3` 的 request 体（`sub_140B1DCC0`），订单提交是 `checkouts/v3` 的 POST
+（`sub_140B248A0`，请求级 `paymentToken`）。`NikeFlow.cs` 的 SubmitShipping / SubmitOrder
+已按反编译落地，本表 Nike 行的占位 3 → 2（GetPaymentMethods / SubmitPayment 归队列②支付层）。
 
 ## 三、风控清单（可复算）
 

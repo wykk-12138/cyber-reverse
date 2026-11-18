@@ -4901,3 +4901,46 @@ python analysis/ida.py str "Solving PayPal 3DS" --limit 600
 `docs/METRICS.md` 不需要重跑。
 
 **纪律**：一个数能被引用，前提是接口能说清它是「全量」还是「撞了上限」。
+
+## R1076 —— 【核心①·结账流程】Nike 两个 buy POST 反编译落地：SubmitShipping / SubmitOrder 告别占位
+
+**取件**：路线纠偏后核心队列第 1 项。`chars_va - 12` 主航道全程未离线。
+
+改了什么：
+- `NikeFlow.SubmitShippingAsync`：占位 Fail → 真实 preview POST
+  （`checkout_previews/v3/{市场}`，request 体带完整配送块）+ jobs 跟进调用（响应照原版丢弃语义）。
+- `NikeFlow.SubmitOrderAsync`：OrderV5 客结代理误配 → 真实 checkout POST
+  （`checkouts/v3/{市场}`，进度串 'Submit order' = 0x146EA00F0）。
+- 新增 `BuildBuyRequest` / `BuildBuyItem` / `BuildTotals` / `NikeStateValue` / `CurrencyFor` /
+  `DiscountCode` —— 全部可执行运行时代码，无台账类。
+- `Cybersole.Stores.csproj` 加 `InternalsVisibleTo`（同 Ui 项目先例）；新钉测
+  `NikeBuyRequestTests`（6 Fact + 1 Theory×4 = 10 用例）；`NIKE_PARITY.md` §15；
+  `CORE_COVERAGE.md` 重生成并补结案注记。
+
+验证命令与输出：
+- 取证：`python analysis\ida.py dec 0x140B1DCC0` / `dec 0x140B248A0`（尾部用 py_eval 切片）+
+  `python analysis\names_at.py <49 个 off_va>`（全部键名解码，NIKE_PARITY §15 表格）。
+- `dotnet test --filter "FullyQualifiedName~Nike|~StoreFlowParity|~EndpointEvidence|~CheckoutFlowEndToEnd|~ModuleCoverage|~StoreFlowDigest|~IDBEvidence|~ServiceHost" -m:1` → **77/77 绿**；
+  含新钉测后重跑 → **74/74 绿**。
+- `python tools\core_coverage.py` → 占位 **14 → 13**；NikeFlow 行 **3 → 2 Unknown、682 → 937 行**。
+- `python tools\metrics_report.py --skip-tests` → exit 0；staleness 自报
+  「NikeBuyRequestTests.cs changed after the run」（真实，队列第 5 项待跑）。
+
+数字变化：核心 not captured 占位 **14 → 13**；NikeFlow 内 **3 → 2**。
+
+证据等级：
+- Observation：两函数全控制流；全部键名/键序/字面量（NIKECOM 0x146E11460、SHIP 0x146E747F0、
+  address/shipping 0x146F6EAB0、NOT_CALCULATED 0x146E11E58、ASTLA/CA 哨兵 0x146B34B08/0x146B655C8、
+  discount_code 0x147006180、kana_first_name/kana_last_name、'Nike JP' 0x146E173E8、
+  'Submit order' 0x146EA00F0、totals 六块）；preview 后必发 jobs 调用且响应被丢弃
+  （sub_1408B61E0 3 参 send，+8 槽）。
+- Inference（写进实现注释，可被后续反编译修正）：货币 ISO 表（原版走 sub_141CEDAC0 的
+  int 枚举表未解码）；locale 格式；jobs 跟进动词 GET（与 AYCD verify 共用 +8 槽；
+  ^GET$ 在 IDA 字符串清单里是最小长度 5 的采样盲区）；ctx[26] 在两次调用之间被响应映射器
+  改写为 job id 的读法；id/skuId 双 ctx 字段的 feeder；kana → Profile.JapaneseName 映射。
+
+还剩什么：
+- 队列① 下一步：`FarfetchFlow.cs` 的 7 个 not captured 按同法反编译（URL 家族已登记）。
+- 队列② 支付：GetPaymentMethods / SubmitPayment 的 initiatePayment 通道仍 Unknown；
+  ctx[29] paymentToken 的生产者（payment/preview、paypal_mark 家族）待反编译。
+- 变异套件 staleness 已被工具自报，跑 `python tools\mutation-check.py` 清零（队列第 5 项）。

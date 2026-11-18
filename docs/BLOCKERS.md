@@ -40471,3 +40471,62 @@ Inference = 「48 条仍开放」是**上界**——本工具只试**两段**拆
 还剩什么：**`bff/*` 10 条是最大单块**，且属同一后端家族——下一轮取它；
 `data/dtd/v11/ibmxhtml1-transitional.dtd` 属**文档类型声明**、`turnstile/v0/api.js` 属**第三方脚本**，
 需先判是否在范围内。
+
+## R1126 —— `bff/*` 那 10 条**也早就实现了**；顺带一次取出 **12 条 URL 的动词**（第四条盲区）
+
+**取件**：R1125 排班 —— `bff/*` 10 条（最大单块）。
+
+改了什么：
+- **一次取全 12 条带宿主的 John Lewis BFF URL**（`ida.py str "johnlewis.com/bff" --limit 20`，
+  `saturated: false`，`total 12`），地址 `0x14705D60C` … `0x14705DC34`。
+- **一次 IDAPython 批量判动词**（`analysis/_bff_verbs.py`）：对每条 `obj_va = chars-12` 取 xrefs，
+  在站点后 ±60 指令内找三个已确立的动词槽（`0x1408B6310`＝PUT / `0x1408B63B0`＝POST /
+  `0x1408B61E0`＝GET）。**结果（Observation）**：
+  | URL | 动词 |
+  |---|---|
+  | `/bff/v1/orderforms/payments/billing-address` | **POST** |
+  | `/bff/v2/orderforms/payment-page` | **GET 与 PUT**（同一 URL 两个站点） |
+  | `/bff/v2/orderforms/payments` | **PUT** |
+  | `/bff/v2/orders` | **PUT** |
+  | `/bff/v2/sessions/web/handover` | **PUT** |
+  | `/bff/v3/orderforms/deliveries/details` | **POST** |
+  | `/bff/v3/orderforms/delivery-page` | **PUT** |
+  | `/bff/v3/orderforms/payments/` | **PUT** |
+  | `/bff/v4/callback/guest` | **PUT** |
+  | `/bff/v4/orderforms/deliveries` | **PUT** |
+  | `/bff/v4/orderforms/deliveries/` | **GET** |
+  | `/bff/v4/orderforms/deliveries/delivery-address` | **PUT** |
+  **其中 `payment-page` 一条 URL 两个动词**——只按 GET 实现的流程会漏掉写回。
+- **它们本来就实现了**：`src/Cybersole.Stores/Flows/RetailApiFamilies.cs` 的
+  `JohnLewisBff`（L32–51）已含全部 12 条常量，写法是 `Base + "v1/…"`，其中
+  `Base = "https://checkout.johnlewis.com/bff/"`（**L30**）。
+- **第四条盲区（新增判据）**：路径的**前段是某个字面量的后缀**、后段自成一个字面量。
+  例如 `/bff/v1/orderforms/payments/billing-address` ＝ `<以 "/bff/" 结尾的字面量>` +
+  `"v1/orderforms/payments/billing-address"`。**两端都锚定，仍不是模糊包含。**
+- **判定器三路读数（可复算）**：
+  ```
+  reported missing: 53
+  reachable by literal concatenation: 5   (two-part 5, three-part 0)
+  carried by a longer anchored literal: 8
+  reachable as base-suffix plus path literal: 9
+  still unexplained: 31
+  ```
+  9 条 BASE 全部是 `head='/bff/'`，逐条印出 head/tail。
+- **31 条按族**：`api/v1` **8**、`api/v2` **5**、`activity/v1` 2、`Checkout/v2` 2、其余 8 条单条。
+
+验证命令与输出：
+- `python analysis/ida.py str "johnlewis.com/bff" --limit 20` → 12 条（含宿主），`saturated:false`。
+- `python analysis/ida.py py "exec(open(r'…/_bff_verbs.py').read(), {})"` → 13 行站点/函数/动词（见上表）。
+- `python tools/where_is.py RetailApiFamilies` → implementation 组命中 3 处，含
+  `src/Cybersole.Stores/Flows/RetailApiFamilies.cs`；`Read` 该文件 L30–51 逐条核对 12 条常量。
+- `python tools/endpoint_compose.py` → 四路计数（5/8/9/31）。
+
+数字变化：**53 = 5 + 8 + 9 + 31**（R1125 是 5+8+40；本轮 9 条归位）。
+**53 的保守计数仍不变**，但「解释得清」的比例从 13/53 升到 **22/53**。
+
+证据等级：Observation = 12 条 URL 与宿主、13 个站点的动词、`RetailApiFamilies` 的 12 条常量原文、
+四路计数与 9 条 head/tail；Inference = 31 仍是**上界**（四路判据之外可能还有运行期拼接）。
+
+还剩什么：① **动词表要回灌到实现**——`payment-page` 的 GET/PUT 双动词、`deliveries` 的 PUT 与
+`deliveries/` 的 GET，需核对 `JohnLewisFlow` 现有调用是否用了对的动词；② `api/v1`(8) 与
+`api/v2`(5) 是剩下最大的两块。

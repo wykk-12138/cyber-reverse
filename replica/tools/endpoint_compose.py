@@ -131,6 +131,21 @@ def embedded(path, lits):
     return None
 
 
+def base_composed(path, lits):
+    """...and when the head comes from the SUFFIX of one literal and the tail is another literal.
+
+    R1126: RetailApiFamilies holds Base = "https://checkout.johnlewis.com/bff/" and then
+    Base + "v1/orderforms/payments/billing-address". Here "/bff/v1/..." never appears as a quoted
+    literal anywhere, and it does not split into two literals either -- the head "/bff/v1/" is a
+    suffix of the base literal. Anchored on both sides, so it is still not a fuzzy substring.
+    """
+    for i in range(2, len(path) - 1):
+        head, tail = path[:i], path[i:]
+        if tail in lits and any(len(lit) > len(head) and lit.endswith(head) for lit in lits):
+            return head, tail
+    return None
+
+
 def main():
     out = subprocess.run([sys.executable, os.path.join(REPLICA, "tools", "endpoint_coverage.py"), "-v"],
                          capture_output=True, text=True, cwd=REPLICA,
@@ -142,7 +157,7 @@ def main():
             missing.append((parts[0], parts[2]))
 
     lits = literals()
-    composed, embedded_rows, unresolved = [], [], []
+    composed, embedded_rows, base_rows, unresolved = [], [], [], []
     for key, path in missing:
         probe = path.split("?")[0].split("{")[0]
         hit = compose(probe, lits)
@@ -150,7 +165,11 @@ def main():
             composed.append((key, path, hit))
             continue
         anchor = embedded(probe, lits)
-        (embedded_rows if anchor else unresolved).append((key, path, anchor))
+        if anchor:
+            embedded_rows.append((key, path, anchor))
+            continue
+        base = base_composed(probe, lits)
+        (base_rows if base else unresolved).append((key, path, base))
 
     two = sum(1 for _, _, h in composed if len(h) == 2)
     three = sum(1 for _, _, h in composed if len(h) == 3)
@@ -162,6 +181,9 @@ def main():
     print("carried by a longer anchored literal: %d" % len(embedded_rows))
     for key, path, lit in embedded_rows:
         print("   EMBEDDED %-7s %-58s in %r" % (key, path[:58], lit[:70]))
+    print("reachable as base-suffix plus path literal: %d" % len(base_rows))
+    for key, path, hit in base_rows:
+        print("   BASE %-7s %-58s head=%r tail=%r" % (key, path[:58], hit[0], hit[1]))
     print("still unexplained: %d" % len(unresolved))
     for key, path, _ in unresolved:
         print("   OPEN     %-7s %s" % (key, path[:80]))

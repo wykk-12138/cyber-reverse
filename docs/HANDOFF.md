@@ -5952,3 +5952,20 @@ threeds 站点可一并校正既有实现。
 数字变化：**5 + 8 + 40**（上轮 5 + 48）；保守计数 53 不变。
 
 还剩什么：**下轮取 `bff/*` 那 10 条**（同一后端家族）；`data/dtd` 与 `turnstile/v0` 需先判是否在范围内。
+## R1126 —— bff/* 已实现；取得 12 条 John Lewis BFF 的动词表；第四条盲区
+
+改了什么：
+- 一次取全 **12 条带宿主 URL**（`str "johnlewis.com/bff"`，saturated false，total 12）。
+- 一次 IDAPython 批量判动词（`analysis/_bff_verbs.py`，扫站点 ±60 指令内的三个动词槽），
+  得到 13 个站点：**`payment-page` 同时有 GET 与 PUT**；`deliveries`=PUT 而 `deliveries/`=GET；
+  `billing-address`/`deliveries/details`=POST；其余 9 条 PUT。
+- 它们**早有实现**：`RetailApiFamilies.cs` L32–51（`Base + "v1/…"`，`Base` L30 自带 `/bff/`）。
+- **第四条盲区 + 新判据**：路径前段＝某字面量后缀、后段＝另一字面量（两端锚定）。
+- 读数：**53 = 5 + 8 + 9 + 31**（上轮 5+8+40）；解释得清 13/53 → **22/53**。
+
+验证：`str` 12 条；`py` 脚本 13 行动词；`where_is` + 文件 L30–51 核对；`endpoint_compose` 四路计数。
+
+数字变化：**5 + 8 + 9 + 31**；保守计数 53 不变。
+
+还剩什么：① **动词表回灌实现**（`payment-page` 双动词、`deliveries`/`deliveries/` 之别）；
+② 剩余大块 `api/v1`(8)、`api/v2`(5)。

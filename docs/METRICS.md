@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 04:50:55 +0800 |
+| 生成时间 | 2026-11-19 05:07:13 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | **有非零退出，见下** |
@@ -14,7 +14,7 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 21 个源文件比产物新（共 16902 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 21 个源文件比产物新（共 16912 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -39,7 +39,7 @@
 | 函数数量（.pdata） — functions: replica .pdata | 174,976 |
 | 函数数量（.pdata） — functions: ratio | 63.14% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 21 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 16902 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 16912 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -365,9 +365,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-18 17:43:48
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 04:47:47)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 05:03:40)
 source files newer than the artifact: 21
-lines in those files: 16902
+lines in those files: 16912
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -395,10 +395,48 @@ cd D:\projects\cyber-reverse\replica
 C:\Python312\python.exe tools/vendor_coverage.py
 ```
 
-`exit 2`
+`exit 1`
+
+
+stderr:
 
 ```text
-  !! controls failed (kpsdk=0, datadome=0) -- IDA is not ready; refusing to overwrite docs/VENDOR_COVERAGE.md with false zeros
+Traceback (most recent call last):
+  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 86, in probe
+    return json.loads((p.stdout or "").strip())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\json\decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 227, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 118, in main
+    controls = [(name, probe(pat).get("n", -1)) for name, pat in CONTROLS]
+                       ^^^^^^^^^^
+  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 89, in probe
+    return json.loads(m.group(0)) if m else {"n": 0, "matches": []}
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
 ```
 
 ### 可执行段体量

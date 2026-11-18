@@ -40,8 +40,10 @@ public sealed class PayPalChallengeCallbackBaseTests
     public void TheComposerAppendsItsQueryToThatBase()
     {
         var basis = PayPalThreeDs.ChallengeCallbackBaseFor("ch-42");
-        var url = PayPalThreeDs.ChallengeCallbackUrlFor(basis, "st", "cd", "Y");
-        Assert.Equal(basis + "?state=st&code=cd&liability_shift=Y", url);
+        var url = PayPalThreeDs.ChallengeCallbackUrlFor(basis);
+        Assert.Equal(basis + "?" + PayPalThreeDs.ChallengeCallbackFragment, url);
+        // the fragment is verbatim, so the composed URL keeps the frozen "undefined" values
+        Assert.Contains("state=undefined&code=undefined", url);
     }
 
     /// <summary>The method-side twin has no trailing slash, so the two must not be normalised together.</summary>

@@ -41500,3 +41500,46 @@ Inference 已明确：`v9[9]` 的语义 = challenge id。
 - 全量：**2453 通过 / 0 失败 / 2 跳过 / 2455**（3m01s）。
 - PayPal 子集：**36/36**。
 - 变异：`ran_at 2026-11-19T04:50:42`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`。
+## R1149 —— 那个 fragment **不插值**：镜像把 `state=undefined&code=undefined` **整段发出去**
+
+**取件**：R1148 遗留②「`state`/`code` 在镜像里以 `undefined` 字面出现，是否另有真实取值」。
+
+改了什么（**有可执行代码**）：
+- **先修了一个自己的地址方向错误**：我按 `chars_va - 12` 去查 `0x147163128` 的 xref，得到空集；
+  其实那个地址**已经是 `off_` 指向的对象地址**（`_threeds_shape.py` 是按 `off_` 常量解出来的），
+  不该再减 12。改正后 xref 立刻出现：**`0x140d8d511`、`0x140d8d51f`**，同属 `sub_140d8d2b0`。
+- **取证**（`analysis/_callback_fragment.py`）：该 fragment 在函数第 758/763 行被**追加两次**：
+  ```c
+  sub_141D2B8E0(*((_QWORD *)&v217 + 1) + 2LL * (unsigned int)v217, &unk_147163134, 94);
+  ...
+  sub_141DC7B80(&v216, &off_147163128);
+  ```
+  **94 字节 = 47 字符 × 2（UTF-16）** —— 就是那个**完整字面量**；**两个分支都没有替换任何值**。
+  ⇒ 镜像拼出的 URL **永远携带 `state=undefined&code=undefined&liability_shift=`**。
+- **落修**：`ChallengeCallbackUrlFor(baseUrl, state, code, liabilityShift)`（插值）→
+  **`ChallengeCallbackUrlFor(string baseUrl)`**（整段追加 `ChallengeCallbackFragment`）。
+  **该插值版没有任何运行时调用者**（只有 4 条测试断言），所以这是一个「等着被接错」的死 API，
+  改正它的成本为零、收益是下一个人不会把它接成错的行为。
+- 测试同步：`PayPalThreeDsTests` 4 条断言改为「整段追加」形态并注明原因（原注释本来就写着
+  **verbatim（47 字符）**——注释与实现自相矛盾，这轮把实现拉回注释）；
+  `PayPalChallengeCallbackBaseTests` 的 composer 断言同样更新，并新增
+  「组合出的 URL 保留冻结的 `undefined` 值」一条。
+
+验证命令与输出：
+- `ida.py py "exec(..._callback_fragment.py)"` → `xrefs: [('0x140d8d511', 1), ('0x140d8d51f', 1)]`、
+  `fn 0x140d8d2b0 lines=868, fragment at [763]`，窗口内两处追加可见。
+- `dotnet build` → **0 个错误**；`dotnet test --filter "FullyQualifiedName~PayPal"` → **36/36 通过**。
+
+数字变化：`ChallengeCallbackUrlFor` **4 参 → 1 参**（去掉三个从未被真值填充的插值位）；测试 **+1** 断言。
+
+证据等级：Observation = 两处 xref、94 字节 = 47 字符、两个分支均整段追加、36/36 通过；
+Inference = 无；Unknown = `v9[9]`（R1148 遗留①）仍未命名——它 `= a1`（状态机自身），
+需要追字段偏移 0x48 的写入点，本轮未做。
+
+**环境**：本轮开轮 IDA 又是拒连（R1144 已定位「连续 ~25 次调用后退化」），
+恢复固定三步（launch → Restore packed base → wait 55s）已连做三轮，**是每轮的固定税**。
+
+**全量与收据（本轮收数）**：
+- 全量：**2453 通过 / 0 失败 / 2 跳过 / 2455**（3m23s）。
+- PayPal 子集：**36/36**。
+- 变异：`ran_at 2026-11-19T05:07:01`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`。

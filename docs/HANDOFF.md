@@ -6339,3 +6339,19 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：① `v9[9]` 类型（确认即 challenge id，当前标为推断）；
 ② `state`/`code` 在镜像里以 `undefined` 字面出现（0x147163128），是否另有真实取值需再证。
+## R1149 —— callback fragment 不插值：整段追加；ChallengeCallbackUrlFor 4 参 → 1 参
+
+改了什么：
+- **修正自己的地址方向错误**：`0x147163128` 已是 `off_` 指向的对象地址，不该再 `-12`；
+  改正后 xref = `0x140d8d511` / `0x140d8d51f`（同属 `sub_140d8d2b0`）。
+- **取证**：fragment 在 `sub_140d8d2b0` 第 758/763 行**追加两次**，`94 字节 = 47 字符 × 2`，
+  **两分支均整段追加、无替换** ⇒ 镜像永远发 `state=undefined&code=undefined&liability_shift=`。
+- **落修**：`ChallengeCallbackUrlFor(baseUrl, state, code, liabilityShift)` → `ChallengeCallbackUrlFor(string baseUrl)`，
+  整段追加 `ChallengeCallbackFragment`；**无运行时调用者**，只有 4 条测试断言，改正成本为零。
+- 测试同步（原注释本就写着 verbatim，实现却插值——注释与实现自相矛盾，本轮把实现拉回注释）。
+
+验证：`_callback_fragment.py` → xref 两条 + 窗口两处追加；build **0 错**；PayPal **36/36**；
+全量 **2453/0/2**；变异 **59/59 fired, tree GREEN, staleness 0**（05:07:01）。
+
+还剩什么：① `v9[9]`（状态机自身字段 +0x48）仍未命名——需追写入点；
+② IDA 每轮开轮必死，恢复固定三步（launch → Restore packed base → 55s）。

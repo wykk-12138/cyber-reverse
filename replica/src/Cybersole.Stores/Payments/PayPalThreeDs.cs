@@ -878,18 +878,28 @@ fragment InstallmentsFragment on FundingInstrument {
     public const string ChallengeCallbackFragment = "state=undefined&code=undefined&liability_shift=";
 
     /// <summary>
-    /// Composes the callback URL the normal path visits after the challenge: the base, a
-    /// separator, then the fragment with its three placeholders filled. R1103 read the separator
-    /// out of the machine — <c>sub_140d8d2b0</c> picks <c>&amp;</c> (0x146a7aba8) when the base
-    /// already contains <c>?</c> and <c>?</c> (0x146b27640) otherwise (lines 629–631, the
-    /// <c>sub_141cfa770(base, 63)</c> test), so the composition never double-asks.
+    /// Composes the callback URL the normal path visits after the challenge: the base, a separator,
+    /// then the fragment <b>exactly as frozen</b>.
+    ///
+    /// <para>
+    /// R1149: this used to substitute three values into the fragment. The machine does not — in
+    /// <c>sub_140d8d2b0</c> the fragment is appended twice, as
+    /// <c>sub_141D2B8E0(…, &amp;unk_147163134, 94)</c> and as <c>sub_141DC7B80(&amp;v216,
+    /// &amp;off_147163128)</c>; 94 bytes is the whole 47-character literal, and neither branch
+    /// touches it. So the URL always carries <c>state=undefined&amp;code=undefined</c>, which is
+    /// what the frozen string says and what this returns.
+    /// </para>
+    ///
+    /// <para>
+    /// R1103 read the separator out of the same machine: <c>&amp;</c> (0x146a7aba8) when the base
+    /// already contains <c>?</c> and <c>?</c> (0x146b27640) otherwise, decided by
+    /// <c>sub_141cfa770(base, 63)</c>, so the join never double-asks.
+    /// </para>
     /// </summary>
-    public static string ChallengeCallbackUrlFor(string baseUrl, string state, string code,
-        string liabilityShift)
+    public static string ChallengeCallbackUrlFor(string baseUrl)
     {
         var separator = baseUrl.Contains('?') ? "&" : "?";
-        return baseUrl + separator + "state=" + state + "&code=" + code +
-               "&liability_shift=" + liabilityShift;
+        return baseUrl + separator + ChallengeCallbackFragment;
     }
 
     /// <summary>The frozen document for an operation name — the four the machine sends.</summary>

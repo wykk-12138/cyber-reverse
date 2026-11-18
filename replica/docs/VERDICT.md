@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **46 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087/R1088/R1089 各 1 条；R1090 补 JL fingerprint 门锚 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **47 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087/R1088/R1089 各 1 条；R1090 补 1 条；R1091 补 STRIPE 频道墙锚 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63123,3 +63123,30 @@ methodId → retryable 停（零出网）；CREDITCARD 选中而无卡 → 失�
 > **冻结的账户 id 是协议身份，不是随机数据**——`acct_1S0JRiIiwyy5Cf6X` 看似无关紧要的一串，
 > 但它是 JL Stripe 集成的账户指纹，镜像选择把它和主机一起写死在构建器里。账户级常量
 > 值得单独钉：改它等于换了商户身份，这是最安静的协议漂移。
+
+---
+
+## 第 1091 轮：JL Stripe 过程墙 —— STRIPE 频道开门，四句机内文案逐字归位
+
+### 一、真体（`sub_141146510`，295 行，4 态）
+
+过程机开门第一句，逐字：**`Process start: payment_intent={id} merchant={account} source={source}`**
+——三段槽名（30 字 0x146E4AD80 / 10 字 0x146A6B5D8 / 8 字 0x146A6CC60）发到
+**STRIPE 频道**（0x146E76110）。请求链 `sub_141141870` → `910` → `9B0` → `A00`
+后 `Process complete`；停线两条：`stopping after fingerprint (alive=, hasForm=)`、
+无源 74 字全句——四句文案全部原样落地。
+
+### 二、数字
+
+| 度量 | R1090 | **R1091** |
+|---|---|---|
+| 变异套件 | 46 | **47**（STRIPE 频道锚） |
+| JL Stripe 步钉 | 6 | **8** |
+
+**16/16 钉绿**；SummaryBlock 4/4（指南 47）。
+
+### 教训
+
+> **频道名也是协议**——`STRIPE` 这六个字母是原版事件流的通道约定，UI 侧按它归类展示。
+> 复刻把消息发对而频道发错，界面上的归类就静悄悄错了——所以频道跟文案一起钉，
+> 改频道名与改常量同罪。

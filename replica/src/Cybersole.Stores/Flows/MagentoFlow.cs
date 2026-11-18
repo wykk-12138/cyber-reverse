@@ -904,10 +904,19 @@ public sealed class JohnLewisFlow : StoreFlow
         var source = sdk?["three_d_secure_2_source"]?.ToString();
 
         if (string.IsNullOrEmpty(source))
-            return Task.FromResult(StepOutcome.Success());   // no 3DS asked for — nothing to stage
+        {
+            // The machine's own stop line (0x146e4afb8): a payments answer without a 3DS source
+            // needs no authentication, and the original says exactly that on its STRIPE channel.
+            c.Emit("Process: no 3DS source after GetPaymentIntent - no authentication required",
+                "STRIPE");
+            return Task.FromResult(StepOutcome.Success());
+        }
 
         c.Session.Vars["jl.stripeSdkType"] = type ?? string.Empty;
         c.Session.Vars["jl.threeDs2Source"] = source;
+        // The intent id the process wall names — the payments answer's own id-shaped field.
+        c.Session.Vars["jl.stripeIntentId"] =
+            root["paymentIntentId"]?.ToString() ?? root["id"]?.ToString() ?? string.Empty;
         // The '_secret_' needle: the sdk block's source string carries the secret after it.
         c.Session.Vars["jl.stripeSecret"] = source.Contains("_secret_")
             ? source[(source.IndexOf("_secret_", StringComparison.Ordinal) + "_secret_".Length)..]
@@ -922,6 +931,17 @@ public sealed class JohnLewisFlow : StoreFlow
     /// Stripe account (<c>acct_1S0JRiIiwyy5Cf6X</c>) and the BFF host
     /// (<c>checkout.johnlewis.com</c>, 0x14705d5a8) — <c>sub_141141680</c>'s request is the
     /// named continuation; the gate itself is fully decoded.
+    ///
+    /// <para>
+    /// R1091: the continuation's own process wall is decoded too
+    /// (<c>sub_141146510</c>, 295 lines): it emits
+    /// <c>Process start: payment_intent={id} merchant={account} source={source}</c>
+    /// on the <b>STRIPE</b> channel (0x146e76110) before its request chain runs
+    /// (<c>sub_141141870</c> → <c>sub_141141910</c> → <c>sub_1411419b0</c> →
+    /// <c>sub_141141a00</c>), closes with <c>Process complete</c> (0x146e4aa00), and its stop
+    /// paths have their own lines — <c>stopping after fingerprint (alive=, hasForm=)</c>
+    /// (0x146e4b068) and the no-source line the intent read emits.
+    /// </para>
     /// </summary>
     public override Task<StepOutcome> HandleRequiresActionAsync(FlowContext c, CancellationToken ct)
     {
@@ -936,6 +956,13 @@ public sealed class JohnLewisFlow : StoreFlow
         // The gate passed: the source is staged for the account-keyed continuation, and the
         // account the builder swears by goes out with it — the frozen literal, not a guess.
         c.Session.Vars["jl.stripeAccount"] = StripeAccount;
+
+        // The continuation's own process wall, verbatim — the STRIPE channel's opening line
+        // with the intent, the frozen merchant account, and the staged source.
+        var intentId = c.Session.Vars.GetValueOrDefault("jl.stripeIntentId");
+        c.Emit("Process start: payment_intent=" + intentId + " merchant=" + StripeAccount +
+               " source=" + source, "STRIPE");
+
         return Task.FromResult(StepOutcome.Success());
     }
 }

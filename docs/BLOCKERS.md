@@ -39046,3 +39046,40 @@ HandleRequiresAction 门全解 + 构建器续体命名）。
 
 还剩什么：`sub_141141680` 构建器请求体（fingerprint 续体的真实目标）；`sub_140A37540`
 真体（intent fetch）；46 锚静树全跑；PayPal solver 逐 case 精读收尾。
+
+## R1091 —— 【核心①+②】JL Stripe 过程墙解码落地：STRIPE 频道 + 四句机内文案
+
+**取件**：`sub_141141680` 构建器本体（R1090 指定的续体目标）。
+
+改了什么：
+- 追链：`sub_141141680` = 构造体（5 参入槽 + 8 字内联类型旗标）→ `sub_1411417B0` →
+  状态机启动器 `sub_142C7C9E0` → 真体 **`sub_141146510`**（295 行 / 4 态）——JL Stripe
+  3DS2 过程机：
+  - **过程墙**：`Process start: payment_intent={id} merchant={account} source={source}`
+    （30+10+8 字内联与槽串拼接，0x146E4AD80/0x146A6B5D8/0x146A6CC60）发到 **`STRIPE` 频道**
+    （0x146E76110）——三段名值对逐字解出；
+  - **请求链**：`sub_141141870` → `sub_141141910` → （ctx+40 有形时）`sub_1411419B0` →
+    （alive+hasForm 时）`sub_141141A00` → `Process complete`（0x146E4AA00）；
+  - **停线**：`Process: stopping after fingerprint (alive={a}, hasForm={b})`（0x146E4B068，
+    43 字 + ', hasForm=' 0x146A9ECD0 + ')' 0x146A951E8）；无源路径
+    `Process: no 3DS source after GetPaymentIntent - no authentication required`
+    （0x146E4AFB8，74 字全句）。
+- 落地：`HandleRequiresActionAsync` 过程墙照发（intent/账户/源三值拼接，STRIPE 频道）；
+  `GetStripePaymentIntentAsync` 无源分支照发机内停线；`jl.stripeIntentId` 入会话。
+- 变异 46 → **47**（STRIPE 频道改锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`dec sub_141141680`（构造体 27 行）→ `sub_1411417B0` → `sub_142C7C9E0` →
+  **`sub_141146510`** 295 行 + names_at 13 常量（四句文案 + 频道 + 槽名全解）。
+- `dotnet test --filter "JohnLewisStripe|JohnLewisStepMap|StoreFlowDigest" -m:1` → **16/16 绿**
+  （2 新钉：过程墙三值拼接+频道、无源停线）；SummaryBlock 4/4（指南 47）；
+  `metrics_report --skip-tests` → exit 0。
+
+数字变化：变异 46 → **47**；JL Stripe 步钉 6 → **8**。
+
+证据等级：Observation = 四句文案全文、STRIPE 频道、三段拼接槽名、295 行四态控制流
+（含 hasForm/alive 分支条件）；Inference = jl.stripeIntentId 的响应键宿主
+（payments 应答的 id 形字段）、过程墙与三请求链的先后（发射先于首请求）。
+
+还剩什么：三请求链本体（`sub_141141870`/`910`/`9B0`/`A00` 的请求面——JL Stripe 链的最深
+一块）；47 锚静树全跑；PayPal solver 逐 case 精读收尾。

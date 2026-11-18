@@ -5287,3 +5287,25 @@ setupFutureUsage 空值为 Inference。
 证据等级：四针/账户/主机/控制流全 Observation；步名与针链的对应及账户角色为 Inference。
 
 还剩什么：`sub_141141680` 构建器请求体；`sub_140A37540` 真体；46 锚静树全跑。
+
+## R1091 —— 【核心①+②】JL Stripe 过程墙解码落地：STRIPE 频道 + 四句机内文案
+
+**取件**：构建器本体。
+
+改了什么：
+- 追链构造体 → 启动器 → 真体 **`sub_141146510`**（295 行 / 4 态）：**过程墙**
+  `Process start: payment_intent={id} merchant={acct} source={src}` 发 **STRIPE 频道**
+  （0x146E76110）；请求链 `sub_141141870`→`910`→`9B0`→`A00` → `Process complete`；
+  停线 `stopping after fingerprint (alive=, hasForm=)` 与无源 74 字全句。
+- 落地：`HandleRequiresActionAsync` 照发过程墙（三值拼接）；`GetStripePaymentIntentAsync`
+  无源分支照发停线；`jl.stripeIntentId` 入会话。
+- 变异 46 → **47**（STRIPE 频道锚）+ 指南同步。
+
+验证：`dec sub_141146510` 295 行 + names_at 13 常量；**16/16 钉绿**（2 新：过程墙+频道、
+无源停线）；SummaryBlock 4/4（指南 47）；metrics exit 0。
+
+数字变化：变异 46 → **47**；JL Stripe 步钉 6 → **8**。
+
+证据等级：四句文案/频道/槽名/控制流全 Observation；intentId 键宿主与墙-链先后为 Inference。
+
+还剩什么：三请求链本体（JL Stripe 最深一块）；47 锚静树全跑。

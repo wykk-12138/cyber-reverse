@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-18 14:25:42 +0800 |
+| 生成时间 | 2026-11-18 14:27:57 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,7 +14,7 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 20 个源文件比产物新（共 12652 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 20 个源文件比产物新（共 12679 行）。它描述的是更旧的一次构建，不是当前源码。
 >
 > **变异套件那一组数来自上一次运行，而它已经过期**：`2941 -- src/Cybersole.Stores/Flows/MagentoFlow.cs (+2940 more) differs from the run's manifest`。
 
@@ -41,7 +41,7 @@
 | 函数数量（.pdata） — functions: replica .pdata | 174,293 |
 | 函数数量（.pdata） — functions: ratio | 62.89% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 20 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 12652 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 12679 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 359 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -374,9 +374,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 22:30:56
-newest source: src\Cybersole.Stores\Flows\MagentoFlow.cs (2026-11-18 14:25:07)
+newest source: src\Cybersole.Stores\Flows\MagentoFlow.cs (2026-11-18 14:27:37)
 source files newer than the artifact: 20
-lines in those files: 12652
+lines in those files: 12679
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an

@@ -109,6 +109,45 @@ public sealed class JohnLewisStripeStepTests
         Assert.Equal("ABC123", ctx.Session.Vars["jl.stripeSecret"]);   // the '_secret_' needle split
     }
 
+    /// <summary>
+    /// R1091: the process wall — the STRIPE channel's opening line carries the intent, the frozen
+    /// merchant account, and the staged source, verbatim from the decoded machine.
+    /// </summary>
+    [Fact]
+    public async Task TheProcessWallOpensOnTheStripeChannel()
+    {
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http, card: null);
+        ctx.Session.Vars["jl.paymentsBody"] =
+            "{\"id\":\"pi_77\",\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
+            "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
+        await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
+
+        var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Contains(ctx.Events, e =>
+            e.Name == "Process start: payment_intent=pi_77 merchant=acct_1S0JRiIiwyy5Cf6X " +
+                     "source=src_3ds_secret_ABC123"
+            && e.Type == "STRIPE");
+    }
+
+    /// <summary>The no-3DS stop line is the machine's own message, on the same channel.</summary>
+    [Fact]
+    public async Task TheNoSourceAnswerSpeaksTheMachinesStopLine()
+    {
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http, card: null);
+        ctx.Session.Vars["jl.paymentsBody"] = "{\"next_action\":{}}";
+
+        var outcome = await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Contains(ctx.Events, e =>
+            e.Name == "Process: no 3DS source after GetPaymentIntent - no authentication required"
+            && e.Type == "STRIPE");
+    }
+
     /// <summary>The fingerprint gate: only the decoded type stages the frozen account.</summary>
     [Fact]
     public async Task TheFingerprintGateStagesTheFrozenAccount()

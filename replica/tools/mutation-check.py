@@ -545,6 +545,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~JohnLewisStripeStepTests",
         "guard": "TheFingerprintGateStagesTheFrozenAccount",
     },
+    {
+        "name": "round 1091 -- JL's process wall goes silent",
+        "file": MAGENTO_FLOW,
+        # The machine's process wall opens on the STRIPE channel (0x146e76110) before its
+        # request chain runs; losing the channel is exactly the drift the wall pin forbids.
+        "find": '        c.Emit("Process start: payment_intent=" + intentId + " merchant=" + StripeAccount +\n               " source=" + source, "STRIPE");',
+        "replace": '        c.Emit("Process start: payment_intent=" + intentId + " merchant=" + StripeAccount +\n               " source=" + source, "STATUS");',
+        "test": "FullyQualifiedName~JohnLewisStripeStepTests",
+        "guard": "TheProcessWallOpensOnTheStripeChannel",
+    },
 ]
 
 

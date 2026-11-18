@@ -92,7 +92,7 @@ solver.Transport = (url, method, headersJson, body) =>
         if (url.EndsWith("/mfc", StringComparison.Ordinal))
         {
             fh["x-kpsdk-h"] = "01";
-            fh["x-kpsdk-fc"] = "eyJmZWF0dXJlRmxhZ3MiOnt9LCJkeW5hbWljQ29uZmlnIjp7ImZyb250ZW5kIjp7ImxvZ0xldmVsIjo1MH19fQ==";
+            fh["x-kpsdk-fc"] = Environment.GetEnvironmentVariable("KASADA_FAKE_FC") ?? "1";
         }
         else if (url.EndsWith("/r", StringComparison.Ordinal))
         {

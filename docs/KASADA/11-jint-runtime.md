@@ -2251,6 +2251,50 @@ kasada-live （KasadaSolver.Solve）              →  只发 /mfc
 **顺带保留的改动**：`KasadaSolver` 的运行时提到 256MB / 60s。实网脚本是 155KB 驱动一个私有 VM，
 64MB/15s 对线上payload 本来就偏紧 —— 这条改动本身是对的，只是它不是这次的病因。
 
+### 5.105 找到了：**`dynamicConfig.frontend` 一出现，传感器就不发 `/r`** [实测]
+
+先修正 §5.104 的最后一句：**`KasadaSolver.Solve` 本身没问题。**
+用实网脚本走 `__dshHttpCall` 分支，它照样发出两条请求并拿到 token：
+
+```
+[transport] GET  …/mfc   body=0    -> 2 header(s)
+[transport] POST …/r     body=460  -> 2 header(s)
+Solve -> Ok=True Ct=PRODUCTPATHCT0123456789 Version=j-1.2.992 Executed=True
+```
+
+**所以差异是"喂进去的 `x-kpsdk-fc` 是什么"，不是驱动路径。**
+
+把 `fc` 当一个变量扫（实网脚本 + 不联网假响应）：
+
+| `x-kpsdk-fc` | 发 `/r` |
+|---|---|
+| `1`（不是合法 base64 JSON） | **Y** |
+| `{}` | Y |
+| `{"featureFlags":{}}` | Y |
+| `{"featureFlags":{"interrogation":true}}` | Y |
+| `{"dynamicConfig":{}}` | Y |
+| `{"frontend":{"logLevel":50}}`（没有 dynamicConfig） | Y |
+| **`{"dynamicConfig":{"frontend":{}}}`** | **N** |
+| **`{"dynamicConfig":{"frontend":{"logLevel":50}}}`**（实网原样） | **N** |
+
+**⇒ 判定条件非常具体：`dynamicConfig.frontend` 存在（哪怕空对象），传感器就不发 `/r`。**
+
+而实网 `/mfc` 回的正是 `{"featureFlags":{},"dynamicConfig":{"frontend":{"logLevel":50}}}` ——
+**所以它每次都停在这里，和 cookie、超时、内存、跨源全都无关。**
+
+### 5.106 于是问题变成：**什么能让服务端回一份不带 `frontend` 的配置**
+
+我们的 `/mfc` 请求带的是 **占位值 `x-kpsdk-h: 01`**（实网回的是真值 `01F47DxTPakzMm2tqdC3JSScDjKyQ=`）。
+
+**合理推断：服务端看请求里的 `h` 决定回哪种配置。** 占位 `01` 拿到的是"前端模式"配置
+（`frontend.logLevel`），而真实浏览器带的是真实 `h`，拿到的才是 interrogation 配置。
+
+**⇒ 真正缺的一环是：谁先产出那个真实的 `x-kpsdk-h`。**
+
+这条把问题从"整个握手为什么不动"压缩成了一个具体的值：
+**`h` 从哪来**。字面量表里有 `x-kpsdk-h`、有 `kpsdk-load`、有 `x-kpsdk-cd`，
+下一轮就从"加载阶段哪个动作产出 `h`"入手。
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

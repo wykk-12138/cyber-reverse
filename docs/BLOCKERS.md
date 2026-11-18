@@ -40302,3 +40302,45 @@ Inference（标注，未落实现）= `sub_141109910` 为字符串比较器、�
 
 还剩什么：读 `sub_141109910` 确认比较器类型；追 `[rsi+0x28]` / `[rdi+0x10]` 的来源；
 若确为字典则用 `sub_143028EE0` 的键名调用点把 body 键捞全。
+
+## R1122 —— 两条硬结论：文案**已有**（连拼写错误都对），键**不在**该函数里建立
+
+**取件**：R1121 把靶子指向 `sub_141109910`（比较器）与键的来源。
+
+改了什么（只取证，无实现——原因见第二节）：
+- **`sub_141109910` 不是纯比较器**：它自己就是那个包装模式的又一个使用者
+  （`sub_143028E70(v4+2, a1)`、`(v4+1, a2)`），并引用 `&off_146E4A918`。
+- **`off_146E4A918` 解码 = `'Proccesing 3D Secure'`**（`len=20`，`mt=0x144DB6A40`）。
+  **原文拼写就是 `Proccesing`**（三个 c），不是我的笔误。
+- **`where_is` 查该文案 → 复刻件已经有了**：
+  `src/Cybersole.Stores/Payments/PayPalThreeDs.cs:65`
+  `public const string ProcessingStatus = "Proccesing 3D Secure";`
+  且 `tests/Cybersole.Tests/PayPalThreeDsTests.cs` 有钉子。**连拼写错误都一致，无需改动。**
+  这一条又是 `where_is` 挡下来的（AGENTS §2.7c 第五次生效）。
+- **键不在该函数里建立**：`sub_143028EE0`（R1097 建立的「按名设/取属性」助手）在
+  `sub_141113680` 的函数范围内**调用点为 0**。故 `notify-challenge-cmpl` 的 body 键
+  **不是在这个函数里加进去的**，而是由调用方传入（`[rsi+0x28]`）。
+- **调用方已列出（4 个）**：
+  | 站点 | 所在函数 | 规模 |
+  |---|---|---|
+  | `0x14258A576` | `sub_14258A570` | `0xb`（thunk） |
+  | `0x14258A646` | `sub_14258A600` | `0xcf` |
+  | `0x142C76F1C` | `sub_142C76EC0` | `0xa4` |
+  | `0x14760B61C` | ——（**data** 引用，疑为 vtable 槽/委托） | —— |
+
+验证命令与输出：
+- `python analysis/ida.py xrefs 0x141113680` → `xref_count: 4`，四条如上表（含 type=code/data）。
+- `python analysis/names_at.py 0x146E4A918` → `str mt=0x144DB6A40 len=20 'Proccesing 3D Secure'`。
+- `python tools/where_is.py "Proccesing 3D Secure"` → implementation 组命中
+  `PayPalThreeDs.cs`（1 处）、test 组命中 `PayPalThreeDsTests.cs`（1 处）。
+- 反编译 `sub_141109910` 前 26 行（ASCII 安全输出）确认其包装用法与 `off_146E4A918` 引用。
+
+数字变化：无度量变化；`notify-challenge-cmpl` 状态
+**「靶子指向比较器」→「比较器不是键源；键由 4 个调用方之一传入，且文案侧已无缺口」**。
+
+证据等级：Observation = `xref_count 4` 与其 type、`names_at` 的字符串原文、`where_is` 的两组命中、
+`sub_143028EE0` 在函数内 0 站点；Inference（标注）= `0x14760B61C` 是 vtable 槽/委托（仅凭 type=data 推断）。
+
+还剩什么：读 4 个调用方（优先 `sub_14258A600` / `sub_142C76EC0` 两个小函数）确认 `rsi+0x28`
+的实际装配；若仍无键名，则该端点 body 与 `notify-method-cmpl` **确实同形**（有据可落地），
+否则按读到的形状落地。

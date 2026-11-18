@@ -6462,3 +6462,15 @@ PayPal **42/42**；全量 **2462/0/2/2464**；变异 **59/59 fired, tree GREEN**
 
 还剩什么：① 该比法可推广到 `Gateways.cs` / `StoreFlow.cs` 的字面量；
 ② `Present: no` 对反射派发区间仍无效（需 root descriptor）。
+## R1157 —— 整棵 Stores 树字面量比对：33 相同 / 2 拆分 / 0 不符（src 未改）
+
+改了什么：`analysis/_literal_audit_tree.py`（扫 `replica/src/**/*.cs`，逐字比 + SUFFIX/UNREADABLE 分类）。
+
+结果（355 文件）：**IDENTICAL 33 / SUFFIX 2 / DIFFER 0 / UNREADABLE 1**。
+两条 SUFFIX = Stripe 3DS2（`ApiHost`(private) + path，拼合等于镜像 0x147054e20/0x147054e90）。
+
+**本轮三次同类错误（皆为我定的工具规则）**：① 前缀检查只认 public（`ApiHost` 是 private）→ 误报 2 条；
+② 元组 6→8 未同步解包；③ 内联 python 被 PowerShell 吃引号（改用 edit）。
+
+还剩什么：① 该比法可用于 `Cybersole.Http` / `Cybersole.Ui`；
+② `present: no` 对反射派发区间仍无效（需 root descriptor）。

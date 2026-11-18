@@ -41794,3 +41794,38 @@ Inference = 无；Unknown = 无（本条闭环）。
 
 证据等级：Observation = 21/20/0/1 的计数与逐条 DIFFER 明细（含假阳性成因）；
 Inference = 无；Unknown = 那 1 条（但另有 R1149/R1155 已用 `off_147163128` 验证过同一字面量）。
+## R1157 —— 把比法推到**整棵 Stores 树**（355 文件）：**0 条不符**
+
+**取件**：R1156 记录的推广项（`Gateways.cs` / `StoreFlow.cs` 等）。
+
+改了什么（**只加分析工具，`src` 零改动**）：`analysis/_literal_audit_tree.py` —— 扫 `replica/src` 下
+全部 `*.cs`，对每个「带地址注释的字符串常量」按 `[MT:8][len:4][UTF-16]` 解码镜像逐字比；
+新增两类判定：**SUFFIX**（常量是镜像整串的后缀、且其前缀在同文件里另有常量 ⇒ 视为**拆分**而非差异）
+与 **UNREADABLE**（地址不指向字符串对象）。
+
+**结果（355 文件）**：
+
+| 判定 | 条数 |
+|---|---|
+| **IDENTICAL** | **33** |
+| **SUFFIX**（拆分，组合后等于镜像） | **2** |
+| **DIFFER** | **0** |
+| UNREADABLE | 1（已知：`ChallengeCallbackFragment` 注释引的是合成站点非对象） |
+
+那 2 条 SUFFIX 就是 Stripe 的 3DS2：`ApiHost = "https://api.stripe.com"`（**private**）+
+`ThreeDs2AuthenticatePath = "/v1/3ds2/authenticate"`，拼起来正是镜像的
+`https://api.stripe.com/v1/3ds2/authenticate`（`0x147054e20`）。
+
+**本轮三次「工具看错地方」，每一次都是我定的规则**：
+1. 前缀检查只认 `public const`，而 `ApiHost` 是 **private** ⇒ SUFFIX 判成 0、两条被误报 DIFFER；
+2. 元组从 6 元变 8 元后，打印循环仍按 6 元解包 ⇒ `ValueError`；
+3. 内联 python 又被 PowerShell 吃掉引号 ⇒ 改用 `edit` 工具（这一条已经是第 N 次，见 R1149）。
+
+> **四次同类错误（探针形状、地址来源、可见性、解包）背后是同一句话：
+> 「我替工具决定了它该看哪儿」，而我没问工具自己怎么想。**
+
+**实质结论（负结果）**：整棵 Stores 树的地址性字面量与镜像**零差异**。
+R1155 那 4 个尾部换行是全层唯一的偏差，**且已被修掉**。
+
+证据等级：Observation = 355/33/2/0/1 的计数与两条 SUFFIX 的拼接验证；Inference = 无；
+Unknown = 那 1 条（另有 R1149 用 `off_147163128` 验证过同一字面量）。

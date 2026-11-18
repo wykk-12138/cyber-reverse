@@ -206,10 +206,10 @@ public sealed class JohnLewisStripeStepTests
         var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);
 
         Assert.True(outcome.Ok, outcome.Error);
-        Assert.Equal(2, seen.Count);
+        // R1094 put the 3DS2 pair after the confirm; this pin is about the intent confirm itself.
+        var confirm = seen.First(u => u.Contains("/v1/payment_intents/"));
 
         // The confirm is the /v1 intent URL with the four JL segments, in the machine's order.
-        var confirm = seen[1];
         Assert.Contains("/v1/payment_intents/pi_77", confirm);
         Assert.Contains("is_stripe_sdk=true", confirm);
         Assert.Contains("client_secret=ABC123", confirm);
@@ -218,6 +218,107 @@ public sealed class JohnLewisStripeStepTests
 
         // The chain's closing line, verbatim, on the same channel.
         Assert.Contains(ctx.Events, e => e.Name == "Process complete" && e.Type == "STRIPE");
+    }
+
+    /// <summary>
+    /// R1094: the chain's tail — the fingerprint submit to 3ds2/authenticate (twelve-key browser
+    /// object, the one_click family driven by the has-form flag, key and _stripe_account), then
+    /// the notify hop and the challenge_complete PUT with final_cres.
+    /// </summary>
+    [Fact]
+    public async Task TheFingerprintSubmitAndCompletionRunInMachineOrder()
+    {
+        var seen = new System.Collections.Generic.List<string>();
+        var bodies = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, body) =>
+        {
+            var path = req.Url?.PathAndQuery ?? "";
+            seen.Add(path);
+            bodies.Add(body);
+            if (path.Contains("3d_secure_2/hosted"))
+                return (200, "{\"returnUrl\":\"https://checkout.johnlewis.com/back\"}");
+            return (200, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http, card: null);
+        ctx.Session.Vars["jl.paymentsBody"] =
+            "{\"id\":\"pi_77\",\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
+            "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
+        ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.apiUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.publishableKey"] = "pk_jl";
+        ctx.Session.Vars["jl.finalCres"] = "cres-answer";              // the window answered
+        ctx.Session.Vars["jl.threeDsServerTransId"] = "txn-9";
+        await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
+
+        var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+
+        // The machine's own order across the whole chain.
+        Assert.Equal(5, seen.Count);
+        Assert.Contains("3d_secure_2/hosted", seen[0]);
+        Assert.Contains("/v1/payment_intents/pi_77", seen[1]);
+        Assert.Equal("/v1/3ds2/authenticate", seen[2]);
+        Assert.Contains("/3d_secure_2/notify/", seen[3]);
+        Assert.Equal("/v1/3ds2/challenge_complete", seen[4]);
+
+        // The fingerprint form: twelve browser keys, the one_click family, key, account.
+        var auth = bodies[2];
+        Assert.Contains("source=src_3ds_secret_ABC123", auth);
+        Assert.Contains("one_click_authn_device_support%5Bhosted%5D=true", auth);
+        Assert.Contains("one_click_authn_device_support%5Bwebauthn_eligible%5D=true", auth);
+        Assert.Contains("one_click_authn_device_support%5Bspc_eligible%5D=true", auth);  // has-form → true
+        Assert.Contains("key=pk_jl", auth);
+        Assert.Contains("_stripe_account=acct_1S0JRiIiwyy5Cf6X", auth);
+        Assert.Contains("browserScreenWidth", auth);
+        Assert.Contains("browserTZ", auth);
+
+        // The completion carries final_cres.
+        Assert.Contains("final_cres=cres-answer", bodies[4]);
+
+        // The machine's report lines, in order.
+        Assert.Contains(ctx.Events, e => e.Name.StartsWith("SubmitFingerprint: methodUrl='") &&
+                                         e.Name.Contains("fingerprintAvailable=true") && e.Type == "STRIPE");
+        Assert.Contains(ctx.Events, e =>
+            e.Name == "CompletePayment: notify serverTransactionId=txn-9" && e.Type == "STRIPE");
+    }
+
+    /// <summary>
+    /// Without a challenge form the fingerprint block reports its own not_supported outcome and
+    /// the one_click family flips to false where the has-form flag drives it.
+    /// </summary>
+    [Fact]
+    public async Task TheNoFormFingerprintReportsNotSupported()
+    {
+        var bodies = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, body) =>
+        {
+            bodies.Add(body);
+            var path = req.Url?.PathAndQuery ?? "";
+            if (path.Contains("3d_secure_2/hosted")) return (200, "{\"returnUrl\":\"x\"}");
+            return (200, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http, card: null);
+        ctx.Session.Vars["jl.paymentsBody"] =
+            "{\"id\":\"pi_77\",\"next_action\":{\"use_stripe_sdk\":{\"type\":\"stripe_3ds2_fingerprint\"," +
+            "\"three_d_secure_2_source\":\"src_3ds_secret_ABC123\"}}}";
+        ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.apiUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.publishableKey"] = "pk_jl";
+        await new JohnLewisFlow().GetStripePaymentIntentAsync(ctx, default);
+
+        var outcome = await new JohnLewisFlow().HandleRequiresActionAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        var auth = bodies[2];
+        Assert.Contains("fingerprintOutcome=not_supported", auth);
+        Assert.Contains("one_click_authn_device_support%5Bspc_eligible%5D=false", auth);   // !has-form
+        Assert.Contains("one_click_authn_device_support%5Bhosted%5D=true", auth);          // always true
+
+        Assert.Contains(ctx.Events, e => e.Name.Contains("fingerprintAvailable=false") &&
+                                         e.Type == "STRIPE");
     }
 
     /// <summary>The no-3DS stop line is the machine's own message, on the same channel.</summary>

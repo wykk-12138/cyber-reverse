@@ -39160,3 +39160,50 @@ Inference = confirm 响应体未逐字解（本步只验状态码即完成）、
 
 还剩什么：链尾第三件（`sub_1411419B0`/`A00` —— ctx+40 有形与 alive+hasForm 两分支的请求面）；
 49 锚静树全跑（需内存 > 2 GB 的窗口）；PayPal solver 逐 case 精读收尾。
+
+## R1094 —— 【核心①+②】JL 3DS2 指纹提交与完成落地：链尾两态全解，五请求链闭合
+
+**取件**：链尾第三件（R1093 指定，`sub_1411419B0`/`A00` 两分支）。
+
+改了什么：
+- 追链两分支 → 两台真体全解：
+  - **state 2 = `sub_1411474A0`（477 行）：PUT `https://api.stripe.com/v1/3ds2/authenticate`**
+    （与 R1088 Stripe 网关**同一冻结端点** 0x147054E20）。表单 = 12 键浏览器指纹对象
+    （fingerprintAttempted/fingerprintData/challengeWindowSize=Y/threeDSCompInd=Y/
+    browserJavaEnabled=false/browserJavascriptEnabled=true/browserLanguage=en-US/
+    browserColorDepth=24/ScreenHeight=1080/ScreenWidth=1920/TZ=-120/UserAgent）+
+    **`one_click_authn_device_support` 五指族——JL 不是硬编码**：hosted 与 webauthn_eligible
+    恒 true，same_origin_frame/spc_eligible/publickey_credentials_get_allowed **由 has-form 位
+    驱动**（`v5`）；无表单时另加 `fingerprintOutcome=not_supported`（0x147103B28/0x147034FD0）
+    + `frontend_execution`（0x14703B548）；`key`（0x1470AE940）+ `_stripe_account`
+    （0x146F649D0）收尾。
+  - **state 3 = `sub_141144C20`（113 行）**：先报线 `CompletePayment: notify
+    serverTransactionId={id}`（0x146B9A028）→ **PUT `hooks.stripe.com/3d_secure_2/notify/
+    {account}/{txn}`**（0x14706B908 + 0x146AABDD8='/'）→ **PUT
+    `/v1/3ds2/challenge_complete`**（0x147054E90），表单 `source`/`final_cres`
+    （0x147034CC0，值经 'cres' 针 0x146FD92D0 + 变换读出）/`key`/`_stripe_account`。
+- 落地：`HandleRequiresActionAsync` 在 confirm 之后接三跳（authenticate → notify →
+  challenge_complete）+ 两条机内报线（`SubmitFingerprint: methodUrl='…'
+  fingerprintAvailable={flag} body={json}`、`CompletePayment: notify serverTransactionId=`）。
+  `JlFormOptions` 助手（PUT 表单，PostFormAsync 仅 POST）。**JL 五请求链闭合**：
+  过程墙 → hosted GET → confirm GET → authenticate PUT → notify PUT → challenge_complete PUT
+  → `Process complete`。
+- 变异 49 → **50**（spc_eligible 的 has-form 位锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`dec sub_1411419B0`/`A00` → 包装 `sub_142C7CDE0`/`BF00` → 真体
+  **`sub_1411474A0`（477 行）**/**`sub_141144C20`（113 行）** + names_at 16 常量。
+- 按类单跑（内存已恢复 3,045 MB）：`JohnLewisStripeStepTests` **12/12**（2 新钉：五请求全序 +
+  指纹表单键值 + 两报线；无表单 → not_supported + spc=false）、`SourceEncodingTests` 2/2、
+  `JohnLewisStepMapTests` 6/6、`StoreFlowDigestTests` 2/2、`StripeMethodFormTests` 6/6、
+  `SummaryBlockTests` 4/4（指南 50）—— 合计 **32 钉全绿**；`metrics_report --skip-tests` → exit 0。
+
+数字变化：变异 49 → **50**；JL Stripe 步钉 10 → **12**；JL 五请求链**全部落地**。
+
+证据等级：Observation = 两真体全量控制流、12 键指纹、五指旗标的 has-form 依赖、not_supported
+与 frontend_execution 两键、notify URL 三段组合、final_cres、两条报线；Inference =
+`frontend_execution` 的取值（原机取其上下文字段，复刻以账户常量占位并注明）、notify 第二段
+（ctx+32）与 `_stripe_account` 同源的判定。
+
+还剩什么：`_stripe_account` 在 notify 段的语义确认（本轮按 ctx+32 字面组合如实落）；
+50 锚静树全跑；PayPal solver 逐 case 精读收尾。

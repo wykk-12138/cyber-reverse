@@ -1010,9 +1010,114 @@ public sealed class JohnLewisFlow : StoreFlow
         if (!confirm.IsSuccess)
             return StepOutcome.Fail($"jl intent confirm HTTP {confirm.StatusCode}", retryable: true);
 
+        // R1094: the chain's fingerprint submit, decoded from sub_1411474a0 (477 lines) — a PUT
+        // of the 3ds2 authenticate form on the same frozen endpoint R1088's Stripe gateway uses
+        // (0x147054e20). The form is the twelve-key browser fingerprint object plus the
+        // one_click_authn_device_support family, and here the family is NOT hard-coded: the
+        // machine drives it from its has-form flag — hosted and webauthn_eligible are always
+        // "true", same_origin_frame / spc_eligible / publickey_credentials_get_allowed follow the
+        // flag, and without a form the block also carries fingerprintOutcome=not_supported and
+        // frontend_execution. key (0x1470ae940) and _stripe_account (0x146f649d0) close it.
+        var hasForm = !string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("jl.finalCres"));
+        var flag = hasForm ? "true" : "false";
+
+        var browser = new JObject
+        {
+            ["fingerprintAttempted"] = true,                          // 0x147034f20
+            ["fingerprintData"] = null,                               // 0x147034f60
+            ["challengeWindowSize"] = "Y",                            // 0x146fc5498 / 0x146f33988
+            ["threeDSCompInd"] = "Y",                                 // 0x14716d1e0
+            ["browserJavaEnabled"] = false,                           // 0x146f9c698
+            ["browserJavascriptEnabled"] = true,                      // 0x146f9c6d8
+            ["browserLanguage"] = "en-US",                            // 0x146f9c750 / 0x14701be60
+            ["browserColorDepth"] = "24",                             // 0x146f9c110 / 0x146ae23f8
+            ["browserScreenHeight"] = "1080",                         // 0x146f9c788 / 0x146ad59e8
+            ["browserScreenWidth"] = "1920",                          // 0x146f9c7c8 / 0x146adcfa8
+            ["browserTZ"] = "-120",                                   // 0x146f9c808 / 0x146aa3188
+            ["browserUserAgent"] = c.Session.UserAgent ?? string.Empty, // 0x146f9c830
+        };
+
+        var fingerprint = new Dictionary<string, string>
+        {
+            ["source"] = source,                                       // 0x147160de0
+            ["browser"] = browser.ToString(Newtonsoft.Json.Formatting.None), // 0x146f9c058
+            ["one_click_authn_device_support[hosted]"] = "true",        // 0x1471082a8 → true
+            ["one_click_authn_device_support[same_origin_frame]"] = flag,   // 0x1471083a8
+            ["one_click_authn_device_support[spc_eligible]"] = flag,        // 0x147108420
+            ["one_click_authn_device_support[webauthn_eligible]"] = "true", // 0x147108490 → true
+            ["one_click_authn_device_support[publickey_credentials_get_allowed]"] = flag,
+            ["key"] = publishable ?? string.Empty,                     // 0x1470ae940
+            ["_stripe_account"] = StripeAccount,                       // 0x146f649d0
+        };
+        if (!hasForm)
+        {
+            fingerprint["fingerprintOutcome"] = "not_supported";       // 0x147103b28 / 0x147034fd0
+            fingerprint["frontend_execution"] = StripeAccount;         // 0x14703b548 (derived value)
+        }
+
+        // The machine's own report line (0x146ea0348 + 0x146a87ad8 + 0x146a689f8).
+        c.Emit("SubmitFingerprint: methodUrl='" + apiUrl + "/v1/3ds2/authenticate" +
+               "' fingerprintAvailable=" + flag +
+               " body=" + fingerprint["browser"], "STRIPE");
+
+        var authForm = new System.Net.Http.FormUrlEncodedContent(fingerprint);
+        var authReq = await c.Http.SendAsync(HttpMethod.Put, apiUrl + "/v1/3ds2/authenticate",
+            JlFormOptions(c, authForm, "jl-3ds2-auth"), ct).ConfigureAwait(false);
+        c.Session.AbsorbCookies(authReq.Cookies);
+        if (authReq.StatusCode < 200 || authReq.StatusCode >= 300)
+            return StepOutcome.Fail($"jl 3ds2 authenticate HTTP {authReq.StatusCode}", retryable: true);
+
+        // R1094: the chain's last request, decoded from sub_141144c20 (113 lines) — first the
+        // notify hop with the server transaction id (report line 0x146b9a028, URL
+        // 0x14706b908 + account + '/' + transaction id), then the completion PUT of
+        // challenge_complete (0x147054e90) carrying source / final_cres / key / _stripe_account.
+        var txnId = c.Session.Vars.GetValueOrDefault("jl.threeDsServerTransId") ?? string.Empty;
+        c.Emit("CompletePayment: notify serverTransactionId=" + txnId, "STRIPE");
+
+        var hooksBase2 = c.Session.Vars.TryGetValue("stripe.hooksUrl", out var h2) &&
+                         !string.IsNullOrEmpty(h2)
+            ? h2.TrimEnd('/')
+            : "https://hooks.stripe.com";
+        var notifyUrl = hooksBase2 + "/3d_secure_2/notify/" + StripeAccount + "/" +
+                        Uri.EscapeDataString(txnId);
+        var notifyReq = await c.Http.SendAsync(HttpMethod.Put, notifyUrl,
+            JlFormOptions(c, new System.Net.Http.FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["source"] = source,
+            }), "jl-3ds2-notify"), ct).ConfigureAwait(false);
+        c.Session.AbsorbCookies(notifyReq.Cookies);
+        if (notifyReq.StatusCode < 200 || notifyReq.StatusCode >= 300)
+            return StepOutcome.Fail($"jl 3ds2 notify HTTP {notifyReq.StatusCode}", retryable: true);
+
+        var completeForm = new Dictionary<string, string>
+        {
+            ["source"] = source,
+            ["final_cres"] = c.Session.Vars.GetValueOrDefault("jl.finalCres") ?? string.Empty,
+            ["key"] = publishable ?? string.Empty,
+            ["_stripe_account"] = StripeAccount,
+        };
+        var completeReq = await c.Http.SendAsync(HttpMethod.Put, apiUrl + "/v1/3ds2/challenge_complete",
+            JlFormOptions(c, new System.Net.Http.FormUrlEncodedContent(completeForm), "jl-3ds2-complete"),
+            ct).ConfigureAwait(false);
+        c.Session.AbsorbCookies(completeReq.Cookies);
+        if (completeReq.StatusCode < 200 || completeReq.StatusCode >= 300)
+            return StepOutcome.Fail($"jl 3ds2 challenge_complete HTTP {completeReq.StatusCode}", retryable: true);
+
         // The chain's closing line, verbatim (0x146e4aa00).
         c.Emit("Process complete", "STRIPE");
         return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// The form body with its per-request options — the same shape NetClient's PostFormAsync
+    /// builds, exposed here because the 3DS2 hops are PUTs and PostFormAsync is POST-only.
+    /// </summary>
+    private static Cybersole.Http.RequestOptions JlFormOptions(FlowContext c,
+        System.Net.Http.HttpContent content, string tag)
+    {
+        var options = c.Options(tag);
+        options.Content = content;
+        return options;
     }
 }
 

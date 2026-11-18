@@ -5358,3 +5358,31 @@ SourceEncodingTests **2/2**、JohnLewisStepMapTests **6/6**、StoreFlowDigestTes
 证据等级：基址/三段/GET 槽/收尾句/控制流为 Observation；confirm 响应体与两个会话宿主为 Inference。
 
 还剩什么：链尾第三件（9B0/A00 两分支请求面）；49 锚静树全跑（需 >2 GB 窗口）。
+
+## R1094 —— 【核心①+②】JL 3DS2 指纹提交与完成落地：链尾两态全解，五请求链闭合
+
+**取件**：链尾第三件。
+
+改了什么：
+- **state 2 = `sub_1411474A0`（477 行）**：PUT `/v1/3ds2/authenticate`（与 R1088 同端点）——
+  12 键浏览器指纹 + **one_click 五指族由 has-form 位驱动**（hosted/webauthn 恒 true，
+  其余三指跟随；无表单加 `fingerprintOutcome=not_supported` + `frontend_execution`）+
+  key + `_stripe_account`。
+- **state 3 = `sub_141144C20`（113 行）**：报线 `CompletePayment: notify serverTransactionId=` →
+  PUT `hooks…/notify/{account}/{txn}` → PUT `/v1/3ds2/challenge_complete`（source/final_cres/
+  key/_stripe_account）。
+- 落地：confirm 后接三跳 + 两条报线（`SubmitFingerprint: methodUrl='…' fingerprintAvailable=…`）；
+  `JlFormOptions` 助手（PUT 表单）。**JL 五请求链闭合**：墙 → hosted → confirm →
+  authenticate → notify → challenge_complete → Process complete。
+- 变异 49 → **50**（has-form 位锚）+ 指南同步。
+
+验证（内存恢复 3,045 MB）：JohnLewisStripeStepTests **12/12**（2 新钉）、SourceEncoding 2/2、
+JohnLewisStepMap 6/6、StoreFlowDigest 2/2、StripeMethodForm 6/6、SummaryBlock 4/4（指南 50）
+= **32 钉全绿**；metrics exit 0。
+
+数字变化：变异 49 → **50**；JL Stripe 步钉 10 → **12**。
+
+证据等级：两真体控制流/12 键指纹/五指旗标依赖/not_supported/notify 组合/final_cres/两报线全
+Observation；frontend_execution 取值与 notify 第二段语义为 Inference。
+
+还剩什么：notify 段 `_stripe_account` 语义确认；50 锚静树全跑。

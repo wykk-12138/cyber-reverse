@@ -575,6 +575,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~JohnLewisStripeStepTests",
         "guard": "TheIntentConfirmGetCarriesTheJlSegmentsAndClosesTheChain",
     },
+    {
+        "name": "round 1094 -- the fingerprint gate stops following the has-form flag",
+        "file": MAGENTO_FLOW,
+        # sub_1411474a0 drives spc_eligible from the has-form flag (v5), not from a literal;
+        # pinning it to "true" is exactly the drift the fingerprint pin forbids.
+        "find": '            ["one_click_authn_device_support[spc_eligible]"] = flag,        // 0x147108420',
+        "replace": '            ["one_click_authn_device_support[spc_eligible]"] = "true",      // 0x147108420',
+        "test": "FullyQualifiedName~JohnLewisStripeStepTests",
+        "guard": "TheNoFormFingerprintReportsNotSupported",
+    },
 ]
 
 

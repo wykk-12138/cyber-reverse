@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **49 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1093 各 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **50 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1094 各 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63214,3 +63214,39 @@ methodId → retryable 停（零出网）；CREDITCARD 选中而无卡 → 失�
 > **共享端点的「变体段」才是集成商指纹**——同一个 `/v1/payment_intents/{id}` 端点，Stripe 的
 > 3DS2 面与 JL 的 confirm 都打，差别在 `_stripe_account` 这种变体段。把「共用基址 + 各自变体段」
 > 分开记，才不会在复刻时把两个集成的请求写成同一个形状。
+
+---
+
+## 第 1094 轮：JL 链尾两态 —— 指纹五指旗标不是硬编码，是 has-form 位驱动的
+
+### 一、两个真体
+
+- **state 2**（`sub_1411474A0`，477 行）：PUT `/v1/3ds2/authenticate`——**与 R1088 的 Stripe
+  网关同一冻结端点**。12 键浏览器指纹对象与 R1088 逐键相同，但
+  **`one_click_authn_device_support` 五指族在 JL 这里不是常量表**：`hosted` 与
+  `webauthn_eligible` 恒 true，`same_origin_frame` / `spc_eligible` /
+  `publickey_credentials_get_allowed` 三个跟随 has-form 位；无表单时再加
+  `fingerprintOutcome=not_supported` + `frontend_execution`。
+- **state 3**（`sub_141144C20`，113 行）：报线 → PUT `notify/{account}/{txn}` →
+  PUT `/v1/3ds2/challenge_complete`（source / final_cres / key / _stripe_account）。
+
+### 二、R1088 与 R1094 的对照（同一端点，两套旗标）
+
+R1088 读 Stripe 网关的 3DS2 表单时记的是 **false/false/true/true/true 硬编码**；本轮 JL 的
+同一家族是**算出来的**。两个消费者、同一端点、同一键名——一套写死一套条件驱动。
+这正是「同族参数在不同集成里取值策略不同」的实证：**键名可共享，取值策略必须各自取证。**
+
+### 三、数字
+
+| 度量 | R1093 | **R1094** |
+|---|---|---|
+| 变异套件 | 49 | **50**（has-form 位锚） |
+| JL Stripe 步钉 | 10 | **12** |
+
+**32 钉全绿**（6 个类逐类单跑）；**JL 五请求链闭合**。
+
+### 教训
+
+> **别把上一轮的常量表当成本轮的真值**——R1088 的硬编码五指族是 Stripe 网关那条链的实测，
+> 套到 JL 上就会把条件驱动的三个旗标写成常量，`spc_eligible` 一错，指纹提交的服务端判定就
+> 跟着错。**同键名 ≠ 同取值策略**；每遇到一个同名键族，回读它那一处的赋值语句。

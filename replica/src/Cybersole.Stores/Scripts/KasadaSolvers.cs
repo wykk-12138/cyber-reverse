@@ -47,15 +47,21 @@ public interface IKasadaSolver
 /// </summary>
 public sealed class LocalKasadaSolver : IKasadaSolver
 {
-    private readonly ChromiumKasadaSolver _solver;
+    private readonly ChromiumKasadaSolver? _solver;
 
-    public LocalKasadaSolver(ChromiumKasadaSolver? solver = null) =>
-        _solver = solver ?? new ChromiumKasadaSolver();
+    /* No browser is created implicitly. The constructor used to do `solver ?? new ChromiumKasadaSolver()`,
+       which meant a caller that supplied null -- precisely the "no browser installed" case -- still got a
+       road that launched one, so a default runner spun up Chromium and took tens of seconds to report a
+       failure it could have reported immediately. */
+    public LocalKasadaSolver(ChromiumKasadaSolver? solver = null) => _solver = solver;
 
     public KasadaStrategy.Mode Mode => KasadaStrategy.Mode.Local;
 
     public async Task<KasadaToken> GetAsync(string pageUrl, CancellationToken ct = default)
     {
+        if (_solver is null)
+            return KasadaToken.Failed("Failed solving Kasada", Mode);
+
         var result = await _solver.SolveAsync(pageUrl, ct: ct).ConfigureAwait(false);
 
         if (result is null || string.IsNullOrEmpty(result.Ct))

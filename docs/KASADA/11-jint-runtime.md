@@ -1990,6 +1990,70 @@ catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMem
 
 **Kasada + Nike + Scheels + Flow 全量：272 通过 / 1 跳过。**
 
+### 5.94 上轮那个"`Success()` 对不对"的问题：**对的，不用改**
+
+去 `05-states.md` §5 核对，原版的重试语义早就记下来了（由文案反推）：
+
+| 文案 | 含义 | 该做什么 |
+|---|---|---|
+| `Failed getting Kasada (Rotating)` | getting 失败且代理在换 | 不要立刻重发 |
+| `Failed solving Kasada` | 本机算失败 | 补 shim / 换浏览器路 |
+| `Failed Kasada (Retry limit reached)` | 策略放弃 | 换代理 + 换 UA，重开整轮 |
+
+**结论：在原版的设计里，一条路失败是"状态"，不是"步骤失败"。** 放弃由调用方决定（换代理、换 UA），
+不是 anti-bot 步骤自己抛错终止流程。所以 `ApplyAsync` 在拿不到 token 时 `Emit(status)` + `Success()`
+**正是原版行为** —— 上一轮我怀疑它是缺陷，这一轮查证后**不改**。
+
+（同时确认 `KasadaStrategyRunner.GaveUpStatus` 不是死字符串：所有路都失败时它会被 append 进 status，
+所以状态串里既有每条路自己的原因，也有放弃标记。这条以前没测过。）
+
+### 5.95 一个真实的性能/行为缺陷：默认 runner 会**静默启动 Chromium**
+
+`LocalKasadaSolver` 原来是：
+
+```csharp
+public LocalKasadaSolver(ChromiumKasadaSolver? solver = null) =>
+    _solver = solver ?? new ChromiumKasadaSolver();     // ← 传 null 反而更糟
+```
+
+**"没装浏览器"这个信号（传 null）被翻译成了"那就新建一个浏览器"。** 后果：
+
+- 生产上：每个非 Nike 站的 Kasada 步骤都会**拉起一次 Chromium**，哪怕环境里根本没有
+- 测试上：三条 give-up 用例跑了 **1 分 41 秒**
+
+**修法是让 null 就是 null：**
+
+```csharp
+public LocalKasadaSolver(ChromiumKasadaSolver? solver = null) => _solver = solver;
+
+public async Task<KasadaToken> GetAsync(...)
+{
+    if (_solver is null) return KasadaToken.Failed("Failed solving Kasada", Mode);   // 立刻返回
+    ...
+}
+```
+
+**同一批用例：1 分 41 秒 → 2 秒。**
+
+这条和 §5.92 是同一类错误的两个面：**回退链里的一个环节，不该在自己没法工作时去启动昂贵的东西。**
+一个是抛异常打断整条链，一个是偷偷拉起进程 —— 都让"失败"这件事变得不成比例。
+
+### 5.96 测试
+
+`KasadaGiveUpContractTests`（3 例）：
+
+| 用例 | 钉什么 |
+|---|---|
+| `AGiveUpNamesEveryRoadAndTheRetryMarker` | 失败 token 的 status 里**同时**含 `Failed Kasada (Retry limit reached)` 与分隔符 |
+| `TheRoadsAreTriedInTheDeclaredOrderAndAllReport` | status 分段数 = 路数 + 1（放弃标记），且**最后一段就是放弃标记** |
+| `AGiveUpIsNotAnExceptionSoTheFlowCanDecide` | 无论怎样都返回 token 对象，不抛 |
+
+**Kasada + Nike + Scheels + Flow 全量：275 通过 / 1 跳过。**
+
+> 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
+> 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
+> （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

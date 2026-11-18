@@ -1,10 +1,10 @@
 {
-  "ran_at": "2026-11-18T16:51:02+08:00",
+  "ran_at": "2026-11-18T17:05:23+08:00",
   "total": 59,
   "fired": 59,
   "decorative": 0,
   "skipped": 0,
-  "tree": "RED",
+  "tree": "GREEN",
   "content_manifest": {
     "src/Cybersole.Core/TimeSpans.cs": "af2b978c3532f3196e153731c83a493ca6537dad2c289ee88e3d92612b6d10b2",
     "src/Cybersole.Core/Attributes/CreateInfo.cs": "98f2426729327825ba6f832c208b6b56eb8b962ef7b8ab0b9fae2f937d630169",
@@ -746,7 +746,7 @@
     "tests/Cybersole.Tests/VisualViewportTests.cs": "26a9ec1019a7e41e117acadd6b8cba274da0cff67949008eae93aad4144d1c6a",
     "tests/Cybersole.Tests/VivaPaymentsTests.cs": "72a4749b76771c6f717814f9356a51fcbb95a85834419763e9e349bb564d7bbb",
     "tests/Cybersole.Tests/VoiceListTests.cs": "2c1c1f91d7fea83839e9d2978adbecb80aebc3ff46199c75b49f48378d044325",
-    "tests/Cybersole.Tests/WallDispatchTests.cs": "86394957b4aac3d685aa624db13ed5b0492c3826b4cc3f06d49d7f03def9b6fa",
+    "tests/Cybersole.Tests/WallDispatchTests.cs": "0191d19b9676a997fe7a53c989bc039e16ce1a1506f8c6e64b4a6fc4958963c8",
     "tests/Cybersole.Tests/WallSolvingTests.cs": "8f8f89d465d88e25b22fd8d7cec41107237f49291619ebbf2c375fe6b0e18327",
     "tests/Cybersole.Tests/WarhammerEndpointTests.cs": "f264efc48873c676469f31d102912cf6ed8c096af2c00bcc1d1369d5fcf80dbb",
     "tests/Cybersole.Tests/WarhammerGraphQlTests.cs": "be9005af7ca304bc4f9862175f77dca2fd2a9091b7fddbfc30c53fa7b4004bd1",

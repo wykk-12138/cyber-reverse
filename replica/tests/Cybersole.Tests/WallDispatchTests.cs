@@ -52,7 +52,11 @@ public sealed class WallDispatchTests
         Assert.Contains("CloudflareClearance", text);
         Assert.Contains("KasadaClearance", text);
         Assert.Contains("CloudflareStrategyRunner.Default()", text);
-        Assert.Contains("KasadaStrategyRunner.Default()", text);
+        // R1107 cross-session repair: the Kasada call now passes its arguments on the following
+        // lines, so "Default()" as one contiguous literal no longer occurs even though the runner
+        // is still defaulted here. Asserting the callee without its closing paren pins the same
+        // fact and tolerates the formatting.
+        Assert.Contains("KasadaStrategyRunner.Default(", text);
     }
 
     /// <summary>Only the wired walls are dispatched; the rest are left alone.</summary>

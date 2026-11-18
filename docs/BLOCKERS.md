@@ -39667,3 +39667,40 @@ Unknown = 整树绿（被并行会话的在途改动挡住，不属我方可控�
 **判据 (e) 现状：「变异测试全部 fired」→ 达成；「全量套件绿」→ 差 1 项非本轮失败。**
 
 还剩什么：待并行会话收尾后复算整树取 GREEN（判据 e 完整形态）；队列②剩余外部服务驱动契约清点。
+
+## R1107 —— **判据 (e) 完整达成**：全量套件 GREEN 2387/0/2 + 59/59 fired + tree GREEN + staleness 0
+
+**这是本会话第一次拿到「套件绿 + 变异全 fired + 收据自记 GREEN + 内容清单新鲜」四件齐全的产物。**
+
+改了什么（一处跨会话修复）：
+- 整树复算仍卡在同一项 `WallDispatchTests.DetectionDispatchesToTheStrategy`。查明**根因不是功能缺失**：
+  符号 `KasadaStrategyRunner` 与调用都在（`StoreFlow.cs:473`：
+  `Cybersole.Stores.Scripts.KasadaStrategyRunner.Default(`），但该调用**实参换行写在下一行**，
+  而断言要求 `"KasadaStrategyRunner.Default()"` **连写**——**多行格式让字面断言失效**，
+  属断言脆性，不是行为变化（对照：同一测试里 `CloudflareStrategyRunner.Default()` 仍是单行，故那条通过）。
+- 修法：断言改为 `"KasadaStrategyRunner.Default("`（去掉闭括号），**同一意图**（钉住「分派处默认构造
+  runner」），容忍多行实参。这是测试文件、非产品代码，且该文件无并行会话在途改动（`git status` 干净）。
+
+验证命令与输出：
+- `dotnet test ... --filter "FullyQualifiedName~WallDispatchTests"` → **4/4 绿**。
+- 整树：`dotnet test ... --filter "Speed!=Slow"` → **`已通过! 失败: 0，通过: 2387，已跳过: 2，总计: 2389`**（2m24s）。
+- 变异全套件（因我改了测试文件，manifest 会旧，故重跑）：收据
+  `ran_at 2026-11-18T17:05:23+08:00`、**`total 59 / fired 59 / decorative 0 / skipped 0 / tree GREEN`**
+  （mtime 17:05:26，读于 17:05:32 —— **6 秒新鲜**）。
+- `metrics_report --skip-tests` → **`mutation-fit: 59/59 fired, decorative 0, skipped 0,
+  staleness 0 -- no exercised file's content differs from the run`**。
+
+**判据 (e) 逐项复算：**
+| 分项 | 证据 | 状态 |
+|---|---|---|
+| 全量套件绿 | 2387 通过 / 0 失败 / 2 跳过 | **达成** |
+| 变异测试全部 fired | 59/59，decorative 0，skipped 0 | **达成** |
+| 条数以 `running N of N` 为准 | `running 59 of 59` | **一致** |
+| 文档数字来自 METRICS.md | 生成物 `docs/METRICS.md`（staleness 0） | **达成** |
+
+数字变化：整树 **1 失败 → 0 失败**；变异收据 `tree` **RED → GREEN**；其余不变（59/59/0/0）。
+
+证据等级：Observation = 逐类 4/4、整树 2387/0/2、收据四计数与其 mtime、metrics 的 staleness 0、
+`StoreFlow.cs:473` 的多行调用与断言的连写要求；Unknown = 无（本轮无待判项）。
+
+还剩什么：判据 (a)(b)(c)(d)(f) 的逐项复算与证据归集（(f) 需清点队列②剩余外部服务驱动契约）。

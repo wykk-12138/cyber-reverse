@@ -63716,3 +63716,49 @@ staleness 0 -- no exercised file's content differs from the run
 > **「非 fired」有两种：变异/守卫坏了，和环境坏了。**
 > 前者要改代码，后者只能换窗口重跑。**混为一谈，就会把环境故障写进代码**——
 > 那比不改更糟，因为下一次没人知道该信哪次的结果。
+
+---
+
+## 第 1107 轮：判据 (e) 四分之四
+
+### 一、挡住整树的不是功能，是一对括号
+
+`WallDispatchTests.DetectionDispatchesToTheStrategy` 断言源码里含
+`"KasadaStrategyRunner.Default()"`。而源码写的是：
+
+```csharp
+var kasada = Cybersole.Stores.Scripts.KasadaStrategyRunner.Default(
+    ...);
+```
+
+**实参换行写在下一行**，所以 `Default()` 这个连写字面量不存在。
+同一测试里 `CloudflareStrategyRunner.Default()` 还是单行，所以那条通过——
+**同一份断言，一条过一条不过，差别只在格式。**
+
+断言改成 `"KasadaStrategyRunner.Default("`（去掉闭括号）：钉住的是「分派处默认构造 runner」
+这个事实，不是「这几个字符必须挨着」。**判据是行为，不是排版。**
+
+### 二、四件齐全
+
+| 分项 | 证据 | 状态 |
+|---|---|---|
+| 全量套件绿 | 2387 通过 / 0 失败 / 2 跳过 | **达成** |
+| 变异全部 fired | 59/59，decorative 0，skipped 0 | **达成** |
+| 条数以 `running N of N` 为准 | `running 59 of 59` | **一致** |
+| 数字来自 METRICS.md | `staleness 0` | **达成** |
+
+收据本体：`ran_at 17:05:23`、`total 59 / fired 59 / decorative 0 / skipped 0 / **tree GREEN**`
+（读于 17:05:32，6 秒新鲜）。
+
+**这是本会话第一次拿到「套件绿 + 变异全 fired + 收据自记 GREEN + 清单新鲜」四件齐全。**
+
+### 三、教训
+
+> **改测试前先问：是行为变了，还是断言太死？**
+> 本轮二者都不是——是**格式**变了而断言按字符挨着写。这种断言会随任何一次重排失效，
+> 而失效时它喊的是「功能丢了」，让人往完全错误的方向查。
+>
+> **断言的粒度应该是「意图」，不是「字节」。**
+>
+> 顺带：改了测试文件就必须重跑变异套件——收据的 `content_manifest` 会因此变旧，
+> 而 `staleness` 正是用来抓这种「拿旧收据说新事」的。

@@ -5648,3 +5648,24 @@ SourceEncoding 2/2、metrics exit 0。
 **判据 (e)：「变异全部 fired」达成；「全量套件绿」差 1 项非本轮失败。**
 
 还剩什么：待并行会话收尾后复算整树 GREEN；队列②外部服务驱动契约清点。
+
+## R1107 —— 判据 (e) 完整达成：GREEN 2387/0/2 + 59/59 fired + tree GREEN + staleness 0
+
+改了什么（一处跨会话修复）：
+- 整树仍卡 `WallDispatchTests.DetectionDispatchesToTheStrategy`。**根因不是功能缺失**：符号与调用
+  都在（`StoreFlow.cs:473` `KasadaStrategyRunner.Default(`），但**实参换行写在下一行**，而断言要求
+  `Default()` **连写** → 断言脆性。对照同测试内 `CloudflareStrategyRunner.Default()` 仍单行故通过。
+- 修法：断言改 `"KasadaStrategyRunner.Default("`（去闭括号），**同一意图**，容忍多行。测试文件、
+  非产品代码，且无并行在途改动。
+
+验证：
+- `WallDispatchTests` **4/4 绿**；整树 **`失败 0 / 通过 2387 / 跳过 2 / 总计 2389`**（2m24s）。
+- 重跑变异全套件（改测试→manifest 会旧）：收据 `ran_at 17:05:23`、
+  **`59 / fired 59 / decorative 0 / skipped 0 / tree GREEN`**（6 秒新鲜）。
+- `metrics_report --skip-tests` → **`59/59 fired, decorative 0, skipped 0, staleness 0`**。
+
+**判据 (e)：全量套件绿 ✓ / 变异全 fired ✓ / 条数一致 ✓ / 数字来自 METRICS ✓ —— 四分之四达成。**
+
+数字变化：整树 1 失败 → **0**；收据 `tree` RED → **GREEN**。
+
+还剩什么：(a)(b)(c)(d)(f) 逐项复算与证据归集。

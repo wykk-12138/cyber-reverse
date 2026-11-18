@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-18 16:51:25 +0800 |
+| 生成时间 | 2026-11-18 17:05:32 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -372,7 +372,7 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-17 22:30:56
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-18 16:47:54)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-18 17:03:14)
 source files newer than the artifact: 26
 lines in those files: 18322
 publish artifact state: stale
@@ -551,7 +551,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-fired: 59
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
-  mutation-fit-tree: RED
+  mutation-fit-tree: GREEN
   mutation-fit-staleness: 0 -- no exercised file's content differs from the run
 
   Every mutation fired, none was decorative and none was skipped at the time of that run.

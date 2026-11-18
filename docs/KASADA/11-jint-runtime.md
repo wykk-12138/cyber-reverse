@@ -1034,6 +1034,75 @@ resourceAddress x1        'resourceAddress is required' x1
 
 **这一步已经不需要浏览器，也不需要猜配置键了** —— 只需要把两个 HTTP 响应的形状做对。
 
+### 5.44 更正：configure 跑的不是 834 条，是 19,902 条 [实测]
+
+上一轮那个「+834」是**采样截断**出来的数字（我 dump 时 `slice(0,1200)` 了）。
+把 dispatch 上限从 20000 提到 60000 之后重新量：
+
+```
+加载完成（脚本自然结束）      9,289
+configure 之后                29,191      ← 差 19,902
+```
+
+**这 19,902 条里包含了 `/mfc` 与 `/r` 的响应处理** —— 也就是说 fetch 的 Promise 回调
+是在 `TryExecute("configure(...)")` 这一次 Evaluate 内部就被 Jint 排空跑完的，不是留到之后。
+
+**修正因此很重要**：834 条只是开头，真正的逻辑在后 19,000 条里。
+
+### 5.45 `/mfc` 的校验点找到了：读两个响应头，缺一个就抛 [实测]
+
+把字节码捕获窗口从 32000 放宽到整个数组（75,771 字）之后，19,902 条里 **19,175 条能解出操作数**。
+在里面搜 `mfc` 命中了唯一一处，上下文是这样的：
+
+```
+31751  op=64   int:1498, slot:4                    slot4 = captured[1498]        ← /mfc 的响应对象
+31754  op=51   slot:4, str:'headers', slot:6        slot6 = res.headers
+31760  op=51   slot:6, str:'get', slot:4            slot4 = res.headers.get
+31766  op=49   int:1, slot:7                        slot7 = new Array(1)
+31769  op=64   int:293, slot:9                      slot9 = captured[293]         ← 第 1 个头名
+31772  op=7    slot:7, int:0, slot:9                slot7[0] = <头名1>
+31776  op=12   slot:6, slot:4, slot:7               headers.get(头名1)
+31783  op=48   int:1499, slot:5                     captured[1499] = 结果1
+...
+31804  op=64   int:294, slot:7                      captured[294]                 ← 第 2 个头名
+31807  op=7    slot:6, int:0, slot:7                slot6[0] = <头名2>
+31811  op=12   slot:5, slot:4, slot:6               headers.get(头名2)
+31818  op=48   int:1500, slot:8                     captured[1500] = 结果2
+31824  op=66   slot:4, null:None, slot:6            判空
+31828  op=47   slot:6, int:31841, slot:2            条件
+31841  op=11   slot:6, int:31864, int:40            条件
+31844  op=81   str:'Error', slot:7                  window.Error
+31852  op=7    slot:4, int:0, str:'/mfc response was missing one or more headers'
+31858  op=41   slot:7, slot:4, slot:5               new Error([那条消息])
+```
+
+**结论：`/mfc` 的响应必须带两个特定响应头，名字存在 `captured[293]` 和 `captured[294]` 里；
+缺任何一个就 `throw new Error('/mfc response was missing one or more headers')`。**
+
+**这两个名字是在加载阶段写入的**（在 9,289 条那一段里），不属于 configure 的轨迹，
+所以按 `op=48 int:293` 在 configure 段里搜不到 —— 这是下一步要补的一小段。
+
+### 5.46 试过伪造这两个头，但没改变走向
+
+把 `KP_IC` / `KP_RC` 塞进 `/mfc` 的假响应（`Response` 现在会认 `init.headers`），
+三种组合跑出来的 opcode 数**完全相同（都是 29,191）**：
+
+| 假响应头 | dispatch 总数 | isReady | cookie |
+|---|---|---|---|
+| 无 | 29,191 | false | 空 |
+| `KP_IC:1` `KP_RC:1` | 29,191 | false | 空 |
+| 上面两个 + `/r` 带 `x-kpsdk-ct` | 29,191 | false | 空 |
+
+**说明这两个名字不是 `KP_IC`/`KP_RC`**（那两条只是字面量池里出现过，不代表就是这里要的头），
+或者 payload 读的是被它自己包装过的 response 对象。两条路都要先把 `captured[293]/[294]` 的真实值取出来再谈。
+
+### 5.47 环境阻塞（第四次）
+
+这一轮里 `Cybersole.Stores` 又被另一个会话改到编不过（`MagentoFlow.cs(853)`: `PutAsync` 不存在）。
+我**没有碰他们的文件**，改用 `analysis/kasada-probe` 独立 harness 继续；
+最后一次想 dump 全量轨迹时正好撞上这次编译失败，跑的是旧二进制，所以那份 `slice(0)` 没生效。
+下一轮重跑一次即可。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

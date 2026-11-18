@@ -32,6 +32,10 @@ var stubCt = Environment.GetEnvironmentVariable("KASADA_STUB_CT");
 if (!string.IsNullOrEmpty(stubCt))
 {
     runtime.Execute("window.__dshStubCt = " + System.Text.Json.JsonSerializer.Serialize(stubCt) + ";");
+    var stubIc = Environment.GetEnvironmentVariable("KASADA_STUB_IC");
+    var stubRc = Environment.GetEnvironmentVariable("KASADA_STUB_RC");
+    if (!string.IsNullOrEmpty(stubIc)) runtime.Execute("window.__dshStubIc = " + System.Text.Json.JsonSerializer.Serialize(stubIc) + ";");
+    if (!string.IsNullOrEmpty(stubRc)) runtime.Execute("window.__dshStubRc = " + System.Text.Json.JsonSerializer.Serialize(stubRc) + ";");
 }
 
 var executed = runtime.TryExecute(script, out var error);
@@ -49,14 +53,25 @@ if (config is not null)
     Console.WriteLine($"configure ok={cfgOk} err={cfgErr ?? "-"}  dispatches {before} -> {after}");
 
     // The interesting part: what did configure actually execute?
+    // The whole post-load run, not a prefix: the /mfc and /r response handling sits deep inside it.
     var slice = runtime.TryString(
-        $"JSON.stringify((window.__dshSeq||[]).slice({before}, {after}).slice(0, 1200))") ?? "[]";
+        $"JSON.stringify((window.__dshSeq||[]).slice(0))") ?? "[]";
     File.WriteAllText(@"D:\projects\cyber-reverse\.tmp-cfgseq.json", slice);
     Console.WriteLine("configure opcode slice written to .tmp-cfgseq.json");
     // configure may hand its follow-up work to a timer/promise; a browser would run those after the
     // current task, so drain them here before asking whether anything happened.
+    var midSeq = SeqLen();
     var drained = runtime.RunPendingTimers();
+    var endSeq = SeqLen();
+    Console.WriteLine($"seq lengths: afterLoad={before} afterConfigure={after} afterDrain={midSeq} afterRunTimers={endSeq}");
+    // Whatever ran while the stubbed /mfc and /r responses were being consumed is the part that
+    // decides whether a token can appear, so keep that slice as well.
+    var late = runtime.TryString($"JSON.stringify((window.__dshSeq||[]).slice({after}))") ?? "[]";
+    File.WriteAllText(@"D:\projects\cyber-reverse\.tmp-lateseq.json", late);
+    Console.WriteLine("post-configure slice written to .tmp-lateseq.json");
     Console.WriteLine($"timers drained after configure = {drained}, left = {runtime.TryString("(window.__dshTimers||[]).length")}");
+    Console.WriteLine("stub vars = " + runtime.TryString("String(window.__dshStubCt)+' / '+String(window.__dshStubIc)+' / '+String(window.__dshStubRc)"));
+    Console.WriteLine("mfc url seen = " + runtime.TryString("JSON.stringify((window.__dshRequests||[]).map(function(r){return String(r.url)}))"));
     Console.WriteLine($"isReady() = {runtime.TryString("String(window.KPSDK.isReady())")}");
     Console.WriteLine($"requests  = {runtime.TryString("JSON.stringify((window.__dshRequests||[]).map(function(r){{return {{m:r.method,u:r.url,h:r.headers,len:(r.body?String(r.body).length:0)}}}}))")}");
     Console.WriteLine($"cookie    = {runtime.TryString("document.cookie")}");

@@ -41,7 +41,7 @@ internal static class WebApiShims
             Array.prototype.splice = function (start, count) {
                 if (rec.length < 8) {
                     var head = [];
-                    for (var i = 0; i < Math.min(32000, this.length); i++) head.push(this[i]);
+                    for (var i = 0; i < this.length; i++) head.push(this[i]);
                     var entry = { start: start, count: count, len: this.length, head: head };
                     rec.push(entry);
                     var out = orig.apply(this, arguments);

@@ -5809,3 +5809,19 @@ metrics exit 0；tests 检索无 pin 旧比率。
   （Farfetch 7 + Bstn 4）在豁免内，**53 端点缺失尚无说明**
 
 还剩什么：53 端点逐条定性；与 11 占位合成 (f) 完整台账；(a) 口径待裁决；`3 fail` claim 单独立项。
+## R1117 —— 端点「53 缺失」拆分尝试失败，只留两条确证
+
+改了什么（本轮无实现，只有结论与一次自我否决）：
+- **先查后写**：`endpoint_coverage.py` **已有 `-v`**（L187–189），未改工具即取到 53 条名单。
+- 两条可判：PayPal 三个 threeds 路径**已实现却计缺失**（工具要求带引号裸 path，L170；
+  我的常量是 host+path 整串）；`notify-challenge-cmpl` **全 src 零命中 = 真缺口**。
+- **拆分失败**：裸子串脚本给出 22 假阴性 + 31 真缺口，抽查两条「假阴性」**全是注释**
+  （`NikeEndpoints.cs:111` 的 `///`、`GoatFlow.cs:47` 的 `//`）→ **22 不成立，未落账**。
+
+验证：`-v` 存在（行号）；PayPal 常量在 `PayPalThreeDs.cs` L773/L780/L816；
+`grep notify-challenge-cmpl` 零命中；抽查输出两行 COMMENT。
+
+数字变化：**无**——(f) 的 endpoint 面仍记 **53 缺失**，拒绝改写成 31 或 22。
+
+还剩什么：53 条需要能区分**代码/注释/文档**的判定器；`notify-challenge-cmpl` 的调用形状
+需 IDA 取证后落地。

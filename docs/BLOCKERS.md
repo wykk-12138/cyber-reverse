@@ -40080,3 +40080,39 @@ Inference = 判据 (a) 的口径归属（原始计数 vs 分类闭合）——**
 
 还剩什么：**53 个端点缺失**逐条定性（实现 / 外部受阻 / 不在范围）；11 个核心占位的凭据受阻说明
 需与 53 条一起形成 (f) 的完整台账；判据 (a) 口径待裁决；`3 fail` 的 claim 单独立项。
+
+## R1117 —— 端点面「53 缺失」的拆分尝试：**我的拆分工具被抽查否决**，只留两条确证
+
+**本轮试图把 (f) 的「endpoint missing 53」拆成「假阴性 / 真缺口」，拆分结论被自己的抽查推翻；
+只保留两条经得起复核的结论。**
+
+改了什么：
+- **先查后写**：想给 `tools/endpoint_coverage.py` 加 `--list-missing`，读代码发现**已有 `-v`**
+  （L187–189）。**没改工具**，直接 `-v` 拿到 53 条名单。
+- 名单里两条立刻可判：
+  - **`www.paypal.com/payment-authentication/threeds/v1/{init-method, init-challenge,
+    notify-method-cmpl}`** —— R1096/R1097 已实现的三条，却仍被计缺失（我的常量是
+    host+path 整串，而工具要求**带引号的裸 path**，L170 `('"' + path + '"') in text`）。
+  - **`/payment-authentication/threeds/v1/notify-challenge-cmpl`** —— 全 src **零命中**，
+    是**真缺口**（方法对的 challenge 侧兄弟，尚未实现）。
+- **失败的拆分**：写一次性脚本对 53 条做「裸子串是否出现」判定，得到
+  **22 假阴性 + 31/32 真缺口**。随即抽查两条「假阴性」——
+  - `NikeEndpoints.cs:111` 的 `/gs/checkout-api/api/v5/Order` 在 **`///` 文档注释**里；
+  - `GoatFlow.cs:47` 的 `/web-api/v1/addresses` 在 **`//` 注释**里（原文写着「path evidenced, no body」）。
+  **两条都是注释，不是实现。** 故「22 个假阴性」**不成立**，本轮**不落这个结论**。
+
+验证命令与输出：
+- `Select-String tools/endpoint_coverage.py` → L187 `if "-v" in sys.argv:` / L188–189 打印
+  `(key, host, path)`——`-v` 已存在。
+- `python tools/endpoint_coverage.py -v` → 53 条名单（本轮完整取到）。
+- `grep notify-challenge-cmpl src/**/*.cs` → **零命中**。
+- 抽查脚本输出两行：`COMMENT NikeEndpoints.cs:111` / `COMMENT GoatFlow.cs:47`。
+
+数字变化：无——**(f) 的 endpoint 面仍记 53 缺失**；本轮**拒绝**把 53 改写成 31 或 22。
+
+证据等级：Observation = `-v` 的存在与输出、`notify-challenge-cmpl` 零命中、两条注释型命中、
+工具的引号匹配行号；Inference = 「裸子串可见」与「已实现」之间的关系——**本轮证明它不成立**。
+
+还剩什么：**53 条需要一个能区分「代码 / 注释 / 文档」的判定器**（按行过滤 `//`、`///`、`/* */`
+后再匹配，并区分字符串字面量用途），才谈得上拆分；(f) 的真正推进点是
+**`notify-challenge-cmpl` 的调用形状取证**（需 IDA 解出表单字段）与其落地。

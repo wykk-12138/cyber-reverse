@@ -1508,7 +1508,7 @@ public abstract class StoreFlow
         }
 
         var res = await PostJsonAsync(c,
-            "https://api.paypal.com/v2/checkout/orders/" + orderId + "/capture",
+            "https://www.paypal.com/v2/checkout/orders/" + orderId + "/capture",
             "{}", Tag() + "-paypal-capture", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("paypal capture failed", retryable: true);
@@ -1555,7 +1555,7 @@ public abstract class StoreFlow
                 }),
         };
 
-        var res = await PostJsonAsync(c, "https://api.paypal.com/v2/checkout/orders",
+        var res = await PostJsonAsync(c, "https://www.paypal.com/v2/checkout/orders",
             body.ToString(Newtonsoft.Json.Formatting.None), Tag() + "-paypal-order", ct)
             .ConfigureAwait(false);
 

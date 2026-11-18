@@ -6274,3 +6274,21 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：39 条按文件聚簇修复（Magento REST 6 条、StoreFlow 兜底 5 条、企业自建 API 各站、
 14 条外部 URL 需判断「客户端是否真该直连」）。
+## R1145 —— PayPal host 由 api. 改为 www.（镜像字面量为准）；新增端点清单文档
+
+改了什么：
+- **取证**：`ida.py str "paypal\.com"` → **35 条**（未饱和）。镜像有
+  `https://www.paypal.com/v2/checkout/orders`（0x14709910c）与带尾斜杠版（0x147099174）。
+  ⇒ 复刻件的 `https://api.paypal.com/…` **路径对、host 错**。
+- **落修**：`StoreFlow.cs` 两处 `api.paypal.com` → `www.paypal.com`。
+- **未改**：`https://api.paypal.com/v1/oauth2/token`（镜像无 oauth2 端点；被两处测试钉住，需判断非改名）。
+- **新文档** `docs/PAYPAL_ENDPOINTS_FROM_IMAGE.md`：35 条端点分四组列出（REST/GraphQL/3DS/heliosnext），
+  含地址；3DS 家族给出 `notify-challenge-cmpl/` 的**带尾斜杠**形态，纠正旧 parked 记录。
+
+验证：build **0 错**；子集 **43/43**；全量 **2449/0/2**；
+变异 **59/59 fired, tree GREEN, staleness 0**（04:23:07）。
+
+**重要发现**：`tests/EndpointLedgerTests.cs` 已有 `assembled` 分类栏——R1143/R1144 两轮在重复推导
+仓库既有结论（`where_is` 查了 `src` 没查 `tests`）。
+
+还剩什么：① OAuth 端点去留判断；② 其余 37 条先与 `assembled` 栏对账；③ 3DS 四端点可着手落地。

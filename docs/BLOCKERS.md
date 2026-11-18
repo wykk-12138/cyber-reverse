@@ -41331,3 +41331,46 @@ Inference = 无（顺序由 ordinal 直接给出）。
 Unknown = 无（39 条每条都查了两种形状）。
 
 还剩什么：39 条按文件聚簇修复；`/path` 与 `/view/basket/addPromotionalCode` 之类需单独判形态。
+
+## R1145 —— PayPal 的「发明端点」其实是 **host 编错了**：`api.` → `www.`
+
+**取件**：R1144 的 39 条确证缺失里最可疑的一条——镜像不可能没有 PayPal 集成。
+
+改了什么（**有可执行代码**）：
+- **取证**：`ida.py str "paypal\.com" --limit 40` → **35 条**（`saturated: false`），其中
+  - `0x14709910c` = **`https://www.paypal.com/v2/checkout/orders`**
+  - `0x147099174` = `https://www.paypal.com/v2/checkout/orders/`
+  ⇒ 镜像**有**这条 REST 路径，**host 是 `www`**；而复刻件写的是 `https://api.paypal.com/…`。
+  **路径是对的，host 是编的。**
+- **落修**：`src/Cybersole.Stores/Flows/StoreFlow.cs` 两处 `api.paypal.com` → `www.paypal.com`
+  （`GetPayPalTokenAsync` 的 create、`SubmitPayPalAsync` 的 capture）。
+- **未改的一条**：`https://api.paypal.com/v1/oauth2/token`（`GetPayPalAccessTokenAsync`）——
+  **镜像里没有任何 oauth2 端点**，且该方法被 `AdyenPayPalFlowTests` 与 `StoreFlowParityTests` 钉住。
+  它需要一次**判断**（REST 授权是否该存在），不是一次改名，故保持原样并记账。
+- **新文档** `docs/PAYPAL_ENDPOINTS_FROM_IMAGE.md`：把镜像的 35 条 PayPal 端点按
+  「结账/REST、GraphQL 流程、3DS 家族、heliosnext 与页面」四组列出（**含地址**），供支付层后续取件。
+  其中 3DS 家族给出 `…/payment-authentication/threeds/v1/{init-challenge, init-method,
+  notify-challenge-cmpl/, notify-method-cmpl}`——**顺带解掉长期挂起的 `notify-challenge-cmpl` 的 URL 形态**
+  （带尾斜杠），旧记录里那个 parked 条目应以这个形态为准。
+
+验证命令与输出：
+- `ida.py str "paypal\.com" --limit 40` → `n=35 saturated=False`，逐条打印（见文档）。
+- `dotnet build` → **exit=0，0 个错误**；
+  `dotnet test --filter "EndpointLedger|PayPal|StoreFlowParity"` → **43/43 通过**；
+  全量（`Speed!=Slow`）→ **2449 通过 / 0 失败 / 2 跳过 / 2451**（2m28s）。
+- 变异：`ran_at 2026-11-19T04:23:07`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、`staleness 0`。
+
+数字变化：**2 处端点 host 与镜像对齐**（从「确证缺失」变为「与镜像字面量完全一致」）；
+新增 1 份端点清单文档；`src` 改动 2 行。
+
+证据等级：Observation = 两条 PayPal 字面量及其地址、`n=35 saturated=False`、43/43、2449/0/2、
+变异 59/59；Inference = 无（host 由字面量直接给定）。
+
+**顺带发现（值得记）**：`tests/EndpointLedgerTests.cs` **早就有** `assembled` 一栏，把
+`/checkout/complete`、`/api/cart/items`、`/api/search`、`/account/recover`、`/buy/carts/v2/app`、
+`/account?email=`、`api.paypal.com/v1/oauth2/token` 这些**已经分类过了**。
+**我 R1143/R1144 两轮在重新推导仓库里已有的结论**——`where_is` 是对的，我查的是 `src`，没查 `tests`。
+
+还剩什么：① `GetPayPalAccessTokenAsync` 的 OAuth 端点是否需要（判断，不是改名）；
+② 其余 37 条「确证缺失」要与 `EndpointLedgerTests` 的 `assembled` 栏**先对账再动手**；
+③ 3DS 家族四端点可着手落地。

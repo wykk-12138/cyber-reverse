@@ -5585,3 +5585,25 @@ SourceEncoding 2/2、metrics exit 0。
 数字变化：变异 58 → **59**；片段归属 Inference → Observation。
 
 还剩什么：59 锚静树全跑；队列②收尾清点。
+
+## R1104 —— 验证轮：转义修复 + 整树复算；59 锚全跑未完成（如实单列）
+
+改了什么：
+- `tools/mutation-check.py` L170 非法转义 `\C`（侥幸工作 + SyntaxWarning）→ **raw string**；
+  `py_compile` 在 `-W error::SyntaxWarning` 下**零告警**通过。
+
+验证：
+- **59 锚全跑：未完成。** 首次调用直接开跑并转后台，停在早期锚；查
+  `MUTATION_RESULT.json` 的 mtime = **10:29:40**（当时 16:24），**是 6 小时前旧轮产物**，
+  不作本轮通过。按 §2.6「没跑成 ≠ 通过」挂为未完成。
+- **整树收据**（`--only "1103"` 自带还原验证）：**2386 通过 / 1 失败 / 2 跳过 / 2389**，
+  1m55s；该锚 guard fired。唯一失败 `WallDispatchTests.DetectionDispatchesToTheStrategy`
+  缺 `"KasadaStrategyRunner.Default()"`，而 `KasadaVersions.cs` **正被并行会话修改**——
+  非本轮文件，未触碰。
+- **崩溃单列**：先前一次整树跑 2072 通过后 testhost 崩溃（内存 3.0 GB）；同命令重跑 1m55s
+  跑完，属瞬时压力。
+
+数字变化：锚数仍 **59**（未新增）；修一处工具告警；整树 **2386/2389 + 1 项非本轮失败**。
+
+还剩什么：59 锚全跑取绿收据（内存 >3 GB + 并行会话静默窗口，落盘后立即核对时间戳）；
+`WallDispatchTests` 待并行会话收尾后复算。

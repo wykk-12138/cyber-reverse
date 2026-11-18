@@ -39563,3 +39563,38 @@ Inference = `state/code/liability_shift` 三值的来源（镜像里是字面 `u
 
 还剩什么：59 锚静树全跑；队列②收尾清点（PayPal 两方言 + Stripe 六步已闭环，逐条复核是否还有
 未落地的外部服务驱动契约）。
+
+## R1104 —— 验证轮：工具转义修复 + 整树复算；59 锚全跑**未完成**（如实单列）
+
+**本轮是验证轮，产出两件事：一处真修复、一份整树收据；同时有一项多轮待办未完成。**
+
+改了什么：
+- `tools/mutation-check.py` L170 的非法转义：`\C` 在普通字符串里触发 `SyntaxWarning`
+  （靠「`\C` 原样保留」侥幸工作）。改为 **raw string**（`r'...'`），语义不变，
+  `python -W error::SyntaxWarning -c py_compile` **编译零告警**通过。
+
+验证命令与输出：
+- **59 锚全跑：未完成。** 首次调用（误传 `--help`，工具无此参数）直接开跑并转入后台，
+  输出停在早期锚（`round 136` 段）后进程结束，exit 1。
+  **我没有凭它在场就宣称 59/59 绿**——查 `analysis/MUTATION_RESULT.json` 的 mtime 为
+  **10:29:40**（当时 16:24），即该收据是 6 小时前另一轮留下的，**并非本轮产物**。
+  按 AGENTS.md §2.6「没跑成 ≠ 通过」，此项仍为未完成。
+- **整树复算（有收据）**：`--only "1103"` 冒烟跑完整还原验证 ——
+  **失败 1 / 通过 2386 / 跳过 2 / 总计 2389，耗时 1 分 55 秒**；该锚 `guard fired`。
+  唯一失败项 **`WallDispatchTests.DetectionDispatchesToTheStrategy`**，
+  报错 `Assert.Contains` 找不到 `"KasadaStrategyRunner.Default()"`，
+  而 `replica/src/Cybersole.Stores/Scripts/KasadaVersions.cs` **正被并行会话修改中**
+  ——**非本轮文件，未触碰**，属其改动的中间态。
+- **崩溃单列**：先前一次整树跑在 2072 通过后 testhost 崩溃（可用内存 3.0 GB）；
+  同一条命令随后重跑即在 1m55s 内跑完全树，说明是瞬时内存压力而非稳定缺陷。
+- 旁证：本轮 `--only` 运行同时把 `MUTATION_RESULT.json` 覆写为 1 条的窄口径收据——
+  **不可当作全套收据引用**，已在文档写明。
+
+数字变化：变异套件锚数仍 **59**（本轮未新增）；修复一处工具告警；整树 **2386/2389 + 1 项非本轮失败**。
+
+证据等级：Observation = `py_compile` 零告警、`--only 1103` 的 guard fired 与整树计数、
+`MUTATION_RESULT.json` 的 mtime、失败项的断言原文与并行会话的改动文件；
+Unknown = 59 锚全跑的真实产物（本轮未取得）。
+
+还剩什么：**59 锚全跑取绿收据**（需在内存 > 3 GB 且并行会话静默的窗口跑，并落
+`MUTATION_RESULT.json` 后立即核对 mtime/时间戳）；`WallDispatchTests` 待并行会话收尾后复算。

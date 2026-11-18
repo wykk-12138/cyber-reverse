@@ -167,7 +167,7 @@ MUTATIONS = [
     {
         "name": "round 134 -- an engine asset stops being embedded",
         "file": CORE_CSPROJ,
-        "find": '<EmbeddedResource Include="Engine\Cybersole.Engine.Popmart.html" LogicalName="Cybersole.Engine.Popmart.html" />',
+        "find": r'<EmbeddedResource Include="Engine\Cybersole.Engine.Popmart.html" LogicalName="Cybersole.Engine.Popmart.html" />',
         "replace": '<!-- asset removed -->',
         "test": "FullyQualifiedName~EngineAssetsTests",
         "guard": "AllFourteenAreEmbedded",

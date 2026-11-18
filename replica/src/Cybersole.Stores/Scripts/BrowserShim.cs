@@ -41,7 +41,7 @@ public sealed class BrowserShim
     /// iPhone/Android/maxTouchPoints strings at all (measured, docs/KASADA/11 5.70) -- so the mobile path
     /// is the same script presented with a mobile identity, not a second script.
     /// </summary>
-    public static BrowserShim Ios(string? userAgent = null) => new()
+    public static BrowserShim Ios(string? userAgent = null, string? href = null) => new()
     {
         UserAgent = userAgent ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) " +
                                  "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
@@ -52,6 +52,7 @@ public sealed class BrowserShim
         DeviceMemory = 4,
         ScreenWidth = 390,
         ScreenHeight = 844,
+        Href = href ?? "about:blank",
     };
 
     public string BuildPrelude()

@@ -272,6 +272,36 @@ public sealed class KasadaSolver : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Whether the sensor is allowed to fetch its remote configuration (<c>GET {origin}/mfc</c>).
+    /// This mirrors the original's MfcEnabled switch. Kept true by default because the measured flow
+    /// always begins with that call: with it disabled the sensor has no configuration and stops.
+    /// </summary>
+    public bool MfcEnabled { get; set; } = true;
+
+    /// <summary>
+    /// The device value reported as <c>x-kpsdk-dv</c> on the mobile path (the original's MobileDv).
+    /// Null leaves it out of the header set, which is what the desktop flow does.
+    /// </summary>
+    public string? MobileDv { get; set; }
+
+    /// <summary>
+    /// Supplies <c>x-kpsdk-v</c>. The original has a VersionProvider switch; the default reads the value
+    /// the sensor stamped onto its own interrogation request, which is the only authoritative source.
+    /// </summary>
+    public Func<string?>? VersionProvider { get; set; }
+
+    /// <summary>Reads a header the sensor put on one of the requests it issued (last one wins).</summary>
+    private string? HeaderFromIssuedRequest(string header)
+    {
+        var js = "(function(){var q=window.__dshRequests||[];" +
+                 "for(var i=q.length-1;i>=0;i--){var h=q[i].headers;if(!h)continue;" +
+                 "var o=JSON.parse(h);for(var k in o){if(k.toLowerCase()===" +
+                 System.Text.Json.JsonSerializer.Serialize(header.ToLowerInvariant()) +
+                 ")return String(o[k]);}}return null;})()";
+        return Runtime.TryString(js);
+    }
+
     public KasadaResult Solve(string script)
     {
         if (string.IsNullOrWhiteSpace(script))
@@ -309,18 +339,36 @@ public sealed class KasadaSolver : IDisposable
            clearance token only exists in that /r response. Its state machine settles on "Configured" and
            nothing ever reads the state's .type (5.61), so the host has to send the requests and take the
            token off the reply. That is what ResourceAddress + Transport exist for. */
+        // MfcEnabled=false means the sensor must not reach its remote configuration endpoint at all.
+        // Refusing it here (rather than after the fact) keeps the host from making the call.
+        var priorTransport = Transport;
+        if (!MfcEnabled && priorTransport is not null)
+        {
+            Transport = (url, method, headers, body) =>
+                url.EndsWith("/mfc", StringComparison.Ordinal)
+                    ? "{\"status\":503,\"headers\":{},\"body\":\"\",\"error\":\"mfc disabled\"}"
+                    : priorTransport(url, method, headers, body);
+        }
+
         var configured = string.IsNullOrEmpty(ResourceAddress) ? null : TryConfigure(ResourceAddress!);
+        Transport = priorTransport;
 
         var ct = FirstNonEmpty(CtEntryPoints)
                  ?? HeaderFromTransport("x-kpsdk-ct");
         var sbsd = FirstNonEmpty(SbsdEntryPoints);
-        Version = Runtime.TryString("KPSDK && KPSDK.v ? String(KPSDK.v) : (window.KPSDK && window.KPSDK.v ? String(window.KPSDK.v) : null)")
+        /* The sensor stamps its own build onto the requests it issues (x-kpsdk-v: j-1.2.988 on the /mfc
+           call), so that is the authoritative version -- not a guess scraped out of the token. The
+           original has a VersionProvider switch for exactly this; a caller may override it. */
+        Version = VersionProvider?.Invoke()
+                  ?? HeaderFromIssuedRequest("x-kpsdk-v")
+                  ?? Runtime.TryString("KPSDK && KPSDK.v ? String(KPSDK.v) : (window.KPSDK && window.KPSDK.v ? String(window.KPSDK.v) : null)")
                   ?? Regex.Match(ct ?? string.Empty, @"^\s*(\d+)\|").Groups[1].Value;
 
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrEmpty(ct)) headers["x-kpsdk-ct"] = ct!;
         if (!string.IsNullOrEmpty(sbsd)) headers["x-kpsdk-sb"] = sbsd!;
         if (!string.IsNullOrEmpty(Version)) headers["x-kpsdk-v"] = Version!;
+        if (!string.IsNullOrEmpty(MobileDv)) headers["x-kpsdk-dv"] = MobileDv!;
 
         var cookies = Runtime.WrittenCookies;
         foreach (var c in cookies)

@@ -1563,6 +1563,45 @@ var shim = BrowserShim.Ios();   // iPhone OS 17_5 / Safari 604.1 / platform iPho
 
 **Kasada 相关用例 + 这三个 = 78 例全绿。**
 
+### 5.72 三个开关接上了：`MfcEnabled` / `MobileDv` / `VersionProvider`
+
+| 开关 | 语义（落地后） |
+|---|---|
+| `VersionProvider` | `Func<string?>`。默认**从 payload 自己发出的请求头里取 `x-kpsdk-v`** —— 那是唯一权威来源（`/mfc` 请求上就带着 `j-1.2.988`），不是从 token 里猜 |
+| `MobileDv` | 非空时作为 `x-kpsdk-dv` 报出；桌面路留空，和原版一致 |
+| `MfcEnabled` | 默认 true。为 false 时**宿主自己不发 `/mfc`**（传输层直接回 503） |
+
+**`VersionProvider` 的默认值来源值得单说**：
+
+```csharp
+Version = VersionProvider?.Invoke()
+          ?? HeaderFromIssuedRequest("x-kpsdk-v")        // ← 新增，权威
+          ?? Runtime.TryString("KPSDK && KPSDK.v ? …")   // 老路：脚本暴露
+          ?? Regex.Match(ct ?? "", @"^\s*(\d+)\|")…      // 兜底：从 token 推断
+```
+
+**优先级从「可靠」到「猜」排列**，并且三层都有测试覆盖：默认取到 `j-1.2.988`、
+`VersionProvider` 能覆盖成 `j-9.9.999`、桌面路不带 `x-kpsdk-dv` 而 mobile 路带。
+
+### 5.73 一个和预期不同的实测：`/mfc` 失败**不会**让传感器停下
+
+写 `MfcEnabled=false` 的用例时，我先假设「拿不到远程配置 → 握手终止 → 不产 token」。**实测不是这样。**
+
+把 `/mfc` 回 503 之后：
+
+```
+宿主发出的请求：POST /r          ← 没有 /mfc（开关生效）
+结果：Ct = CT-SWITCH-TEST-…      ← token 照样拿到了
+```
+
+**⇒ 传感器在 `/mfc` 失败后仍然继续发 `/r`。** 所以 `MfcEnabled` 是「宿主做不做自己那步 mobile 请求」的开关，
+**不是整个握手的硬门**。
+
+断言按实测改了，并且把这条写进注释 —— 这类「和直觉相反但被数据钉住」的行为，
+比一个看起来自洽的假设值钱得多。
+
+**Kasada + profile 用例现在 82 例全绿。**
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

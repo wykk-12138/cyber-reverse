@@ -64,6 +64,7 @@ public sealed class ScriptRuntime : IDisposable
         LastErrorWasRuntime = false;
         LastErrorLine = 0;
         LastErrorColumn = 0;
+        LastStackTrace = null;
 
         // Parse first: Jint wraps parser failures in the same exception family as runtime
         // ones, and the two need very different handling — a broken payload is a bug, a
@@ -97,6 +98,10 @@ public sealed class ScriptRuntime : IDisposable
             LastErrorLine = line;
             LastErrorColumn = col;
             LastErrorWasRuntime = true;
+            // The message alone says WHAT broke ("undefined.bind"), never WHICH host object was
+            // missing at the time. Jint keeps the JS-level stack, and a minified payload's frames
+            // are the only way back to the bytecode instruction that asked for it.
+            try { LastStackTrace = jex.JavaScriptStackTrace; } catch (Exception) { LastStackTrace = null; }
             return false;
         }
         catch (Exception ex)
@@ -118,6 +123,13 @@ public sealed class ScriptRuntime : IDisposable
     /// a host API is missing, which is what an embedded browser would provide.
     /// </summary>
     public bool LastErrorWasRuntime { get; private set; }
+
+    /// <summary>
+    /// JS-level stack of the last script failure, when Jint could produce one. A minified payload
+    /// reports only a character offset; the frames are what tell us which of its internal calls
+    /// was the one that asked for a host object this engine does not have.
+    /// </summary>
+    public string? LastStackTrace { get; private set; }
 
     /// <summary>Cookie jar as mutated by the script (document.cookie writes are captured).</summary>
     public IReadOnlyList<string> WrittenCookies

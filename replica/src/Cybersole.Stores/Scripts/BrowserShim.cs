@@ -164,6 +164,12 @@ public sealed class BrowserShim
           set: function (v) { __dshCookieStore.push(String(v).split(";")[0]); },
           configurable: true
         });
+
+        /* Web/host globals a real browser has and Jint does not (TextEncoder, URL, Blob, Worker,
+           AudioContext, RTCPeerConnection, fetch, …). The vendor payload's bytecode VM resolves
+           constructors by name from the global scope, so any missing one kills the run with
+           "Cannot read properties of undefined (reading 'bind')" far away from the real cause. */
+        {{WebApiShims.Prelude}}
         """;
     }
 

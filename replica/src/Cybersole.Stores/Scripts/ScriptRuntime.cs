@@ -111,6 +111,32 @@ public sealed class ScriptRuntime : IDisposable
         }
     }
 
+    /// <summary>
+    /// Run queued promise/timer continuations. Measured on Jint 4.17: <c>Execute</c> already drains
+    /// the job queue, so a <c>.then</c> callback has run by the time the call returns
+    /// (probe: <c>var d=0; Promise.resolve(7).then(v=>d=v)</c> read back 7 with no drain). Kept for
+    /// the case where a caller evaluates several fragments in sequence and wants to settle between
+    /// them; it is a no-op otherwise.
+    /// </summary>
+    public void DrainMicrotasks(int rounds = 8)
+    {
+        for (var i = 0; i < rounds; i++)
+        {
+            try
+            {
+                _engine.Advanced.ProcessTasks();
+            }
+            catch (JavaScriptException)
+            {
+                return;
+            }
+            catch (Exception)
+            {
+                return;
+            }
+        }
+    }
+
     /// <summary>Line of the last script failure, or 0 when it did not come from script code.</summary>
     public int LastErrorLine { get; private set; }
 

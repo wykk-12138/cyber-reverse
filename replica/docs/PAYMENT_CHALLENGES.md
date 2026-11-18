@@ -40,6 +40,8 @@
 
 **→ R1083：载荷层也解了——graphql 操作是冻结字面量**（0x1470cc8cc..0x14712190c 的 threeDomainSecure 家族）：`ApproveOnboardPaymentMutation` · `CurrencyConversion` · `OnboardGuestMutation`（带 `is3DSecureRequired` 旗标）· `approveMemberPayment` ×2 · `PayWithQuery` · **`ResolveThreeDsContingency` ×2（解析操作：token/authId/referenceId/creditCardId/status/experiences 六变量）**。变体 B（0x1470dc9bc）由 **hosted solver `sub_141113680` 自己组装**——即 R1078 定位的 15,615 B / 11-case 状态机；变体 A（0x1470d7974）由普通 solver `sub_14110FDB0`（14,458 B）组装。九个可观察阶段 = 该机驱动 `ResolveThreeDsContingency` 的解析环。**剩余未知 = 每 case 的变量绑定**（哪个 case 设哪个 authId/referenceId/status）——两台 solver 的 case 体是下一探针。
 
+**→ R1084：绑定源也定了位**——解析器变量从两路读入：**JSON 针**（冻结串 `"referenceId":"` 0x146a76254 ← 解析器 `sub_140940820`（335 B）/`sub_140D91B40`（308 B））与**挑战页 DOM**（选择器 `input[id='referenceId']` 0x1470a48dc ← `sub_14092F630`（557 B）——挑战页隐藏域，不只是响应 JSON）。响应键 `authId`（0x143446208）、`creditCardId`（0x146fd8f54）同为裸键字面量。剩余未知收窄为**每 case 用哪条源**——即两台 solver 的 switch case 体。
+
 ## 四、Stripe
 
 | 名字 | 命中 | 首条地址 |

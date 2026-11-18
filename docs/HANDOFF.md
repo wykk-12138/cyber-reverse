@@ -5123,3 +5123,20 @@ PayPalThreeDs **10/10 绿**；markers absent **0/5** 保持。
 
 还剩什么：两台 solver 的 case 体（每 case 的 authId/referenceId/status 绑定）；Stripe 六步其余体；
 42 锚静树全跑。
+
+## R1084 —— 【核心②】3DS 绑定源定位：JSON 针 + 挑战页 DOM 双路
+
+**取件**：队列② PayPal 每 case 变量绑定。
+
+改了什么：纯取证轮——模板 §六 追加 R1084 绑定源段，重生成 PAYMENT_CHALLENGES.md。
+
+验证：`str "referenceId"` → **JSON 针 `"referenceId":"`（0x146a76254）← `sub_140940820`（335 B）/
+`sub_140D91B40`（308 B）**；**DOM 选择器 `input[id='referenceId']`（0x1470a48dc）←
+`sub_14092F630`（557 B）**——referenceId 还从挑战页隐藏域读取；裸键 `authId`/`creditCardId`
+在池。control ok、markers absent **0/5** 保持。
+
+数字变化：无计数变化；未知面收窄为「每 case 用哪条源」（两台 solver switch case 体是最后一块）。
+
+证据等级：针/选择器/引用函数为 Observation；解析器服务对象为 Inference（case 体未读）。
+
+还剩什么：两台 solver 的 switch case 体——PayPal 3DS 层的最后一块拼图。

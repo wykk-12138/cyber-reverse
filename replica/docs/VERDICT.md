@@ -62895,3 +62895,28 @@ PayPalThreeDs 停点如实跟进，10/10 钉测绿，markers 0/5 保持。
 > **「调用方供给」是暂记不是终点**——载荷也是数据，数据就在池里。`str "threeDomainSecure"`
 > 一发探针，把「不可知的调用方魔法」变成「8 条可全文引用的字面量 + 3 个 xref 落点」。
 > 判 Unknown 之前先问一句：这个 Unknown 的另一半真的不在镜像里吗？
+
+---
+
+## 第 1084 轮：3DS 绑定源 —— referenceId 有两路，一路在挑战页 DOM 里
+
+### 一、双路证据
+
+`ResolveThreeDsContingency` 的六变量从两路读入：
+- **JSON 针**：`"referenceId":"`（0x146a76254）← `sub_140940820`（335 B）/`sub_140D91B40`（308 B）
+  ——针式提取器；
+- **挑战页 DOM**：`input[id='referenceId']`（0x1470a48dc）← `sub_14092F630`（557 B）——
+  隐藏输入域读取器。**referenceId 不只来自响应 JSON，还来自银行挑战页的页面内容**。
+
+裸键 `authId`（0x143446208）、`creditCardId`（0x146fd8f54）同在池。
+
+### 二、未知面的最后一块
+
+R1082 关构建器层、R1083 关载荷层、本轮关绑定源层——PayPal 3DS 剩下的唯一未知是
+**两台 solver（`sub_14110FDB0`/`sub_141113680`）的 switch case 体**：每个 case 用哪条源、
+设哪个值。case 体一解，3DS 层可全链落地。
+
+### 教训
+
+> **变量绑定别默认只有一条路**——探了 JSON 针还要探 DOM 选择器。`input[id='referenceId']`
+> 在池里躺着，只因没问「页面里会不会也有」就差点漏掉整条挑战页读取路。

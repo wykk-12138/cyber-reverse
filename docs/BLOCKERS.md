@@ -38757,3 +38757,29 @@ Inference = 九阶段与 11-case 的对应关系（阶段 = case 驱动的解析
 
 还剩什么：两台 solver（`sub_14110FDB0`/`sub_141113680`）的 case 体反编译（每 case 的
 authId/referenceId/status 绑定）；Stripe 六步其余体；42 锚静树全跑；sec-ch-ua 生成器（队列③）。
+
+## R1084 —— 【核心②·支付挑战层】3DS 绑定源定位：JSON 针 + 挑战页 DOM 双路
+
+**取件**：队列② PayPal 每 case 变量绑定（R1083 指定探针）。
+
+改了什么：无 src 改动——本轮为纯取证轮。生成器模板 `payment_challenges.py` §六 追加 R1084
+绑定源段；重生成 PAYMENT_CHALLENGES.md。
+
+验证命令与输出：
+- `str "authId"` / `str "referenceId"` / `str "creditCardId"` → 响应键字面量与解析针定位：
+  - **JSON 针** `"referenceId":"`（0x146a76254）← 解析器 `sub_140940820`（335 B）/
+    `sub_140D91B40`（308 B）——两个小型针式提取器；
+  - **挑战页 DOM** `input[id='referenceId']`（0x1470a48dc）← `sub_14092F630`（557 B）——
+    **referenceId 还从挑战页的隐藏输入域读取**，不只是响应 JSON；
+  - 裸键 `authId`（0x143446208）、`creditCardId`（0x146fd8f54）在池（.rdata 侧，针由
+    disp32 引用，未建 IDA xref——同 R1044 家族注意项）。
+- `payment_challenges.py` → control ok=True，markers absent **0/5** 保持。
+
+数字变化：无计数变化；PayPal 3DS 未知面进一步收窄：「每 case 变量绑定未知」→
+「**每 case 用哪条源未知**（源本身已全部定位：两台 solver switch case 体是最后一块）」。
+
+证据等级：Observation = 解析针与 DOM 选择器字面量、三个引用函数、裸键位置；
+Inference = 针式解析器服务于 solver 的响应解析（case 体未读，未断言具体 case 对应）。
+
+还剩什么：两台 solver（`sub_14110FDB0` / `sub_141113680`）的 switch case 体反编译——
+每 case 用哪条绑定源，是 PayPal 3DS 层的最后一块拼图；Stripe 六步其余体；42 锚静树全跑。

@@ -39822,3 +39822,46 @@ Inference = 无（本轮全部改动都由已存在的机器钉子或清单直�
 
 还剩什么：`tools/type_rename_map.py` 的成员名解析缺陷待修（修后 L282/L290 会自动变正确）；
 两条 `Localize*` 需 MethodTable/元数据侧成员集；判据 (b)(c)(d)(f) 逐项复算。
+
+## R1111 —— 【判据 a】根因量化定案：四个 `Localize*Extension` **只坐转换器位**，成员属 owner
+
+**取件**：R1110 记下的 `tools/type_rename_map.py` 成员名解析缺陷。
+
+改了什么：
+- **读通生成链**：`docs/xaml_bindings.json` ← `analysis/_xaml_bindings.py`（24 行）←
+  `analysis/pe_strings.txt`。缺陷在 L6–15：
+  正则把描述符切成 `(类型, Owner.Property, Kind)`，L14 `mem = member.split('.')[-1]` 取到的是
+  **`Owner.Property` 的 Property**，L15 却把它记到**第一组类型**名下。
+  对「第一组就是 owner」的常规条目成立，对**转换器位**不成立。
+- **量化证明**（本轮实测，非推断）：对 `pe_strings.txt` 全量跑同一正则 ——
+  - 描述符对 **2,474** 条；第一组去重 **202** 个；owner 去重 **558** 个；
+  - **`*Extension` / `*Converter` 出现在第一组：恰好 4 个**，即
+    `LocalizeEnumExtension`×3 / `LocalizeFallbackExtension`×3 / `LocalizeFormatExtension`×6 /
+    `LocalizeSwitchExtension`×3；
+  - **`*Extension` 出现在 owner 位：0 个应用类型**（唯一一条是框架的
+    `Avalonia.Base.Converter`×9）。
+  ⇒ 这四个类型**只坐转换器位、从不作 owner**，故记在它们名下的 `Value` 是 **owner 的属性**。
+- 两条 `Localize*` 三分类行改写为带此量化证明的 `UNKNOWN (缺：类型自身成员集)`。
+- **未改共享数据文件**：`xaml_bindings.json` 有 **80+ 个消费方**（`bind_diff` / `bind_shape` /
+  `shape_audit` / `member_owner_map` / `type_rename_map` / `aot_member_coverage` … 全部生成文档与
+  大量守卫），且正确修法是「记为**零成员**而非剔除」（剔除会把真实缺席藏起来）。该修复需
+  专用轮次 + ≥3 GB 内存窗口做全链重生成与全量守卫复核，已写入 BLOCKERS 并附范围。
+
+验证命令与输出：
+- 生成链三文件逐行读过（`_xaml_bindings.py` 全文 24 行）。
+- 量化扫描脚本（临时件，用后删除）输出：`descriptor pairs: 2474`、
+  `*Extension/*Converter as FIRST token: 4`（逐个列出）、
+  `*Extension/*Converter as OWNER token: 1 → Avalonia.Base.Converter x 9`。
+- 消费方清点：`grep -l xaml_bindings` → **80+ 文件**（replica/tools 10 + analysis 70+）。
+- 文档守卫：DocsConsistency 8/8、SourceEncoding 2/2 —— **10 钉全绿**
+  （内存 1,648 MB < 2 GB，按纪律只跑单类）。
+
+数字变化：分类分布不变（15 行 = 8/2/1/2/2）；但两条 UNKNOWN 的**依据从「疑似伪影」升级为
+「实测的位次分布」**——从 Inference 降为 Observation。
+
+证据等级：Observation = 生成链三文件、2,474/202/558 三个计数、四个 Extension 的首组出现次数、
+owner 位 0 个应用 Extension、80+ 消费方清点、两个守卫类通过；Inference = 修复后对全链生成物的
+具体影响面（未执行，故不做断言）。
+
+还剩什么：`xaml_bindings.json` 的转换器位修复（专用轮 + ≥3 GB 窗口，全链重生成后跑全量守卫）；
+两条 `Localize*` 需元数据侧成员集；判据 (b)(c)(d)(f) 逐项复算。

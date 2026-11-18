@@ -63875,3 +63875,34 @@ Cybersole.Ui.Localization.LocalizeFallbackExtension,Cybersole.Value!Getter    (0
 > 上一轮我拿 `TYPE_RENAME_MAP.md` 的成员集当硬证据，但那份文件的成员名是从**绑定路径**里切出来的。
 > **证据的来源形态决定了它能证明什么** ——路径不是成员，出现位置不是数据流向（R1102 同族），
 > 键名不是体形（R1098 同族）。这三条已经是同一个毛病的三种皮。
+---
+
+## 第 1111 轮：把「疑似伪影」变成「实测位次」
+
+### 一、量化证明
+
+对 `pe_strings.txt` 全量跑描述符正则：
+
+| 量 | 值 |
+|---|---|
+| 描述符对 | **2,474** |
+| 第一组去重 | 202 |
+| owner 去重 | 558 |
+| `*Extension/*Converter` 在**第一组** | **4**（四个 `Localize*Extension`，共 15 次） |
+| `*Extension` 在 **owner 位** | **0 个应用类型**（只有框架的 `Avalonia.Base.Converter` ×9） |
+
+结论：这四个类型**只坐转换器位、从不作 owner**，所以记在它们名下的 `Value` 是 **owner 的属性**。
+依据从 Inference 升为 **Observation**。
+
+### 二、为什么这一轮没有直接改数据文件
+
+`docs/xaml_bindings.json` 有 **80+ 个消费方**（`bind_diff` / `bind_shape` / `shape_audit` /
+`member_owner_map` / `type_rename_map` / `aot_member_coverage` …），牵动全部生成文档与大量守卫。
+而且正确修法是「记为**零成员**」而不是剔除——**剔除会把真实缺席一起藏起来**，那是把问题从
+「不认识」变成「看不见」。
+
+当前内存 1,648 MB（< 2 GB 纪律线），全链重生成 + 全量守卫复核需要一个 ≥3 GB 的窗口。
+**所以这一轮只定案，不动手**——范围已写进 BLOCKERS。
+
+> 上一轮我写过「改测试前先问是行为变了还是断言太死」。这一轮的版本是：
+> **「要改的是一份被 80 个东西读着的数据时，先量清楚影响面，再决定是不是这一轮改。」**

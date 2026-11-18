@@ -5721,3 +5721,20 @@ SourceEncoding 2 = **19 钉全绿**。
 数字变化：分布不变；**这两条的「缺什么」从错的改成对的**。
 
 还剩什么：`tools/type_rename_map.py` 成员名解析缺陷待修；两条 Localize 需元数据侧成员集；(b)(c)(d)(f)。
+## R1111 —— 【判据 a】根因量化定案：四个 Localize*Extension 只坐转换器位
+
+改了什么：
+- 生成链读通：`xaml_bindings.json` ← `analysis/_xaml_bindings.py`（24 行）← `pe_strings.txt`；
+  缺陷在 L6–15：正则切 `(类型, Owner.Property, Kind)`，L14 取 Property，L15 记到**第一组类型**名下。
+- **量化证明**：描述符 **2,474** 对 / 首组去重 202 / owner 去重 558；
+  `*Extension` 在**首组恰好 4 个**（四个 Localize*Extension，15 次），在 **owner 位 0 个应用类型**
+  （只有 `Avalonia.Base.Converter`×9）→ 记在它们名下的 `Value` 是 **owner 的属性**。
+- 两行三分类改写为带量化证明的 `UNKNOWN (缺：类型自身成员集)`。
+- **未改共享数据**：`xaml_bindings.json` 有 **80+ 消费方**；正确修法是「记零成员而非剔除」
+  （剔除会藏起真实缺席）；需专用轮 + ≥3 GB 窗口全链重生成，已写 BLOCKERS。
+
+验证：DocsConsistency 8 / SourceEncoding 2 = **10 钉全绿**（内存 1,648 MB，只跑单类）。
+
+数字变化：分布不变；两条 UNKNOWN 的依据 **Inference → Observation**。
+
+还剩什么：`xaml_bindings.json` 转换器位修复（专用轮）；两条 Localize 需元数据侧成员集；(b)(c)(d)(f)。

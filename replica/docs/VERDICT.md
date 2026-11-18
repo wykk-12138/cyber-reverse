@@ -64453,3 +64453,37 @@ phoneNumber 直接挂根
 **20/20 通过**（4 新 + 4 + 12）。
 
 `deliveries/details` **没落**：形状已读出，但基类没有对应虚步骤——落了就是孤岛。**形状记在账上，接线时直接用。**
+---
+
+## 第 1129 轮：一个体读全了，另一个**不在那个函数里**
+
+### 一、`session-handover` 的嵌套是有证据的
+
+不是「看键名猜」，是看**键落在哪个 bag 上**：
+
+`c
+v20 = 新建内层对象(unk_144DFD730)
+bag(v20) <- timeContinueToCheckoutClicked
+bag(v20) <- timeToCheckoutSpinner
+bag(v20) <- timeToReactLoaded
+bag(v84) <- timestamps = v20        ← 就是上面那个内层对象
+bag(v8/v11/v18) <- express / basketId / discountsInBasketUIEnabled
+`
+
+**`timestamps` 装的是那三个 `time*`。** 一句话能说清，是因为有 `v20` 这个变量名把「同一个对象」
+钉在纸面上了。
+
+### 二、`deliveries` v4 是负结果，而且是个好的负结果
+
+那个函数引用的冻结字符串**只有 URL 自己**，一次设键调用都没有。
+和 `notify-challenge-cmpl` 一模一样：**体在别处构造。**
+
+> 我最想写的是「体就是把前一步 GET 的 orderform 回写」——**很可能对**。
+> 但这一轮没有一条证据指向它，所以它写在 Inference 栏里，没进代码。
+>
+> **一个负结果的价值在于：它告诉你下一步该追哪条数据流，而不是让你填一个看起来对的体。**
+
+### 三、为什么两个都没落地
+
+`WebHandOver` / `SessionHandover` 在 `StoreFlow` 里**没有虚步骤**；`deliveries` 的体位置未知。
+落不被派发的方法 = 孤岛。**形状已经够下一步直接接线，缺的是「步骤序列里的位置」。**

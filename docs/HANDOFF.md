@@ -6003,3 +6003,20 @@ threeds 站点可一并校正既有实现。
 
 还剩什么：`deliveries/details` **形状已读出但未落**（基类无对应虚步骤，落则成孤岛）；
 其余 8 条 BFF 端点的体；`payment-page` 的 PUT 半边。
+## R1129 —— session-handover 体形状读全；deliveries v4 体不在该函数
+
+改了什么（只取证）：
+- `session-handover`（v2 PUT，字面量 0x14705d830）：7 键 + **bag 归属证据** ——
+  `timeContinueToCheckoutClicked`/`timeToCheckoutSpinner`/`timeToReactLoaded` 落在**内层对象 v20**，
+  而 `timestamps <- v20`；`express`/`basketId`/`discountsInBasketUIEnabled` 在根。
+- `deliveries`（v4 PUT）**负结果**：`sub_140A3F590` 只引用 URL（0x14705db08），**0 个键、0 次设键**，
+  体在别处构造（与 `notify-challenge-cmpl` 同型）。
+- **两个都没落实现**：`WebHandOver`/`SessionHandover` 在 `StoreFlow` **无虚步骤**；`deliveries` 体位置未知。
+  落不被派发的方法＝孤岛。
+
+验证：`_bff_body2.py` 两段输出（引用串 + 设键顺序）；`_bff_handover_dump.py` 逐行显示 `timestamps <- v20`。
+
+数字变化：已取证形状 **2 → 3** 个端点；已落地实现仍 **3** 个。
+
+还剩什么：① 给 HandOver 与 `deliveries` GET 找到真实步骤位；② 追 v4 `deliveries` 的体数据流
+（把 Inference 转成 Observation 的那一步）。

@@ -40616,3 +40616,48 @@ R1126 的站点/动词表、16/16 通过；Inference = 无（本轮每处改动�
 还剩什么：① `deliveries/details` 需要先有一条真实的步骤序列位（否则就是孤岛）；
 ② 其余 8 条 BFF 端点的体（`deliveries` PUT、`deliveries/` GET、`payment-page` 的 PUT 半边等）；
 ③ `payment-page` 的 PUT 半边现在有 PUT 的站点地址可单独取证。
+
+## R1129 —— `session-handover` 的体形状读全（含嵌套证据）；`deliveries` v4 的体**不在该函数**（负结果）
+
+**取件**：R1128 之后剩余 BFF 体的下一批（v4 `deliveries` PUT、v2 `session handover` PUT）。
+
+改了什么（只取证）：
+- **`session-handover`（v2，PUT）** —— 键 + **挂载关系**都读到了。
+  用 bag 归属作证据（`sub_143028C10(&unk_144DFD730)` 建**内层**对象，`sub_141FD15C0(x)` 取 bag，
+  `sub_141FD2660(bag,&key,value)` 设键）：
+  ```c
+  v20 = 新建内层对象(unk_144DFD730)
+  bag(v20) <- timeContinueToCheckoutClicked
+  bag(v20) <- timeToCheckoutSpinner
+  bag(v20) <- timeToReactLoaded
+  bag(v84) <- timestamps = v20          ← timestamps 装的就是上面那个内层对象
+  bag(v8/v11/v18) <- express / basketId / discountsInBasketUIEnabled   ← 三个都在根
+  PUT(sub_1408B6310)
+  ```
+  **⇒ `{ express, basketId, discountsInBasketUIEnabled,
+  timestamps: { timeContinueToCheckoutClicked, timeToCheckoutSpinner, timeToReactLoaded } }`**
+  （镜像字面量 `0x14705d830`，键地址 `0x147021ea8` / `0x146f913e0` / `0x147006208` /
+  `0x14716df60` / `0x14716e128` / `0x14716e168` / `0x14716e728`。）
+- **`deliveries`（v4，PUT）** —— **负结果**：该函数（`sub_140A3F590`）引用的冻结字符串**只有 URL 本身**
+  （`0x14705db08`），**没有任何 body 键**，也没有一次 `sub_141FD2660` 设键调用。
+  与 `notify-challenge-cmpl` 同型：**体在别处构造**（很可能是把前一步 GET 回来的 orderform 原样回写，
+  但那是**推断**，未取证，故不据此落实现）。
+
+验证命令与输出：
+- `ida.py py "exec(..._bff_body2.py)"` → 两个函数的「引用字符串 + 设键顺序」两段输出：
+  `deliveries-v4-PUT` 仅 1 条字符串；`session-handover-PUT` 8 条字符串 + 7 行 `bag <- key`。
+- `ida.py py "exec(..._bff_handover_dump.py)"` → 只打印建对象/取 bag/设键/调用动词的行，
+  内层对象 `v20` 的三个键与 `timestamps <- v20` 的挂载行**逐行可见**。
+
+数字变化：无度量变化；BFF 体中**已取证形状的端点 2 → 3**（billing-address、deliveries/details、
+session-handover）；**已落地实现仍为 3 个端点**（payments PUT、payment-page GET、billing-address POST）。
+
+证据等级：Observation = 两段脚本输出、7 个键地址、`timestamps <- v20` 的挂载行、v4 端点 0 键；
+Inference（标注，未落实现）= v4 `deliveries` 的体是前一步 GET 的 orderform 回写。
+
+**没落实现的原因（写清楚）**：`session-handover` 的两个步骤名（`WebHandOver`、`SessionHandover`）
+在 `StoreFlow` 里**没有对应的虚步骤**；`deliveries` v4 的体位置未知。
+按纪律，落一个不被派发的方法就是孤岛——所以本轮止于形状，形状已足够下一步直接接线。
+
+还剩什么：① 先给 `HandOver` 与 `deliveries` GET 在步骤序列里找到真实位置（或确认它们由既有虚步骤承担）；
+② v4 `deliveries` 的体来源需要追一次前一步 GET 的结果如何流入（这是推断转 Observation 的那一步）。

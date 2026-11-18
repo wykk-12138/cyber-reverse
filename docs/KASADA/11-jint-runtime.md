@@ -1790,6 +1790,54 @@ Transport = (url, method, headers, body) =>
 
 **Kasada + BrowserShim + AntiBot 用例：106/106 通过。**
 
+### 5.83 清掉真实负债：`EncryptBody` 不再是"永远返回 null"的死路
+
+`EncryptBody` 原来只走 `BodyEntryPoints`（`KPSDK.cd(...)` 这类表达式）。
+按 §5.80 的结论，这些入口在现行构建上**不存在**，所以它**每次都返回 null** ——
+后果是"受保护请求"被静默降级成"不保护"，而且看起来像正常的空值。
+
+**改成两级：**
+
+```csharp
+public string? EncryptBody(string jsonBody)
+{
+    foreach (var tpl in BodyEntryPoints)          // 1. 老构建的加密入口（现行构建不命中）
+        if (… > 8) return v;
+
+    return LastInterrogationBody;                // 2. 传感器自己组过的那份材料
+}
+```
+
+`LastInterrogationBody` 在 `Solve` 收尾时落存（`interrogationBody ?? LastInterrogationBody`，
+没有新捕获就不覆盖旧的）。
+
+**特意没有做成"用 jsonBody 自己再编码一遍"**：传感器的材料与它当时捕获的状态绑定，
+拿我们自己的输入套进去，会产出一个**看起来像加密、实际不对**的东西 —— 那比返回 null 更坏。
+
+### 5.84 三张旧探针表不再被误读
+
+`CtEntryPoints` / `SbsdEntryPoints` / `BodyEntryPoints` **没有删** —— 老构建仍然用得上。
+但在每张表上写清了它是什么：
+
+> 在 Nike 现行构建上这些都不存在（`KPSDK` 只有 `configure` 和 `isReady`）。
+> **这里返回 null 不代表"脚本没有 token"，只代表这张表不适用。**
+> 真正的路径是 `Solve` 里的 interrogation 捕获。
+
+**保留 + 标注比删除好**：删掉会让老构建失去兼容，而误读成"脚本没 token"会把后来者引回
+已经走不通的那条路 —— 前几轮我自己就在那上面花了好几个 round。
+
+### 5.85 三条测试把这件事钉死
+
+`KasadaLegacyEntryPointTests`（3 例）：
+
+| 用例 | 断言 |
+|---|---|
+| `TheModernBuildExposesNoTokenGetterToProbe` | 现行构建里 `KPSDK.ct` / `KPSDK.sb` 都是 `false`，`Object.keys(KPSDK)` 恰为 `configure,isReady` |
+| `EncryptBodyFallsBackToTheMaterialTheSensorComposed` | 有传输时 `EncryptBody` **非 null** 且**等于** `result.InterrogationBody` |
+| `EncryptBodyStillReturnsNullWhenNothingHasBeenCaptured` | 没传输时仍是 null —— 没有材料就不编一个 |
+
+**Kasada + BrowserShim + AntiBot 用例：109/109 通过。**
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

@@ -98,6 +98,12 @@ public sealed class KasadaResult
 /// </summary>
 public sealed class KasadaSolver : IDisposable
 {
+    /// <summary>
+    /// Legacy probe order, kept for sensor builds that still expose a token getter. On Nike's current
+    /// build none of these exist -- KPSDK carries only configure and isReady (measured: docs/KASADA/11
+    /// 5.23) -- so the real path is the interrogation capture in Solve. Do not read a null result here as
+    /// "the script has no token": it means this table did not apply.
+    /// </summary>
     private static readonly string[] CtEntryPoints =
     {
         "KPSDK.ct()",
@@ -109,6 +115,7 @@ public sealed class KasadaSolver : IDisposable
         "KPSDK.token()",
     };
 
+    /// <summary>Same status as <see cref="CtEntryPoints"/>: a legacy probe, not the modern path.</summary>
     private static readonly string[] SbsdEntryPoints =
     {
         "KPSDK.sb()",
@@ -118,6 +125,10 @@ public sealed class KasadaSolver : IDisposable
         "KPSDK.state && KPSDK.state.sbsd",
     };
 
+    /// <summary>
+    /// Legacy encryption entry points. Retained for older builds only; see <see cref="EncryptBody"/> for
+    /// what happens when none of them matches, which is the normal case today.
+    /// </summary>
     private static readonly string[] BodyEntryPoints =
     {
         "KPSDK.cd({0})",
@@ -304,6 +315,12 @@ public sealed class KasadaSolver : IDisposable
     /// </summary>
     public string? Store { get; set; }
 
+    /// <summary>
+    /// The encoded body the sensor built on its most recent run, kept so a later protected request can
+    /// reuse the material instead of asking the script for an entry point this build does not have.
+    /// </summary>
+    public string? LastInterrogationBody { get; private set; }
+
     /// <summary>Reads a header the sensor put on one of the requests it issued (last one wins).</summary>
     private string? HeaderFromIssuedRequest(string header)
     {
@@ -375,6 +392,7 @@ public sealed class KasadaSolver : IDisposable
 
         var configured = string.IsNullOrEmpty(ResourceAddress) ? null : TryConfigure(ResourceAddress!);
         Transport = priorTransport;
+        LastInterrogationBody = interrogationBody ?? LastInterrogationBody;
 
         var ct = FirstNonEmpty(CtEntryPoints)
                  ?? HeaderFromTransport("x-kpsdk-ct");
@@ -420,7 +438,15 @@ public sealed class KasadaSolver : IDisposable
         return result;
     }
 
-    /// <summary>Encrypt a request body with the token the script holds (<c>x-kpsdk-cd</c>).</summary>
+    /// <summary>
+    /// The encoded body for a request that Kasada protects.
+    /// <para>
+    /// Two sources, in order of authority. Older sensor builds exposed an encryption entry point and the
+    /// first branch serves those. Nike's current build exposes only configure/isReady (measured: docs/KASADA/11
+    /// 5.23), so that branch never matches and the answer has to be the body the sensor already composed
+    /// for its own interrogation -- the host carries that material, it does not compute it (5.80).
+    /// </para>
+    /// </summary>
     public string? EncryptBody(string jsonBody)
     {
         var quoted = BrowserShim.JsStr(jsonBody);
@@ -430,7 +456,11 @@ public sealed class KasadaSolver : IDisposable
             var v = Runtime.TryString(expr);
             if (!string.IsNullOrEmpty(v) && v!.Length > 8) return v;
         }
-        return null;
+
+        // Fall back to what the sensor actually produced. Deliberately not a re-encoding of jsonBody: the
+        // sensor's material is bound to the state it captured, so substituting our own input would produce
+        // something that looks encrypted and is wrong.
+        return LastInterrogationBody;
     }
 
     private string? FirstNonEmpty(IEnumerable<string> candidates)

@@ -39746,3 +39746,41 @@ Unknown = 整树绿（被并行会话的在途改动挡住，不属我方可控�
 还剩什么：判据 (a) 剩余 4 条 UNKNOWN（`AccountsCreatorView`/`TaskCreatorCartView`/
 `LocalizeEnumExtension`/`LocalizeFallbackExtension`）需镜像侧成员集取证后再分类；
 判据 (b)(c)(d)(f) 逐项复算。
+
+## R1109 —— 【判据 a】三分类收口：UNKNOWN 4 → 2，另两条被**测试钉住的改名表**推翻
+
+**取件**：判据 (a) 剩余 4 条 UNKNOWN。
+
+改了什么：
+- **又发现三分类与「测试钉住的表」矛盾**（延续 R1108 的台账不一致问题，这次对手是测试）：
+  - `AccountsCreatorView` → `tests/Cybersole.Tests/OriginalViewClassParityTests.cs` **L47 明确钉住**
+    `["AccountsCreatorView"] = "AccountImportWindow"`，且复刻件
+    `src/Cybersole.Ui/Views/AccountImportWindow.cs` 的文档注释里就写着原名
+    `Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView`；
+  - `TaskCreatorCartView` → 同文件 **L51 钉住** `["TaskCreatorCartView"] = "TaskCreatorView"`，
+    测试注释还写明「the task creator is one class here, three there」。
+  **两条均改判 `RENAMED`**，证据直接引测试行号——**机器可复算，不是我猜的**。
+- 剩余两条 `LocalizeEnumExtension` / `LocalizeFallbackExtension`：从类型清单
+  `docs/TYPE_RENAME_MAP.md` **L282 / L290** 取到真成员集 —— **各仅 1 个成员，名字都叫 `Value`**。
+  该文件给出的三个 MEDIUM 候选（`AnalyticsView` / `BouncyH2Client` / `BouncyHttpClient`）
+  全是「任何类都有 `Value`」的巧合。故两行改写为
+  **`UNKNOWN (缺：成员名无区分力)`**，并逐字写明缺什么：
+  「成员集大于一个，或第二个可区分名字」——**正合判据 (a) 的「不可得写 Unknown + 缺什么」**。
+
+验证命令与输出：
+- `python tools/where_is.py AccountsCreatorView` → **implementation 组命中**
+  `src/Cybersole.Ui/Views/AccountImportWindow.cs`，test 组命中 `OriginalViewClassParityTests.cs`
+  —— **R1108 判它 UNKNOWN 时就该跑这一步**。
+- `grep` 该测试文件：L47 / L51 两行原文如上。
+- 分类计数自检：**RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / UNKNOWN 2 / EQUIVALENT 2 = 15 行**。
+- 文档守卫逐类：DocsConsistency 8/8、ParityDoc 9/9、SourceEncoding 2/2、SummaryBlock 4/4
+  = **23 钉全绿**。
+
+数字变化：三分类 **UNKNOWN 4 → 2**；**RENAMED 6 → 8**；类型缺席原始计数仍 15。
+
+证据等级：Observation = 测试 L47/L51 原文、`AccountImportWindow.cs` 文档注释里的原名、
+`TYPE_RENAME_MAP.md` L282/L290 的成员集与候选表、五类计数、四个守卫类逐类通过；
+Inference = 无（本轮全部改动都由已存在的机器钉子或清单直接支撑）。
+
+还剩什么：`LocalizeEnumExtension` / `LocalizeFallbackExtension` 两条需**镜像侧成员集之外的证据**
+（如 MethodTable 虚槽或 XAML 用法）才能定性；判据 (b)(c)(d)(f) 逐项复算。

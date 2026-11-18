@@ -17,15 +17,15 @@
 | `Concurrency` | **RENAMED** | `ConcurrencySettings` declares all 3 member(s) — sole declaration match |
 | `ImapProvider` | **RENAMED** | `ImapMailProvider` in ImapMailProvider.cs — 4/4 (100%) documented; its doc comment names ImapProvider |
 | `ActionConfig` | **RENAMED** | `SmartActionStepConfig` in SmartActions.cs — 2/2 (100%) documented; its doc comment names ActionConfig |
-| `LocalizeEnumExtension` | **UNKNOWN (non-discriminative)** | best match `EditValue` in Primitives.cs — 1/1 (100%) |
-| `LocalizeFallbackExtension` | **UNKNOWN (non-discriminative)** | best match `EditValue` in Primitives.cs — 1/1 (100%) |
+| `LocalizeEnumExtension` | **UNKNOWN (缺：成员名无区分力)** | Image inventory: **1 member, named `Value`** (`docs/TYPE_RENAME_MAP.md` L282). Every candidate class also declares `Value`, so the three MEDIUM rows there (`AnalyticsView`, `BouncyH2Client`, `BouncyHttpClient`) are coincidences. Missing: a member set larger than one, or a second discriminating name. |
+| `LocalizeFallbackExtension` | **UNKNOWN (缺：成员名无区分力)** | Image inventory: **1 member, named `Value`** (`docs/TYPE_RENAME_MAP.md` L290) - identical shape to LocalizeEnumExtension, so the same candidates match and none can be confirmed. Missing: discriminating member evidence. |
 | `LocalizeFormatExtension` | **EQUIVALENT** | `docs/B_CLASS_DECISIONS.md` L26 rules it `已有等价物`: the replica formats with a direct `string.Format` call. Image-side identity recovered this round: namespace `Cybersole.Ui.Localization` and the XAML type-name table at `0x1432fd514` (see `0x14320c2d5`). |
 | `LocalizeSwitchExtension` | **EQUIVALENT** | `docs/B_CLASS_DECISIONS.md` L25 rules it `已有等价物`: the replica expresses the same intent with an inline ternary. Image-side identity recovered this round: namespace `Cybersole.Ui.Localization`, same name table at `0x1432fd514`. |
-| `AccountsCreatorView` | **UNKNOWN (non-discriminative)** | best match `ProxyKeyBinds` in GlobalSettings.cs — 1/2 (50%) |
+| `AccountsCreatorView` | **RENAMED** | `tests/Cybersole.Tests/OriginalViewClassParityTests.cs` L47 pins the mapping `AccountsCreatorView` -> `AccountImportWindow` (machine-checked, not a guess); the replica class carries the original's full name in its doc comment. |
 | `AuthWindow` | **OUT_OF_SCOPE** | YG ruling R702: auth/licence is user management, not part of the replica's function set |
 | `LicenseControl` | **OUT_OF_SCOPE** | YG ruling R702: auth/licence is user management, not part of the replica's function set |
 | `SettingsView` | **STRUCTURAL** | 18/19 member names co-occur in `SettingsShell` (only 1 class(es) reach that) |
-| `TaskCreatorCartView` | **UNKNOWN (non-discriminating match)** | best match `ProxyKeyBinds` in GlobalSettings.cs — 2/3 (67%) |
+| `TaskCreatorCartView` | **RENAMED** | `tests/Cybersole.Tests/OriginalViewClassParityTests.cs` L51 pins `TaskCreatorCartView` -> `TaskCreatorView`; the test's own comment records that the image's three task-creator classes are one class in the replica. |
 | `TaskCreatorMainView` | **RENAMED** | `TaskCreatorView` declares all 4 member(s) — sole declaration match |
 
 判定合计：OUT_OF_SCOPE=2, RENAMED=6, STRUCTURAL=1, UNKNOWN (non-discriminating match)=1, UNKNOWN (non-discriminative)=5

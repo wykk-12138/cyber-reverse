@@ -63807,3 +63807,41 @@ UNKNOWN 6 → **4**。
 > **本轮最该记住的：台账要「互相对账」，不是各自齐全就行。**
 > 一本写着 UNKNOWN、另一本写着「已有等价物」，如果不交叉读，那个 UNKNOWN 会一直挂在那里
 > 让后面每一轮去查一件早已裁过的事。
+
+---
+
+## 第 1109 轮：这次对手是一张测试钉住的表
+
+### 一、UNKNOWN 4 -> 2，两条被测试推翻
+
+延续上一轮的「台账不一致」，这次矛盾发生在三分类与**测试**之间：
+
+| 类型 | 三分类说 | 测试说 |
+|---|---|---|
+| `AccountsCreatorView` | UNKNOWN | `OriginalViewClassParityTests` **L47** 钉住 -> `AccountImportWindow` |
+| `TaskCreatorCartView` | UNKNOWN | 同文件 **L51** 钉住 -> `TaskCreatorView` |
+
+而且 `AccountImportWindow.cs` 的文档注释里就写着原名。**两条改判 RENAMED，证据直接引测试行号。**
+
+> 上一轮我刚写完「台账要互相对账」，这一轮就在同一个地方又栽了一次——
+> 因为上一轮我只对了 **两本 docs**，没对 **测试**。
+> **测试也是台账，而且是最硬的那种：它跑得起来。**
+
+### 二、剩下两条，写明缺什么
+
+`LocalizeEnumExtension` / `LocalizeFallbackExtension`：类型清单给出**各仅 1 个成员，都叫 `Value`**。
+三个 MEDIUM 候选（`AnalyticsView`/`BouncyH2Client`/`BouncyHttpClient`）全是「任何类都有 Value」的巧合。
+
+改写为 `UNKNOWN (缺：成员名无区分力)`，逐字写明：**缺「成员集大于一个，或第二个可区分名字」**。
+这正是判据 (a) 要的「不可得写 Unknown + 缺什么」。
+
+### 三、数字
+
+| 分类 | R1108 | **R1109** |
+|---|---|---|
+| RENAMED | 6 | **8** |
+| EQUIVALENT | 2 | 2 |
+| OUT_OF_SCOPE | 2 | 2 |
+| STRUCTURAL | 1 | 1 |
+| UNKNOWN | 4 | **2（并写明缺什么）** |
+| 合计 | 15 | 15 |

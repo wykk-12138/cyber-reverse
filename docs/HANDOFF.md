@@ -5688,3 +5688,20 @@ SourceEncoding 2/2、metrics exit 0。
 数字变化：UNKNOWN **6 -> 4**；EQUIVALENT +2；类型缺席原始计数仍 15（未实现新类型）。
 
 还剩什么：剩余 4 条 UNKNOWN 需镜像侧成员集取证；(b)(c)(d)(f) 逐项复算。
+## R1109 —— 【判据 a】三分类收口：UNKNOWN 4 -> 2
+
+改了什么：
+- **三分类与测试矛盾**：`AccountsCreatorView` 被 `OriginalViewClassParityTests.cs` **L47** 钉住
+  -> `AccountImportWindow`（且 `AccountImportWindow.cs` 文档注释写着原名）；
+  `TaskCreatorCartView` 被 **L51** 钉住 -> `TaskCreatorView`。**两条改判 RENAMED，证据引行号。**
+- 剩余两条 `LocalizeEnumExtension`/`LocalizeFallbackExtension`：`TYPE_RENAME_MAP.md` L282/L290
+  给出**各仅 1 成员 `Value`**，三个 MEDIUM 候选全是巧合 -> 改写为
+  `UNKNOWN (缺：成员名无区分力)` 并逐字写明缺什么。
+
+验证：`where_is AccountsCreatorView` 命中 implementation + test；
+分类计数 RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / UNKNOWN 2 / EQUIVALENT 2 = 15 行；
+文档守卫 DocsConsistency 8 / ParityDoc 9 / SourceEncoding 2 / SummaryBlock 4 = **23 钉全绿**。
+
+数字变化：UNKNOWN **4 -> 2**；RENAMED **6 -> 8**。
+
+还剩什么：两条 Localize 需成员集之外的证据（虚槽 / XAML 用法）；(b)(c)(d)(f) 逐项复算。

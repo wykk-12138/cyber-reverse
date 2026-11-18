@@ -6243,3 +6243,17 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么：① `sub_140A40F20` 的 ordinal（两条路已排除，需 MethodTable 解析或动态验证）；
 ② `SubmitOrder`(33) 究竟做什么（现由基类拒绝，未编造）；③ 其余站点流程（CORE_COVERAGE 占位）。
+## R1143 —— 端点字面量全量对账：27 条镜像里没有
+
+改了什么（只取证）：
+- 新工具 `_flow_urls_vs_image.py`（IDA 内）：抽 `Stores/{Flows,Payments}/*.cs` 的 URL 字面量，
+  与镜像 **324,901 条字符串**拼成的 blob 做子串查找 → **63 文件 / 376 字面量 / 329 命中 / 47 候选缺失**。
+- `_flow_url_recheck.py` 逐条精确复核 → **27 条 `n=0`（双方法确证缺失）**，清单与归属见 `BLOCKERS.md`。
+- **自我更正**：中途「含点号全失败」被我误判为「正则坏了」，真相是 **IDA 中途死**；
+  那 18 条 `-1` 整列**未测**，既不进通过也不进失败。
+- `bin_search` 三次 API 失败已记入账（该版本无 `BINSEARCH_*` 常量、6 参重载拒 `bytes`+`None`）。
+
+数字变化：新增 3 个分析脚本；`src`/`tests` 零改动（变异收据保持 staleness 0）。
+
+还剩什么（主线）：27 条按文件聚簇修复——① `StoreFlow` 5 条兜底端点；② `MagentoFlow` 6 条；
+③ Shopify 两站；④ 企业自建 API 各站；⑤ 18 条未测需第二方法。

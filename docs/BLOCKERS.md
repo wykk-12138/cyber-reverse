@@ -41230,3 +41230,56 @@ Inference = 无（顺序由 ordinal 直接给出）。
 - 相关子集（JohnLewis | FlowWorkAudit | FlowSequence）：**82/82**。
 - 变异：`ran_at 2026-11-19T03:52:11`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   `staleness 0`。
+## R1143 —— 同类缺陷普查：376 条源码端点字面量里，**27 条镜像里根本没有**
+
+**动机**：John Lewis 一个流程里我就抓到**两处**打镜像中不存在端点的实现
+（R1133 `POST /api/delivery/address`、R1142 `POST /api/order`）。**同一个病不会只长在一棵树上。**
+
+改了什么（只取证，未改 `src`/`tests`）：
+- **新工具** `analysis/_flow_urls_vs_image.py`（在 IDA 内跑）：把
+  `replica/src/Cybersole.Stores/{Flows,Payments}/*.cs` 里所有以 `http` 或 `/` 开头的字面量抽出来，
+  再把镜像**全部 324,901 条字符串**拼成一个 blob，逐条做子串查找（C 级搜索，避免 324k×376 的 Python 循环）。
+  结果：**63 个文件、376 条去重字面量、329 条命中、47 条候选缺失**。
+- **按 §2.7b 逐条复核**（`analysis/_flow_url_recheck.py`，调 `ida.py str` 精确搜索）：
+  **27 条返回 `n=0`** ⇒ 两种独立方法都判缺失；其余 **18 条返回 `-1`**（见下）。
+- **27 条确证缺失清单**（按归属文件）：
+  | 字面量 | 出现于 |
+  |---|---|
+  | `/api/cart/add` | BrandModules, NikeModule, PopMartEndpoints, Retail2Modules, RetailFlows, RetailModules |
+  | `/cart/add.js` | BrandModules, FrontendSurface, ShopifyFlow, ShopifyModule |
+  | `/api/beast`、`/geoIP` | BstnFlow（+Registry） |
+  | `/api/payments`、`/api/payments/` | Gateways, StoreFlow |
+  | `/v1/buys` | GoatFlow |
+  | `/api/v2/shop/countries` | HbxFlow |
+  | `/account/verify`、`/checkout/#payment`、`/collections/new-releases`、`/rest/V1/carts/mine`、`/rest/V1/carts/mine/totals`、`/rest/V2/carts/mine` | MagentoFlow |
+  | `/api/order/submit`、`/api/stock` | PopMartEndpoints |
+  | `/api/checkout/submit`、`/api/preorder/entry`、`/path` | RetailFlows（+ScheelsFlow） |
+  | `/api/cart/items`、`/api/search` | ScheelsFlow |
+  | `/cart/update.js` | ShopifyFlow, StoreFlow |
+  | `/account/recover`、`/account?email=`、`/buy/carts/v2/app`、`/checkout/complete`、`/discount/` | StoreFlow |
+
+验证命令与输出：
+- `ida.py py "exec(..._flow_urls_vs_image.py)"` → `files: 63 distinct literals: 376 /
+  image strings: 324901 blob bytes: 9791167 / present: 329 missing: 47`。
+- `python analysis/_flow_url_recheck.py` → 前 27 条 `n=0`，其后全部 `n=-1`；`_flow_url_owners.py`
+  据此分成 **27 确证 / 18 未测**。
+
+**两个必须写清楚的自我更正**：
+1. **我曾把「含点号的 pattern 全部失败」当成「点号把正则搞坏了」**，还据此又跑了两轮验证——
+   真相是 **IDA 在循环中途就死了**，第 28 条之后的 `-1` 全是「没跑成」。
+   **相关性（都在某点之后失败）不等于因果（失败的原因是内容）。**
+2. 保留 `-1` 的 18 条**不算缺失**，单列「未测」。**「没跑成」既不进通过，也不进失败。**
+
+**工具缺陷（下轮别再踩）**：本轮三次尝试用 `ida_bytes.bin_search` 做字节级第二方法均失败——
+该版本 `bin_search` 没有 `BINSEARCH_*` 常量，6 参重载又拒收 `bytes` + `None` mask。
+下一轮改用 `idautils.Strings()` 之外的现成手段（或直接接受「单方法 + 明示」），**不再在这上面连撞三次**。
+
+数字变化：**新增 3 个分析脚本**；`src`/`tests` **零改动**（故变异收据仍有效，staleness 0）。
+
+证据等级：Observation = 324,901 串全量走查、27 条精确搜索 `n=0`、脚本输出；Unknown = 那 18 条是否在镜像里
+（IDA 中途死，未取得第二种方法）。
+
+还剩什么（**这是接下来几轮的主线**）：27 条缺失按文件聚成几簇：
+① `StoreFlow.cs` 5 条（基类兜底端点）→ 基类默认实现里的"通用"端点是否该由具体站点覆盖；
+② `MagentoFlow.cs` 6 条；③ `ShopifyFlow`/`ShopifyModule` 的 `/cart/add.js`、`/cart/update.js`；
+④ `ScheelsFlow`/`RetailFlows`/`PopMartEndpoints` 的企业自建 API。**每条都要么取证为真端点、要么按 R1142 的方式删除。**

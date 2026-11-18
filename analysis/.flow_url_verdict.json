@@ -1,0 +1,293 @@
+{
+  "confirmed_absent": [
+    {
+      "literal": "/api/cart/add",
+      "files": [
+        "BrandModules.cs",
+        "NikeModule.cs",
+        "PopMartEndpoints.cs",
+        "Retail2Modules.cs",
+        "RetailFlows.cs",
+        "RetailModules.cs"
+      ]
+    },
+    {
+      "literal": "/cart/add.js",
+      "files": [
+        "BrandModules.cs",
+        "FrontendSurface.cs",
+        "ShopifyFlow.cs",
+        "ShopifyModule.cs"
+      ]
+    },
+    {
+      "literal": "/api/beast",
+      "files": [
+        "BstnFlow.cs",
+        "Registry.cs"
+      ]
+    },
+    {
+      "literal": "/geoIP",
+      "files": [
+        "BstnFlow.cs"
+      ]
+    },
+    {
+      "literal": "/api/payments",
+      "files": [
+        "Gateways.cs",
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "/v1/buys",
+      "files": [
+        "GoatFlow.cs"
+      ]
+    },
+    {
+      "literal": "/api/v2/shop/countries",
+      "files": [
+        "HbxFlow.cs"
+      ]
+    },
+    {
+      "literal": "/account/verify",
+      "files": [
+        "MagentoFlow.cs"
+      ]
+    },
+    {
+      "literal": "/checkout/#payment",
+      "files": [
+        "MagentoFlow.cs"
+      ]
+    },
+    {
+      "literal": "/collections/new-releases",
+      "files": [
+        "MagentoFlow.cs"
+      ]
+    },
+    {
+      "literal": "/rest/V1/carts/mine",
+      "files": [
+        "MagentoFlow.cs"
+      ]
+    },
+    {
+      "literal": "/rest/V1/carts/mine/totals",
+      "files": [
+        "MagentoFlow.cs"
+      ]
+    },
+    {
+      "literal": "/rest/V2/carts/mine",
+      "files": [
+        "MagentoFlow.cs"
+      ]
+    },
+    {
+      "literal": "/api/order/submit",
+      "files": [
+        "PopMartEndpoints.cs"
+      ]
+    },
+    {
+      "literal": "/api/stock",
+      "files": [
+        "PopMartEndpoints.cs"
+      ]
+    },
+    {
+      "literal": "/api/checkout/submit",
+      "files": [
+        "RetailFlows.cs",
+        "ScheelsFlow.cs"
+      ]
+    },
+    {
+      "literal": "/api/preorder/entry",
+      "files": [
+        "RetailFlows.cs"
+      ]
+    },
+    {
+      "literal": "/path",
+      "files": [
+        "RetailFlows.cs"
+      ]
+    },
+    {
+      "literal": "/api/cart/items",
+      "files": [
+        "ScheelsFlow.cs"
+      ]
+    },
+    {
+      "literal": "/api/search",
+      "files": [
+        "ScheelsFlow.cs"
+      ]
+    },
+    {
+      "literal": "/cart/update.js",
+      "files": [
+        "ShopifyFlow.cs",
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "/account/recover",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "/account?email=",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "/api/payments/",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "/buy/carts/v2/app",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "/checkout/complete",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "/discount/",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    }
+  ],
+  "search_errored": [
+    {
+      "literal": "/v1/product_variants/buy_bar_data",
+      "files": [
+        "GoatFlow.cs"
+      ]
+    },
+    {
+      "literal": "/view/basket/add",
+      "files": [
+        "HybrisFlow.cs"
+      ]
+    },
+    {
+      "literal": "/view/component/basket/minibasketAjax",
+      "files": [
+        "HybrisFlow.cs",
+        "Registry.cs"
+      ]
+    },
+    {
+      "literal": "/view/resources/getUserInfo",
+      "files": [
+        "HybrisFlow.cs",
+        "Registry.cs"
+      ]
+    },
+    {
+      "literal": "https://a.klaviyo.com/client/subscriptions/confirm",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "https://api.nike.com/buy/carts/v2/",
+      "files": [
+        "NikeFlow.cs",
+        "NikeModule.cs"
+      ]
+    },
+    {
+      "literal": "https://api.nike.com/product_feed/threads/v2/",
+      "files": [
+        "NikeFlow.cs",
+        "NikeModule.cs"
+      ]
+    },
+    {
+      "literal": "https://api.omise.co",
+      "files": [
+        "Gateways.cs"
+      ]
+    },
+    {
+      "literal": "https://api.paypal.com",
+      "files": [
+        "Gateways.cs",
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "https://api.paypal.com/v1/oauth2/token",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "https://api.paypal.com/v2/checkout/orders",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "https://api.sandbox.paypal.com",
+      "files": [
+        "Gateways.cs"
+      ]
+    },
+    {
+      "literal": "https://api.pocketgames.nl/v1/public/drop-schedule",
+      "files": [
+        "RetailFlows.cs"
+      ]
+    },
+    {
+      "literal": "https://api.pocketgames.nl/v1/public/raffle-entry",
+      "files": [
+        "RetailFlows.cs"
+      ]
+    },
+    {
+      "literal": "https://p01.mul-pay.jp/payment/SaveCard.idPass",
+      "files": [
+        "StoreFlow.cs"
+      ]
+    },
+    {
+      "literal": "https://search.scheels.com",
+      "files": [
+        "ScheelsFlow.cs"
+      ]
+    },
+    {
+      "literal": "https://www.bstn.com/",
+      "files": [
+        "BstnFlow.cs"
+      ]
+    },
+    {
+      "literal": "https://yzy-prod.swell.store",
+      "files": [
+        "RetailFlows.cs"
+      ]
+    }
+  ]
+}

@@ -64918,3 +64918,35 @@ overridden (19): GetHome, FindProduct, AddToCart, ... SubmitOrder ...
 | 变异 | **59/59 fired，tree GREEN，staleness 0** |
 
 **IDA 也修好了**：按上轮判断改选 **"Restore packed base"** → `status: ok` —— **unpacked 路径才是反复退出的病根。**
+---
+
+## 第 1143 轮：同一个病不会只长在一棵树上
+
+JL 一个流程里我抓到两处「打镜像里不存在的端点」。于是把**全部流程源码**的字面量拿去和镜像对账：
+
+**63 个文件 / 376 条去重字面量 / 329 命中 / 47 候选缺失 / 27 条双方法确证缺失。**
+
+| 归属 | 缺失条数 |
+|---|---|
+| `StoreFlow.cs`（基类兜底） | 5 |
+| `MagentoFlow.cs` | 6 |
+| `ShopifyFlow` / `ShopifyModule` | 2 |
+| `ScheelsFlow` / `RetailFlows` / `PopMartEndpoints` / `BstnFlow` | 8 |
+| 其余（Gateways/Goat/Hbx/Registry 等） | 6 |
+
+### 我这一轮最大的错误不在结论，在中途的自言自语
+
+中途所有含点号的 pattern 都返回 `-1`，我**立刻给了个解释**：「点号把正则搞坏了」，
+还据此又跑了两轮验证。真相是 **IDA 在循环中途死了**——第 28 条之后的 `-1` 全是「没跑成」。
+
+> **「都在某一点之后失败」不等于「失败的原因是那个点之后的内容」。**
+> 我当时手里其实有反证：同一个脚本前半段 27 条都正常返回 0。**分段突变先怀疑环境，再怀疑输入。**
+
+那 18 条因此**不算缺失、也不算通过**，单列「未测」。
+
+### 工具也撞了三次
+
+`ida_bytes.bin_search` 在这个版本没有 `BINSEARCH_*` 常量，6 参重载又拒收 `bytes`+`None`。
+**三次都失败，说明该换方案而不是换参数**——已写进账，下轮不再试。
+
+本轮 `src`/`tests` 零改动，故变异收据仍有效。

@@ -41283,3 +41283,51 @@ Inference = 无（顺序由 ordinal 直接给出）。
 ① `StoreFlow.cs` 5 条（基类兜底端点）→ 基类默认实现里的"通用"端点是否该由具体站点覆盖；
 ② `MagentoFlow.cs` 6 条；③ `ShopifyFlow`/`ShopifyModule` 的 `/cart/add.js`、`/cart/update.js`；
 ④ `ScheelsFlow`/`RetailFlows`/`PopMartEndpoints` 的企业自建 API。**每条都要么取证为真端点、要么按 R1142 的方式删除。**
+
+## R1144 —— R1143 那份「27 条缺失」里有 **4 条是错的**；分类重做，方法也随之更正
+
+**取件**：R1143 遗留（27 条待修）。
+
+改了什么（只取证 + 更正，`src`/`tests` 零改动）：
+- **先攻自己的探针形状**（R807 的教训）：我拿 `/cart/add.js`（带前导斜杠）去查，而镜像存的是
+  **`cart/add.js`**（`0x146fc16dc`）；`cart/update.js` 在 `0x146fc175c`（与 R1017 记录一致）。
+  **⇒ R1143 把这两条判成「发明」是错的。**
+- **发现字符串表不可作反向判据**：`idautils.Strings()` 走出来的表在 packed-base 恢复前后是
+  **324,901 → 254,117** 条，**随状态变化**。R1143 正是用它得出的 47 条候选。
+- **改用权威路径重判全部候选**（`_flow_url_rederive.py` + `_flow_url_chunked.py`）：
+  每条都按**原样**与**去前导斜杠**两种形状各查一次，命中任一即「存在」。
+- **结果（权威）**：
+  - **4 条推翻**（其实在镜像里，且都是「段不带前导斜杠」形态）：
+    `/cart/add.js`、`/cart/update.js`、`/view/component/basket/minibasketAjax`、`/view/basket/add`（`0x14717f9dc`）。
+  - **`/path` 判为不可用**：它只在通用词 `path` 上命中，**不构成端点证据**。
+  - **39 条确证缺失**（`n=0`，两种形状都查过）：
+    `/account/recover` `/account/verify` `/account?email=` `/api/beast` `/api/cart/add` `/api/cart/items`
+    `/api/checkout/submit` `/api/order/submit` `/api/payments` `/api/payments/` `/api/preorder/entry`
+    `/api/search` `/api/stock` `/api/v2/shop/countries` `/buy/carts/v2/app` `/checkout/#payment`
+    `/checkout/complete` `/collections/new-releases` `/discount/` `/geoIP` `/rest/V1/carts/mine`
+    `/rest/V1/carts/mine/totals` `/rest/V2/carts/mine` `/v1/buys` `/v1/product_variants/buy_bar_data`
+    `/view/resources/getUserInfo` 以及 14 条带 scheme 的外部 URL（Klaviyo／PayPal v1·v2·sandbox／
+    Omise／PocketGames×2／mul-pay／Nike threads／Scheels search／BSTN／swell）。
+
+验证命令与输出：
+- `ida.py str "cart/update"` → `n=2`（`0x146fc175c`）；`str "add\.js"` → `n=1`（`0x146fc16dc`）；
+  `str "view/basket/add"` → `n=2`（`0x14717f9dc`）。**三条都是 R1143 判为缺失的。**
+- `_flow_url_chunked.py` → `probed 16 remaining 0`；其中
+  `present: /view/component/basket/minibasketAjax`，其余 absent。
+
+**三条工具教训（都写进账，避免第四次）**：
+1. **`idautils.Strings()` 的表随 IDB 状态变化**（324,901 vs 254,117）⇒ **不能做反向判据**；
+   反向结论只能走 `ida.py str`。
+2. **`ida.py str` 连续调用约 25 次后传输退化**（两轮都死在同一距离）⇒ 探针要**分块 + 健康检查 +
+   断点续跑**。本轮 `_flow_url_chunked.py` 的守卫**当场生效**：健康检查不通过时它**拒绝探测**，
+   而不是产出 14 个假的 `-1`。
+3. **探针形状要枚举**：`https://` 有无（R1143 已踩）、**前导斜杠有无**（本轮踩）。
+   同一个教训换了张脸出现两次。
+
+数字变化：**确证缺失 27（含 4 条误判）→ 39 条权威确证 + 4 条推翻**；新增 3 个分析脚本；
+`src`/`tests` 零改动（变异收据保持有效）。
+
+证据等级：Observation = 三条 `ida.py str` 命中（附地址）、`probed 16 remaining 0`、两张表规模差异；
+Unknown = 无（39 条每条都查了两种形状）。
+
+还剩什么：39 条按文件聚簇修复；`/path` 与 `/view/basket/addPromotionalCode` 之类需单独判形态。

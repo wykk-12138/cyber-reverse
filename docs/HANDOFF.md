@@ -6257,3 +6257,20 @@ Stripe 侧 `HandleRequiresAction`/`GetStripePaymentIntent`、三个非 BFF 步�
 
 还剩什么（主线）：27 条按文件聚簇修复——① `StoreFlow` 5 条兜底端点；② `MagentoFlow` 6 条；
 ③ Shopify 两站；④ 企业自建 API 各站；⑤ 18 条未测需第二方法。
+## R1144 —— R1143 的 27 条里 4 条是误判；分类重做为 39 条权威确证
+
+改了什么（只取证/更正）：
+- **推翻 4 条**：`/cart/add.js`(0x146fc16dc)、`/cart/update.js`(0x146fc175c)、
+  `/view/component/basket/minibasketAjax`、`/view/basket/add`(0x14717f9dc) —— 镜像存的是
+  **不带前导斜杠**的段，R1143 用带斜杠形状比对，故误判。`/path` 只在通用词上命中，判为不可用。
+- **发现字符串表不可作反向判据**：`idautils.Strings()` 表 324,901 → 254,117（随 IDB 状态变化）。
+- **权威重判**（`_flow_url_rederive.py` + `_flow_url_chunked.py`，每条查原样+去斜杠两形状）：
+  **39 条确证缺失**，清单见 `BLOCKERS.md`。
+- **工具教训三条**：① 字符串表随状态变化；② `ida.py str` 连续 ~25 次后退化 ⇒ 分块+健康检查+续跑；
+  ③ 探针形状（scheme、前导斜杠）必须枚举——**同一类错误第二次出现**。
+
+验证：`str "cart/update"` n=2；`str "add\.js"` n=1；`str "view/basket/add"` n=2；
+`_flow_url_chunked.py` → `probed 16 remaining 0`。`src`/`tests` 零改动。
+
+还剩什么：39 条按文件聚簇修复（Magento REST 6 条、StoreFlow 兜底 5 条、企业自建 API 各站、
+14 条外部 URL 需判断「客户端是否真该直连」）。

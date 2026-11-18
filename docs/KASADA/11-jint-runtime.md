@@ -2477,6 +2477,81 @@ response:x-kpsdk-r:   1-AA
 另外**浏览器路已经能用**，所以这条探索是"要不要让 Jint 路也能用"的问题，
 不是"能不能解决 Kasada"的问题（§5.111 已经有了后者）。
 
+---
+
+## 7. 纯 HTTP 拿到 ct —— 不用浏览器，也不用 Jint
+
+### 7.1 浏览器实际走的四跳（抓到全序列了）
+
+给 `ChromiumBridge` 加了 `SniffRoundtrips()`（按 `requestId` 把 `requestWillBeSent` 和
+`responseReceived` 配对，保留顺序）。247 条请求里，Kasada 相关的是这四跳：
+
+| # | 请求 | 响应里拿到什么 |
+|---|---|---|
+| 1 | `OPTIONS {dir}mfc` | 204（预检） |
+| 2 | `GET {dir}mfc` | `x-kpsdk-fc`（配置）、`x-kpsdk-h`（配置版本） |
+| 3 | **`GET {dir}fp?x-kpsdk-v=j-1.2.992`** | **`x-kpsdk-ct`**、`x-kpsdk-r: 1-AA` |
+| 4 | **`GET {dir}ips.js?KP_UIDz=<上一步的 ct>`** | **`x-kpsdk-ct`**（这才是受保护请求用的）、`x-kpsdk-r: 1-AA` |
+| 5 | `POST {受保护端点}` | 带 `ct/dt/im/v`；回 `x-kpsdk-r: 1-AQ`、`x-kpsdk-cr: true`、`x-kpsdk-st` |
+
+**`{dir}` = 脚本所在目录（含两段 UUID）。**
+
+### 7.2 又一次推翻了上一节的判断
+
+**`/mfc` 的响应里根本没有 `x-kpsdk-r`。** `r: 1-AA` 是 `/fp` 和 `/ips.js` 回的。
+§6.2 说"我们缺 `r`"——**错在找错了地方**。
+
+真正的缺口是：**payload 从不发 `/fp`。** 它只发 `/mfc`，因为 `fc` 里的 `dynamicConfig.frontend`
+意味着"这一跳交给页面前端代码"——而我们的宿主里没有那段前端代码。
+
+### 7.3 于是这条纯 HTTP 路成立了（实网验证）
+
+```
+GET {dir}mfc                        -> 200   拿 fc / h
+GET {dir}fp?x-kpsdk-v=j-1.2.992     -> 200   拿 ct₁
+GET {dir}ips.js?KP_UIDz={ct₁}       -> 200   拿 ct₂   ← 受保护请求用它
+```
+
+实跑输出：
+
+```
+Ok    = True
+Ct    = 0CKlhuqQYusMygP8QXeCHxQr5L9rEzKbyqNNlJTK0GLwulHwxx7qi0NwyQnjuSarvl1yDNNt5noiZ…
+```
+
+**没有浏览器、没有 Jint、没有 Chromium、没有 Node。** 三个 GET。
+
+### 7.4 一个必须记住的细节：`x-kpsdk-h` 首跳就得带
+
+不带 `h` 直接打 `/mfc` → **304**，不返回任何配置。原因在 §5.107：
+`h` 是配置版本标签，**缺席被读成"我不用更新"，而不是"我什么都不知道"**。
+
+所以第一跳固定发 `x-kpsdk-h: 01`，服务端回 `01F47DxTPakzMm2tqdC3JSScDjKyQ=`
+（前缀回显 + 自己接一段配置指纹）。
+
+### 7.5 交付的代码
+
+| 文件 | 作用 |
+|---|---|
+| `KasadaHttpHandshake.cs` | 三跳的实现，公开 `RunAsync / ClientToken / RequestHeaders() / Trace / Build` |
+| `KasadaSolvers.cs` → `HttpKasadaSolver` | 把它接成策略链里的一条路（`Mode.Local`） |
+| `StoreFlow.cs` | 策略链给的路从 `ScriptKasadaSolver` 换成 `HttpKasadaSolver` |
+
+**外部项目用法**（不依赖复刻件任何其它部分）：
+
+```csharp
+using var http = new NetClient();
+var hs = new KasadaHttpHandshake(http);
+if (await hs.RunAsync(sensorScriptUrl))        // p.js / ips.js 的完整 URL
+{
+    var headers = hs.RequestHeaders();         // x-kpsdk-ct / h / fc / r / v
+    // 把它们加到受保护请求上
+}
+```
+
+**测试**：`KasadaHttpHandshakeTests` 5 例（三跳顺序、build 透传、头收集、相对 URL 拒绝、首跳失败干净退出）。
+**Kasada 全套：117 例通过。**
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

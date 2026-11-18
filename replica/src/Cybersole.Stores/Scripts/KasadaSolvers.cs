@@ -248,6 +248,54 @@ public sealed class ScriptKasadaSolver : IKasadaSolver
     }
 }
 
+/// <summary>
+/// WHY THIS EXISTS: this is the road that works with neither a browser nor a JavaScript engine, which is
+/// what makes the capability reusable elsewhere. It fetches the sensor script only to learn the handshake
+/// root, then walks the three requests itself (see KasadaHttpHandshake). Unlike ScriptKasadaSolver it does
+/// not depend on the payload deciding to interrogate -- measured on the live site, the payload does not.
+/// </summary>
+public sealed class HttpKasadaSolver : IKasadaSolver
+{
+    private readonly Cybersole.Http.NetClient _http;
+
+    public HttpKasadaSolver(Cybersole.Http.NetClient http) => _http = http;
+
+    public KasadaStrategy.Mode Mode => KasadaStrategy.Mode.Local;
+
+    public async Task<KasadaToken> GetAsync(string pageUrl, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(pageUrl))
+            return KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada", Mode);
+
+        var options = new Cybersole.Http.RequestOptions
+        {
+            Timeout = TimeSpan.FromSeconds(20),
+            Retries = 0,
+        };
+
+        string? scriptUrl;
+        try
+        {
+            using var probe = new KasadaSolver(new BrowserShim { Href = pageUrl });
+            (_, scriptUrl) = await probe.FetchScriptAsync(_http, pageUrl, options, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
+        {
+            return KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada: " + ex.Message, Mode);
+        }
+
+        if (string.IsNullOrEmpty(scriptUrl))
+            return KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada: no sensor script", Mode);
+
+        var handshake = new KasadaHttpHandshake(_http);
+        var ok = await handshake.RunAsync(scriptUrl!, options, ct).ConfigureAwait(false);
+
+        return ok && !string.IsNullOrEmpty(handshake.ClientToken)
+            ? new KasadaToken(handshake.ClientToken!, Mode, KasadaStrategy.Verb(Mode) + " kasada (http)")
+            : KasadaToken.Failed(KasadaStrategy.Verb(Mode) + " kasada: " + (handshake.Error ?? "no token"), Mode);
+    }
+}
+
 public sealed class KasadaStrategyRunner
 {
     public const string GaveUpStatus = "Failed Kasada (Retry limit reached)";
@@ -266,6 +314,8 @@ public sealed class KasadaStrategyRunner
         // Exactly four roads, matching the four modes the image declares. Local is always present so the
         // runner can report why it could not solve, even with nothing supplied -- but a script road wins
         // over a browser one when both are available, because it needs no Chromium install to work.
+        // script is the HTTP handshake road when a caller supplies one; it supersedes the payload-driving
+        // road because the payload does not interrogate on the current build (docs/KASADA/11 section 6).
         var localRoad = script ?? new LocalKasadaSolver(local);
         return new KasadaStrategyRunner(new IKasadaSolver[]
         {

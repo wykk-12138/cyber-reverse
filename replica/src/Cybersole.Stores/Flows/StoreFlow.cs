@@ -474,7 +474,7 @@ public abstract class StoreFlow
             local: Cybersole.Stores.Scripts.ChromiumKasadaSolver.IsAvailable
                 ? new Cybersole.Stores.Scripts.ChromiumKasadaSolver()
                 : null,
-            script: new Cybersole.Stores.Scripts.ScriptKasadaSolver(c.Http));
+            script: new Cybersole.Stores.Scripts.HttpKasadaSolver(c.Http));
         return await Cybersole.Stores.Scripts.KasadaClearance
             .ApplyAsync(c, kasada, c.Url ?? string.Empty, ct).ConfigureAwait(false);
     }

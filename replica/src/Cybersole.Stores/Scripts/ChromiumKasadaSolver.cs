@@ -18,6 +18,12 @@ namespace Cybersole.Stores.Scripts;
 public sealed class ChromiumKasadaSolver
 {
     /// <summary>
+    /// Every request the page made on the most recent solve, in order, with what came back. Kept so a
+    /// caller can see which request actually produced the token instead of guessing from a header set.
+    /// </summary>
+    public List<ChromiumRoundtrip> LastRoundtrips { get; private set; } = new();
+
+    /// <summary>
     /// Cookie/DOM expressions probed only after header sniffing has failed. The live Nike
     /// build exposes just <c>configure</c> and <c>isReady</c> on <c>KPSDK</c>, so these are a
     /// long shot kept for other builds — the wire is the reliable source.
@@ -116,6 +122,7 @@ public sealed class ChromiumKasadaSolver
                 // Both directions, so a caller can show what the server answered -- in particular
                 // the /mfc reply whose config decides whether the sensor interrogates at all.
                 var replies = bridge.SniffKasadaResponses();
+                LastRoundtrips = bridge.SniffRoundtrips();
                 if (sniffed.TryGetValue("x-kpsdk-ct", out var hdrCt) && hdrCt.Length > 8)
                 {
                     ctToken = hdrCt;

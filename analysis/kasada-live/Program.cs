@@ -24,6 +24,27 @@ if (args.Contains("--browser"))
 
     var browser = new ChromiumKasadaSolver();
     var live = await browser.SolveAsync(pageUrl, TimeSpan.FromSeconds(60));
+
+    // The full ordered trace: the only way to see which request actually produced the token.
+    var trace = browser.LastRoundtrips;
+    Console.WriteLine($"roundtrips = {trace.Count}");
+    var dumpPath = Environment.GetEnvironmentVariable("KASADA_DUMP_TRACE");
+    var lines = new List<string>();
+    foreach (var rt in trace)
+    {
+        var hit = rt.ResponseHeaders.Keys.Any(k => k.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase))
+                  || rt.Url.Contains("/mfc", StringComparison.Ordinal)
+                  || rt.Url.Contains("/r", StringComparison.Ordinal);
+        lines.Add($"{(hit ? "** " : "   ")}{rt}");
+        if (!hit) continue;
+        foreach (var h in rt.RequestHeaders.Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase)))
+            lines.Add($"      req {h.Key}: {Trunc(h.Value)}");
+        foreach (var h in rt.ResponseHeaders.Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase)))
+            lines.Add($"      res {h.Key}: {Trunc(h.Value)}");
+        if (rt.ResponseHeaders.TryGetValue("content-type", out var ctn)) lines.Add($"      res content-type: {ctn}");
+    }
+    foreach (var l in lines) Console.WriteLine(l);
+    if (!string.IsNullOrEmpty(dumpPath)) File.WriteAllLines(dumpPath, lines);
     Console.WriteLine($"Ok      = {live.Ok}");
     Console.WriteLine($"Ct      = {live.Ct ?? "(null)"}");
     Console.WriteLine($"Version = {live.Version ?? "(null)"}");
@@ -203,3 +224,5 @@ foreach (var h in result.Headers.OrderBy(k => k.Key, StringComparer.Ordinal))
     Console.WriteLine($"  {h.Key}: {(h.Value.Length > 60 ? h.Value[..60] + "…" : h.Value)}");
 
 return result.Ok ? 0 : 2;
+
+static string Trunc(string v) => v.Length > 60 ? v[..60] + "…" : v;

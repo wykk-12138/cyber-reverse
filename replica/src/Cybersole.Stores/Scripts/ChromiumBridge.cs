@@ -876,6 +876,68 @@ public sealed class ChromiumBridge : IAsyncDisposable
         return byUrl;
     }
 
+    /// <summary>
+    /// Every request the page made, in order, paired with whatever the server answered.
+    /// <para>
+    /// WHY THIS EXISTS: the interrogation is a sequence, not a set of headers. Knowing that a run produced
+    /// a token says nothing about which requests produced it, and the order is the only way to see that the
+    /// sensor walked from a config fetch to a token fetch. Pairing is by request id, which CDP keeps stable
+    /// across requestWillBeSent and responseReceived.
+    /// </para>
+    /// </summary>
+    public List<ChromiumRoundtrip> SniffRoundtrips()
+    {
+        var byId = new Dictionary<string, ChromiumRoundtrip>(StringComparer.Ordinal);
+        var order = new List<string>();
+
+        foreach (var evt in Events)
+        {
+            if (!evt.TryGetProperty("method", out var method)) continue;
+            if (!evt.TryGetProperty("params", out var p)) continue;
+
+            var name = method.GetString();
+            if (name == "Network.requestWillBeSent")
+            {
+                if (!p.TryGetProperty("requestId", out var idEl)) continue;
+                var id = idEl.GetString();
+                if (string.IsNullOrEmpty(id)) continue;
+
+                if (!byId.TryGetValue(id!, out var rt))
+                {
+                    rt = new ChromiumRoundtrip { RequestId = id! };
+                    byId[id!] = rt;
+                    order.Add(id!);
+                }
+
+                if (p.TryGetProperty("request", out var req))
+                {
+                    rt.Method = req.TryGetProperty("method", out var m) ? m.GetString() ?? "" : "";
+                    rt.Url = req.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "";
+                    if (req.TryGetProperty("headers", out var hs))
+                        foreach (var h in hs.EnumerateObject())
+                            rt.RequestHeaders[h.Name] = h.Value.GetString() ?? "";
+                    if (req.TryGetProperty("postData", out var pd))
+                        rt.RequestBody = pd.GetString() ?? "";
+                }
+            }
+            else if (name == "Network.responseReceived")
+            {
+                if (!p.TryGetProperty("requestId", out var idEl)) continue;
+                var id = idEl.GetString();
+                if (string.IsNullOrEmpty(id) || !byId.TryGetValue(id!, out var rt)) continue;
+                if (!p.TryGetProperty("response", out var resp)) continue;
+
+                rt.Status = resp.TryGetProperty("status", out var st) ? st.GetInt32() : 0;
+                rt.MimeType = resp.TryGetProperty("mimeType", out var mt) ? mt.GetString() ?? "" : "";
+                if (resp.TryGetProperty("headers", out var hs))
+                    foreach (var h in hs.EnumerateObject())
+                        rt.ResponseHeaders[h.Name] = h.Value.GetString() ?? "";
+            }
+        }
+
+        return order.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+    }
+
     public async ValueTask DisposeAsync()
     {
         try
@@ -939,3 +1001,18 @@ public sealed class ChromiumBridge : IAsyncDisposable
     }
 }
 
+/// <summary>One request the page made and what came back. Mutable while the trace is assembled.</summary>
+public sealed class ChromiumRoundtrip
+{
+    public required string RequestId { get; init; }
+    public string Method { get; set; } = "";
+    public string Url { get; set; } = "";
+    public string RequestBody { get; set; } = "";
+    public int Status { get; set; }
+    public string MimeType { get; set; } = "";
+    public Dictionary<string, string> RequestHeaders { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, string> ResponseHeaders { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public override string ToString() =>
+        $"{Method} {Url} -> {Status} ({RequestBody.Length}b)";
+}

@@ -1838,6 +1838,76 @@ public string? EncryptBody(string jsonBody)
 
 **Kasada + BrowserShim + AntiBot 用例：109/109 通过。**
 
+### 5.86 接线检查：新能力此前**根本没人调用** [实测]
+
+这是本轮最重要的一条 —— **能力齐了不等于被用上**。
+
+`NikeFlow.GenerateSensorAsync` 的脚本分支原来是这样：
+
+```csharp
+using var solver = new KasadaSolver(new BrowserShim { Href = …, Cookie = … });
+var result = solver.Solve(script);          // ← 没有 ResourceAddress，没有 Transport
+```
+
+**没有 `ResourceAddress` ⇒ 传感器不发 interrogation ⇒ `result.Ok == false` ⇒ 这个分支每次都失败
+⇒ 实际上永远走上面的浏览器路。**
+
+也就是说：§5.64–5.85 做的那一整套，**在产品路径上一行都没跑过**。
+注释里那句「Expected to fail on current builds」正是这个死状态的自白。
+
+### 5.87 接到 flow 上
+
+```csharp
+var origin = KasadaSolver.OriginOf(scriptUrl) ?? KasadaSolver.OriginOf(c.Url) ?? "https://www.nike.com/";
+
+var interrogationOptions = c.Options("nike-kasada-interrogation");
+interrogationOptions.Timeout = TimeSpan.FromSeconds(15);   // 结账路径上，不能拖住整个流程
+interrogationOptions.Retries = 0;
+
+using var solver = new KasadaSolver(new BrowserShim { Href = scriptUrl, Cookie = c.Session.CookieHeader() })
+{
+    ResourceAddress = origin,
+    Store = "nike",
+    Transport = KasadaSolver.NetTransport(c.Http, interrogationOptions),
+};
+
+var result = await Task.Run(() => solver.Solve(script), ct).ConfigureAwait(false);
+```
+
+**三个细节都是必要的，不是装饰：**
+
+1. **`await Task.Run(…)`** —— `Transport` 是同步委托，内部要 `GetAwaiter().GetResult()` 等异步发送。
+   直接在 flow 线程上同步等待是 sync-over-async，容易死锁；挪到线程池就不会。
+2. **15 秒 + 0 重试** —— 这一步在结账主路径上。默认 `30s × 3` 会把收银台卡住 90 秒。
+3. **`Store = "nike"`** —— 让 §5.76 的 per-store 版本表能兜住"观察不到 `x-kpsdk-v`"的情况。
+
+### 5.88 `OriginOf` 顺手加固
+
+原来 `private static string OriginOf(string url) => new Uri(url).GetLeftPart(...)` —— **传坏串直接抛**。
+它现在要用在回退链里（`scriptUrl` 可能是相对路径、`c.Url` 可能为空），改成：
+
+```csharp
+public static string? OriginOf(string? url)   // 非法 URL → null，不抛；末尾统一带 /
+```
+
+内部的另外两处调用点改成 `OriginOf(pageUrl)?.TrimEnd('/')`，行为不变。
+
+### 5.89 用测试把"接线"钉住（含一条源码级断言）
+
+`KasadaFlowWiringTests`（6 例）：
+
+| 用例 | 钉什么 |
+|---|---|
+| `TheOriginIsWhatTheSensorIsConfiguredWith`（4 组 InlineData） | 路径、端口、子域都正确归约到 `scheme://host[:port]/` |
+| `AMalformedUrlAnswersNullRatherThanThrowing` | 相对路径 / 空串 / 非 URL 都返回 null —— 它在回退链里，不能抛 |
+| `TheNikeFlowConstructsASolverThatCanActuallyInterrogate` | **源码级**断言：`ResourceAddress = origin`、`KasadaSolver.NetTransport(`、`Store = "nike"`、`await Task.Run(() => solver.Solve(script), ct)` 都在 |
+
+**第三条是源码级断言**（读 `NikeFlow.cs` 文本）—— 理由写在用例注释里：
+要抓的失败形态是"构造了 solver 但漏掉那两个属性"，而这在离线测试里**无法用行为观察到**
+（需要真实端点）。用源码断言盯住这个形状，比让它悄悄退回浏览器好。
+
+**Kasada + Nike + BrowserShim + AntiBot：166/166 通过。**
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

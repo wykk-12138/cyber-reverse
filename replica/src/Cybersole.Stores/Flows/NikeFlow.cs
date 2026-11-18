@@ -155,18 +155,37 @@ public class NikeFlow : StoreFlow
             c.Session.Vars["kasada.browserError"] = live.Error ?? "unknown";
         }
 
-        // 2. Fall back to the script engine. Expected to fail on current builds, but a build
-        //    that exposes ct() directly would still work here.
+        // 2. Fall back to the script engine. This used to be a dead end on current builds -- KPSDK exposes
+        //    only configure/isReady, so probing for ct() found nothing. It is not a dead end any more: with a
+        //    resourceAddress the sensor issues its own interrogation (GET /mfc then POST /r), and the token
+        //    is read off that response. The requests go out through our own HTTP stack so the TLS/HTTP-2
+        //    fingerprint matches the rest of the flow.
         if (!c.Session.Vars.TryGetValue("kasada.script", out var script) || string.IsNullOrEmpty(script))
             return StepOutcome.Fail("nike: no kasada script loaded");
 
+        var scriptUrl = c.Session.Vars.TryGetValue("kasada.scriptUrl", out var u) ? u : c.Url;
+        var origin = KasadaSolver.OriginOf(scriptUrl) ?? KasadaSolver.OriginOf(c.Url) ?? "https://www.nike.com/";
+
+        // Bounded on purpose: this sits on the checkout path, so a slow interrogation endpoint must not
+        // hold the flow. The browser alternative above stays available when this gives up.
+        var interrogationOptions = c.Options("nike-kasada-interrogation");
+        interrogationOptions.Timeout = TimeSpan.FromSeconds(15);
+        interrogationOptions.Retries = 0;
+
         using var solver = new KasadaSolver(new BrowserShim
         {
-            Href = c.Session.Vars.TryGetValue("kasada.scriptUrl", out var u) ? u : c.Url,
+            Href = scriptUrl,
             Cookie = c.Session.CookieHeader(),
-        });
+        })
+        {
+            ResourceAddress = origin,
+            Store = "nike",
+            Transport = KasadaSolver.NetTransport(c.Http, interrogationOptions),
+        };
 
-        var result = solver.Solve(script);
+        // The transport completes asynchronously under a synchronous JavaScript call, so run the whole
+        // solve off this thread rather than blocking it on a sync-over-async wait.
+        var result = await Task.Run(() => solver.Solve(script), ct).ConfigureAwait(false);
         if (!result.Ok)
         {
             var browserWhy = c.Session.Vars.TryGetValue("kasada.browserError", out var be) ? be : null;

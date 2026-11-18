@@ -162,7 +162,7 @@ public sealed class KasadaSolver : IDisposable
         }
 
         // Fallback: the canonical path some builds serve directly.
-        var origin = OriginOf(pageUrl);
+        var origin = OriginOf(pageUrl)?.TrimEnd('/');
         // R200: the two paths come from KasadaApi, where each one carries the address it was read at — the bare
         // form and the id-prefixed form, both with the trailing `?` the image actually writes.
         foreach (var candidate in new[] { origin + KasadaApi.BareScriptPath, origin + KasadaApi.ScriptPath })
@@ -475,7 +475,7 @@ public sealed class KasadaSolver : IDisposable
 
     public static string? FindScriptUrl(string html, string pageUrl)
     {
-        var origin = OriginOf(pageUrl);
+        var origin = OriginOf(pageUrl)?.TrimEnd('/');
         // Nike serves the same payload as /p.js under two UUID path segments on api.nike.com,
         // so the matcher has to accept both names and cross-origin absolute URLs.
         var m = Regex.Match(html,
@@ -498,10 +498,17 @@ public sealed class KasadaSolver : IDisposable
             ? path
             : origin + (path.StartsWith('/') ? path : "/" + path);
 
-    private static string OriginOf(string url)
+    /// <summary>
+    /// The scheme://host[:port]/ prefix of a URL, which is what the sensor is configured with as its
+    /// resource address. Public because callers assembling a solver need the same answer.
+    /// </summary>
+    public static string? OriginOf(string? url)
     {
-        var u = new Uri(url);
-        return u.GetLeftPart(UriPartial.Authority);
+        // Returns null rather than throwing: callers use this to build a fallback chain, and a malformed
+        // URL from a redirect or a relative script src should fall through to the next candidate.
+        if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url!.Trim(), UriKind.Absolute, out var u))
+            return null;
+        return u.GetLeftPart(UriPartial.Authority) + "/";
     }
 
     public void Dispose() => Runtime.Dispose();

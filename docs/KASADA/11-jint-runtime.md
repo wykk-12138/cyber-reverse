@@ -2094,6 +2094,60 @@ if (!string.IsNullOrEmpty(ct)) headers["x-kpsdk-ct"] = ct!;
 
 **Kasada + Nike + Scheels + Flow 全量：278 通过 / 1 跳过。**
 
+### 5.99 打到了实网 —— 而且**逆向的预测全对**
+
+这轮发现沙箱**能访问真实站点**，于是用真实的 Nike 页面验证了一遍。这是整条线第一次拿到实网数据。
+
+**（1）真实的传感器地址不是站点根，是带两段 UUID 的目录**
+
+```
+https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/p.js
+```
+
+**这两段 UUID 正是 payload 字面量表里那条** `InterrogationRetrying/{uuid1}/{uuid2}` —— 编号对上了。
+
+**（2）端点就在脚本目录下，根路径是 404**
+
+| 请求 | 结果 |
+|---|---|
+| `GET https://www.nike.com/mfc` | **404** |
+| `GET https://api.nike.com/{u1}/{u2}/mfc` | **200** |
+| `GET https://api.nike.com/{u1}/{u2}/r` | **200** |
+
+**⇒ `resourceAddress` 必须是脚本所在目录，不是 origin。** 我们之前一直传 origin，
+所以打的是 404 —— 这就是"能跑但没结果"的最后一个原因。
+
+**（3）`/mfc` 真的回那两个头，和我们从字节码里读出来的一模一样**
+
+```
+x-kpsdk-h:  01F47DxTPakzMm2tqdC3JSScDjKyQ=
+x-kpsdk-fc: eyJmZWF0dXJlRmxhZ3MiOnt9LCJkeW5hbWljQ29uZmlnIjp7ImZyb250ZW5kIjp7ImxvZ0xldmVsIjo1MH19fQ==
+```
+
+`x-kpsdk-fc` base64 解出来是：
+
+```json
+{"featureFlags":{},"dynamicConfig":{"frontend":{"logLevel":50}}}
+```
+
+**`featureFlags` 与 `dynamicConfig` 正是字面量表里那两个键。**
+而 `x-kpsdk-h` / `x-kpsdk-fc` 这两个头名，是 §5.48 从 pc 16831/16836 的 `op=48 int:293/294` 读出来的。
+
+**从字节码里推出来的东西，实网一字不差地回了。** 这是整条逆向链最硬的一次交叉验证。
+
+### 5.100 落地：`ResourceAddressOf`
+
+```csharp
+public static string? ResourceAddressOf(string? scriptUrl)   // origin + 脚本所在目录
+```
+
+`NikeFlow` 改用它（`ResourceAddressOf(scriptUrl) ?? ResourceAddressOf(c.Url) ?? 默认`），
+`OriginOf` 保留给确实只想要 origin 的调用方。
+
+测试加了 3 组 InlineData，钉住"带 UUID 的脚本 URL → 目录地址"。
+
+**Kasada + Nike：163 通过。**
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

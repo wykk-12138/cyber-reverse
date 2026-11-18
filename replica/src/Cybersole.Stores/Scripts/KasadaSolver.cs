@@ -4,6 +4,23 @@ using Cybersole.Http;
 
 namespace Cybersole.Stores.Scripts;
 
+/// <summary>
+/// What the mobile-fallback configuration endpoint answered. The two headers the sensor insists on are
+/// x-kpsdk-h and x-kpsdk-fc; everything else is passed through for the caller to inspect.
+/// </summary>
+public sealed class KasadaMfcResponse
+{
+    public required int Status { get; init; }
+    public required string Body { get; init; }
+    public required Dictionary<string, string> Headers { get; init; }
+    public string? Error { get; init; }
+
+    /// <summary>True when the sensor would accept this response instead of raising its missing-header error.</summary>
+    public bool SatisfiesSensor => Headers.ContainsKey("x-kpsdk-h") && Headers.ContainsKey("x-kpsdk-fc");
+
+    public string? Header(string name) => Headers.TryGetValue(name, out var v) ? v : null;
+}
+
 /// <summary>Result of one Kasada handshake.</summary>
 public sealed class KasadaResult
 {
@@ -360,6 +377,55 @@ public sealed class KasadaSolver : IDisposable
         return Runtime.TryString(js);
     }
 
+    /// <summary>
+    /// The <c>GetMfc</c> step, as a host call rather than something the sensor does for us.
+    /// <para>
+    /// The image numbers its async steps GetKasada = d__48, GetMfc = d__49, GetWorkTime = d__50, so the MFC
+    /// fetch comes *after* the token rather than before the interrogation. That is the mobile-fallback
+    /// configuration endpoint, and it answers with headers the sensor validates: leave out x-kpsdk-h or
+    /// x-kpsdk-fc and the sensor raises "/mfc response was missing one or more headers" (measured,
+    /// docs/KASADA/11 5.45).
+    /// </para>
+    /// <para>
+    /// Exposed so a caller can exercise the step on its own — for a mobile profile it has to be reachable
+    /// without first running a desktop interrogation.
+    /// </para>
+    /// </summary>
+    public async Task<KasadaMfcResponse?> FetchMfcAsync(
+        NetClient http, string pageUrl, RequestOptions? options = null, CancellationToken ct = default)
+    {
+        if (http is null) throw new ArgumentNullException(nameof(http));
+        var origin = OriginOf(pageUrl);
+        if (origin is null) return null;
+
+        var opts = options?.Clone() ?? new RequestOptions { Timeout = TimeSpan.FromSeconds(15), Retries = 0 };
+        // The sensor sends its own build on this call; matching it keeps the two consistent.
+        opts.Headers["x-kpsdk-v"] = VersionProvider?.Invoke() ?? KasadaVersions.For(Store) ?? KasadaVersions.Observed;
+        opts.Headers["x-kpsdk-h"] = "01";
+
+        try
+        {
+            var res = await http.SendAsync(HttpMethod.Get, origin + "mfc", opts, ct).ConfigureAwait(false);
+            return new KasadaMfcResponse
+            {
+                Status = res.StatusCode,
+                Body = res.Body,
+                Headers = new Dictionary<string, string>(res.Headers, StringComparer.OrdinalIgnoreCase),
+            };
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
+        {
+            // Same rule as the transport: an unreachable host is a result, not a crash.
+            return new KasadaMfcResponse
+            {
+                Status = 0,
+                Body = string.Empty,
+                Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                Error = ex.Message,
+            };
+        }
+    }
+
     public KasadaResult Solve(string script)
     {
         if (string.IsNullOrWhiteSpace(script))
@@ -529,8 +595,28 @@ public sealed class KasadaSolver : IDisposable
             : origin + (path.StartsWith('/') ? path : "/" + path);
 
     /// <summary>
-    /// The scheme://host[:port]/ prefix of a URL, which is what the sensor is configured with as its
-    /// resource address. Public because callers assembling a solver need the same answer.
+    /// The directory the sensor script was served from, which is what it must be configured with.
+    /// <para>
+    /// Measured against the live site: Nike serves the payload from
+    /// <c>https://api.nike.com/{uuid}/{uuid}/p.js</c> and the interrogation endpoints live beside it, at
+    /// <c>{that directory}mfc</c> and <c>{that directory}r</c>. Configuring the sensor with the bare origin
+    /// instead answers 404 — the two UUID path segments are part of the address, and they are the same
+    /// segments the payload's own literal table carries ("InterrogationRetrying/{uuid}/{uuid}").
+    /// </para>
+    /// </summary>
+    public static string? ResourceAddressOf(string? scriptUrl)
+    {
+        if (string.IsNullOrWhiteSpace(scriptUrl) || !Uri.TryCreate(scriptUrl!.Trim(), UriKind.Absolute, out var u))
+            return null;
+        var dir = u.AbsolutePath;
+        var slash = dir.LastIndexOf('/');
+        dir = slash >= 0 ? dir[..(slash + 1)] : "/";
+        return u.GetLeftPart(UriPartial.Authority) + dir;
+    }
+
+    /// <summary>
+    /// The scheme://host[:port]/ prefix of a URL. Kept for callers that genuinely want the origin; the
+    /// sensor itself wants <see cref="ResourceAddressOf"/>.
     /// </summary>
     public static string? OriginOf(string? url)
     {

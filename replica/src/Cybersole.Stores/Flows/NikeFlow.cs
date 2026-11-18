@@ -164,7 +164,12 @@ public class NikeFlow : StoreFlow
             return StepOutcome.Fail("nike: no kasada script loaded");
 
         var scriptUrl = c.Session.Vars.TryGetValue("kasada.scriptUrl", out var u) ? u : c.Url;
-        var origin = KasadaSolver.OriginOf(scriptUrl) ?? KasadaSolver.OriginOf(c.Url) ?? "https://www.nike.com/";
+        // Measured against the live site: the sensor and its two interrogation endpoints live in the
+        // script's own directory (https://api.nike.com/{uuid}/{uuid}/), and configuring the bare origin
+        // answers 404. The UUID segments are part of the address.
+        var origin = KasadaSolver.ResourceAddressOf(scriptUrl)
+                     ?? KasadaSolver.ResourceAddressOf(c.Url)
+                     ?? "https://www.nike.com/";
 
         // Bounded on purpose: this sits on the checkout path, so a slow interrogation endpoint must not
         // hold the flow. The browser alternative above stays available when this gives up.

@@ -22,6 +22,18 @@ public sealed class KasadaFlowWiringTests
         Assert.Equal(expected, KasadaSolver.OriginOf(url));
     }
 
+    [Theory]
+    [InlineData("https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/p.js",
+        "https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/")]
+    [InlineData("https://www.nike.com/p.js", "https://www.nike.com/")]
+    [InlineData("https://www.nike.com/launch", "https://www.nike.com/")]
+    public void TheSensorIsConfiguredWithTheDirectoryItsScriptCameFrom(string url, string expected)
+    {
+        // Measured against the live site: GET /mfc and GET /r answer 200 only under the script's own
+        // directory; the bare origin answers 404. The UUID segments are part of the address.
+        Assert.Equal(expected, KasadaSolver.ResourceAddressOf(url));
+    }
+
     [Fact]
     public void AMalformedUrlAnswersNullRatherThanThrowing()
     {

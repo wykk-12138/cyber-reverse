@@ -5756,3 +5756,21 @@ SourceEncoding 2 = **19 钉全绿**。
 数字变化：无度量变化；**R1112 Inference → Observation**。
 
 还剩什么：两条 Localize 的元数据侧成员集；(b)(c)(d)(f) 逐项复算。
+## R1114 —— 判据 (d) PASS；判据 (c) 的 AOT 重建失败并回滚
+
+改了什么：
+- **判据 (d) 达成**：用仓库既有校验器 `analysis/check_claims.py` ——
+  `rows without an authority: 0` / `non-unknown rows without a command: 0` /
+  `criterion (d) by its own stated rule: PASS`；分布 8 pass / 7 unknown / 3 fail
+  （`3 fail` 是真实 parity 缺口，与 (d) 的台账完备性是两件事）。
+- **判据 (c) AOT 重建失败**：按 ASYNC_OPS 记载命令 publish → **exit 0** 且有 IL3050/IL2026 告警，
+  但换入后 `pdata-replica` **174,293 → 469**（62.89% → 0.17%）。判定：新 exe **448 KB** +
+  带 `runtimeconfig.json` + 无 coreclr = **托管 apphost**；真 AOT 是 **53.6 MB**。
+  **已回滚**，度量复算回 174,293 / 62.89%，误产物删除。
+
+验证：check_claims 三行结论；artifact_freshness / func_count 前后对比；两款 exe 字节数与
+runtimeconfig 存在性。
+
+数字变化：**(d) 未知 → PASS**；(c) 陈旧度未改善（仍 27 源文件更新）；artifact 与度量回到原状。
+
+还剩什么：查明 AOT 真正生效的 invocation 后重做 (c)；`3 fail` 的 claim 单独立项；(b)(f) 复算。

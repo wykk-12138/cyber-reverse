@@ -63968,3 +63968,38 @@ R1112 我只抽查了 1/35，留着一条 Inference。本轮把 39 个被移除�
 > **移动/删除一个文件之前，先查「谁按什么路径读它」。**
 > 文件名相同不代表可以合并——一个走 `ROOT/docs`，一个走绝对路径 `analysis/`，
 > 看着重复，其实是两条读取路径。
+---
+
+## 第 1114 轮：一件达成、一件失败——失败的被度量抓住了
+
+### 一、判据 (d) 达成，用仓库里已有的机器校验器
+
+仓库早就有 `analysis/check_claims.py` / `audit_claims.py` + `ClaimsCoverageTests`。
+直接跑，不另造：
+
+`
+rows without an authority: 0
+non-unknown rows without a command: 0
+criterion (d) by its own stated rule: PASS
+`
+
+状态分布 **8 pass / 7 unknown / 3 fail**。注意：`3 fail` 是**claim 本身失败**（真实 parity 缺口），
+与 (d) 问的「台账是否完备」是两件事。
+
+### 二、判据 (c) 的 AOT 重建：看起来成功，其实是托管
+
+`dotnet publish ... -p:PublishAot=true` → **exit 0**，日志里还有 `IL3050`/`IL2026` 的 AOT 分析告警。
+**看起来成功。**
+
+换入后立刻量：`pdata-replica` 从 **174,293 崩到 469**（62.89% → 0.17%）。
+
+判定：新 `Cybersole.Ui.exe` **448 KB** + 带 `runtimeconfig.json` + 没有 coreclr
+→ 那是**框架依赖的托管 apphost**；真 AOT 镜像是 **53.6 MB**。**`-p:PublishAot=true` 在 Ui 项目上没生效。**
+
+已回滚：`.publish-aot` 恢复（53.6 MB，`pdata-replica` 174,293 / 62.89% 复算确认），误产物删除。
+
+> **「exit 0 + 有 AOT 告警」不等于「产出了 AOT 镜像」。**
+> 这次是靠**换入前先量一次**才抓住的——如果先跑 metrics、后看数字，那个 0.17% 会写进 METRICS，
+> 然后被后面每一轮当成事实引用。
+>
+> **替换一份被度量读取的产物之前，先对它跑一次度量、和旧值比。**

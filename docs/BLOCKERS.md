@@ -39946,3 +39946,49 @@ Inference = 35 段陈旧的全部逐条核对（只抽查了 1 条）。
 
 还剩什么：两条 `Localize*` 的元数据侧成员集（它们在缺席名册里，三分类已写明缺什么）；
 判据 (b)(c)(d)(f) 逐项复算。
+
+## R1114 —— 判据 (d) **PASS**（机器校验）；判据 (c) 的 AOT 重建**失败并已回滚**（负结果，如实记）
+
+**本轮两件事：一件达成、一件失败。失败的这件被自己的度量抓住了。**
+
+改了什么：
+- **判据 (d)：达成**。仓库里早有机器校验器（`analysis/check_claims.py` / `audit_claims.py` +
+  `tests/Cybersole.Tests/ClaimsCoverageTests.cs`），直接跑它取现状，不另造校验：
+  - `rows without an authority: 0`
+  - `non-unknown rows without a command: 0`
+  - 输出结论原文：**`criterion (d) by its own stated rule: PASS`**
+  - 状态分布：**8 pass / 7 unknown / 3 fail**（另 4 条带限定语的行）。
+  - **注意**：`3 fail` 是**claim 本身失败**（真实的 parity 缺口），与 (d) 问的
+    「每条是否都有 authority + 命令 + gap_reason」是两件事——(d) 判的是**台账完备性**。
+- **判据 (c) 的 AOT 重建：失败，已回滚。**
+  - 按 `docs/ASYNC_OPS.md` 记载的命令执行
+    `dotnet publish -c Release -r win-x64 -p:PublishAot=true -p:UseSharedCompilation=false -m:1 -o .publish-aot-new`，
+    **exit 0**、构建日志里有 AOT 分析告警（`IL3050` / `IL2026`）——**看起来成功**。
+  - 换入后立刻量：**`pdata-replica` 从 174,293 崩到 469**（ratio 62.89% → 0.17%）。
+  - 判定依据：新产物 `Cybersole.Ui.exe` **448 KB** 且**带 `runtimeconfig.json`、无 coreclr**
+    → 那是**框架依赖的托管 apphost**；真 AOT 镜像是 **53.6 MB**。
+    **`-p:PublishAot=true` 在 Ui 项目上没有生效。**
+  - **已回滚**：`.publish-aot` 恢复原样（`Cybersole.Ui.exe` 53.6 MB，`pdata-replica` 174,293 /
+    62.89% 复算确认），误产物删除，临时日志清理。
+  - 陈旧度警告**仍然存在**（27 个源文件比产物新），因为这次没能做出一份**真正的**新 AOT 镜像。
+
+验证命令与输出：
+- `python analysis/check_claims.py` → 上述三行 + `criterion (d) ... PASS`。
+- `python tools/artifact_freshness.py` → 换入后 `source files newer: 0 / state: current`；
+  回滚后恢复 `stale` 警告。
+- `python tools/func_count.py` → 新产物 `pdata-replica: 469 / ratio 0.17%`；
+  回滚后 **`pdata-replica: 174,293 / ratio 62.89%`**。
+- 产物对比：新 `Cybersole.Ui.exe` 448 KB + `runtimeconfig.json` + 0 个 coreclr
+  vs 真 AOT `Cybersole.Ui.exe` 53.6 MB。
+
+数字变化：**判据 (d) 由「未知」变为 PASS**；判据 (c) 的产物陈旧度**未改善**（仍 27 源文件更新）；
+`.publish-aot` 内容与度量值**回到 R1114 之前的状态**（174,293 / 62.89%）。
+
+证据等级：Observation = check_claims 的三行结论与分布、publish 的 exit 0 与 IL 告警、
+两次 func_count 的具体数值差、两款 exe 的字节数与 runtimeconfig 存在性、回滚后复算一致；
+Inference = `-p:PublishAot=true` 未生效的**具体原因**（未查 csproj 的 AOT 门控与 SDK 的 ILCompiler
+引用，只确认了结果形态）。
+
+还剩什么：**查明 AOT 真正生效的 invocation**（csproj 门控 / 所需 NuGet / 是否需要
+`PublishTrimmed`+`SelfContained`），然后重做判据 (c)；`3 fail` 的 claim 是真实 parity 缺口，
+需单独立项；判据 (b)(f) 复算。

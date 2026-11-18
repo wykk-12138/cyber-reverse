@@ -209,6 +209,34 @@ public sealed class KasadaSolver : IDisposable
             "});return 'ok';}catch(e){return 'threw:'+String((e&&e.message)||e);}})()");
     }
 
+    /// <summary>
+    /// Every x-kpsdk-* header seen on any response the transport returned. The original keeps one field per
+    /// header on the host side (_kasadaCt / _kasadaDt / _kasadaIm / _kasadaDv / _kasadaSt / _kasadaRst /
+    /// _kasadaFc / _kasadaH, plus _kasadaWorkTime) because the gate checks them together: shipping only the
+    /// token and dropping the rest is a request the site can tell apart from a real one.
+    /// </summary>
+    private Dictionary<string, string> KasadaHeadersFromTransport()
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        const string js = "(function(){var r=window.__dshResponses||{};var o={};" +
+                          "for(var k in r){var h=r[k].headers||{};for(var n in h){" +
+                          "if(n.toLowerCase().indexOf('x-kpsdk-')===0&&!o[n.toLowerCase()])" +
+                          "o[n.toLowerCase()]=String(h[n]);}}return JSON.stringify(o);})()";
+        var json = Runtime.TryString(js);
+        if (string.IsNullOrWhiteSpace(json)) return result;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json!);
+            foreach (var p in doc.RootElement.EnumerateObject())
+                result[p.Name] = p.Value.GetString() ?? string.Empty;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // A malformed capture must not cost us the token we already have.
+        }
+        return result;
+    }
+
     /// <summary>Reads a header off whatever response the transport returned, keyed by containing path.</summary>
     private string? HeaderFromTransport(string header)
     {
@@ -407,6 +435,8 @@ public sealed class KasadaSolver : IDisposable
                   ?? Regex.Match(ct ?? string.Empty, @"^\s*(\d+)\|").Groups[1].Value;
 
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // Response headers first, so a header the transport observed wins over one we would have guessed.
+        foreach (var kv in KasadaHeadersFromTransport()) headers[kv.Key] = kv.Value;
         if (!string.IsNullOrEmpty(ct)) headers["x-kpsdk-ct"] = ct!;
         if (!string.IsNullOrEmpty(sbsd)) headers["x-kpsdk-sb"] = sbsd!;
         if (!string.IsNullOrEmpty(Version)) headers["x-kpsdk-v"] = Version!;

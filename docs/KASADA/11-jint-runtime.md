@@ -2050,6 +2050,50 @@ public async Task<KasadaToken> GetAsync(...)
 
 **Kasada + Nike + Scheels + Flow 全量：275 通过 / 1 跳过。**
 
+### 5.97 补上 `HandleResponse` 那一环：**九个头都要收，不能只收 token**
+
+原版宿主侧有一组字段（`0x14345aa42`–`0x14345aa92`）：
+
+```
+_kasadaDt  _kasadaIm  _kasadaCt  _kasadaDv  _kasadaSt
+_kasadaRst _kasadaFc  _kasadaH   _kasadaWorkTime
+```
+
+**这正好是九个 Kasada 头 + 一个计时。** 它们和五步链里的 `<HandleResponse>d__46` / `d__32`
+是配套的 —— **`HandleResponse` 就是把响应里的这些字段逐个收下来**。
+
+复刻件原来只做了一半：`HeaderFromTransport("x-kpsdk-ct")` 只取 token，
+其余八个头**收到了却丢掉**。
+
+**后果不是"少个字段"，是发出去的请求能被认出来**：一个只带 `x-kpsdk-ct`、
+不带 `x-kpsdk-cd` / `x-kpsdk-dt` / `x-kpsdk-st` 的请求，和真实浏览器的请求不一样。
+
+**改法**（`KasadaHeadersFromTransport`）：扫描 transport 记录的所有响应，
+把所有 `x-kpsdk-*` 头一次性收进结果：
+
+```csharp
+foreach (var kv in KasadaHeadersFromTransport()) headers[kv.Key] = kv.Value;   // 响应里看到的优先
+if (!string.IsNullOrEmpty(ct)) headers["x-kpsdk-ct"] = ct!;
+```
+
+**顺序是有意的**：先放响应里**观察到**的头，再放我们算/取到的 ct ——
+观察值优先于推断值，和 §5.76 版本号那条同一个原则。
+
+### 5.98 测试：三条，重点是第三条
+
+`KasadaHeaderAbsorptionTests`：
+
+| 用例 | 钉什么 |
+|---|---|
+| `EveryResponseHeaderReachesTheResult` | `/mfc` 与 `/r` 回的七个头（ct/h/fc/im/cd/dt/st）**一个不少**地进结果 |
+| `TheObservedHeadersSurviveInspection` | 大小写不敏感查找；`ClientData`/`Dt`/`St`/`H`/`Im` 这些便捷属性都读得到值 |
+| `HeadersTheTransportNeverSawAreNotInvented` | `dv` / `rst` 没被发过 → 结果里**就是没有**，且 `Dv`/`Rst` 为 null |
+
+**第三条是关键**：空头和不带头在网关看来是不同的东西。
+"缺就补个空串"看起来更"完整"，实际是伪造 —— 所以这里钉的是**缺席必须保持缺席**。
+
+**Kasada + Nike + Scheels + Flow 全量：278 通过 / 1 跳过。**
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

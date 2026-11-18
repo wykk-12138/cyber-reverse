@@ -149,8 +149,17 @@ def main():
         "origin/referer 覆写）；(2.1) `sub_141103800`（a1[8]）；(3) `sub_141103BF0`（全局闭包 "
         "qword_1472C7328+120）；(4) `sub_1411090C0`（a1+80）；(5) `sub_141109550`（a1+88）；"
         "(6) `sub_141109910`（a1[12]，origin/referer 按上下文拼接）；(7) `sub_14110A080`（a1+104）；"
-        "(8) `sub_141106360`（a1[11]）。**阶段 4–8 走 hosted 方言**。"
-        "**各阶段 graphql 载荷仍由调用方供给——载荷构建函数是下一个探针**。")
+        "(8) `sub_141106360`（a1[11]）。**阶段 4–8 走 hosted 方言**。")
+    add("")
+    add("**→ R1083：载荷层也解了——graphql 操作是冻结字面量**（0x1470cc8cc..0x14712190c 的 "
+        "threeDomainSecure 家族）：`ApproveOnboardPaymentMutation` · `CurrencyConversion` · "
+        "`OnboardGuestMutation`（带 `is3DSecureRequired` 旗标）· `approveMemberPayment` ×2 · "
+        "`PayWithQuery` · **`ResolveThreeDsContingency` ×2（解析操作：token/authId/referenceId/"
+        "creditCardId/status/experiences 六变量）**。变体 B（0x1470dc9bc）由 **hosted solver "
+        "`sub_141113680` 自己组装**——即 R1078 定位的 15,615 B / 11-case 状态机；变体 A"
+        "（0x1470d7974）由普通 solver `sub_14110FDB0`（14,458 B）组装。九个可观察阶段 = 该机驱动"
+        " `ResolveThreeDsContingency` 的解析环。**剩余未知 = 每 case 的变量绑定**"
+        "（哪个 case 设哪个 authId/referenceId/status）——两台 solver 的 case 体是下一探针。")
     add("")
     add("## 四、Stripe")
     add("")

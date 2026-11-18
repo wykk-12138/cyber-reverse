@@ -38723,3 +38723,37 @@ Inference = 各阶段 graphql 载荷仍由调用方供给（载荷构建函数�
 
 还剩什么：**载荷构建方**（各阶段 graphql 操作的组装函数，续体闭包 sub_142FBFxxx 族的引用者）；
 Stripe 六步其余步骤体；42 条变异锚的静树全跑；sec-ch-ua 生成器（队列③）。
+
+## R1083 —— 【核心②·支付挑战层】载荷层解密：graphql 操作是冻结字面量，hosted solver 11-case 机即 ResolveThreeDsContingency 驱动器
+
+**取件**：队列② PayPal 载荷构建方（R1082 指定的下一探针）。
+
+改了什么：
+- `PayPalThreeDs` RunAsync 停点与注释更新：载荷不再记「调用方不可知」——**九阶段 PUT 的 graphql
+  操作是冻结字面量**（threeDomainSecure 家族），解析级操作 `ResolveThreeDsContingency` 由 solver
+  本体组装；剩余未知收窄为「每 case 的变量绑定」。钉测同步改钉新停点。
+- 生成器模板 `payment_challenges.py` §六 追加 R1083 载荷段。重生成 PAYMENT_CHALLENGES.md。
+
+验证命令与输出：
+- `str "operationName"` → 8 条（含 Shopify 持久化 PayPal 面：PaypalDetails/PaypalToken/
+  PollForReceipt/Proposal/SubmitForCompletion/CheckoutExtensionSessionToken）；
+  `str "mutation "` → 全量 graphql 字面量家族（output 端点有完整 JSON 存档）。
+- `str "threeDomainSecure"` → **8 条 3DS 家族字面量**：`ApproveOnboardPaymentMutation`
+  (0x1470cc8cc) · `CurrencyConversion` (0x1470d0fb4) · `OnboardGuestMutation` (0x1470d611c，
+  带 `is3DSecureRequired` 旗标) · **`ResolveThreeDsContingency` ×2 (0x1470d7974 / 0x1470dc9bc，
+  六变量 token/authId/referenceId/creditCardId/status/experiences)** · `approveMemberPayment`
+  ×2 (0x1470e9fa4 / 0x1470ec9fc，后者多 `paycodeEncrypted`) · `PayWithQuery` (0x14712190c)。
+- `xrefs`：变体 B (0x1470dc9b0) ← **`sub_141113680`（15,615 B = R1078 定位的 hosted 11-case
+  状态机——它就是解析器的组装与驱动本体）** + 一个数据表项；变体 A (0x1470d7968) ←
+  `sub_14110FDB0`（14,458 B 普通 solver）；`OnboardGuestMutation` ← `sub_14110DDA0`。
+- `dotnet test --filter "PayPalThreeDs" -m:1` → **10/10 绿**；`payment_challenges.py` →
+  control ok=True，markers absent **0/5**。
+
+数字变化：无计数变化；PayPal 3DS 层的未知面从「载荷方未知」收窄为「**每 case 变量绑定未知**」
+（两台 solver 的 case 体）。
+
+证据等级：Observation = 8 条家族字面量全文、三个 xref 落点、hosted solver 与变体 B 的同一性；
+Inference = 九阶段与 11-case 的对应关系（阶段 = case 驱动的解析环成员）。
+
+还剩什么：两台 solver（`sub_14110FDB0`/`sub_141113680`）的 case 体反编译（每 case 的
+authId/referenceId/status 绑定）；Stripe 六步其余体；42 锚静树全跑；sec-ch-ua 生成器（队列③）。

@@ -240,13 +240,21 @@ public sealed class PayPalThreeDs
         if (!submit.Ok) return submit;
         c.Session.Vars["paypal3ds.state"] = nameof(ThreeDsState.Process3DS);
 
-        // Process3DS and beyond run stages (2)-(8) through the decoded builders. What is missing
-        // is the payload half: each stage PUTs a graphql operation its caller assembled, and no
-        // payload builder in this workspace has been decoded yet. The runnable edge stays at
-        // Submit until one is.
+        // Process3DS and beyond run stages (2)-(8) through the decoded builders. R1083 identified
+        // the payloads: they are FROZEN graphql literals, not opaque caller magic — the
+        // threeDomainSecure family at 0x1470cc8cc..0x14712190c (ApproveOnboardPaymentMutation,
+        // CurrencyConversion, OnboardGuestMutation, approveMemberPayment, PayWithQuery, and
+        // ResolveThreeDsContingency x2 — the resolution operation with token/authId/referenceId/
+        // creditCardId/status/experiences variables). The variant-B resolver (0x1470dc9bc) is
+        // assembled by the hosted solver sub_141113680 itself — the 11-case state machine R1078
+        // located; the variant-A resolver (0x1470d7974) by the normal solver sub_14110FDB0.
+        // What remains unknown is the per-case variable binding (which case sets which
+        // authId/referenceId/status), so the runnable edge stays at Submit until a case body
+        // is decoded.
         return StageOutcome.Pending(
-            "paypal 3ds: all nine stage builders decoded (labels, dialects, continuation slots); " +
-            "the per-stage graphql payloads are assembled by callers not yet decoded -- Submit " +
-            "runs, the rest waits on a payload builder");
+            "paypal 3ds: all nine stage builders decoded; payloads identified as the frozen " +
+            "threeDomainSecure graphql family (ResolveThreeDsContingency drives the resolver " +
+            "stages, assembled by the solver bodies sub_14110FDB0/sub_141113680); the per-case " +
+            "variable bindings remain to be decoded -- Submit runs, the rest waits on those");
     }
 }

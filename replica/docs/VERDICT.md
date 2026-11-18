@@ -62866,3 +62866,32 @@ G 跑挂死 28 分钟被杀——期间工作区出现**并行会话的未跟踪
 > **同模板的家族，解码成本随成员数递减**——阶段 2/2.1 用了两条 dec 确立模板，阶段 3–8
 > 六条 dec 每条只需核对三处差异（标签/方言/续体槽）。定位先行的复利：模板一旦立住，
 > 后续成员是查账，不是破案。
+
+---
+
+## 第 1083 轮：载荷层解密 —— 九阶段驱动的是 `ResolveThreeDsContingency`
+
+### 一、冻结字面量家族（8 条全文在池）
+
+`ApproveOnboardPaymentMutation` · `CurrencyConversion` · `OnboardGuestMutation`（含
+`is3DSecureRequired` 旗标）· **`ResolveThreeDsContingency` ×2**（token / authId / referenceId /
+creditCardId / status / experiences 六变量）· `approveMemberPayment` ×2（后者多 `paycodeEncrypted`）
+· `PayWithQuery`。全部带 `threeDomainSecure(experiences:)` 与 `paymentContingencies` 片段。
+
+### 二、solver 与操作对上号
+
+变体 B（0x1470dc9bc）由 **`sub_141113680`** 组装——就是 R1078 定位的 15,615 B / 394 块 /
+**switch 11 cases** 的 hosted solver。九个可观察阶段 = 这台 11-case 机驱动
+`ResolveThreeDsContingency` 的解析环。普通路（变体 A）由 `sub_14110FDB0`（14,458 B）组装。
+
+### 三、未知面收窄
+
+从「载荷方未知」到「**每 case 变量绑定未知**」——R1082 关掉构建器层、本轮关掉载荷层，
+剩下的是两台 solver 的 case 体（哪个 case 设哪个 authId/referenceId/status）。
+PayPalThreeDs 停点如实跟进，10/10 钉测绿，markers 0/5 保持。
+
+### 教训
+
+> **「调用方供给」是暂记不是终点**——载荷也是数据，数据就在池里。`str "threeDomainSecure"`
+> 一发探针，把「不可知的调用方魔法」变成「8 条可全文引用的字面量 + 3 个 xref 落点」。
+> 判 Unknown 之前先问一句：这个 Unknown 的另一半真的不在镜像里吗？

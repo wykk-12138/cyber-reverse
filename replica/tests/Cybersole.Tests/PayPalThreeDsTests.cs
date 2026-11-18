@@ -185,8 +185,9 @@ public sealed class PayPalThreeDsTests
         Assert.False(outcome.Ok);
         Assert.False(outcome.Retryable);
         Assert.NotNull(outcome.Error);
-        Assert.Contains("all nine stage builders decoded", outcome.Error);
-        Assert.Contains("payload builder", outcome.Error);
+        Assert.Contains("payloads identified as the frozen threeDomainSecure graphql family", outcome.Error);
+        Assert.Contains("ResolveThreeDsContingency", outcome.Error);
+        Assert.Contains("per-case", outcome.Error);
         Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Process3DS), ctx.Session.Vars["paypal3ds.state"]);
     }
 }

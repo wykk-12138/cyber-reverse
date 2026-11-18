@@ -5100,3 +5100,26 @@ PayPalThreeDs **10/10 绿**；markers absent **0/5** 保持。
 证据等级：全控流/标签/方言/槽位 Observation；graphql 载荷调用方供给 Inference。
 
 还剩什么：**载荷构建方**（sub_142FBFxxx 续体闭包族的引用者）；Stripe 六步其余体；42 锚静树全跑。
+
+## R1083 —— 【核心②】载荷层解密：graphql 操作是冻结字面量，hosted 11-case 机 = ResolveThreeDsContingency 驱动器
+
+**取件**：队列② PayPal 载荷构建方（R1082 指定探针）。
+
+改了什么：
+- `PayPalThreeDs` RunAsync 停点更新——载荷由「调用方不可知」改判为**冻结 graphql 字面量家族**；
+  剩余未知收窄为每 case 变量绑定。钉测同步改钉。
+- 模板 §六 追加 R1083 载荷段；重生成。
+
+验证：`str "threeDomainSecure"` → **8 条 3DS 家族操作全文**（ApproveOnboardPaymentMutation ·
+CurrencyConversion · OnboardGuestMutation · **ResolveThreeDsContingency ×2（六变量）** ·
+approveMemberPayment ×2 · PayWithQuery）；`xrefs`：变体 B ← **`sub_141113680`（R1078 的 hosted
+15,615 B 11-case 机——它就是解析器的组装与驱动本体）**，变体 A ← `sub_14110FDB0`（14,458 B
+普通 solver），OnboardGuest ← `sub_14110DDA0`。
+PayPalThreeDs **10/10 绿**；markers absent **0/5** 保持。
+
+数字变化：无计数变化；未知面从「载荷方未知」收窄为「每 case 变量绑定未知」。
+
+证据等级：家族字面量全文/xref 落点/solver 同一性为 Observation；九阶段 ↔ 11-case 对应为 Inference。
+
+还剩什么：两台 solver 的 case 体（每 case 的 authId/referenceId/status 绑定）；Stripe 六步其余体；
+42 锚静树全跑。

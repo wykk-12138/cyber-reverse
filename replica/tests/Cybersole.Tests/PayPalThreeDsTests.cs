@@ -407,8 +407,19 @@ public sealed class PayPalThreeDsTests
         // The fragment the machine appends to its final GET, verbatim (47 chars).
         Assert.Equal("state=undefined&code=undefined&liability_shift=",
             PayPalThreeDs.ChallengeCallbackFragment);
-        Assert.Equal("https://x/cb?state=SUCCESS&code=0&liability_shift=Y",
+        Assert.Equal("https://x/cb?&state=SUCCESS&code=0&liability_shift=Y",
             PayPalThreeDs.ChallengeCallbackUrlFor("https://x/cb?", "SUCCESS", "0", "Y"));
+
+        // R1103: the separator is '?'-aware — '&' when the base already asks, '?' when it does not.
+        // The image tests "contains '?'" (sub_141cfa770(base, 63)), not "ends with", so a base
+        // that already ends in '?' yields the literal "?&" join — recorded here as the machine's
+        // own behaviour rather than tidied away.
+        Assert.Equal("https://x/cb?state=S&code=0&liability_shift=Y",
+            PayPalThreeDs.ChallengeCallbackUrlFor("https://x/cb", "S", "0", "Y"));
+        Assert.Equal("https://x/cb?a=1&state=S&code=0&liability_shift=Y",
+            PayPalThreeDs.ChallengeCallbackUrlFor("https://x/cb?a=1", "S", "0", "Y"));
+        Assert.Equal("https://x/cb?&state=S&code=0&liability_shift=Y",
+            PayPalThreeDs.ChallengeCallbackUrlFor("https://x/cb?", "S", "0", "Y"));
     }
 
     /// <summary>

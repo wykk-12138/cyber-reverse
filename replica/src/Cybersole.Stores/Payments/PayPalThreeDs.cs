@@ -848,12 +848,19 @@ fragment InstallmentsFragment on FundingInstrument {
     public const string ChallengeCallbackFragment = "state=undefined&code=undefined&liability_shift=";
 
     /// <summary>
-    /// Composes the callback URL the challenge hop advertises: the base URL, the fragment's
-    /// three placeholder names with their values substituted in order, then the shift.
+    /// Composes the callback URL the normal path visits after the challenge: the base, a
+    /// separator, then the fragment with its three placeholders filled. R1103 read the separator
+    /// out of the machine — <c>sub_140d8d2b0</c> picks <c>&amp;</c> (0x146a7aba8) when the base
+    /// already contains <c>?</c> and <c>?</c> (0x146b27640) otherwise (lines 629–631, the
+    /// <c>sub_141cfa770(base, 63)</c> test), so the composition never double-asks.
     /// </summary>
     public static string ChallengeCallbackUrlFor(string baseUrl, string state, string code,
-        string liabilityShift) =>
-        baseUrl + "state=" + state + "&code=" + code + "&liability_shift=" + liabilityShift;
+        string liabilityShift)
+    {
+        var separator = baseUrl.Contains('?') ? "&" : "?";
+        return baseUrl + separator + "state=" + state + "&code=" + code +
+               "&liability_shift=" + liabilityShift;
+    }
 
     /// <summary>The frozen document for an operation name — the four the machine sends.</summary>
     public static string DocumentFor(string operationName) => operationName switch

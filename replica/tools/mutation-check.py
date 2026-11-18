@@ -665,6 +665,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~PayPalThreeDsTests",
         "guard": "TheChallengeInitSendsOnlyTheJwtAndReadsTheCallback",
     },
+    {
+        "name": "round 1103 -- the callback separator stops asking whether the base already does",
+        "file": PAYPAL_3DS,
+        # The machine tests for '?' (0x146b27640 vs 0x146a7aba8); a blind '?' join is the drift the
+        # callback pin forbids.
+        "find": '        var separator = baseUrl.Contains(\'?\') ? "&" : "?";',
+        "replace": '        var separator = "?";',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheChallengeInitSendsOnlyTheJwtAndReadsTheCallback",
+    },
 ]
 
 

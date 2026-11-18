@@ -2736,6 +2736,70 @@ the token hop (fp) did not return 2xx
 
 **失败要有原因**，这条在 AGENTS.md §2.7 里写过一次，这是同一个错误换了个地方犯。
 
+---
+
+## 10. 找到原版的核心机制：**宿主在本地扮演服务端**
+
+### 10.1 一个构造 HTTP 200 响应的函数
+
+顺着 `x-kpsdk-dt` 的引用找到 `sub_1408EFC50`（`0x1408EFC50`，size `0x2c5`）。
+它最后一句是：
+
+```c
+return sub_142389CA0(v14, 200, v13, 1);      // 构造一个 200 响应，v13 是头集合
+```
+
+前面是逐个 `sub_1408BAD40(头集合, 头名, 值)`。用 `names_at.py` 把每个头名解出来：
+
+| 头名 | 值从哪来 |
+|---|---|
+| `x-kpsdk-ct` | `a1[11]` |
+| `sec-ch-ua-platform` | `sub_140F9BCE0()` |
+| **`x-kpsdk-dt`** | **`a1[9]`** |
+| `sec-ch-ua` | `sub_140F9A950()` |
+| **`x-kpsdk-im`** | **`a1[10]`** |
+| `sec-ch-ua-mobile` | 常量 `off_146B27698` |
+| `x-kpsdk-v` | `sub_1408EF620(a1)` |
+| `user-agent` | 从 `a1[2]` 的链上取 |
+
+**⇒ 原版不是"让 payload 自己去问服务端"，而是宿主自己构造一个响应，把九个 Kasada 头
+连同 `sec-ch-ua*` / `user-agent` 一起交给 payload。**
+
+### 10.2 这把前面所有的观察串成了一条线
+
+| 之前的疑问 | 现在有答案了 |
+|---|---|
+| 为什么 `_kasadaDt` / `_kasadaIm` 是**宿主字段**（§5.69） | 因为 `dt`/`im` 由宿主提供，注入进响应；`a1[9]`/`a1[10]` 就是这两个字段 |
+| 为什么 payload 从不发 `/fp`（§7.2） | **因为原版宿主替它发了**，然后把结果注入 |
+| 为什么 payload 停在 `Configured` 就不动（§5.110） | 它在等一个"服务端"给它带 `ct`/`dt`/`im` 的响应，而我们的 shim 只给了它空壳 |
+| `_kasadaWorkTime` 干什么用的 | 算 `dt` 的耗时 |
+| §5.105 那八行 `fc` 扫描为什么结论反复 | 因为**触发点根本不在响应内容上**，在原版根本没让 payload 去问 |
+
+### 10.3 于是"完全复刻"的形状清楚了
+
+```
+① 宿主 GET {dir}fp        → ct₁            ← KasadaHttpHandshake 已经做到
+② 宿主 GET {dir}ips.js?KP_UIDz=ct₁ → ct₂   ← 同上
+③ 宿主把 ct/dt/im/v + sec-ch-ua* + user-agent 注入给 payload 的响应
+④ payload 完成初始化，isReady() 为 true
+⑤ 宿主用 ct 发业务请求
+```
+
+**第 ③ 步就是 `sub_1408EFC50`。第 ①② 步我们已经有等价物（`KasadaHttpHandshake`）。**
+
+**缺的只是把它们接起来**：先跑 handshake，把结果预置成 `/fp` 和 `/mfc` 的响应，
+再让 payload 加载 —— 而不是让 payload 去发它永远不该发的请求。
+
+### 10.4 还有一件事没解决
+
+`dt` / `im` 的**内容**仍然要由 payload 自己算出来（它们是客户端指纹证明），
+`sub_1408EFC50` 只是负责把它们**送进响应**。
+
+但这条路的性质变了：**不是"payload 不肯干活"，而是"我们没给它正确的输入"。**
+下一步是照第 ③ 步把响应预置进去，再看 payload 是否就此跑完。
+
+**这是下一步，也是这条线唯一剩下的实质工作。**
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

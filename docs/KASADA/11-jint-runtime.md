@@ -213,6 +213,129 @@ function(n, e, a, v, i, o){
 **未解**：栈在 opcode 12 之前就已经不平衡 —— 即**某条 push 指令没执行，或执行了但没写槽**。
 下一步要逐 opcode 追这段前缀的栈深度，而不是继续补宿主对象。
 
+### 5.5 86 条 handler 的静态栈效应 [实测]
+
+handler 的签名固定是 `(n, e, a, v, i, o)`：
+
+| 形参 | 实参 | 作用 |
+|---|---|---|
+| `n` | 帧/状态 | 读写 `n.m`（栈+PC）、`n.T` |
+| `e` | `X` | **pop 一个值**（经常量解码器 `U`） |
+| `a` | `B` | **push 一个值**（写 `n.m[槽位]`） |
+| `v` | `f` | 取帧对象 `n.m[1]` |
+| `i` | `n` 数组 | `[window, [Promise, W], t, u]` |
+| `o` | `r` 数组 | `[j, D, h, m, L, G]` |
+
+按 `e(n)` / `a(n, …)` 计数，**29 条指令净 pop**：
+
+```
+-1: 0 4 14 20 26 32 33 38 39 41 42(→-2) 46 51 52 56 60 62 63 67 69 79
+-2: 3 18 42 48
+-3: 7 11 12 47 61
+```
+
+**净 pop 是栈机的常态**（两个操作数 → 一个结果），不是缺陷。但其中一条特别值得注意：
+
+```js
+// opcode 12 —— pop 3 个，却一次 a(n,…) 都不调
+else { n.m[2] = l.apply(r, u); }
+```
+
+**它的结果不 push，而是写进固定槽 `m[2]`。**
+
+这一条改变了整个栈平衡的读法：`m[2]` 是"上一次调用的返回值"专用槽，
+而 `U` 的槽位分支 `u[f>>5]` 在 `f>>5 === 2` 时读的正是它。
+
+**⇒ 崩点 = 字节码在第一次"调用"之前就去读了 `m[2]`。**
+
+两种情况都会这样：
+
+1. 字节码本应在调用**之后**读 `m[2]`，但 PC 提前跳到了那里；
+2. 或者那次调用本该发生却没发生（`m[2]` 仍是 `void 0`）。
+
+**要区分这两者，需要实际执行的 opcode 序列** —— 下一步给出。**
+
+### 5.6 拿执行序列的办法（下一轮做）
+
+payload 的指令表 `u` 是 `new Proxy(...)`，而 `Proxy` 在它自己的 IIFE 里是**全局构造器**。
+所以在 shim 里包一层 `window.Proxy`，就能把每次 `u[index]` 的读取记下来，得到 opcode 序列，
+再与静态栈效应表对照，就能定位第一次出现不平衡的位置。
+
+```js
+var OrigProxy = this.Proxy;
+this.Proxy = function (target, handler) {
+    if (handler && typeof handler.get === "function") {
+        var wrapped = {}; for (var k in handler) wrapped[k] = handler[k];
+        wrapped.get = function (t, prop, recv) { __dshOpcodes.push(String(prop)); return handler.get(t, prop, recv); };
+        return new OrigProxy(target, wrapped);
+    }
+    return new OrigProxy(target, handler);
+};
+```
+
+**代价**：这是诊断代码，会记录上万条 opcode，不该长期留在产品路径里。
+
+### 5.7 执行序列与崩溃点 [实测]
+
+包了 `window.Proxy` 之后拿到完整 dispatch 序列（共 **9,285** 次），开头结构非常规整：
+
+```
+62 × 27                       ← 清 g[1..27]（作用域初始化）
+[ 3, 48, 63 ] × 27            ← 建闭包 → 写入捕获变量 → 跳回
+3, 63                         ← 最后一组（无 48）
+80                            ← push 一个空数组
+12                            ← 第 111 次 dispatch，崩在这里
+```
+
+三条关键指令的源码：
+
+```js
+// 62：清一个捕获变量槽
+function(n,e,a,v){ var i = e(n), o = v(n); o.g[i] = void 0 }
+
+// 3：建闭包，把它 push 出去
+function(n,e,a,v,i,o){
+    var r, l=e(n), u=e(n), _=e(n), h=v(n), t=o[2], b=o[3], d=o[4];
+    var p = function(){ … return f.m[2] };
+    try { Object.defineProperty(p,"length",{value:_}); Object.defineProperty(p,"name",{value:u}) } catch(w){}
+    p[d] = { X:l, B:h, w:p, E:… };     // d = o[4] = 那个 28 字符随机名
+    a(n, p);                            // ← push 闭包
+}
+
+// 80：push 空数组（调用指令的参数列表）
+function(n,e,a){ a(n, []) }
+
+// 48：沿作用域链写一个捕获变量
+function(n,e,a,v){ for(var i=e(n), o=e(n), r=v(n); r; r=r.B) if(i in r.g){ r.g[i]=o; return } throw 'ball' }
+```
+
+**崩时的字节码**（`t[320..344]`）：
+
+```
+[160,7,128,22,4,6071,160,15,128,192,63,745,19,128,40,3,224,7,128,22,4,6071,224,64,59]
+```
+
+**这里有个容易搞错的地方**：`X(e)` 读的是**字节码指定的槽位**，不是栈顶 ——
+`a(n,x)` 是 `n.m[p(e)] = x`，`p(e)` 从字节码取**目标槽位号**。所以这不是 LIFO 栈机，
+是**槽位机**：`m[2]` 是"上次调用返回值"的固定槽，`m[3..]` 是字节码分配的局部槽。
+
+**⇒ 所以"栈不平衡"这个说法本身要改成"某个槽位在被读之前没有被写"。**
+
+### 5.8 下一步：精确解字节码
+
+静态推算参数个数会出错，因为**字符串常量占两个值**：
+
+```js
+if (f === 22) {                       // 22 = 字符串标记
+    if (v && v.y) return v.y(r[u[0]++], r[u[0]++]);   // ← 消耗两个：偏移 + 长度
+    …
+}
+```
+
+所以要把 `t` 从 `[0]` 开始完整模拟一遍解码（`U` 的规则：奇数→内联整数、`4/8/14/22/24/42` 是标记、
+字符串吃两个、其余 `f>>5` 是槽位），把 opcode 与参数一一对出来，
+才能知道 `12` 读的是哪三个槽位、以及写 `m[7]` 的那条指令到底有没有执行。
+
 ## 6. 已经补齐的宿主面 [实测]
 
 `WebApiShims.cs`：52 个 Web/宿主全局（`TextEncoder` / `URL` / `Blob` / `Worker` / `AudioContext` /

@@ -41,11 +41,34 @@ internal static class WebApiShims
             Array.prototype.splice = function (start, count) {
                 if (rec.length < 8) {
                     var head = [];
-                    for (var i = 0; i < Math.min(24, this.length); i++) head.push(this[i]);
+                    for (var i = 0; i < Math.min(600, this.length); i++) head.push(this[i]);
                     rec.push({ start: start, count: count, len: this.length, head: head });
                 }
                 return orig.apply(this, arguments);
             };
+        }).call(this);
+
+        // TEMPORARY diagnostic: the payload wraps its opcode table in `new Proxy(...)`, and Proxy is a
+        // global constructor, so wrapping it records the exact sequence of opcodes the VM dispatches.
+        // That sequence plus the static per-opcode stack effect is what localises the imbalance.
+        this.__dshOpcodes = [];
+        (function () {
+            var Orig = this.Proxy;
+            var rec = this.__dshOpcodes;
+            this.Proxy = function (target, handler) {
+                if (handler && typeof handler.get === "function") {
+                    var wrapped = {}, k;
+                    for (k in handler) wrapped[k] = handler[k];
+                    var origGet = handler.get;
+                    wrapped.get = function (t, prop, recv) {
+                        if (rec.length < 30000) rec.push(String(prop));
+                        return origGet(t, prop, recv);
+                    };
+                    return new Orig(target, wrapped);
+                }
+                return new Orig(target, handler);
+            };
+            if (Orig.revocable) this.Proxy.revocable = Orig.revocable;
         }).call(this);
 
         // ---- TextEncoder / TextDecoder (real UTF-8, no host call needed) ----

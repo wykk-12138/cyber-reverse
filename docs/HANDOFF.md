@@ -5669,3 +5669,22 @@ SourceEncoding 2/2、metrics exit 0。
 数字变化：整树 1 失败 → **0**；收据 `tree` RED → **GREEN**。
 
 还剩什么：(a)(b)(c)(d)(f) 逐项复算与证据归集。
+
+## R1108 —— 【判据 a】类型缺席三分类对账：UNKNOWN 6 -> 4
+
+改了什么：
+- 15 行分类已齐：**6 RENAMED / 2 OUT_OF_SCOPE(R702) / 1 STRUCTURAL / 6 UNKNOWN**。
+- **两本台账打架**：`LocalizeFormatExtension` / `LocalizeSwitchExtension` 在分类里仍 UNKNOWN，
+  而 `replica/docs/B_CLASS_DECISIONS.md` **L25/L26 早已裁决为「已有等价物」**（内联三元 /
+  `string.Format` 直调）。**后裁未回灌** → 改判 `EQUIVALENT` 并抄录裁决原文。
+- 补镜像侧身份：命名空间 `Cybersole.Ui.Localization` + XAML 类型名表 `0x1432fd514`（六名全表）
+  + 描述符 `0x14320c2d5`。
+- 另四条（AccountsCreatorView / TaskCreatorCartView / LocalizeEnumExtension /
+  LocalizeFallbackExtension）在 B_CLASS_DECISIONS 无对应行 → **保持 UNKNOWN，不编结论**。
+
+验证：`where_is` 13 处全在 docs（复刻件确无实现）；`git diff --ignore-cr-at-eol` 空（纯 CRLF 噪声）；
+文档守卫 SourceEncoding 2 / SummaryBlock 4 / DocsConsistency 8 / ParityDoc 9 = **23 钉全绿**。
+
+数字变化：UNKNOWN **6 -> 4**；EQUIVALENT +2；类型缺席原始计数仍 15（未实现新类型）。
+
+还剩什么：剩余 4 条 UNKNOWN 需镜像侧成员集取证；(b)(c)(d)(f) 逐项复算。

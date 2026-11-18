@@ -63762,3 +63762,48 @@ var kasada = Cybersole.Stores.Scripts.KasadaStrategyRunner.Default(
 >
 > 顺带：改了测试文件就必须重跑变异套件——收据的 `content_manifest` 会因此变旧，
 > 而 `staleness` 正是用来抓这种「拿旧收据说新事」的。
+
+---
+
+## 第 1108 轮：两本台账打架，后来的裁决赢
+
+### 一、发现
+
+判据 (a) 要求「类型缺失 → 0（不可得写 Unknown + 缺什么；范围外引 R702）」。三分类台账
+`docs/TYPE_PRESENCE_TRIAGE.md` 的 15 行分类已齐，但其中两行仍是 `UNKNOWN (non-discriminative)`：
+
+- `LocalizeFormatExtension`
+- `LocalizeSwitchExtension`
+
+而 `replica/docs/B_CLASS_DECISIONS.md` **L25/L26 早就裁过了**：
+
+| 类型 | 裁决 | 理由 |
+|---|---|---|
+| `LocalizeSwitchExtension` | **已有等价物** | 复刻件用内联三元表达同一意图 |
+| `LocalizeFormatExtension` | **已有等价物** | 复刻件格式化用 `string.Format` 直调 |
+
+**决定性裁决没有回灌到三分类。** 台账之间不同步，比台账缺失更隐蔽——两本都在、都「有结论」，
+但一本说 UNKNOWN、一本说已有等价物。
+
+处理：改判这两行为 `EQUIVALENT`，把 L25/L26 的裁决原文抄进证据格。
+
+### 二、顺带补上镜像侧身份
+
+原台账只有裸类型名。本轮从 XAML 类型名表 `0x1432fd514`（长度前缀串表）取到全套六个名字，
+加上描述符 `0x14320c2d5` 给出的命名空间：
+
+```
+Cybersole.Ui.Localization.{LocalizeExtension, LocalizeFormatExtension,
+  LocalizeFallbackExtension, LocalizeEnumExtension, LocalizeSwitchExtension,
+  LocalizedSwitchConverter}
+```
+
+### 三、另四条：不动
+
+`AccountsCreatorView` / `TaskCreatorCartView` / `LocalizeEnumExtension` /
+`LocalizeFallbackExtension` 在 `B_CLASS_DECISIONS.md` **没有对应行**。**保持 UNKNOWN，不替它们编结论。**
+UNKNOWN 6 → **4**。
+
+> **本轮最该记住的：台账要「互相对账」，不是各自齐全就行。**
+> 一本写着 UNKNOWN、另一本写着「已有等价物」，如果不交叉读，那个 UNKNOWN 会一直挂在那里
+> 让后面每一轮去查一件早已裁过的事。

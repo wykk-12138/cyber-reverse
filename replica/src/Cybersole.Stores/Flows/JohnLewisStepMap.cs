@@ -19,7 +19,7 @@ namespace Cybersole.Stores.Flows;
 /// WebHandOver          → v2/sessions/web/handover        GuestCallback        → v4/callback/guest
 /// SessionHandover      → v2/sessions/web/handover        DeliveryPage         → v3/orderforms/delivery-page
 /// SubmitShipping       → v4/orderforms/deliveries        CreateDelivery       → v4/orderforms/deliveries
-/// GetDeliveryMethods   → v3/orderforms/deliveries/details
+/// GetDeliveryMethods   → v4/orderforms/deliveries/methods (derived, R1137)
 /// SubmitDeliveryMethod → v3/orderforms/deliveries/details
 /// GetPaymentPage       → v2/orderforms/payment-page      SubmitOrderStripe    → v2/orderforms/payments
 /// SubmitOrder          → v2/orders                       AuthenticatePayment  → v2/orderforms/payments
@@ -47,9 +47,15 @@ public static class JohnLewisStepMap
             ["SessionHandover"] = RetailApiFamilies.JohnLewisBff.SessionHandoverV2,
             ["GuestCallback"] = RetailApiFamilies.JohnLewisBff.GuestCallbackV4,
             ["DeliveryPage"] = RetailApiFamilies.JohnLewisBff.DeliveryPageV3,
-            ["SubmitShipping"] = RetailApiFamilies.JohnLewisBff.DeliveriesV4,
+            // R1136: SubmitShipping carries the address (delivery-address, eleven-key body);
+        // CreateDelivery below is the body-less confirm. The map had both on DeliveriesV4.
+        ["SubmitShipping"] = RetailApiFamilies.JohnLewisBff.DeliveryAddressV4,
             ["CreateDelivery"] = RetailApiFamilies.JohnLewisBff.DeliveriesV4,
-            ["GetDeliveryMethods"] = RetailApiFamilies.JohnLewisBff.DeliveryDetailsV3,
+            // R1137: this step reads, and reads the derived URL the image builds by joining
+        // "…/deliveries/" with "/methods" (0x14705db98 + 0x146ab5dd0, GET at sub_140A3FB10).
+        // R118/R119 paired it with the POST details by name correlation alone, which left that
+        // GET with no step and gave one endpoint two names; the submit just below keeps the POST.
+        ["GetDeliveryMethods"] = RetailApiFamilies.JohnLewisBff.DeliveryMethodsV4,
             ["SubmitDeliveryMethod"] = RetailApiFamilies.JohnLewisBff.DeliveryDetailsV3,
             ["GetPaymentPage"] = RetailApiFamilies.JohnLewisBff.PaymentPageV2,
             ["SubmitOrderStripe"] = RetailApiFamilies.JohnLewisBff.PaymentsV2,

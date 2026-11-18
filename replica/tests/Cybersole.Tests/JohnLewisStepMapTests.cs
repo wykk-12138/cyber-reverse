@@ -45,14 +45,19 @@ public sealed class JohnLewisStepMapTests
                        $"{JohnLewisStepMap.Targets.Count} distinct endpoints");
 
         Assert.Equal(14, JohnLewisStepMap.MappedSteps.Count);
-        Assert.Equal(9, JohnLewisStepMap.Targets.Count);
+        // R1136 split SubmitShipping onto delivery-address and R1137 put GetDeliveryMethods on
+        // the derived methods URL, so distinct targets went 9 -> 11.
+        Assert.Equal(11, JohnLewisStepMap.Targets.Count);
         Assert.True(JohnLewisStepMap.MappedSteps.Count > JohnLewisStepMap.Targets.Count);
 
         // the two shared endpoints, each serving two named steps
         Assert.Equal(2, JohnLewisStepMap.Pairs.Values
             .Count(v => v == RetailApiFamilies.JohnLewisBff.SessionHandoverV2));
-        Assert.Equal(2, JohnLewisStepMap.Pairs.Values
+        // R1136: only CreateDelivery stays on the body-less deliveries PUT now.
+        Assert.Equal(1, JohnLewisStepMap.Pairs.Values
             .Count(v => v == RetailApiFamilies.JohnLewisBff.DeliveriesV4));
+        Assert.Equal(1, JohnLewisStepMap.Pairs.Values
+            .Count(v => v == RetailApiFamilies.JohnLewisBff.DeliveryAddressV4));
     }
 
     /// <summary>The three unmapped steps are a page load and two Stripe calls.</summary>
@@ -91,8 +96,14 @@ public sealed class JohnLewisStepMapTests
         foreach (var endpoint in JohnLewisStepMap.UnusedEndpoints) _out.WriteLine("unused: " + endpoint);
 
         // four, not three: R129 added the guest login callback, which no step names
-        Assert.Equal(4, JohnLewisStepMap.UnusedEndpoints.Count);
-        Assert.Contains(RetailApiFamilies.JohnLewisBff.DeliveryAddressV4,
+        // R1137: 4 -> 3 -- R1136 put a step on delivery-address and this round put one on the
+        // derived methods URL, so two of the four unused endpoints became used.
+        Assert.Equal(3, JohnLewisStepMap.UnusedEndpoints.Count);
+        // R1137: delivery-address is named now (R1136), so it left this list. What remains unused
+        // is the v3 payments family, the guest login callback and the trailing-slash duplicate.
+        Assert.Contains(RetailApiFamilies.JohnLewisBff.PaymentsV3,
+            JohnLewisStepMap.UnusedEndpoints);
+        Assert.Contains(RetailApiFamilies.JohnLewisBff.GuestLoginCallback,
             JohnLewisStepMap.UnusedEndpoints);
         Assert.Contains(RetailApiFamilies.JohnLewisBff.DeliveriesSlashV4,
             JohnLewisStepMap.UnusedEndpoints);

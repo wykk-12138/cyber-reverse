@@ -6152,3 +6152,23 @@ threeds 站点可一并校正既有实现。
 CUA 清两个模态框后 IDA 进程退出 → 二次 doctor 仍拒连。**本轮不依赖 IDA，未阻塞；未重建 .i64。**
 
 还剩什么：① IDA 恢复；② `payment-page` 无体 PUT 缺步骤位；③ `GetDeliveryMethods` 归属待判。
+## R1138 —— GetDeliveryMethods 落派生 GET；映射表漏同步被发现并修正
+
+改了什么：
+- **归属**：`GetDeliveryMethods`(29) ↔ **GET `…/orderforms/deliveries/methods`**
+  （R1132 已证派生；`SubmitDeliveryMethod`(30) 已占 POST `details`）。**分配为 Inference**，端点/动词/无体为 Observation。
+- **落实现**：`StoreFlow.GetDeliveryMethodsAsync` + `JohnLewisFlow` 覆写（GET，seam `jl.deliveryMethodsUrl`）；
+  新增 5 条测试。
+- **修正映射表**：`GetDeliveryMethods` → `DeliveryMethodsV4`；并补上 R1136 遗漏的
+  `SubmitShipping` → `DeliveryAddressV4`（**代码改了、表没改，已不一致一整轮**）；同步 ASCII 图示。
+- **四处计数随事实走**：`All` 13→14、家族 30→31 / v4 桶 4→5 / 合计 12→13、未用端点 4→3（断言对象改为
+  `PaymentsV3`/`GuestLoginCallback`）、派发表 185→186。每处都写因由。
+
+验证：build **0 错**；相关子集 **84/85**；全量第一次 1 红（`GroupSummaryTests`，**与本轮无关**，
+单独跑绿 ⇒ 抖动，单列）→ 重跑 **2438/0/2 GREEN**（2m25s）；
+变异 **59/59 fired, tree GREEN, staleness 0**（02:36:44）。
+
+数字变化：JL 实际调用 BFF 端点 **8 → 9**；可派发步骤名 **+1**；测试 **+5**。
+
+还剩什么：① `payment-page` 无体 PUT 缺步骤位；② `AuthenticatePayment`/`SubmitOrderStripe`
+两个名字同指 POST `payments`，是否也该 1:1 拆分（同型问题）。

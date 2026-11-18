@@ -63,6 +63,8 @@ public static class RetailApiFamilies
         /// </para>
         /// </summary>
         public const string DeliveryMethodsV4 = DeliveriesSlashV4 + "methods";
+        // R1137: listed in All as well -- the pair map requires every paired target to be a
+        // member, and a derived endpoint is still an endpoint of this family.
 
         /// <summary>The checkout walk: hand over the session, delivery, billing, pay, order.</summary>
         public static readonly IReadOnlyList<string> Chain = new[]
@@ -77,6 +79,7 @@ public static class RetailApiFamilies
             DeliveryDetailsV3, DeliveryPageV3, PaymentsV3,
             GuestCallbackV4, GuestLoginCallback, DeliveriesV4, DeliveriesSlashV4,
         DeliveryAddressV4,
+        DeliveryMethodsV4,   // R1137: derived (.../deliveries/ + methods); listed so the pair map holds
         };
 
         /// <summary>How many steps live on each version — the fact a single-base-URL flow gets wrong.</summary>

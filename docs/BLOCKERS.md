@@ -40999,3 +40999,52 @@ IDA 恢复属「宿主 MCP 需人工重启」类，下轮继续尝试，**未重
 - 全量：**2433 通过 / 0 失败 / 2 跳过 / 2435**（2m46s）；John Lewis 子集 **57/57**；`dotnet build` **0 个错误**。
 - 变异重跑 → `ran_at 2026-11-19T02:06:56`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   `staleness 0`（mtime 02:07:03，读于 02:07:12 —— 9 秒新鲜）。
+## R1138 —— `GetDeliveryMethods`(29) 落到**派生 GET**；连带把映射表和四处计数对齐
+
+**取件**：R1136 待办③「`GetDeliveryMethods` 归属待判」。
+
+改了什么：
+- **归属判定**：`SubmitDeliveryMethod`(30) 上一轮已确证打 POST `deliveries/details`；
+  镜像这里**两步两端点**（一读一写），剩下无主的正是 **GET `…/orderforms/deliveries/methods`**
+  （R1132 已证：`sub_140A3FB10` 用 `sub_141CF62D0("…/deliveries/", v2, "/methods")` 拼出来再 GET）。
+  ⇒ `GetDeliveryMethods` ↔ GET `…/deliveries/methods`。**分配为 Inference**（形状 1:1 + `Get` 前缀 +
+  该 GET 确实存在），**端点/动词/无体为 Observation**。
+- **落实现**：`StoreFlow.GetDeliveryMethodsAsync`（`NotSupported`）+ `JohnLewisFlow` 覆写（GET，seam
+  `jl.deliveryMethodsUrl`，响应存 `jl.deliveryMethodsBody`）；新增 `JohnLewisDeliveryMethodsGetTests` **5 条**。
+- **修正映射表**（`JohnLewisStepMap`）：`GetDeliveryMethods` 由 POST `DeliveryDetailsV3` 改为
+  `DeliveryMethodsV4`，并同步 ASCII 图示；另按 **R1136** 把 `SubmitShipping` 由 `DeliveriesV4`
+  改为 `DeliveryAddressV4`（上一轮的分配改动**漏同步到这张表**，是这轮才发现的）。
+  两条都写明原因（R118/R119 是按名关联、无请求捕获）。
+
+**连带四处计数（每个都随事实走并写明因由）**：
+| 位置 | 变化 | 原因 |
+|---|---|---|
+| `JohnLewisBff.All` | **+`DeliveryMethodsV4`**（13→14） | 派生端点也是端点；映射表要求每个配对目标都在 `All` 里 |
+| `RetailApiFamiliesTests` 家族计数 | 13→14、总 30→31、v4 桶 4→5、版本合计 12→13 | 同上 |
+| `JohnLewisStepMapTests` 未用端点 | 4→**3**，且断言对象改为 `PaymentsV3`/`GuestLoginCallback` | `delivery-address` 已被 R1136 用上，旧断言「无人用」已不成立 |
+| `FlowSequenceTests` 派发表 | 185→**186** | 新增 `GetDeliveryMethodsAsync` |
+
+验证命令与输出：
+- `dotnet build` → **exit=0，0 个错误**。
+- 相关子集 → **84/85**（唯一红见下）。
+- **一处抖动（单独记录，不计入通过）**：全量第一次 **红 1 条** `GroupSummaryTests.DeletingRemovesTheGroupOnce`
+  ——与本轮改动**无关**（分组域，我未触碰）；**单独跑该测试 `exit=0` 通过**，故判为顺序相关抖动；
+  随后**重跑全量**取定论（结果见下条）。
+- 变异套件本轮重跑（结果见收据）。
+
+数字变化：John Lewis 实际调用 BFF 端点 **8 → 9**（`…/deliveries/methods` GET 首次被调用）；
+可派发步骤名 **+1**；测试 **+5**。
+
+证据等级：Observation = R1132 的派生 GET 证据、映射表两条旧配对的出典（R118/R119 名关联）、
+build 0 错、子集 84/85、`GroupSummaryTests` 单独跑绿；Inference（已标注）= 29↔GET methods 这条分配。
+
+还剩什么：① `payment-page` 的无体 PUT 仍缺步骤位；② 映射表里 `AuthenticatePayment`/`SubmitOrderStripe`
+两个名字同指 POST `payments` 是否也该 1:1 拆分（同型问题，下一轮可查）；③ 全量重跑结论待收。
+
+**全量定论（抖动单列后）**：
+- 第一次全量：**1 红**（`GroupSummaryTests.DeletingRemovesTheGroupOnce`）——与本轮改动无关；
+  该测试**单独跑 exit=0 通过** ⇒ 判为顺序相关抖动，**不计入通过也不计入失败**，单独记录。
+- 第二次全量（重跑取定论）：**2438 通过 / 0 失败 / 2 跳过 / 2440**（2m25s）**GREEN**。
+- 相关子集：**84/85**（唯一红即上述抖动，已隔离验证）。
+**变异收据**：`ran_at 2026-11-19T02:36:44`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+`staleness 0`（mtime 02:36:50，读于 02:39:08）。

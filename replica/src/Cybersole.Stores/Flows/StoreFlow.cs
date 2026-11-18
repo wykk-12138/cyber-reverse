@@ -810,6 +810,13 @@ public abstract class StoreFlow
     /// </summary>
     public virtual Task<StepOutcome> SubmitDeliveryMethodAsync(FlowContext c, CancellationToken ct)
         => NotSupported("SubmitDeliveryMethod");
+
+    /// <summary>
+    /// Reading the available delivery methods (John Lewis ordinal 29) — the read that the submit above
+    /// answers. Declared so the name is dispatchable.
+    /// </summary>
+    public virtual Task<StepOutcome> GetDeliveryMethodsAsync(FlowContext c, CancellationToken ct)
+        => NotSupported("GetDeliveryMethods");
     public virtual Task<StepOutcome> SubmitAddressAsync(FlowContext c, CancellationToken ct)
         => SubmitShippingAsync(c, ct);
     public virtual Task<StepOutcome> SubmitShippingMethodAsync(FlowContext c, CancellationToken ct) => Ok();

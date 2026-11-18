@@ -32,11 +32,12 @@ public sealed class RetailApiFamiliesTests
     [Fact]
     public void TheTwoFamiliesHaveTheirImagesCounts()
     {
-        Assert.Equal(13, RetailApiFamilies.JohnLewisBff.All.Count);   // R129: guest login callback
+        // R1137: 13 -> 14 -- the derived .../deliveries/methods endpoint is listed too.
+        Assert.Equal(14, RetailApiFamilies.JohnLewisBff.All.Count);   // R129 guest callback, R1137 methods
         Assert.Equal(17, RetailApiFamilies.ScheelsFrontastic.All.Count);
 
-        Assert.Equal(30, RetailApiFamilies.All.Count);   // R129: 13 + 17
-        Assert.Equal(30, RetailApiFamilies.All.Distinct().Count());
+        Assert.Equal(31, RetailApiFamilies.All.Count);   // R1137: 14 + 17
+        Assert.Equal(31, RetailApiFamilies.All.Distinct().Count());
     }
 
     /// <summary>The John Lewis steps are split across four versions — no single base URL.</summary>
@@ -50,8 +51,11 @@ public sealed class RetailApiFamiliesTests
         Assert.Equal(1, perVersion["v1"]);
         Assert.Equal(4, perVersion["v2"]);
         Assert.Equal(3, perVersion["v3"]);
-        Assert.Equal(4, perVersion["v4"]);
-        Assert.Equal(12, perVersion.Values.Sum());
+        // R1137: 4 -> 5 -- the derived .../deliveries/methods URL is a v4 endpoint too.
+        Assert.Equal(5, perVersion["v4"]);
+        // R1137: 12 -> 13 -- the four buckets now hold the thirteen BFF literals plus the derived
+        // methods URL (GuestLoginCallback sits outside bff/ and is counted separately).
+        Assert.Equal(13, perVersion.Values.Sum());
 
         // every one really sits under the documented base
         // twelve sit under bff/, one sits beside it (the guest login callback, R129)

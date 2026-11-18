@@ -64750,3 +64750,33 @@ R1133 我把镜像的两个配送步骤名都指到了**无体**那条端点，�
 本轮 `ida.py health` **连接被拒**；doctor 报 `PROXY: MISSING` / `PORT 13337: REFUSED` /
 `TIMEOUT: no listener after 180s`；CUA 清掉两个模态框后 **IDA 进程退出**，二次 doctor 仍拒连。
 **本轮代码不依赖 IDA**（证据 R1128/R1134 已取齐），未阻塞交付；**未重建 .i64**。
+---
+
+## 第 1138 轮：一个派生 GET 归位，四处计数跟着事实走
+
+`SubmitDeliveryMethod`(30) 已确证打 POST `details`；镜像这里**两步两端点、一读一写**，
+剩下无主的正是 **GET `…/deliveries/methods`**（R1132 已证是 `…/deliveries/` + `/methods` 拼出来的）。
+⇒ `GetDeliveryMethods` ↔ 那个 GET。**分配标为 Inference，端点/动词/无体标为 Observation。**
+
+### 顺手抓到一个**漏同步**
+
+改映射表时发现：**R1136 把 `SubmitShipping` 改到 `delivery-address`，但没同步这张表** ——
+表里还写着 `DeliveriesV4`。**代码改了、账没改，两者已经不一致一整轮。**
+
+> 这不是别人造成的：**我上一轮改代码时只想着「落实现」，忘了这张表也是实现的一部分。**
+> 本轮连同 `GetDeliveryMethods` 一起改正，两条都写明 R118/R119 是按名关联、无请求捕获。
+
+### 四处计数（每个都写了因由）
+
+| 位置 | 变化 | 原因 |
+|---|---|---|
+| `JohnLewisBff.All` | 13 → **14** | 派生端点也是端点；映射表要求配对目标都在 `All` 里 |
+| 家族计数 | 30→31、v4 桶 4→5、版本合计 12→13 | 同上 |
+| 未用端点 | 4 → **3**，断言改为 `PaymentsV3`/`GuestLoginCallback` | `delivery-address` 已被用上，旧断言「无人用」已不成立 |
+| 派发表 | 185 → **186** | 新增 `GetDeliveryMethodsAsync` |
+
+### 一处抖动，单列不混入
+
+第一次全量 **1 红**：`GroupSummaryTests.DeletingRemovesTheGroupOnce`——**分组域，我本轮没碰**；
+**单独跑该测试 exit=0 通过** ⇒ 顺序相关抖动。**不计入通过，也不计入失败，单独记录**；
+随后重跑全量取定论：**2438 / 0 / 2 GREEN**。

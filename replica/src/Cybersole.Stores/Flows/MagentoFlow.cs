@@ -1231,6 +1231,35 @@ public sealed class JohnLewisFlow : StoreFlow
     }
 
     /// <summary>
+    /// <c>GetDeliveryMethods</c> — the GET on <c>v4/orderforms/deliveries/methods</c>, the derived URL
+    /// the image builds by joining <c>…/deliveries/</c> with <c>/methods</c> (R1132, <c>sub_140A3FB10</c>).
+    ///
+    /// <para>
+    /// R1137 assigns this step here rather than to the POST <c>deliveries/details</c> that the pair map
+    /// had recorded. That map was drawn by name correlation alone, and it put <b>both</b> delivery step
+    /// names (29 and 30) on the same POST — which leaves the GET with no step at all. The image has two
+    /// steps and two endpoints here, one a read and one a write, so each gets one. This assignment is an
+    /// <b>inference</b> from that shape, the <c>Get</c> prefix and the fact that the GET exists at all;
+    /// the endpoint, its verb and its empty body are observed.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetDeliveryMethodsAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.TryGetValue("jl.deliveryMethodsUrl", out var over) &&
+                  !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.DeliveryMethodsV4;
+
+        var res = await GetAsync(c, url, "jl-delivery-methods", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl delivery methods unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl delivery methods HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.deliveryMethodsBody"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// <c>GetStripePaymentIntent</c> — the intent read, decoded R1090 from <c>sub_140a40a30</c>'s
     /// needle chain: <c>next_action</c> → <c>use_stripe_sdk</c> → <c>type</c>, gated on
     /// <b>stripe_3ds2_fingerprint</b> (0x147165bf0), with <c>three_d_secure_2_source</c>

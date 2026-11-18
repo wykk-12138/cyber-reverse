@@ -134,7 +134,8 @@ public class FlowSequenceTests
         // R1134 raised it 183 -> 184 with DeliveryPageAsync (ordinal 26), which had no virtual at all.
         //
         // R1135 raised it 184 -> 185 with SubmitDeliveryMethodAsync (ordinal 30).
-        Assert.Equal(185, map.Count);
+        // R1137 raised it 185 -> 186 with GetDeliveryMethodsAsync (ordinal 29).
+        Assert.Equal(186, map.Count);
         Assert.Equal(24, flow.StepSequence.Count);
         Assert.Equal(8, implementable);
         Assert.True(flow.CanRunStep("GetOrders"), "GetOrders was added in R871");

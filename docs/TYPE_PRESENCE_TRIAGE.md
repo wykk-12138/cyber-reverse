@@ -19,8 +19,8 @@
 | `ActionConfig` | **RENAMED** | `SmartActionStepConfig` in SmartActions.cs — 2/2 (100%) documented; its doc comment names ActionConfig |
 | `LocalizeEnumExtension` | **UNKNOWN (non-discriminative)** | best match `EditValue` in Primitives.cs — 1/1 (100%) |
 | `LocalizeFallbackExtension` | **UNKNOWN (non-discriminative)** | best match `EditValue` in Primitives.cs — 1/1 (100%) |
-| `LocalizeFormatExtension` | **UNKNOWN (non-discriminative)** | best match `EditValue` in Primitives.cs — 1/2 (50%) |
-| `LocalizeSwitchExtension` | **UNKNOWN (non-discriminative)** | best match `TimeSpansExtensions` in TimeSpans.cs — 0/1 (0%) |
+| `LocalizeFormatExtension` | **EQUIVALENT** | `docs/B_CLASS_DECISIONS.md` L26 rules it `已有等价物`: the replica formats with a direct `string.Format` call. Image-side identity recovered this round: namespace `Cybersole.Ui.Localization` and the XAML type-name table at `0x1432fd514` (see `0x14320c2d5`). |
+| `LocalizeSwitchExtension` | **EQUIVALENT** | `docs/B_CLASS_DECISIONS.md` L25 rules it `已有等价物`: the replica expresses the same intent with an inline ternary. Image-side identity recovered this round: namespace `Cybersole.Ui.Localization`, same name table at `0x1432fd514`. |
 | `AccountsCreatorView` | **UNKNOWN (non-discriminative)** | best match `ProxyKeyBinds` in GlobalSettings.cs — 1/2 (50%) |
 | `AuthWindow` | **OUT_OF_SCOPE** | YG ruling R702: auth/licence is user management, not part of the replica's function set |
 | `LicenseControl` | **OUT_OF_SCOPE** | YG ruling R702: auth/licence is user management, not part of the replica's function set |

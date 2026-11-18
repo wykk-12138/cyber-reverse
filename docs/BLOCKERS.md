@@ -39704,3 +39704,45 @@ Unknown = 整树绿（被并行会话的在途改动挡住，不属我方可控�
 `StoreFlow.cs:473` 的多行调用与断言的连写要求；Unknown = 无（本轮无待判项）。
 
 还剩什么：判据 (a)(b)(c)(d)(f) 的逐项复算与证据归集（(f) 需清点队列②剩余外部服务驱动契约）。
+
+## R1108 —— 【判据 a】类型缺席三分类对账：UNKNOWN 6 → 4，两条改判为已有裁决的 EQUIVALENT
+
+**取件**：判据 (a)「类型缺失 → 0（不可得写 Unknown + 缺什么；范围外引 R702 裁决）」的收尾对账。
+
+改了什么：
+- 读 `docs/TYPE_PRESENCE_TRIAGE.md` 全 15 行，确认分类已齐：
+  **6 RENAMED / 2 OUT_OF_SCOPE(R702) / 1 STRUCTURAL / 6 UNKNOWN**。
+- **发现两本台账互相矛盾**：`LocalizeFormatExtension` 与 `LocalizeSwitchExtension` 在三分类里仍是
+  `UNKNOWN (non-discriminative)`，而 `replica/docs/B_CLASS_DECISIONS.md` **L25/L26 早已裁决它们
+  为「已有等价物」**（`LocalizeSwitchExtension`：复刻件用内联三元表达同一意图；
+  `LocalizeFormatExtension`：格式化用 `string.Format` 直调）。**后来的决定性裁决没有回灌到三分类。**
+- 改判两行：`UNKNOWN (non-discriminative)` → **`EQUIVALENT`**，并在证据格写明
+  `B_CLASS_DECISIONS.md` L25/L26 的裁决原文与替代物。
+- 顺带补上本轮新取到的**镜像侧身份证据**（原台账只有裸类型名）：
+  命名空间 `Cybersole.Ui.Localization`；XAML 类型名表 `0x1432fd514`
+  （长度前缀串表：`LocalizeExtension` / `LocalizeFormatExtension` / `LocalizeFallbackExtension` /
+  `LocalizeEnumExtension` / `LocalizeSwitchExtension` / `LocalizedSwitchConverter`），
+  以及 `0x14320c2d5` 的绑定描述符（`Cybersole.Ui.Localization.LocalizeFormatExtension,
+  Cybersole.Value!Getter` 等）。
+- **子集自检**：对 `AccountsCreatorView` / `TaskCreatorCartView` / `LocalizeEnumExtension` /
+  `LocalizeFallbackExtension` 四条，`B_CLASS_DECISIONS.md` **无对应行**——故**保持 UNKNOWN 不动**，
+  不替它们编结论。
+
+验证命令与输出：
+- `git diff --ignore-cr-at-eol --stat docs/TYPE_PRESENCE_TRIAGE.md` 无输出 → 该文件工作区改动是
+  **纯 CRLF 噪声**，改内容不会与并行会话冲突。
+- `python tools/where_is.py LocalizeFormatExtension` → 13 个文件**全在 `docs/`**，
+  **复刻件确无实现**（与三分类一致）。
+- 改判后分类计数自检：**`rows still UNKNOWN: 4`、`EQUIVALENT rows: 2`**。
+- 文档类守卫逐类：`SourceEncodingTests` 2/2、`SummaryBlockTests` 4/4、
+  `DocsConsistencyTests` 8/8、`ParityDocTests` 9/9 = **23 钉全绿**。
+
+数字变化：三分类 UNKNOWN **6 → 4**；EQUIVALENT **+2**；类型缺席原始计数仍 15（未实现任何新类型）。
+
+证据等级：Observation = 15 行分类全表、`B_CLASS_DECISIONS` L25/L26 原文、类型名表与描述符地址、
+`where_is` 的 13 处全在 docs、四个守卫类逐类通过；Inference = 无（本轮只做已裁定项的回灌，
+未对剩余 4 条 UNKNOWN 下任何结论）。
+
+还剩什么：判据 (a) 剩余 4 条 UNKNOWN（`AccountsCreatorView`/`TaskCreatorCartView`/
+`LocalizeEnumExtension`/`LocalizeFallbackExtension`）需镜像侧成员集取证后再分类；
+判据 (b)(c)(d)(f) 逐项复算。

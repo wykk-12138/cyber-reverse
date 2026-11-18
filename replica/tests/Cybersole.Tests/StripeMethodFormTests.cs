@@ -140,4 +140,105 @@ public sealed class StripeMethodFormTests
         // this form carrying acacia, not basil.
         Assert.DoesNotContain("basil", StripeGateway.FormVersion);
     }
+
+    /// <summary>
+    /// R1088: the decoded 3DS2 authenticate form — the one-click device support family with the
+    /// machine's own false/false/true/true/true, the browser fingerprint slot, and acacia.
+    /// </summary>
+    [Fact]
+    public void TheThreeDs2AuthenticateFormMatchesTheDecodedContract()
+    {
+        var ctx = Context(null!);
+        ctx.Session.Vars["stripe.publishableKey"] = "pk_test_popmart";
+
+        var f = StripeGateway.ThreeDs2AuthenticateForm(ctx, "src_3ds_9", "{\"depth\":24}");
+
+        Assert.Equal(9, f.Count);
+        Assert.Equal(new[]
+        {
+            "source", "browser",
+            "one_click_authn_device_support[hosted]",
+            "one_click_authn_device_support[same_origin_frame]",
+            "one_click_authn_device_support[spc_eligible]",
+            "one_click_authn_device_support[webauthn_eligible]",
+            "one_click_authn_device_support[publickey_credentials_get_allowed]",
+            "key", "_stripe_version",
+        }, f.Keys.ToArray());
+
+        Assert.Equal("src_3ds_9", f["source"]);
+        Assert.Equal("{\"depth\":24}", f["browser"]);
+        Assert.Equal("false", f["one_click_authn_device_support[hosted]"]);
+        Assert.Equal("false", f["one_click_authn_device_support[same_origin_frame]"]);
+        Assert.Equal("true", f["one_click_authn_device_support[spc_eligible]"]);
+        Assert.Equal("true", f["one_click_authn_device_support[webauthn_eligible]"]);
+        Assert.Equal("true", f["one_click_authn_device_support[publickey_credentials_get_allowed]"]);
+        Assert.Equal("pk_test_popmart", f["key"]);
+        Assert.Equal("2025-01-27.acacia", f["_stripe_version"]);
+    }
+
+    /// <summary>
+    /// The decoded 3DS2 chain, in the machine's own order: authenticate (fingerprint form) →
+    /// the hooks notification → challenge_complete with the challenge answer's CRes.
+    /// </summary>
+    [Fact]
+    public async Task TheThreeDs2ChainRunsAuthenticateNotifyCompleteInOrder()
+    {
+        var paths = new System.Collections.Generic.List<string>();
+        using var server = new TinyServer((req, body) =>
+        {
+            paths.Add(req.Url?.AbsolutePath ?? "");
+            if (req.Url?.AbsolutePath.EndsWith("3ds2/authenticate") == true) return (200, "{\"source\":\"src_3ds_9\"}");
+            if (req.Url?.AbsolutePath.EndsWith("3d_secure_2/notify") == true) return (200, "{}");
+            if (req.Url?.AbsolutePath.EndsWith("3ds2/challenge_complete") == true) return (200, "{\"status\":\"succeeded\"}");
+            return (404, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+        ctx.Session.Vars["stripe.apiUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
+        ctx.Session.UserAgent = "UA/1";
+
+        var result = await new StripeGateway().ThreeDs2Async(ctx, "src_3ds_9", "cres-answer", default);
+
+        Assert.True(result.Ok, result.Error);
+        Assert.Equal(new[]
+        {
+            "/v1/3ds2/authenticate", "/3d_secure_2/notify", "/v1/3ds2/challenge_complete",
+        }, paths.ToArray());
+
+        // The completion carries the machine's own four keys.
+        var last = server.Requests[2].Body;
+        Assert.Contains("source=src_3ds_9", last);
+        Assert.Contains("final_cres=cres-answer", last);
+        Assert.Contains("key=", last);
+        Assert.Contains("_stripe_version=2025-01-27.acacia", last);
+    }
+
+    /// <summary>
+    /// The gateway's completion drives the chain (R1088's wiring): a stashed 3DS2 source plus
+    /// the challenge answer's CRes runs authenticate → notify → complete, and clears the stash.
+    /// </summary>
+    [Fact]
+    public async Task TheGatewayCompletionDrivesTheThreeDs2Chain()
+    {
+        using var server = new TinyServer((req, _) =>
+        {
+            var path = req.Url?.AbsolutePath ?? "";
+            if (path.EndsWith("3ds2/authenticate") == true) return (200, "{}");
+            if (path.EndsWith("3d_secure_2/notify") == true) return (200, "{}");
+            if (path.EndsWith("3ds2/challenge_complete") == true) return (200, "{\"status\":\"succeeded\"}");
+            return (404, "{}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http);
+        ctx.Session.Vars["stripe.apiUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.hooksUrl"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.threeDs2Source"] = "src_3ds_9";
+
+        var result = await new StripeGateway().CompleteActionAsync(ctx, "cres-answer", default);
+
+        Assert.True(result.Ok, result.Error);
+        Assert.Equal(3, server.Requests.Count);
+        Assert.False(ctx.Session.Vars.ContainsKey("stripe.threeDs2Source"));   // the stash cleared
+    }
 }

@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **43 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080 补 1 条；R1087 补 Stripe radar 槽守卫 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **44 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087 各 1 条；R1088 补 3DS2 旗标锚 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63022,3 +63022,39 @@ URL 字面量错误。**第七次同族事故**，读文件 + edit 工具修复�
 > **冻结字面量成对出现时，一个都不能少报**——镜像有两个 `_stripe_version`
 > （acacia 表单侧 / basil 挑战侧）。此前文档只记了 basil；本轮表单解码自然带出 acacia。
 > 常量的全集来自每个消费现场的逐一解码，不是来自一次探针的命中清单。
+
+---
+
+## 第 1088 轮：Stripe 3DS2 链全解 —— 四端点、七冻结指纹值、五旗标族；R1087 的乱码债清偿
+
+### 一、3DS2 面（共享机 state 3–6）
+
+**GET** `payment_intents/{id}/confirm`（意图确认走查询串：client_secret + `&key=`）→
+**PUT** `/v1/3ds2/authenticate`（`source` + `browser` 指纹 JSON——七冻结值 `Y/24/1080/1920/-120/
+en-US` + UA——+ **`one_click_authn_device_support` 五键族 false/false/true/true/true** + acacia）→
+**PUT** `hooks.stripe.com/3d_secure_2/notify` → **PUT** `/v1/3ds2/challenge_complete`
+（`final_cres`——挑战应答的 CRes 经 'cres' 针读回）。接线：`requires_action` 识别 `src_` 源 →
+`CompleteActionAsync` 带 CRes 驱动全链。
+
+### 二、乱码债清偿（守卫逼出的账）
+
+R1087 的 `Get-Content -Raw` 按 GBK 误读 + `Set-Content UTF8` 重编码把 Gateways.cs **全文件
+33 处**注释字符损坏（30 处 em-dash、3 处箭头、2 处换行被吞）——当时过滤器没跑
+SourceEncodingTests，坏码随提交溜走。本轮三步修复（先错搜 U+FFFD?、快照副本漏修），
+全清复绿。**根因立规：源码读写永远走 edit/写工具，`-Raw` GBK 读是已定罪路径。**
+
+### 三、数字
+
+| 度量 | R1087 | **R1088** |
+|---|---|---|
+| 变异套件 | 43 | **44**（spc_eligible 旗标锚） |
+| Stripe 契约钉 | 3 | **6** |
+| Stripe v1 端点 | 2 | **4** + hooks 面 1 |
+
+**26/26 钉绿**（SourceEncoding 复绿）；SummaryBlock 4/4（指南 44）。
+
+### 教训
+
+> **守卫没跑进过滤器，等于守卫不存在**——R1087 的测试过滤漏了 SourceEncodingTests，
+> 33 处乱码随提交上路。每个触碰源码的轮次，编码守卫必须在该轮的过滤器里；
+> 「专项测试通过」永远不能替代「全守卫面通过」。

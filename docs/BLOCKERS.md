@@ -38922,3 +38922,50 @@ Inference = desk 会话响应键名（publishableKey——响应体形状未反�
 还剩什么：Stripe 六步名中 JL 族的 `SubmitOrderStripe d__32`/`ProcessOrderStripe d__100`
 本体反编译（名字 → chars-12 链到 JL/Demandware 流）；`sub_140BDA320` 尾部 312 行
 （state 4-7 的意图确认半）；42+1 锚的静树全跑。
+
+## R1088 —— 【核心②合并步幅】Stripe 3DS2 链解码落地（authenticate→hooks notify→challenge_complete）+ 接线；并修复 R1087 遗留的全文件乱码
+
+**取件**：Stripe 共享机尾部（state 3–7，R1087 指定）。
+
+改了什么：
+- **`StripeGateway.ThreeDs2Async` + `ThreeDs2AuthenticateForm`**（共享机 state 3–6 解码）：
+  - **GET** `payment_intents/{id}/confirm`（unk_147054F14 + ctx intent id + 35 字内联查询 +
+    client_secret + `&key=` 0x146A84588 + 可发布键 + 34 字内联尾部）——意图确认是 **GET 查询串**；
+  - **PUT `/v1/3ds2/authenticate`**（0x147054E20）——9 键表单：`source` + `browser`（指纹 JSON：
+    `fingerprintAttempted=true`/`fingerprintData=null`/`threeDSCompInd=Y`/`browserJavaEnabled=false`/
+    `browserJavascriptEnabled=true` + **七冻结值** `challengeWindowSize=Y`·`browserColorDepth=24`·
+    `browserScreenHeight=1080`·`browserScreenWidth=1920`·`browserTZ=-120`·`browserLanguage=en-US` +
+    UA）+ **`one_click_authn_device_support` 五键**（hosted=false/same_origin_frame=false/
+    spc_eligible=true/webauthn_eligible=true/publickey_credentials_get_allowed=true，全冻结）+
+    `key` + `_stripe_version=acacia`；
+  - **PUT `hooks.stripe.com/3d_secure_2/notify`**（0x14706B898，仅 source）；
+  - **PUT `/v1/3ds2/challenge_complete`**（0x147054E90）——`source`+`final_cres`（'cres' 针
+    0x146FD92D0 读回）+`key`+版本。
+- **接线**：`AuthorizeAsync` 的 `requires_action` 分支识别 `src_` 前缀源→存
+  `stripe.threeDs2Source`→`CompleteActionAsync` 带 CRes 驱动全链（成功清源）——挑战双阶段映射
+  原机 state 序。
+- 缝：`stripe.apiUrl`（v1 两路径）+ `stripe.hooksUrl`（hooks 主机）。
+- **修复 R1087 遗留乱码**（守卫逼出）：R1087 的 `Get-Content -Raw` GBK 误读 + `Set-Content UTF8`
+  重编码把 Gateways.cs **全文件 33 处**注释字符损坏（30 处 em-dash→U+9225?，3 处箭头→U+922B?，
+  2 处换行被吞）——活文件与本轮快照副本同修（分治脚本 + edit 工具），SourceEncodingTests 复绿。
+- 变异 43 → **44**（3DS2 spc_eligible 旗标锚）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`dec 0x140BDA320` 尾部 312 行 + names_at 31 常量（三 URL + 9 表单键 + 五 one_click 键 +
+  11 指纹键 + 五冻结值）。
+- `dotnet test --filter "SourceEncoding|StripeMethodForm|StripeChallenge|GatewaySelection" -m:1`
+  → **26/26 绿**（新钉 3：3DS2 表单 9 键+旗标族、三链机序+final_cres、网关完成驱动+清源）；
+  SummaryBlock 4/4（指南 44）；`metrics_report --skip-tests` → exit 0。
+- 事故链如实：编译错误两修（非法模式串 `is >= 0 var`、`url3ds` 双声明 CS0136）；
+  **乱码修复走了三步才对**（先错搜 U+FFFD? ——真码是 U+9225?；快照副本漏修第二轮）——轻量扫
+  `.snapshots`/`.mutation-backup` 后第三轮全清。
+
+数字变化：变异 43 → **44**；Stripe 契约钉 3 → **6**；Stripe v1 端点面从 2 → **4**
+（+authenticate/challenge_complete）+ hooks 面 1。
+
+证据等级：Observation = 三 URL、9 键表单、五 one_click 旗标值、七指纹冻结值、GET confirm
+组合段、'cres'/'final_cres' 针；Inference = hooks 通知体仅 source（响应体未解码）、
+`browser` 指纹的 fingerprintAttempted/fingerprintData 两值（位置在 case 体但值来自上下文默认）。
+
+还剩什么：JL 族 `SubmitOrderStripe`/`ProcessOrderStripe` 本体；44 锚静树全跑；
+乱码根因（PS `-Raw` GBK 读）已立规：源码读写永远走 edit/写工具。

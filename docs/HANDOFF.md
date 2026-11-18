@@ -5214,3 +5214,31 @@ desk 三链机序+returnURL、路径/双版本）；SummaryBlock 4/4（指南 43
 setupFutureUsage 空值为 Inference。
 
 还剩什么：JL 族 `SubmitOrderStripe`/`ProcessOrderStripe` 本体；共享机尾部 312 行；43 锚静树全跑。
+
+## R1088 —— 【核心②】Stripe 3DS2 链解码落地 + 接线；修复 R1087 遗留全文件乱码
+
+**取件**：共享机尾部 state 3–7。
+
+改了什么：
+- `StripeGateway.ThreeDs2Async`/`ThreeDs2AuthenticateForm`（state 3–6）：**GET**
+  `payment_intents/{id}/confirm`（查询串组合）→ **PUT `/v1/3ds2/authenticate`**（9 键：source +
+  browser 指纹 JSON + 七冻结值 Y/24/1080/1920/-120/en-US + **one_click 五键** false/false/true/
+  true/true + key + acacia）→ **PUT `hooks.stripe.com/3d_secure_2/notify`** → **PUT
+  `/v1/3ds2/challenge_complete`**（source+final_cres+key+版本）。
+- 接线：`requires_action` 识别 `src_` 源→存会话→`CompleteActionAsync` 带 CRes 驱动全链、
+  成功清源。缝：`stripe.apiUrl`/`stripe.hooksUrl`。
+- **乱码修复**（R1087 的 `Get-Content -Raw` GBK 误读所致，守卫逼出）：Gateways.cs 全文件
+  **33 处**（30 em-dash→U+9225? + 3 箭头→U+922B?，2 处换行吞）——活文件+本轮快照同修，
+  SourceEncodingTests 复绿。
+- 变异 43 → **44**（spc_eligible 旗标锚）+ 指南格同步。
+
+验证：`dec sub_140BDA320` 尾 312 行 + names_at 31 常量；**26/26 绿**（3 新钉：表单 9 键、
+三链机序+final_cres、网关完成驱动+清源）；SummaryBlock 4/4（指南 44）；metrics exit 0。
+事故：两编译修（非法模式串/url3ds 双声明）；乱码修复三步才对（先错搜 U+FFFD?；快照漏修）。
+
+数字变化：变异 43 → **44**；Stripe 契约钉 3 → **6**；v1 端点 2 → **4** + hooks 面 1。
+
+证据等级：三 URL/9 键/旗标族/冻结值/GET 组合/'cres' 针全 Observation；hooks 体与
+指纹两默认值为 Inference。
+
+还剩什么：JL 族两本体；44 锚静树全跑。

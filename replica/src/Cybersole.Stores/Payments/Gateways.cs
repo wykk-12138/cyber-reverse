@@ -60,7 +60,7 @@ internal static class GatewayHttp
 }
 
 /// <summary>
-/// Square 鈥?card nonce service. The binary carries the application id
+/// Square — card nonce service. The binary carries the application id
 /// <c>sq0idp-IHOCkIE2YwtxidR3fPWIEg</c> and the nonce host
 /// <c>pci-connect.squareup.com/v2/card-nonce</c>.
 /// </summary>
@@ -148,17 +148,18 @@ public sealed class SquareGateway : IPaymentGateway
 }
 
 /// <summary>
-/// Stripe 鈥?publishable-key payment method creation then intent confirmation. The binary
+/// Stripe — publishable-key payment method creation then intent confirmation. The binary
 /// carries <c>js.stripe.com</c>, <c>_stripePublishableKey</c> and <c>_stripePaymentMethodId</c>.
 ///
 /// <para>
 /// <b>R1087: the method-create form is decoded from the shared Stripe gateway state machine</b>
 /// (<c>sub_140bda320</c>, 7 async states, referenced by both v1 literals): the
-/// <c>radar_options[hcaptcha_token]</c> slot (0x147148170) is where the hCaptcha answer rides 鈥?/// the same challenge <see cref="StripeChallenge"/> answers 鈥?and the frozen client fingerprint
+/// <c>radar_options[hcaptcha_token]</c> slot (0x147148170) is where the hCaptcha answer rides —
+/// the same challenge <see cref="StripeChallenge"/> answers — and the frozen client fingerprint
 /// goes out with every create: <c>payment_user_agent</c> (0x1471655c8,
 /// <c>stripe.js/20e04cd437; stripe-js-v3/...; payment-element; deferred-intent; autopm</c>),
 /// <c>time_on_page=11370</c> (0x146ad68f0), <c>allow_redisplay=unspecified</c>, the
-/// <c>client_attribution_metadata[*]</c> family, and <c>_stripe_version</c> 鈥?the image carries
+/// <c>client_attribution_metadata[*]</c> family, and <c>_stripe_version</c> — the image carries
 /// <b>two</b> frozen versions, <c>2025-01-27.acacia</c> (0x146adfbe0, this form) and
 /// <c>2025-08-27.basil</c> (the challenge surface's constant).
 /// </para>
@@ -167,7 +168,7 @@ public sealed class SquareGateway : IPaymentGateway
 /// The same machine's store-side pair is decoded beside it: the PopMart desk stripe endpoints
 /// <c>/shop/v1/shop/cash/desk/stripe/customerSession</c> (0x146ab8a50, query <c>orderNum</c>) and
 /// <c>/shop/v1/shop/cash/desk/stripe/pay</c> (0x146ab8ac8, form <c>orderNum</c> /
-/// <c>paymentMethodId</c> / <c>setupFutureUsage</c> / <c>returnURL</c> 鈥?the return URL composed as
+/// <c>paymentMethodId</c> / <c>setupFutureUsage</c> / <c>returnURL</c> — the return URL composed as
 /// the store host + the order id + <c>/order/</c> + <c>?payType=stripe</c>). Both are public on
 /// this gateway so the flow that owns the desk surface drives them.
 /// </para>
@@ -176,11 +177,11 @@ public sealed class StripeGateway : IPaymentGateway
 {
     private const string ApiHost = "https://api.stripe.com";
 
-    /// <summary>The payment-method create's frozen fingerprint (0x1471655c8) 鈥?verbatim.</summary>
+    /// <summary>The payment-method create's frozen fingerprint (0x1471655c8) — verbatim.</summary>
     public const string PaymentUserAgent =
         "stripe.js/20e04cd437; stripe-js-v3/20e04cd437; payment-element; deferred-intent; autopm";
 
-    /// <summary>The image's frozen time_on_page (0x146ad68f0) 鈥?verbatim.</summary>
+    /// <summary>The image's frozen time_on_page (0x146ad68f0) — verbatim.</summary>
     public const string TimeOnPage = "11370";
 
     /// <summary>This form's frozen API version (0x146adfbe0).</summary>
@@ -192,6 +193,31 @@ public sealed class StripeGateway : IPaymentGateway
     /// <summary>The PopMart desk pay endpoint (0x146ab8ac8).</summary>
     public const string DeskPayPath = "/shop/v1/shop/cash/desk/stripe/pay";
 
+    /// <summary>Stripe's 3DS2 authenticate (0x147054e20) — the fingerprint form's target.</summary>
+    public const string ThreeDs2AuthenticatePath = "/v1/3ds2/authenticate";
+
+    /// <summary>The 3DS2 challenge notification hook (0x14706b898).</summary>
+    public const string ThreeDs2NotifyUrl = "https://hooks.stripe.com/3d_secure_2/notify";
+
+    /// <summary>Stripe's 3DS2 challenge completion (0x147054e90) — the final_cres form.</summary>
+    public const string ThreeDs2ChallengeCompletePath = "/v1/3ds2/challenge_complete";
+
+    /// <summary>
+    /// The frozen browser fingerprint the authenticate form swears by — the image's own literals:
+    /// color depth 24 (0x146ae23f8), screen 1920x1080 (0x146adcfa8/0x146ad59e8), TZ -120
+    /// (0x146aa3188), language en-US (0x14701be60), the challenge window 'Y' (0x146f33988).
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> BrowserFingerprint =
+        new Dictionary<string, string>
+        {
+            ["challengeWindowSize"] = "Y",
+            ["browserColorDepth"] = "24",
+            ["browserScreenHeight"] = "1080",
+            ["browserScreenWidth"] = "1920",
+            ["browserTZ"] = "-120",
+            ["browserLanguage"] = "en-US",
+        };
+
     public string Id => "stripe";
     public string Name => "Stripe";
 
@@ -199,7 +225,7 @@ public sealed class StripeGateway : IPaymentGateway
         c.Session.Vars.TryGetValue("stripe.publishableKey", out var v) ? v : string.Empty;
 
     /// <summary>
-    /// The v1 host 鈥?the frozen literal, with the standard test/config seam (the checkStockUrl
+    /// The v1 host — the frozen literal, with the standard test/config seam (the checkStockUrl
     /// convention) overriding the HOST so a configured endpoint can front the API.
     /// </summary>
     private static string ApiUrl(FlowContext c) =>
@@ -212,7 +238,7 @@ public sealed class StripeGateway : IPaymentGateway
         FlowContext c, string? hcaptchaToken, string? clientSessionId, string? guid, string? muid, string? sid) =>
         new Dictionary<string, string>
         {
-            // billing_details[address][country] (0x146f93b48) 鈫?the profile's country.
+            // billing_details[address][country] (0x146f93b48) — the profile's country.
             ["billing_details[address][country]"] = c.Shipping?.Country ?? "US",
             ["type"] = "card",                                   // 0x146fbfc90 via the 'type' key
             ["card[number]"] = c.Card?.Number ?? string.Empty,   // 0x146fc06e8
@@ -223,7 +249,7 @@ public sealed class StripeGateway : IPaymentGateway
             ["payment_user_agent"] = PaymentUserAgent,           // frozen 0x147110588/0x1471655c8
             ["referrer"] = "https://www.popmart.com",            // frozen 0x14714a5e8/0x147099540
             ["time_on_page"] = TimeOnPage,                       // frozen 0x14716e2b8/0x146ad68f0
-            // The hCaptcha slot the machine reads its radar options through 鈥?the challenge's
+            // The hCaptcha slot the machine reads its radar options through — the challenge's
             // own token rides here (0x146fcaf80 formats the session id; 0x147148170 is the radar key).
             ["radar_options[hcaptcha_token]"] = hcaptchaToken ?? string.Empty,
             ["client_attribution_metadata[client_session_id]"] = clientSessionId ?? string.Empty,
@@ -265,7 +291,8 @@ public sealed class StripeGateway : IPaymentGateway
     }
 
     /// <summary>
-    /// The desk session read (0x146ab8a50): the store's own customerSession for the order 鈥?    /// the flow that owns the desk surface calls this to pull the publishable key.
+    /// The desk session read (0x146ab8a50): the store's own customerSession for the order —
+/// the flow that owns the desk surface calls this to pull the publishable key.
     /// </summary>
     public async Task<PaymentResult> CustomerSessionAsync(FlowContext c, string deskHost,
         string orderNum, CancellationToken ct)
@@ -282,7 +309,7 @@ public sealed class StripeGateway : IPaymentGateway
     }
 
     /// <summary>
-    /// The desk pay (0x146ab8ac8): the store-side SetStripePayment 鈥?the return URL composed the
+    /// The desk pay (0x146ab8ac8): the store-side SetStripePayment — the return URL composed the
     /// machine's own way (store host + order id + <c>/order/</c> + <c>?payType=stripe</c>).
     /// </summary>
     public async Task<PaymentResult> DeskPayAsync(FlowContext c, string deskHost,
@@ -304,14 +331,85 @@ public sealed class StripeGateway : IPaymentGateway
             "stripe-desk-pay", ct).ConfigureAwait(false);
 
         if (res is null) return PaymentResult.Fail("stripe: desk pay failed");
-        // The desk answer is the store's own status report; the gateway relays it either way 鈥?        // the flow that owns the desk surface decides what its statuses mean.
+        // The desk answer is the store's own status report; the gateway relays it either way:
+        // the flow that owns the desk surface decides what its statuses mean.
         return PaymentResult.Success(res["status"]?.ToString());
+    }
+
+    /// <summary>
+    /// The decoded 3DS2 authenticate form (the machine's state 4): the browser fingerprint
+    /// object, the one-click device support family, the source, and the API pair.
+    /// </summary>
+    public static Dictionary<string, string> ThreeDs2AuthenticateForm(
+        FlowContext c, string source, string? browserJson) => new()
+    {
+        ["source"] = source,                                              // 0x147160de0
+        ["browser"] = browserJson ?? string.Empty,                        // 0x146f9c058
+        ["one_click_authn_device_support[hosted]"] = "false",             // 0x1471082a8/0x147032068
+        ["one_click_authn_device_support[same_origin_frame]"] = "false",  // 0x1471083a8
+        ["one_click_authn_device_support[spc_eligible]"] = "true",        // 0x147108420
+        ["one_click_authn_device_support[webauthn_eligible]"] = "true",   // 0x147108490
+        ["one_click_authn_device_support[publickey_credentials_get_allowed]"] = "true",
+        ["key"] = PublishableKey(c),
+        ["_stripe_version"] = FormVersion,
+    };
+
+    /// <summary>
+    /// The decoded 3DS2 chain (the machine's states 4-6): authenticate with the fingerprint
+    /// form, notify the challenge hook, then complete with the final CRes. The form carries the
+    /// same frozen version the method create does.
+    /// </summary>
+    public async Task<PaymentResult> ThreeDs2Async(FlowContext c, string source, string? finalCres,
+        CancellationToken ct)
+    {
+        var browser = new Newtonsoft.Json.Linq.JObject
+        {
+            ["fingerprintAttempted"] = true,                              // 0x147034f20
+            ["fingerprintData"] = null,                                   // 0x147034f60
+            ["threeDSCompInd"] = "Y",                                     // 0x14716d1e0
+            ["browserJavaEnabled"] = false,                               // 0x146f9c698
+            ["browserJavascriptEnabled"] = true,                          // 0x146f9c6d8
+        };
+        foreach (var kv in BrowserFingerprint)
+            browser[kv.Key] = kv.Value;
+        browser["browserUserAgent"] = c.Session.UserAgent ?? string.Empty; // 0x146f9c830
+
+        var auth = await GatewayHttp.PostFormAsync(c, $"{ApiUrl(c)}{ThreeDs2AuthenticatePath}",
+            ThreeDs2AuthenticateForm(c, source, browser.ToString(Newtonsoft.Json.Formatting.None)),
+            "stripe-3ds2-auth", ct).ConfigureAwait(false);
+        if (auth is null) return PaymentResult.Fail("stripe: 3ds2 authenticate failed");
+
+        // The challenge notification hook: the machine PUTs it between authenticate and complete.
+        // The frozen hooks host, with the same checkStockUrl-convention seam for configured fronts.
+        var hooksUrl = c.Session.Vars.TryGetValue("stripe.hooksUrl", out var h) &&
+                       !string.IsNullOrEmpty(h)
+            ? h.TrimEnd('/')
+            : ThreeDs2NotifyUrl[..ThreeDs2NotifyUrl.IndexOf('/', "https://".Length)];
+        var notify = await GatewayHttp.PostFormAsync(c, hooksUrl + "/3d_secure_2/notify",
+            new Dictionary<string, string> { ["source"] = source },
+            "stripe-3ds2-notify", ct).ConfigureAwait(false);
+        if (notify is null) return PaymentResult.Fail("stripe: 3ds2 notify failed");
+
+        // The completion: source + final_cres (the challenge answer's CRes, read through the
+        // 'cres' needle 0x146fd92d0) + the API pair.
+        var done = await GatewayHttp.PostFormAsync(c, $"{ApiUrl(c)}{ThreeDs2ChallengeCompletePath}",
+            new Dictionary<string, string>
+            {
+                ["source"] = source,
+                ["final_cres"] = finalCres ?? string.Empty,              // 0x147034cc0
+                ["key"] = PublishableKey(c),
+                ["_stripe_version"] = FormVersion,
+            },
+            "stripe-3ds2-complete", ct).ConfigureAwait(false);
+        if (done is null) return PaymentResult.Fail("stripe: 3ds2 challenge_complete failed");
+
+        return PaymentResult.Success(done["status"]?.ToString() ?? done["source"]?.ToString());
     }
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
     {
-        // R1087: the decoded desk chain 鈥?when the flow set the desk host (the PopMart surface's
-        // own endpoints), the gateway runs the machine's order: session 鈫?method create 鈫?desk pay.
+        // R1087: the decoded desk chain — when the flow set the desk host (the PopMart surface's
+        // own endpoints), the gateway runs the machine's order: session, method create, desk pay.
         var deskHost = c.Session.Vars.GetValueOrDefault("stripe.deskHost");
         if (!string.IsNullOrEmpty(deskHost))
         {
@@ -366,7 +464,20 @@ public sealed class StripeGateway : IPaymentGateway
 
         if (string.Equals(status, "requires_action", StringComparison.OrdinalIgnoreCase))
         {
+            // The decoded 3DS2 route (R1088): a 3DS source in the action means the machine's
+            // states 4-6 follow — authenticate, notify, challenge_complete. The source and the
+            // challenge's CRes are what those forms key on, so both ride the session/action
+            // pair and CompleteActionAsync drives the chain once the challenge answered.
+            var threeDs2Source = res["source"]?.ToString()
+                                 ?? res["next_action"]?["source"]?.ToString();
             var url3ds = res["next_action"]?["redirect_to_url"]?["url"]?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(threeDs2Source) && threeDs2Source.StartsWith("src_",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                c.Session.Vars["stripe.threeDs2Source"] = threeDs2Source!;
+                return PaymentResult.Action(url3ds, res["client_secret"]?.ToString() ?? string.Empty);
+            }
+
             return PaymentResult.Action(url3ds, res["client_secret"]?.ToString() ?? string.Empty);
         }
 
@@ -376,6 +487,25 @@ public sealed class StripeGateway : IPaymentGateway
     public async Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload,
         CancellationToken ct)
     {
+        // The decoded 3DS2 completion (R1088): the challenge's CRes came back — the machine's
+        // states 4-6 run here, keyed on the source the confirm left on the session.
+        var threeDs2Source = c.Session.Vars.GetValueOrDefault("stripe.threeDs2Source");
+        if (!string.IsNullOrEmpty(threeDs2Source) && !string.IsNullOrEmpty(payload))
+        {
+            // The challenge answer arrives as the CRes (raw, or wrapped as a JSON string);
+            // the machine's final_cres form field carries it either way.
+            var cres = payload.Trim();
+            if (cres.StartsWith("{", StringComparison.Ordinal))
+            {
+                try { cres = Newtonsoft.Json.Linq.JObject.Parse(cres)["cres"]?.ToString()
+                                   ?? cres; }
+                catch { /* a raw CRes stays as-is */ }
+            }
+            var done = await ThreeDs2Async(c, threeDs2Source!, cres, ct).ConfigureAwait(false);
+            if (done.Ok) c.Session.Vars.Remove("stripe.threeDs2Source");
+            return done;
+        }
+
         var form = new Dictionary<string, string>
         {
             ["key"] = PublishableKey(c),
@@ -393,7 +523,7 @@ public sealed class StripeGateway : IPaymentGateway
     }
 }
 
-/// <summary>Unzer 鈥?<c>api.unzer.com</c> charge flow with a card resource.</summary>
+/// <summary>Unzer — <c>api.unzer.com</c> charge flow with a card resource.</summary>
 public sealed class UnzerGateway : IPaymentGateway
 {
     private const string ApiHost = "https://api.unzer.com";
@@ -464,7 +594,7 @@ public sealed class UnzerGateway : IPaymentGateway
 }
 
 /// <summary>
-/// CommerceHub (Fiserv Secure Data Capture) 鈥?the binary carries a nine-field credential set:
+/// CommerceHub (Fiserv Secure Data Capture) — the binary carries a nine-field credential set:
 /// <c>_commercehubApiHost</c>, <c>_commercehubSessionId</c>, <c>_commercehubApiKey</c>,
 /// <c>_commercehubAccessToken</c>, <c>_commercehubPublicKey</c>, <c>_commercehubKeyId</c>,
 /// <c>_commercehubMerchantId</c>, <c>_commercehubTerminalId</c>, <c>_commercehubTokenUUID</c>.
@@ -561,7 +691,7 @@ public sealed class CommerceHubGateway : IPaymentGateway
     }
 }
 
-/// <summary>Omise 鈥?<c>api.omise.co/tokens</c> then a hosted checkout page.</summary>
+/// <summary>Omise — <c>api.omise.co/tokens</c> then a hosted checkout page.</summary>
 public sealed class OmiseGateway : IPaymentGateway
 {
     private const string ApiHost = "https://api.omise.co";
@@ -633,7 +763,7 @@ public sealed class OmiseGateway : IPaymentGateway
 }
 
 /// <summary>
-/// Paynamics 鈥?<c>api.paynamics.net/v1/rpf</c> with the device-shield host
+/// Paynamics — <c>api.paynamics.net/v1/rpf</c> with the device-shield host
 /// <c>nodecde1.paynamics.net/possible</c> used for <c>AwaitDeviceProfiling</c>.
 /// </summary>
 public sealed class PaynamicsGateway : IPaymentGateway
@@ -654,7 +784,7 @@ public sealed class PaynamicsGateway : IPaymentGateway
     /// <para>
     /// Recording the host and the path is what the evidence supports. What it does not support is a call: the body,
     /// the response and which flow invokes it are all absent. The image does name a method, <c>RunShield</c>, in its
-    /// async-method table, and the replica has no such method 鈥?so this is a step the original has and this does not,
+    /// async-method table, and the replica has no such method — so this is a step the original has and this does not,
     /// which is a larger gap than a missing constant and is recorded as such rather than papered over.
     /// </para>
     /// </summary>
@@ -723,7 +853,7 @@ public sealed class PaynamicsGateway : IPaymentGateway
         Task.FromResult(PaymentResult.Success(payload));
 }
 
-/// <summary>SIBS 鈥?<c>api.sibspayments.com</c>.</summary>
+/// <summary>SIBS — <c>api.sibspayments.com</c>.</summary>
 public sealed class SibsGateway : IPaymentGateway
 {
     private const string ApiHost = "https://api.sibspayments.com";
@@ -788,7 +918,7 @@ public sealed class SibsGateway : IPaymentGateway
 }
 
 /// <summary>
-/// PayPal 鈥?client-credentials token then order create/capture. The binary carries
+/// PayPal — client-credentials token then order create/capture. The binary carries
 /// <c>GetPayPalToken</c>, <c>GetPayPalAccessToken</c>, <c>GetPayPalOrderId</c>,
 /// <c>StartPayPal</c>, <c>SubmitPayPal</c> and the <c>_returnUrlRequired</c> flag.
 /// </summary>
@@ -898,7 +1028,7 @@ public sealed class PayPalGateway : IPaymentGateway
         // The 3-D Secure completion (R1086): when a PayPal payment hit the 3DS wall,
         // PayPalThreeDs.RunAsync stopped at the challenge window and left the machine state on
         // the session. This is the call that runs the resolver chain the original's
-        // SolvePayPal3DS drives 鈥?authenticate, lookup, then ResolveThreeDsContingency with the
+        // SolvePayPal3DS drives — authenticate, lookup, then ResolveThreeDsContingency with the
         // six variables (token / authId / referenceId / creditCardId / status / experiences).
         if (c.Session.Vars.TryGetValue("paypal3ds.state", out var state) &&
             state == nameof(PayPalThreeDs.ThreeDsState.Waiting3DS))
@@ -936,7 +1066,7 @@ public sealed class PayPalGateway : IPaymentGateway
 }
 
 /// <summary>
-/// Mollie 鈥?<c>ecommerce-gateway.mollie.com</c>. R1001.
+/// Mollie — <c>ecommerce-gateway.mollie.com</c>. R1001.
 ///
 /// <para>
 /// The image names exactly one path for this host: <c>/api/v1/public/core/payments/poll</c>. So the poll is written and
@@ -954,7 +1084,7 @@ public sealed class MollieGateway : IPaymentGateway
 
     public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(PaymentResult.Fail(
-            "mollie: tokenise endpoint not captured 鈥?the image names only /api/v1/public/core/payments/poll"));
+            "mollie: tokenise endpoint not captured — the image names only /api/v1/public/core/payments/poll"));
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
     {
@@ -985,7 +1115,7 @@ public sealed class MollieGateway : IPaymentGateway
 }
 
 /// <summary>
-/// GMO Payment Gateway 鈥?<c>degica.as1.gpayments.net</c>. R1001.
+/// GMO Payment Gateway — <c>degica.as1.gpayments.net</c>. R1001.
 ///
 /// <para>
 /// One path in the image: <c>/api/v2/brw/info/result?transId=</c>, a result lookup keyed by transaction id. So this
@@ -1001,7 +1131,7 @@ public sealed class GmoGateway : IPaymentGateway
 
     public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(PaymentResult.Fail(
-            "gmo: tokenise endpoint not captured 鈥?the image names only /api/v2/brw/info/result"));
+            "gmo: tokenise endpoint not captured — the image names only /api/v2/brw/info/result"));
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
     {
@@ -1028,11 +1158,11 @@ public sealed class GmoGateway : IPaymentGateway
 }
 
 /// <summary>
-/// Touchtech 鈥?<c>retry.touchtechpayments.com</c>. R1001.
+/// Touchtech — <c>retry.touchtechpayments.com</c>. R1001.
 ///
 /// <para>
 /// One path in the image: <c>/api/v1/:select</c>. The colon is part of the captured literal rather than a route
-/// parameter this workspace can fill, so it is sent verbatim and the comment says so 鈥?inventing a substitution would be
+/// parameter this workspace can fill, so it is sent verbatim and the comment says so — inventing a substitution would be
 /// a guess dressed as a protocol.
 /// </para>
 /// </summary>
@@ -1045,7 +1175,7 @@ public sealed class TouchtechGateway : IPaymentGateway
 
     public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(PaymentResult.Fail(
-            "touchtech: tokenise endpoint not captured 鈥?the image names only /api/v1/:select"));
+            "touchtech: tokenise endpoint not captured — the image names only /api/v1/:select"));
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
     {
@@ -1076,7 +1206,7 @@ public sealed class TouchtechGateway : IPaymentGateway
 }
 
 /// <summary>
-/// Midtrans 鈥?<c>app.midtrans.com</c>. R1001.
+/// Midtrans — <c>app.midtrans.com</c>. R1001.
 ///
 /// <para>
 /// Two paths in the image, <c>/snap/v1/transactions</c> and <c>/snap/v2/transactions</c>. Snap creates a hosted payment
@@ -1095,7 +1225,7 @@ public sealed class MidtransGateway : IPaymentGateway
 
     public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(PaymentResult.Fail(
-            "midtrans: tokenise is the Snap session itself 鈥?call AuthorizeAsync, which creates it"));
+            "midtrans: tokenise is the Snap session itself — call AuthorizeAsync, which creates it"));
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
     {

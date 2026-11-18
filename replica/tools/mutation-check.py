@@ -514,6 +514,16 @@ MUTATIONS = [
         "test": "FullyQualifiedName~StripeMethodFormTests",
         "guard": "TheMethodCreateFormMatchesTheDecodedContract",
     },
+    {
+        "name": "round 1088 -- the 3DS2 device-support family flips a flag",
+        "file": GATEWAYS,
+        # The one_click_authn_device_support family carries the machine's own
+        # false/false/true/true/true (0x1471082a8..0x147108310); flipping one is the drift.
+        "find": '        ["one_click_authn_device_support[spc_eligible]"] = "true",        // 0x147108420',
+        "replace": '        ["one_click_authn_device_support[spc_eligible]"] = "false",       // 0x147108420',
+        "test": "FullyQualifiedName~StripeMethodFormTests",
+        "guard": "TheThreeDs2AuthenticateFormMatchesTheDecodedContract",
+    },
 ]
 
 

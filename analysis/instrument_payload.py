@@ -1,10 +1,11 @@
-# WHY THIS EXISTS: the payload's frame array `m` lives only inside its own closure, so shim hooks cannot
-# see it. This writes an instrumented COPY of the fixture (the original is never modified) with a probe
-# that records every CHANGE of slots 5..7, together with the program counter and opcode that caused it.
-# That history is what shows whether slot 5 is ever written, and by which instruction.
+# WHY THIS EXISTS: the payload's frame array and dispatch state are only visible from inside its own
+# closure. This writes an instrumented COPY of the fixture (the original is never modified) that keeps a
+# rolling window of the last dispatches and snapshots it whenever a call instruction is about to run.
+# Comparing the window before a call whose callee slot is undefined against one whose callee is present
+# shows which instruction was skipped or jumped over.
 #
 # Usage:  python analysis/instrument_payload.py
-#         -> writes replica/tests/Cybersole.Tests/fixtures/nike-p-traced.js (a build artifact, not committed)
+#         -> writes replica/tests/Cybersole.Tests/fixtures/nike-p-traced.js (build artifact, not committed)
 import io
 import os
 
@@ -16,12 +17,14 @@ ANCHOR = "var T,E;var i=void 0;"
 
 PROBE = (
     "var T,E;var i=void 0;"
-    "if(window.__dshTrace){"
-    "var __q=function(v){return v===void 0?'undef':v===null?'null':typeof v==='function'?'fn':"
-    "typeof v==='object'?(Array.isArray(v)?'arr'+v.length:'obj'):typeof v+':'+String(v).slice(0,10)};"
-    "var __s=__q(e.m[5])+'|'+__q(e.m[6])+'|'+__q(e.m[7]);"
-    "if(window.__dshLast!==__s){window.__dshLast=__s;"
-    "if(window.__dshTrace.length<1000)window.__dshTrace.push([e.m[0],t[e.m[0]],__s]);}"
+    "if(window.__dshRing){"
+    "var __op=t[e.m[0]];"
+    "if(__op===12){"
+    "if(e.m[5]===void 0&&window.__dshFail.length<8)window.__dshFail.push(window.__dshRing.slice());"
+    "else if(e.m[5]!==void 0&&window.__dshOk.length<4)window.__dshOk.push(window.__dshRing.slice());"
+    "}"
+    "window.__dshRing.push([e.m[0],__op]);"
+    "if(window.__dshRing.length>45)window.__dshRing.shift();"
     "}"
 )
 

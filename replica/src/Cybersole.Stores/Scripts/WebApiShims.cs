@@ -68,7 +68,7 @@ internal static class WebApiShims
         // The instrumented copy of the fixture (nike-p-traced.js) pushes one row per dispatch here:
         // [pcBefore, frameLength, typeof slot2..slot7]. That is the only way to see the frame array,
         // which otherwise lives entirely inside the payload's closure.
-        this.__dshTrace = []; this.__dshCalls12 = [];
+        this.__dshTrace = []; this.__dshCalls12 = []; this.__dshRing = []; this.__dshG = []; this.__dshFail = []; this.__dshOk = [];
         (function () {
             var orig = Object.defineProperty;
             var rec = this.__dshDp;

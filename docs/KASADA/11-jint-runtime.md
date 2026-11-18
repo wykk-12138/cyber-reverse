@@ -2649,6 +2649,93 @@ GET ips.js?KP_UIDz=FORGED-TOKEN-0000000000000000  ->  200，照样回一个新 c
 **如果你的目标站点只认 `ct`/cookie，这条路够用；如果它还校验 `dt`/`im`，就还需要跑 payload。**
 这句话是这轮的结论，也是唯一诚实的结论。
 
+---
+
+## 9. 想验证"ct 被接受"，结果发现 Nike 上没有可验证的门
+
+### 9.1 先找带 ct 的请求：主页加载全程只有四个
+
+用 `SniffRoundtrips()` 把"发出或收到任何 `x-kpsdk-*` 头"的请求全部标出来（247 条里）：
+
+```
+GET  …/mfc            -> 200
+GET  …/fp?x-kpsdk-v=  -> 200
+GET  …/ips.js?KP_UIDz= -> 200
+POST …/tl             -> 200
+```
+
+**再没有第五条。** 主页、页面内所有业务请求，**一个都没带 ct**。
+
+### 9.2 业务端点也不验
+
+`product_feed/threads/v2`（`NikeFlow` 自己在用的商品 feed）三种打法：
+
+| 打��� | 结果 |
+|---|---|
+| 不带任何 Kasada 凭据 | 200，78 字节 |
+| 只带 `KP_UIDz-ssn` cookie | 200，78 字节 |
+| 带 cookie + `x-kpsdk-ct` 头 | 200，78 字节 |
+
+**一模一样。** 那个端点不要 Kasada。
+
+### 9.3 Kasada 自己的端点也不验
+
+`POST {dir}tl` 四种打法：
+
+| 打法 | 结果 |
+|---|---|
+| 无 ct，空 body | 200 |
+| 伪造 ct，空 body | 200 |
+| 真 ct，空 body | 200 |
+| 真 ct，随机 460 字节 body | 200 |
+
+**全部 200。** 结合 §8.6（伪造 `KP_UIDz` 也拿到 ct）：
+
+**⇒ `fp` / `ips.js` / `tl` 三个端点都不做校验。它们是签发和上报，不是门。**
+
+### 9.4 所以"验证 ct 是否被接受"在 Nike 上做不出来
+
+**不是我没找到方法，是这里没有门。** Nike 上 Kasada 真正发力的位置是
+SNKRS 抽签和结账链路，那些需要登录态，不是公开可探的。
+
+**这个事实本身对你其它项目比"验证通过"更有用**：抓 ct 不等于有用，
+**得先确认你的目标站点真的拿它当门。**
+
+### 9.5 交付的工具：`ProbeAsync`
+
+既然我不能替你的目标站点回答，就把"问它"这件事做成一行：
+
+```csharp
+var hs = new KasadaHttpHandshake(http);
+await hs.RunAsync(sensorScriptUrl);
+
+var probe = await hs.ProbeAsync("https://your-target/protected");
+Console.WriteLine(probe);   // bare=403(0b) token=200(1234b) gated=True
+```
+
+它打两次同一个端点：一次光着，一次带上全部凭据。
+
+- **两次不同** → 那个端点是门，且 ct 打开了它（`Gated == true`）
+- **两次一样** → 要么这个端点不要 Kasada，要么它真正要的是别的东西（登录态、API key）
+- **打不通** → `BareStatus == 0`，`BareError` 有原因
+
+**这是这条路上唯一诚实的验收方式。** 测试 `KasadaGateProbeTests` 4 例钉住了这个比较本身
+（门的形态、无门的形态、不可达、第一次光着第二次带凭据的顺序）。
+
+**Kasada 全套：121 例通过。**
+
+### 9.6 顺手修掉一个会害人的毛病
+
+`RunAsync` 早退时 `Error` 是空的 —— 测这个功能时被它坑了一轮（只看到 `handshake failed: ` 后面什么都没有）。
+现在每一跳失败都会点名：
+
+```
+the config hop (mfc) did not return 2xx
+the token hop (fp) did not return 2xx
+```
+
+**失败要有原因**，这条在 AGENTS.md §2.7 里写过一次，这是同一个错误换了个地方犯。
+
 > 已知差异（不擅自补）：`KasadaStrategyRunner.GetAsync` 目前是**一轮遍历、不重试**，
 > 所以 `Retry limit reached` 实际含义是"跑完一轮就放弃"。原版的真实重试上限只有文案为证
 > （`05-states.md` 标 `[Inf]`），没有数字证据，因此**不做猜测性实现** —— 记在这里。

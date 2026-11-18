@@ -38,4 +38,15 @@ Console.WriteLine("NOT issued (client-side): " + string.Join(", ", KasadaHttpHan
 foreach (var h in handshake.RequestHeaders().OrderBy(k => k.Key, StringComparer.Ordinal))
     Console.WriteLine($"  {h.Key}: {(h.Value.Length > 60 ? h.Value[..60] + "…" : h.Value)}");
 
+// Everything above proves a token was ISSUED. Only a gated endpoint proves it is ACCEPTED, so probe the
+// caller's own targets rather than assuming.
+var probes = args.Skip(1).Where(a => a.StartsWith("http", StringComparison.Ordinal)).ToList();
+foreach (var target in probes)
+{
+    var probe = await handshake.ProbeAsync(target, options);
+    Console.WriteLine();
+    Console.WriteLine("probe " + target);
+    Console.WriteLine("  " + probe);
+}
+
 return ok ? 0 : 2;

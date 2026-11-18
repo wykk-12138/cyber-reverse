@@ -82,7 +82,12 @@ public sealed class KasadaHttpHandshake
 
         // 1. config: gives fc (what the sensor is configured with) and h (which config version it holds).
         var mfc = await GetAsync(Root + "mfc", opts, ct).ConfigureAwait(false);
-        if (mfc is null) return false;
+        if (mfc is null)
+        {
+            // A silent false here once cost a debugging round: the step must say which hop failed and why.
+            Error ??= "the config hop (mfc) did not return 2xx";
+            return false;
+        }
         Absorb(mfc);
         // The placeholder is deliberate: the server echoes its two-character prefix and appends its own
         // config fingerprint, which is what the later requests are compared against.
@@ -90,7 +95,11 @@ public sealed class KasadaHttpHandshake
         // 2. first token. This is the hop a sensor-driven run never reaches, because the payload is written
         //    to leave it to the page's own frontend code -- see the frontend marker in the /mfc config.
         var fp = await GetAsync(Root + "fp?x-kpsdk-v=" + Uri.EscapeDataString(Build), opts, ct).ConfigureAwait(false);
-        if (fp is null) return false;
+        if (fp is null)
+        {
+            Error ??= "the token hop (fp) did not return 2xx";
+            return false;
+        }
         Absorb(fp);
         if (!Headers.TryGetValue("x-kpsdk-ct", out var first) || first.Length < 8)
         {
@@ -166,6 +175,68 @@ public sealed class KasadaHttpHandshake
         foreach (var kv in headers) Headers[kv.Key] = kv.Value;
     }
 
+    /// <summary>
+    /// Ask a protected endpoint whether it cares, by calling it twice: once bare and once with everything
+    /// this handshake holds. This is the only honest way to answer "is the token accepted", because the
+    /// Kasada endpoints themselves validate nothing -- measured, /fp issues a token to any request shape and
+    /// /tl answers 200 to an empty body with a forged token.
+    /// <para>
+    /// A difference between the two answers means the endpoint is gated and the token opens it. No
+    /// difference means either the endpoint is not gated, or something else (an auth header, a session) is
+    /// what it actually wants. Neither result proves the token is valid in general.
+    /// </para>
+    /// </summary>
+    public async Task<KasadaGateProbe> ProbeAsync(string url, RequestOptions? options = null,
+        CancellationToken ct = default)
+    {
+        var opts = options?.Clone() ?? new RequestOptions { Timeout = TimeSpan.FromSeconds(20), Retries = 0 };
+
+        var bare = await StatusOf(url, opts, withToken: false, ct).ConfigureAwait(false);
+        var withToken = await StatusOf(url, opts, withToken: true, ct).ConfigureAwait(false);
+
+        return new KasadaGateProbe
+        {
+            Url = url,
+            BareStatus = bare.Status,
+            BareLength = bare.Length,
+            TokenStatus = withToken.Status,
+            TokenLength = withToken.Length,
+            BareError = bare.Error,
+            TokenError = withToken.Error,
+        };
+    }
+
+    private async Task<(int Status, int Length, string? Error)> StatusOf(string url, RequestOptions options,
+        bool withToken, CancellationToken ct)
+    {
+        var opts = options.Clone();
+        if (withToken)
+            foreach (var kv in RequestHeaders()) opts.Headers[kv.Key] = kv.Value;
+
+        try
+        {
+            // Goes through the same seam as the handshake itself, so a caller can pin the comparison
+            // without a network and the probe cannot silently take a different path than the hops.
+            if (Transport is not null)
+            {
+                var payload = Transport(url, "GET", System.Text.Json.JsonSerializer.Serialize(opts.Headers), "");
+                if (string.IsNullOrEmpty(payload)) return (0, 0, "no reply");
+                using var doc = System.Text.Json.JsonDocument.Parse(payload!);
+                var root = doc.RootElement;
+                var st = root.TryGetProperty("status", out var stEl) ? stEl.GetInt32() : 0;
+                var body = root.TryGetProperty("body", out var bEl) ? bEl.GetString() ?? "" : "";
+                return (st, body.Length, null);
+            }
+
+            var res = await _http.SendAsync(HttpMethod.Get, url, opts, ct).ConfigureAwait(false);
+            return (res.StatusCode, res.Body.Length, null);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
+        {
+            return (0, 0, ex.Message);
+        }
+    }
+
     /// <summary>Everything a protected request needs, as a plain header dictionary.</summary>
     public Dictionary<string, string> RequestHeaders()
     {
@@ -192,4 +263,25 @@ public sealed class KasadaHttpHandshake
     {
         "x-kpsdk-dt", "x-kpsdk-im", "x-kpsdk-st", "x-kpsdk-cd",
     };
+}
+
+/// <summary>
+/// What a protected endpoint answered with and without this handshake's credentials. A difference is the
+/// only evidence that the token is what the endpoint wanted.
+/// </summary>
+public sealed class KasadaGateProbe
+{
+    public required string Url { get; init; }
+    public int BareStatus { get; init; }
+    public int BareLength { get; init; }
+    public int TokenStatus { get; init; }
+    public int TokenLength { get; init; }
+    public string? BareError { get; init; }
+    public string? TokenError { get; init; }
+
+    /// <summary>True when the endpoint answered differently once the token was offered.</summary>
+    public bool Gated => BareStatus != TokenStatus || BareLength != TokenLength;
+
+    public override string ToString() =>
+        $"bare={BareStatus}({BareLength}b) token={TokenStatus}({TokenLength}b) gated={Gated}";
 }

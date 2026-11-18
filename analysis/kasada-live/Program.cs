@@ -32,9 +32,10 @@ if (args.Contains("--browser"))
     var lines = new List<string>();
     foreach (var rt in trace)
     {
+        // Any request that either carried or received a Kasada header, which is exactly the set that shows
+        // where the token is actually used.
         var hit = rt.ResponseHeaders.Keys.Any(k => k.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase))
-                  || rt.Url.Contains("/mfc", StringComparison.Ordinal)
-                  || rt.Url.Contains("/r", StringComparison.Ordinal);
+                  || rt.RequestHeaders.Keys.Any(k => k.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase));
         lines.Add($"{(hit ? "** " : "   ")}{rt}");
         if (!hit) continue;
         foreach (var h in rt.RequestHeaders.Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase)))

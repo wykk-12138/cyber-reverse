@@ -1220,6 +1220,80 @@ configure 之后                29,191      ← 差 19,902
 **所以下一轮要问的不是「响应该长什么样」，而是「它在 `/mfc` 校验通过之后为什么没继续推进」。**
 轨迹末尾那次迭代器 `done` + 连续 `op=57`（返回）就是它退出的地方 —— 退出前那次 `op=11` 的条件读了什么，才是答案。
 
+### 5.56 硬证据：`/mfc` 校验确实通过了（换成"错误有没有被构造"当判据）[实测]
+
+上一轮我用「dispatch 从 29191 降到 24858」推断校验通过 —— **那是间接推断**。这轮换成直接判据：
+那条 `new Error('/mfc response was missing one or more headers')` 的构造点在 **pc 31858**，
+看它在不在执行轨迹里：
+
+```
+不加假头   dispatch=29191   pc 31858 被执行?  YES   ← 走了错误分支
+加假头     dispatch=24858   pc 31858 被执行?  no     ← 校验通过
+```
+
+**这才是判据**：错误对象根本没被构造，说明两个头都读到了。
+
+### 5.57 状态机的转移表找到了 [实测]
+
+加载阶段 pc 16935–16989 连续写入一张 `状态名 → 处理器地址` 的表：
+
+```
+16935  op=7   slot:4, str:'InterrogationStarting',      int:17167
+16941  op=7   slot:4, str:'InterrogationComplete',      int:12707
+16947  op=7   slot:4, str:'InterrogationSkipped',       int:45008
+16959  op=7   slot:4, str:'InterrogationFailedToStart', int:65149
+16989  op=7   slot:4, str:'InvalidStateTransition',     int:90102
+```
+
+### 5.58 configure 的结尾：把状态写成 `Configured` 并结束那个任务
+
+configure 阶段（第 13233 条 dispatch，pc 68558–68612）解出来是：
+
+```
+68564  op=64   int:2927, slot:5                    slot5 = <任务/迭代器>
+68567  op=51   slot:5, str:'abrupt', slot:4        slot4 = task.abrupt
+68573  op=49   int:2, slot:9                       slot9 = new Array(2)
+68576  op=7    slot:9, int:0, str:'return'         slot9[0] = 'return'
+68582  op=19   slot:8                              slot8 = {}
+68584  op=7    slot:8, str:'type', str:'Configured'        slot8.type = 'Configured'
+68592  op=64   int:2920, slot:10                   captured[2920] = 配置对象
+68595  op=7    slot:8, str:'configuration', slot:10       slot8.configuration = <配置>
+68601  op=7    slot:9, int:1, slot:8               slot9[1] = slot8
+68605  op=12   slot:5, slot:4, slot:9              task.abrupt('return', {type:'Configured', configuration})
+```
+
+**即：configure 以 `{type:'Configured', configuration}` 收束当前任务。**
+
+**然后就没有了。** 搜遍整条 24,858 条的轨迹，`'InterrogationStarting'` **只在那张表里出现过一次，
+从来没有被当作转移目标写出来。**
+
+**⇒ 状态停在 `Configured`，永远没走到 `InterrogationStarting`。**
+
+### 5.59 直接证据：传感器没有给任何请求加过头
+
+`sensor` 的真实产出不是"返回一个字符串"，而是**包装 fetch/XHR、往页面自己的请求上注入 `x-kpsdk-*`**。
+所以这轮直接试了一次真实调用：configure 之后发 `fetch('https://www.nike.com/tl', {method:'POST'})`，
+看 `fetch` 记录器收到什么：
+
+```
+protected-call issued ok=True result=ok
+headers added = {"url":"https://www.nike.com/tl","method":"POST","body":"probe=1","headers":null}
+```
+
+**`headers: null` —— 一个头都没加。**
+
+配合 §5.55（`x-kpsdk-ct` 在 configure 后一次都没被读）和 §5.58（状态停在 `Configured`），
+三条互相印证：**传感器没进入能注入头的状态。**
+
+### 5.60 下一轮的问题变得很具体
+
+不是"响应长什么样"，也不是"缺哪个配置键"，而是：
+
+> **`Configured` 之后，谁负责把它转到 `InterrogationStarting`？**
+
+表里写好了一个处理器地址 `17167`，只要找到"读状态、查表、跳转"的那个分发函数，
+再往上游看是谁应该触发它，就能定位到缺的那一步。
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

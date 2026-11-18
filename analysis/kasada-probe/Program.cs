@@ -74,6 +74,19 @@ if (config is not null)
     Console.WriteLine("mfc url seen = " + runtime.TryString("JSON.stringify((window.__dshRequests||[]).map(function(r){return String(r.url)}))"));
     Console.WriteLine($"isReady() = {runtime.TryString("String(window.KPSDK.isReady())")}");
     Console.WriteLine($"requests  = {runtime.TryString("JSON.stringify((window.__dshRequests||[]).map(function(r){{return {{m:r.method,u:r.url,h:r.headers,len:(r.body?String(r.body).length:0)}}}}))")}");
+    // The sensor's real output is not a returned string -- it wraps fetch/XHR and injects x-kpsdk-*
+    // headers into the page's own requests. So exercise a request through that wrapper and read back
+    // what headers actually got attached.
+    var probe = runtime.TryExecute("""
+        window.__dshRequests.length = 0;
+        window.__probeResult = 'pending';
+        window.__dshStubCt = window.__dshStubCt || undefined;
+        Promise.resolve(fetch('https://www.nike.com/tl', { method: 'POST', body: 'probe=1' }))
+          .then(function () { window.__probeResult = 'ok'; },
+                function (e) { window.__probeResult = 'rejected'; });
+        """, out var probeErr);
+    Console.WriteLine($"protected-call issued ok={probe} err={probeErr ?? "-"} result={runtime.TryString("String(window.__probeResult)")}");
+    Console.WriteLine($"headers added = {runtime.TryString("JSON.stringify((window.__dshRequests||[])[0]||null)")}");
     Console.WriteLine($"cookie    = {runtime.TryString("document.cookie")}");
     Console.WriteLine($"KPSDK keys= {runtime.TryString("JSON.stringify(Object.keys(window.KPSDK||{}))")}");
     Console.WriteLine($"ct probes = {runtime.TryString("JSON.stringify((function(){var o={};var k=window.KPSDK||{};['ct','cd','sb','v','token'].forEach(function(n){try{o[n]=typeof k[n]+':'+String(k[n]()).slice(0,30)}catch(e){o[n]='-'}});return o})())")}");

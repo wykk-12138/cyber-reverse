@@ -40950,3 +40950,52 @@ Inference = 无。
 - 全量：**2433 通过 / 0 失败 / 2 跳过 / 2435**（2m23s）。
 - 变异重跑 → 新收据 `ran_at 2026-11-19T01:49:39`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   `staleness 0`（mtime 01:49:46，读于 01:49:51 —— 5 秒新鲜）。
+## R1136 —— 把 R1133 的分配改回来：**两个步骤名对两个端点**，不是都指无体那条
+
+**取件**：R1135 待办②「`delivery-address` 仍缺步骤位」。
+
+改了什么：
+- **推翻 R1133 的分配（我自己的）**：R1133 把镜像的**两个**配送步骤名（27 `SubmitShipping`、
+  28 `CreateDelivery`）都指到 **无体** 的 `v4/orderforms/deliveries`，
+  结果 `v4/orderforms/deliveries/delivery-address`（**有体**，11 键三层，R1134 已读全）**没有任何步骤用它**。
+  镜像有 **2 个名字 / 2 个端点**（一个带地址、一个什么都不带）——**1:1 才是自然读法**：
+  | 步骤 | 端点 | 体 |
+  |---|---|---|
+  | `SubmitShipping`(27) | PUT `…/deliveries/delivery-address` | **有**（11 键三层） |
+  | `CreateDelivery`(28) | PUT `…/deliveries` | **无**（第三参字面 `0`） |
+- **落实现**：`JohnLewisFlow.SubmitShippingAsync` 改为 PUT `DeliveryAddressV4`，
+  体按 R1134 的嵌套构造：`{addressDetails:{addressee:{firstName,lastName},
+  address:{addressLine1,townOrCity,postcode,countryCode},contact:{phoneNumber}}}`，
+  seam `jl.deliveryAddressUrl`；`CreateDeliveryAsync` 保留无体确认为核心。
+- **测试重写**：删掉 `JohnLewisDeliveryConfirmTests`（它断言 `SubmitShipping`→无体，已不成立），
+  新增 `JohnLewisDeliveryStepTests` **5 条**：断言**整段嵌套 JSON 子串**（不是只断键名）、
+  `CreateDelivery` 仍无体且**不出现在** `delivery-address` 路径、无地址即停、两个名字都可派发、两个常量等于镜像字面量。
+
+验证命令与输出：
+- `dotnet build` → **build exit=0，0 个错误**；
+  `dotnet test --filter "FullyQualifiedName~JohnLewis"` → **57/57 通过**；
+  全量（`Speed!=Slow`）→ **2433 通过 / 0 失败 / 2 跳过 / 2435**（2m46s；+5 新 −5 旧，净零）。
+- 变异套件本轮重跑（结果见收据）。
+
+数字变化：John Lewis 实际调用的 BFF 端点仍 **8** 个，但**分配变了**：
+`delivery-address`（有体）**首次被真正调用**，`deliveries`（无体）只由 `CreateDelivery` 承担；
+测试数不变（+5/−5）。
+
+证据等级：Observation = R1128/R1134 的体形状与动词/第三参、`dotnet build` 0 错、57/57、全量 2433/0/2；
+**Inference（已标注在方法注释里）= 27↔`delivery-address`、28↔`deliveries` 这条分配**——
+依据是「两名字两端点、一个带体一个不带」的 1:1 形状与两个名字的语义，**不是请求捕获**。
+若将来取得更强证据，只需交换这两个覆写的端点，实现本身不用动。
+
+**IDx 环境事故（本轮记录）**：本轮开始 `ida.py health` **连接被拒**；`ida-mcp-doctor.ps1` 报
+`PROXY: MISSING` / `PORT 13337: REFUSED` / `TIMEOUT: no listener after 180s`；
+CUA 清掉两个模态框（"Proceed with unpacked base"、"id0 is not closed → 是(Y)"）后 **IDA 进程退出**，
+二次 doctor 仍拒连。**本轮代码不依赖 IDA**（证据在 R1128/R1134 已取齐），故未阻塞交付；
+IDA 恢复属「宿主 MCP 需人工重启」类，下轮继续尝试，**未重建 .i64**。
+
+还剩什么：① IDA 恢复；② `payment-page` 的无体 PUT 仍缺步骤位；
+③ `GetDeliveryMethods`（GET `…/deliveries/methods`）归属待判。
+
+**全量与收据（本轮收数）**：
+- 全量：**2433 通过 / 0 失败 / 2 跳过 / 2435**（2m46s）；John Lewis 子集 **57/57**；`dotnet build` **0 个错误**。
+- 变异重跑 → `ran_at 2026-11-19T02:06:56`、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  `staleness 0`（mtime 02:07:03，读于 02:07:12 —— 9 秒新鲜）。

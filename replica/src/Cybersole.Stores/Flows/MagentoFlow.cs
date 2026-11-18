@@ -744,16 +744,70 @@ public sealed class JohnLewisFlow : StoreFlow
     }
 
     /// <summary>
-    /// <c>SubmitShipping</c> —— R1133 replaced the previous implementation, which posted an invented
-    /// <c>POST {CheckoutHost}/api/delivery/address</c> carrying a <c>deliveryAddress</c> object whose
-    /// keys (<c>line1</c>, <c>line2</c>, <c>town</c>, <c>phone</c>) are nowhere in the image. The
-    /// machine's own delivery step is <c>PUT …/bff/v4/orderforms/deliveries</c> with <b>no body</b>
-    /// (<c>sub_1408B6310(v2, v3, 0, v4)</c>, literal <c>0</c> for the body); the address fields travel
-    /// to <c>…/deliveries/delivery-address</c> instead, which is a separate endpoint and a separate
-    /// step. So this now confirms the form rather than inventing a submission.
+    /// <c>SubmitShipping</c> — the PUT to <c>v4/orderforms/deliveries/delivery-address</c> that carries
+    /// the shipping address itself.
+    ///
+    /// <para>
+    /// R1136 reassigned this step. R1133 pointed both of the image's delivery step names at the
+    /// body-less <c>deliveries</c> PUT, which left <c>delivery-address</c> named by no step at all —
+    /// and there are two names and two endpoints, one carrying an address and one carrying nothing.
+    /// The pairing here is <b>inferred</b> from that 1:1 shape and the two names (submit the shipping
+    /// address; create the delivery), not from request capture, so it is recorded as an inference.
+    /// </para>
+    ///
+    /// <para>
+    /// The body is read off <c>sub_140A43A80</c> (R1134): eleven keys in three levels, with
+    /// <c>addressee</c> wrapping the names, <c>address</c> wrapping the four street fields and
+    /// <c>contact</c> wrapping the phone number, all under a single root key <c>addressDetails</c>.
+    /// </para>
     /// </summary>
-    public override Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
-        => ConfirmDeliveryFormAsync(c, ct);
+    public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
+    {
+        var ship = c.Shipping ?? FootsitesFlow.AddressFromProfile(c);
+        if (ship is null) return StepOutcome.Fail("jl: no shipping address");
+
+        string V(string key, string? fallback) =>
+            c.Session.Vars.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v)
+                ? v!
+                : (fallback ?? string.Empty);
+
+        var body = new JObject
+        {
+            ["addressDetails"] = new JObject
+            {
+                ["addressee"] = new JObject
+                {
+                    ["firstName"] = V("jl.firstName", ship.FirstName),
+                    ["lastName"] = V("jl.lastName", ship.LastName),
+                },
+                ["address"] = new JObject
+                {
+                    ["addressLine1"] = V("jl.addressLine1", ship.Address1),
+                    ["townOrCity"] = V("jl.townOrCity", ship.City),
+                    ["postcode"] = V("jl.postcode", ship.ZipCode),
+                    ["countryCode"] = V("jl.countryCode", ship.Country),
+                },
+                ["contact"] = new JObject
+                {
+                    ["phoneNumber"] = V("jl.phoneNumber", c.ProfileData?.Phone),
+                },
+            },
+        }.ToString(Newtonsoft.Json.Formatting.None);
+
+        var url = c.Session.Vars.TryGetValue("jl.deliveryAddressUrl", out var over) &&
+                  !string.IsNullOrEmpty(over)
+            ? over.TrimEnd('/')
+            : RetailApiFamilies.JohnLewisBff.DeliveryAddressV4;
+
+        var res = await SendJsonAsync(c, HttpMethod.Put, url, body, "jl-delivery-address", ct)
+            .ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("jl delivery address unreachable", retryable: true);
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"jl delivery address HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["jl.deliveryAddressBody"] = res.Body;
+        return StepOutcome.Success();
+    }
 
     public override async Task<StepOutcome> GetShippingRatesAsync(FlowContext c, CancellationToken ct)
     {

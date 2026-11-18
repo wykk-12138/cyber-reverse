@@ -6134,3 +6134,21 @@ threeds 站点可一并校正既有实现。
 
 还剩什么：① MethodTable 解析（探针已明确）；② `delivery-address` 与 `payment-page` 无体 PUT 缺步骤位；
 ③ `GetDeliveryMethods` 候选只剩 GET `methods` 或 POST `details`。
+## R1136 —— 把两个配送步骤名拆成 1:1；IDA 本轮不可用（未阻塞）
+
+改了什么：
+- **推翻 R1133 的分配**：当时把 `SubmitShipping`(27) 与 `CreateDelivery`(28) 都指到无体 `deliveries`，
+  导致有体的 `delivery-address` **无步骤使用**。现按「2 名字 / 2 端点，一带体一无体」1:1 拆分：
+  `SubmitShipping` → PUT `delivery-address`（11 键三层体）、`CreateDelivery` → PUT `deliveries`（无体）。
+- `JohnLewisFlow.SubmitShippingAsync` 重写为三层 `addressDetails` 体（seam `jl.deliveryAddressUrl`）。
+- 删 `JohnLewisDeliveryConfirmTests`（断言已不成立），新增 `JohnLewisDeliveryStepTests` 5 条
+  （断整段嵌套 JSON、`CreateDelivery` 仍无体且不含 `delivery-address`、无地址即停、两名字可派发、两常量）。
+- **分配本身标注为 Inference**（非请求捕获）；若证据变化只需交换两个覆写的端点。
+
+验证：`dotnet build` **0 错**；JL 子集 **57/57**；全量 **2433/0/2**（+5−5 净零）；
+变异 **59/59 fired, tree GREEN, staleness 0**（02:06:56，9 秒新鲜）。
+
+**环境**：`ida.py health` 连接被拒 → doctor `PROXY: MISSING`/`PORT 13337: REFUSED`/180s 超时 →
+CUA 清两个模态框后 IDA 进程退出 → 二次 doctor 仍拒连。**本轮不依赖 IDA，未阻塞；未重建 .i64。**
+
+还剩什么：① IDA 恢复；② `payment-page` 无体 PUT 缺步骤位；③ `GetDeliveryMethods` 归属待判。

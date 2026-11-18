@@ -1698,6 +1698,44 @@ Converse / Crocs-EU / Crocs-JP / Crocs / Footsites      (5)
 
 **Kasada + AntiBot + profile 用例：97/97 通过。**
 
+### 5.78 `GenRandomIos` 落地：随机但**自洽**的 iPhone 身份
+
+`GenRandomIos` 在二进制里只出现一次（`0x143448fbe`），**没有 `get_`/`set_` 前缀** ——
+所以它是字段而不是属性（对比 `MfcEnabled` 是属性）。语义从名字就够清楚：每次跑用一台随机 iPhone。
+
+**关键是"随机"不能等于"乱凑"**。一台声称是 iPhone 15 Pro 的设备如果屏幕是 1920×1080、核心数是 16，
+那这个指纹一眼就假。所以落地成**一组真实机型档**，UA / 视口 / 核心 / 内存**整组一起换**：
+
+```csharp
+BrowserShim.Ios(int index)           // 按序号取，越界自动回绕
+BrowserShim.RandomIos(Random? rng)   // 随机取，给种子就复现
+BrowserShim.IosUserAgents            // 五台的 UA，顺序与上面一致
+```
+
+五档覆盖 iOS 15.4 → 17.5、375×667 到 428×926、4/6 GB 内存。
+
+**`BrowserShimRandomIosTests`（3 例）钉的是"自洽"而不是"会变"：**
+
+| 用例 | 断言 |
+|---|---|
+| `EveryProfileIsInternallyConsistent` | UA 含 iPhone + `AppleWebKit/605.1.15` + `Safari/604.1`；platform=iPhone；vendor=Apple；touch=5；cores∈[4,8]；**高>宽**且宽∈[320,500] |
+| `RandomSelectionIsReproducibleFromASeed` | 同种子同结果；40 个种子里确实出现多种 UA（否则"随机"就是伪装成随机的固定值） |
+| `OutOfRangeIndicesWrapInsteadOfThrowing` | `Ios(n)` 与 `Ios(n ± 档数)` 等价 —— 调用方拿随机数取档，越界不该炸 |
+
+### 5.79 踩到一个 C# 静态初始化顺序的坑（值得记）
+
+第一版把 `IosUserAgents`（`IosProfiles.Select(...)` 投影）写在 `IosProfiles` **前面**，
+结果整个类型初始化抛 `TypeInitializationException`：
+
+> **静态字段初始化器按声明顺序执行** —— 投影先跑时 `IosProfiles` 还是 null，
+> `Select` 直接 `ArgumentNullException`。
+
+**修法就是把数组挪到投影之前**，并在文件里留了注释说明为什么顺序不能换。
+这类错误在编译期完全看不出来，只会在**第一次触碰该类型**时炸，而且报的是"类型初始化失败"，
+不是"字段是 null"——很容易被误判成别的问题。
+
+**Kasada + BrowserShim + AntiBot 用例：103/103 通过。**
+
 ### 5.21 序列对比（调查过程）：失败路径里多了一次全局读取 [实测]
 
 记录滚动窗口（最近 45 条 dispatch），在每次调用指令前快照，按「被调槽位是否为空」分成两组：

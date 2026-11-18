@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Cybersole.Stores.Scripts;
@@ -53,6 +53,48 @@ public sealed class BrowserShim
         ScreenWidth = 390,
         ScreenHeight = 844,
         Href = href ?? "about:blank",
+    };
+
+    /// <summary>
+    /// A real iPhone profile, by index. The list is deliberately small and internally consistent: a
+    /// randomized fingerprint is only useful if the device it claims actually exists, so the user agent,
+    /// viewport, core count and memory travel together rather than being drawn independently.
+    /// </summary>
+    public static BrowserShim Ios(int index) => IosProfiles[((index % IosProfiles.Length) + IosProfiles.Length) % IosProfiles.Length];
+
+    /// <summary>
+    /// Mirrors the image's GenRandomIos switch: pick one of the known iPhone profiles at random, so a run
+    /// does not present the same device every time. Pass a seeded <see cref="Random"/> to make it
+    /// reproducible.
+    /// </summary>
+    public static BrowserShim RandomIos(Random? rng = null) =>
+        Ios((rng ?? Random.Shared).Next(IosProfiles.Length));
+
+    private static readonly BrowserShim[] IosProfiles =
+    {
+        IosDevice("iPhone15,3", "iPhone OS 17_5", 393, 852, 6, 4),
+        IosDevice("iPhone14,7", "iPhone OS 16_6", 390, 844, 6, 4),
+        IosDevice("iPhone14,4", "iPhone OS 15_7", 375, 812, 6, 4),
+        IosDevice("iPhone14,6", "iPhone OS 16_3", 375, 667, 6, 4),
+        IosDevice("iPhone13,4", "iPhone OS 15_4", 428, 926, 6, 6),
+    };
+
+    /// <summary>The user agents of the known iPhone profiles, in the same order as <see cref="Ios(int)"/>.</summary>
+    public static IReadOnlyList<string> IosUserAgents { get; } = IosProfiles.Select(p => p.UserAgent).ToArray();
+
+    private static BrowserShim IosDevice(
+        string model, string os, int width, int height, int cores, double memory) => new()
+    {
+        // AppleWebKit/605.1.15 and Version/… Safari/604.1 are what every current iOS build reports.
+        UserAgent = $"Mozilla/5.0 (iPhone; CPU {os} like Mac OS X) AppleWebKit/605.1.15 " +
+                    $"(KHTML, like Gecko) Version/{os.Split('_')[1].Replace('_', '.')} Mobile/15E148 Safari/604.1",
+        Platform = "iPhone",
+        Vendor = "Apple Computer, Inc.",
+        MaxTouchPoints = 5,
+        HardwareConcurrency = cores,
+        DeviceMemory = memory,
+        ScreenWidth = width,
+        ScreenHeight = height,
     };
 
     public string BuildPrelude()

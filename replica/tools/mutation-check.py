@@ -646,14 +646,24 @@ MUTATIONS = [
         "guard": "TheDialectSelectorWalksTheChosenSurface",
     },
     {
-        "name": "round 1101 -- the callback fragment loses its liability_shift tail",
+        "name": "round 1101/1102 -- the callback fragment loses its liability_shift tail",
         "file": PAYPAL_3DS,
         # The frozen fragment (0x147163128) ends with liability_shift=; truncating it is the drift
         # the callback pin forbids.
         "find": '    public const string ChallengeCallbackFragment = "state=undefined&code=undefined&liability_shift=";',
         "replace": '    public const string ChallengeCallbackFragment = "state=undefined&code=undefined";',
         "test": "FullyQualifiedName~PayPalThreeDsTests",
-        "guard": "TheChallengeInitCarriesItsCallbackUrl",
+        "guard": "TheChallengeInitSendsOnlyTheJwtAndReadsTheCallback",
+    },
+    {
+        "name": "round 1102 -- the challenge hop stops reading the callback out of the payload",
+        "file": PAYPAL_3DS,
+        # 0x140d8e6e7 reads "payload" then 0x140d8e6ff reads "challenge_callback_url"; dropping
+        # that read loses the value the correction restored.
+        "find": '        var callback = ReadNestedNeedle(res.Body, PayloadField, ChallengeCallbackUrlField)',
+        "replace": '        var callback = ReadNestedNeedle(res.Body, "body", ChallengeCallbackUrlField)',
+        "test": "FullyQualifiedName~PayPalThreeDsTests",
+        "guard": "TheChallengeInitSendsOnlyTheJwtAndReadsTheCallback",
     },
 ]
 

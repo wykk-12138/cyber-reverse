@@ -21,7 +21,7 @@
 | 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
-| 变异检查 | **57 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1101 各 1 条） | `tools/mutation-check.py` |
+| 变异检查 | **58 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1102 各 1 条） | `tools/mutation-check.py` |
 | 变异自检 | **5/5 classified correctly** | `tools/mutation-self-test.py` |
 | UI 类 | 116 个，**39 个不可达**（34%） | `UnreachedUiTypesTests` |
 | 源码 | 133 个 `.cs` / 25,643 行（不含注释） | `tools/count-repo.py` |
@@ -63522,3 +63522,39 @@ sub_142389CA0(v4, 200, v5, 1)    // 把结果投影到 200 状态
 的签名删掉了（方法体还在）。下一读即发现，整块补回。
 
 **教训：整块锚点替换前，先确认旧块覆盖的是「要换的东西」，不是「要保留的东西的前缀」。**
+
+---
+
+## 第 1102 轮：`challenge_callback_url` 是**读回来**的
+
+### 一、278 条指令里的五处
+
+`dis 0x140D8E6E0` 逐条读完，init-challenge 这一跳的真实装配：
+
+| 地址 | 指令 | 含义 |
+|---|---|---|
+| 0x140D8E6E7 | `lea rdx, off_14710E630` | 取 **"payload"**（从响应索引） |
+| 0x140D8E6FF | `lea rdx, off_146FC54D8` | 再取 **"challenge_callback_url"** |
+| 0x140D8E71F | `sub_143028EE0([rdx+30h], rax)` | **存进 ctx+0x30** |
+| 0x140D8E767 | `lea r14, off_147098540` | URL = ctx+0x60 或冻结 `init-challenge` |
+| 0x140D8E7BE | `sub_14130CC50(r14, off_146DD3A08, [r8+58h])` | 表单**只有 `JWT`** |
+
+**所以 `challenge_callback_url` 是应答侧的值，完全不进请求体。** 我上一轮把它写成请求字段——
+方向反了。本轮撤销。
+
+### 二、错向实现就地纠正
+
+- `SubmitChallengeInitAsync`：表单恢复**单键 JWT**；改为**从应答 `payload` 读回**
+  callback 存会话。
+- `ChallengeCallbackFragment` / `ChallengeCallbackUrlFor` 保留——它们属于**最终 GET** 的查询片段
+  （另一处站点 0x140D8D511 在 GET 区），不是这一跳的字段。
+- 钉换成「断言表单**不含** callback + 值从 payload 读回」——**同一个数字，方向对了。**
+
+### 三、教训
+
+> **「某字段在这里出现」≠「这里是发出去的地方」。** R1101 我看到 `challenge_callback_url` 在
+> init-challenge 的常量邻域里，就当成请求字段；逐指令读才发现它旁边紧挨着 `payload` 的
+> **索引读取**，是读进来的。
+>
+> **判方向看数据流：`lea` 之后进的是请求构造器，还是 `[ctx+偏移]` 的存储？** 前者是发出，
+> 后者是收下。这条是 R1098「看类型标记不看键名」的姊妹：**看数据流向，不看出现位置。**

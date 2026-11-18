@@ -1458,18 +1458,14 @@ fragment InstallmentsFragment on FundingInstrument {
 
         var options = c.Options("paypal3ds-init-challenge");
         options.Timeout = TimeSpan.FromMilliseconds(StageTimeoutMs);
-        var challengeForm = new Dictionary<string, string>
+        // R1102 correction: the form carries ONLY the JWT (0x146dd3a08, value ctx+0x58). The
+        // challenge_callback_url string is not a field of this request at all — the machine READS
+        // it out of the answer's own "payload" object (0x14710e630 → 0x146fc54d8 at 0x140d8e6ff)
+        // and stashes it at ctx+0x30. R1101 had put it in the form; that is undone here.
+        options.Content = new System.Net.Http.FormUrlEncodedContent(new Dictionary<string, string>
         {
             [JwtFormField] = jwt,
-        };
-        // The callback URL the hop advertises (field 0x146fc54d8, the normal solver's own single
-        // reference). Inference: the composed value the solver builds in its string builder is the
-        // fragment 0x147163128 with its three placeholders filled; the session supplies them.
-        if (c.Session.Vars.TryGetValue("paypal3ds.challengeCallbackUrl", out var callback) &&
-            !string.IsNullOrEmpty(callback))
-            challengeForm[ChallengeCallbackUrlField] = callback;
-
-        options.Content = new System.Net.Http.FormUrlEncodedContent(challengeForm);
+        });
         foreach (var h in (input.Hosted ? HostedHeaders(input) : NormalHeaders(input)))
             options.Headers[h.Key] = h.Value;
 
@@ -1480,6 +1476,13 @@ fragment InstallmentsFragment on FundingInstrument {
             c.Emit(NormalPathFailureStatus, NormalPathFailureColour);
             return StageOutcome.Failed(res.StatusCode);
         }
+
+        // R1102: the answer's payload carries the callback URL the machine stashes at ctx+0x30
+        // (read "payload" then "challenge_callback_url", disassembly at 0x140d8e6e7/0x140d8e6ff).
+        var callback = ReadNestedNeedle(res.Body, PayloadField, ChallengeCallbackUrlField)
+                       ?? ReadNeedle(res.Body, ChallengeCallbackUrlField);
+        if (!string.IsNullOrEmpty(callback))
+            c.Session.Vars["paypal3ds.challengeCallbackUrl"] = callback;
 
         c.Session.Vars["paypal3ds.challengeInit"] = res.Body ?? string.Empty;
         return StageOutcome.Success(res.StatusCode, res.Body);

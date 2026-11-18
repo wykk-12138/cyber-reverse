@@ -5545,3 +5545,24 @@ SourceEncoding 2/2、metrics exit 0。
 数字变化：变异 56 → **57**；PayPal 钉 25 → **26**；confirm 内容体 Unknown → Observation。
 
 还剩什么：片段到字段的逐指令绑定（把 Inference 降为 Observation）；57 锚静树全跑。
+
+## R1102 —— 【核心②·纠正】`challenge_callback_url` 是读回来的，不是发出去的
+
+**逐指令读完，推翻 R1101 的做法。**
+
+改了什么：
+- `dis 0x140D8E6E0`（278 条指令）读出 init-challenge 真实装配：
+  `0x140D8E6E7` 取 **"payload"** → `0x140D8E6FF` 取 **"challenge_callback_url"** → 存 **ctx+0x30**；
+  请求 URL = ctx+0x60 或冻结 `init-challenge`；**表单只有 `JWT`**；`sub_1408B6310` = PUT。
+- **结论**：callback 是**应答侧**值，**不进请求体**。R1101 的请求字段**撤销**。
+- 落地：表单恢复单键 JWT；改为从 `payload` **读回** callback 存入会话。
+  `ChallengeCallbackFragment`/`ChallengeCallbackUrlFor` 保留（属**最终 GET** 的片段）。
+- 变异 57 → **58**（payload 读取锚）+ 指南同步。
+
+验证：`PayPalThreeDsTests` **26/26**（重写 1 钉：表单不含 callback、值从 payload 读回）、
+SummaryBlock 4/4（指南 58）、SourceEncoding 2/2、metrics exit 0。
+
+数字变化：变异 57 → **58**；钉数仍 26（一条换了方向）；**属性从 Inference 升 Observation，
+并把 R1101 的错向实现就地纠正**。
+
+还剩什么：47 字片段到最终 GET 的逐指令绑定；58 锚静树全跑。

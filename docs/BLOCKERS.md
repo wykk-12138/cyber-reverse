@@ -39494,3 +39494,38 @@ Inference = 两类型共同实现的接口名（未被本轮解出，但不影�
 `0x147163134` 字符区校验；Inference = 片段三占位与回调字段的绑定（同域但未逐指令接上）。
 
 还剩什么：片段到字段的逐指令绑定（把 Inference 降为 Observation）；57 锚静树全跑。
+
+## R1102 —— 【核心②·纠正】`challenge_callback_url` 是**读回来**的，不是发出去的；R1101 的表单字段撤销
+
+**取件**：R1101 遗留的「片段到字段的逐指令绑定」。逐指令读完，**推翻 R1101 的做法**。
+
+改了什么：
+- `dis 0x140D8E6E0`（该区 278 条指令）逐条读出 init-challenge 跳的真实装配：
+  - `0x140D8E6E7 lea rdx, off_14710E630` = **"payload"** → `sub_141ADAE30` **从响应里索引取**；
+  - `0x140D8E6FF lea rdx, off_146FC54D8` = **"challenge_callback_url"** → `[rax+50h]` 索引器取值
+    → `sub_141ADF490`（ToString）→ `sub_143028EE0([rdx+30h], rax)` **存进 ctx+0x30**；
+  - 请求 URL = `[ctx+0x60]` 非空则用之，否则冻结 **`init-challenge`**（0x147098540）；
+  - **表单只有一键 `JWT`（0x146DD3A08），值 `[ctx+0x58]`**；
+  - `sub_1408B6310` = PUT。
+- **结论**：`challenge_callback_url` 是**应答侧**的值（`payload` 对象里的字段），被读出来存到上下文，
+  **完全不进请求体**。R1101 把它写成请求字段是错的——本轮**撤销**该字段。
+- 落地：`SubmitChallengeInitAsync` 恢复「表单只有 JWT」，改为**从应答 `payload` 读回**
+  `challenge_callback_url` 并存入 `paypal3ds.challengeCallbackUrl`（`ReadNestedNeedle` 优先、
+  顶层兜底）。`ChallengeCallbackFragment` 与 `ChallengeCallbackUrlFor` 保留（它们是**最终 GET**
+  的查询片段，另一处站点 0x140D8D511 拼接）。
+- 变异 57 → **58**（payload 读取锚；原片段锚改指新钉的守卫名）+ 指南格同步。
+
+验证命令与输出：
+- 取证：`dis 0x140D8E6E0` 278 条指令全览，逐条定位 payload/callback/JWT/URL/PUT 五处。
+- `PayPalThreeDsTests` **26/26 绿**（重写 1 钉：断言表单**不含** `challenge_callback_url`、且该值
+  从 payload 读回进会话；片段与组合方法仍逐字校验）；`SummaryBlockTests` 4/4（指南 58）；
+  `SourceEncodingTests` 2/2；`metrics_report` exit 0。
+
+数字变化：变异 57 → **58**；PayPal 钉仍 **26**（一条钉换了方向）；**`challenge_callback_url` 的
+绑定从 Inference 升为 Observation（读回方向），并把 R1101 的错向实现就地纠正**。
+
+证据等级：Observation = 278 条指令里的五处定位（payload 读、callback 读、ctx+0x30 存、
+URL 二选一、JWT 单键表单）；Inference = 那段 47 字片段归属最终 GET 的站点归属（另一处
+0x140D8D511 已定位到 GET 区，但未逐指令接上）。
+
+还剩什么：47 字片段到最终 GET 的逐指令绑定；58 锚静树全跑。

@@ -376,24 +376,22 @@ public sealed class PayPalThreeDsTests
     }
 
     /// <summary>
-    /// R1101: the challenge hop advertises its callback URL — the base plus the fragment
-    /// 0x147163128 with its three placeholders filled in, carried in the field 0x146fc54d8 that
-    /// the normal solver references exactly once.
+    /// R1102 correction: the challenge hop sends ONLY the JWT, and READS the callback URL out of
+    /// the answer's payload (0x14710e630 → 0x146fc54d8). R1101 had put that string in the form;
+    /// the disassembly at 0x140d8e6e7/0x140d8e6ff shows it is an answer-side read.
     /// </summary>
     [Fact]
-    public async Task TheChallengeInitCarriesItsCallbackUrl()
+    public async Task TheChallengeInitSendsOnlyTheJwtAndReadsTheCallback()
     {
         var bodies = new System.Collections.Generic.List<string>();
         using var server = new TinyServer((_, body) =>
         {
             bodies.Add(body);
-            return (200, "{}");
+            return (200, "{\"payload\":{\"challenge_callback_url\":\"https://bank.example/cb\"}}");
         });
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = Context(http);
         ctx.Session.Vars["paypal3ds.initChallengeUrl"] = server.BaseUrl + "/v1/init-challenge";
-        ctx.Session.Vars["paypal3ds.challengeCallbackUrl"] = PayPalThreeDs.ChallengeCallbackUrlFor(
-            "https://checkout.example/back?", "SUCCESS", "0", "Y");
 
         var outcome = await new PayPalThreeDs().SubmitChallengeInitAsync(ctx, Sample(),
             "{\"jwt\":\"eyJ.jwt.sig\"}", default);
@@ -401,12 +399,16 @@ public sealed class PayPalThreeDsTests
         Assert.True(outcome.Ok, outcome.Error);
         var body = bodies.Single();
         Assert.Contains("JWT=eyJ.jwt.sig", body);
-        Assert.Contains("challenge_callback_url=", body);
-        Assert.Contains(Uri.EscapeDataString("state=SUCCESS&code=0&liability_shift=Y"), body);
+        Assert.DoesNotContain("challenge_callback_url", body);          // NOT a request field
 
-        // The fragment itself is the frozen literal, 47 chars, in its own order.
+        // It was read out of the payload and kept on the session.
+        Assert.Equal("https://bank.example/cb", ctx.Session.Vars["paypal3ds.challengeCallbackUrl"]);
+
+        // The fragment the machine appends to its final GET, verbatim (47 chars).
         Assert.Equal("state=undefined&code=undefined&liability_shift=",
             PayPalThreeDs.ChallengeCallbackFragment);
+        Assert.Equal("https://x/cb?state=SUCCESS&code=0&liability_shift=Y",
+            PayPalThreeDs.ChallengeCallbackUrlFor("https://x/cb?", "SUCCESS", "0", "Y"));
     }
 
     /// <summary>

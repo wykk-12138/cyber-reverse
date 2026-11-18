@@ -118,11 +118,18 @@ public sealed class PayPalThreeDs
         challengeActive ? ProcessingStatus : SolvingStatus;
 
     /// <summary>
-    /// The nine observable stages' own labels (R1081: stages 2 and 2.1 decoded — sub_141103410 and
-    /// sub_141103800 share stage 1's builder template byte for byte, differing only in the label and
-    /// the success-continuation slot: stage 1 resumes at a1[4], stage 2 at a1[7], stage 2.1 at a1[8]).
-    /// Stage 2 also has hosted twins — sub_141107DA0 (the hosted dialect) and sub_141108170
-    /// (hosted with per-context origin/referer overrides).
+    /// The nine observable stages' own labels, every one confirmed by decompile (R1081/R1082):
+    /// the label objects are exactly the pool listing's chars-12 addresses — (1) 0x146e93fa8,
+    /// (2) 0x146e93ff0, (2.1) 0x146e94038, (3) 0x146e94080, (4) 0x146e940c8, (5) 0x146e94110,
+    /// (6) 0x146e94158, (7) 0x146e941a0, (8) 0x146e941e8. Each stage's builder is the same
+    /// request template — same header dialects, same 30s budget, same 200/403/429 dispatch —
+    /// differing only in the label, the success-continuation slot and the payload it carries:
+    /// (1) sub_141102970/105A80 resumes a1[4]/a1[9], (2) sub_141103410 (+hosted twins
+    /// sub_141107DA0/sub_141108170) a1[7], (2.1) sub_141103800 a1[8], (3) sub_141103BF0 a
+    /// shared closure at qword_1472C7328+120, (4) sub_1411090C0 a1+80, (5) sub_141109550
+    /// a1+88, (6) sub_141109910 a1[12], (7) sub_14110A080 a1+104, (8) sub_141106360 a1[11].
+    /// Stages 4-8 run the hosted dialect; their per-stage graphql payloads remain
+    /// caller-supplied — the payload builders are the next probe.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, string> StageLabels =
         new Dictionary<string, string>
@@ -130,6 +137,12 @@ public sealed class PayPalThreeDs
             ["1"] = SolvingStatus,
             ["2"] = "Solving PayPal 3DS (2)",
             ["2.1"] = "Solving PayPal 3DS (2.1)",
+            ["3"] = "Solving PayPal 3DS (3)",
+            ["4"] = "Solving PayPal 3DS (4)",
+            ["5"] = "Solving PayPal 3DS (5)",
+            ["6"] = "Solving PayPal 3DS (6)",
+            ["7"] = "Solving PayPal 3DS (7)",
+            ["8"] = "Solving PayPal 3DS (8)",
         };
 
     /// <summary>True when the stage's request body is one this workspace has decoded.</summary>
@@ -215,8 +228,10 @@ public sealed class PayPalThreeDs
 
     /// <summary>
     /// The four-state machine the image names (Submit3DS → Process3DS → Waiting3DS → Complete3DS).
-    /// Submit is decoded end to end; the machine stops where the decoded stages end, naming the
-    /// located-but-undecoded bodies, rather than pretending a completion nothing performed.
+    /// Submit runs; the machine stops where the workspace's knowledge does — all nine stage
+    /// builders are decoded (labels, dialects, continuation slots), but the per-stage graphql
+    /// payloads they PUT are assembled by callers this workspace has not decoded, and inventing
+    /// operations would be a guess dressed as a protocol.
     /// </summary>
     public async Task<StageOutcome> RunAsync(FlowContext c, StageInput input, CancellationToken ct,
         string? url = null)
@@ -225,17 +240,13 @@ public sealed class PayPalThreeDs
         if (!submit.Ok) return submit;
         c.Session.Vars["paypal3ds.state"] = nameof(ThreeDsState.Process3DS);
 
-        // Process3DS and beyond run stages (2)-(8). R1081 decoded the stage-2/2.1 builders
-        // (sub_141103410 + hosted twins sub_141107DA0/sub_141108170; sub_141103800): they share
-        // stage 1's request template byte for byte and differ only in the label and the
-        // success-continuation slot (a1[4] -> a1[7] -> a1[8]). What this workspace still does not
-        // hold are the per-stage graphql operations those continuations carry, so the runnable
-        // edge stays at Submit until the callers that build the payloads are decoded:
-        // (3) sub_141103BF0, (4) sub_1411090C0, (5) sub_141109550, (6) sub_141109910,
-        // (7) sub_14110A080, (8) sub_141106360 — one decompile each.
+        // Process3DS and beyond run stages (2)-(8) through the decoded builders. What is missing
+        // is the payload half: each stage PUTs a graphql operation its caller assembled, and no
+        // payload builder in this workspace has been decoded yet. The runnable edge stays at
+        // Submit until one is.
         return StageOutcome.Pending(
-            "paypal 3ds: stages 3-8 not decoded -- (3) sub_141103BF0, (4) sub_1411090C0, " +
-            "(5) sub_141109550, (6) sub_141109910, (7) sub_14110A080, (8) sub_141106360; " +
-            "stages 1-2.1 builders decoded, their graphql payloads remain caller-supplied");
+            "paypal 3ds: all nine stage builders decoded (labels, dialects, continuation slots); " +
+            "the per-stage graphql payloads are assembled by callers not yet decoded -- Submit " +
+            "runs, the rest waits on a payload builder");
     }
 }

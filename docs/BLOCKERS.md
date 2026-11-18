@@ -38693,3 +38693,33 @@ Inference = 各阶段 graphql 载荷仍由调用方供给（载荷构建函数�
 
 还剩什么：阶段 3–8 六个构建器（同法机械收尾）；各阶段 graphql 载荷构建函数；Stripe 六步其余体；
 42 条变异锚的静树全跑；sec-ch-ua 生成器（队列③）。
+
+## R1082 —— 【核心②·支付挑战层】PayPal 九阶段构建器全数解码：3/9 → 9/9，支付挑战构建器层结案
+
+**取件**：队列② PayPal 阶段 3–8（六个已定位构建器，同法机械收尾）。
+
+改了什么：
+- `PayPalThreeDs.StageLabels` 扩到**全部九个阶段**（每个标签对象与池清单 chars-12 地址逐一吻合：
+  fa8/ff0/4038/4080/40c8/4110/4158/41a0/41e8），`StageIsDecoded` 语义随之闭合（"9" 不存在 = 地图封口）。
+- RunAsync 停点更新为精确版：**九个构建器全解码（标签/方言/续体槽），缺口只剩 graphql 载荷构建方**。
+- 钉测更新：TheDecodedStagesCarryTheirOwnLabels 钉满 9 条 + 封口断言；
+  TheMachineStopsWhereTheDecodedStagesEnd 改钉「构建器已解码、载荷方未解码」。
+- 生成器模板 `payment_challenges.py` §六 阶段地图更新为全解码版（含方言分布与续体槽表）。重生成。
+
+验证命令与输出：
+- `dec sub_141103BF0`（(3) 普通，续体=全局闭包 qword_1472C7328+120）/ `dec sub_1411090C0`
+  （(4) hosted，a1+80，x-country←ctx+32）/ `dec sub_141109550`（(5) hosted，a1+88）/
+  `dec sub_141109910`（(6) hosted，a1[12]，origin/referer 从 a1[4] 与 off_146AABDD8 拼接）/
+  `dec sub_14110A080`（(7) hosted，a1+104）/ `dec sub_141106360`（(8) hosted，a1[11]）。
+- 标签对象六个新地址与池清单逐一对上（0x146e94080/(3) · 40c8/(4) · 4110/(5) · 4158/(6) ·
+  41a0/(7) · 41e8/(8)）——**九个全部由反编译直接确认，无一凭文案列表推断**。
+- `dotnet test --filter "PayPalThreeDs" -m:1` → **10/10 绿**；`payment_challenges.py` →
+  control ok=True，markers absent **0/5** 保持。
+
+数字变化：解码阶段地图 3/9 → **9/9（构建器层结案）**；PayPal 钉测维持 10（两钉内容升级）。
+
+证据等级：Observation = 六个新构建器全控流、六个标签对象、方言分布（3 普通 + 4-8 hosted）、
+续体槽位；Inference = 各阶段 graphql 载荷仍由调用方供给（载荷构建函数未解码——下一探针）。
+
+还剩什么：**载荷构建方**（各阶段 graphql 操作的组装函数，续体闭包 sub_142FBFxxx 族的引用者）；
+Stripe 六步其余步骤体；42 条变异锚的静树全跑；sec-ch-ua 生成器（队列③）。

@@ -5080,3 +5080,23 @@ PayPalThreeDs 钉测 **10/10 绿**；markers absent **0/5** 保持。
 证据等级：全控流/头墙/槽位/hosted 变体/后缀修正为 Observation；graphql 载荷仍调用方供给为 Inference。
 
 还剩什么：阶段 3–8 六构建器（同法机械收尾）；载荷构建函数；Stripe 六步其余体；42 锚静树全跑。
+
+## R1082 —— 【核心②】PayPal 九阶段构建器全数解码：3/9 → 9/9，构建器层结案
+
+**取件**：队列② PayPal 阶段 3–8。
+
+改了什么：
+- `StageLabels` 扩满九阶段（每个标签对象与池清单 chars-12 地址逐一吻合），`StageIsDecoded("9")`
+  为假钉住地图封口；RunAsync 停点改为「构建器全解码、缺口只剩载荷方」；两条钉测内容升级。
+- 模板 §六 阶段地图全解码版（方言分布 + 续体槽表）；重生成。
+
+验证：`dec sub_141103BF0`(3,普通,全局闭包)/`sub_1411090C0`(4,hosted,a1+80)/`sub_141109550`
+(5,hosted,a1+88)/`sub_141109910`(6,hosted,a1[12],origin 拼接)/`sub_14110A080`(7,hosted,a1+104)/
+`sub_141106360`(8,hosted,a1[11])——六个标签对象全部由反编译直接确认。
+PayPalThreeDs **10/10 绿**；markers absent **0/5** 保持。
+
+数字变化：解码阶段地图 3/9 → **9/9**。
+
+证据等级：全控流/标签/方言/槽位 Observation；graphql 载荷调用方供给 Inference。
+
+还剩什么：**载荷构建方**（sub_142FBFxxx 续体闭包族的引用者）；Stripe 六步其余体；42 锚静树全跑。

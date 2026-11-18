@@ -108,15 +108,22 @@ public sealed class PayPalThreeDsTests
         Assert.Equal(PayPalThreeDs.ProcessingStatus, PayPalThreeDs.StatusText(challengeActive: true));
     }
 
-    /// <summary>R1081: the decoded stage labels, and which stages this workspace can run.</summary>
+    /// <summary>R1081/R1082: the nine decoded stage labels, each matching its pool address.</summary>
     [Fact]
     public void TheDecodedStagesCarryTheirOwnLabels()
     {
+        Assert.Equal(9, PayPalThreeDs.StageLabels.Count);
         Assert.Equal("Solving PayPal 3DS (1)", PayPalThreeDs.StageLabels["1"]);
         Assert.Equal("Solving PayPal 3DS (2)", PayPalThreeDs.StageLabels["2"]);
         Assert.Equal("Solving PayPal 3DS (2.1)", PayPalThreeDs.StageLabels["2.1"]);
-        Assert.True(PayPalThreeDs.StageIsDecoded("2.1"));
-        Assert.False(PayPalThreeDs.StageIsDecoded("3"));
+        Assert.Equal("Solving PayPal 3DS (3)", PayPalThreeDs.StageLabels["3"]);
+        Assert.Equal("Solving PayPal 3DS (4)", PayPalThreeDs.StageLabels["4"]);
+        Assert.Equal("Solving PayPal 3DS (5)", PayPalThreeDs.StageLabels["5"]);
+        Assert.Equal("Solving PayPal 3DS (6)", PayPalThreeDs.StageLabels["6"]);
+        Assert.Equal("Solving PayPal 3DS (7)", PayPalThreeDs.StageLabels["7"]);
+        Assert.Equal("Solving PayPal 3DS (8)", PayPalThreeDs.StageLabels["8"]);
+        Assert.True(PayPalThreeDs.StageIsDecoded("8"));
+        Assert.False(PayPalThreeDs.StageIsDecoded("9"));   // there is no stage nine — the map is closed
     }
 
     /// <summary>The target URL, the app name and the thirty-second budget, as frozen constants.</summary>
@@ -162,9 +169,8 @@ public sealed class PayPalThreeDsTests
     }
 
     /// <summary>
-    /// The four-state machine advances past a decoded Submit and stops where the decoded stages
-    /// end — naming the six still-undecoded bodies (R1081 moved stages 2/2.1 into the decoded
-    /// map, so they are pinned by name in TheDecodedStagesCarryTheirOwnLabels instead).
+    /// The four-state machine advances past a decoded Submit and stops naming what is actually
+    /// missing — the payload builders, not the stage builders (R1082 decoded all nine of those).
     /// </summary>
     [Fact]
     public async Task TheMachineStopsWhereTheDecodedStagesEnd()
@@ -179,11 +185,8 @@ public sealed class PayPalThreeDsTests
         Assert.False(outcome.Ok);
         Assert.False(outcome.Retryable);
         Assert.NotNull(outcome.Error);
-        Assert.Contains("not decoded", outcome.Error);
+        Assert.Contains("all nine stage builders decoded", outcome.Error);
+        Assert.Contains("payload builder", outcome.Error);
         Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Process3DS), ctx.Session.Vars["paypal3ds.state"]);
-        foreach (var fn in new[] { "sub_141103BF0", "sub_1411090C0", "sub_141109550",
-                     "sub_141109910", "sub_14110A080", "sub_141106360" })
-            Assert.Contains(fn, outcome.Error);
-        Assert.Contains("caller-supplied", outcome.Error);
     }
 }

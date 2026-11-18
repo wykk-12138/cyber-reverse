@@ -42015,3 +42015,36 @@ Unknown = BSTN 是否以其他形态（locale 键、设置 schema）存在于产
 
 还剩什么：① `PaypalGetPaypalOrderId` / `PaypalGetOrderDetails` 的动词（各需先定位其所属函数）；
 ② `GroupSummaryTests` 的顺序依赖是**已知顽固点**，两次都出在这个类，值得单独一案。
+## R1163 —— 另两条控制器也拿到了动词（GET），且两条都补了**真发请求**的测试
+
+**取件**：R1162 遗留「`Paypal-GetPaypalOrderId` / `Paypal-GetOrderDetails` 的动词」。
+
+改了什么（**src + tests**）：
+- **取证**（`analysis/_paypal_ctrl_verbs.py`）：
+  - `0x146ab03e0` 被 `0x140a31e40`（215 行）第 **129** 行 append；该函数**只有一个动词槽**，在**第 146 行**：
+    `v26 = sub_1408B61E0(v10, v17, v18)` ⇒ **GET**；
+  - `0x146ab0388` 被 `0x140a5208b` 所属 `0x140a51e20`（180 行）第 **121** 行 append；**唯一**动词槽在**第 139 行** ⇒ **GET**。
+- **落实现**：`PaypalOrderIdAsync(c, csrfToken, ct)` 与 `PaypalOrderDetailsAsync(c, orderId, ct)`，
+  路径 + 查询前缀照镜像字面量；**标识符由调用方传入**，不编造会话键。
+- **证据边界写进注释**：动词是观测的；**但「那次 GET 用的 builder 是否就是 append 的那个变量」没有追踪**
+  （调用首参是 client），配对依赖「函数内唯一动词 + 相隔 17/18 行」。**这句写在代码里，不留在文档里。**
+- 新增 `DemandwarePaypalRequestTests` **3 条**（真发请求、断言整行 `RawUrl`）：order id 带 `?csrf_token=`、
+  order details 带 `?orderId=`、purchase unit 是 **GET** 且路径正确。
+
+验证命令与输出：
+- `_paypal_ctrl_verbs.py` → 两条的 `VERB CALL` 行号 146 / 139，`verb slots in fn: ['GET']`。
+- `dotnet build` **0 错**；`--filter DemandwarePaypal` **6/6**；全量 **2468 通过 / 0 失败 / 2 跳过 / 2470**；
+  变异 `ran_at 2026-11-19T07:10:36`、**59/59 fired，decorative 0，skipped 0，tree GREEN**。
+
+**为什么这轮加测试**：R1163 我写了两个方法却没测，**正是 R1153 我自己批评过的形态**。
+补的三条断言的是**整行请求**（`/on/demandware.store/Sites-Shop-Site/en_US/Paypal-…?…`），
+所以控制器前缀、控制器名、查询前缀**三样必须同时对**才能绿。
+
+### 上一轮的 RED 已排除
+
+在**干净且已提交**的树上重跑变异 → `restored tree: GREEN`、全量 2465/0/2。
+⇒ R1162 那次 `GroupSummaryTests.CloningCopiesTheGroupAndItsTasks` 失败**不可复现**，判为一次性抖动。
+本轮两次变异（含加测试后）均为 **GREEN**。
+
+还剩什么：① 若要把「builder 身份」也变成观测，需读第 146/139 行的实参来源；
+② `GroupSummaryTests` 仍出现过两次抖动，应单独立案（本轮未能复现）。

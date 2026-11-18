@@ -6540,3 +6540,18 @@ build 0 错；Demandware **38/38**；全量 **2465/0/2/2467**；
 `src` 无未预期改动、该类单独 **4/4 绿** ⇒ **顺序抖动**（该类第二次），单列不计。
 
 还剩什么：① 另两条的动词（需先定所属函数）；② `GroupSummaryTests` 顺序依赖应单独立案。
+## R1163 —— PayPal 三条控制器全部有动词（GET）；补 3 条真发请求的测试；变异 GREEN
+
+改了什么：
+- **取证**：`GetPaypalOrderId`（fn 0x140a31e40，append@129，唯一动词槽@146）与 `GetOrderDetails`
+  （fn 0x140a51e20，append@121，唯一动词槽@139）**均为 GET**。
+- **src**：`DemandwareFlow.PaypalOrderIdAsync(c, csrfToken, ct)` 与 `PaypalOrderDetailsAsync(c, orderId, ct)`；
+  标识符作参数传入；**builder 身份未追踪**这一点写入 doc 注释。
+- **tests**：`DemandwarePaypalRequestTests` 3 条（断言整行 RawUrl 与 GET 动词）。
+
+验证：build 0 错；`DemandwarePaypal` **6/6**；全量 **2468/0/2/2470**；
+变异 **59/59 fired, decorative 0, tree GREEN**（07:10:36）。
+
+**RED 排除**：干净重跑 `restored tree: GREEN` ⇒ R1162 那次是**不可复现的一次性抖动**。
+
+还剩什么：① 若要观测「builder 身份」，需读 146/139 行实参来源；② `GroupSummaryTests` 抖动应单独立案。

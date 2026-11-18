@@ -89,6 +89,47 @@ public class DemandwareFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    /// <summary>
+    /// The order-id lookup. R1163 supplies the verb: the containing function (0x140a31e40, 215 lines)
+    /// appends this path to a builder at line 129 and calls verb slot <c>sub_1408B61E0</c> (+8 = GET)
+    /// once, at line 146. <b>What was not traced is that the GET's builder is the same variable</b> —
+    /// the call's first argument is the client, so the pairing rests on the single verb in the function
+    /// and the seventeen lines between them. The caller passes the token rather than this method
+    /// inventing a session key for it.
+    /// </summary>
+    public async Task<StepOutcome> PaypalOrderIdAsync(FlowContext c, string csrfToken,
+        CancellationToken ct)
+    {
+        var res = await GetAsync(c,
+            Controller(c, PaypalGetPaypalOrderId) + PaypalGetPaypalOrderIdQuery + csrfToken,
+            Tag() + "-paypal-order-id", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware paypal: order id unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware paypal: order id HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["paypal.orderId"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// The order-details lookup, same evidence shape as <see cref="PaypalOrderIdAsync"/>: containing
+    /// function 0x140a51e20 (180 lines), path appended at line 121, its single verb-slot call at line
+    /// 139 is GET. Builder identity untraced, and the order id arrives as a parameter.
+    /// </summary>
+    public async Task<StepOutcome> PaypalOrderDetailsAsync(FlowContext c, string orderId,
+        CancellationToken ct)
+    {
+        var res = await GetAsync(c,
+            Controller(c, PaypalGetOrderDetails) + PaypalGetOrderDetailsQuery + orderId,
+            Tag() + "-paypal-order-details", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("demandware paypal: order details unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"demandware paypal: order details HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["paypal.orderDetails"] = res.Body;
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
     {
         var res = await GetAsync(c, Origin(c.Url) + "/", Tag() + "-home", ct).ConfigureAwait(false);

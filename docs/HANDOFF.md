@@ -6598,3 +6598,17 @@ xunit 默认并行类 ⇒ 12 个碰 `Config` 的类互相踩。**解释了「只
 
 还剩什么：① 用上述正确工具扫 `Config.Save()` 调用点 → 决定哪些测试类入 `shared-settings`；
 ② 三条 Demandware PayPal 控制器仍未接到步骤调用。
+## R1167 —— 135 处 Config.Save ⇒ 关闭集合并行（xunit.runner.json）；套件 2m30s→5m09s，全绿
+
+改了什么（配置，非代码）：
+- 新增 `tests/Cybersole.Tests/xunit.runner.json`：`parallelizeTestCollections: false`；
+- `Cybersole.Tests.csproj` 增加该文件的 `CopyToOutputDirectory`，理由与 135 写盘点写在 csproj 注释里。
+
+验证：build 0 错；`runner config copied: yes`；全量 **2468/0/2**、**wall 5m09s**（前 ~2m30s）；
+变异 **59/59 fired，restored tree GREEN**（07:50:31）。
+
+取舍：慢一倍，换「同进程不再并发读写同一 settings.json」——**竞争从结构上消失，而非某一个类不抖**。
+`shared-settings` collection 保留作为已知共享类清单（现为冗余）。
+
+还剩什么：① 若嫌慢，正解是给 `ConfigurationStore` 一个每测试独立的 root（需 src 改动，未做）；
+② 三条 Demandware PayPal 控制器仍未接到步骤调用。

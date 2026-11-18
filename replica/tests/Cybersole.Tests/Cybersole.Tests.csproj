@@ -16,5 +16,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!--
+      R1167: the suite shares one on-disk settings file, because AppPaths.DataRoot is a static
+      initialised once per process, while production code calls Config.Save() from 135 sites across the
+      UI layer. Parallel collections therefore race a writer against a reader, which is the mechanism
+      behind the GroupSummaryTests failures recorded in R806 and R1162. Serialising collections is the
+      only single-point fix: enumerating the writers would mean most of the suite.
+    -->
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

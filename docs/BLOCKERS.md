@@ -42157,3 +42157,39 @@ src/Cybersole.Ui/Views/Tasks/TasksViews.cs
 证据等级：Observation = `TasksViews.cs` 789/790/797/799 与 881-895 的 `Config.Save()` 调用、
 11 个测试类的 0/1/2 计数；Inference = 抖动由「写读竞争」引起（**仍未有复现用例**）；
 Unknown = 哪些测试类真的会走到那 4 个 `Save()` 调用点。
+## R1167 —— 按正确工具扫完：**135 处写盘 / 19 个文件**，于是改为单点关闭集合并行
+
+**取件**：R1166 定的「先列生产代码所有 `Config.Save()` 调用点，再反查测试类」。
+
+**扫的结果让「逐个类串行」这个方案当场失效**：
+
+`
+SettingsViews.cs 32   ProviderViews.cs 15   ProfileViews.cs 13   SettingsModals.cs 11
+TasksViews.cs 10      TaskView.cs 10        SmartActionViews.cs 10  UtilitiesViews.cs 8
+MainViewModel.cs 6    SolverWindow.cs 5     MainWindow.cs 5       BillingView.cs 3
+… 合计 135 处，分布在 19 个文件
+`
+
+**写盘面几乎覆盖整个 UI 层。** 要「把会写盘的测试类都串行」，等于把大半个套件串行；而漏掉任何一个，
+抖动照旧——**这是一个无法穷举的集合**。
+
+改了什么（**配置级单点修复**）：
+- 新增 `tests/Cybersole.Tests/xunit.runner.json`：`{ "parallelizeTestCollections": false }`；
+- `Cybersole.Tests.csproj` 加 `<None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />`
+  （并实测输出目录里确有该文件：`runner config copied: yes`）；
+- 理由与 135 这个数字写在 csproj 注释里，**不写在需要人去翻的文档里**。
+
+验证命令与输出：
+- `dotnet test --filter "Speed!=Slow"` → **2468 通过 / 0 失败 / 2 跳过**，
+  **wall 5m09s**（串行前约 **2m30s**，约 2×）；
+- 变异 `ran_at 2026-11-19T07:50:31`、**59/59 fired**、`restored tree: GREEN`。
+
+**代价与取舍说清楚**：套件慢了一倍。换来的是**这一类竞争从结构上消失**——
+不是「我发现的那一个类不抖了」，而是「同一进程里不再有并发读写同一份 settings.json」。
+
+**R1165 那个 `shared-settings` collection 现在成了冗余**，但**保留**：
+它记录着「哪些类已知共享状态」，将来若恢复并行，它就是现成的隔离清单。
+
+证据等级：Observation = 19 文件 135 处的分组计数、`runner config copied: yes`、5m09s 与 59/59；
+Inference = 两次 `GroupSummaryTests` 抖动由读写竞争引起（**仍无复现用例**，但竞争面已消除）；
+Unknown = 串行化是否掩盖了别的顺序依赖（若将来有测试依赖并行顺序，会暴露为失败——本轮 2468 全绿）。

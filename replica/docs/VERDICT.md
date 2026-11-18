@@ -65681,3 +65681,30 @@ TasksViews.cs
 
 **下一轮的正确工具**：先列生产代码所有 `Config.Save()` 调用点（已知 `TasksViews.cs` 4 处），
 再反查哪些测试类走到它们；**不用测试文件的 grep 缩小名单**。
+---
+
+## 第 1167 轮：135 处写盘，于是不再逐个类串行
+
+上一轮我纠正了取证路径，这一轮按正确工具扫完：
+
+**生产代码里 `Config.Save()` 有 135 处，分布在 19 个文件**（`SettingsViews` 32、`ProviderViews` 15、
+`ProfileViews` 13、`SettingsModals` 11、`TasksViews` 10……）。
+
+**写盘面覆盖整个 UI 层。** 「把会写盘的测试类逐个串行」等于把大半个套件串行，而且**漏一个就等于没修**——
+**这是一个无法穷举的集合，所以不能靠枚举解决。**
+
+### 改成一个配置项
+
+`tests/Cybersole.Tests/xunit.runner.json`：`{ "parallelizeTestCollections": false }`，
+并在 csproj 里确保它被复制（实测 `runner config copied: yes`）。
+
+| 项 | 串行前 | 串行后 |
+|---|---|---|
+| 全量耗时 | ~2m30s | **5m09s** |
+| 结果 | 2468/0/2 | **2468/0/2** |
+| 变异 | GREEN | **59/59 fired，restored tree GREEN** |
+
+**代价是慢一倍；换来的不是「那一个类不抖了」，而是「同一进程里不再有并发读写同一份 settings.json」。**
+
+R1165 那个 `shared-settings` collection 现在冗余，但**保留**——它记着哪些类已知共享状态，
+将来若恢复并行，它就是现成的隔离清单。

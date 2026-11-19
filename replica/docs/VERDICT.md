@@ -66454,3 +66454,25 @@ YG 问：「你一直没拉起 IDA，怎么分析的？」——这十轮我处�
 | 变异 | **59/59 fired，restored tree GREEN**（00:57:47，总计 2478） |
 | 成员形状 | **97 total / 12 core** |
 | 全量 | 2476 通过 / 0 失败 / 2 跳过 / 2478 |
+---
+
+## 第 1192 轮：一条归位，一条定案为不可得
+
+原版 `Cybersole.Models.Checkout` 只绑三个成员，全带 Setter：`Profile`/`Order`/`Tracking`。
+复刻件有后两个，**缺 `Profile`** ⇒ 补上，形状 **97/12 → 96/11**。
+
+**证据分级写进了源码注释**：成员存在与可写是 **Observation**；类型取 `Profile?` 是 **Inference**
+（同仓两个 `Profile` 成员都是模型对象）；原版存对象还是 id 字符串是 **Unknown**。
+—— `BotTask.Running` 那次我不肯猜类型，这次猜了，差别在于**这两个成员在别的类型上有可直接对照的同名实现**，
+而 `Running` 没有。
+
+`CreateModel.Inputs` **定案为不可得**：`!Getter`+`!Setter` 存在，但类型（哪种集合）描述符给不出。
+R363 当初拒它的理由今天仍然成立，**不改**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 成员形状 | **96 total / 11 core** |
+| 全量 | **2476 通过 / 0 失败 / 2 跳过 / 2478**（4m23s） |
+| IDA | ok / hexrays_ready |

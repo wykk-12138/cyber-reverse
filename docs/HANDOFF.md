@@ -6933,3 +6933,17 @@ Observation：
 
 还剩什么：① 为 abort 分支造一个最小验证（假摘要）；② `Checkout.Profile` 归位；③ 其余 7 条 `prop-get`；
 ④ 判据 e 的两处文档手抄数字；⑤ `CreateModel.Inputs` 补或写明理由。
+## R1192 —— Checkout.Profile 补上（形状 97/12→96/11）；CreateModel.Inputs 定案 Unknown
+
+Observation：
+- `ida.py str "Cybersole.Models.Checkout"`：原版只绑 `Profile`/`Order`/`Tracking`，三者均 `!Getter`+`!Setter`。
+- 复刻件 `Checkout` 有 Order/Tracking、缺 Profile。
+- `ida.py str "Cybersole.Models.CreateModel"`：`Inputs` 有 G+S，但类型仍不可知。
+
+改动：`Checkout.Profile`（`Profile?`，SetProperty）。类型选择标 **Inference**（同仓 CreateModel/BotTask 的 Profile 都是模型对象），
+存储形态标 **Unknown**，注释入源码。
+
+验证：build 0 错；全量 **2476/0/2/2478**（4m23s）；形状 **96/11**。
+
+还剩什么：① 其余 6 条 core 形状（BotTask.Running/Task、CreateModel.Inputs 均 Unknown；TaskGroup.Running、ClockService.Current、ExpressionExample.Output 为 prop-get）；
+② abort 分支未验证；③ 判据 e 的两处文档手抄数字；④ 7 条 UI 侧 prop-get（冻结）。

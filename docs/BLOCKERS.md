@@ -43159,3 +43159,42 @@ Inference = 「三条缺口各自缺什么」；Unknown = `Task`/`Running` 的�
 
 证据等级：Observation = 两次收尾摘要（2393 vs 2478）、补丁后的语法校验、变异收据；
 Inference = 「上次是运行被打断」；Unknown = `BotTask.Running`/`Task` 的成员类型。
+## R1192 —— `Checkout.Profile` 归位（形状 97/12 → **96/11**）；`CreateModel.Inputs` 定案为不可得
+
+### 一、原版观测
+
+`ida.py str "Cybersole.Models.Checkout"` → 原版该类只绑三个成员，**都带 Setter**：
+
+`
+Cybersole.Models.Checkout,Cybersole.Core.Profile!Getter  + !Setter
+Cybersole.Models.Checkout,Cybersole.Core.Order!Getter    + !Setter
+Cybersole.Models.Checkout,Cybersole.Core.Tracking!Getter + !Setter
+`
+
+复刻件 `Checkout` 有 `Order`/`Tracking`（与原版一致），**缺 `Profile`** ⇒ 绑定解析为空。
+
+### 二、改动与证据分级
+
+给 `Checkout` 加 `Profile`（`SetProperty` 通知，与同类其它成员一致）。
+
+| 事实 | 等级 |
+|---|---|
+| 成员 `Profile` 存在且可写 | **Observation**（上面三行描述符） |
+| 类型取 `Profile?`（模型对象） | **Inference**：同仓 `CreateModel.Profile`/`BotTask.Profile` 都是模型对象，不是名字或 id |
+| 原版到底存对象还是 id 字符串 | **Unknown**（描述符分辨不出） |
+
+这话写进了源码注释，不是只在文档里。
+
+### 三、`CreateModel.Inputs`：不可得
+
+原版 `CreateModel` 的绑定面里 `Inputs!Getter`+`!Setter` 确实存在，但**类型无从得知**
+（是 `Dictionary`、`List<X>` 还是别的集合，描述符只给名字）。R363 当初拒它的理由仍然成立
+⇒ **保持 Unknown，写明所缺：需要该属性在 `CreateModel` 元数据里的字段类型**。
+
+### 四、验证
+
+`dotnet build` **0 错**；全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（4m23s）；
+`成员形状差异` **96 / 11**；IDA `status: ok`、`hexrays_ready: true`。
+
+证据等级：Observation = 三段绑定描述符、复刻件类体成员清单、两次度量、套件收据；
+Inference = `Profile` 的类型选择；Unknown = 原版 `Checkout.Profile` 的存储形态、`CreateModel.Inputs` 的类型。

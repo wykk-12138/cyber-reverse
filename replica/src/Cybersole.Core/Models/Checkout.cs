@@ -30,11 +30,20 @@ public sealed class Checkout : BaseCheckout
 {
     private string? _order;
     private string? _tracking;
+    private Profile? _profile;
     private bool _success;
     private decimal _spent;
     private string _currency = "USD";
     public string? Order { get => _order; set => SetProperty(ref _order, value); }
     public string? Tracking { get => _tracking; set => SetProperty(ref _tracking, value); }
+
+    // R1192: the original binds Profile, Order and Tracking on Cybersole.Models.Checkout, each with a Getter and a
+    // Setter (frozen descriptors for that type); the replica carried Order and Tracking but not Profile, so a
+    // binding to Checkout.Profile resolved to nothing. Existence and settability are Observation; the TYPE is
+    // Inference - the two other models here that carry a Profile member (CreateModel and BotTask) both hold the
+    // Profile model rather than a name or an id, so the same choice is made here and named as a choice. Unknown:
+    // whether the original stores the object or an id string; the descriptor does not distinguish them.
+    public Profile? Profile { get => _profile; set => SetProperty(ref _profile, value); }
     public bool Success { get => _success; set => SetProperty(ref _success, value); }
     public decimal Spent { get => _spent; set => SetProperty(ref _spent, value); }
     public string Currency { get => _currency; set => SetProperty(ref _currency, value); }

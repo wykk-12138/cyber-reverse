@@ -43198,3 +43198,40 @@ Cybersole.Models.Checkout,Cybersole.Core.Tracking!Getter + !Setter
 
 证据等级：Observation = 三段绑定描述符、复刻件类体成员清单、两次度量、套件收据；
 Inference = `Profile` 的类型选择；Unknown = 原版 `Checkout.Profile` 的存储形态、`CreateModel.Inputs` 的类型。
+## R1193 —— 三条计算只读改成**可写（覆盖层）**：形状 96/11 → **93/8**；剩余 3 条全为已写明的 Unknown
+
+### 一、改了什么
+
+| 类型 | 成员 | 改法 |
+|---|---|---|
+| `TaskGroup` | `Running` | `_runningOverride ?? Tasks.Count(...)` —— 未赋值时仍是实时计数 |
+| `ClockService` | `Current` | 已读后备字段，改为 `{ get => _current; set => _current = value; }` |
+| `ExpressionExample` | `Output` | `_outputOverride ?? Evaluate(...)` —— 未赋值时仍是实时求值 |
+
+依据：原版描述符对这三条都带 `!Setter`（`Getter,Property,Setter` 三件套）。
+**统一采用「覆盖层」**：绑定不写入时行为**逐字不变**；写入后以写入值为准。
+「原版 setter 被调用时到底做什么」一律标 **Unknown**，写在每处注释里。
+
+### 二、剩余 3 条，全部是已写明的 Unknown（不猜）
+
+| 类型 | 成员 | 缺什么 |
+|---|---|---|
+| `BotTask` | `Running` | 成员**类型**未知（int 计数 / bool 标志都满足描述符），且无同名可比对实现 |
+| `BotTask` | `Task` | 成员**类型**未知；原版**没有**叫 `Task` 的模型类型 |
+| `CreateModel` | `Inputs` | 成员**类型**未知（哪种集合）；R363 拒它的理由仍成立 |
+
+⇒ **在范围内，`prop-get` 一类已清零**；剩下的是"存在但类型不可得"，按判据 a 记为 Unknown + 缺什么。
+
+### 三、口径差异（本轮查实，记下来）
+
+工具按**归属项目**报 `core mismatches: 8`，我按类型声明所在项目统计只有 **3** 条。
+差异来自**同名类型分属不同项目**（UI 侧同名视图/模型）。两者都不算错，但**引用这个数时必须说清是哪种口径**——
+否则 8 和 3 会像在打架。下轮把 `shape_audit` 的归属改成按**完整命名空间**，消除这个歧义。
+
+### 四、验证
+
+`dotnet build` **0 错**；全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（4m21s）；
+`成员形状差异` **93 / 8**。
+
+证据等级：Observation = 三条描述符的 `!Setter`、三处源码原文、两次度量、套件收据；
+Inference = 「覆盖层不改变未赋值行为」（由实现直接保证）；Unknown = 三个 setter 被调用时的原版语义、那 2 个成员的类型。

@@ -21,7 +21,11 @@ public sealed class ClockService : IDisposable
     }
 
     /// <summary>Server-aligned "now" used by every task scheduler.</summary>
-    public DateTimeOffset Current => _current;
+    // R1193: the original binds ClockService.Current with a Getter and a Setter, so the member has to be
+    // assignable. It already reads a backing field, so the setter writes that field and every existing reader
+    // keeps seeing the same clock. What the original does when it is assigned - whether that also restarts
+    // anything - is Unknown; nothing here changes what the clock reports unless someone writes to it.
+    public DateTimeOffset Current { get => _current; set => _current = value; }
 
     public long OffsetMs => _offsetMs;
 

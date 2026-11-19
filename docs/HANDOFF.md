@@ -6947,3 +6947,15 @@ Observation：
 
 还剩什么：① 其余 6 条 core 形状（BotTask.Running/Task、CreateModel.Inputs 均 Unknown；TaskGroup.Running、ClockService.Current、ExpressionExample.Output 为 prop-get）；
 ② abort 分支未验证；③ 判据 e 的两处文档手抄数字；④ 7 条 UI 侧 prop-get（冻结）。
+## R1193 —— 三条 prop-get 改可写（93/8）；剩 3 条 Unknown；发现归属口径差异
+
+Observation：
+- `TaskGroup.Running` / `ClockService.Current` / `ExpressionExample.Output` 描述符均含 `!Setter`，复刻件原为计算只读。
+- 改法统一为覆盖层/后备字段：**未赋值时行为不变**。
+- 度量 `96/11 → 93/8`；我按声明项目统计的 core 行只剩 3（均 Unknown）。
+
+验证：build 0 错；全量 **2476/0/2/2478**（4m21s）。
+
+还剩什么：① 口径差异（工具 8 vs 我 3，同名类型分属不同项目）→ 下轮按完整命名空间归位；
+② `BotTask.Running`/`Task`、`CreateModel.Inputs` 三条 Unknown；
+③ abort 分支未验证；④ 判据 e 两处文档手抄数字；⑤ UI 侧 prop-get（冻结）。

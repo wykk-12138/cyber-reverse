@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -175,7 +175,18 @@ public sealed class ExpressionExample
     public string Description { get; set; } = string.Empty;
 
     /// <summary>Sample output rendered in the expression panel.</summary>
-    public string Output => ExpressionEngine.Evaluate(
-        "{" + Key + "}",
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+    /// <remarks>
+    /// R1193: the original binds ExpressionExample.Output with a Getter and a Setter. The rendered sample stays the
+    /// default reading - the override is consulted only after a binding writes to it - so the panel shows exactly
+    /// what it showed before unless something assigns. What the original stores on assignment is Unknown.
+    /// </remarks>
+    private string? _outputOverride;
+
+    public string Output
+    {
+        get => _outputOverride ?? ExpressionEngine.Evaluate(
+            "{" + Key + "}",
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+        set => _outputOverride = value;
+    }
 }

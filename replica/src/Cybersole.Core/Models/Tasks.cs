@@ -83,7 +83,17 @@ public sealed class TaskGroup : ObservableObject
     /// <c>set_NextReset</c> does not), so it is derived rather than stored.
     /// </summary>
     /// <summary>How many of this group's tasks are live right now (bound as <c>Running</c>, R362).</summary>
-    public int Running => Tasks.Count(t => t.IsRunning);
+    // R1193: the original binds TaskGroup.Running with a Getter and a Setter, so the member has to be assignable.
+    // The count stays the default reading - the override is only consulted once a binding writes to it - which is
+    // the same shape BotTask.Products took. What the original stores when the setter is called is Unknown; what
+    // this must not do is stop reporting how many of the group's tasks are live.
+    private int? _runningOverride;
+
+    public int Running
+    {
+        get => _runningOverride ?? Tasks.Count(t => t.IsRunning);
+        set => _runningOverride = value;
+    }
 
     /// <summary>
     /// The Cloudflare solver selected for this group, by configuration id (bound as <c>CloudflareSolverId</c>). The name

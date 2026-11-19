@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 02:44:54 +0800 |
+| 生成时间 | 2026-11-20 02:46:35 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,8 +14,6 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 1 个源文件比产物新（共 247 行）。它描述的是更旧的一次构建，不是当前源码。
->
 > **变异套件那一组数来自上一次运行，而它已经过期**：`2 -- src/Cybersole.Core/Models/Checkout.cs (+1 more) differs from the run's manifest`。
 
 ## 摘要素值
@@ -42,9 +40,9 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,584 |
 | 函数数量（.pdata） — functions: ratio | 64.80% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 1 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 247 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -408,15 +406,12 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-20 02:31:36
+publish artifact mtime: 2026-11-20 02:46:27
 newest source: src\Cybersole.Core\Models\Checkout.cs (2026-11-20 02:33:34)
-source files newer than the artifact: 1
-lines in those files: 247
-of those, changed against HEAD: 1
-publish artifact state: stale
-
-  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
-  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
+source files newer than the artifact: 0
+lines in those files: 0
+of those, changed against HEAD: 0
+publish artifact state: current
 ```
 
 ### 核心覆盖：store 宿主

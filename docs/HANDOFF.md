@@ -7153,3 +7153,13 @@ Observation：
 
 还剩什么：① 三处 UI 层 CS0108（冻结）；② 两条 Unknown（BotTask.Running/Task）；③ abort 分支未验证；
 ④ 变异需重跑（本轮改了 src）。
+## R1211 —— AOT 重建（尺寸/pdata/freshness 三条）；哈希判据被校准否掉
+
+Observation：
+- 重发：57,403,392 B、`.pdata` **179,584**（未变）、freshness **0**。
+- **同一源码连发两次哈希不同**（`847757a0` vs `39e8fd73`）⇒ 构建不可复现 ⇒ 哈希**不可作变更判据**。
+- 工具已改为：摘要=出处记录；变更信号用 `.pdata`/节体量/标记串。注释里的错误说法已删。
+- 变异 **59/59 GREEN**（02:55:22）；全量 2477/0/2/2479；Freshness|Artifact 5/5。
+
+还剩什么：① 两条 Unknown（`BotTask.Running`/`Task`）；② 三处 UI CS0108（冻结）；
+③ `Checkout.Profile` 是否曾进过历史产物（Unknown，不影响结论）；④ 优先级②支付层可开新取件。

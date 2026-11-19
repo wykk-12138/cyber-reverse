@@ -88,6 +88,23 @@ def main():
 
     print("publish artifact: %s" % os.path.relpath(ARTIFACT, ROOT))
     print("publish artifact mtime: %s" % _stamp(art))
+    # R1211: size and a content digest, printed as provenance rather than as a change detector. I added them to
+    # answer "did this rebuild change the executable", and then calibrated that question and lost the answer:
+    # publishing the same unchanged tree twice produced 39e8fd73... and 847757a0..., so this build is not
+    # reproducible and two digests are not comparable across builds. What the report can still say is which
+    # artifact was on disk at a given time; what it cannot say is whether a source change reached it. For that,
+    # the usable signals are the .pdata count and section mass, or a marker string the new source introduces.
+    try:
+        import hashlib
+        _size = os.path.getsize(ARTIFACT)
+        _h = hashlib.sha256()
+        with open(ARTIFACT, 'rb') as _f:
+            for _chunk in iter(lambda: _f.read(1 << 20), b''):
+                _h.update(_chunk)
+        print("publish artifact size: %d bytes" % _size)
+        print("publish artifact sha256: %s" % _h.hexdigest())
+    except OSError as _e:
+        print("publish artifact size/sha256: unavailable (%s)" % _e)
     if newest_path:
         print("newest source: %s (%s)" % (os.path.relpath(newest_path, ROOT), _stamp(os.path.getmtime(newest_path))))
     print("source files newer than the artifact: %d" % newer)

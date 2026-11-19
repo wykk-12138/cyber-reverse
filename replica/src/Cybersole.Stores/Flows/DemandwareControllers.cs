@@ -95,6 +95,16 @@ public static class DemandwareControllers
     public const string SaleSignupSubmit = "SaleRegistration-SignupSubmit";
     public const string SaleConfig = "SaleRegistration-Config";
 
+    // ---- R1169: three PayPal controller actions the image carries (the literals were found in R1162)
+    /// <summary>Reads the PayPal purchase unit for the cart. Verb observed as GET (0x146ab044c).</summary>
+    public const string PaypalGetPurchaseUnit = "Paypal-GetPurchaseUnit";
+
+    /// <summary>The order-id lookup; the caller appends <c>?csrf_token=</c> (0x146ab03ec).</summary>
+    public const string PaypalGetPaypalOrderId = "Paypal-GetPaypalOrderId";
+
+    /// <summary>The order-details lookup; the caller appends <c>?orderId=</c> (0x146ab0394).</summary>
+    public const string PaypalGetOrderDetails = "Paypal-GetOrderDetails";
+
     /// <summary>The controllers, in the order the checkout chain uses them.</summary>
     public static readonly IReadOnlyList<string> CheckoutChain = new[]
     {
@@ -115,6 +125,7 @@ public static class DemandwareControllers
         AdyenSaveExpressShopperDetails, ShopperInfoIp,
         CartUpdateProduct, CartShowLayer, AdyenPaymentFromComponent,
         AdyenPayPalPatchOrder, AdyenAuthorize3Ds2,
+        PaypalGetPurchaseUnit, PaypalGetPaypalOrderId, PaypalGetOrderDetails,
     };
 
     /// <summary>The site ids the image names, e.g. <c>Sites-crocs_-Site</c>.</summary>

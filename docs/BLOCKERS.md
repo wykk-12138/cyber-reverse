@@ -42228,3 +42228,41 @@ Unknown = 串行化是否掩盖了别的顺序依赖（若将来有测试依赖�
 证据等级：Observation = 四次 wall 计时与四组 2468/0/2、变异收据、CS0103 与修复；
 Inference = 「瓶颈在每测试小文件 I/O」（由并行反而更慢反推，**未做 profile**）；
 Unknown = 是否仍有测试依赖默认 root（若有，会被隔离暴露为失败——本轮全绿）。
+## R1169 —— 三条 PayPal 控制器归位到 DemandwareControllers；顺手记一次**子进程一次性失败**
+
+**取件**：R1162/R1163 把三个控制器名常量放到了 `DemandwareFlow` 上。
+本轮读 `DemandwareControllers.cs`（142 行）才发现**本仓的约定是「所有控制器名集中在这一处」**：
+`Cart-AddProduct` … `AdyenPayPalPatchOrder`，按发现轮次分组，外加 `CheckoutChain` 与 `All` 两个清单。
+**我把名字放错了家。** 先查重：该文件里 **没有** 这三条（非重复品），才动手。
+
+改了什么：
+- `DemandwareControllers`：新增一组 `// ---- R1169` 三个常量（含各自地址与动词注记），并加入 `All`。
+- `DemandwareFlow`：删掉三个名字常量，只保留**查询前缀**（`?csrf_token=` / `?orderId=`，它们是查询形状不是控制器名）；
+  三个方法改为 `Controller(c, DemandwareControllers.Xxx)`。
+- 两个测试文件跟随名字迁移；**查询前缀仍指向 `DemandwareFlow`**。
+
+验证：`dotnet build` **0 错**；`--filter Demandware` **41/41**；
+变异 `ran_at 2026-11-19T08:34:23`、**59/59 fired，tree GREEN**。
+
+### 一次**子进程一次性失败**，按纪律单列
+
+全量出现 **1 红**：`ShapeAuditGuardTests.TheOtherNullableReturningMemberIsAlsoClassifiedAsMethod`，
+错误是 `shape_audit.py exited 1`。排查：
+- **直跑** `python tools\\shape_audit.py` → `exit: 0`，78 处不匹配，其中 Core 只 1 处
+  （`ExpressionExample/Output`，**既有项，不是我改的**）；
+- **单独跑该类** → **2/2 通过，624 ms**；
+- 该类本就在 `external-tools` 串行集合里，且 `RunShapeAudit` 用 `WaitForExit()`（**无超时**）⇒ 不是超时被杀。
+
+⇒ 判为**子进程一次性失败**（`python` 子进程起不来/被 OOM 杀掉时就是 exit 1）。
+可疑成因：内存压力（本轮全量 6m09s，比上一轮 5m18s 更慢，说明当时机器在重载）。
+**按「没跑成 ≠ 通过 ≠ 失败」单列，不计入通过也不计入失败。**
+
+### 又一次子串误伤
+
+把 `DemandwareFlow.PaypalGetPaypalOrderId` 迁到 `DemandwareControllers` 时，
+**连带把 `…OrderIdQuery`（前缀常量）也改了**（前缀名以被替换串开头）→ 编译 `CS0117`。
+**这是两轮内第二次同一形状的子串误伤**（R1168 是 `AppPaths.BackupsDir` / `BackupsDirFor`）。
+两次都是「按锚点替换」这条规矩没执行到位。
+
+证据等级：Observation = 41/41、2/2、`exit: 0`、78 与 Core 1、CS0117 与修复、变异收据；
+Inference = 「OOM 导致子进程 exit 1」（**未取内存峰值证据**）；Unknown = 该失败的确切成因。

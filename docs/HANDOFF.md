@@ -6630,3 +6630,19 @@ xunit 默认并行类 ⇒ 12 个碰 `Config` 的类互相踩。**解释了「只
 
 还剩什么：① 若嫌 5m 慢，正解是**减少每测试的文件数**（如仅为改动项建 root 子集），需 profile 先；
 ② 三条 Demandware PayPal 控制器仍未接到步骤调用。
+## R1169 —— 三个 PayPal 控制器名迁入 DemandwareControllers（本仓约定）；查询前缀留在 flow
+
+改了什么：
+- `DemandwareControllers`：新增 `PaypalGetPurchaseUnit`/`PaypalGetPaypalOrderId`/`PaypalGetOrderDetails`
+  与 `All` 条目；`DemandwareFlow` 三个方法改指 `DemandwareControllers.*`；flow 只留两个查询前缀。
+- 两个测试跟随迁移（前缀仍断言 `DemandwareFlow`）。
+
+验证：build 0 错；`Demandware` **41/41**；变异 **59/59 fired, tree GREEN**（08:34:23）。
+
+**全量 1 红单列**：`ShapeAuditGuardTests` 报 `shape_audit.py exited 1`；直跑 **exit 0**、该类单跑 **2/2**、
+无超时设置 ⇒ **子进程一次性失败**（疑内存压力）。**没跑成≠通过≠失败。**
+
+**错类**：两轮内第二次子串误伤（`…OrderIdQuery` 被一起替换，CS0117）。
+
+还剩什么：① 三条 PayPal 控制器方法仍未被任何步骤调用（需序列/动作证据）；
+② 若要坐实 OOM 猜测，需在跑套件时采样可用内存。

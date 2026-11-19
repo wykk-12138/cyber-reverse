@@ -18,9 +18,9 @@ public sealed class DemandwarePaypalControllerTests
     [Fact]
     public void TheThreeControllerPathsAreTheImagesOwn()
     {
-        Assert.Equal("Paypal-GetPurchaseUnit", DemandwareFlow.PaypalGetPurchaseUnit);
-        Assert.Equal("Paypal-GetPaypalOrderId", DemandwareFlow.PaypalGetPaypalOrderId);
-        Assert.Equal("Paypal-GetOrderDetails", DemandwareFlow.PaypalGetOrderDetails);
+        Assert.Equal("Paypal-GetPurchaseUnit", DemandwareControllers.PaypalGetPurchaseUnit);
+        Assert.Equal("Paypal-GetPaypalOrderId", DemandwareControllers.PaypalGetPaypalOrderId);
+        Assert.Equal("Paypal-GetOrderDetails", DemandwareControllers.PaypalGetOrderDetails);
     }
 
     /// <summary>The query prefixes carry their leading '?', which is how the image stores them.</summary>
@@ -37,9 +37,9 @@ public sealed class DemandwarePaypalControllerTests
     {
         foreach (var name in new[]
                  {
-                     DemandwareFlow.PaypalGetPurchaseUnit,
-                     DemandwareFlow.PaypalGetPaypalOrderId,
-                     DemandwareFlow.PaypalGetOrderDetails,
+                     DemandwareControllers.PaypalGetPurchaseUnit,
+                     DemandwareControllers.PaypalGetPaypalOrderId,
+                     DemandwareControllers.PaypalGetOrderDetails,
                  })
         {
             Assert.DoesNotContain('/', name);

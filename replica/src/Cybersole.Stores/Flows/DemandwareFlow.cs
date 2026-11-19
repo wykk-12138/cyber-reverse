@@ -62,14 +62,11 @@ public class DemandwareFlow : StoreFlow
     /// referenced from that function, so their verbs are <b>Unknown</b> and nothing here sends them.
     /// </para>
     /// </summary>
-    public const string PaypalGetPurchaseUnit = "Paypal-GetPurchaseUnit";
-
-    /// <summary>The order-id lookup's path and its query prefix (0x146ab03ec). Verb Unknown.</summary>
-    public const string PaypalGetPaypalOrderId = "Paypal-GetPaypalOrderId";
+    /// <summary>
+    /// The two query prefixes. The controller names themselves live in <see cref="DemandwareControllers"/>
+    /// with every other controller name (R1169); only the query shape belongs here.
+    /// </summary>
     public const string PaypalGetPaypalOrderIdQuery = "?csrf_token=";
-
-    /// <summary>The order-details lookup's path and its query prefix (0x146ab0394). Verb Unknown.</summary>
-    public const string PaypalGetOrderDetails = "Paypal-GetOrderDetails";
     public const string PaypalGetOrderDetailsQuery = "?orderId=";
 
     /// <summary>
@@ -79,7 +76,7 @@ public class DemandwareFlow : StoreFlow
     /// </summary>
     public async Task<StepOutcome> PaypalPurchaseUnitAsync(FlowContext c, CancellationToken ct)
     {
-        var res = await GetAsync(c, Controller(c, PaypalGetPurchaseUnit),
+        var res = await GetAsync(c, Controller(c, DemandwareControllers.PaypalGetPurchaseUnit),
             Tag() + "-paypal-purchase-unit", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("demandware paypal: purchase unit unreachable", retryable: true);
@@ -103,7 +100,7 @@ public class DemandwareFlow : StoreFlow
         CancellationToken ct)
     {
         var res = await GetAsync(c,
-            Controller(c, PaypalGetPaypalOrderId) + PaypalGetPaypalOrderIdQuery + csrfToken,
+            Controller(c, DemandwareControllers.PaypalGetPaypalOrderId) + PaypalGetPaypalOrderIdQuery + csrfToken,
             Tag() + "-paypal-order-id", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("demandware paypal: order id unreachable", retryable: true);
@@ -123,7 +120,7 @@ public class DemandwareFlow : StoreFlow
         CancellationToken ct)
     {
         var res = await GetAsync(c,
-            Controller(c, PaypalGetOrderDetails) + PaypalGetOrderDetailsQuery + orderId,
+            Controller(c, DemandwareControllers.PaypalGetOrderDetails) + PaypalGetOrderDetailsQuery + orderId,
             Tag() + "-paypal-order-details", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("demandware paypal: order details unreachable", retryable: true);

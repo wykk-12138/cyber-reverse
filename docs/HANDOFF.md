@@ -7177,3 +7177,16 @@ Observation：
 其余五步（意图/提交/校验/fallback）仍待解码。
 
 还剩什么：① 五步 Stripe 方法体；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108 三处（冻结）。
+## R1213 —— Stripe 六端点→构建器全表；两函数解码确认与 R1094 实现逐字段一致；新增 analysis/func_strings.py
+
+Observation：
+- 端点表：base→sub_140BE31F0；payment_methods→sub_140959320 + sub_140BDA320；payment_intents→4 函数；
+  setup_intents→sub_140BE0F80/sub_141145DB0；3ds2/authenticate→sub_1411474A0(+2)；3ds2/challenge_complete→sub_141144C20(+1)。
+- sub_141144C20：cres/final_cres/_stripe_account/key/source + hooks.stripe.com/3d_secure_2/notify/。
+- sub_1411474A0：9 browser* + fingerprint* + frontend_execution + one_click_authn_device_support[...]。
+- **两处均已在 MagentoFlow.cs:1452-1512 实现（R1094/R1099），地址注释一致 ⇒ 本轮无新实现。**
+
+**新工具**：`python analysis/func_strings.py <va>` —— 解码并自动报告"复刻件里已有"。
+
+还剩什么：① 五步 Stripe 中未被端点引用的部分；② setup_intents 两条路径未解；
+③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108 三处（冻结）。

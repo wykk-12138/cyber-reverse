@@ -44002,3 +44002,43 @@ Inference = 「零引用成员被裁剪」；Unknown = 该成员是否曾出现�
 
 证据等级：Observation = 两个函数的地址/大小/引用数、10+ 条 `names_at` 解码、`acacia`/`basil` 各自 xref；
 Inference = 「两条路径」；Unknown = 其余五步（支付意图、提交、校验、fallback）的方法体。
+## R1213 —— 优先级②：Stripe 六个端点全部定位；**但我又解了一遍 R1094 已经做过的事**
+
+### 一、新产出：端点 → 构建器 全表（可复算）
+
+| 端点（冻结字面量） | 引用函数 |
+|---|---|
+| `https://api.stripe.com` | `sub_140BE31F0`（0x3f9，即 R1080 的「Solving Stripe challenge」确认机） |
+| `/v1/payment_methods` | `sub_140959320`（0x89b，basil 挑战面）· `sub_140BDA320`（0x197e，acacia 表单面） |
+| `/v1/payment_intents/` | `sub_14095B6C0`（0x4f7）· `sub_140A40170`（0x5c0）· `sub_140B58D60`（0x9d4）· `sub_140BDA320` |
+| `/v1/setup_intents/` | `sub_140BE0F80`（0xb1c）· `sub_141145DB0`（0x472） |
+| `/v1/3ds2/authenticate` | `sub_1411474A0`（0xe5a）· `sub_140D5E460`（0x242）· `sub_140BDA320` |
+| `/v1/3ds2/challenge_complete` | `sub_141144C20`（0x359）· `sub_140BDA320` |
+
+### 二、两个函数的解码结果（与既有实现逐条对齐）
+
+**`sub_141144C20`（3DS2 challenge_complete）**：`cres` · `final_cres` · `_stripe_account` · `key` · `source` ·
+`STRIPE` · 日志 `CompletePayment: notify serverTransactionId=` · 通知端点 `https://hooks.stripe.com/3d_secure_2/notify/`。
+
+**`sub_1411474A0`（3DS2 authenticate / 指纹提交）**：9 个 `browser*` 字段 · `fingerprintAttempted/Data/Outcome` ·
+`frontend_execution` · `not_supported` · `challengeWindowSize` · 三个起跳值 `-120`/`1080`/`1920`/`24`/`05`/`Y`/`en-US` ·
+三个 `one_click_authn_device_support[...]` · `key` · `_stripe_account`。
+
+### 三、**全部已在复刻件里**（R1094/R1099 做过）
+
+`MagentoFlow.cs:1452-1512` 早已按同样地址注释实现：
+`0x147034f20`(fingerprintAttempted)、`0x146f9c698`(browserJavaEnabled)、`0x1470ae940`(key)、`0x146f649d0`(_stripe_account)、
+`0x1471082a8/3a8/420/490`(one_click 族) 一个不差；`challenge_complete` 与 `hooks.stripe.com` 在 `1414-1512`。
+
+⇒ **本轮没有新实现，只有独立复核**：两次独立解码与既有实现逐字段一致。**这对判据 d 有价值（claim 有第二份证据），但我确实白花了两轮的解码调用。**
+
+### 四、把教训做成工具
+
+新增 `analysis/func_strings.py`（dec → 取 `off_*` 常量 → `names_at` 解码），并在解码后**自动报告**
+"这些串在 `replica/src` / `replica/tests` 里已经出现过"。本轮实测在 `sub_141144C20` 上报 **6/8 已存在**，
+直接指到 `MagentoFlow.cs`。
+
+> 前两轮的症状是"先反编译、后 grep"。**顺序反了就是浪费。** 现在这个检查是工具默认行为，不再依赖我记得。
+
+证据等级：Observation = 六端点引用表、两函数各 8/12 条解码、`MagentoFlow.cs` 的地址注释、工具新输出；
+Inference = 无（本轮不新增实现）；Unknown = 其余五步 Stripe 方法体里**未被 Stripe 端点引用**的部分。

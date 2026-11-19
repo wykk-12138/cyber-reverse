@@ -46540,3 +46540,42 @@ Inference = 「改名+拆分比重写更保守」；Unknown = src 里是否还�
 
 证据等级：Observation = 五个文件的行数与成员形态、引用面、2542→2530；
 Inference = 「其余四个同属台账」；Unknown = 各自是否含协议常量（逐个读）。
+## R1271 —— 第三个台账类：`PayloadCoverage` 拆分——**表进 docs，规则进运行时**
+
+### 一、它不是纯台账：里面有一条**真规则**
+
+`PayloadCoverage` 有五个成员：
+
+| 成员 | 性质 | 处置 |
+|---|---|---|
+| `AlreadyAnswered`（9 名） | 台账 | → `docs/PAYLOAD_COVERAGE.md` |
+| `Installed`（7 名） | 台账 | → 同上 |
+| `CannotBeInstalled`（5 名） | 台账 | → 同上 |
+| `ConnectionSample`（4 值） | 台账（样本值） | → 同上 |
+| **`IsReadOnly` + `Rule`** | **运行时规则** | **移进 `SessionPayload`** |
+
+那条规则值得单独引：
+
+> 一个 canvas 哈希是**跑 canvas 跑出来的结果**，不是可覆盖的属性；声称能装它的隐身层是在**夸大射程**。
+
+⇒ **这不是记账，是隐身层必须遵守的行为约束**。所以它没有跟着表一起走，而是搬进了运行时类
+`SessionPayload`（新名 `IsReadOnly` / `StealthRule`），注释写明来自哪个类、为什么留下。
+
+### 二、连带处理
+
+- `SurfaceRuntimeTests` 里那条断言从 `PayloadCoverage.IsReadOnly(...)` 改成
+  `SessionPayload.IsReadOnly(...)`——**断言本身一字未改**，只换宿主；
+- `PayloadCoverageTests.cs`（21 处引用）**整份删除**；
+- `docs/PAYLOAD_COVERAGE.md` 新写，含三张名单、连接四值、规则原文，以及**怎么复算**
+  （并点明运行时的对应物是 `SessionPayload.ConnectionKeys`）。
+
+### 三、用例数 2530 → 2525（−5）
+
+−5 全部来自被删的台账测试文件；**没有业务断言被削弱**，`SurfaceRuntimeTests` 那条还在且指向新宿主。
+
+### 四、还剩三个
+
+`LambdaWitness`(90) · `NavigatorCensus`(106) · `VendorWiring`(273)——下轮继续，一次一个。
+
+证据等级：Observation = 五个成员的形态、用例 2530→2525、build 0 错、24/24 定向用例；
+Inference = 「IsReadOnly 属运行时」；Unknown = 剩余三个是否也藏运行时规则（逐个读）。

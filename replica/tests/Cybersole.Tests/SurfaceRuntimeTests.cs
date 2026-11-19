@@ -208,7 +208,8 @@ public class SurfaceRuntimeTests
         Assert.Equal("[false,false]", flags);
 
         // and a canvas hash is still something only the page can produce — nothing here claims otherwise
-        Assert.True(PayloadCoverage.IsReadOnly("canvas-print-100-999"));
+        // R1271: the predicate moved from the PayloadCoverage ledger into the runtime payload class
+        Assert.True(Cybersole.Stores.Scripts.SessionPayload.IsReadOnly("canvas-print-100-999"));
     }
 
     /// <summary>

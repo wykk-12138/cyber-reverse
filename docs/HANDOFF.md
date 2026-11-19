@@ -7843,3 +7843,14 @@ Observation：
 **下轮**：`LambdaWitness` / `NavigatorCensus` / `PayloadCoverage` / `VendorWiring` 逐个处置。
 
 还剩什么：① 剩余 4 个台账类；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1271 —— PayloadCoverage 拆分：表进 docs、规则（canvas 不可伪造）进 SessionPayload；全量 2525/0/2/2527
+
+Observation：
+- 五成员：四台账 + `IsReadOnly`/`Rule`（真规则）。
+- 规则移入 `SessionPayload.IsReadOnly` / `StealthRule`；表进 `docs/PAYLOAD_COVERAGE.md`；
+  源与 21 处引用的测试删除；`SurfaceRuntimeTests` 断言换宿主、内容不变。
+- 全量 2530 → **2525**（−5）。
+
+**下轮**：`LambdaWitness` / `NavigatorCensus` / `VendorWiring`。
+
+还剩什么：① 剩余 3 个台账类；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。

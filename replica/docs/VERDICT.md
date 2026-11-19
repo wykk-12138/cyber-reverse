@@ -68620,3 +68620,25 @@ o-hit）。
 |---|---|
 | src 台账类 | **-1**（剩 4） |
 | 用例 | 2530 通过 / 0 失败 / 2 跳过 |
+---
+
+## 第 1271 轮：`PayloadCoverage` 拆分——表进 docs、**规则进运行时**
+
+五个成员里四个是台账（三张名单 + 连接样本值），**一个是真规则**：`IsReadOnly` + `Rule`
+（canvas 哈希是跑出来的结果，不可覆盖）。
+
+| 部分 | 处置 |
+|---|---|
+| 三张名单 + 连接四值 | → `docs/PAYLOAD_COVERAGE.md` |
+| `IsReadOnly` / `Rule` | → **`SessionPayload`**（`IsReadOnly` / `StealthRule`） |
+| `PayloadCoverage.cs` + 21 处引用的测试 | 删 |
+| `SurfaceRuntimeTests` 那条断言 | 换宿主，**内容不变** |
+
+全量 2530 → **2525**（−5，全来自台账测试；业务断言未削弱）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| src 台账类 | **-1**（剩 3：LambdaWitness / NavigatorCensus / VendorWiring） |
+| 用例 | 2525 通过 / 0 失败 / 2 跳过 |

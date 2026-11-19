@@ -114,4 +114,24 @@ public static class SessionPayload
         "navigator.connection.effectiveType", "navigator.connection.rtt",
         "navigator.connection.saveData", "navigator.connection.downlink",
     };
+
+    /// <summary>
+    /// True when a payload member cannot be installed because only the page can produce it.
+    ///
+    /// <para>
+    /// R1271: this rule and <see cref="StealthRule"/> moved here from <c>PayloadCoverage</c>, a coverage ledger that the
+    /// product-code rule keeps out of <c>src</c>. The three name lists it also carried went to
+    /// <c>docs/PAYLOAD_COVERAGE.md</c>; the rule itself stayed because it is behaviour a stealth layer has to obey, not
+    /// bookkeeping: a canvas hash is the result of running a canvas, so claiming to install one is a lie about reach.
+    /// </para>
+    /// </summary>
+    public static bool IsReadOnly(string? member) =>
+        !string.IsNullOrEmpty(member)
+        && (member.Contains("canvas", StringComparison.OrdinalIgnoreCase)
+            || member.StartsWith("font-", StringComparison.Ordinal)
+            || member == "js-errors");
+
+    /// <summary>The sentence the rule exists to keep.</summary>
+    public const string StealthRule =
+        "a canvas hash is the result of running a canvas, not a property to override; a stealth layer that claims it can install one is lying about its own reach";
 }

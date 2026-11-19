@@ -6705,3 +6705,17 @@ Observation：
 **未做**：两家 `MonitorAsync`（缺 PDP 标记观测）、店铺模块（需先定「区域」模型）。
 
 还剩什么：① 决定区域模型 → 再建 `JacquemusModule`；② Margiela 主机字面量；③ 两家 step 表。
+## R1174 —— 名字级 real gap 2→0（那 2 条是 R702 裁决）；守卫三桶加强；新增两向棘轮
+
+改了什么：
+- `tools/bind_diff.py`：新增 `out of scope (R702)` 桶（恰好两条，注释含 R702 出处）；`real gap` 归零。
+- 新 `NameBindingGapTests`（2 条）：`real gap` 必须 0、`out of scope` 必须恰好 2。
+- `BindDiffGuardTests`：不变式由两桶**加强**为三桶 `noise+outOfScope+real == missing`。
+
+验证：`real gap: 0`；build 0 错；子集 **5/5**；全量 **2472/0/2/2474**（4m30s）；
+变异 **59/59 fired, tree GREEN**（09:43:05）。
+
+**两次事故**：① 加桶未更新守卫 → 全量红（Expected 12/Actual 14），修法是加强不是放宽；
+② 清文件锁时误杀后台变异任务 → 该次变异作废，已重跑。
+
+**下一轮优先**：`.publish-aot` 陈旧（22 个源文件更新）⇒ `present:` 探针不可信。

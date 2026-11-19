@@ -74,16 +74,29 @@ print(f'scope: {scope_label}   types: {len(bind)}   members: {sum(len(v) for v i
 print(f'missing: {missing_total}')
 print()
 NOISE = re.compile(r'^(HasMultiple|Value)_\d+$')      # generic instantiation artefacts, not design members
+# R1174: two members that are a decision, not a gap. R702 ruled the login-credential and licence UI out of
+# scope (docs/DECISION_LICENSE_OUT_OF_SCOPE.md), and these are exactly its two bound members. Counting them
+# under "real gap" made the metric read like outstanding work; a test pins both the zero and the exact size
+# of this set, so it cannot quietly grow.
+OUT_OF_SCOPE = {
+    ('Ui.Views.Auth.AuthWindow', 'Logout'),
+    ('Ui.Views.Auth.LicenseControl', 'Authenticate'),
+}
 if '--buckets' in sys.argv:
     noise = sum(1 for r in rows if r[2] for m in r[3] if NOISE.match(m))
-    real = missing_total - noise
+    excluded = sum(1 for r in rows for m in r[3]
+                   if not NOISE.match(m) and (r[0].split('Cybersole.')[-1], m) in OUT_OF_SCOPE)
+    real = missing_total - noise - excluded
     print(f'noise (HasMultiple_NN): {noise}')
+    print(f'out of scope (R702)   : {excluded}')
     print(f'real gap              : {real}')
     print()
     for typ, n, miss, missing in sorted([r for r in rows if r[2]], key=lambda r: -r[2]):
-        real_missing = [m for m in missing if not NOISE.match(m)]
+        short = typ.split('Cybersole.')[-1]
+        real_missing = [m for m in missing
+                        if not NOISE.match(m) and (short, m) not in OUT_OF_SCOPE]
         if real_missing:
-            print('  %-50s %2d  %s' % (typ.split('Cybersole.')[-1], len(real_missing), ', '.join(real_missing[:8])))
+            print('  %-50s %2d  %s' % (short, len(real_missing), ', '.join(real_missing[:8])))
     sys.exit(0)
 
 for typ, n, miss, missing in sorted([r for r in rows if r[2]], key=lambda r: -r[2])[:20]:

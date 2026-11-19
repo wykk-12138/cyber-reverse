@@ -6,21 +6,21 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 05:28:19 +0800 |
+| 生成时间 | 2026-11-19 09:43:21 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
-| 度量脚本结果 | 全部 exit 0 |
+| 度量脚本结果 | **有非零退出，见下** |
 | 完整套件 | 本次跳过（`--skip-tests`） |
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新（共 13603 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 22 个源文件比产物新（共 14915 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
 | 指标 | 值 |
 |---|---|
-| 名字级绑定缺口 — real gap | 2 |
+| 名字级绑定缺口 — real gap | 0 |
 | 名字级绑定缺口 — missing | 14 |
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
@@ -38,18 +38,15 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 177,365 |
 | 函数数量（.pdata） — functions: ratio | 64.00% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 13603 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 22 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 14915 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
-| 核心覆盖：vendor 宿主 — vendor: controls ok | True |
-| 核心覆盖：vendor 宿主 — vendor: named in image | 13 |
-| 核心覆盖：vendor 宿主 — vendor: wiring rows | 9 |
-| 核心覆盖：vendor 宿主 — vendor: missing | 5 |
+| 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 29281792 |
+| 可执行段体量 — section-mass: replica executable | 29281280 |
 | 可执行段体量 — section-mass: ratio | 56.64% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 0 |
@@ -76,10 +73,8 @@ scope: whole-source   types: 174   members: 814
 missing: 14
 
 noise (HasMultiple_NN): 12
-real gap              : 2
-
-  Ui.Views.Auth.AuthWindow                            1  Logout
-  Ui.Views.Auth.LicenseControl                        1  Authenticate
+out of scope (R702)   : 2
+real gap              : 0
 ```
 
 ### 类型级绑定缺口
@@ -367,10 +362,10 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-19 05:18:20
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 05:25:17)
-source files newer than the artifact: 17
-lines in those files: 13603
+publish artifact mtime: 2026-11-19 05:33:02
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 09:38:21)
+source files newer than the artifact: 22
+lines in those files: 14915
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -398,16 +393,10 @@ cd D:\projects\cyber-reverse\replica
 C:\Python312\python.exe tools/vendor_coverage.py
 ```
 
-`exit 0`
+`exit 2`
 
 ```text
-  wrote docs/VENDOR_COVERAGE.md
-  controls ok=True  vendors named=13  wiring rows=9  missing=5
-    missing: Stripe challenge   n=1   0x146e9427c
-    missing: PayPal 3DS         n=9   0x146e93fb4
-    missing: captcha            n=1   0x146e94334
-    missing: proof of work      n=1   0x146e93f74
-    missing: checkpoint         n=1   0x146e94464
+  !! controls failed (kpsdk=0, datadome=0) -- IDA is not ready; refusing to overwrite docs/VENDOR_COVERAGE.md with false zeros
 ```
 
 ### 可执行段体量
@@ -431,20 +420,20 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 56882688 bytes ===
+=== REPLICA  image base 0x140000000  file 56881664 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
-  .text      0x1000       0xFEA78      1039360      X
-  .managed   0xFF000      0x1BEE138    28242432     X
-  hydrated   0x1BEF000    0x2B3BCE0    0            RW
-  .rdata     0x2B3C000    0x42FC096    24904192     R
-  .data      0x42FD000    0x43F5398    224768       RW
-  .pdata     0x43F6000    0x45FD8A0    2128384      R
-  _RDATA     0x45FE000    0x45FE0F4    512          R
-  .rsrc      0x45FF000    0x464A7E7    309248       R
-  .reloc     0x464B000    0x4652F14    32768        R
+  .text      0x1000       0xFEA68      1039360      X
+  .managed   0xFF000      0x1BEDED8    28241920     X
+  hydrated   0x1BEE000    0x2B3AB98    0            RW
+  .rdata     0x2B3B000    0x42FAF16    24903680     R
+  .data      0x42FB000    0x43F3368    224768       RW
+  .pdata     0x43F4000    0x45FB84C    2128384      R
+  _RDATA     0x45FC000    0x45FC0F4    512          R
+  .rsrc      0x45FD000    0x46487E7    309248       R
+  .reloc     0x4649000    0x4650F18    32768        R
 
-  section-mass-replica-executable: 29281792
+  section-mass-replica-executable: 29281280
   section-mass-ratio: 56.64%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
@@ -467,7 +456,7 @@ pdata bucket histogram (bucket = 0x100000 bytes)
 
   range from     original   replica    replica/original
   ----------------------------------------------------
-  0x0            5,475      1,966        35.9%
+  0x0            5,475      1,973        36.0%
   0x100000       5,089      4,823        94.8%
   0x200000       4,333      5,316       122.7%
   0x300000       2,213      3,589       162.2%
@@ -476,25 +465,25 @@ pdata bucket histogram (bucket = 0x100000 bytes)
   0x600000       1,074      3,508       326.6%
   0x700000       3,411      3,279        96.1%
   0x800000       4,076      2,696        66.1%
-  0x900000       3,556      3,098        87.1%
-  0xA00000       3,178      5,245       165.0%
+  0x900000       3,556      3,096        87.1%
+  0xA00000       3,178      5,247       165.1%
   0xB00000       3,227      6,043       187.3%
-  0xC00000       3,982      6,852       172.1%
+  0xC00000       3,982      6,851       172.0%
   0xD00000       3,921      7,474       190.6%
   0xE00000       3,371      5,129       152.2%
-  0xF00000       7,792      3,923        50.3%
-  0x1000000      5,626      8,612       153.1%
-  0x1100000      2,020      9,562       473.4%
-  0x1200000      2,046      10,152      496.2%
+  0xF00000       7,792      3,924        50.4%
+  0x1000000      5,626      8,609       153.0%
+  0x1100000      2,020      9,564       473.5%
+  0x1200000      2,046      10,149      496.0%
   0x1300000      5,065      9,467       186.9%
   0x1400000      10,107     10,083       99.8%
-  0x1500000      11,107     9,194        82.8%
-  0x1600000      2,864      9,261       323.4%
-  0x1700000      2,242      9,640       430.0%
-  0x1800000      4,058      8,421       207.5%
-  0x1900000      4,506      5,535       122.8%
-  0x1A00000      2,310      6,343       274.6%
-  0x1B00000      6,033      8,372       138.8%
+  0x1500000      11,107     9,197        82.8%
+  0x1600000      2,864      9,264       323.5%
+  0x1700000      2,242      9,633       429.7%
+  0x1800000      4,058      8,423       207.6%
+  0x1900000      4,506      5,533       122.8%
+  0x1A00000      2,310      6,346       274.7%
+  0x1B00000      6,033      8,367       138.7%
   0x1C00000      6,218      0             0.0%
   0x1D00000      6,893      0             0.0%
   0x1E00000      5,418      0             0.0%

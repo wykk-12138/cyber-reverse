@@ -42467,3 +42467,45 @@ Jacquemus 侧是 `Jacquemus` / `Jacquemus US` / `JacquemusUS` / `https://www.jac
 证据等级：Observation = 池扫结果（7956 条 / 最长有序 100 条）、邻域原文、两条控制器地址、12 个区域码、
 构建与测试与变异输出；Inference = 「全局字母序堆」（由邻域与最长段共同支持）；Unknown = 两家 step 表、
 Margiela 的主机字面量、区域与店铺的映射关系。
+## R1174 —— 「名字级 real gap: 2」其实**是裁决，不是缺口**；现在它读作 0，而且加了棘轮
+
+**取件**：`metrics_report` 的头条之一「名字级绑定缺口 real gap: 2」——判据 (a) 的口径就挂在这个数字上。
+
+**查明**：`bind_diff.py --buckets` 原文
+
+`
+missing: 14
+noise (HasMultiple_NN): 12
+real gap              : 2
+  Ui.Views.Auth.AuthWindow      1  Logout
+  Ui.Views.Auth.LicenseControl  1  Authenticate
+`
+
+那 2 条**正是 R702 判为 `OUT_OF_SCOPE` 的登录凭证/许可 UI 的成员**（`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）。
+⇒ **在范围内，名字级缺口是 0**。此前那个 `2` 把「裁决」和「缺口」塞进同一个桶，**读起来像还有活没干**。
+
+改了什么：
+- `tools/bind_diff.py`：新增第三桶 `out of scope (R702)`，名单**恰好两条**并写进代码注释（含 R702 的出处）；
+  `real gap` 变为 `missing - noise - excluded`。
+- `tests/…/NameBindingGapTests.cs`（新，2 条，`external-tools` 集合）：**`real gap` 必须是 0**；
+  **`out of scope` 必须恰好是 2**——两向钉住，将来不能靠「扩大豁免」把数字做漂亮。
+- `tests/…/BindDiffGuardTests.cs`：既有不变式 `noise + real == missing` **加强为三桶**
+  `noise + outOfScope + real == missing`。
+
+### 两次过程事故，都记下来
+
+1. **全量红在 `BindDiffGuardTests`（Expected 12 / Actual 14）**：
+   我加了桶却没更新守卫，它的不变式立刻抓住——**这正是守卫该有的样子**。
+   修法是**加强**（三桶求和仍须等于 `missing`），不是放宽；**判据变了，守卫要更紧。**
+2. **构建被文件锁挡住（MSB3027/MSB3021）**：我 `Stop-Process` 掉了 14 个 dotnet/testhost，
+   **其中一个是后台变异任务的** ⇒ 那次变异作废，**已用新二进制重跑**（下面这条收据是重跑的）。
+
+验证：`bind_diff.py --buckets` → **`real gap: 0`**；`dotnet build` **0 错**；
+`BindDiffGuard|NameBindingGap` 子集 **5/5**；全量 **2472 通过 / 0 失败 / 2 跳过 / 2474**（4m30s）；
+变异 `ran_at 2026-11-19T09:43:05`、**59/59 fired，tree GREEN**。
+
+**仍挂着**：`.publish-aot` 有 **22 个源文件比产物新**（`metrics_report` 的「产物陈旧度」），
+本轮没重建产物——`present:` 类探针在此之前仍不可信。下一轮优先处理。
+
+证据等级：Observation = `bind_diff.py` 三行输出与其源码行 76–87、两条守卫测试的断言、全量与变异收据、
+两次 MSB 错误号；Inference = 无；Unknown = 那 12 个 `HasMultiple_NN` 是否还有别的解释（本轮沿用既有判定）。

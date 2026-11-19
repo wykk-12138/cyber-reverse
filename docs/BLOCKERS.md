@@ -46046,3 +46046,45 @@ Inference = 「`origin + token` 复现原版地址」；Unknown = `contents` 端
 
 证据等级：Observation = 三类关键词的命中分布（路径 0、行为名全在）、六条名字在复刻件的定位；
 Inference = 「等补货与轮询补货是两件事」；Unknown = 这两个状态机的输入输出与触发条件。
+## R1260 —— 补货语义**解出来了**：镜像里有 `RestockInterval _lastRestockPing` 这对字段名，还有原版自己的一段说明
+
+### 一、三条观察（都在全量 dump 里，可重查）
+
+| 字面量 | 地址 | 说明 |
+|---|---|---|
+| `RestockInterval _lastRestockPing` | 0x1433A28C7 | **一对相邻字段名**：配置的间隔 + 上次探测的时间戳 |
+| `Tasks will wait for the in-bot monitor to detect a new product or restock and use the data provided by the monitor. While using this mode, no data will be used while searching for a product/restock.` | 0x1435BDD4A | **原版自己的文案**：等待模式下任务**不自己搜**，只消费监视器给的数据 |
+| `WaitForRestock`（0x1433A2566）· `WaitRestock`（0x14337AF05） | | **两个名字都在** ⇒ 等待与轮询是两个成员 |
+
+### 二、之前我把它当"行为 Unknown、不编实现"，本轮推翻一半
+
+R1259 我说这两条只有名字没语义。**语义就在镜像里**：有**间隔**、有**上次探测时间**。
+⇒ "按间隔节流的探测"不是猜，**是这对字段名的直接读法**——
+如果是后台定时器，就不需要存 last ping。
+
+**仍 Unknown 的**：间隔的默认值与单位、探测请求什么。镜像留字段名与文案，**不留配置值**。
+所以 `RestockGate` 的 interval **由调用方给**，类里不写死任何数字。
+
+### 三、落地
+
+`RestockGate.cs`：`RestockInterval`（可读）· `LastRestockPing` · `IsDue` · `MarkPinged()`。
+
+**一个刻意的设计**：`IsDue` 是**只读**，`MarkPinged()` 才推进时钟——
+这样"检查了但探测失败"的一轮**不会白白吃掉时间窗**。这条写进了测试
+（`MarkingWithoutPingingDoesNotAdvanceTheClock`）。
+
+测试 **5 条**：首次即到期 / 间隔把门（29s 不到、30s 到）/ 只读不推进 / 非正间隔拒绝 / 间隔可读。
+
+### 四、这条对 R1259 那两个"名字缺口"意味着什么
+
+- `WaitRestock`：**语义有了**（等监视器，不自己搜）；
+- `RestockMonitoring`：**语义有了**（间隔 + last ping）；
+- 但**仍不加进步骤表**——加步骤要同步三处，而本轮拿到的语义足够写**一类**（`RestockGate`），
+  不足以为**某一步**定 I/O。**实现到证据为止。**
+
+### 五、验证
+
+`dotnet build` 0 错；`RestockGate` **5/5**；全量 **2543 通过 / 0 失败 / 2 跳过 / 2545**（4m33s，+5）。
+
+证据等级：Observation = 三组字面量与其地址、原版文案原文；
+Inference = 「间隔 + last ping ⇒ 按间隔节流」；Unknown = 间隔默认值/单位、探测内容。

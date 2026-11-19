@@ -68337,3 +68337,26 @@ assembled-from-attested 里**证据最重**的一档：不需要推断拼法。
 |---|---|
 | 代码改动 | 无（取证 + 对账） |
 | 新缺口 | 2 条行为名 |
+---
+
+## 第 1260 轮：补货语义解出来了（两字段名 + 原版文案）
+
+| 字面量 | 地址 |
+|---|---|
+| `RestockInterval _lastRestockPing` | 0x1433A28C7 |
+| "Tasks will wait for the in-bot monitor to detect a new product or restock…" | 0x1435BDD4A |
+| `WaitForRestock` / `WaitRestock` | 0x1433A2566 / 0x14337AF05 |
+
+⇒ **间隔 + 上次探测时间**这对字段名**直接给出**"按间隔节流"的读法（后台定时器不需要存 last ping）。
+**推翻**我上轮说的"只有名字没语义"。
+
+**仍 Unknown**：间隔默认值与单位、探测请求内容 ⇒ `RestockGate` 的 interval 由调用方给，不写死。
+
+落地 `RestockGate`：`IsDue` **只读**、`MarkPinged()` 才推进时钟（探测失败不吃时间窗）。测试 **5/5**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2543 通过 / 0 失败 / 2 跳过 / 2545**（4m33s，+5） |
+| RestockGate | **5/5** |

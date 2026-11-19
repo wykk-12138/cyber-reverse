@@ -7724,3 +7724,16 @@ Observation：
 R1233 撞过一次 ⇒ 下轮按联动做。
 
 还剩什么：① 两条行为名落地（三处联动）；② 18 条无近邻；③ connect 通道（需登录）；④ 两条 Unknown；⑤ 产物待重发。
+## R1260 —— RestockGate 落地（间隔 + last ping，来自 0x1433A28C7 字段名对与原版文案 0x1435BDD4A）+ 5 测试
+
+Observation：
+- `RestockInterval _lastRestockPing` @0x1433A28C7；原版文案 @0x1435BDD4A；`WaitForRestock`/`WaitRestock` 两名并存。
+- ⇒ 「按间隔节流」是字段名的直接读法，不是猜。
+
+改动：`RestockGate`（IsDue 只读 + MarkPinged 推进）；测试 5 条。
+**Unknown**：间隔默认值/单位、探测内容 ⇒ interval 由调用方注入。
+
+验证：build 0 错；5/5；全量 **2543/0/2/2545**（4m33s）。
+
+还剩什么：① 17 条无近邻；② WaitRestock/RestockMonitoring 的步骤级 I/O（尚不足）；③ connect 通道（需登录）；
+④ 两条 Unknown；⑤ 产物待重发（本轮有 src 改动）。

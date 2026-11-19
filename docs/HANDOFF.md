@@ -7129,3 +7129,15 @@ Observation：
 
 还剩什么：① 若要枚举完整原版清单，需按字母序分段转储并人工筛选（可行但耗调用）；
 ② 两条 Unknown（`BotTask.Running`/`Task`）；③ abort 分支未验证；④ UI 29 条冻结。
+## R1209 —— 差点丢掉 AOT 产物：publish 未传 -p:PublishAot=true 只出 459 KB 壳，尺寸检查抓住；已重发 57.4 MB
+
+Observation：
+- csproj 全仓 **无 PublishAot**；正确命令见 `BINDING_BACKLOG.md:5782`。
+- 错误命令 exit 0、产物 459,264 B，并覆盖了旧 54.7 MB 镜像。
+- 重发（带 -p:PublishAot=true）：**57,403,392 B**；.pdata 179,456 → **179,584**；above-boundary 604 → **737**。
+- 产物陈旧度 **0**；类型级缺口 **0**；名字级 real gap **0**；形状 91/3/37。
+
+**新规则**：publish 判据 = 尺寸数量级 + .pdata 计数 + artifact_freshness，三者缺一不可。
+
+还剩什么：① 查是否别处也裸调 publish；② CS0108 警告（Checkout.Profiles 隐藏继承成员）待看；
+③ 两条 Unknown（BotTask.Running/Task）；④ abort 分支未验证；⑤ 变异需重跑（本轮改了产物）。

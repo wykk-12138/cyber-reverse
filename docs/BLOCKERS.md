@@ -43822,3 +43822,52 @@ python analysis/ida.py py "import ida_bytes; d=ida_bytes.get_bytes(0x146d8de00, 
 
 证据等级：Observation = `py` 字节转储与 95 条连读结果、布局吻合、两组全库子串搜索的 6/2 次命中内容；
 Inference = 「没有独立店表」「3 个域名属扩展」；Unknown = 原版是否以**未试过的拼法**收录这三家（已试 HMV/HMVS/Livesto/livestock_location 等）。
+## R1209 —— 我差点把 54.7 MB 的 AOT 产物覆盖成 459 KB 的 apphost（**尺寸检查当场抓住了**）
+
+### 一、起因
+
+度量报「**24 个源文件（15,321 行）比 `.publish-aot` 新**」⇒ 判据 c 的产物级对比建立在旧代码上。
+于是重建产物，命令是：
+
+`
+dotnet publish src\Cybersole.Ui\Cybersole.Ui.csproj -c Release -r win-x64 -o .publish-aot
+`
+
+**exit 0，但产物只有 459,264 B。**
+
+### 二、为什么
+
+**四个 csproj 里没有任何一个写了 `PublishAot`**（本轮实测 grep 全仓 csproj：0 命中）。
+真正的命令在 `BINDING_BACKLOG.md:5782` 记着，必须显式传：
+
+`
+dotnet publish ... -p:PublishAot=true -p:UseSharedCompilation=false -o .publish-aot
+`
+
+上去那条命令产出的是**框架依赖 apphost**，**而且把旧的 54.7 MB 原生镜像覆盖掉了**。
+—— 我用自己的手，把唯一一份 AOT 产物换成了一个不能用于对比的壳。
+
+### 三、抓住它的是尺寸
+
+459 KB vs 应有的 ~54–57 MB，差两个数量级。**若只看 exit 0 和"mtime 变新了"，这一轮会以"产物已刷新"结案。**
+
+重发（带 `-p:PublishAot=true`）：**57,403,392 B（54.74 MB）**，`.pdata` 从 179,456 → **179,584**，
+`above boundary replica` 604 → **737**（新代码确实进了产物）。
+
+### 四、度量（新产物上复算）
+
+| 度量 | 值 |
+|---|---|
+| 产物陈旧度 | **source files newer than the artifact: 0**（修好了） |
+| 函数数量（.pdata） | 原版 277,120 ↔ 复刻件 **179,584** |
+| 成员形状 | 91 / 3 / 37 |
+| 类型级绑定缺口 | **0** |
+| 名字级绑定缺口 | real gap **0** / missing 14（missing 是"原版有、复刻件无该名字"的分桶，非真缺口） |
+
+### 五、留一条规则
+
+**`dotnet publish` 的 exit 0 不代表产物对。** 判据必须同时看：**尺寸（数量级）、`.pdata` 计数、`artifact_freshness`**。
+三条缺一，就会出现"产物刷新了但刷新成了别的东西"。
+
+证据等级：Observation = 两次 publish 的 exit 与尺寸、csproj grep 0 命中、`BINDING_BACKLOG.md:5782` 的命令、
+三组度量前后对比；Inference = 「震去的那次是 apphost」；Unknown = 是否还有别处直接调 `dotnet publish` 而未传该参数。

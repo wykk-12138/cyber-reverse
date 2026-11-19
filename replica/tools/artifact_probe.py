@@ -107,7 +107,11 @@ def main():
 
     needles = list(args.strings or [])
     if args.strings_file:
-        for line in io.open(args.strings_file, encoding="utf-8"):
+        # R1180: utf-8-sig, because a probe file written by `Set-Content -Encoding utf8` starts with a BOM,
+        # and the BOM then rides along on the FIRST needle only - which made the first row of every table a
+        # false absence. The command-line route never showed it, so the defect hid in exactly the rows that
+        # were quoted as evidence.
+        for line in io.open(args.strings_file, encoding="utf-8-sig"):
             line = line.strip()
             if line and not line.startswith("#"):
                 needles.append(line)

@@ -198,16 +198,28 @@ public static class StepActionRunner
     // second one. Two ways to invoke a step by name is one too many, and this is the older and better one — it uses
     // MethodInfo.Invoke, which is why it never hit the delegate-binding failure R868 ran into.
     internal static readonly Dictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>>
-        Invokers = Build();
+        Invokers = Build<StoreFlow>();
 
-    private static Dictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>> Build()
+    /// <summary>
+    /// Builds the step table by reflecting over the flow root's public instance methods.
+    ///
+    /// <para>
+    /// R1179: the type parameter carries <c>DynamicallyAccessedMembers</c> because that is the only place the
+    /// trimmer can read such a request — a bare <c>typeof(StoreFlow).GetMethods()</c> inside a body cannot be
+    /// annotated, and the comment that used to sit here claimed the annotation existed when the code was
+    /// exactly that bare <c>typeof</c>. With it the call reads <c>Build&lt;StoreFlow&gt;()</c>, the linker learns
+    /// which members must survive, and the step bodies - with the controller literals they name - are kept.
+    /// </para>
+    /// </summary>
+    private static Dictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>> Build<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
+        T>() where T : StoreFlow
     {
         var map = new Dictionary<string, Func<StoreFlow, FlowContext, CancellationToken, Task<StepOutcome>>>(
             StringComparer.OrdinalIgnoreCase);
 
-        // R967: GetMethods on a type annotated with DynamicallyAccessedMembers.PublicMethods is a request the trimmer
-        // understands, which is what keeps the table populated in the published image rather than only in a Debug build.
-        foreach (var m in typeof(StoreFlow).GetMethods(
+        foreach (var m in typeof(T).GetMethods(
                      System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
         {
             if (!m.Name.EndsWith("Async")) continue;

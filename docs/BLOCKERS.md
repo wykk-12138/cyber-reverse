@@ -42708,3 +42708,59 @@ MSBuild 用的是**上一次的原生镜像**（mtime 未变），我拿它当�
 证据等级：Observation = 两次发布尺寸与 7 条探针读数、`artifact_freshness` 四行、`link.rsp` 37 行无描述符项
 （**注意：这说明 `TrimmerRootDescriptor` 不经 `link.rsp` 传递，但两态对照仍可复现**）、全量与变异收据；
 Inference = 「缺失文件时复用旧原生镜像」（由 mtime 未变 + 内容不变推出）；Unknown = 那两条为何仍 absent。
+## R1180 —— 探针的「absent」是**我自己制造的假阴性**：探针文件带 BOM，**只有首行被污染**
+
+**取件**：R1178 的开放问题「`Product-Show` 与 `Paypal-GetPurchaseUnit` 为何仍被裁」。
+
+### 一、先怀疑工具，再怀疑自己
+
+绕过探针直接在字节里找（Python `open(exe,'rb').read().find(...)`）：
+
+`
+Product-Show             ascii=30798267   ← 就在文件里
+ProductShow              ascii=30798255
+Cart-Get                 ascii=30797776
+Paypal-GetPurchaseUnit   ascii=30799082
+`
+
+**字符串全都在。** 那探针为什么报 0？它的匹配就是 `blob.count(needle.encode(enc))`——不可能漏。
+嫌疑转到**输入**：
+
+`
+.probes_r843.txt 头 8 字节: b'\xef\xbb\xbfProdu'
+首行 repr:                  '\ufeffProduct-Show\n'
+`
+
+**PowerShell 5 的 `Set-Content -Encoding utf8` 会写 BOM**，而工具按纯 UTF-8 读 ⇒ **BOM 只粘在第一条探针上**
+⇒ 首行永远假 `no`。命令行直传（无文件）时立刻读出 **yes**。
+
+**改一个词就根治**：`io.open(..., encoding="utf-8-sig")`。修后同一份文件 **10/10 全 yes**。
+
+### 二、这条假读数污染了哪些结论（逐个撤回）
+
+| 轮 | 那句结论 | 现在的判定 |
+|---|---|---|
+| R1176 | 首行 `no` 用来支持「探针是盲的」 | **首行读数无效**（BOM）；「盲」的论证只剩**非首行**那部分 |
+| R1177 | `Paypal-GetPurchaseUnit` 仍被裁 | **撤回**：是 BOM 假阴性，实测在产物里 |
+| R1178 | 「两条字面量仍缺席」列为开放问题 | **撤回**：问题本身是仪器造出来的 |
+
+**注意**：R1178 那次 54.72MB（6 条 yes）/ 54.25MB（全 no）的两态对照**仍然成立**——
+那两批探针里除首行外还有 5~9 条，读数一致变化，**不是 BOM 能解释的**。
+但**描述符现在是否还必需，不再确定**：本轮的泛型标注也加了，两者的作用没有分开测。**记为 Unknown，不宣称。**
+
+### 三、改了什么
+
+- `tools/artifact_probe.py`：`utf-8-sig`，并把「BOM 只污染首行、命令行路线看不出来」写进注释；
+- 新 `ProbeBomTests` **1 条**：**故意写一份带 BOM 的探针文件**，断言首行仍读作 present；
+- `StepAction.cs`：把 `Build()` 改成泛型 `Build<T>() where T : StoreFlow`，
+  T 上带 `DynamicallyAccessedMembers(PublicMethods)`——这是**唯一能被裁剪器读到的位置**，
+  而原先那句注释声称已有该标注、代码却是裸 `typeof()`（自证注释，已在注释里点名）。
+
+验证：`build` **0 错**；`ProbeBom|ArtifactProbeCaveat` **2/2**；
+全量 **2474 通过 / 0 失败 / 2 跳过 / 2476**（5m57s）；
+变异 `ran_at 2026-11-19T11:06:28`、**59/59 fired，tree GREEN**；
+探针（BOM 修后）**10/10 yes**。
+
+证据等级：Observation = 字节偏移 4 条、文件头 8 字节、首行 repr、修后 10 行读数、三处守卫与套件输出；
+Inference = 「BOM 解释全部首行 no」（由文件头与修后读数直接支持）；
+Unknown = 描述符与泛型标注各自的作用（**未分离测量**）；产物当前 17 文件 stale（`StepAction.cs` 之后又改过）。

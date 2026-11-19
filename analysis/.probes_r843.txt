@@ -1,0 +1,10 @@
+﻿Product-Show
+ProductVariation
+ProductShow
+AccountLogin
+CsrfGenerate
+WishlistAddToCart
+Cart-Get
+Cart-MiniCartShow
+Paypal-GetPurchaseUnit
+Paypal-GetPaypalOrderId

@@ -6778,3 +6778,19 @@ Observation：
 **开放**：`Paypal-GetPurchaseUnit` 与 `Product-Show` 仍 absent（同类六条都在），基线已干净，待查。
 
 还剩什么：① 那两条为何仍被裁；② `link.rsp` 不含描述符项但对照成立——传递渠道待确认（不影响结论）。
+## R1180 —— 探针 BOM 假阴性（首行）；撤 R1176/R1177/R1178 三条结论；加 utf-8-sig + 守卫
+
+Observation：
+- 字节直查：`Product-Show`/`Cart-Get`/`Paypal-GetPurchaseUnit` **全在产物里**（偏移 30797776..30799082）。
+- 探针文件头 `b'\xef\xbb\xbf'`，首行 `'\ufeffProduct-Show'` ⇒ **BOM 只污染首行** ⇒ 每表首行假 no。
+- 修 `utf-8-sig` 后同一文件 **10/10 yes**。
+
+改动：`tools/artifact_probe.py`（utf-8-sig + 注释）；新 `ProbeBomTests`（故意写 BOM 文件，断言首行 yes）；
+`StepAction.cs` `Build()` → 泛型 `Build<T>()` + `DynamicallyAccessedMembers(PublicMethods)`（替换自证注释）。
+
+验证：build 0 错；`ProbeBom|Caveat` **2/2**；全量 **2474/0/2/2476**（5m57s）；
+变异 **59/59 fired, tree GREEN**（11:06:28）。
+
+**Unknown**：描述符 vs 泛型标注各自作用未分离；产物 stale 17 文件（`StepAction.cs` 后改动）。
+
+还剩什么：① 重发产物；② 分离测「描述符是否仍必需」；③ 恢复 R1176 里被 BOM 带偏的结论表述。

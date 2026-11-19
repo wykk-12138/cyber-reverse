@@ -7603,3 +7603,13 @@ Observation：
 
 还剩什么：① 26 条逐条判（不同写法 / 片段拼接 / 不使用）；② connect 通道（需登录）；
 ③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。
+## R1249 —— 26 条真无据全无近邻（0/26）；发现第七类（Accept 头）待下一轮加 header 档
+
+Observation：
+- `flow_path_neighbours.py`：26 条 no-hit 的最后两段路径在全量 dump 里 **0 命中**。
+- 第 26 条实为 `text/html,application/xhtml+xml,…`（Accept 头），非路径。
+
+**判断**：不是拼写差异。三种可能：片段拼接 / 不请求 / 服务端下发——逐条读代码分。
+**下轮**：① 加 `header` 档；② 26 条逐条给理由（或改成 inferred 标注）。
+
+还剩什么：① 26 条归类；② connect 通道（需登录）；③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。

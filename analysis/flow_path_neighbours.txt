@@ -1,0 +1,32 @@
+# Near neighbours for every no-hit flow path, searched in analysis/ida_strings.txt (full list).
+# key = the literal's last two path segments. A hit means the image holds something similar, so the
+# row is a spelling/variant question; no hit means nothing in the image resembles it, which is the
+# only shape that can indicate the replica invented a route.
+# Regenerate with: python analysis/flow_path_neighbours.py
+
+/account/recover                                          	StoreFlow.cs          	key=account/recover                                          	NO NEIGHBOUR
+/account/verify                                           	MagentoFlow.cs        	key=account/verify                                           	NO NEIGHBOUR
+/api/beast                                                	BstnFlow.cs           	key=api/beast                                                	NO NEIGHBOUR
+/api/cart/add                                             	PopMartEndpoints.cs   	key=cart/add                                             	NO NEIGHBOUR
+/api/cart/items                                           	ScheelsFlow.cs        	key=cart/items                                           	NO NEIGHBOUR
+/api/checkout/submit                                      	RetailFlows.cs        	key=checkout/submit                                      	NO NEIGHBOUR
+/api/order/submit                                         	PopMartEndpoints.cs   	key=order/submit                                         	NO NEIGHBOUR
+/api/preorder/entry                                       	RetailFlows.cs        	key=preorder/entry                                       	NO NEIGHBOUR
+/api/search                                               	ScheelsFlow.cs        	key=api/search                                               	NO NEIGHBOUR
+/api/stock                                                	PopMartEndpoints.cs   	key=api/stock                                                	NO NEIGHBOUR
+/api/v2/shop/countries                                    	HbxFlow.cs            	key=shop/countries                                    	NO NEIGHBOUR
+/buy/carts/v2/app                                         	StoreFlow.cs          	key=v2/app                                         	NO NEIGHBOUR
+/cart/add.js                                              	ShopifyFlow.cs        	key=cart/add.js                                              	NO NEIGHBOUR
+/cart/update.js                                           	ShopifyFlow.cs        	key=cart/update.js                                           	NO NEIGHBOUR
+/checkout/#payment                                        	MagentoFlow.cs        	key=checkout/#payment                                        	NO NEIGHBOUR
+/checkout/complete                                        	StoreFlow.cs          	key=checkout/complete                                        	NO NEIGHBOUR
+/collections/new-releases                                 	MagentoFlow.cs        	key=collections/new-releases                                 	NO NEIGHBOUR
+/geoIP                                                    	BstnFlow.cs           	key=geoIP                                                    	NO NEIGHBOUR
+/rest/V1/carts/mine                                       	MagentoFlow.cs        	key=carts/mine                                       	NO NEIGHBOUR
+/rest/V1/carts/mine/totals                                	MagentoFlow.cs        	key=mine/totals                                	NO NEIGHBOUR
+/rest/V2/carts/mine                                       	MagentoFlow.cs        	key=carts/mine                                       	NO NEIGHBOUR
+/v1/buys                                                  	GoatFlow.cs           	key=v1/buys                                                  	NO NEIGHBOUR
+/view/basket/add                                          	HybrisFlow.cs         	key=basket/add                                          	NO NEIGHBOUR
+/view/component/basket/minibasketAjax                     	HybrisFlow.cs         	key=basket/minibasketAjax                     	NO NEIGHBOUR
+/view/resources/getUserInfo                               	HybrisFlow.cs         	key=resources/getUserInfo                               	NO NEIGHBOUR
+text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8	StoreFlow.cs          	key=json;q=0.9,*/*;q=0.8        	NO NEIGHBOUR

@@ -45310,3 +45310,50 @@ Inference = 「不是不可达那一支」；Unknown = URL 片段的具体存储
 证据等级：Observation = 九个字面量的双编码结果、产物与源文件的 mtime、调用链五处行号；
 Inference = 「`ProcessPaymentAsync` 未保留」（由 `paypal3ds.state` 缺席支持，且已撤回上轮相反的推断）；
 Unknown = 链在哪一层断（下一轮一条实验判定）。
+## R1242 —— 判定实验结果：**runner 在、`StoreFlow` 默认体在、`ProcessPaymentAsync` 不在**；字符串探测到此为止
+
+### 一、按上轮计划做的实验（双编码，同一产物）
+
+| 字面量 | 出处 | 结果 |
+|---|---|---|
+| `declared order has no runnable step for` | `StoreFlowRunner:394` | **UTF-16 在** |
+| `GetOrders is not implemented by` | `StoreFlow:95` 默认步骤体 | **UTF-16 在** |
+| `StartDrawFlow is not implemented by` | `StoreFlow:126` 默认步骤体 | **UTF-16 在** |
+| `paypal3ds.state` | `ProcessPaymentAsync:1427` | **不在** |
+| `3DS required but no transStatus` | `Process3DSAsync:1878` | **不在** |
+| `no action url supplied` | `HandleRequiresActionAsync:1551` | **不在** |
+| `adyen.deviceSupport` / `adyen.paymentData` | `AdyenGateway.LookUpAsync`/`Authorize3DS2Async` | **不在** |
+| `reservation failed` / `availability failed` / `variant failed` | `StoreFlowRunner:275/39/43` | **不在** |
+
+### 二、所以上轮那个"链在哪层断"的问题，答案是：**没断在上层**
+
+- runner **在**（结账/监控执行器都在产物里）；
+- `StoreFlow` 的**部分**默认步骤体**在**（`GetOrders`/`StartDrawFlow` 的文案都在）。
+
+⇒ **反射表是生效的**，`DynamicallyAccessedMembers` 起了作用，链**没有**在模块/runner/表这一层断。
+这是一个**好消息**：不存在"产物不能跑结账"的产品级缺口。
+
+### 三、但剩下的反常没解释
+
+同一类里，`GetOrdersAsync`/`StartDrawFlowAsync` 的体在，`ProcessPaymentAsync`/`Process3DSAsync`/
+`HandleRequiresActionAsync` 的不在。**不是 override 造成的**（本仓只有 `PopMartFlow:242` 一处覆写 `ProcessPaymentAsync`，
+而 `GetOrdersAsync` 零覆写——两者在这条判据上同形）。
+
+**我不能用字符串探测解释这个分裂。** 已试：双编码、完整/截断前缀、体内独有键、override 计数——都不够。
+
+### 四、换仪器（下一轮的做法，已定）
+
+不再探字符串，改用**trim 层的可观测手段**：
+
+1. 加一个 **root descriptor**（`TrimmerRootDescriptor`）显式 root `StoreFlow`，重发后看 `paypal3ds.state` 是否出现
+   —— 出现 ⇒ 诊断成立（该类型的方法体没被反射注解保住），修复即随发布；不出现 ⇒ 说明字符串在**合并/切分**层面，另找；
+2. 同时开 `-p:TrimmerSingleWarn=false` 收集 trim 告警，找出到底是谁在决定这些方法去留。
+
+**这两步都是可执行、可复算的仪器，不是再猜一次。**
+
+### 五、本轮验证
+
+无源码改动。产物 57,427,968 B。全部探测走 `analysis/artifact_literals.py`（双编码）。
+
+证据等级：Observation = 八组双编码结果、override 计数、三处行号；
+Inference = 「链未在上层断」（由 runner 与默认体都在支持）；Unknown = 同形方法为何分裂保留。

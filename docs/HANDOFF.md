@@ -7520,3 +7520,15 @@ Observation：
 **下一轮一条实验**：探 StoreFlowRunner/FlowStoreModule 体内独有串，判定链断在哪层。
 
 还剩什么：① 上条实验；② 反射表可达化；③ Stripe/Midtrans/Waitwhile 接线；④ connect 通道（需登录）；⑤ 两条 Unknown。
+## R1242 —— 实验判定：runner 与 StoreFlow 默认体都在 ⇒ 链未在上层断；同形方法分裂保留仍 Unknown
+
+Observation：
+- 在：`declared order has no runnable step for`（StoreFlowRunner）、`GetOrders/StartDrawFlow is not implemented by`（StoreFlow 默认体）。
+- 不在：`paypal3ds.state`、`3DS required but no transStatus`、`no action url supplied`、`adyen.deviceSupport`、`adyen.paymentData`、`reservation/availability/variant failed`。
+- override 计数：ProcessPaymentAsync 仅 1 处（PopMartFlow:242），GetOrdersAsync 0 处 ⇒ 不是 override 造成的。
+
+**排除**："链断在模块/runner/表"这一整类假设。
+**Unknown**：同形方法分裂保留的原因。
+**下一轮换仪器**：TrimmerRootDescriptor root StoreFlow + TrimmerSingleWarn=false 收告警。
+
+还剩什么：① 上面两步仪器；② Stripe/Midtrans/Waitwhile 接线；③ connect 通道（需登录）；④ 两条 Unknown。

@@ -67910,3 +67910,30 @@ Adyen 缺席**不是注册表问题**（`PaymentGateway.cs:67` 确实注册了�
 |---|---|
 | 代码改动 | 无 |
 | 撤回 | 1 条（上轮"ProcessPaymentAsync 已达"） |
+---
+
+## 第 1242 轮：判定实验结果——链**没**在上层断，但同形方法为何分裂保留仍 Unknown
+
+| 字面量 | 结果 |
+|---|---|
+| `declared order has no runnable step for`（runner） | **在** |
+| `GetOrders/StartDrawFlow is not implemented by`（StoreFlow 默认体） | **在** |
+| `paypal3ds.state` / `3DS required but no transStatus` / `no action url supplied` | **不在** |
+| `adyen.deviceSupport` / `adyen.paymentData` | **不在** |
+
+⇒ **反射表生效，链没断在上层**——不存在"产物跑不了结账"的产品级缺口（这是好消息）。
+但**同类里部分方法体在、部分不在**，且**不是 override 造成的**（两处都近乎零覆写）。
+
+### 字符串探测到此为止
+
+四次被诱饵串误导（截断前缀、别处的近似文案、编码）。**下一轮换仪器**：
+
+1. 加 `TrimmerRootDescriptor` 显式 root `StoreFlow`，重发看 `paypal3ds.state` 是否出现；
+2. 开 `-p:TrimmerSingleWarn=false` 收 trim 告警，找出谁在决定去留。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 代码改动 | 无 |
+| 排除 | "上层链断"这一整类假设 |

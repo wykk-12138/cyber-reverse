@@ -7499,3 +7499,13 @@ Observation：
 
 还剩什么：① 上述三选一（下轮首要）；② 字节判据测试；③ Stripe setup/intent、Midtrans 3DS、Waitwhile 接线；
 ④ connect 通道（需登录）；⑤ 两条 Unknown。
+## R1240 —— 排除"不可达"（Authorize→ProcessPayment 链通）；字节判据升级为 6 条测试
+
+Observation：
+- `StoreFlowSteps.cs:65` 步骤 `Authorize` → `StoreFlow.AuthorizeAsync`（:1536）→ `ProcessPaymentAsync`（:1541）。
+- 新测试 `PaymentLayerIsInTheArtifactTests` 6/6；全量 **2512/0/2/2514**（4m27s）。
+
+**仍 Unknown**：四条 threeDS2 路径的存储形状（或方法体是否保留）——下轮用体内独有字面量拆开。
+
+还剩什么：① threeDS2 形状定位；② Stripe setup/intent、Midtrans 3DS、Waitwhile 接线；
+③ connect 通道（需登录）；④ 两条 Unknown（BotTask.Running/Task）；⑤ UI CS0108（冻结）。

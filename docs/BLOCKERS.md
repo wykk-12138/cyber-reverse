@@ -45215,3 +45215,43 @@ R1236/R1237/R1239 三轮里，我的"成功判据"一直是**手工探字节**�
 
 证据等级：Observation = 尺寸增量、host 出现、九个片段探测结果、2506/2508 收据；
 Inference = 「接线让部分 Adyen 代码进了产物」；Unknown = 四条 3DS 路径为何不在（三种可能未分）。
+## R1240 —— 三选一的第一问有答案了；并把「字节判据」写成测试（三轮手工探测都错过）
+
+### 一、`ProcessPaymentAsync` 的调用链是通的
+
+| 环节 | 位置 |
+|---|---|
+| 步骤名 `Authorize` | `StoreFlowSteps.cs:65`（ordinal 42）、`NikeSteps.cs:43` |
+| `StoreFlow.AuthorizeAsync` | `StoreFlow.cs:1536` |
+| → `ProcessPaymentAsync` | `StoreFlow.cs:1541` |
+
+⇒ **不是"方法不可达"那一支**。R1239 的三选一里，**第 1 支（不可达）排除**。
+剩下：**片段形状** 或 **折叠方式**——这两者都要用可复现的测量，而不是再手工猜一次。
+
+### 二、所以把判据做成测试（这才是本轮的正题）
+
+`tests/Cybersole.Tests/PaymentLayerIsInTheArtifactTests.cs`，6 条：
+
+| 用例 | 断言 |
+|---|---|
+| 5 条 `[Theory]` | `api.stripe.com` / `api.unzer.com` / `app.midtrans.com` / `paypal.com/graphql` / `checkoutshopper-live.adyen.com` **必须**出现在 `.publish-aot/Cybersole.Ui.exe` 里（**两种编码都搜，两列皆 miss 才算缺**） |
+| 1 条 `[Fact]` | 产物 **> 20 MB**——防 R1209 那种"不带 `PublishAot` 却 exit 0、产出 459 KB apphost"的失败模式 |
+
+产物不存在时**直接返回**（源码 checkout 不该因没有构建产物而红），理由写在类注释里。
+
+**为什么放测试而不是脚本**：R1236（ASCII-only 漏 UTF-16）、R1237（把常量当网关 host）、R1239（把拼接片段当独立串）
+——**同一个测量三次形状假设，三次都错过一次**。手工探测没有记忆，测试有。
+
+### 三、验证
+
+`PaymentLayerIsInTheArtifact` **6/6**；全量 **2512 通过 / 0 失败 / 2 跳过 / 2514**（4m27s，+6）。
+
+### 四、仍未解（明确写）
+
+`/checkoutshopper/v1/threeDS2/*` 四条**仍不在产物里**，而 host `checkoutshopper-live.adyen.com` 在。
+⇒ 结论只能是：**这四条路径的字符串不在**（不是我搜错编码），原因在"折叠/切分方式"或"那四个方法体仍未保留"。
+下一轮用测试里已经具备的能力（双编码 + 会红）逐个定位：先测 `AdyenGateway.LookUpAsync` 体内**独有**的字面量
+（如 `adyen.deviceSupport` 会话键），把"方法体在不在"和"URL 片段形状"分开。
+
+证据等级：Observation = 三处调用链行号、6 条测试通过、全量收据；
+Inference = 「不是不可达那一支」；Unknown = URL 片段的具体存储形状（下轮用已有测试手段拆）。

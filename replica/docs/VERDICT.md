@@ -67849,3 +67849,32 @@ Adyen 缺席**不是注册表问题**（`PaymentGateway.cs:67` 确实注册了�
 |---|---|
 | 全量 | **2506 通过 / 0 失败 / 2 跳过 / 2508**（6m3s） |
 | 产物 | 57,427,968 B |
+---
+
+## 第 1240 轮：排除"不可达"，并把字节判据写成测试
+
+### 调用链是通的
+
+`StoreFlowSteps:65` 的步骤 `Authorize` → `StoreFlow.AuthorizeAsync`（:1536）→ `ProcessPaymentAsync`（:1541）。
+⇒ R1239 三选一里**第 1 支（不可达）排除**。
+
+### 把判据做成测试（正题）
+
+`PaymentLayerIsInTheArtifactTests` **6 条**：
+5 条 Theory 断言五个网关 host **必须在产物里**（**双编码，两列皆 miss 才算缺**）；
+1 条 Fact 断言产物 **> 20 MB**（防 R1209 的 459 KB apphost）。产物缺失时直接返回。
+
+**理由**：R1236/R1237/R1239 三次手工探测，**三次形状假设各错过一次**。手工探测没有记忆，测试有。
+
+### 仍未解
+
+四条 `/checkoutshopper/v1/threeDS2/*` 仍不在，而 host 在。
+⇒ 只能是「折叠/切分方式」或「那四个方法体仍未保留」。**下一轮**用测试里现成的双编码能力，
+先测 `LookUpAsync` 体内**独有**的字面量（如 `adyen.deviceSupport` 会话键），把两件事分开。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2512 通过 / 0 失败 / 2 跳过 / 2514**（4m27s，+6） |
+| 新测试 | PaymentLayerIsInTheArtifact 6 条 |

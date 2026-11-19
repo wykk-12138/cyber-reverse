@@ -1,0 +1,46 @@
+# Every path-shaped literal in replica/src/Cybersole.Stores/Payments/*.cs, probed with
+# `ida.py str` (the database, not the pool sample). "no hit" means the literal was not found; it
+# does NOT mean the image lacks the route, since a path can be assembled from fragments (R1245).
+# Regenerate with: python analysis/payment_path_audit.py
+
+# ATTESTED (33)
+/3d_secure_2/notify                                 	Gateways.cs	2
+/adyen-card-enrollment/commit                       	PaymentHostGaps.cs	1
+/adyen-card-enrollment/initiate                     	PaymentHostGaps.cs	1
+/api/public/v1/orders/payments                      	PaymentHostGaps.cs	1
+/api/sessions/                                      	Gateways.cs	2
+/api/v1/card/token                                  	DisneyPaymentSheet.cs	1
+/api/v1/checkout                                    	DisneyPaymentSheet.cs	1
+/api/v1/payment/apm/session/post_pay_status         	EshopWorldPanel.cs	1
+/api/v1/payment/apm/session/status                  	EshopWorldPanel.cs	1
+/api/v1/products/preorder-state                     	PurpleDot.cs	1
+/api/v2/PaymentMethods/url                          	EshopWorldPanel.cs	1
+/api/v2/WebComponent/state                          	EshopWorldPanel.cs	1
+/api/v3/process                                     	DisneyPaymentSheet.cs	1
+/checkout-frontend/session/                         	PaymentHostGaps.cs	1
+/confirm                                            	Gateways.cs	3
+/jgc/v8/client                                      	DisneyPaymentSheet.cs	1
+/merchants/rfbkw27jcwmw2xgp/client_api/v1/payment_methods/paypal_account	PaymentHostGaps.cs	1
+/merchants/rfbkw27jcwmw2xgp/client_api/v1/paypal_hermes/create_payment_resource	PaymentHostGaps.cs	1
+/shield/v1/verify_otp                               	Gateways.cs	1
+/shop/v1/shop/cash/desk/stripe/customerSession      	Gateways.cs	1
+/shop/v1/shop/cash/desk/stripe/pay                  	Gateways.cs	1
+/snap/v1/transactions                               	Gateways.cs	1
+/snap/v2/transactions                               	Gateways.cs	1
+/v1/3ds2/authenticate                               	Gateways.cs	1
+/v1/3ds2/challenge_complete                         	Gateways.cs	1
+/v1/payment_intents/                                	Gateways.cs	2
+/v1/setup_intents/                                  	Gateways.cs	1
+/v2/3ds/callback/                                   	Gateways.cs	1
+/web2/checkout/v2/chargetokens                      	VivaPayments.cs	1
+/web2/checkout/v2/transactions                      	VivaPayments.cs	1
+Mozilla/5.0                                         	AdyenGateway.cs	3
+application/json                                    	PayPalThreeDs.cs	3
+application/x-www-form-urlencoded                   	StripeChallenge.cs	3
+
+# NO HIT (5)
+/api/payments                                       	Gateways.cs
+/api/v2/PaymentMethods?paymentId=                   	EshopWorldPanel.cs
+/order/?payType=stripe                              	Gateways.cs
+/web2/checkout/v2/paymentdetails?ref=               	VivaPayments.cs
+jgc/v8/client is recorded and never called: nothing says what it returns or whether a purchase needs it	DisneyPaymentSheet.cs

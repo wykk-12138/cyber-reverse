@@ -7581,3 +7581,14 @@ Observation：
 
 还剩什么：① 原版真正的 Omise tokenising host（若有）；② Square/CommerceHub 端点逐条核；
 ③ connect 通道（需登录）；④ 两条 Unknown；⑤ UI CS0108（冻结）。
+## R1247 —— 支付路径审计 38 条：33 有据 / 3 前缀有据（缺查询串）/ 1 正则假阳性 / **1 真无据（/api/payments）**
+
+Observation：
+- `payment_path_audit.py`：38 条路径字面量，33 有据。
+- 5 条无命中：3 条前缀有据（EshopWorld/Burberry/Viva）、1 条是 `DisneyPaymentSheet.cs:130` 报错文案、1 条真无据 `/api/payments`。
+
+未解：若 `/api/payments` 存在对应的原版片段形状（尚未找到）。
+校验：`/api/payments` 的 `ida.py str` = **0**，与 R1017 记录一致。
+
+还剩什么：① Square/CommerceHub 逐端点核（本轮已覆盖路径层，端点参数另说）；② connect 通道（需登录）；
+③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。

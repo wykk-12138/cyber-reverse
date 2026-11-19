@@ -45537,3 +45537,39 @@ Inference = 「同形状两钉」；Unknown = 哪个表面用哪个钉。
 
 证据等级：Observation = 七家 host 的命中计数、三条 Omise 字面量与地址、`omise` 的 8 次 "Promise" 假命中；
 Inference = 「`api.omise.co` 未被证据支持」；Unknown = 原版真正用的 tokenising host（若存在）。
+## R1247 —— 支付层**路径**审计：38 条里 **33 有据、4 需按片段复核、1 真无据**
+
+### 一、口径先说清（`analysis/payment_path_audit.py`）
+
+扫 `replica/src/Cybersole.Stores/Payments/*.cs` 里所有路径形状的字面量，逐条 `ida.py str`（查**数据库**，不是 R816 说的抽样池）。
+
+| 项 | 数 |
+|---|---|
+| 匹配到的路径形状字面量 | **38** |
+| 在镜像里有据 | **33** |
+| 无命中 | **5** |
+
+### 二、5 条无命中逐条落地（不能笼统算"缺证据"）
+
+| 字面量 | 复核结果 |
+|---|---|
+| `/api/v2/PaymentMethods?paymentId=` | **前缀有据**：`https://payments-panel.production.eshopworld.com/a…`（2 次）——缺的只是查询串后缀 |
+| `/order/?payType=stripe` | **前缀有据**：`.burberry.com/web-api/guest/order/?country=`（2 次） |
+| `/web2/checkout/v2/paymentdetails?ref=` | **前缀有据**：`https://www.vivapayments.com/web2/checkout/v2/paym…`（1 次） |
+| `/api/payments` | **真无据**：`n=0`，与 `StoreFlow.cs:1361` 记的 R1017 结论一致 |
+| `jgc/v8/client is recorded and never called: no` | **正则假阳性**：那是 `DisneyPaymentSheet.cs:130` 的**运行时报错文案**，不是路径 |
+
+⇒ **真正在镜像里找不到的路径只有 1 条**：`/api/payments`（且这一点 R1017 早就记过，代码注释里也写着）。
+
+### 三、这条审计本身的方法学要点
+
+1. **带查询串的字面量会假阴性**：`?param=` 部分在镜像里往往是分开的片段（与 R1245 两个版本钉同理）⇒ **必须按片段复核**再判；
+2. **正则会从散文里抓路径**：报错文案里提到 `jgc/v8/client` 就被误当成请求路径 ⇒ 审计结果要**人工过一遍**，不能直接当缺口表；
+3. **"无命中"不是"原版不用"**（R816 的规矩），本轮把 5 条压到 1 条靠的就是这条。
+
+### 四、验证
+
+无 `replica/src` 改动；产物 `analysis/payment_path_audit.txt`（33 + 5，附"no hit 不等于没有"的口径）。
+
+证据等级：Observation = 38/33/5 三个数、四个前缀的命中与原文、`DisneyPaymentSheet.cs:130` 的源码行；
+Inference = 「3 条是片段假阴性、1 条是正则假阳性」；Unknown = `/api/payments` 的原版对应片段（若存在）。

@@ -45967,3 +45967,42 @@ Inference = 「这两条属预期缺席」；Unknown = 22 条各自的归属（�
 
 证据等级：Observation = 11 条字面量、两条复刻件写法的零命中、`ResetPassword`/`VerifyEmailLogin` 方法名存在；
 Inference = 「行为有据、路由无据」；Unknown = `/account/verify` 的真实对应路由。
+## R1258 —— HBX 的购物车端点是**带 host 的整条字面量**，比 Magento 那批证据更强
+
+### 一、镜像里 4 条 HBX 形状
+
+| 字面量 | 说明 |
+|---|---|
+| **`https://hbx.com/api/v1/carts`** | **host + 路径写在同一条**里 |
+| `https://hbx.com/api/v1/carts/` | 带尾斜杠的同一条，并存 |
+| `api/v1/carts` | 裸 token |
+| `api/v2/carts/contents/` | v2 形状，复刻件**未用** |
+
+### 二、这条证据强度与 Magento 不同
+
+R1251 的 Magento 是`/rest/V1` + `carts/mine` **两个片段**；HBX 是**一条完整的绝对地址**。
+⇒ `Origin(c.Url) + "/api/v1/carts"` 与镜像写死的 `https://hbx.com/api/v1/carts` **逐字相同**（测试已钉）。
+
+**这是 assembled-from-attested 里证据最重的一档**：不需要推断拼法，直接能核对结果。
+
+### 三、`/api/v2/shop/countries` 仍无据，且这轮把"无据"的范围收窄了
+
+- `shop/countries` **零命中**（连片段都没有）；
+- 而镜像的 v2 家族讲的是**购物车内容**（`api/v2/carts/contents/`），**不是店铺元数据**；
+- 该调用点已有 `inferred` 标注（`HbxFlow:41`），本轮不改它。
+
+⇒ 结论从"v2 路径无据"收紧为"**v2 那一族在镜像里是另一件事**"。
+
+### 四、落地
+
+`HbxApi.cs`（4 常量 + `CartsUrl(origin)`）+ 3 条测试，其中
+`TheOriginPlusTokenReproducesTheAbsoluteLiteral` 断言
+`CartsUrl("https://hbx.com") == CartsUrl("https://hbx.com/") == CartsAbsolute`
+——**把"复刻件的拼法等于原版写死的地址"变成断言**。
+
+### 五、验证
+
+`dotnet build` 0 错；`HbxApi` **3/3**；全量 **2538 通过 / 0 失败 / 2 跳过 / 2540**（4m26s，+3）。
+
+证据等级：Observation = 四条字面量、`shop/countries` 零命中；
+Inference = 「`origin + token` 复现原版地址」；Unknown = `contents` 端点答什么、哪一步读它。

@@ -68298,3 +68298,22 @@ R1249 说 26 条全无近邻；扩大 key 宽度后 **Magento 这批全找到了
 |---|---|
 | 全量 | **2535 通过 / 0 失败 / 2 跳过 / 2537**（4m29s，+5） |
 | AccountRoutes | **5/5** |
+---
+
+## 第 1258 轮：HBX 是**带 host 的整条字面量**（比 Magento 那批更硬）
+
+镜像 4 条：`https://hbx.com/api/v1/carts` · `…/carts/` · `api/v1/carts` · `api/v2/carts/contents/`。
+
+⇒ `Origin + "/api/v1/carts"` 与镜像写死的绝对地址**逐字相同**（断言
+`CartsUrl("https://hbx.com") == CartsUrl("https://hbx.com/") == CartsAbsolute`）。这是
+assembled-from-attested 里**证据最重**的一档：不需要推断拼法。
+
+`/api/v2/shop/countries`：`shop/countries` **零命中**；而镜像的 v2 家族讲的是**购物车内容**
+⇒ 结论收紧为「**v2 那一族在镜像里是另一件事**」，调用点保持 `inferred`。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2538 通过 / 0 失败 / 2 跳过 / 2540**（4m26s，+3） |
+| HbxApi | **3/3** |

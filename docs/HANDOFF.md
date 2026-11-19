@@ -7703,3 +7703,14 @@ Observation：
 
 还剩什么：① 20 条无近邻继续（PopMart/Scheels/Retail/Hbx/Goat/Hybris/Shopify/StoreFlow）；
 ② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）；⑤ 产物待重发。
+## R1258 —— HBX cart 端点带 host 有据；`origin+token` 与绝对地址逐字相同（+3 测试）
+
+Observation：
+- `https://hbx.com/api/v1/carts` · `…/carts/` · `api/v1/carts` · `api/v2/carts/contents/` 四条在镜像里。
+- `shop/countries` 零命中。
+
+改动：`HbxApi`（4 常量 + `CartsUrl`）+ 3 测试。**Unknown**：`contents` 端点语义。
+验证：build 0 错；3/3；全量 **2538/0/2/2540**（4m26s）。
+
+还剩什么：① 19 条无近邻（PopMart/Scheels/Retail/Goat/Hybris/Shopify/StoreFlow）；
+② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）；⑤ 产物待重发。

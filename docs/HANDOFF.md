@@ -7202,3 +7202,15 @@ Observation：
 验证：build 0 错；新测试 **7/7**；全量 **2484/0/2/2486**（4m25s）。
 
 下一步：`/v1/payment_intents/` 的四个函数里未实现的部分；`setup_intents` 另一条 `sub_141145DB0`（0x472）待解。
+## R1215 —— setup_intents 检取 URL 落地（sub_141145DB0，4 条常量）；+3 测试
+
+Observation：
+- `sub_141145DB0`（1,138 B，185 行）：0x147054FE0 + 0x146B28808 + 0x146A84588 + 0x146A7AFD8，**仅 4 条常量**。
+- 查重：`&key=`/`&_stripe_account=` 在 MagentoFlow（payment_intents）；setup_intents 前缀缺。
+- 新增 `StripeGateway.SetupIntentRetrieveUrl`，`&_stripe_account=` 无条件留槽。
+
+**判断法**：同一前缀两种动作——**常量集合大小**（4 条=拼 URL / 33 条=拼表单）可当场分辨。
+
+验证：build 0 错；StripeSetupIntent **10/10**；全量 **2487/0/2/2489**（4m23s）。
+
+下一步：`/v1/payment_intents/` 四个函数中未实现的（sub_140A40170 0x5c0、sub_140B58D60 0x9d4）。

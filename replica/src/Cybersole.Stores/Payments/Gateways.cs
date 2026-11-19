@@ -222,6 +222,26 @@ public sealed class StripeGateway : IPaymentGateway
         ApiHost + SetupIntentPath + Uri.EscapeDataString(setupIntentId ?? string.Empty) + SetupConfirmSuffix;
 
     /// <summary>
+    /// The setup-intent retrieve URL (sub_141145DB0, 1,138 bytes): the same frozen prefix and id, then the query
+    /// the image builds from three more literals — <c>?is_stripe_sdk=true&amp;client_secret=</c> at 0x146B28808,
+    /// <c>&amp;key=</c> at 0x146A84588 and <c>&amp;_stripe_account=</c> at 0x146A7AFD8.
+    ///
+    /// <para>
+    /// <b>Observed</b>: those four literals are the whole constant set of that function, so what it produces is a
+    /// GET of the intent, not a form post. <b>Inference</b>: the payment_intents retrieve in MagentoFlow builds the
+    /// same query — same three fragments — so the shape is shared between the two intents; this method is the
+    /// setup_intents half, which the replica did not have.
+    /// </para>
+    /// </summary>
+    public static string SetupIntentRetrieveUrl(string setupIntentId, string clientSecret, string publishableKey,
+        string? stripeAccount = null) =>
+        ApiHost + SetupIntentPath + Uri.EscapeDataString(setupIntentId ?? string.Empty) +
+        "?is_stripe_sdk=true" +
+        "&client_secret=" + Uri.EscapeDataString(clientSecret ?? string.Empty) +
+        "&key=" + Uri.EscapeDataString(publishableKey ?? string.Empty) +
+        "&_stripe_account=" + Uri.EscapeDataString(stripeAccount ?? string.Empty);
+
+    /// <summary>
     /// The setup-intent confirm form (sub_140BE0F80, 2,844 bytes).
     ///
     /// <para>

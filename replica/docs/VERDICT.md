@@ -67096,3 +67096,27 @@ Farfetch 7 条早已定性（服务端下发路由）。这轮查 **Bstn 4 条**
 |---|---|
 | 全量 | **2484 通过 / 0 失败 / 2 跳过 / 2486**（4m25s，+7） |
 | 新增 Observation | 1 端点 + 13 键 + 1 UA + 3 旗标 |
+---
+
+## 第 1215 轮：同一条前缀，两种动作
+
+`sub_141145DB0` 的全部常量只有 **4 条**，全是 URL 片段 ⇒ 它是**拼检取 URL** 的：
+
+`GET /v1/setup_intents/{id}?is_stripe_sdk=true&client_secret=…&key=…&_stripe_account=…`
+
+而上一轮的 `sub_140BE0F80` 有 **33 条**常量 ⇒ 拼表单（`POST …/confirm`）。
+**"同一个 URL 前缀 ⇒ 同一个函数"是错的假设**，这轮靠**常量集合的大小**当场分辨。
+
+### 查重的分布本身有信息
+
+4 条里 3 条已存在，但 `&key=`/`&_stripe_account=` 在 `MagentoFlow`（**payment_intents** 的检取），
+`setup_intents` 前缀只在我上轮新加的测试里 ⇒ **payment_intents 有、setup_intents 没有。**
+
+补上 `SetupIntentRetrieveUrl`（`&_stripe_account=` 无条件留槽，空值也留）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2487 通过 / 0 失败 / 2 跳过 / 2489**（4m23s，+3） |
+| StripeSetupIntent | **10/10** |

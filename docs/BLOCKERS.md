@@ -44076,3 +44076,43 @@ SDK 旗标与 secret、归属元数据**顶层与嵌套各一遍**、hCaptcha to
 证据等级：Observation = 33 条 `names_at` 解码（地址在上表）、两条 UA 的地址不同、`func_strings.py` 的查重结果；
 Inference = 「同时出现两遍是原版真实形状」（照抄字面量，未推断语义）；
 Unknown = `pasted_fields`/`time_on_page`/`referrer` 的**运行期取值**（字面量只给键名）。
+## R1215 —— `setup_intents` 第二条路径解码：那是**检取**不是提交；补上复刻件缺的那一半
+
+### 一、`sub_141145DB0`（1,138 B，185 行伪代码）的**全部**常量只有 4 条
+
+| 字面量 | 地址 |
+|---|---|
+| `https://api.stripe.com/v1/setup_intents/` | 0x147054FE0 |
+| `?is_stripe_sdk=true&client_secret=` | 0x146B28808 |
+| `&key=` | 0x146A84588 |
+| `&_stripe_account=` | 0x146A7AFD8 |
+
+**功能写成一句话**：拼出 `GET /v1/setup_intents/{id}?is_stripe_sdk=true&client_secret=…&key=…&_stripe_account=…`。
+上一轮那个 `sub_140BE0F80` 是 `POST …/confirm`（表单），**这两个是不同动作**，不是同一动作的两种写法。
+
+### 二、查重结果（工具自动报）
+
+4 条里 3 条已存在，但**分布说明问题**：
+`&_stripe_account=` 与 `&key=` 在 `MagentoFlow.cs`（那是 **payment_intents** 的检取，行 1441-1445），
+`https://api.stripe.com/v1/setup_intents/` 只在我上一轮**自己新加的测试**里。
+⇒ **payment_intents 的检取有了，setup_intents 的检取没有。**
+
+### 三、落地
+
+`StripeGateway.SetupIntentRetrieveUrl(id, clientSecret, publishableKey, stripeAccount)`——
+**`&_stripe_account=` 无条件拼接**（原版就是无条件；省略它会改变请求形状），空值也留槽。
+新测试 **3 条**：三段冻结片段的形状、空账户仍留槽、四段全部转义。
+
+### 四、一个可复用的判断
+
+上一轮与这一轮各解一个函数，**同一条 `/v1/setup_intents/` 前缀，两种动作**。
+「同一个前缀 ⇒ 同一个函数」是错的假设；这轮靠**常量集合的大小**当场分辨：
+一个函数只有 4 个串且全是 URL 片段 ⇒ 它是拼 URL 的；有 33 个串 ⇒ 它是拼表单的。
+
+### 五、验证
+
+`dotnet build` 0 错；`StripeSetupIntent` **10/10**；全量 **2487 通过 / 0 失败 / 2 跳过 / 2489**（4m23s，+3）。
+
+证据等级：Observation = 4 条字面量与地址、185 行伪代码规模、查重分布；
+Inference = 「payment_intents 与 setup_intents 共用同一查询形状」（由三段片段完全相同推出）；
+Unknown = 原版是否在检取后轮询（伪代码里没有循环证据，未断言）。

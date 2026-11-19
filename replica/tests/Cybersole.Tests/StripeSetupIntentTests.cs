@@ -34,6 +34,32 @@ public sealed class StripeSetupIntentTests
     }
 
     [Fact]
+    public void RetrieveUrlIsTheIntentPlusTheThreeFrozenFragments()
+    {
+        // 0x147054fe0 + 0x146b28808 + 0x146a84588 + 0x146a7afd8, the whole constant set of sub_141145DB0
+        Assert.Equal(
+            "https://api.stripe.com/v1/setup_intents/si_1?is_stripe_sdk=true&client_secret=sec&key=pk&_stripe_account=acct",
+            StripeGateway.SetupIntentRetrieveUrl("si_1", "sec", "pk", "acct"));
+    }
+
+    [Fact]
+    public void RetrieveUrlKeepsTheAccountSlotEvenWhenEmpty()
+    {
+        // the image appends the fragment unconditionally; dropping it would change the request shape
+        Assert.EndsWith("&_stripe_account=", StripeGateway.SetupIntentRetrieveUrl("si_1", "sec", "pk"));
+    }
+
+    [Fact]
+    public void RetrieveUrlEscapesEveryPart()
+    {
+        var url = StripeGateway.SetupIntentRetrieveUrl("a/b", "s+c", "p k", "x&y");
+        Assert.Contains("/a%2Fb?", url);
+        Assert.Contains("client_secret=s%2Bc", url);
+        Assert.Contains("key=p%20k", url);
+        Assert.Contains("_stripe_account=x%26y", url);
+    }
+
+    [Fact]
     public void TheCardElementUserAgentIsTheOtherSurfaceNotThePaymentElementOne()
     {
         // 0x1471654a0 vs the payment-method create's 0x1471655c8

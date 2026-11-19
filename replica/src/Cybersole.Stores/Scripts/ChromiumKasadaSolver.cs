@@ -35,6 +35,19 @@ public sealed class ChromiumKasadaSolver
     private ChromiumBridge? _bridge;
 
     /// <summary>
+    /// Run the browser without a window. Off by default: a visible window is the configuration the
+    /// challenge is known to accept, and headless adds signals of its own.
+    /// </summary>
+    public static bool KasadaHeadless { get; set; }
+
+    /// <summary>
+    /// Overwrite the browser's surface with a fabricated one before the page runs. Off by default: the
+    /// reference implementation does not do it, and each overwritten property is a difference a detector
+    /// can look for.
+    /// </summary>
+    public static bool KasadaStealth { get; set; }
+
+    /// <summary>
     /// The body the submission endpoint answered with. A 200 with an empty body is an unsolved round; only
     /// the 15-byte {"reload":true} means the challenge was actually solved.
     /// </summary>
@@ -105,7 +118,10 @@ public sealed class ChromiumKasadaSolver
         ChromiumBridge? bridge = null;
         try
         {
-            bridge = await ChromiumBridge.LaunchAsync(ct: ct).ConfigureAwait(false);
+            // Headed by default. The reference implementation runs a normal window and its own notes say a
+            // debug port without one is what makes the challenge refuse; headless adds a set of its own
+            // signals on top. KasadaHeadless exists for callers that cannot show a window and accept that.
+            bridge = await ChromiumBridge.LaunchAsync(headed: !KasadaHeadless, ct: ct).ConfigureAwait(false);
 
             // R135: the browser that solves this token is the browser the payment will describe. One
             // key, recorded here, so the profile folder, the fingerprint and the 3-D Secure profile all
@@ -121,7 +137,11 @@ public sealed class ChromiumKasadaSolver
 
             // Look like desktop Chrome before the first request: the UA token, the UA-CH
             // brands and navigator.webdriver are all checked before a token is issued.
-            await bridge.ApplyStealthAsync(ct: ct).ConfigureAwait(false);
+            // Stealth injection is skipped by default. The reference implementation injects nothing at all
+            // (no addScriptToEvaluateOnNewDocument anywhere in its harvest path) and its notes say the plain
+            // configuration is the one the challenge accepts -- so every surface this mask overwrites is
+            // itself a difference from a real browser. KasadaStealth restores the old behaviour.
+            if (KasadaStealth) await bridge.ApplyStealthAsync(ct: ct).ConfigureAwait(false);
 
             // Before the first request, so nothing gets pulled and then discarded: the browser drops these
             // itself, and over a metered proxy that is the difference between a few hundred KB and several MB.

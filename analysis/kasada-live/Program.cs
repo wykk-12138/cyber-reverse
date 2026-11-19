@@ -79,6 +79,20 @@ if (args.Contains("--browser"))
     }
     foreach (var l in lines) Console.WriteLine(l);
     if (!string.IsNullOrEmpty(dumpPath)) File.WriteAllLines(dumpPath, lines);
+    // The CD inputs the reference implementation actually needs: a token, a server epoch-ms, and the local
+    // time it arrived. fc and the runtime suffix are constants there, not harvested values.
+    var tlPair = browser.LastRoundtrips
+        .Where(rt => rt.Url.Contains("/tl", StringComparison.Ordinal) && rt.ResponseHeaders.ContainsKey("x-kpsdk-st"))
+        .LastOrDefault();
+    if (tlPair is not null)
+    {
+        Console.WriteLine($"tl st = {tlPair.ResponseHeaders["x-kpsdk-st"]}  ct = {Trunc(tlPair.ResponseHeaders.GetValueOrDefault("x-kpsdk-ct", ""), 24)}");
+    }
+    else
+    {
+        Console.WriteLine("tl st = (absent from the /tl response headers)");
+    }
+
     Console.WriteLine($"TlSolved = {browser.TlSolved}   TlBody = {(browser.TlBody is null ? "(null)" : browser.TlBody.Length > 40 ? browser.TlBody[..40] + "…" : "[" + browser.TlBody + "]")}");
     Console.WriteLine($"Ok      = {live.Ok}");
     Console.WriteLine($"Ct      = {live.Ct ?? "(null)"}");

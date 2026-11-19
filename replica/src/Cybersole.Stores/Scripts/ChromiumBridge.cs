@@ -117,12 +117,13 @@ public sealed class ChromiumBridge : IAsyncDisposable
             // to run. These flags remove the most common reasons a script refuses.
             "--disable-blink-features=AutomationControlled",
             "--disable-features=IsolateOrigins,site-per-process",
-            "--exclude-switches=enable-automation",
         });
 
-        // A persistent profile should not be told it is under automation; a temp one does not
-        // care. Leaving the flag off in headed mode is part of not looking synthetic.
-        if (!headed) args.Add("--enable-automation");
+        // No automation-enabling switch, in either mode. Measured against the reference implementation
+        // (arcbot rust/src/harvest/worker.rs): a debug port otherwise makes Chrome advertise
+        // navigator.webdriver === true, the Kasada challenge then refuses to solve, and the submission
+        // endpoint answers 200 with x-kpsdk-cr: true and an empty body -- which is exactly the state this
+        // bridge was in. `--enable-automation` here was the mistake; it is not added now.
 
         args.Add("about:blank");
 

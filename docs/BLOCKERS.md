@@ -42420,3 +42420,50 @@ Cybersole 里按店分 logger 意味着这是**一等支持的店铺**），以�
 证据等级：Observation = 两条例程的字面量全表、`str` 的 21 条命中（含主机与日志分类）、
 `grep` 零命中、六处守卫的行号与断言、`CreateAll()` 是数组；Inference = 「按店分 logger ⇒ 一等店铺」；
 Unknown = Margiela 的域名、两家的 PDP 标记、两家的 step 表（除这两步外）。
+## R1173 —— 两条 X-Preload 控制器落库；「字符串池能不能枚举店铺」这个问题的答案是**不能**
+
+**取件**：R1172 遗留「观测 Jacquemus PDP 标记 → 加模块」。本轮先换了取证方式（**不去抓今天的网页**：
+那描述的是网站现状，不是原版行为），改为读**镜像里这两家的字符串邻域**，结果先拿到了一个方法论结论。
+
+### 一、负结论：镜像的字符串堆是**全局字母序**，不能用来枚举店铺
+
+扫 `0x146d00000..0x146e00000`（7956 条字符串），求「最长的非降序连续段」= **100 条**
+（`'Etc/Universal'` … `'EventType'`）。
+
+原因在邻域里看得最清楚：`Maka` → `MakeWindowAssociation failed` → `Malawi`，
+`Manual checkout (` 夹在 `Manual (GooglePay)` 与 `ManualPaymentMethodConfig` 之间 ——
+**整个冻结字符串堆大致按字母序排布，商店名、区域名、控制器名、普通消息字符串混在同一条序里。**
+
+⇒ **按字母找得到某一家（所以 Jacquemus/Margiela 能被搜到），但拿不到「店铺清单的边界」**，
+因此**无法**用它做覆盖率枚举。这条要写下来，免得下一轮再试一次。
+
+### 二、本轮落的可执行部分：两条控制器
+
+两家的 `X-Preload` 是 **SFCC 控制器-动作**名，与 `Cart-AddProduct` 同一形态，走 `Controller()` 组合：
+
+`
+Jacquemus-Preload   0x146dd3ba8
+Margiela-Preload    0x146dfcbe0
+`
+
+- `DemandwareControllers`：新增两个常量（含地址）并加入 `All`；
+- 新测试 `BrandPreloadControllerTests` **2 条**：都在 `All` 里、且保持 `店名-动作` 形态（含 `-`、不含 `/`）。
+
+**为什么只写名字不写行为**：两家的 step 表仍未观测（除 PayPal 那两步），写 `MonitorAsync` 就需要 PDP 标记，
+那是编。**名字是事实，行为还不是。**
+
+### 三、顺手拿到的旁证（写进 BLOCKSER，不落代码）
+
+`str "Margiela"` 的邻域给出了**完整的区域族**：
+`MargielaAPAC / AU / CA / EU / EU2 / GB / HK / JP / KR / MENA / SG / US`（**12 个区域**），
+外加 `Maison Margiela` / `Maison Margiela UAE` / `MaisonMargiela` / `MARGIELA-DEBUG` / `MARGIELA-ERROR`；
+Jacquemus 侧是 `Jacquemus` / `Jacquemus US` / `JacquemusUS` / `https://www.jacquemus.com/`。
+**复刻件没有「区域」这个概念**，而这些区域码说明原版是按区域建店的——这是加店之前要先决定的事。
+
+验证：`dotnet build` **0 错**；`BrandPreload|Demandware` 子集 **43/43**；
+全量 **2470 通过 / 0 失败 / 2 跳过 / 2472**（5m38s）；
+变异 `ran_at 2026-11-19T09:15:02`、**59/59 fired，tree GREEN**。
+
+证据等级：Observation = 池扫结果（7956 条 / 最长有序 100 条）、邻域原文、两条控制器地址、12 个区域码、
+构建与测试与变异输出；Inference = 「全局字母序堆」（由邻域与最长段共同支持）；Unknown = 两家 step 表、
+Margiela 的主机字面量、区域与店铺的映射关系。

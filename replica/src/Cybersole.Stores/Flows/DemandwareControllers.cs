@@ -105,6 +105,21 @@ public static class DemandwareControllers
     /// <summary>The order-details lookup; the caller appends <c>?orderId=</c> (0x146ab0394).</summary>
     public const string PaypalGetOrderDetails = "Paypal-GetOrderDetails";
 
+    // ---- R1173: the two brand stores' preload controllers
+    //
+    // R1172 established that Jacquemus and Maison Margiela are stores this image supports - each has a host
+    // or a regional family, a display name, a region code and per-store log categories - and that the
+    // replica has neither store. Their preload controllers are the first piece of them that can be written
+    // down without inventing anything: both are SFCC *controller-action* names, so they compose through
+    // Controller() exactly like the others. The steps that call them are still unobserved, which is why
+    // only the names are here.
+    //
+    /// <summary>The Jacquemus storefront's preload action (0x146dd3ba8).</summary>
+    public const string JacquemusPreload = "Jacquemus-Preload";
+
+    /// <summary>The Maison Margiela storefront's preload action (0x146dfcbe0).</summary>
+    public const string MargielaPreload = "Margiela-Preload";
+
     /// <summary>The controllers, in the order the checkout chain uses them.</summary>
     public static readonly IReadOnlyList<string> CheckoutChain = new[]
     {
@@ -126,6 +141,7 @@ public static class DemandwareControllers
         CartUpdateProduct, CartShowLayer, AdyenPaymentFromComponent,
         AdyenPayPalPatchOrder, AdyenAuthorize3Ds2,
         PaypalGetPurchaseUnit, PaypalGetPaypalOrderId, PaypalGetOrderDetails,
+        JacquemusPreload, MargielaPreload,
     };
 
     /// <summary>The site ids the image names, e.g. <c>Sites-crocs_-Site</c>.</summary>

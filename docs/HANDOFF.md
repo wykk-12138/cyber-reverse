@@ -6690,3 +6690,18 @@ Observation：
 **本轮不加店**：Jacquemus 缺 PDP 标记观测；**Margiela 缺主机字面量（域名 Unknown，不编）**。
 
 还剩什么：① 观测 Jacquemus PDP 标记 → 加 `JacquemusModule` 与 flow；② 找 Margiela 主机；③ 两家其余步骤表。
+## R1173 —— 落库 Jacquemus-Preload/Margiela-Preload 两控制器；证否「字符串池可枚举店铺」
+
+Observation：
+- 扫 `0x146d00000..0x146e00000` 7956 条，**最长有序段仅 100 条** ⇒ 堆是全局字母序，**不能枚举店铺**。
+- `Jacquemus-Preload` 0x146dd3ba8、`Margiela-Preload` 0x146dfcbe0。
+- Margiela **12 个区域码**（APAC/AU/CA/EU/EU2/GB/HK/JP/KR/MENA/SG/US）+ `MARGIELA-DEBUG/ERROR`；
+  Jacquemus 侧 `https://www.jacquemus.com/`/`Jacquemus US`/`JacquemusUS`。
+
+改动：`DemandwareControllers` +2 常量并进 `All`；新测试 `BrandPreloadControllerTests` 2 条。
+
+验证：build 0 错；子集 **43/43**；全量 **2470/0/2/2472**（5m38s）；变异 **59/59 fired, tree GREEN**（09:15:02）。
+
+**未做**：两家 `MonitorAsync`（缺 PDP 标记观测）、店铺模块（需先定「区域」模型）。
+
+还剩什么：① 决定区域模型 → 再建 `JacquemusModule`；② Margiela 主机字面量；③ 两家 step 表。

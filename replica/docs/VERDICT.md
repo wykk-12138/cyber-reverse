@@ -65882,3 +65882,39 @@ R1171 我用「JL 第 37 步也叫 `GetPayPalOrderId`」去对控制器，才觉
 `FirstDomainResolvesTests` 会真解析域名……**下一轮带着观测去补，而不是边撞守卫边修。**
 
 证据不对称也写清了：**Jacquemus 有主机可断言；Margiela 的域名是 Unknown，不替它编。**
+---
+
+## 第 1173 轮：先否定一个方法，再落下能落的那一半
+
+上一轮我打算「观测 Jacquemus 的 PDP 标记」。这一轮**没有去抓网页**——抓下来描述的是网站今天的 HTML，
+不等于原版的解析行为。改读镜像里这两家的字符串邻域，先得到一个**负结论**：
+
+> 冻结字符串堆是**全局字母序**的。`Maka` → `MakeWindowAssociation failed` → `Malawi`。
+> 所以**按名字找得到某一家，但拿不到清单边界** ⇒ **不能用它枚举店铺**。
+> 扫 1 MB（7956 条）求最长有序段只有 **100 条**，就是这个结论的度量。
+
+### 能落的那一半：两条控制器
+
+`
+Jacquemus-Preload   0x146dd3ba8
+Margiela-Preload    0x146dfcbe0
+`
+
+它们是 SFCC 的 `控制器-动作` 名，与 `Cart-AddProduct` 同形态，所以进 `DemandwareControllers`、
+走同一个 `Controller()` 组合。新测试 2 条。
+
+**只写名字不写行为**：两家的 step 表未观测，`MonitorAsync` 需要 PDP 标记，**那是编**。名字是事实，行为还不是。
+
+### 顺手挖到的：原版按**区域**建店
+
+`str "Margiela"` 邻域给出 **12 个区域码**：`APAC/AU/CA/EU/EU2/GB/HK/JP/KR/MENA/SG/US`。
+**复刻件没有「区域」这个概念。** 这是加店之前要先做的决定，已写进 BLOCKERS。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 构建 | **0 错** |
+| 子集 | **43/43** |
+| 全量 | **2470 通过 / 0 失败 / 2 跳过 / 2472**（5m38s） |
+| 变异 | **59/59 fired，tree GREEN**（09:15:02） |

@@ -67410,3 +67410,31 @@ JSON 里每个名字附的地址是**ASCII 串的起始地址** ⇒ **同一串�
 | 候选清单 | 239 / **178** |
 | 代码改动 | 无 |
 | 并行会话文件 | 未触碰、未暂存 |
+---
+
+## 第 1225 轮：Midtrans 3DS 落地，并收紧一条说大的话
+
+### 先修正
+
+R1219 我写「字符串/槽/派发表都靠基址+偏移，静态 xref 看不见」。本轮实测：
+`transStatus` **26 个 xref**，`ThreeDSServerTransID` **1 个** ⇒ **协议字面量完全可追**。
+0 xref 只对**名表条目**成立。**范围收紧。**
+
+### 消费清单一条
+
+`sub_140DA0380`（3,886 B）= **Midtrans 3DS result completion**（不是 Adyen）：
+`https://api.midtrans.com/v2/3ds/result-completion/` + `/v2/3ds/callback/` + `ThreeDSServerTransID`
++ `BrowserInfo`/`DeviceChannel`/7 个 `browser*` + `card_token`/`credit_card` + `customer_details`。
+
+**三项查重全无**（`result-completion`/`card_token`/`/v2/3ds/callback`）⇒ 真缺口。
+
+落地 `MidtransGateway` 5 个成员 + 测试 5 条（含"与 Stripe 指纹重叠处必须一致"）。
+
+**不猜**：浏览器块平铺还是嵌套、`02` 填哪个槽 ⇒ 两条 Unknown，builder 返回独立块。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2497 通过 / 0 失败 / 2 跳过 / 2499**（4m30s，+5） |
+| MidtransThreeDs | **5/5** |

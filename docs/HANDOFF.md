@@ -7323,3 +7323,14 @@ Observation：
 **三条静态路已试完**（名 xref / 槽 xref / 类型前缀）⇒ 只剩元数据表解析或动态观察。
 
 还剩什么：① 元数据表解析（新工件类别，多轮）；② 178 条逐条读；③ 两条 Unknown；④ UI CS0108（冻结）。
+## R1225 —— Midtrans 3DS result-completion 落地（sub_140DA0380）；**收紧 R1219 的过度概括**
+
+Observation：
+- `transStatus` 26 xref、`ThreeDSServerTransID` 1 xref ⇒ **协议字面量可追**；0 xref 只适用于名表条目。
+- `sub_140DA0380`：`https://api.midtrans.com/v2/3ds/result-completion/` + `/v2/3ds/callback/` + `ThreeDSServerTransID` +
+  `BrowserInfo`/`DeviceChannel`/7 browser* + `card_token`/`credit_card` + `customer_details`。
+- 查重：result-completion/card_token//v2/3ds/callback **全无**。
+
+验证：build 0 错；**5/5**；全量 **2497/0/2/2499**（4m30s）。
+
+还剩什么：① 178 条清单继续消费；② 浏览器块嵌套形状 Unknown；③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。

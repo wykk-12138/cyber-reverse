@@ -1416,6 +1416,53 @@ public sealed class MidtransGateway : IPaymentGateway
     private const string SnapV1 = "/snap/v1/transactions";
     private const string SnapV2 = "/snap/v2/transactions";
 
+    /// <summary>
+    /// Midtrans' 3DS result completion (0x147053AE8): the endpoint the image posts the challenge outcome to.
+    ///
+    /// <para>
+    /// <b>Observed</b> in <c>sub_140DA0380</c> (3,886 bytes), whose constant set is this endpoint together with
+    /// <c>/v2/3ds/callback/</c> (0x146AB9A40), <c>/charge</c> (0x146AB2DC0), <c>ThreeDSServerTransID</c>
+    /// (0x146EEF768), <c>BrowserInfo</c> (0x146B62F30), <c>DeviceChannel</c> (0x146BBD1C8), the seven
+    /// <c>browser*</c> fields, <c>card_token</c> (0x146FC0B88), <c>credit_card</c> (0x146FD9158),
+    /// <c>customer_details</c> (0x146FDBC40) with <c>full_name</c> and <c>email</c>, and the literals
+    /// <c>3ds</c> (0x146AEE028) and <c>02</c> (0x146ABD328).
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown</b>: whether the browser block travels nested under <c>BrowserInfo</c> or flattened, and which
+    /// slot the <c>02</c> literal fills. The names are observable; the JSON shape is not, so the builder returns
+    /// the browser block separately rather than inventing a nesting.
+    /// </para>
+    /// </summary>
+    public const string ResultCompletionUrlPrefix = "https://api.midtrans.com/v2/3ds/result-completion/";
+
+    /// <summary>The 3DS callback path in the same function's constant set (0x146AB9A40).</summary>
+    public const string ThreeDsCallbackPath = "/v2/3ds/callback/";
+
+    /// <summary>Channel and type literals the same function loads (0x146AEE028 / 0x146ABD328).</summary>
+    public const string ThreeDsTypeLiteral = "3ds";
+
+    /// <summary>The result completion URL for one transaction (sub_140DA0380, 0x147053AE8).</summary>
+    public static string ResultCompletionUrl(string transactionId) =>
+        ResultCompletionUrlPrefix + Uri.EscapeDataString(transactionId ?? string.Empty);
+
+    /// <summary>
+    /// The browser block the 3DS result completion carries. The seven keys are the image's own literals; the
+    /// values are the same frozen fingerprint the 3DS2 authenticate form uses, because the image loads the same
+    /// string objects in both functions (compare <see cref="StripeGateway.BrowserFingerprint"/>).
+    /// </summary>
+    public static Dictionary<string, string> ThreeDsBrowserBlock(string userAgent) =>
+        new()
+        {
+            ["browserColorDepth"] = "24",
+            ["browserJavaEnabled"] = "false",
+            ["browserLanguage"] = "en-US",
+            ["browserScreenHeight"] = "1080",
+            ["browserScreenWidth"] = "1920",
+            ["browserTZ"] = "-120",
+            ["browserUserAgent"] = userAgent ?? string.Empty,
+        };
+
     public string Id => "midtrans";
     public string Name => "Midtrans";
 

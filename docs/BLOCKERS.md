@@ -44517,3 +44517,52 @@ R1223 说"要真分类需类型表"。本轮先试了最省的一种：**名字�
 
 证据等级：Observation = 三组探测结果、239/178 两个数、文件头三条假阳性；
 Inference = 「三条静态路都已试过」（分别见 R1213/R1219/本轮）；Unknown = 178 条各自的业务/框架属性。
+## R1225 —— 消费清单一条：**Midtrans 3DS result-completion** 落地；顺带**修正 R1219 的过度概括**
+
+### 一、先修正一条说错的话
+
+R1219 我写过「字符串、委托槽、派发表都在基址+偏移里，**静态 xref 看不见**」。本轮实测：
+
+| 字面量 | xrefs |
+|---|---|
+| `transStatus` | **26** |
+| `ThreeDSServerTransID` | **1**（`sub_140DA0380`，3,886 B） |
+
+⇒ **协议字段字面量完全可追**。0 xref 只适用于**步骤名/类型名**（名表条目）。**R1219 的说法范围过大，收紧为：名表条目无 xref；协议字面量有。**
+
+### 二、解码结果（`sub_140DA0380`，3,886 B，38 条常量）
+
+**这是 Midtrans，不是 Adyen**：
+
+| 项 | 字面量 | 地址 |
+|---|---|---|
+| 完成端点 | `https://api.midtrans.com/v2/3ds/result-completion/` | 0x147053AE8 |
+| 回调路径 | `/v2/3ds/callback/` | 0x146AB9A40 |
+| 收费 | `/charge` | 0x146AB2DC0 |
+| 交易号 | `ThreeDSServerTransID` | 0x146EEF768 |
+| 浏览器块 | `BrowserInfo` · `DeviceChannel` · 7 个 `browser*` | 0x146B62F30 / 0x146BBD1C8 / … |
+| 卡 | `card_token` · `credit_card` | 0x146FC0B88 / 0x146FD9158 |
+| 客户 | `customer_details` · `full_name` · `email` | 0x146FDBC40 / 0x14703C6D0 / 0x14701AC58 |
+| 其他 | `3ds` · `02` · `application/json` | 0x146AEE028 / 0x146ABD328 |
+
+### 三、查重：**三样全无** ⇒ 真缺口
+
+`result-completion` · `card_token` · `/v2/3ds/callback` 在 `replica/src` 与 `tests` 里**一次都不出现**
+（`ThreeDSServerTransID` 有，但只在 `MagentoFlow` 的 Stripe 3DS2 路径里）。
+
+### 四、落地
+
+`MidtransGateway` 新增 `ResultCompletionUrlPrefix` · `ThreeDsCallbackPath` · `ThreeDsTypeLiteral` ·
+`ResultCompletionUrl` · `ThreeDsBrowserBlock`（7 个冻结键）。
+新测试 `MidtransThreeDsTests` **5 条**：URL 形状、转义、路径与类型字面量、7 键齐备、
+与 `StripeGateway.BrowserFingerprint` **重叠处必须一致**（两者引用同一批串对象）。
+
+**不猜的部分**：浏览器块是**平铺**还是嵌在 `BrowserInfo` 下、`02` 填哪个槽——两条都写进注释为 Unknown，
+所以 builder **返回独立的浏览器块**，不替原版决定嵌套形状。
+
+### 五、验证
+
+`dotnet build` 0 错；`MidtransThreeDs` **5/5**；全量 **2497 通过 / 0 失败 / 2 跳过 / 2499**（4m30s，+5）。
+
+证据等级：Observation = 38 条常量与地址、`transStatus` 26 xref、三项查重缺失、套件收据；
+Inference = 「浏览器块与 3DS2 authenticate 共用同一指纹」；Unknown = JSON 嵌套形状与 `02` 的槽位。

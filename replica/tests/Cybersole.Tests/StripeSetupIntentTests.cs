@@ -81,6 +81,41 @@ public sealed class StripeSetupIntentTests
     }
 
     [Fact]
+    public void ThePayPalConfirmCarriesTheMandateFamily()
+    {
+        // 0x1470be0c0 / 0x1471085e8 / 0x1470be030 — none of these existed in the replica before R1217
+        var f = StripeGateway.PayPalConfirmForm("pm_1", "sec", "pk", "https://shop/thanks", "true");
+        Assert.Equal("paypal", f["payment_method_data[type]"]);
+        Assert.Equal("paypal", f["expected_payment_method_type"]);
+        Assert.Equal("online", f["mandate_data[customer_acceptance][type]"]);
+        Assert.Equal("true", f["mandate_data[customer_acceptance][online][infer_from_client]"]);
+        Assert.Equal("https://shop/thanks", f["return_url"]);
+        Assert.Equal("pm_1", f["payment_method"]);
+    }
+
+    [Fact]
+    public void TheInferFlagIsAParameterBecauseThePairingIsNotObservable()
+    {
+        // the function holds a bare `true` at 0x147173de8 but the decompiler does not tie it to the slot
+        var no = StripeGateway.PayPalConfirmForm("pm_1", "sec", "pk", "https://shop/thanks", "false");
+        Assert.Equal("false", no["mandate_data[customer_acceptance][online][infer_from_client]"]);
+    }
+
+    [Fact]
+    public void ThereAreThreeDifferentStripeUserAgentsAndTheyMustStayDifferent()
+    {
+        // 0x1471655c8 (payment-element/autopm) · 0x1471654a0 (card-element) · 0x1471659d8 (paypal, d6356e1526)
+        var agents = new[]
+        {
+            StripeGateway.PaymentUserAgent,
+            StripeGateway.CardElementUserAgent,
+            StripeGateway.PayPalConfirmUserAgent,
+        };
+        Assert.Equal(3, System.Linq.Enumerable.Count(System.Linq.Enumerable.Distinct(agents)));
+        Assert.Contains("d6356e1526", StripeGateway.PayPalConfirmUserAgent);
+    }
+
+    [Fact]
     public void TheCardElementUserAgentIsTheOtherSurfaceNotThePaymentElementOne()
     {
         // 0x1471654a0 vs the payment-method create's 0x1471655c8

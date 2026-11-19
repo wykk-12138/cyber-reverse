@@ -67152,3 +67152,37 @@ Farfetch 7 条早已定性（服务端下发路由）。这轮查 **Bstn 4 条**
 | 全量 | **2489 通过 / 0 失败 / 2 跳过 / 2491**（4m23s，+2） |
 | StripeSetupIntent | **12/12** |
 | Stripe 版本数 | **3**（acacia / basil / clover） |
+---
+
+## 第 1217 轮：PayPal 钱包那条路
+
+`sub_140B58D60`（2,516 B / 345 行 / 45 条常量）= **用 PayPal 钱包付款的 intent confirm**：
+`payment_method_data[type]=paypal` + `mandate_data[customer_acceptance][type]=online`
++ `mandate_data[...][online][infer_from_client]` + `return_url`。
+
+查重 19/30 已存在，但**关键三样全无**：`mandate_data`、`infer_from_client`、`d6356e1526`。
+
+### 镜像里有**三条**不同的 Stripe UA
+
+| 表面 | UA 里的 hash |
+|---|---|
+| payment_methods 创建 | `20e04cd437`（payment-element/autopm） |
+| setup_intent confirm | `035decdc6c`（card-element） |
+| PayPal confirm | `d6356e1526`（payment-element） |
+
+**三个 hash 不同 ⇒ 三个构建日期不同的 SDK 面。** 测试断言三者互不相同。
+
+### 一条不猜的边界
+
+函数里有裸 `true`（0x147173DE8），但**反编译器没把它和 `infer_from_client` 配对** ⇒
+`inferFromClient` 做成**参数**而非常量默认，测试专门覆盖传 `false`。
+
+> 常量集里有某个值 ≠ 那个值属于我以为的那个键。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2492 通过 / 0 失败 / 2 跳过 / 2494**（4m24s，+3） |
+| StripeSetupIntent | **15/15** |
+| 已解 Stripe 表面 | payment_methods(2) / setup_intents(2) / payment_intents(3) / 3ds2(2) |

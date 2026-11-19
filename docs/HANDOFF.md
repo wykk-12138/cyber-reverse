@@ -7226,3 +7226,17 @@ Observation：
 验证：build 0 错；**12/12**；全量 **2489/0/2/2491**（4m23s）。
 
 下一步：`sub_140B58D60`（0x9d4，payment_intents 的第三条构建器）。
+## R1217 —— PayPal-via-Stripe confirm 落地（sub_140B58D60）：mandate_data 两键 + return_url + 第三条 UA
+
+Observation：
+- `sub_140B58D60`（2,516 B）：`payment_method_data[type]=paypal`；`mandate_data[customer_acceptance][type]=online`；
+  `mandate_data[...][online][infer_from_client]`；`return_url`；账单地址 country/postal_code；`radar_options[hcaptcha_token]`；
+  UA `stripe.js/d6356e1526; …; payment-element`（0x1471659D8）；`pk_live_YrdnDi9u37CWhYvVzpH1ytPf`。
+- 查重：19/30 已存在，`mandate_data`/`infer_from_client`/`d6356e1526` **全缺**。
+
+新增 `PayPalConfirmUserAgent` / `MandateAcceptanceType` / `PaymentIntentConfirmUrl` / `PayPalConfirmForm`；
+`inferFromClient` 为**参数**（裸 `true` 与键的配对不可观察）。
+
+验证：build 0 错；**15/15**；全量 **2492/0/2/2494**（4m24s）。
+
+下一步：三条 UA 的三处调用面是否都需在 flow 里接线（当前只有 MagentoFlow 用其一）。

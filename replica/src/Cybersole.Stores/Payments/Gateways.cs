@@ -225,6 +225,78 @@ public sealed class StripeGateway : IPaymentGateway
     public const string IntentVersion = "2025-09-30.clover";
 
     /// <summary>
+    /// The confirmation user agent of <c>sub_140B58D60</c> (0x1471659D8) — the third distinct one in the image,
+    /// and again a different hash from the other two surfaces.
+    /// </summary>
+    public const string PayPalConfirmUserAgent =
+        "stripe.js/d6356e1526; stripe-js-v3/d6356e1526; payment-element";
+
+    /// <summary>The mandate acceptance type the PayPal confirm sends (0x1471085E8).</summary>
+    public const string MandateAcceptanceType = "online";
+
+    /// <summary>The payment-intent confirm suffix (0x146AB3A08), shared literal with the setup-intent one.</summary>
+    public static string PaymentIntentConfirmUrl(string intentId) =>
+        ApiHost + "/v1/payment_intents/" + Uri.EscapeDataString(intentId ?? string.Empty) + "/confirm";
+
+    /// <summary>
+    /// The PayPal-through-Stripe payment-intent confirm built by <c>sub_140B58D60</c> (2,516 bytes, 345 lines).
+    ///
+    /// <para>
+    /// <b>Observed</b>: <c>payment_method_data[type]</c> with the value <c>paypal</c> (0x147110A68),
+    /// <c>expected_payment_method_type</c> (0x147020F28), <c>return_url</c> (0x14714DB90),
+    /// <c>mandate_data[customer_acceptance][type]</c> (0x1470BE0C0) with <c>online</c> (0x1471085E8),
+    /// <c>mandate_data[customer_acceptance][online][infer_from_client]</c> (0x1470BE030), the
+    /// <c>payment_method_data[billing_details][address][country|postal_code]</c> pair (0x14710F958/F9E0),
+    /// the nine client-side stamps (<c>guid</c>, <c>muid</c>, <c>sid</c>, <c>referrer</c>, <c>time_on_page</c>,
+    /// <c>payment_user_agent</c>, and the six <c>client_attribution_metadata</c> keys),
+    /// <c>radar_options[hcaptcha_token]</c> (0x147148170), and the standalone literals <c>NA</c> (0x146E10B68),
+    /// <c>standard</c> (0x1471628B0), <c>2021</c> and <c>elements</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown</b>: which key the function's <c>true</c> literal (0x147173DE8) is assigned to. It is present
+    /// in the constant set, and <c>infer_from_client</c> is the only flag-shaped slot here, but the decompiler does
+    /// not pair them, so <paramref name="inferFromClient"/> is a parameter rather than a default. Likewise the
+    /// two <c>client_attribution_metadata[*_flow]</c> values: the keys are observable, their contents are not.
+    /// </para>
+    /// </summary>
+    public static Dictionary<string, string> PayPalConfirmForm(
+        string paypalVaultId,
+        string clientSecret,
+        string publishableKey,
+        string returnUrl,
+        string inferFromClient,
+        string? hcaptchaToken = null,
+        string country = "BE",
+        string postalCode = "1000")
+    {
+        var form = new Dictionary<string, string>
+        {
+            ["client_secret"] = clientSecret,
+            ["key"] = publishableKey,
+            ["return_url"] = returnUrl,
+            ["expected_payment_method_type"] = "paypal",
+            ["payment_method_data[type]"] = "paypal",
+            ["payment_method_data[payment_user_agent]"] = PayPalConfirmUserAgent,
+            ["payment_method_data[time_on_page]"] = TimeOnPage,
+            ["payment_method_data[billing_details][address][country]"] = country,
+            ["payment_method_data[billing_details][address][postal_code]"] = postalCode,
+            ["mandate_data[customer_acceptance][type]"] = MandateAcceptanceType,
+            ["mandate_data[customer_acceptance][online][infer_from_client]"] = inferFromClient,
+            ["client_attribution_metadata[merchant_integration_source]"] = "elements",
+            ["client_attribution_metadata[merchant_integration_version]"] = "2021",
+            ["payment_method_data[client_attribution_metadata][merchant_integration_source]"] = "elements",
+            ["payment_method_data[client_attribution_metadata][merchant_integration_version]"] = "2021",
+            ["payment_method_data[client_attribution_metadata][payment_method_selection_flow]"] = "automatic",
+        };
+        if (!string.IsNullOrEmpty(paypalVaultId))
+            form["payment_method"] = paypalVaultId;
+        if (!string.IsNullOrEmpty(hcaptchaToken))
+            form["radar_options[hcaptcha_token]"] = hcaptchaToken!;
+        return form;
+    }
+
+    /// <summary>
     /// The payment-intent retrieve built by <c>sub_140A40170</c> (1,472 bytes) — the one that is not the John
     /// Lewis variant.
     ///

@@ -44159,3 +44159,50 @@ Unknown = 原版是否在检取后轮询（伪代码里没有循环证据，未�
 
 证据等级：Observation = 7 条字面量与地址、三处版本地址、`MagentoFlow` 注释里的 `sub_1411458f0`；
 Inference = 「两条构建器分属不同调用面」；Unknown = 第一段之后各片段的顺序。
+## R1217 —— **PayPal-via-Stripe 的 intent confirm**：`mandate_data` 族、`return_url`、第三条 UA
+
+### 一、`sub_140B58D60`（2,516 B，345 行，45 条常量）是什么
+
+**`POST /v1/payment_intents/{id}/confirm`，用 PayPal 钱包付款**：
+
+| 项 | 冻结字面量 | 地址 |
+|---|---|---|
+| 类型 | `payment_method_data[type]` = **`paypal`** | 0x147110A68 |
+| 预期方法 | `expected_payment_method_type` | 0x147020F28 |
+| 回跳 | `return_url` | 0x14714DB90 |
+| **授权书** | `mandate_data[customer_acceptance][type]` = **`online`** | 0x1470BE0C0 / 0x1471085E8 |
+| **授权书** | `mandate_data[customer_acceptance][online][infer_from_client]` | 0x1470BE030 |
+| 账单地址 | `payment_method_data[billing_details][address][country|postal_code]` | 0x14710F958 / F9E0 |
+| 客户端戳 | `guid`/`muid`/`sid`/`referrer`/`time_on_page`/`payment_user_agent` + 6 条归属元数据 | — |
+| 风控 | `radar_options[hcaptcha_token]` | 0x147148170 |
+| UA | **`stripe.js/d6356e1526; stripe-js-v3/d6356e1526; payment-element`** | 0x1471659D8 |
+| 其他 | `NA` · `standard` · `2021` · `elements` · `automatic` · `https://b.stripecdn.com` | — |
+| 烙进去的 live key | `pk_live_YrdnDi9u37CWhYvVzpH1ytPf` | 0x147113730 |
+| 示例回跳 | `https://www.highsnobiety.com/en-be/shop/order/thanks/?checkoutType=Regular&context=hsapp` | 0x1470941C0 |
+
+### 二、查重：19/30 已存在，但**关键的三样一个都没有**
+
+`mandate_data`（两个键）· `infer_from_client` · `d6356e1526`（第三条 UA）——复刻件里**全为空**（本轮实测）。
+
+### 三、现在镜像里有**三条不同的 Stripe UA**
+
+| 表面 | UA | 地址 |
+|---|---|---|
+| payment_methods 创建 | `…20e04cd437; payment-element; deferred-intent; autopm` | 0x1471655C8 |
+| setup_intent confirm | `…035decdc6c; card-element` | 0x1471654A0 |
+| **PayPal confirm** | `…d6356e1526; payment-element` | 0x1471659D8 |
+
+测试断言**三者互不相同**。三个 hash 不同，说明原版是三个构建日期不同的 SDK 面。
+
+### 四、一条不猜的边界
+
+函数常量集里有裸 `true`（0x147173DE8），但**反编译器没把它和 `infer_from_client` 配对**。
+⇒ `inferFromClient` 做成**参数**而非常量默认；测试专门覆盖传 `false` 的情形。
+同理 `client_attribution_metadata[*_flow]` 两条：**键可见，值不可见**。
+
+### 五、验证
+
+`dotnet build` 0 错；`StripeSetupIntent` **15/15**；全量 **2492 通过 / 0 失败 / 2 跳过 / 2494**（4m24s，+3）。
+
+证据等级：Observation = 45 条常量与地址、三处 UA 地址不同、三项查重缺失；
+Inference = 「`paypal` + `mandate_data` ⇒ 钱包付款路径」；Unknown = `true` 归属哪个键、两条 `*_flow` 的取值。

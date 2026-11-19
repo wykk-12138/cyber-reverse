@@ -45858,3 +45858,35 @@ Inference = 无新增；Unknown = 无（这四条已定性）。
 
 证据等级：Observation = 发布前后尺寸与 pdata、freshness 两个时点、变异收据；
 Inference = 「+213 pdata 是本轮新增方法体被保留」；Unknown = 这 213 个函数里各属于哪个新方法（未逐个比对）。
+## R1255 —— 两条 checkout 无近邻：镜像用**查询串**，复刻件用**片段**
+
+### 一、镜像 `checkout/` 下有 **96 条**，抽其同源形状
+
+| 家族 | 字面量 |
+|---|---|
+| 阶段页（**查询串**） | `/checkout/?stage=shipping` · `?stage=payment` · `?stage=placeOrder` · `/checkout/?step=payment` |
+| 终态页 | `/checkout/success` · `/checkout/onepage/success/` · `/checkout/confirmation` · `/checkout/return` |
+| 购物车动作 | `/checkout/cart/` · `cart/addcoupon/?couponCode=` · `cart/couponPost/` · `sidebar/removeItem/` |
+| 控制器对 | `/checkout/services/placeorder/` · `/checkout/shippingservices/submitshipping/` |
+
+### 二、复刻件的两条**都不在**，而且错在**类型**上
+
+| 复刻件 | 镜像对应 | 差别性质 |
+|---|---|---|
+| `/checkout/#payment` | `/checkout/?stage=payment` | **片段 vs 查询**：`#` 部分**永不发给服务器**，店铺收不到 |
+| `/checkout/complete` | `/checkout/success` / `onepage/success/` / `confirmation` / `return` | 终态页有四种写法，没有 `complete` |
+
+**这不是拼写差异，是语义差异**：用 `#payment` 请求一个 `?stage=` 的店铺，服务端根本不知道你要付款阶段。
+
+### 三、落地
+
+`CheckoutRoutes.cs`（新，14 条常量，全部带 dump 出处）+ 测试 4 条（含 `Assert.DoesNotContain("#", …)`）。
+两处调用点**不改行为**，只加 `inferred: no image evidence` 并把可用的有据写法点名——
+因为**哪家店属于哪个 page family 不可观察**（R1219），改路径就是猜。
+
+### 四、验证
+
+`dotnet build` 0 错；`CheckoutRoutes|Magento` **17/17**；全量 **2530 通过 / 0 失败 / 2 跳过 / 2532**（4m29s，+4）。
+
+证据等级：Observation = 96 条中的 14 条字面量、两条复刻件写法的零命中、`#` 的语义事实；
+Inference = 「镜像按查询串分阶段」；Unknown = 每店属于哪个 family。

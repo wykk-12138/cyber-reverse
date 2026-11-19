@@ -7670,3 +7670,14 @@ Observation：
 
 还剩什么：① 17 条无近邻逐条定性；② connect 通道（需登录）；③ 两条 Unknown（BotTask.Running/Task）；
 ④ UI CS0108（冻结）。
+## R1255 —— checkout 两条无近邻：动因是「片段 vs 查询」而非拼写；落地 CheckoutRoutes 14 常量 + 4 测试
+
+Observation：
+- 镜像 checkout/ 96 条；14 条同源形状：`?stage=shipping|payment|placeOrder`、`?step=payment`、
+  `success`/`onepage/success/`/`confirmation`/`return`、4 条购物车动作、2 条控制器。
+- 复刻件 `/checkout/#payment` 与 `/checkout/complete` **零命中**。
+
+判断：`#` 片段不发给服务器 ⇒ 语义错，不是拼写错。**不改行为**，只标注 + 暴露有据形状。
+验证：build 0 错；17/17；全量 **2530/0/2/2532**（4m29s）。
+
+还剩什么：① 15 条无近邻继续；② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）；⑤ 产物待重发。

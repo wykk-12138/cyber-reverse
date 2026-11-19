@@ -218,6 +218,10 @@ public class MagentoFlow : StoreFlow
     /// </summary>
     public override async Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct)
     {
+        // inferred: no image evidence for this exact literal (R1255). The image carries the same idea as
+        // CheckoutRoutes.StagePayment ("/checkout/?stage=payment"), which is a query the server can act on, while a
+        // fragment never leaves the browser. The path is kept rather than switched because which page family this
+        // store belongs to is not observable; the attested alternatives are named in CheckoutRoutes.
         var page = await GetAsync(c, Origin(c.Url) + "/checkout/#payment",
             Tag() + "-checkout-page", ct).ConfigureAwait(false);
 

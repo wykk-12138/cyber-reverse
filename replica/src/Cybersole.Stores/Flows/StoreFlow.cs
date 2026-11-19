@@ -1376,6 +1376,10 @@ public abstract class StoreFlow
     public virtual async Task<StepOutcome> CompletePaymentAsync(FlowContext c, CancellationToken ct)
     {
         // Final confirmation: the store answers with the order identity or a refusal.
+        //
+        // inferred: no image evidence for "/checkout/complete" (R1255). The image's terminal pages are
+        // CheckoutRoutes.Success, OnePageSuccess, Confirmation and Return; this default is the step's fallback when the
+        // flow supplied no destination, so it stays as a fallback and the attested spellings are named next to it.
         var url = c.Session.Vars.TryGetValue("destination", out var dest)
             ? dest
             : Origin(c.Url) + "/checkout/complete";

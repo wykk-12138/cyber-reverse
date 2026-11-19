@@ -68227,3 +68227,25 @@ R1249 说 26 条全无近邻；扩大 key 宽度后 **Magento 这批全找到了
 |---|---|
 | 成员形状 / 名字级 / 类型级 | 91·3·37 / **0** / **0** |
 | `.pdata` | 277,120 ↔ 179,797 |
+---
+
+## 第 1255 轮：`#payment` vs `?stage=payment`——错的不是拼写，是**片段 vs 查询**
+
+镜像 `checkout/` 下 96 条，同源形状 14 条抽成 `CheckoutRoutes`：
+
+- 阶段页走**查询串**：`?stage=shipping|payment|placeOrder`、`?step=payment`；
+- 终态页四种写法：`success` / `onepage/success/` / `confirmation` / `return`；
+- 购物车动作 4 条、控制器对 2 条。
+
+复刻件两条**都不在**，且性质不同：`#payment` 的片段**永不发给服务器**，而镜像用查询串
+⇒ 用 `#payment` 请求 `?stage=` 的店铺，服务端不知道你要付款阶段。**语义差异，不是拼写。**
+
+落地 `CheckoutRoutes`（14 常量 + 4 测试，含 `DoesNotContain("#")`）；两处调用点只加
+`inferred` 标注、**不改行为**（哪家店属于哪个 family 不可观察）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2530 通过 / 0 失败 / 2 跳过 / 2532**（4m29s，+4） |
+| 行为改动 | 0 |

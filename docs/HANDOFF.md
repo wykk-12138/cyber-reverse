@@ -7461,3 +7461,15 @@ Observation：
 验收判据 = pi.midtrans.com 出现在产物字节。
 
 还剩什么：① 支付层可达化（下轮）；② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）。
+## R1237 —— **撤回 R1236「整个支付层被裁剪」**：ASCII-only 探测假阴性 + 搜索词选错
+
+Observation（双编码，`analysis/artifact_literals.py`）：
+- utf16=True：api.stripe.com / api.unzer.com / app.midtrans.com / paypal.com/graphql。
+- 两列皆 False：result-completion / api.waitwhile.com / api.adyen.com / checkoutshopper-live.adyen.com。
+- `MidtransGateway.ApiHost` = `https://app.midtrans.com`（不是 api.midtrans.com）。
+
+**撤回**：「整个支付层被裁剪」。**保留**：「未接线 ⇒ 被裁」。
+**Unknown**：Adyen 两 host 缺席原因。
+
+还剩什么：① Adyen host 缺席原因；② 支付层接线（让未接线项进产物）；③ connect 通道（需登录）；
+④ 两条 Unknown（BotTask.Running/Task）；⑤ UI CS0108（冻结）。

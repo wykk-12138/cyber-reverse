@@ -45064,3 +45064,53 @@ R1218/R1219 我一直在问「原版哪一步调用哪条支付表面」，卡�
 
 证据等级：Observation = 六条字节探测、两次发布的尺寸、59/59 变异；
 Inference = 「不可达 ⇒ 被裁」（对照组的 `DFReferenceId` 支持它）；Unknown = 原版派发形状（不变）。
+## R1237 —— **撤回 R1236 的主结论**：我用了 ASCII-only 探测，漏掉 UTF-16 —— 支付层**没有被整体裁剪**
+
+### 一、错在哪
+
+R1236 我在产物里搜 ASCII 字节，`api.midtrans.com` 没搜到，就写了「**整个支付层被裁剪**」。
+本轮用**两种编码**重测（`analysis/artifact_literals.py`）：
+
+| 字面量 | ascii | utf16 |
+|---|---|---|
+| `api.stripe.com` | False | **True** |
+| `api.unzer.com` | False | **True** |
+| `app.midtrans.com` | False | **True** |
+| `paypal.com/graphql` | False | **True** |
+| `result-completion` | False | False |
+| `api.waitwhile.com` | False | False |
+| `api.adyen.com` | False | False |
+| `checkoutshopper-live.adyen.com` | False | False |
+
+**NativeAOT 的冻结 `System.String` 载荷是 UTF-16**，部分表是 ASCII ⇒ **ASCII-only 探测必然假阴性**。
+这与 R816 那条（"`pe_strings.txt` 看起来全量其实是抽样"）**同族**：**探测面的编码/范围没定清，负结论不可用。**
+
+### 二、还有一个错是搜索词选错了
+
+R1236 我还把 `api.midtrans.com` 当成 `MidtransGateway` 的 host —— **不是**。
+`MidtransGateway.ApiHost` 是 `https://app.midtrans.com`；`api.midtrans.com` 是 R1225 那条 **3DS result-completion** 的 host。
+**我把"新加的那条常量"误当成"老网关的 host"，于是把"一条没接线的常量被裁"读成了"整个支付层被裁"。**
+
+### 三、纠正后的正规结论
+
+| 事实 | 状态 |
+|---|---|
+| 走 `PaymentGatewayRegistry` 可达的网关（stripe/unzer/midtrans/paypal）的 host | **在产物里**（UTF-16） |
+| 只被**未接线代码**引用的常量（`result-completion`、`api.waitwhile.com`、Adyen 的两个 host） | **不在产物里** |
+| 「整个支付层被裁剪」 | **撤回** |
+
+⇒ **"没接线的代码会被裁剪"这条成立**（这也是 R1236 唯一站得住的部分）；
+**"支付层整体缺失"不成立**，我已把它写进了三份台账，必须显式撤回，不能留着误导下一轮。
+
+### 四、为什么 Adyen 的两个 host 也缺
+
+`AdyenGateway` 是 `IPaymentGateway`，但它的 host 不在产物里。**可能是**：它不在 `PaymentGatewayRegistry.Default` 里，
+或它的 host 由字符串拼接而成。**本轮不下结论**——这条要单独查，属于下一轮的取件。
+
+### 五、工具
+
+`analysis/artifact_literals.py`：**同时**报 ascii 与 utf16 两列，负结论要求两列皆 False。
+文件头写明"为什么 ASCII-only 会造成假阴性"，防止这条再犯。
+
+证据等级：Observation = 八行双编码结果、`MidtransGateway.ApiHost` 的实际取值；
+Inference = 「未接线 ⇒ 被裁」（由 `result-completion` 那条支持）；Unknown = Adyen host 缺失的原因。

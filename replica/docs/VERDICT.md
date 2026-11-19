@@ -67749,3 +67749,39 @@ Unknown = **location id 来源与响应字段名**（响应形状本就不在客
 |---|---|
 | 产物 | 57,404,928 B，freshness 0 |
 | 变异 | **59/59 GREEN** |
+---
+
+## 第 1237 轮：撤回 R1236 的主结论
+
+R1236 我用 ASCII-only 搜产物，`api.midtrans.com` 没搜到就写「整个支付层被裁剪」。
+**错在两处**：
+
+1. **编码**：AOT 冻结串是 **UTF-16**。双编码重测后 `api.stripe.com` / `api.unzer.com` /
+   `app.midtrans.com` / `paypal.com/graphql` **全在产物里**。
+2. **搜索词**：`MidtransGateway.ApiHost` 是 `https://app.midtrans.com`；
+   `api.midtrans.com` 是 R1225 那条 3DS 常量的 host。**我把"新常量被裁"读成"支付层被裁"。**
+
+### 纠正后
+
+| 事实 | 状态 |
+|---|---|
+| 注册表可达的网关 host | **在**（UTF-16） |
+| 只被未接线代码引用的常量（result-completion / waitwhile / Adyen 两 host） | **不在** |
+| 「支付层整体缺失」 | **撤回** |
+
+⇒ **"未接线 ⇒ 被裁"成立**；"整体缺失"不成立。
+
+### 新工具
+
+`analysis/artifact_literals.py`：**双编码两列**，负结论要求两列皆 False。
+
+### 仍 Unknown
+
+Adyen 的两个 host 为何缺席（可能不在注册表，或由拼接产生）——下一轮单独查。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 撤回 | 1 条主结论 |
+| 保留 | "未接线 ⇒ 被裁" |

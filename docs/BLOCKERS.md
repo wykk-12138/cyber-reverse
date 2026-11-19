@@ -42958,3 +42958,47 @@ Checkout   closed=1898 body_len=590  has_Profile=False    ← Checkout 只剩残
 证据等级：Observation = `of`/`Checkout` 两次类体提取长度与命中、类体内的 `Profile`/`Inputs` 原文、
 94→102 的度量变化、全量收据；Inference = 「注释里的 `record` 造出 `of`」（由名字与偏移直接印证）；
 Unknown = 其余 10 条 core 行的真实性质。
+## R1187 —— C7b 的 12 条 core 行**逐条裁定**；又一类「`?` 的理由是错的」被修掉
+
+**取件**：R1186 只核实了 2 条。本轮按**类体**（不是整文件）把 12 条逐条查清。
+
+### 一、裁定的结果：**没有一条是「工具乱报」，但有一条是「理由错」**
+
+| # | 类型 | 成员 | 工具说 | 类体实况 | 裁定 |
+|---|---|---|---|---|---|
+| 1 | BotTask | Products | prop-get | `IReadOnlyList<Product> Products => AllProducts;` | **真差异**：计算只读 |
+| 2 | BotTask | Running | `?` | 类体**无**该名（复刻件叫 `IsRunning`） | **真差异**：绑定想要的成员不存在 |
+| 3 | BotTask | Task | `?` | 类体**无**该名 | **真差异** |
+| 4 | Checkout | Profile | `?` | 类体**无**该名（可写 `Profile` 在 `CreateModel`/`BotTask`） | **真差异**（R1186 已定） |
+| 5 | CreateModel | Inputs | `?` | 源码注释：`Input / Inputs are left out on purpose` | **有意省略**，需按绑定口径重裁 |
+| 6 | Notification | Message | prop-get | `public string Message => Body;` | **真差异**：计算只读 |
+| 7 | Notification | Timestamp | record-positional（**修后**） | `record Notification(Kind, Title, Body, DateTime Timestamp)` | **理由原先错**：不是"没有"，是"有但不可写" |
+| 8 | Notification | Title | record-positional（**修后**） | 同上（位置参数） | 同上 |
+| 9 | Notification | Type | prop-get | `public NotificationKind Type => Kind;` | **真差异** |
+| 10 | TaskGroup | Running | prop-get | `public int Running => Tasks.Count(...)` | **真差异** |
+| 11 | ClockService | Current | prop-get | `public DateTimeOffset Current => _current;` | **真差异** |
+| 12 | ExpressionExample | Output | prop-get | `public string Output => ExpressionEngine.Evaluate(` | **真差异** |
+
+**⇒ 11 条真差异 + 1 条有意省略；其中 2 条（Notification.Title/Timestamp）工具的理由原来是错的。**
+
+### 二、修了什么
+
+`shape_audit.py` 两处：
+1. `kind_of` 新增 `record-positional`：位置记录参数**是属性**，但它在声明行、不在花括号里，
+   原先落到 `?`（"复刻件没有这个成员"）——**而真相是"有，但不可写"**。这两种结论导向**完全不同的修法**。
+2. 类体提取改为 `text[m.start():i+1]`，把**声明头**（含参数列表）纳入类体，否则第 1 条无从判断。
+
+总数 **102 / 17 不变**（口径未变，只是理由变准）。
+
+### 三、下一步（排序已清楚）
+
+- `prop-get` 8 条：把计算只读改成**可写**（或按原版语义给 setter），属 Core/Services 运行时行为，**优先级 ②**；
+- `record-positional` 2 条：`Notification` 由不可变 record 改为**可写**（UI 要就地更新通知）；
+- `BotTask.Running`/`Task`/`Checkout.Profile` 3 条：成员**挂错类型或名字不同**，需对照绑定逐一落地；
+- `CreateModel.Inputs` 1 条：**有意省略**，要么补，要么在 claim 表里写明理由（判据 d）。
+
+验证：`metrics` **102/17**；全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（5m38s）。
+
+证据等级：Observation = 12 行的类体原文（含 `record Notification(...)` 签名与 `BotTask` 全成员清单）、
+修后 `record-positional` 两行、度量与套件收据；Inference = 「11 真差异 + 1 有意省略」；
+Unknown = 每条真差异在原版里的**确切语义**（setter 是赋值还是空操作，需按第三节四步链取证）。

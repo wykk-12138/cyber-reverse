@@ -117,10 +117,16 @@ for dirpath, _d, files in os.walk(os.path.join(ROOT, "src")):
                 elif text[i] == '}':
                     depth -= 1
                     if depth == 0:
-                        bodies.setdefault(m.group(1), []).append(text[start:i+1])
+                        bodies.setdefault(m.group(1), []).append(text[m.start():i+1])
                         break
 
 def kind_of(body, member):
+    # R1187: a positional record parameter is a property, but it lives in the declaration line rather than in
+    # the braces, so `public sealed record Notification(Kind, string Title, ...) { }` reported Title as `?` -
+    # "the replica does not have this member" - when what is true is "it has it and it cannot be written".
+    # Those two lead to different repairs, so the reason is reported as its own kind instead of absence.
+    if re.search(r'\brecord\s+\w+\s*\([^)]*\b' + member + r'\b[^)]*\)', body):
+        return 'record-positional'
     # R470: an `ICommand` property is read-only by design — the original's `Setter` evidence on an action
     # member means "it is a bindable property", not "someone assigns to it". Treating `ICommand Foo { get; }`
     # as a mismatch produced 9 false positives (MonitorView.OpenFilter/OpenUrl/Quicktask/LinkChange,

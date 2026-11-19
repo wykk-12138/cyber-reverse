@@ -6867,3 +6867,15 @@ Observation：
 
 还剩什么：① 其余 10 条 core 行逐条核实（有意省略 vs 真缺陷）；② `CreateModel.Inputs` 一类「有意省略」
 需按绑定口径重新裁定；③ `PARITY_PRODUCT.md`/`PARITY_CLAIMS.md` 手抄数字仍过期（判据 e）。
+## R1187 —— 12 条 core 形状行逐条裁定（11 真差异 + 1 有意省略）；新增 `record-positional` 理由
+
+Observation：
+- 逐条类体取证（含 `record Notification(Kind, Title, Body, DateTime Timestamp)` 签名、`BotTask` 全成员清单）。
+- `Notification.Title`/`Timestamp` 原报 `?`，实为**位置记录参数**（有但不可写）⇒ 理由错，已修为 `record-positional`。
+- `CreateModel.Inputs` 源码注释明写 `left out on purpose` ⇒ 有意省略。
+- `BotTask` 类体内无 `Running`/`Task`（复刻件叫 `IsRunning`）；`Checkout` 类体内无 `Profile`。
+
+验证：`metrics` **102/17**；全量 **2476/0/2/2478**（5m38s）。本轮改工具（`shape_audit.py`），src 未变。
+
+还剩什么：① 8 条 `prop-get` 转可写；② `Notification` 改可写；③ 3 条成员缺失/挂错类型；
+④ `CreateModel.Inputs` 补或写明理由；⑤ 判据 e 的两处文档数字。

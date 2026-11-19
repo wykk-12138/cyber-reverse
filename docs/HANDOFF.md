@@ -7435,3 +7435,17 @@ Observation：
 
 还剩什么：① 20 条有域名的店（需等 CORE_COVERAGE 释放或改不碰目录的项）；② connect 通道（需登录）；
 ③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。
+## R1235 —— Waitwhile 队列 API 面落地（3 host + 槽查询，+5 测试，不碰目录计数）
+
+Observation：
+- `api.waitwhile.com` 三端点为冻结字面量：data-fields（0x147055450）/ locations（0x1470554C8）/ visits（0x147055540）。
+- `sub_140B77010` 带 `/first-available-slots?fromDate=` + `yyyy-MM-dd` + `T00:00&toDate=` + `maxNumSlots=150` + `Find slot`。
+- 复刻件三拼法零命中 ⇒ 真缺口。
+
+新增 `src/Cybersole.Stores/WaitwhileQueue.cs` + `WaitwhileQueueTests`（5 条）。
+**Unknown**：location id 来源、响应字段名。
+
+验证：build 0 错；5/5；全量 **2506/0/2/2508**（4m27s）。
+
+还剩什么：① 其余 19 条有域名的店（需评估是否值得/是否碰目录）；② connect 通道（需登录）；
+③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）；⑤ 产物需重新 AOT（本轮新增 1 文件）。

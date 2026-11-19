@@ -44962,3 +44962,47 @@ Inference = 「`Mesh` 与 `JDGroup` 同属 JD 系」；Unknown = 这两个店首
 
 证据等级：Observation = 生成器输出与 diff、17/17 收据、七行表的函数号（均出自 R1214–R1217 的既有解码）；
 Inference = 无新增；Unknown = 派发槽（未解）。
+## R1235 —— `Waitwhile` 队列挂号面落地：三个 host + 槽查询；复刻件此前**零命中**
+
+### 一、为什么这条值得做
+
+R1231 的域名探测把 `Waitwhile` 列为「有域名字面量」的一条。追下去发现不是域名，是**整条 API 面**：
+
+| 端点 | 地址 | 代码引用 |
+|---|---|---|
+| `https://api.waitwhile.com/v2/public/data-fields/` | 0x147055450 | `sub_140B76CF0`（721 B） |
+| `https://api.waitwhile.com/v2/public/locations/` | 0x1470554C8 | `sub_140B73520`（367 B）+ `sub_140B76CF0` |
+| `https://api.waitwhile.com/v2/public/visits/` | 0x147055540 | `sub_140B77010`（2,039 B）+ `sub_140B77860`（811 B） |
+
+`visits` 那个函数还带槽查询：`/first-available-slots?fromDate=`（0x146AB4E10）·
+`T00:00&toDate=`（0x146EAF698）· `T00:00&maxNumSlots=150`（0x146EAF650）·
+格式串 `yyyy-MM-dd`（0x14718CF50）· 日志行 `Find slot`（0x146D90D70）。
+
+**复刻件此前 `waitwhile` / `Waitwhile` / `WaitWhile` 三种拼法全部零命中。**
+
+### 二、落地
+
+`src/Cybersole.Stores/WaitwhileQueue.cs`：三个 host 常量 + `DateFormat` + `MaxSlots` + `FirstAvailableSlotsUrl` + `Day`。
+测试 `WaitwhileQueueTests` **5 条**：完整槽 URL 形状、三 host 逐字、**两端都取当天 00:00**（因为 `T00:00` 是字面量）、
+**上限 150 是字面量不是调用者选择**、location id 转义。
+
+### 三、把"字面量"和"推断"分开写
+
+- **Observed**：三个 host、查询串四段、格式串、日志行、150；
+- **Inference**：`yyyy-MM-dd` + `T00:00` ⇒ 两端都取当天零点（写进注释）；
+- **Unknown**：哪个 location id 填进路径、槽响应的字段名（镜像只有请求形状，没有响应字段）。
+
+**这条 Unknown 的性质与别处不同**：它不是"卡在登录"，而是**响应形状本来就不在客户端**——
+客户端只需要解析它自己那几个字段，而那些字段要一次真实响应才看得见。写清楚，不猜。
+
+### 四、不碰目录计数
+
+新增的是独立客户端类，**不进 `StoreModuleCatalog`** ⇒ 模块数仍 **65**，那两条计数断言与 5 条文档守卫不受影响。
+（这正是 R1233 学到的：改目录要动 4 处共享文档，不划算且被占用。）
+
+### 五、验证
+
+`dotnet build` 0 错；`WaitwhileQueue` **5/5**；全量 **2506 通过 / 0 失败 / 2 跳过 / 2508**（4m27s，+5）。
+
+证据等级：Observation = 三个端点的地址与四个引用函数、五条常量、三拼法零命中、套件收据；
+Inference = 「两端当天零点」；Unknown = location id 来源与响应字段。

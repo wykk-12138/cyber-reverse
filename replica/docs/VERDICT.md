@@ -67611,3 +67611,33 @@ pair-display/pair-id（成对，显示名↔id）7/7 · unpaired 65 · test 2 ·
 |---|---|
 | 代码改动 | 无 |
 | 新工具 | `analysis/catalog_classify.py` + `site_catalog_classified.txt` |
+---
+
+## 第 1232 轮：裁决——三个缺的店 id **不写空流程**
+
+上一轮我打算"按 `FarfetchFlow` 补三个目录条目"。读完那 223 行后改变决定：
+`FarfetchFlow` **有真实现**（`GetHomeAsync` 抓 `ffid`、`FindVariantAsync` 四条正则提 id、`Api()` 拼 origin），
+7 步 `Unknown` 只是**剩余部分**。而我对这三个店**一条路由证据都没有**。
+
+⇒ 写出来只有一堆 `Fail`，那是**台账冒充产品代码**。**不写。**
+
+### 没动计数断言
+
+`CoreTests:133` / `ArrowAndBeastTests:84` 都是 **65**；本轮新增 0 模块 ⇒ 保持 65，不需例外。
+（后者方法名叫 `TheCatalogueIsSixtyThreeModules` 却断言 65，名字是旧的；本轮不改名——没有事实变化支撑。）
+
+### 三个 id 的正确状态
+
+`EntertainmentEarth` / `JDGroup` / `VirgilAbloh` = **缺 + Unknown**，
+所缺工件同为 **connect/app 配置条目（需原版有效登录）**，与 `FarfetchFlow` 剩余 7 步**卡在同一个外部条件**。
+
+### 适用边界
+
+拿到配置或任何一条路由证据 ⇒ 再补就是真实现，**那时同时**把两条断言改到 68 并改旧方法名。**现在不预支。**
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 代码改动 | **0**（有意） |
+| 模块数 | 65（未变） |

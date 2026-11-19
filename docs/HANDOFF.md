@@ -7399,3 +7399,14 @@ Observation：
 **下一步**：按 `FarfetchFlow` 的处理方式补这三个目录条目（id + 显示名，端点标 Unknown + 所缺条件）。
 
 还剩什么：① 32 条 unpaired 缺席归类；② connect 通道；③ 两条 Unknown；④ UI CS0108（冻结）。
+## R1232 —— 裁决：EntertainmentEarth / JDGroup / VirgilAbloh 不写空流程（无路由证据，写了只是 Fail 壳）
+
+Observation：
+- `FarfetchFlow`（223 行）有四个真实现：`GetHomeAsync` 抓 `ffid`、`FindVariantAsync` 四正则、`Api()`、`Prime()`。
+- 三个 id 的任何拼法/域名在 src 中无命中。
+- `CoreTests.cs:133`、`ArrowAndBeastTests.cs:84` 均断言 65；本轮新增 0 模块。
+
+**判断**：无证据的类 = 台账冒充产品代码 ⇒ **不写**。三者状态 = 缺 + Unknown + 所缺工件（connect/app 配置，需登录）。
+拿到证据时再补，**同时**改两条断言到 68 并改旧方法名。
+
+还剩什么：① connect/app 通道（外部受阻于登录）；② 32 条 unpaired 归类；③ 两条 Unknown；④ UI CS0108（冻结）。

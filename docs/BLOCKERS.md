@@ -44821,3 +44821,46 @@ Unknown = 56 条各自的归类（店铺 / id / 测试 / 工具串）。
 
 证据等级：Observation = 五档计数、修正前后的差、三个 id 的多拼法检索、`NikeGsFlow` 的实际位置；
 Inference = 「`JDGroup` 是集团级条目」；Unknown = 32 条 unpaired 缺席里哪些是真店名。
+## R1232 —— **裁决：三个缺的店 id 不写空流程**（写完只是会 Fail 的空壳）
+
+### 一、读完 `FarfetchFlow` 后我改变了上一轮的想法
+
+上一轮我写"按 `FarfetchFlow` 的处理方式补这三个目录条目"。读完那 223 行才发现：
+
+`FarfetchFlow` **不是空壳**——它有真实现：`GetHomeAsync` 打首页并抓 `ffid` cookie、
+`FindVariantAsync` 用四条正则从 URL 提商品 id、`Api()` 拼 origin。
+只有那 7 个**服务端下发**的步骤是 `Fail("… endpoint unknown …")`。
+**它是「能跑一部分 + 剩余显式 Unknown」，不是「只会 Fail」。**
+
+而我对 `EntertainmentEarth` / `JDGroup` / `VirgilAbloh` **一条路由证据都没有**：
+没有首页结构、没有 API 路径、没有 cookie 名、没有字段名。写出来的类只会有一堆 `Fail`。
+
+⇒ **不写。** 那是**台账冒充产品代码**，正好撞在「`replica/src` 只写可执行运行时逻辑」那条红线上。
+
+### 二、也因此没动那两条计数断言
+
+`CoreTests.cs:133` 与 `ArrowAndBeastTests.cs:84` 都把模块数钉在 **65**。
+本轮**新增 0 个模块**，两条断言保持 65 —— 不需要"数字随事实走"的例外。
+
+（顺带记下：后者方法名叫 `TheCatalogueIsSixtyThreeModules` 却断言 65，**名字是旧的**。
+本轮不改名——改名也是动它，而我这一轮没有事实变化去支撑这次改动。）
+
+### 三、这三个 id 的正确状态
+
+| id | 状态 | 所缺工件 |
+|---|---|---|
+| `EntertainmentEarth` | **缺**，`Unknown` | connect/app 配置条目（需原版有效登录） |
+| `JDGroup` | **缺**，`Unknown`（疑集团级条目） | 同上 |
+| `VirgilAbloh` | **缺**，`Unknown` | 同上 |
+
+⇒ 与 `FarfetchFlow` 的**剩余 7 步**同类：**卡在同一个外部条件上**（原版登录才能取到下发配置）。
+**这就是它们不写代码的理由，不是"没时间"。**
+
+### 四、这条裁决的适用边界
+
+将来若拿到 connect/app 的实机配置（或任何一条这三个店的路由证据），
+**再补就是真实现**，那时**同时**要改这两条计数断言到 68 并改掉那个旧方法名。
+**现在不预支。**
+
+证据等级：Observation = `FarfetchFlow` 的四个真实现方法、两条断言的字面值与行号、三个 id 的多拼法检索为空；
+Inference = 「`JDGroup` 是集团级条目」；Unknown = 三者全部路由（明确归属外部条件）。

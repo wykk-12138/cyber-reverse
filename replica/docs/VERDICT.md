@@ -67964,3 +67964,27 @@ R1242 我说「`RunCheckoutAsync` 在产物里」——依据的串在**这个�
 |---|---|
 | 受影响用例 | **20/20** |
 | 排除 | 两类假设 |
+---
+
+## 第 1244 轮：Waitwhile 另两函数解完
+
+`sub_140B73520`（367 B）常量集只有 host + **`?_=`** ⇒ locations 走**缓存穿透**；
+`sub_140B76CF0`（721 B）带两个 host + `Find location` ⇒ **先查 location 再取 data-fields**。
+
+落地 `CacheBusterParam` / `LocationUrl` / `DataFieldsUrl`；测试 **7/7**（+2）。
+`?_=` 的**值**是算出来的（字面量止于等号）⇒ 做成参数，语义标 Unknown。
+
+### R1235 的两个 Unknown
+
+| 项 | 现状 |
+|---|---|
+| location id 来源 | 仍 Unknown |
+| 响应 schema | 仍 Unknown |
+| 缓存穿透参数 | **已解** |
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2514 通过 / 0 失败 / 2 跳过 / 2516**（5m59s，+2） |
+| WaitwhileQueue | **7/7** |

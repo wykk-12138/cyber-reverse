@@ -56,4 +56,34 @@ public static class WaitwhileQueue
     /// <summary>One bound, formatted the way the image formats it and given the literal start-of-day suffix.</summary>
     public static string Day(DateTime value) =>
         value.ToString(DateFormat, CultureInfo.InvariantCulture) + "T00:00";
+
+    /// <summary>
+    /// The cache-busting query the location lookup appends (0x146B277D8, <c>"?_="</c>).
+    ///
+    /// <para>
+    /// <b>Observed</b> in <c>sub_140B73520</c> (367 bytes), whose whole constant set is that fragment and
+    /// <see cref="LocationsHost"/>, and it is the only function that references the location host on its own.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown</b>: what the value after <c>?_=</c> is. The literal stops at the equals sign, so the value is
+    /// computed rather than concatenated from a second literal, and the decompiled constant set cannot say whether it
+    /// is a tick count, an epoch second or something else. The builder therefore takes it as a parameter.
+    /// </para>
+    /// </summary>
+    public const string CacheBusterParam = "?_=";
+
+    /// <summary><c>{LocationsHost}{locationId}?_=&lt;cacheBuster&gt;</c> (sub_140B73520).</summary>
+    public static string LocationUrl(string locationId, string cacheBuster) =>
+        LocationsHost + Uri.EscapeDataString(locationId ?? string.Empty)
+        + CacheBusterParam + Uri.EscapeDataString(cacheBuster ?? string.Empty);
+
+    /// <summary>
+    /// <c>sub_140B76CF0</c> (721 bytes) resolves a location and then asks for that location's data fields, which is
+    /// why it carries both hosts plus the report line <c>Find location</c> (0x146D90D10). The order is the
+    /// observation; what the field response contains is <b>Unknown</b> — the image keeps the request and not the
+    /// schema.
+    /// </summary>
+    public static string DataFieldsUrl(string locationId) =>
+        DataFieldsHost + Uri.EscapeDataString(locationId ?? string.Empty);
 }

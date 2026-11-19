@@ -45405,3 +45405,44 @@ R1242 我写「`RunCheckoutAsync` 在产物里」，依据是 `declared order ha
 
 证据等级：Observation = 两次发布的尺寸与四条串的双编码结果、510 条告警计数；
 Inference = 无新增；Unknown = 方法表内容（缺工件）。
+## R1244 —— Waitwhile 另外两个函数解完：locations 带 **`?_=`** 缓存穿透；data-fields 是**第二次**调用
+
+### 一、`sub_140B73520`（367 B）——只有一个缓存穿透参数
+
+整个常量集就两条：`https://api.waitwhile.com/v2/public/locations/`（0x1470554C8）与 **`?_=`**（0x146B277D8）。
+
+⇒ 形状：`{LocationsHost}{id}?_=<值>`。**值是算出来的**（字面量止于等号），
+是 tick / epoch / 其它——**反编译的常量集说不出**，所以 `cacheBuster` 做成**参数**。
+
+### 二、`sub_140B76CF0`（721 B）——先查 location 再取它的 data-fields
+
+常量集四条：两个 host + 日志行 `Find location`（0x146D90D10）。
+⇒ **调用顺序是观察到的**：`locations/{id}` → `data-fields/{id}`。
+**响应字段仍是 Unknown**：镜像只留请求形状，不留 schema。
+
+### 三、落地
+
+`WaitwhileQueue` 新增：
+
+| 成员 | 内容 |
+|---|---|
+| `CacheBusterParam` | `"?_="`（0x146B277D8） |
+| `LocationUrl(id, cacheBuster)` | `{LocationsHost}{id}?_=<值>` |
+| `DataFieldsUrl(id)` | `{DataFieldsHost}{id}`，注释写明它在 location 之后 |
+
+测试 **7 条**（+2）：`?_=` 形状逐字、`DataFieldsUrl` 形状，以及既有的槽 URL / 三 host / 当天零点 / 上限 150 / 转义。
+
+### 四、这条把 R1235 记的两个 Unknown 填了一个半
+
+| R1235 的 Unknown | 现状 |
+|---|---|
+| location id 从哪来 | **仍 Unknown**（要一次真实响应，或 flow 里的 id 来源） |
+| 响应字段名 | **仍 Unknown**（镜像无 schema） |
+| （新填）缓存穿透参数 | **已解**：`?_=` + 计算值 |
+
+### 五、验证
+
+`dotnet build` 0 错；`WaitwhileQueue` **7/7**；全量 **2514 通过 / 0 失败 / 2 跳过 / 2516**（5m59s，+2）。
+
+证据等级：Observation = 两函数的常量集、`?_=` 的地址、`Find location` 日志行；
+Inference = 「location → data-fields 的调用顺序」；Unknown = `?_=` 的取值语义、响应 schema。

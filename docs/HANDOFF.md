@@ -7545,3 +7545,14 @@ Observation：
 验证：build 0 错；受影响用例 20/20。
 
 还剩什么：① 方法表 dump（需工具）；② Stripe/Midtrans/Waitwhile 接线；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1244 —— Waitwhile locations 的 ?_= 缓存穿透 + data-fields 第二调用落地（+2 测试）
+
+Observation：
+- `sub_140B73520`：常量集仅 `locations/` + `?_=`（0x146B277D8）⇒ `{host}{id}?_=<值>`。
+- `sub_140B76CF0`：两 host + `Find location` ⇒ location → data-fields 顺序。
+- 值止于等号 ⇒ 计算值，语义 Unknown。
+
+新增 `CacheBusterParam` / `LocationUrl` / `DataFieldsUrl`；测试 7/7；全量 **2514/0/2/2516**（5m59s）。
+
+还剩什么：① location id 来源与响应 schema（需实机）；② Stripe/Midtrans 接线（产物层受阻，见 R1243 缺口）；
+③ connect 通道（需登录）；④ 两条 Unknown（BotTask.Running/Task）；⑤ UI CS0108（冻结）。

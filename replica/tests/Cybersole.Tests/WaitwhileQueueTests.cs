@@ -54,4 +54,21 @@ public sealed class WaitwhileQueueTests
         Assert.Contains("/a%2Fb/first-available-slots",
             WaitwhileQueue.FirstAvailableSlotsUrl("a/b", DateTime.Today, DateTime.Today));
     }
+
+    [Fact]
+    public void TheLocationLookupCarriesTheCacheBusterQuery()
+    {
+        // sub_140B73520's whole constant set is LocationsHost and "?_=" (0x146B277D8)
+        Assert.Equal("https://api.waitwhile.com/v2/public/locations/loc_1?_=1700000000",
+            WaitwhileQueue.LocationUrl("loc_1", "1700000000"));
+        Assert.Equal("?_=", WaitwhileQueue.CacheBusterParam);
+    }
+
+    [Fact]
+    public void TheDataFieldLookupIsTheSecondCallTheImageMakes()
+    {
+        // sub_140B76CF0 carries both hosts: it resolves the location, then asks for its data fields
+        Assert.Equal("https://api.waitwhile.com/v2/public/data-fields/loc_1",
+            WaitwhileQueue.DataFieldsUrl("loc_1"));
+    }
 }

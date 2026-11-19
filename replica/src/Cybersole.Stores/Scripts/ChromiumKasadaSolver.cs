@@ -1,4 +1,4 @@
-﻿using Cybersole.Stores.Flows;
+using Cybersole.Stores.Flows;
 using System.Text.Json;
 using Cybersole.Stores.Scripts;
 
@@ -25,9 +25,40 @@ public sealed class ChromiumKasadaSolver
 
     /// <summary>
     /// URL patterns to drop before they reach the network. A checkout page is mostly things a sensor never
-    /// reads -- images, fonts, media, analytics -- and over a metered proxy those are the entire bill.
+    /// reads -- images, fonts, media, consent banners, analytics -- and over a metered proxy those are the
+    /// entire bill. Measured on the arcteryx product page: 20.57 MB per identity unblocked, 0.64 MB with
+    /// <see cref="DefaultBlockPatterns"/>, and the submission still answers {"reload":true}.
     /// </summary>
     public List<string> BlockPatterns { get; } = new();
+
+    /// <summary>
+    /// Drop the page furniture by default. Set false to load everything the way a shopper would -- the
+    /// challenge still solves either way on the pages measured, but that is not a promise for every site.
+    /// </summary>
+    public bool ReduceTraffic { get; set; } = true;
+
+    /// <summary>
+    /// Categories that cannot carry anything the sensor reads. Private media extensions are listed
+    /// explicitly because a by-format blacklist misses them (nike serves .cmfv / .cmfa).
+    /// </summary>
+    public static IReadOnlyList<string> DefaultBlockPatterns { get; } = new[]
+    {
+        // images, fonts, media
+        "*.png", "*.jpg", "*.jpeg", "*.webp", "*.gif", "*.svg", "*.avif", "*.ico",
+        "*.woff", "*.woff2", "*.ttf", "*.otf", "*.eot",
+        "*.mp4", "*.webm", "*.m3u8", "*.cmfv", "*.cmfa", "*.mpd",
+        "*/video/*", "*/video-player/*",
+        // third-party analytics and beacons
+        "*.nr-data.net/*", "*.newrelic.com/*", "*.demdex.net/*", "*.adobedtm.com/*",
+        "*.facebook.net/*", "*.google-analytics.com/*", "*.doubleclick.net/*",
+        "*.hotjar.com/*", "*.segment.io/*", "*.googletagmanager.com/*",
+        "*mtrx9k*", "cdn.evgnet.com/*", "*.evgnet.com/*",
+        "*.bazaarvoice.com/*", "*.switchgrowth.com/*", "*.cloudflareinsights.com/*",
+        // consent SDK -- 139 KB of banner on the first paint, read by nothing in the challenge
+        "*.cookielaw.org/*", "*.onetrust.com/*",
+        // static bundles and edge beacons
+        "*/static/*", "*_next/static/*", "*.chunk.*.js", "*/cdn-cgi/*",
+    };
 
     /// <summary>Patterns currently in force, for diagnostics.</summary>
     public List<string> BlockedPatterns => _bridge?.BlockedPatterns ?? new List<string>();
@@ -58,6 +89,70 @@ public sealed class ChromiumKasadaSolver
 
     /// <summary>Per-URL bytes, largest first, so a caller can see what to block.</summary>
     public List<(string Url, long Bytes)> WireBreakdown { get; private set; } = new();
+
+    /// <summary>
+    /// Evaluate an expression after the harvest has finished. Safe at that point and only then: probing a
+    /// page while the challenge is computing is what stopped it from solving.
+    /// <para>
+    /// This only works while the profile is still open. Once <see cref="SolveAsync"/> returns the browser is
+    /// gone, so anything that has to ride the solved session belongs in <see cref="AfterSolveAsync"/>.
+    /// </para>
+    /// </summary>
+    public async Task<string?> EvaluateAfterRunAsync(string expression, CancellationToken ct = default,
+        bool awaitPromise = false)
+        => _bridge is null
+            ? null
+            : await _bridge.EvaluateAsync(expression, ct, awaitPromise).ConfigureAwait(false);
+
+    /// <summary>
+    /// Runs after the round resolves but before the profile is closed, with the bridge still live. This is
+    /// the only place a token can be spent against the session that produced it -- the cookies, client hints
+    /// and connection fingerprint it needs are the browser's own and do not survive the shutdown.
+    /// </summary>
+    public Func<ChromiumBridge, CancellationToken, Task>? AfterSolveAsync { get; set; }
+
+    /// <summary>What <see cref="AfterSolveAsync"/> threw, if it threw. Reported apart from the round itself.</summary>
+    public string? AfterSolveError { get; private set; }
+
+    /// <summary>
+    /// User-data-dir to launch with. Left null the browser gets a throwaway profile, which means the sensor
+    /// script, the page and every static asset are downloaded again on every single harvest. Point this at a
+    /// kept directory and the second harvest onwards serves them from the profile cache, leaving only the
+    /// challenge itself on the wire.
+    /// </summary>
+    public string? ProfilePath { get; set; }
+
+    /// <summary>
+    /// Drop the profile's cookies and page storage before navigating. Only meaningful with a kept profile:
+    /// the point is to keep the downloaded sensor and still ask for a fresh round.
+    /// </summary>
+    public bool FreshCookies { get; set; }
+
+    /// <summary>
+    /// The page's own Date.now() at the moment the submission finished. This is the only correct partner for
+    /// the server's x-kpsdk-st: pairing st with the host clock instead injects the difference between the two
+    /// clocks as if it were latency, and the PoW's workTime is derived from that number.
+    /// </summary>
+    public long? ReceivedAtMs { get; private set; }
+
+    /// <summary>Cookies the profile held when the harvest finished.</summary>
+    public string CookieHeader { get; private set; } = "";
+
+    /// <summary>Headers the page's own last request to a path carried.</summary>
+    public Dictionary<string, string> RequestHeadersFor(string fragment) => LastRequestHeaders(fragment);
+
+    /// <summary>Cookies the profile holds after the harvest, so a replay can send what the browser sent.</summary>
+    public async Task<string> CookieHeaderAfterRunAsync(CancellationToken ct = default)
+        => _bridge is null ? "" : await _bridge.CookieHeaderAsync(ct).ConfigureAwait(false);
+
+    /// <summary>The headers the page's own last request to <paramref name="fragment"/> carried.</summary>
+    public Dictionary<string, string> LastRequestHeaders(string fragment)
+    {
+        var rt = LastRoundtrips.LastOrDefault(r => r.Url.Contains(fragment, StringComparison.OrdinalIgnoreCase));
+        return rt is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(rt.RequestHeaders, StringComparer.OrdinalIgnoreCase);
+    }
 
     /// <summary>Bytes the browser actually pulled, per CDP's own accounting.</summary>
     public long WireBytes { get; private set; }
@@ -121,7 +216,12 @@ public sealed class ChromiumKasadaSolver
             // Headed by default. The reference implementation runs a normal window and its own notes say a
             // debug port without one is what makes the challenge refuse; headless adds a set of its own
             // signals on top. KasadaHeadless exists for callers that cannot show a window and accept that.
-            bridge = await ChromiumBridge.LaunchAsync(headed: !KasadaHeadless, ct: ct).ConfigureAwait(false);
+            //
+            // A caller-supplied profile is what makes a second harvest cheap: the sensor script is several
+            // hundred kilobytes and never changes between rounds, so on a kept profile it comes from the
+            // browser cache instead of the network. A fresh one re-downloads it every single time.
+            bridge = await ChromiumBridge.LaunchAsync(headed: !KasadaHeadless, profilePath: ProfilePath,
+                                                      ct: ct).ConfigureAwait(false);
 
             // R135: the browser that solves this token is the browser the payment will describe. One
             // key, recorded here, so the profile folder, the fingerprint and the 3-D Secure profile all
@@ -146,132 +246,105 @@ public sealed class ChromiumKasadaSolver
             // Before the first request, so nothing gets pulled and then discarded: the browser drops these
             // itself, and over a metered proxy that is the difference between a few hundred KB and several MB.
             _bridge = bridge;
+            if (BlockPatterns.Count == 0 && ReduceTraffic)
+                BlockPatterns.AddRange(DefaultBlockPatterns);
             if (BlockPatterns.Count > 0)
                 await bridge.BlockAsync(BlockPatterns, ct).ConfigureAwait(false);
+
+            // A kept profile remembers who it was. That identity is still good enough for the site to skip the
+            // challenge, which is cheap and yields nothing -- so when the caller wants a token out of a warm
+            // profile, the identity has to go while the cache stays.
+            if (FreshCookies)
+            {
+                var origin = Uri.TryCreate(pageUrl, UriKind.Absolute, out var pu)
+                    ? pu.GetLeftPart(UriPartial.Authority)
+                    : pageUrl;
+                await bridge.ClearCookiesAsync(origin, ct).ConfigureAwait(false);
+            }
 
             await bridge.NavigateAsync(pageUrl, ct).ConfigureAwait(false);
 
             var deadline = DateTime.UtcNow + limit;
-            string? ctToken = null;
-            string? sbsd = null;
-            string? version = null;
-            var kpsdkPresent = false;
-            var triggered = false;
-            var sniffedHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var sawTl = false;
 
+            // Wait only. The reference implementation's harvest loop does exactly one thing while the page
+            // runs -- recv -- and evaluates nothing. Probing a live page every 250 ms is itself a signal and
+            // was the one thing this loop did that theirs does not. The token is read afterwards.
             while (DateTime.UtcNow < deadline)
             {
                 ct.ThrowIfCancellationRequested();
-
-                var state = await bridge.EvaluateAsync(
-                    "typeof window.KPSDK !== 'undefined' ? 'yes' : 'no'", ct).ConfigureAwait(false);
-
-                kpsdkPresent = state == "yes";
-                if (!kpsdkPresent)
-                {
-                    await Task.Delay(250, ct).ConfigureAwait(false);
-                    continue;
-                }
-
-                // 1) the wire is the reliable source — the page decorates its own requests
-                var sniffed = bridge.SniffKasadaHeaders();
-                // Both directions, so a caller can show what the server answered -- in particular
-                // the /mfc reply whose config decides whether the sensor interrogates at all.
-                var replies = bridge.SniffKasadaResponses();
-                LastRoundtrips = bridge.SniffRoundtrips();
-                WireBytes = bridge.WireBytes();
-                TlBody = await bridge.ResponseBodyAsync("/tl", ct).ConfigureAwait(false);
-                WireBreakdown = bridge.WireBytesByUrl();
-                BlockedRequestCount = bridge.BlockedCount();
-                if (sniffed.TryGetValue("x-kpsdk-ct", out var hdrCt) && hdrCt.Length > 8)
-                {
-                    ctToken = hdrCt;
-                    sniffed.TryGetValue("x-kpsdk-sb", out sbsd);
-                    sniffed.TryGetValue("x-kpsdk-v", out version);
-
-                    // Keep every x-kpsdk-* the request carried: a real checkout needs
-                    // h / dt / im / cd as well, and cd is what ciphers the body.
-                    foreach (var kv in sniffed) sniffedHeaders[kv.Key] = kv.Value;
-                    foreach (var reply in replies)
-                        foreach (var kv in reply.Value)
-                            sniffedHeaders["response:" + kv.Key] = kv.Value;
-                }
-
-                // Do NOT stop at the first token. The token that matters is the one the submission endpoint
-                // stamps on its reply, and that reply only exists once the challenge has finished computing
-                // -- the reference implementation waits up to 60 s for exactly that message and reads its
-                // body before deciding. Leaving early is what closed the window mid-computation.
-                if (bridge.FirstTlFinished())
-                {
-                    TlBody = await bridge.ResponseBodyAsync("/tl", ct).ConfigureAwait(false);
-                    var pair = bridge.SniffRoundtrips()
-                        .LastOrDefault(rt => rt.Url.Contains("/tl", StringComparison.Ordinal));
-                    if (pair is not null)
-                        foreach (var kv in pair.ResponseHeaders)
-                            sniffedHeaders["tl:" + kv.Key] = kv.Value;
-                    if (pair?.ResponseHeaders.TryGetValue("x-kpsdk-ct", out var afterTl) == true
-                        && afterTl.Length > 8) ctToken = afterTl;
-                    break;
-                }
-
-                // 2) optionally poke a protected endpoint so sb/sbsd has a chance to appear
-                if (triggerUrl is not null && !triggered)
-                {
-                    triggered = true;
-                    await bridge.EvaluateAsync(
-                        "fetch(" + System.Text.Json.JsonSerializer.Serialize(triggerUrl) +
-                        ", { credentials: 'include', headers: { 'accept': 'application/json' } })" +
-                        ".then(r => r.status).catch(() => -1)", ct).ConfigureAwait(false);
-                }
-
-                // 3) last resort: cookies and the KPSDK object
-                foreach (var probe in TokenProbes)
-                {
-                    var value = await bridge.EvaluateAsync(probe, ct).ConfigureAwait(false);
-                    if (!string.IsNullOrWhiteSpace(value) && value!.Length > 8)
-                    {
-                        ctToken = value;
-                        break;
-                    }
-                }
-
-                if (ctToken is not null) break;
-
-                await Task.Delay(250, ct).ConfigureAwait(false);
+                if (bridge.FirstTlFinished()) { sawTl = true; break; }
+                await Task.Delay(200, ct).ConfigureAwait(false);
             }
 
-            if (ctToken is null)
-            {
-                var version_ = await bridge.EvaluateAsync(
-                    "(window.KPSDK && window.KPSDK.v) ? String(window.KPSDK.v) : null", ct)
-                    .ConfigureAwait(false);
+            // Captured here, while the profile is still open: both are gone once this method returns.
+            var browserNow = await bridge.EvaluateAsync("String(Date.now())", ct).ConfigureAwait(false);
+            if (long.TryParse(browserNow, out var parsedNow)) ReceivedAtMs = parsedNow;
+            CookieHeader = await bridge.CookieHeaderAsync(ct).ConfigureAwait(false);
+            LastRoundtrips = bridge.SniffRoundtrips();
 
+            var sniffed = bridge.SniffKasadaHeaders();
+            var tlPair = bridge.SniffRoundtrips()
+                .LastOrDefault(rt => rt.Url.Contains("/tl", StringComparison.Ordinal));
+
+            LastRoundtrips = bridge.SniffRoundtrips();
+            WireBytes = bridge.WireBytes();
+            WireBreakdown = bridge.WireBytesByUrl();
+            BlockedRequestCount = bridge.BlockedCount();
+
+            var tlBody = await bridge.ResponseBodyAsync("/tl", ct).ConfigureAwait(false);
+            TlBody = tlBody;
+
+            // The accepted round's own headers are the ones that count. A token from an unsolved round is
+            // exactly what the handoff pack warns about: lenient endpoints take it, cart.* answers 429.
+            var ctToken = tlPair?.ResponseHeaders.GetValueOrDefault("x-kpsdk-ct");
+            if (string.IsNullOrEmpty(ctToken) || ctToken!.Length < 8)
+                sniffed.TryGetValue("x-kpsdk-ct", out ctToken);
+            sniffed.TryGetValue("x-kpsdk-sb", out var sbsd);
+            sniffed.TryGetValue("x-kpsdk-v", out var version);
+
+            var sniffedHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kv in sniffed) sniffedHeaders[kv.Key] = kv.Value;
+            if (tlPair is not null)
+                foreach (var kv in tlPair.ResponseHeaders) sniffedHeaders["tl:" + kv.Key] = kv.Value;
+
+            // The submission is the gate, not the token count. An empty body is a refusal and a body that is
+            // not {"reload":true} is an unusable round; either way the identity must not be reported as usable,
+            // because lenient reads accept such a token and cart.* answers 429 with it.
+            if (!TlSolved)
+            {
                 return new KasadaResult
                 {
                     Ok = false,
-                    ScriptExecuted = kpsdkPresent,
-                    NeedsRealBrowser = false,
-                    Version = version_,
-                    Error = kpsdkPresent
-                        ? "KPSDK initialised but exposed no token within the timeout"
-                        : "KPSDK never initialised in the browser",
+                    ScriptExecuted = true,
+                    Version = version,
+                    Error = tlBody is null
+                        ? "the submission body was unreadable, so the round cannot be counted as solved"
+                        : tlBody.Length == 0
+                            ? "the submission answered 200 with an empty body (unsolved round)"
+                            : "the submission body was not the reload marker",
                 };
             }
 
-            if (sbsd is null)
+            if (string.IsNullOrEmpty(ctToken) || ctToken!.Length < 8)
             {
-                sbsd = await bridge.EvaluateAsync(
-                    "(document.cookie.match(/(?:^|;\\s*)sbsd=([^;]+)/) || [])[1] || null", ct)
-                    .ConfigureAwait(false);
+                return new KasadaResult
+                {
+                    Ok = false,
+                    ScriptExecuted = true,
+                    Version = version,
+                    Error = sawTl
+                        ? "the submission finished but stamped no x-kpsdk-ct"
+                        : "no submission request appeared within the timeout",
+                };
             }
 
-            if (version is null)
-            {
-                version = await bridge.EvaluateAsync(
-                    "(window.KPSDK && window.KPSDK.v) ? String(window.KPSDK.v) : null", ct)
-                    .ConfigureAwait(false);
-            }
-
+            sbsd ??= await bridge.EvaluateAsync(
+                "(document.cookie.match(/(?:^|;\\s*)sbsd=([^;]+)/) || [])[1] || null", ct)
+                .ConfigureAwait(false);
+            version ??= await bridge.EvaluateAsync(
+                "(window.KPSDK && window.KPSDK.v) ? String(window.KPSDK.v) : null", ct)
+                .ConfigureAwait(false);
             var usedUserAgent = await bridge.EvaluateAsync("navigator.userAgent", ct)
                 .ConfigureAwait(false);
 
@@ -284,11 +357,11 @@ public sealed class ChromiumKasadaSolver
                 ScriptExecuted = true,
                 ScriptUrl = ScriptUrl,
                 UserAgent = usedUserAgent,
+                InterrogationBody = tlBody,
             };
 
             foreach (var kv in sniffedHeaders) result.Headers[kv.Key] = kv.Value;
-
-            result.Headers["x-kpsdk-ct"] = ctToken;
+            result.Headers["x-kpsdk-ct"] = ctToken!;
             if (!string.IsNullOrEmpty(sbsd)) result.Headers["x-kpsdk-sb"] = sbsd!;
             if (!string.IsNullOrEmpty(version)) result.Headers["x-kpsdk-v"] = version!;
 
@@ -301,6 +374,23 @@ public sealed class ChromiumKasadaSolver
                     if (name.StartsWith("kpsdk", StringComparison.OrdinalIgnoreCase) ||
                         name is "ct" or "sbsd" or "cd")
                         result.Cookies.Add(part.Trim());
+                }
+            }
+
+            // The token is only worth anything against the session that earned it: its cookies, its client
+            // hints, its TLS and HTTP/2 fingerprint. All of that disappears when the profile closes, so a
+            // caller that wants to spend the token has exactly this window to do it in -- before the return.
+            if (AfterSolveAsync is not null)
+            {
+                try
+                {
+                    await AfterSolveAsync(bridge, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    // A failed follow-up says nothing about the round that just solved, so it must not turn
+                    // a good result into a bad one. It is reported separately instead.
+                    AfterSolveError = ex.GetType().Name + ": " + ex.Message;
                 }
             }
 

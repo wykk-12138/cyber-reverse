@@ -1043,6 +1043,39 @@ public sealed class ChromiumBridge : IAsyncDisposable
     /// requests are paying for it, which is the only thing a caller can act on.
     /// </summary>
     /// <summary>
+    /// Every cookie the profile currently holds for the target's origin, as a Cookie header value.
+    /// <para>
+    /// WHY THIS EXISTS: the challenge sets a session cookie alongside the token, and a request carrying the
+    /// token with none of the cookies that minted it is not the same request the browser made. Replaying a
+    /// harvested token without them tests something the browser never sends.
+    /// </para>
+    /// </summary>
+    public async Task<string> CookieHeaderAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await SendAsync("Storage.getCookies", null, ct).ConfigureAwait(false);
+            if (!result.TryGetProperty("cookies", out var cookies) || cookies.ValueKind != JsonValueKind.Array)
+                return "";
+
+            var parts = new List<string>();
+            foreach (var cookie in cookies.EnumerateArray())
+            {
+                if (!cookie.TryGetProperty("name", out var name) || !cookie.TryGetProperty("value", out var value))
+                    continue;
+                var n = name.GetString();
+                if (string.IsNullOrEmpty(n)) continue;
+                parts.Add(n + "=" + (value.GetString() ?? ""));
+            }
+            return string.Join("; ", parts);
+        }
+        catch (InvalidOperationException)
+        {
+            return "";
+        }
+    }
+
+    /// <summary>
     /// The body of the last response received for a URL containing <paramref name="fragment"/>.
     /// <para>
     /// WHY THIS EXISTS: a 200 from /tl means nothing on its own -- the handoff pack is explicit that a 200
@@ -1078,6 +1111,60 @@ public sealed class ChromiumBridge : IAsyncDisposable
             if (name is "Network.loadingFinished" or "Network.loadingFailed") return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Forget every cookie while leaving the profile's HTTP cache alone. On a kept profile the browser would
+    /// otherwise carry a still-valid identity into the next run, and a still-valid identity means no
+    /// challenge at all -- cheap, but it yields no token. Dropping only the cookies asks for a fresh round
+    /// without paying to download the sensor script again.
+    /// </summary>
+    public async Task ClearCookiesAsync(string origin, CancellationToken ct = default, bool includeStorage = false)
+    {
+        await SendAsync("Network.clearBrowserCookies", new { }, ct).ConfigureAwait(false);
+        if (!includeStorage) return;
+        // The page also holds identity in storage; a cleared cookie jar with a warm session storage would
+        // still look like the same visitor. Kept optional because clearing storage is the heavier hammer and
+        // the light one may already be enough to ask for a fresh round.
+        await SendAsync("Storage.clearDataForOrigin", new
+        {
+            origin,
+            storageTypes = "local_storage,session_storage",
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// How many submission rounds the page has completed so far. The sensor keeps running after the first
+    /// one, and a gated call can make it run another; counting finished rounds is how a caller can tell a
+    /// fresh token from the one it already had.
+    /// </summary>
+    public int CompletedTlCount()
+    {
+        var ids = new List<string>();
+        var done = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var evt in Events)
+        {
+            if (!evt.TryGetProperty("method", out var method)) continue;
+            if (!evt.TryGetProperty("params", out var p)) continue;
+            var name = method.GetString();
+            if (name == "Network.requestWillBeSent")
+            {
+                if (!p.TryGetProperty("requestId", out var idEl)) continue;
+                if (!p.TryGetProperty("request", out var req) || !req.TryGetProperty("url", out var u)) continue;
+                if (!(u.GetString() ?? "").TrimEnd('/').EndsWith("/tl", StringComparison.OrdinalIgnoreCase)) continue;
+                var id = idEl.GetString();
+                if (id is not null && !ids.Contains(id)) ids.Add(id);
+                continue;
+            }
+
+            if (name is "Network.loadingFinished" or "Network.loadingFailed"
+                && p.TryGetProperty("requestId", out var rid) && rid.GetString() is { } s)
+            {
+                done.Add(s);
+            }
+        }
+
+        return ids.Count(done.Contains);
     }
 
     public async Task<string?> ResponseBodyAsync(string fragment, CancellationToken ct = default)

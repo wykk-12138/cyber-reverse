@@ -7301,3 +7301,15 @@ Observation：
 
 还剩什么：① 3,582 条里分类（原版真步骤 vs 框架生成）；② 122 条支付名的处置（很多是别名/内部方法）；
 ③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。
+## R1223 —— 前缀分桶失效（79/3503，业务桶混入 AcceptTcpClientAsync 等框架方法）⇒ 不下分类结论
+
+Observation：
+- `analysis/classify_names.py` 产出 79 框架 / 3,503 业务；业务桶含 AcceptTcpClientAsync/AcceptSecurityContext/CreateAccessibilityNode。
+- 产物 `analysis/state_machine_names_business.txt`（3,503 条，**启发式分桶**）。
+
+**判断**：前缀不是分类判据（R730 规矩）。**不估计"3,582 里有多少真业务步骤"。**
+真分类需类型表或动态观察（均受阻/未开工）。
+
+仍成立：镜像 3,693 / 表 111 / **编造 0**。
+
+还剩什么：① 元数据表（类型→方法）是否可解析；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。

@@ -1,0 +1,93 @@
+# Literals referenced by sub_140F7DDE0 (70,719 bytes), the settings-descriptor/catalog builder.
+# Reached by walking the function and collecting every lea/mov xref target at or above 0x143000000.
+# Regenerate with the scan recorded in R1230; this file is a straight dump, not a filtered list.
+# count=88
+
+0x146A67D98	 ^\\d+$
+0x146B31F80	AO
+0x146B4FC80	Asics
+0x146B63598	Buffering
+0x146B63A78	Burberry
+0x146B7C8E0	Captcha Test
+0x146B7CE08	CaptchaTestPublic
+0x146B7E7D0	Casio
+0x146B8AAC8	Checkout Test
+0x146B8CE10	CheckoutTest
+0x146B9EAD8	Converse
+0x146B9EC68	ConversePH
+0x146BA3E10	CpCompany
+0x146BA9B30	Crocs
+0x146BA9BC8	Crocs ES
+0x146BA9BF0	Crocs EU
+0x146BAA3A8	CrunchyRoll
+0x146BAB688	Currys
+0x146BBAC08	Demandware
+0x146BBAC38	Demandware (Funko)
+0x146BBD798	Dicks Sporting Goods
+0x146BBD7D8	DicksSportingGoods
+0x146BBE510	Disney
+0x146D0A050	EndClothing
+0x146D0A260	Endclothing
+0x146D0BA40	Entertainment Earth
+0x146D0BA80	EntertainmentEarth
+0x146D88DF0	FC2
+0x146D8DFD0	Farfetch
+0x146D939E0	Footlocker (Asia)
+0x146D93EC8	FootlockerMagento
+0x146D93F30	Footsites
+0x146D951A8	ForseClub
+0x146D97638	Funko
+0x146D97730	FunkoShop
+0x146D9B458	GameStop
+0x146DA4868	Goat
+0x146DA7B88	HBX
+0x146DAC030	Hbx
+0x146DAD408	Highsnobiety
+0x146DB0690	HumanMade
+0x146DD2110	JD Group
+0x146DD22A8	JDGroup
+0x146DD3B50	Jacquemus
+0x146DD5138	John Lewis
+0x146DD5168	JohnLewis
+0x146DDCA00	Kickz
+0x146DFAA78	MSCHF
+0x146DFB520	Magento
+0x146DFBA10	MaisonMargiela
+0x146DFCB28	MarcJacobs
+0x146E01710	Mesh
+0x146E15DA0	NewBalance
+0x146E16F88	Nike
+0x146E172D0	Nike GS
+0x146E17890	NikeGS
+0x146E237E0	OffSpring
+0x146E25100	On (Korea)
+0x146E25CC8	OnKorea
+0x146E37F08	Panini
+0x146E38100	PaniniUS
+0x146E463D0	Popmart
+0x146E52A88	Puma
+0x146E70408	Round1
+0x146E79BB0	Saucony
+0x146E7A4A0	Scheels
+0x146E8B5E8	Shopify
+0x146E980F0	SportShoes
+0x146E9BE68	StoneIsland
+0x146EA3708	Supreme Signups
+0x146EA37A0	SupremeWaitwhile
+0x146EA3B90	Swatch
+0x146EF00D0	Timberland
+0x146EF83D0	ToysRus
+0x146F10888	Uniqlo
+0x146F20060	Vans
+0x146F203D0	VansDrops
+0x146F20430	VansUS
+0x146F229F8	Virgil Abloh
+0x146F22A80	VirgilAbloh
+0x146F26BD0	Waitwhile
+0x146F26F40	Warhammer
+0x146F3C320	Yoox
+0x146F3C340	Yoox Group
+0x146F5F000	^[0-9]{12}$
+0x146F5F030	^[0-9]{13}$
+0x146F5F098	^[3|4|5|6|7][0-9]{13}$
+0x146F5F240	^[A-Za-z]{2,4}_[0-9]{6,}$

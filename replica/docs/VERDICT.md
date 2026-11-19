@@ -67546,3 +67546,38 @@ SignalR 客户端 + 四类事件载荷 + config→StoreFlow 映射，而**载荷
 | 代码改动 | 无 |
 | 新工作项 | **1 条：connect 通道**（含 4 类事件载荷） |
 | 重复劳动 | 1 轮（已记） |
+---
+
+## 第 1230 轮：店目录本体在**构造器自己身上**
+
+R1204–R1207 从域名/显示名/标签/xref 四条路找店目录，全败。
+本轮换目标：**走 `sub_140F7DDE0`（70,719 B 的目录条目构造器）的指令，收它的上界引用** ⇒
+**237 个地址、88 条字面量**：
+
+`Asics` · `Burberry` · `Casio` · `Converse` · `Crocs ES/EU` · `Demandware (Funko)` ·
+`Dicks Sporting Goods` **+** `DicksSportingGoods` · `EndClothing` **+** `Endclothing` …
+
+**同一家店成对出现**＝显示名 + id 一对，正是 `{name, display, typeId, flag}` 的两个字段。
+
+### 对账
+
+| 项 | 数 |
+|---|---|
+| 引用地址 | 237 |
+| 字面量 | 88 |
+| 复刻件有 | **32** |
+| 复刻件无 | **56** |
+
+88 里混着店铺名/id/**测试条目**（`Captcha Test`）/工具串（`Buffering`）⇒ 报为「构造器引用」，**不写成"88 家店"**。
+
+### 顺带修了工具缺口
+
+`ida.py dis` 只转发 `addr` ⇒ 70 KB 函数只回 10 条指令。已加 `--lines`/`--offset`；
+插件仍按 10 条分页，故**换招**：IDA 侧走指令收 xref。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 新工具 | `analysis/catalog_literals.py` + `site_catalog_names.txt` |
+| 代码改动 | 无（`replica/src`） |

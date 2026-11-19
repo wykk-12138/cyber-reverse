@@ -60,7 +60,15 @@ def main(argv):
             args['max_lines'] = int(rest[rest.index('--lines') + 1])
         print(call('decompile', args))
     elif cmd == 'dis':
-        print(call('disasm', {'addr': rest[0]}))
+        # R1230: the plugin's disasm paginates with max_instructions/offset (and a cursor.next), but this wrapper
+        # only ever sent addr, so every call came back with the default ten instructions and looked like a function
+        # with ten instructions in it. A 70 KB function gave ten lines and I nearly concluded the address was wrong.
+        _args = {'addr': rest[0]}
+        if '--lines' in rest:
+            _args['max_instructions'] = int(rest[rest.index('--lines') + 1])
+        if '--offset' in rest:
+            _args['offset'] = int(rest[rest.index('--offset') + 1])
+        print(call('disasm', _args))
     elif cmd == 'xrefs':
         print(call('xrefs_to', {'addrs': [rest[0]]}))
     elif cmd == 'str':

@@ -44730,3 +44730,49 @@ Inference = 「const/static 增量为 1,536 B 且不加可展开函数」；Unkn
 证据等级：Observation = `sub_140F3D400` 的 12 条常量、`FarfetchFlow.cs:45-54` 的既有注释、
 六个名字在 `src` 中"仅注释"的三次实测；Inference = 「缺通道而非缺端点」；
 Unknown = 四类事件的载荷字段名。
+## R1230 —— **店目录本体找到了**：`sub_140F7DDE0` 引用的 237 个地址 ⇒ 88 条字面量，其中 **56 条复刻件没有**
+
+### 一、R1204–R1207 一直找不到的东西，在**构造器自己身上**
+
+那几轮我从域名、显示名、`"<X> Checkout"` 标签、代码 xref 四条路找店目录，全部失败。
+本轮从「目录条目构造器」`sub_140F7DDE0` 入手（R1077 注释点过它的名字），直接**走它的指令、收集每个
+`lea`/`mov` 的上界引用**，得到 **237 个被引用地址**，能解成冻结字符串的 **88 条**：
+
+`Asics` · `Burberry` · `Casio` · `Converse` · `ConversePH` · `CpCompany` · `Crocs ES/EU` ·
+`CrunchyRoll` · `Currys` · `Demandware` / `Demandware (Funko)` · `Dicks Sporting Goods` / `DicksSportingGoods` ·
+`Disney` · `EndClothing` / `Endclothing` · `Captcha Test` / `CaptchaTestPublic` · `Checkout Test` / `CheckoutTest` …
+
+**同一家店成对出现**（`Dicks Sporting Goods` + `DicksSportingGoods`，`EndClothing` + `Endclothing`）——
+显示名与 id 一对，正是 `{name, display, typeId, flag}` 那个结构的两个字段。
+
+### 二、内容要分三类，不能全算"店铺"
+
+这 88 条里混着：**店铺名**、**店铺 id**、**测试条目**（`Captcha Test` / `Checkout Test`）、
+**工具串**（`Buffering` / `AO` / `^\d+$`）。
+⇒ 报告为「**构造器引用的字面量**」，**不写成"88 家店"**。
+
+### 三、与复刻件对账
+
+| 项 | 数 |
+|---|---|
+| 构造器引用地址 | **237** |
+| 解成字面量 | **88** |
+| **复刻件里同名字面量存在** | **32** |
+| **复刻件里没有** | **56** |
+
+56 条里既有真店铺（需逐条判是否该有），也有测试条目（`Captcha Test` 这类本就不该进复刻件的商店目录）。
+
+### 四、工具缺口也修了一处
+
+`ida.py dis` 过去**只转发 `addr`**，插件的 `max_instructions`/`offset` 没有口子 ⇒
+一个 70,719 字节的函数只回来 **10 条指令**，看着像"这个地址不是函数"。
+R1230 给 `dis` 加了 `--lines` / `--offset` 转发。
+（但插件仍按 10 条分页返回，所以我**换招**：在 IDA 侧走指令收 xref，不依赖分页。）
+
+### 五、产物
+
+`analysis/catalog_literals.py`（新）→ `analysis/site_catalog_names.txt`（88 条 + 地址 + 再生成说明）。
+
+证据等级：Observation = 237/88/32/56 四个数、成对出现的样本、`dis` 只回 10 条的实测；
+Inference = 「成对即 name/display 两字段」（与 R1077 的 `{name,display,typeId,flag}` 一致）；
+Unknown = 56 条各自的归类（店铺 / id / 测试 / 工具串）。

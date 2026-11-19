@@ -7377,3 +7377,15 @@ Observation：
 **下一步**：解四类事件的**载荷字段名**（从处理端入手），再写客户端——不猜协议。
 
 还剩什么：① connect 通道（多轮）；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。
+## R1230 —— 店目录本体 = sub_140F7DDE0 的引用集：237 地址 / 88 字面量 / 复刻件有 32 缺 56
+
+Observation：
+- 走 `sub_140F7DDE0`（70,719 B）指令收上界 xref：**237** 地址，解出 **88** 条字面量。
+- 店铺成对出现（`Dicks Sporting Goods`+`DicksSportingGoods`、`EndClothing`+`Endclothing`）。
+- 复刻件含 **32**、缺 **56**；88 里含测试条目与工具串 ⇒ 报为"构造器引用"而非"88 家店"。
+
+修工具：`ida.py dis` 加 `--lines`/`--offset` 转发（插件仍 10 条分页 ⇒ 改用 IDA 侧扫）。
+
+新产物：`analysis/catalog_literals.py`、`analysis/site_catalog_names.txt`。
+
+还剩什么：① 56 条逐条归类（店铺/id/测试）；② connect 通道；③ 两条 Unknown；④ UI CS0108（冻结）。

@@ -5779,7 +5779,7 @@ Nav.Home · Nav.Tasks · Nav.Proxies · Nav.Billing · Nav.Accounts · Nav.Setti
 ### 发布命令
 
 ```
-dotnet publish -c Release -r win-x64 -p:PublishAot=true -p:UseSharedCompilation=false -m:1 -o .publish-aot-new
+dotnet publish src/Cybersole.Ui -c Release -r win-x64 -p:PublishAot=true -p:UseSharedCompilation=false -m:1 -o .publish-aot-new
 exit 0 · 54,652 KB · 只有 Jint/DataTable trim 警告
 ```
 

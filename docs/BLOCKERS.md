@@ -42509,3 +42509,49 @@ real gap              : 2
 
 证据等级：Observation = `bind_diff.py` 三行输出与其源码行 76–87、两条守卫测试的断言、全量与变异收据、
 两次 MSB 错误号；Inference = 无；Unknown = 那 12 个 `HasMultiple_NN` 是否还有别的解释（本轮沿用既有判定）。
+## R1175 —— AOT 产物已重建到 `current`；顺带发现文档里**两条发布命令一对一错**，我抄了错的那条
+
+**取件**：R1174 遗留「`.publish-aot` 有 22 个源文件比产物新 ⇒ `present:` 类探针不可信」。
+
+### 一、结果
+
+- `artifact_freshness.py` → **`source files newer than the artifact: 0`、`state: current`**；
+- 产物 `.publish-aot\Cybersole.Ui.exe` = **54.25 MB**、`mtime 2026-11-19 09:46:06`，
+  晚于最后一次 src 改动（`PayPalThreeDs.cs` 09:38:21）；
+- 旧产物保留为 `.publish-aot-prev`。
+
+### 二、探针在新产物上的读数（这才是重建产物的意义）
+
+`artifact_probe.py --strings-file analysis/probes.txt`：
+
+`
+www.paypal.com/v2/checkout/orders     utf-16-le=1   present=yes
+其余 15 条                             0              no
+`
+
+与 R1150 的结论一致：**只有那一条能在裁剪后存活**。现在这个「no」是**在对的产物上**得出的，
+而 R1150 那次是在 11/18 的陈旧产物上得出的——**同样两个字，证据强度不同**。
+
+### 三、本轮的坑：我把 459 KB 的框架依赖 exe 当成 AOT 产物
+
+我按 `BINDING_BACKLOG.md:5782` 抄的命令**没有项目路径**：
+
+`
+dotnet publish -c Release -r win-x64 -p:PublishAot=true ... -o .publish-aot-new   ← 错
+`
+
+在仓根跑等于**对整个解决方案发布**，日志里 `Cybersole.Core`/`Cybersole.Http`… 都往同一个 `-o` 写，
+结果 `Cybersole.Ui.exe` 只有 **459 KB**（框架依赖），而正确产物是 **54.25 MB**。
+我一度已经把它换进 `.publish-aot` 并据此读探针——**16 条全 `no`，看起来像「镜像里确实没有」**。
+
+**是尺寸救了这一轮**：459 KB vs 54 MB 差了 100 倍。
+
+### 四、修了什么
+
+- `docs/BINDING_BACKLOG.md:5782` 那条命令**补上项目路径**，与同文档 **9588 行已正确的版本**一致
+  （该文档里原本就有一条对的：`dotnet publish src/Cybersole.Ui -c Release ...`）。
+- 换位时加了**尺寸守卫**：`if (.Length -gt 40MB)` 才换，否则 `ABORT`。
+
+证据等级：Observation = 两次发布的 exit/wall/尺寸、`artifact_freshness` 四条、探针 16 行读数、
+两条命令的行号；Inference = 「AOT 原生镜像被 MSBuild 缓存」（4 秒完成，mtime 未变，由缓存复用解释）；
+Unknown = 该缓存是否会因 obj 目录被清理而失效（未验证）。

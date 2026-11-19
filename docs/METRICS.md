@@ -6,15 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 09:43:21 +0800 |
+| 生成时间 | 2026-11-19 09:50:25 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | **有非零退出，见下** |
 | 完整套件 | 本次跳过（`--skip-tests`） |
-
-## 时效警告（生成）
-
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 22 个源文件比产物新（共 14915 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -38,8 +34,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 177,365 |
 | 函数数量（.pdata） — functions: ratio | 64.00% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 22 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 14915 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -122,7 +118,7 @@ type presence: 174 declared in bindings, 159 present in source, 15 absent
   ABSENT  Cybersole.Ui.Views.Tasks.TaskCreatorMainView (members: ProfileGroupItems, ProfileItems, ShowCartView, SizeItems)
 
 note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed to rename
-      types (AGENTS.md ��0), so each ABSENT must be classified as RENAMED (record the mapping)
+      types (AGENTS.md §0), so each ABSENT must be classified as RENAMED (record the mapping)
       or UNIMPLEMENTED (a real gap) before the number is used as a gap count.
 ```
 
@@ -362,14 +358,11 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-19 05:33:02
+publish artifact mtime: 2026-11-19 09:46:06
 newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 09:38:21)
-source files newer than the artifact: 22
-lines in those files: 14915
-publish artifact state: stale
-
-  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
-  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
+source files newer than the artifact: 0
+lines in those files: 0
+publish artifact state: current
 ```
 
 ### 核心覆盖：store 宿主
@@ -424,14 +417,14 @@ C:\Python312\python.exe tools/pe_sections.py
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
   .text      0x1000       0xFEA68      1039360      X
-  .managed   0xFF000      0x1BEDED8    28241920     X
+  .managed   0xFF000      0x1BEDEB8    28241920     X
   hydrated   0x1BEE000    0x2B3AB98    0            RW
-  .rdata     0x2B3B000    0x42FAF16    24903680     R
+  .rdata     0x2B3B000    0x42FAF06    24903680     R
   .data      0x42FB000    0x43F3368    224768       RW
   .pdata     0x43F4000    0x45FB84C    2128384      R
   _RDATA     0x45FC000    0x45FC0F4    512          R
   .rsrc      0x45FD000    0x46487E7    309248       R
-  .reloc     0x4649000    0x4650F18    32768        R
+  .reloc     0x4649000    0x4650F20    32768        R
 
   section-mass-replica-executable: 29281280
   section-mass-ratio: 56.64%
@@ -465,21 +458,21 @@ pdata bucket histogram (bucket = 0x100000 bytes)
   0x600000       1,074      3,508       326.6%
   0x700000       3,411      3,279        96.1%
   0x800000       4,076      2,696        66.1%
-  0x900000       3,556      3,096        87.1%
-  0xA00000       3,178      5,247       165.1%
+  0x900000       3,556      3,097        87.1%
+  0xA00000       3,178      5,246       165.1%
   0xB00000       3,227      6,043       187.3%
   0xC00000       3,982      6,851       172.0%
   0xD00000       3,921      7,474       190.6%
   0xE00000       3,371      5,129       152.2%
   0xF00000       7,792      3,924        50.4%
-  0x1000000      5,626      8,609       153.0%
-  0x1100000      2,020      9,564       473.5%
-  0x1200000      2,046      10,149      496.0%
-  0x1300000      5,065      9,467       186.9%
+  0x1000000      5,626      8,610       153.0%
+  0x1100000      2,020      9,563       473.4%
+  0x1200000      2,046      10,150      496.1%
+  0x1300000      5,065      9,466       186.9%
   0x1400000      10,107     10,083       99.8%
-  0x1500000      11,107     9,197        82.8%
-  0x1600000      2,864      9,264       323.5%
-  0x1700000      2,242      9,633       429.7%
+  0x1500000      11,107     9,199        82.8%
+  0x1600000      2,864      9,263       323.4%
+  0x1700000      2,242      9,632       429.6%
   0x1800000      4,058      8,423       207.6%
   0x1900000      4,506      5,533       122.8%
   0x1A00000      2,310      6,346       274.7%

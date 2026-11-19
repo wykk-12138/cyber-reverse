@@ -6719,3 +6719,16 @@ Observation：
 ② 清文件锁时误杀后台变异任务 → 该次变异作废，已重跑。
 
 **下一轮优先**：`.publish-aot` 陈旧（22 个源文件更新）⇒ `present:` 探针不可信。
+## R1175 —— AOT 产物重建至 current（54.25 MB / 0 stale）；文档两条发布命令一对一错，已修正为带项目路径
+
+Observation：
+- `artifact_freshness`：**0 stale、state: current**；`.publish-aot\Cybersole.Ui.exe` 54.25 MB，mtime 09:46:06。
+- 探针（新产物）：`www.paypal.com/v2/checkout/orders` **present=yes**，其余 15 条 **no**（与 R1150 一致）。
+- `BINDING_BACKLOG.md:5782` 命令**缺项目路径** ⇒ 解决方案级发布产出 **459 KB** 框架依赖 exe；
+  同文档 **9588 行**早已有正确版本。已把 5782 修正为带 `src/Cybersole.Ui`。
+
+**坑**：曾把 459 KB 的产物换进 `.publish-aot` 并读探针 → 16 条全 no，**尺寸（100 倍差）救回**。
+换位已加 `> 40MB` 守卫。
+
+还剩什么：① 缓存复用（4 秒完成）依赖 `obj` 未清理，未验证清理后的耗时；
+② `present:` 探针现在可信，可重跑此前所有「镜像里没有」的结论复核。

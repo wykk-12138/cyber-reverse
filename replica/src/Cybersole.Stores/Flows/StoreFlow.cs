@@ -1444,6 +1444,48 @@ public abstract class StoreFlow
                 : StepOutcome.Fail(resolved.Error ?? "3DS resolution failed", retryable: true);
         }
 
+        // R1238 measured the artifact and found the trimming rule is per method, not per class: AdyenGateway was
+        // registered and instantiated, yet every one of its four 3-D Secure paths was absent from the published
+        // image, because nothing reached those methods. The four-state chain exists in full (LookUpAsync,
+        // AuthenticateAsync, ResolveContingencyAsync, Authorize3DS2Async) and this is the reachable step that puts
+        // a caller behind each of them.
+        //
+        // Which step runs is a replica decision, not a claim about the original: the original's dispatch is Unknown
+        // (R1219 showed the thunks and their slots carry no references), so the step name travels in a session
+        // variable the flow sets, and the endpoints each method posts to are the observed literals inside it.
+        if (status is "requires_action" or "pending" &&
+            c.Session.Vars.TryGetValue("adyen3ds.step", out var adyenStep) &&
+            !string.IsNullOrEmpty(adyenStep))
+        {
+            var adyenName = c.Session.Vars.GetValueOrDefault("gateway");
+            var adyen = string.IsNullOrEmpty(adyenName)
+                ? null
+                : Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve(adyenName!) as
+                    Cybersole.Stores.Payments.AdyenGateway;
+
+            if (adyen is null) return StepOutcome.Fail("adyen 3ds step with no adyen gateway to run it");
+
+            var adyenAnswer = c.Session.Vars.GetValueOrDefault("adyen3ds.payload") ?? string.Empty;
+
+            var adyenResult = adyenStep switch
+            {
+                "lookup" => await adyen.LookUpAsync(c, ct).ConfigureAwait(false),
+                "authenticate" => await adyen.AuthenticateAsync(c, adyenAnswer, ct).ConfigureAwait(false),
+                "contingency" => await adyen.ResolveContingencyAsync(c, ct).ConfigureAwait(false),
+                "challenge" => await adyen.Authorize3DS2Async(c, adyenAnswer, ct).ConfigureAwait(false),
+                "component" => await adyen.PaymentFromComponentAsync(c, adyenAnswer, ct).ConfigureAwait(false),
+                "complete" => await adyen.CompleteActionAsync(c, adyenAnswer, ct).ConfigureAwait(false),
+                _ => null,
+            };
+
+            if (adyenResult is null)
+                return StepOutcome.Fail($"adyen 3ds step '{adyenStep}' is not one the chain knows");
+
+            return adyenResult.Ok
+                ? StepOutcome.Success()
+                : StepOutcome.Fail(adyenResult.Error ?? "adyen 3ds step failed", retryable: true);
+        }
+
         return status.ToLowerInvariant() switch
         {
             "authorised" or "authorized" or "success" or "captured" => StepOutcome.Success(),

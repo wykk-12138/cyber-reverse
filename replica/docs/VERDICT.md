@@ -67816,3 +67816,36 @@ Adyen 缺席**不是注册表问题**（`PaymentGateway.cs:67` 确实注册了�
 |---|---|
 | 代码改动 | 无 |
 | 新增事实 | 方法级裁剪模型 |
+---
+
+## 第 1239 轮：Adyen 四态接线——产物 +23,040 B，但四条 3DS 路径仍不在
+
+给 `StoreFlow.ProcessPaymentAsync` 加了 Adyen 分支（原来只有 PayPal），把
+`LookUpAsync` / `AuthenticateAsync` / `ResolveContingencyAsync` / `Authorize3DS2Async` /
+`PaymentFromComponentAsync` / `CompleteActionAsync` 六个**此前无调用点**的方法接上。
+
+| 项 | 结果 |
+|---|---|
+| 产物 | 57,404,928 → **57,427,968（+23,040）** |
+| `checkoutshopper-live.adyen.com` | **出现了** |
+| 四条 `/checkoutshopper/v1/threeDS2/*` 路径 | **仍不在**（含折叠后的整串） |
+
+### 三种可能，我不下结论
+
+1. `ProcessPaymentAsync` 本身不可达 ⇒ 我加的分支是死代码；
+2. 片段形状与我假设不同（`threeDS2`/`checkoutshopper/v1` 的命中可能来自别的串）；
+3. 常量折叠方式不同。
+
+**下一轮第一步**：查 `ProcessPaymentAsync` 有无调用点，区分"接线没生效"还是"探测形状错"。
+
+### 一个新判据缺口（记入待办）
+
+三轮里"成功判据"都是**手工探字节**，三次都因形状假设误判 ⇒ **应写成测试**
+（断言关键字面量在产物里，产物缺失时跳过）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2506 通过 / 0 失败 / 2 跳过 / 2508**（6m3s） |
+| 产物 | 57,427,968 B |

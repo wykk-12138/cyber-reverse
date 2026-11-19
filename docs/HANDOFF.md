@@ -7485,3 +7485,17 @@ Observation：
 
 还剩什么：① 四个待接面（Adyen 四态 / Stripe setup+intent / Midtrans 3DS / Waitwhile）；② connect 通道（需登录）；
 ③ 两条 Unknown；④ UI CS0108（冻结）。
+## R1239 —— Adyen 六方法接线进 ProcessPaymentAsync；产物 +23,040 B、host 出现，四条 3DS 路径仍不在（原因三分未定）
+
+Observation：
+- 改 `StoreFlow.ProcessPaymentAsync`：新增按 `adyen3ds.step` 分派 Adyen 六个方法的分支。
+- 发布：57,404,928 → **57,427,968 B**；`checkoutshopper-live.adyen.com` **出现**。
+- 四条 `/checkoutshopper/v1/threeDS2/*`（含折叠整串）**仍不在**；`threeDS2`/`checkoutshopper/v1` 短片段在。
+
+**Unknown**：① ProcessPaymentAsync 是否可达；② 片段形状；③ 折叠方式。
+**待办（新）**：把字节判据写成测试（产物缺失时跳过）。
+
+验证：build 0 错；全量 **2506/0/2/2508**（6m3s）。
+
+还剩什么：① 上述三选一（下轮首要）；② 字节判据测试；③ Stripe setup/intent、Midtrans 3DS、Waitwhile 接线；
+④ connect 通道（需登录）；⑤ 两条 Unknown。

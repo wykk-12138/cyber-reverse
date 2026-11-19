@@ -45163,3 +45163,55 @@ Inference = 「未接线 ⇒ 被裁」（由 `result-completion` 那条支持）
 
 证据等级：Observation = `PaymentGateway.cs:67` 的注册行、七个字面量的双编码结果、R1002 的既有注释；
 Inference = 「裁剪粒度是方法」；Unknown = 除这几条外还有多少方法处于同样状态（未逐个数）。
+## R1239 —— 把 Adyen 四态接进可达路径：产物 **+23,040 B**、Adyen host 出现；但四条路径片段**仍不在**，原因未定
+
+### 一、改了什么
+
+`StoreFlow.ProcessPaymentAsync` 里原本只有 **PayPal** 的挑战分支（依赖 `paypal3ds.state`）。
+本轮在它旁边加了一条 **Adyen** 分支：按会话变量 `adyen3ds.step` 取 `lookup` / `authenticate` /
+`contingency` / `challenge` / `component` / `complete`，分别调用
+`AdyenGateway.LookUpAsync` / `AuthenticateAsync` / `ResolveContingencyAsync` / `Authorize3DS2Async` /
+`PaymentFromComponentAsync` / `CompleteActionAsync`——**六个方法此前全无调用点**。
+
+注释里写明哪一半是观察、哪一半是我们的决定：
+**四个端点与四态是镜像里的**（`AdyenGateway` 既有实现）；**"哪一步先跑"是复刻件的设计**，
+因为原版派发仍 Unknown（R1219）。
+
+### 二、字节结果：一半成功，一半不明
+
+| 项 | 值 |
+|---|---|
+| 产物 | 57,404,928 → **57,427,968 B（+23,040）** |
+| `checkoutshopper-live.adyen.com` | **UTF-16 在**（此前不在） |
+| `/checkoutshopper/v1/threeDS2/{deviceSupport,challenge,authenticate,contingency}` | **仍不在** |
+| 完整拼接 URL `…adyen.com/checkoutshopper/v1/threeDS2/deviceSupport` | **仍不在** |
+| `threeDS2`（短片段） | UTF-16 在 |
+| `checkoutshopper/v1`（短片段） | ascii + utf16 都在 |
+
+⇒ **接线确实让某些 Adyen 代码进了产物**（尺寸 +23,040、host 出现），
+但**四条 3DS 路径以任何形式都没出现**。
+
+### 三、我不下结论的地方（写清三种可能）
+
+1. **方法仍被裁**：`ProcessPaymentAsync` 本身可能不可达 ⇒ 我加的分支也是死代码；
+2. **片段被拆/被折叠成别的形状**：`threeDS2` 与 `checkoutshopper/v1` 各自都在，
+   说明"含这三个字的某个串"存在——但那可能来自**别的**字符串（如类型名、标签），
+   所以这两个命中**不能**证明四条路径在；
+3. **常量折叠方式**与我假设不同（`ShopperHost` 是 `const`，插值应在编译期折叠成整串，但没观察到整串）。
+
+**下一轮第一步就是把这三者区分开**：查 `ProcessPaymentAsync` 是否有调用点（`where_is` + 产物里它的独有字面量），
+再决定是"接线没生效"还是"探测形状错"。
+
+### 四、验证
+
+`dotnet build` 0 错；全量 **2506 通过 / 0 失败 / 2 跳过 / 2508**（6m3s）；
+发布 exit 0。**没有一条测试断言产物的字节**——这正是本轮暴露的缺口（见下）。
+
+### 五、新增一个判据缺口
+
+R1236/R1237/R1239 三轮里，我的"成功判据"一直是**手工探字节**，而且三次都因为形状假设出错而误判。
+⇒ **应该把它变成测试**：一个断言"这些字面量必须在产物里"的用例（产物不存在时跳过）。
+这条记入待办，下一轮落地。
+
+证据等级：Observation = 尺寸增量、host 出现、九个片段探测结果、2506/2508 收据；
+Inference = 「接线让部分 Adyen 代码进了产物」；Unknown = 四条 3DS 路径为何不在（三种可能未分）。

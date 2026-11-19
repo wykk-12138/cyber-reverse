@@ -8,12 +8,13 @@
 | 度量 | 值 | 命令 |
 |---|---|---|
 | flow 文件 | 18 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
-| 覆写步骤总数 | 356 | 本文件生成时统计 |
+| 覆写步骤总数 | 369 | 本文件生成时统计 |
 | 其中报告「端点为 Unknown」的 | 11 | 同上（匹配 `endpoint unknown` / `not captured`） |
 | 含报告的 flow | 2 | 同上 |
+| 其中**属于扩展、不构成与原版缺口**的 | **4** | R1205：BstnFlow 的 product / cart / checkout / order 四条。原版二进制里 `bstn` / `BSTN` / `beastinpeace` / `Beast in Peace` / `BSTN Store` **五种形状全为 0**，而同批对照组 `Bodega`（显示名形状）命中、`100thieves.com`/`afew-store.com`/`capsuletoronto.com` 三个域名也命中 |
 | 端点常量 / 逐字在池 | 214 / 214 | `python tools/endpoint-provenance.py` |
-| 常量 invented / unresolved | 0 / 0 | 同上 |
-| inline 字面量 / 不在池 | 324 / 33 | 同上 |
+| 常量 invented / unresolved | 0 / 1 | 同上 |
+| inline 字面量 / 不在池 | 337 / 33 | 同上 |
 | inline 已登记 / 未登记 | 33 / 0 | 同上 |
 | 端点门 exit | **0** | 同上 |
 
@@ -22,7 +23,7 @@
 | flow | 覆写步骤 | 报告 Unknown | 行数 |
 |---|---|---|---|
 | `BstnFlow.cs` | 12 | 4 | 191 |
-| `DemandwareFlow.cs` | 13 | 0 | 485 |
+| `DemandwareFlow.cs` | 13 | 0 | 578 |
 | `DicksSportingGoodsFlow.cs` | 6 | 0 | 145 |
 | `FarfetchFlow.cs` | 13 | 7 | 223 |
 | `FlowStoreModule.cs` | 4 | 0 | 61 |
@@ -30,8 +31,8 @@
 | `GoatFlow.cs` | 11 | 0 | 325 |
 | `HbxFlow.cs` | 13 | 0 | 330 |
 | `HybrisFlow.cs` | 13 | 0 | 371 |
-| `MagentoFlow.cs` | 44 | 0 | 880 |
-| `NikeFlow.cs` | 23 | 0 | 956 |
+| `MagentoFlow.cs` | 57 | 0 | 1617 |
+| `NikeFlow.cs` | 23 | 0 | 980 |
 | `NikeGsFlow.cs` | 4 | 0 | 47 |
 | `PopMartFlow.cs` | 27 | 0 | 685 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |

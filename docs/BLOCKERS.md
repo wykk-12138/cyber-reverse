@@ -43658,3 +43658,52 @@ Inference = 元素类型；Unknown = 原版行内容与另两条成员类型。
 证据等级：Observation = 三次 `ida.py str` 的 n=0、`analysis/bstn.txt` 原文、`store_catalog.py` 的输出源；
 Inference = 「BSTN 非原版所有」（由三种形状皆 0 + 来源为 live capture 推出，**仍留第四种形状的可能**）；
 Unknown = 原版店清单的真实形状。
+## R1205 —— 给「Bstn 是否存在」配上**对照组**：判据先被自己的对照推翻，再立起来
+
+### 一、先做对照，再下结论
+
+上轮我用「域名串搜不到」判 BSTN 不在原版。**先做对照组**（同一批复刻件店，同一条判据）：
+
+| 店域名 | `ida.py str` |
+|---|---|
+| `100thieves.com` | **n=1** `https://100thieves.com` |
+| `afew-store.com` | **n=2** `https://de.afew-store.com` |
+| `capsuletoronto.com` | **n=1** `https://www.capsuletoronto.com` |
+| `bodega.com` | **n=0** |
+| `bstn.com` | **n=0** |
+
+**5 个样本里 1 个假阴性**（`bodega.com`）⇒ **"域名串是否出现"不能当店存在判据**。
+上轮那条结论如果就这么落账，就是**用一条已被自己对照组否决的判据下的结论**。
+
+### 二、换成能用的形状：显示名
+
+`Bodega`（三种大小写）命中 **`0x146b5fff4` 的字面量 `"Bodega"`** ⇒ 原版店清单用**显示名**，
+域名可有可无（bodega 就没有）。
+
+### 三、用可用判据重测 BSTN
+
+| 形状 | 结果 |
+|---|---|
+| `bstn` | 0 |
+| `BSTN` | 0 |
+| `beastinpeace` | 0 |
+| `Beast in Peace` | 0 |
+| `BSTN Store` | 0 |
+
+**五种形状全 0**，而对照组 `Bodega` 用其中一种命中 ⇒ **原版几乎确定没有 BSTN 这家店**。
+
+### 四、结论与**不做什么**
+
+⇒ 复刻件的 `BstnFlow` 是**扩展**（来源：对 bstn.com 的 live capture），
+它的 4 条"未知端点"**不是与原版之间的缺口**，已写进 `CORE_COVERAGE.md` 的摘要表：
+「其中属于扩展、不构成与原版缺口的 = 4」。
+
+**不删** `BstnFlow`：删掉是产品决策，不是证据结论；本轮只把**口径**改对。
+**不再投入**这 4 条的取证：它们属于一个原版没有的实现。
+
+### 五、验证
+
+`DocsConsistency|ParityDoc|Coverage` **50/50**；`CORE_COVERAGE.md` 新行已落地（`R1205` 可搜到）。
+
+证据等级：Observation = 5 组域名搜索、1 组显示名搜索（含地址）、5 组 BSTN 变体搜索、文档改动与钉子收据；
+Inference = 「原版无 BSTN」；Unknown = 原版店清单的完整成员（未枚举）+ 若将来发现第六种形状的反例。

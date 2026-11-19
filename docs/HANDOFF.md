@@ -7079,3 +7079,17 @@ Observation：
 
 还剩什么：① 找原版店清单形状（第 4 种可能）；② 两条 Unknown（`BotTask.Running`/`Task`）；
 ③ abort 分支未验证；④ UI 29 条冻结；⑤ 变异需在下次 src 改动后重跑。
+## R1205 —— 对照组推翻「域名判据」；改用显示名后 BSTN 五形状全 0 ⇒ 4 条占位归「扩展」
+
+Observation：
+- 域名对照：100thieves ✓ / afew ✓ / capsule ✓ / **bodega ✗** / bstn ✗ ⇒ 域名判据 **1/5 假阴性**，不可用。
+- 显示名判据：`Bodega` → `0x146b5fff4` 命中 ⇒ 原版用显示名。
+- BSTN 五形状（bstn/BSTN/beastinpeace/Beast in Peace/BSTN Store）全 0。
+- `CORE_COVERAGE.md` 新增行：「属于扩展、不构成原版缺口 = 4」。
+
+判定：Bstn 的 4 条**归为扩展空缺**，不再投入；**不删 BstnFlow**（产品决策）。
+
+验证：文档钉子 **50/50**。
+
+还剩什么：① Farfetch 7 条（服务端下发，已定性）；② 两条 Unknown（`BotTask.Running`/`Task`）；
+③ abort 分支未验证；④ UI 29 条冻结；⑤ 原版店清单未枚举。

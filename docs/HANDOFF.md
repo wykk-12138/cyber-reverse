@@ -7659,3 +7659,14 @@ Observation：
 
 还剩什么：① 17 条无近邻逐条定性；② connect 通道（需登录）；③ 两条 Unknown（BotTask.Running/Task）；
 ④ UI CS0108（冻结）；⑤ 产物已落后（多轮 src 改动）。
+## R1254 —— AOT 重发：57,477,120 B（+2,048）、.pdata 179,797（+213）、freshness 0、变异 59/59 GREEN
+
+Observation：
+- 发布前 7 个源文件 mtime 较新；发布后 freshness 0。
+- 尺寸 57,475,072 → **57,477,120**；`.pdata` 179,584 → **179,797（+213）**。
+- 变异 ran_at 06:00:02、59/59、tree GREEN。
+
+**对照**：R1228 尺寸动/pdata 不动（只常量）；本轮两者同动（有方法体）⇒ 度量分工得到印证。
+
+还剩什么：① 17 条无近邻逐条定性；② connect 通道（需登录）；③ 两条 Unknown（BotTask.Running/Task）；
+④ UI CS0108（冻结）。

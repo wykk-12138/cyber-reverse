@@ -43570,3 +43570,43 @@ Inference = 无（本轮**刻意不下结论**，假设已证伪）；Unknown = 
 证据等级：Observation = 四个配置根的文件与行号、`Solver` 的声明与 `Config.Solvers`、度量与钉子收据；
 Inference = 「公开 setter 是序列化通道」（由 Newtonsoft 默认行为 + 各类型确在持久化图上推出）；
 Unknown = UI 侧 29 条（不在本轮范围）。
+## R1203 —— `CreateModel.Inputs` 从 Unknown 落地（缺口 92→**91**、core 4→**3**）；另两条 Unknown 换成**证据边界**归档
+
+### 一、三条 Unknown 各试了什么
+
+| 未知项 | 本轮试的角度 | 结果 |
+|---|---|---|
+| `BotTask.Running` 类型 | 原版自己写的数据文件（`%APPDATA%\Cybersole\Backups\*.cyb`，只读） | 最新备份 4,158 B，**只有 proxies**，无 tasks ⇒ 无 `Running` 可读 |
+| `BotTask.Task` 类型 | 同上 | 同上 |
+| `CreateModel.Inputs` 元素类型 | 绑定表里的**兄弟类型** | **有解**（见下） |
+
+⇒ 前两条**不是"没查"，是查了三条互不相同的路**（描述符无类型 / XAML 文档无控件上下文 / 原版数据无 tasks），
+**归档为证据边界**，缺的条件写死：需要该属性在类型元数据里的字段类型，或一份含运行中任务的原版 `tasks.json`。
+
+### 二、`CreateModel.Inputs` 为什么这次能定
+
+R363 当年拒它的理由是「input 可能是选项也可能是列表，选了就是猜 behavioural」。
+**绑定表把问题定型了**：
+
+- `Cybersole.Models.CreateModel` **同时绑 `Input`（单）与 `Inputs`（复）**；
+- 另有独立绑定类型 `Cybersole.Models.CreateInputModel`，13 个成员（`Minus`/`Plus`/`Sizes`/`MinPrice`/`MaxPrice`/`Quantity`/`PriceCheckVisible`…）**正好是一个可编辑输入行**。
+
+**单数成员旁边有复数成员，且行模型的形状刚好对得上** —— 这是配对，不是抛硬币。
+落地为 `List<Cybersole.Models.CreateInputModel>`（跨命名空间，全限定以免歧义）。
+
+| 事实 | 等级 |
+|---|---|
+| `Inputs` 存在且带 Setter；`CreateInputModel` 是绑定类型且成员形状为输入行 | **Observation** |
+| 元素类型 = `CreateInputModel` | **Inference**（单复数配对 + 行模型形状） |
+| 原版每行存什么 | **Unknown** |
+
+三条都写进源码注释，不只写文档。
+
+### 三、度量与验证
+
+`成员形状差异` **92 / 4 / 37 → 91 / 3 / 37**；
+`dotnet build` 0 错（首次因命名空间不同报 CS0246，改全限定名后通过）；
+全量 **2477 通过 / 0 失败 / 2 跳过 / 2479**（4m21s）。
+
+证据等级：Observation = `xaml_bindings.json` 的 `CreateModel`/`CreateInputModel` 成员表、`.cyb` 备份实读；
+Inference = 元素类型；Unknown = 原版行内容与另两条成员类型。

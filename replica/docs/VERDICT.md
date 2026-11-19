@@ -66723,3 +66723,35 @@ C7b 本来就是这么写的——**这轮是把其余三处拉齐到它的标�
 | 成员形状 | **92 / 4 / 37**（未变，本轮只加注释） |
 | over-permissive 分诊 | **core 8 → Accepted（有据）**；UI 29 → 随 UI 层冻结 |
 | 文档钉子 | **18/18** |
+---
+
+## 第 1203 轮：一条落地，两条归档
+
+### 三条 Unknown 各试了什么
+
+- `BotTask.Running` / `Task`：查了**原版自己写的数据**（`%APPDATA%\Cybersole\Backups\*.cyb`，只读）——
+  最新一份 4,158 B，**只有 proxies**，没有 tasks。**没有 `Running` 可读。**
+- `CreateModel.Inputs`：**有解**。
+
+⇒ 前两条**不是没查**，是三条互不相同的路都走尽了（描述符不带类型、XAML 文档无控件上下文、原版数据无 tasks）。
+**归档为证据边界**，缺的条件写死。
+
+### `CreateModel.Inputs` 为什么这次能定
+
+R363 当年拒它：「选了就是猜」。**绑定表把问题定型了**：
+
+`CreateModel` 同时绑 `Input`（单）与 `Inputs`（复）；
+另有一个独立绑定类型 `CreateInputModel`，13 个成员（Minus/Plus/Sizes/MinPrice/MaxPrice/Quantity/PriceCheckVisible）
+**正好是一个可编辑输入行**。
+
+**单数旁边有复数，行模型形状对得上——这是配对，不是抛硬币。**
+落地为 `List<Cybersole.Models.CreateInputModel>`，证据分级写进源码。
+
+**92/4 → 91/3。**
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 成员形状 | **91 / 3 / 37** |
+| 全量 | **2477 通过 / 0 失败 / 2 跳过 / 2479**（4m21s） |

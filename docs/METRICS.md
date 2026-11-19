@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 02:00:36 +0800 |
+| 生成时间 | 2026-11-20 02:17:39 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,9 +14,9 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 24 个源文件比产物新（共 15301 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 24 个源文件比产物新（共 15321 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`6 -- src/Cybersole.Core/Models/Checkout.cs (+5 more) differs from the run's manifest`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`2 -- src/Cybersole.Core/Models/Checkout.cs (+1 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -27,8 +27,8 @@
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
 | 类型缺失（type presence） — classified | renamed 13, out of scope 2, unimplemented 0, unclassified 0 |
-| 成员形状差异 — total mismatches | 92 |
-| 成员形状差异 — core mismatches | 4 |
+| 成员形状差异 — total mismatches | 91 |
+| 成员形状差异 — core mismatches | 3 |
 | 成员形状差异 — over-permissive total | 37 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
@@ -43,8 +43,8 @@
 | 函数数量（.pdata） — functions: replica .pdata | 179,456 |
 | 函数数量（.pdata） — functions: ratio | 64.76% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 24 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 15301 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 3 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 15321 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -63,7 +63,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 6 -- src/Cybersole.Core/Models/Checkout.cs (+5 more) differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 2 -- src/Cybersole.Core/Models/Checkout.cs (+1 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -150,7 +150,6 @@ evidence: baseline (211 types, kinds kept)
 mismatches: member has Setter evidence but the replica is not a settable property
   BotTask                    Running                evidence=Getter,Property,Setter     replica=?
   BotTask                    Task                   evidence=Getter,Property,Setter     replica=?
-  CreateModel                Inputs                 evidence=Getter,Property,Setter     replica=?
   SmartAction                Logs                   evidence=Getter,Property,Setter     replica=prop-get
   AccountGrid                Delete                 evidence=Getter,Property,Setter     replica=?
   AccountGrid                Edit                   evidence=Getter,Property,Setter     replica=prop-get
@@ -240,7 +239,7 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   StoreGroupModal            RemoveStore            evidence=Getter,Property,Setter     replica=method
   StoreGroupModal            Save                   evidence=Getter,Property,Setter     replica=?
   UtilitiesView              CreateStoreGroup       evidence=Getter,Property,Setter     replica=method
-total mismatches: 92
+total mismatches: 91
 
 over-permissive: member is read-only in the original but settable here
   CaptchaProvider            ApiKey                 evidence=Getter,Property            replica=prop+set
@@ -284,8 +283,8 @@ over-permissive total: 37
 
 by owning project (priority order: Stores > Services > Http > Core > Ui):
   Cybersole.Ui            88
-  Cybersole.Core           4
-core mismatches: 4
+  Cybersole.Core           3
+core mismatches: 3
 ```
 
 ### 文案缺口总表
@@ -410,10 +409,10 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-19 11:09:47
-newest source: src\Cybersole.Core\Models\Checkout.cs (2026-11-20 01:55:47)
+newest source: src\Cybersole.Core\Models\Checkout.cs (2026-11-20 02:12:44)
 source files newer than the artifact: 24
-lines in those files: 15301
-of those, changed against HEAD: 3
+lines in those files: 15321
+of those, changed against HEAD: 1
 publish artifact state: stale
 
   The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
@@ -591,9 +590,9 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 6 -- src/Cybersole.Core/Models/Checkout.cs (+5 more) differs from the run's manifest
+  mutation-fit-staleness: 2 -- src/Cybersole.Core/Models/Checkout.cs (+1 more) differs from the run's manifest
 
-  The counts above are from 2026-11-20T01:32:25+08:00 and the tree has moved since. They are a record of that run, not a
+  The counts above are from 2026-11-20T02:09:40+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
 ```
 

@@ -189,6 +189,26 @@ public sealed class CreateModel : ObservableObject
     /// <summary>The task group this form creates into (bound as <c>Group</c>).</summary>
     public TaskGroup? Group { get; set; }
 
+    /// <summary>
+    /// The input rows this form carries (bound as <c>Inputs</c>).
+    ///
+    /// <para>
+    /// R1203: R363 left this out because "input" could be a product option or a list of them and choosing would
+    /// have been a guess about behaviour. The binding table settles the shape of the question:
+    /// <c>Cybersole.Models.CreateModel</c> binds <b>both</b> <c>Input</c> and <c>Inputs</c>, and a separate bound
+    /// type <c>Cybersole.Models.CreateInputModel</c> exists with thirteen members (Minus, Plus, Sizes, MinPrice,
+    /// MaxPrice, Quantity, PriceCheckVisible...) that describe one editable input row. A singular member beside a
+    /// plural one, with a row model of exactly that shape available, is a pairing rather than a coin toss.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Observation</b>: Inputs exists on CreateModel and is bound with a Setter; CreateInputModel is bound and
+    /// carries the row members. <b>Inference</b>: the element type is CreateInputModel, from that pairing.
+    /// <b>Unknown</b>: what the original stores per row.
+    /// </para>
+    /// </summary>
+    public List<Cybersole.Models.CreateInputModel> Inputs { get; set; } = new();
+
     /// <summary>The account group the run draws from (bound as <c>AccountGroup</c>).</summary>
     public AccountGroup? AccountGroup { get; set; }
 

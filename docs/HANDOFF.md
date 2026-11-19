@@ -7055,3 +7055,15 @@ Observation：
 
 还剩什么：① 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；
 ② abort 分支未验证；③ UI 29 条随冻结层；④ 变异需在下一次 src 改动后重跑。
+## R1203 —— CreateModel.Inputs 落地（91/3）；BotTask.Running/Task 归档为证据边界
+
+Observation：
+- `xaml_bindings.json`：`CreateModel` 同时绑 `Input`/`Inputs`；`CreateInputModel` 独立绑定、13 成员（输入行形状）。
+- 原版 `.cyb` 备份最新 4,158 B，仅 proxies，无 tasks ⇒ 拿不到 `Running` 的取值形态。
+- 落地 `public List<Cybersole.Models.CreateInputModel> Inputs { get; set; }`（全限定，跨命名空间）。
+
+验证：build 0 错（先 CS0246，改全限定后通过）；全量 **2477/0/2/2479**（4m21s）；形状 **91 / 3 / 37**。
+
+**证据边界（缺什么已写明）**：`BotTask.Running`/`Task` 需类型元数据字段类型或含运行中任务的原版 tasks.json。
+
+还剩什么：① 三条→两条 Unknown 的定期重试条件；② abort 分支未验证；③ 变异需在下次 src 改动后重跑；④ UI 29 条冻结。

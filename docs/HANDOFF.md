@@ -7895,3 +7895,12 @@ Observation：
 **下轮**：从 `ImpervaAbsenceTests` 开始逐文件改，一次一个 + 定向用例。
 
 还剩什么：① VendorWiring 第 2 步（8 文件）；② 三个同名碰撞确认；③ 17 条 no-hit 按新口径；④ connect 通道（需登录）。
+## R1276 —— ImpervaAbsenceTests 解耦（删注释+台账双重钉子）；1/9 文件完成
+
+Observation：
+- 三条断言：两条测 `AntiBotVendors`（行为），一条既断言 `StoreFlow.cs` 注释文本又读 `VendorWiring.Rows`。
+- 删除后 build 0 错、2/2、该文件残留引用 0。
+
+**下轮**：`QueueItStateTests`（State 3 · Rows 3 · Gap 1 · MarkerSource 1）。
+
+还剩什么：① VendorWiring 第 2 步（8/9 文件）；② 三个同名碰撞确认；③ 17 条 no-hit；④ connect 通道（需登录）。

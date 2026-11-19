@@ -41,24 +41,6 @@ public sealed class ImpervaAbsenceTests
                 $"vendor {vendor.Name} has no evidence");
     }
 
-    /// <summary>
-    /// The detection branch survives as an extension, and the row records that rather than implying the image has it.
-    /// </summary>
-    [Fact]
-    public void TheBranchIsRecordedAsAnExtension()
-    {
-        var doc = System.IO.File.ReadAllText(System.IO.Path.Combine(RepoRoot(),
-            "src", "Cybersole.Stores", "Flows", "StoreFlow.cs"));
-
-        Assert.Contains("_Incapsula_Resource", doc);
-        Assert.Contains("this branch is an extension, not the image's behaviour", doc);
-        Assert.Contains("six spellings is in the artifact", doc);
-
-        var row = VendorWiring.Rows.Single(r => r.Vendor == "imperva");
-        Assert.Equal(VendorWiring.Gap.VendorAbsent, row.Gap);
-        Assert.Contains("two independent sources", row.Note);
-    }
-
     private static string RepoRoot()
     {
         var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);

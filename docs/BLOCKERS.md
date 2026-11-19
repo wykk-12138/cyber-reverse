@@ -46750,3 +46750,32 @@ Get-ChildItem tests\Cybersole.Tests -Filter *.cs | Select-String -Pattern 'Vendo
 
 证据等级：Observation = 九文件的成员级依赖计数、三个可疑的同名碰撞；
 Inference = 「`VendorWiringTests` 可整删」；Unknown = 三个碰撞文件的实际成员（下一轮读）。
+## R1276 —— 第 2 步第一个文件：`ImpervaAbsenceTests` 已解耦
+
+### 一、它原本三条断言，只有两条是行为
+
+| 断言 | 性质 | 处置 |
+|---|---|---|
+| `TheVendorInventoryDoesNotListImperva` | 运行时清单（`AntiBotVendors`） | **留** |
+| `EveryListedVendorCarriesEvidence` | 运行时清单 | **留** |
+| `TheBranchIsRecordedAsAnExtension` | 既断言 `StoreFlow.cs` 的**注释文本**，又读 `VendorWiring.Rows` | **删** |
+
+第三条是双重钉子：**断言源码里有某句注释** + **读台账那一行**。两样都不测行为。
+
+### 二、删掉之后信息去哪了
+
+Imperva「六种拼写都不在产物里、两道独立来源都同意、检测分支属扩展」这三条结论
+**已经在 `docs/VENDOR_WIRING.md` 与 `docs/BLOCKERS.md` 里**——不需要一条测试去读源码注释来记住它。
+
+### 三、验证
+
+`dotnet build` 0 错；`ImpervaAbsence` **2/2**（原 3 条）；该文件 `VendorWiring` 残留引用 **0**。
+
+**用例 −1 属正确结果**：被删的那条测的是注释与台账，不是行为。
+
+### 四、下一个文件
+
+按上轮工单顺序，下一个是 `QueueItStateTests`（`State` 3 · `Rows` 3 · `Gap` 1 · `MarkerSource` 1）。
+
+证据等级：Observation = 三条断言的性质、2/2、残留引用 0；
+Inference = 「两条清单断言属行为」；Unknown = QueueIt 那个文件里哪几条是真行为（下轮读）。

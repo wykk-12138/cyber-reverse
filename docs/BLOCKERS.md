@@ -43125,3 +43125,37 @@ R363 已因同样理由拒过 `CreateModel.Input/Inputs`：没有能收敛候选
 
 证据等级：Observation = 四段绑定描述符原文与地址、`Task` 搜索只命中 `TaskGroup`、度量与套件收据；
 Inference = 「三条缺口各自缺什么」；Unknown = `Task`/`Running` 的成员类型与语义。
+## R1191 —— 上轮「收据自相矛盾」的真相：**不是矛盾，是那次运行没跑完**；判定已能区分
+
+### 一、查实
+
+上一轮日志：`restored tree: RED` 与 `失败: 0，通过 2391，跳过 2，总计 2393` 并存。
+本轮同一过滤器**完整跑完**：`总计 2478`（`失败 0`，4m19s），判 `GREEN`。
+
+⇒ **2393 比 2478 少 85 条**：那次 `dotnet test` 在收尾前被打断（非失败型非零退出），
+`RED` 本身是**保守正确**的（跑不完整不该算绿），**错的是措辞**——它让读者以为"树坏了"。
+
+### 二、改了什么
+
+`tools/mutation-check.py`：
+- 新增 `parse_summary(tail)`：从中英两种摘要行取 `(失败数, 总数)`；
+- 收尾判定增加一支：**非零退出 + 0 失败 + 总数>0** ⇒ 标
+  `RED (no failures reported - the run looks aborted, N tests ran)`。
+
+**诚实说明**：这一支本轮**没有被触发**（本次跑完了，判 GREEN），所以它**未经实跑验证**；
+它的首个真实证据就是上一轮那份日志（2393/0 失败）。要不要为它单造一个假摘要的测试，下一轮再定。
+
+### 三、`Running` 的类型：两条证据路线**都走尽了**
+
+- 绑定描述符只有 `类型,成员!Getter/Setter`，**不带类型信息**；
+- 仓里的 `replica/docs/xaml_bindings.json` 与 `replica/docs/XAML_BINDINGS.md` 也没有**控件/属性上下文**
+  （只有 `Cybersole.Models.BotTask` 的成员名列表）。
+
+⇒ `BotTask.Running` 保持 **Unknown**（缺：成员类型，或写入点伪代码）。
+**不靠"TaskGroup.Running 是 int"去推**——那是别的类型上的同名成员，推出来的会是我自己的假设。
+
+验证：变异 `ran_at 2026-11-20T00:57:47`、**59/59 fired，`restored tree: GREEN`**（总计 2478）；
+`成员形状差异` **97 / 12**；IDA `status: ok`、`strings_cache_ready: true`（324,901 条）。
+
+证据等级：Observation = 两次收尾摘要（2393 vs 2478）、补丁后的语法校验、变异收据；
+Inference = 「上次是运行被打断」；Unknown = `BotTask.Running`/`Task` 的成员类型。

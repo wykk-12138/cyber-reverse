@@ -759,6 +759,20 @@ def run_tests(test_filter, trx=None):
     return result.returncode, (result.stdout or "").strip().splitlines()[-3:]
 
 
+def parse_summary(tail):
+    """(failed, total) from a `dotnet test -v q` summary line, or None when it is not there."""
+    for line in tail:
+        m = re.search(r"失败[:：]\s*(\d+)", line)
+        n = re.search(r"总计[:：]\s*(\d+)", line)
+        if m and n:
+            return int(m.group(1)), int(n.group(1))
+        m = re.search(r"Failed:\s*(\d+)", line)
+        n = re.search(r"Total:\s*(\d+)", line)
+        if m and n:
+            return int(m.group(1)), int(n.group(1))
+    return None
+
+
 def failed_names(trx):
     """The tests a trx marks Failed, so a red verdict can name them instead of counting them."""
     if not trx or not os.path.exists(trx):
@@ -909,6 +923,14 @@ def main():
         os.remove(trx)
     code, tail = run_tests("Speed!=Slow", trx=trx)
     state = "UNKNOWN (cut off)" if code is None else ("GREEN" if code == 0 else "RED")
+    # R1191: a non-zero exit with ZERO failures is not a failing tree, it is a run that did not finish. The
+    # receipt said "restored tree: RED" while its own summary said "failed: 0, passed: 2391, total: 2393" -
+    # and 2393 is 85 short of the 2478 the same filter reaches when it completes, which is what makes sense of
+    # both halves at once. Both readings sat in the same log and the label ignored the difference, so the label
+    # now says which of the two it is instead of letting a reader conclude the tree is broken.
+    summary = parse_summary(tail)
+    if code not in (0, None) and summary and summary[0] == 0 and summary[1] > 0:
+        state = "RED (no failures reported - the run looks aborted, %d tests ran)" % summary[1]
     print("\nrestored tree: " + state)
     for line in tail:
         print("  " + line[:110])

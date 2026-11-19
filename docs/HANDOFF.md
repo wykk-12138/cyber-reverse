@@ -6920,3 +6920,16 @@ Observation：
 
 还剩什么：① 用 `xrefs_to`+`site_to_func`+Hex-Rays 找 `Running` 的写入点定其类型；
 ② `Checkout.Profile` 归位；③ 变异收据 RED/0 失败矛盾；④ 其余 7 条 `prop-get`；⑤ 判据 e 两处文档数字。
+## R1191 —— 「收据矛盾」实为运行被打断（2393 vs 2478）；判定新增 abort 分支（未触发，未验证）
+
+Observation：
+- 上轮收尾：`RED` + `失败 0，总计 2393`；本轮同过滤器完整跑完：`总计 2478`、`GREEN`（4m19s）。
+- 改 `mutation-check.py`：`parse_summary()` + 「非零退出且 0 失败」⇒ `RED (… run looks aborted, N ran)`。
+- **该分支本轮未触发**（跑完了），未经实跑验证。
+
+`BotTask.Running` 类型：描述符不带类型；`xaml_bindings.json`/`XAML_BINDINGS.md` 无控件上下文 ⇒ **Unknown（两条路线走尽）**。
+
+验证：变异 **59/59 fired，GREEN**（00:57:47）；形状 **97/12**；全量 **2476/0/2/2478**。
+
+还剩什么：① 为 abort 分支造一个最小验证（假摘要）；② `Checkout.Profile` 归位；③ 其余 7 条 `prop-get`；
+④ 判据 e 的两处文档手抄数字；⑤ `CreateModel.Inputs` 补或写明理由。

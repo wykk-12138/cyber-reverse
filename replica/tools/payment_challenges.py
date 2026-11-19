@@ -224,12 +224,27 @@ def main():
         "可发布密钥）→ **PUT `https://api.stripe.com`（0x147054DD8）+ ctx800 的逐单路径**（+24 槽）。"
         "已落地为 `Payments/StripeChallenge.cs` 并由 `StripeChallengeTests` 钉住。")
     add("")
-    add("**→ 而「六步流程」的名字（`SubmitOrderStripe` 等六条）仍只是名字**：它们的方法体尚未按 "
-        "`chars_va - 12` 链解码；挑战确认是六步中第一块落地的可执行协议。")
+    add("**→ R1214–R1231：「六步流程」不再只是名字**。名字与序号来自状态机名表"
+        "（`<CreateStripePaymentMethod>d__89` 一类，ASCII 长度前缀表，不是 UTF-16 冻结串），"
+        "而六个步骤**承载的协议**已按 `chars_va - 12` 链解出并落地在 `Payments/Gateways.cs`：")
     add("")
-    add("**→ R1078/R1080 后复刻件侧分半**：PayPal 阶段 1 + Stripe 挑战确认均已落地"
-        "（`PayPalThreeDs.cs` / `StripeChallenge.cs`，判据 e 变异各配可杀锚）；PayPal 阶段 2–8 与 "
-        "Stripe 六步的其余步骤体已定位、每条一记反编译即可结案。")
+    add("| 表面 | 函数 | 已落地 |")
+    add("| --- | --- | --- |")
+    add("| payment_methods 表单 | `sub_140BDA320` | `PaymentMethodForm`，API 版本 `2025-01-27.acacia` |")
+    add("| payment_methods 挑战面 | `sub_140959320` | 同一函数的 basil 面，`2025-08-27.basil` |")
+    add("| setup_intent confirm | `sub_140BE0F80` | `SetupConfirmUrl` / `SetupConfirmForm`（`payment_method_data[*]` 族） |")
+    add("| setup_intent retrieve | `sub_141145DB0` | `SetupIntentRetrieveUrl`（`&_stripe_account=` 即使为空也追加） |")
+    add("| payment_intents retrieve（JL 变体） | `sub_1411458f0` | `is_stripe_sdk=true`、无版本片段（`MagentoFlow`） |")
+    add("| payment_intents retrieve | `sub_140A40170` | `PaymentIntentRetrieveUrl`，`is_stripe_sdk=false` + `2025-09-30.clover` |")
+    add("| payment_intents confirm（PayPal 钱包） | `sub_140B58D60` | `PayPalConfirmForm`，含 `mandate_data[*]` 两键与 `return_url` |")
+    add("")
+    add("**→ 三条 Stripe API 版本在同一张串池里相邻**（`0x146ADFBE0` / `…C60` / `…C98`），"
+        "测试断言三者互不相等，防止被「统一」。**三条不同的 UA 同理**（`20e04cd437` / `035decdc6c` / `d6356e1526`）。")
+    add("")
+    add("**→ 仍旧 Unknown 的是「哪一步调用哪条表面」，不是协议本身**："
+        "四个构建器经 delegate/虚表间接派发到达，其 thunk 与存放槽（`0x147228EF8` / `0x1472279C8`）"
+        "自身 `xrefs_to` 均为 **0** —— 静态 xref 走不通（R1219/R1222 两层实测）。"
+        "剩余路径只有解析 NativeAOT 元数据表，或跑实机观察（需原版有效登录）。")
     add("")
     add("## 六、边界")
     add("")

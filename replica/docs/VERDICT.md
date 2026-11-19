@@ -67665,3 +67665,30 @@ pair-display/pair-id（成对，显示名↔id）7/7 · unpaired 65 · test 2 ·
 | 代码改动（净） | **0**（撤回） |
 | 新工具 | `analysis/catalog_domain_probe.py` |
 | 阻塞 | 并行会话占用 `CORE_COVERAGE.md` |
+---
+
+## 第 1234 轮：改生成器，不改生成的文档
+
+`PAYMENT_CHALLENGES.md` 由 `tools/payment_challenges.py` 生成，其中"六步流程仍只是名字"已过时。
+**改文档会下次生成即翻回**，所以改生成器。
+
+换成一张七行表（表面 / 函数 / 已落地成员），全部带地址：
+`sub_140BDA320`（acacia 表单）· `sub_140959320`（basil 挑战面）· `sub_140BE0F80`（setup confirm）·
+`sub_141145DB0`（setup retrieve）· `sub_1411458f0`（pi retrieve，`true`）· `sub_140A40170`（pi retrieve，`false`+clover）·
+`sub_140B58D60`（PayPal confirm + `mandate_data`）。
+
+### 同时撤掉一句旧话
+
+原「其余步骤体已定位、**每条一记反编译即可结案**」——**这句是错的**：
+R1219 已证派发不可走，**解码函数 ≠ 知道它在哪一步被调用**。删除并换成边界说明。
+
+### 验证
+
+`control ok=True  stages=9  markers absent=0/5`；diff **+15/-3**；相关守卫 **17/17**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 改的文件 | 生成器 + 其产物（都是自有文件） |
+| 守卫 | 17/17 |

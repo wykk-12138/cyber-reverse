@@ -7423,3 +7423,15 @@ Observation：
 
 还剩什么：① 等 CORE_COVERAGE 释放后落地；② 20 条有域名的店逐条评估（Burberry/Currys/GameStop/Uniqlo…）；
 ③ connect 通道（需登录）；④ 两条 Unknown；⑤ UI CS0108（冻结）。
+## R1234 —— 更新 payment_challenges 生成器：六步不再"只是名字"，并撤掉"一记反编译即可结案"
+
+Observation：
+- 生成器 L227-232 两句过时（"仍只是名字"、"一记反编译即可结案"）。
+- 改写为七行表（函数号 + 已落地成员）：sub_140BDA320 / sub_140959320 / sub_140BE0F80 / sub_141145DB0 /
+  sub_1411458f0 / sub_140A40170 / sub_140B58D60。
+- 产物 `control ok=True stages=9 markers absent=0/5`；diff +15/-3；守卫 17/17。
+
+**保留的边界**：Unknown = 哪一步调用哪条表面（thunk 与槽 xref 皆 0）。
+
+还剩什么：① 20 条有域名的店（需等 CORE_COVERAGE 释放或改不碰目录的项）；② connect 通道（需登录）；
+③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。

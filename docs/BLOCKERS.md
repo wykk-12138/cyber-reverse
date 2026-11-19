@@ -44922,3 +44922,43 @@ Inference = 「`JDGroup` 是集团级条目」；Unknown = 三者全部路由（
 
 证据等级：Observation = 20/46 域名命中、6 条守卫的失败清单、35/35 复绿、`CORE_COVERAGE.md` 的 `M` 状态；
 Inference = 「`Mesh` 与 `JDGroup` 同属 JD 系」；Unknown = 这两个店首页之外的全部路由（服务端下发）。
+## R1234 —— 更新 `PAYMENT_CHALLENGES.md` 的**生成器**：那条"六步仍只是名字"已不成立
+
+### 一、为什么改生成器而不是改文档
+
+`replica/docs/PAYMENT_CHALLENGES.md` 文件头写明**由 `tools/payment_challenges.py` 生成**。
+它 L77/L230 那两句（"六步流程仍只是名字"、"其余步骤体已定位、每条一记反编译即可结案"）
+在 R1214–R1231 之后**已经不成立** —— 改文档会下次生成即翻回，所以改生成器。
+
+### 二、改成了什么（全部带地址/函数号，可重算）
+
+新增一张七行表，把「名字」换成「承载协议的函数与已落地成员」：
+
+| 表面 | 函数 | 已落地 |
+|---|---|---|
+| payment_methods 表单 | `sub_140BDA320` | `PaymentMethodForm`，`2025-01-27.acacia` |
+| payment_methods 挑战面 | `sub_140959320` | basil 面，`2025-08-27.basil` |
+| setup_intent confirm | `sub_140BE0F80` | `SetupConfirmUrl`/`SetupConfirmForm` |
+| setup_intent retrieve | `sub_141145DB0` | `SetupIntentRetrieveUrl` |
+| payment_intents retrieve（JL 变体） | `sub_1411458f0` | `is_stripe_sdk=true`、无版本片段 |
+| payment_intents retrieve | `sub_140A40170` | `PaymentIntentRetrieveUrl`，`false` + `clover` |
+| payment_intents confirm（PayPal） | `sub_140B58D60` | `PayPalConfirmForm`（`mandate_data` 两键 + `return_url`） |
+
+并补两条边界：三版本地址相邻（`0x146ADFBE0`/`C60`/`C98`）、三 UA hash 不同；
+以及**仍旧 Unknown 的是"哪一步调用哪条表面"而不是协议**——四个构建器的 thunk 与存放槽
+（`0x147228EF8` / `0x1472279C8`）`xrefs_to` 皆 **0**，静态 xref 走不通。
+
+### 三、我还撤掉了上一轮的一句旧话
+
+原 L230-232 写「PayPal 阶段 2–8 与 Stripe 六步其余步骤体已定位、每条一记反编译即可结案」。
+**"一记反编译即可结案"是错的**：R1219 已证派发不可走，解码函数 ≠ 知道它在哪一步被调用。
+这句一并删除，换成上面那条边界。
+
+### 四、验证
+
+`python tools/payment_challenges.py` → `control ok=True  stages=9  markers absent=0/5`；
+`git diff --stat` = **15 insertions / 3 deletions**（只动了那一段）；
+相关守卫 **17/17 通过**（`PaymentChallenges` / `DocsConsistency` / `ParityDoc` / `VendorCoverage`）。
+
+证据等级：Observation = 生成器输出与 diff、17/17 收据、七行表的函数号（均出自 R1214–R1217 的既有解码）；
+Inference = 无新增；Unknown = 派发槽（未解）。

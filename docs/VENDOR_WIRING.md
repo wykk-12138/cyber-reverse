@@ -89,3 +89,27 @@ internal    GetAkamaiCookie · AkamaiHandler · AkamaiQueueHandler · AkamaiPixe
 2. 改 9 个测试文件，把对 `VendorWiring.Rows` 的反射/枚举断言换成**测试内数据**或直接断言运行时行为；
 3. 删 `VendorWiring.cs` 与 `VendorWiringTests.cs`；
 4. 全量跑一遍，**用例数下降要能逐条解释**。
+
+## 八、第 2 步的依赖图（R1275 实测，把「9 个文件」变成工单）
+
+命令：
+
+```
+Get-ChildItem tests\Cybersole.Tests -Filter *.cs | Select-String -Pattern 'VendorWiring\.'
+```
+
+| 测试文件 | 依赖的成员（次数） | 处置建议 |
+|---|---|---|
+| `VendorWiringTests.cs` | `Rows` 6 · `AuditRule` 3 · `State` 3 · `Gaps` 1 · `MarkerSource` 1 · `Wired` 1 | **整份删除**——它只为这张表存在 |
+| `VendorGapTests.cs` | `Gap` 7 · `Rows` 2 · `MarkerSource` 2 | 主要是台账断言；**逐个判断**，能断行为的留下 |
+| `VendorSolvingModeTests.cs` | `Solver` 7 · `Rows` 4 | 同上 |
+| `PerimeterXMarkerTests.cs` | `Gap` 5 · `Rows` 3 · `MarkerSource` 1 | 同上 |
+| `QueueItStateTests.cs` | `State` 3 · `Rows` 3 · `Gap` 1 · `MarkerSource` 1 | 同上 |
+| `ImpervaAbsenceTests.cs` | `Rows` 1 · `Gap` 1 | **最小**，先在这里试改 |
+| `WallDispatchTests.cs` | `Gaps` 1 · `Wired` 1 | 疑为同名碰撞（`Wall*` 系列自己的成员），**先确认** |
+| `WallSolvingTests.cs` | `For` 2 | 同上 |
+| `CaptchaDeliveryAttributionTests.cs` | 1 处（`VendorWiring.` 后缀被正则截断，实际成员待读） | 先确认 |
+
+**做法建议**：从 `ImpervaAbsenceTests` 开始（依赖最小），一次改一个文件、跑一次定向用例，
+**不要九个一起改**——那样红了就分不清是哪一处的问题（R1233 的形态）。
+

@@ -46707,3 +46707,46 @@ Akamai 的证据显示镜像**确实解 Akamai**（`"Solving Akamai"` + `(SBSD)`
 
 证据等级：Observation = 294 行、19 个引用文件、5 条抓到与 3 条没抓到的行、Akamai 的地址；
 Inference = 「该分两步」；Unknown = 那三行的完整内容（第 2 步读源码）。
+## R1275 —— 第 2 步的**工单**：把「9 个测试文件」变成逐文件依赖表
+
+### 一、这一步本身是什么
+
+上一轮说"删之前要改 9 个测试"，但那句话没法执行——**改哪里、改什么、从哪个开始**都没答案。
+本轮把依赖量化了：
+
+`
+Get-ChildItem tests\Cybersole.Tests -Filter *.cs | Select-String -Pattern 'VendorWiring\.'
+`
+
+| 测试文件 | 依赖成员（次数） | 处置 |
+|---|---|---|
+| `VendorWiringTests.cs` | `Rows` 6 · `AuditRule` 3 · `State` 3 · `Gaps` 1 · `MarkerSource` 1 · `Wired` 1 | **整份删**（只为这张表存在） |
+| `VendorGapTests.cs` | `Gap` 7 · `Rows` 2 · `MarkerSource` 2 | 逐个判断 |
+| `VendorSolvingModeTests.cs` | `Solver` 7 · `Rows` 4 | 逐个判断 |
+| `PerimeterXMarkerTests.cs` | `Gap` 5 · `Rows` 3 · `MarkerSource` 1 | 逐个判断 |
+| `QueueItStateTests.cs` | `State` 3 · `Rows` 3 · `Gap` 1 · `MarkerSource` 1 | 逐个判断 |
+| `ImpervaAbsenceTests.cs` | `Rows` 1 · `Gap` 1 | **最小，从这里开始** |
+| `WallDispatchTests.cs` | `Gaps` 1 · `Wired` 1 | **疑同名碰撞**，先确认 |
+| `WallSolvingTests.cs` | `For` 2 | 先确认 |
+| `CaptchaDeliveryAttributionTests.cs` | 1 处（正则把成员名截断了） | 先确认 |
+
+### 二、三条从表里读出来的判断
+
+1. **只有 `VendorWiringTests` 是为这张表而生的**——其余八个是**碰巧**用了表里的词；
+2. **三个 `Wall*`/`Captcha*` 很可能是同名碰撞**：`WallDispatch`、`WallSolving` 各有自己的运行时概念，
+   正则把 `VendorWiring.Wired` 与它们自己的 `Wired` 混在一起。**先确认再动**，别把无关测试改坏；
+3. **顺序**：`ImpervaAbsenceTests`（1+1）→ `QueueItStateTests` → `PerimeterXMarkerTests` → 三个大文件 → 删类。
+   **一次一个文件、跑一次定向用例**。
+
+### 三、本轮**不做**代码改动，理由写清
+
+九文件改动若一次做完，红了分不清是哪一处（R1233 的形态）。
+本轮把工单做出来，下一轮从最小的开始，**每一步都能定位**。
+
+### 四、验证
+
+无 `replica/src` 改动；`docs/VENDOR_WIRING.md` 增第八节（依赖图 + 顺序建议）；
+上一轮全量 **2514/0/2/2516** 仍成立。
+
+证据等级：Observation = 九文件的成员级依赖计数、三个可疑的同名碰撞；
+Inference = 「`VendorWiringTests` 可整删」；Unknown = 三个碰撞文件的实际成员（下一轮读）。

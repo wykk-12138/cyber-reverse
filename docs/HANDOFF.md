@@ -7885,3 +7885,13 @@ Observation：
 **下轮**：补 3 行 + 改 9 个测试 + 删 `VendorWiring.cs` 与 `VendorWiringTests.cs`。
 
 还剩什么：① VendorWiring 第 2 步；② Akamai 求解器缺口；③ 17 条 no-hit 按新口径；④ connect 通道（需登录）。
+## R1275 —— VendorWiring 第 2 步工单化：9 文件逐成员依赖表 + 顺序建议；本轮不动代码
+
+Observation：
+- 依赖计数：VendorWiringTests(Rows 6/AuditRule 3/State 3) 最重；ImpervaAbsenceTests(Rows 1/Gap 1) 最轻；
+  Wall*/Captcha* 三文件疑为同名碰撞。
+- 本轮 src 无改动。
+
+**下轮**：从 `ImpervaAbsenceTests` 开始逐文件改，一次一个 + 定向用例。
+
+还剩什么：① VendorWiring 第 2 步（8 文件）；② 三个同名碰撞确认；③ 17 条 no-hit 按新口径；④ connect 通道（需登录）。

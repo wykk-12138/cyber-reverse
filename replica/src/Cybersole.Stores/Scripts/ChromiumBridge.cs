@@ -24,8 +24,33 @@ public sealed class ChromiumBridge : IAsyncDisposable
     private int _nextId = 1;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
+    /// <summary>
+    /// Command replies, keyed by the id we sent. A single reader owns the socket and fills this; SendAsync
+    /// only waits on it.
+    /// </summary>
+    private readonly Dictionary<int, TaskCompletionSource<JsonElement>> _pending = new();
+
+    /// <summary>The one task reading the socket. Nothing else may call ReceiveAsync while it runs.</summary>
+    private Task? _reader;
+
+    private readonly CancellationTokenSource _readerStop = new();
+
     /// <summary>Events the page pushed, used for request-header sniffing.</summary>
-    public List<JsonElement> Events { get; } = new();
+    private List<JsonElement> _events = new();
+
+    /// <summary>Guards <see cref="_events"/>: the reader task appends while callers enumerate.</summary>
+    private readonly object _eventsLock = new();
+
+    /// <summary>A snapshot. The list itself is only ever mutated by the reader task.</summary>
+    public List<JsonElement> Events
+    {
+        get { lock (_eventsLock) return new List<JsonElement>(_events); }
+    }
+
+    private void AddEvent(JsonElement evt)
+    {
+        lock (_eventsLock) _events.Add(evt);
+    }
 
     /// <summary>
     /// The user-data-dir this instance launched with — also the key its fingerprint is derived from.
@@ -702,6 +727,62 @@ public sealed class ChromiumBridge : IAsyncDisposable
     /// with no way to tell the difference from a slow page. A timed-out command reports as a
     /// failure instead of wedging the session.
     /// </summary>
+    /// <summary>
+    /// Start the single reader if it is not running. Every message the socket carries is consumed here:
+    /// command replies are handed to whoever is waiting on their id, and notifications are appended to
+    /// <see cref="Events"/>. This is the shape the reference harvest uses (one recv loop, nothing else
+    /// reads), and the reason is concrete -- reading only while a command is in flight drops whatever
+    /// arrives between commands, and the /tl response is exactly such a message.
+    /// </summary>
+    private void EnsureReader()
+    {
+        if (_reader is not null) return;
+        _reader = Task.Run(ReadLoopAsync);
+    }
+
+    private async Task ReadLoopAsync()
+    {
+        var buffer = new byte[1 << 16];
+        var text = new StringBuilder();
+
+        while (!_readerStop.IsCancellationRequested)
+        {
+            string frame;
+            try
+            {
+                text.Clear();
+                WebSocketReceiveResult result;
+                do
+                {
+                    result = await _socket.ReceiveAsync(buffer, _readerStop.Token).ConfigureAwait(false);
+                    if (result.MessageType == WebSocketMessageType.Close) return;
+                    text.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                } while (!result.EndOfMessage);
+
+                frame = text.ToString();
+            }
+            catch (OperationCanceledException) { return; }
+            catch (Exception) { return; }
+
+            JsonDocument doc;
+            try { doc = JsonDocument.Parse(frame); }
+            catch (JsonException) { continue; }
+
+            using (doc)
+            {
+                var root = doc.RootElement;
+                if (root.TryGetProperty("id", out var replyId) && replyId.TryGetInt32(out var id))
+                {
+                    if (_pending.Remove(id, out var waiter)) waiter.TrySetResult(root.Clone());
+                    continue;
+                }
+
+                // A notification: keep it. This is the only place events are recorded.
+                if (root.TryGetProperty("method", out _)) AddEvent(root.Clone());
+            }
+        }
+    }
+
     public async Task<JsonElement> SendAsync(string method, object? parameters,
         CancellationToken ct = default, TimeSpan? timeout = null)
     {
@@ -710,10 +791,21 @@ public sealed class ChromiumBridge : IAsyncDisposable
         timeoutCts.CancelAfter(budget);
         var inner = timeoutCts.Token;
 
+        // WHY THIS SHAPE: the socket has exactly one reader. The previous version read it only while a
+        // command was in flight, so any event that arrived between two commands was never read at all --
+        // measured: the /tl responseReceived was missing from Events, which cost the body, the x-kpsdk-st
+        // header and therefore the whole CD. A background reader now consumes everything and this method
+        // only waits for its own reply.
         await _gate.WaitAsync(inner).ConfigureAwait(false);
+        TaskCompletionSource<JsonElement> completion;
         try
         {
+            EnsureReader();
+
             var id = _nextId++;
+            completion = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _pending[id] = completion;
+
             var payload = JsonSerializer.Serialize(new
             {
                 id,
@@ -723,44 +815,17 @@ public sealed class ChromiumBridge : IAsyncDisposable
 
             await _socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text,
                 true, inner).ConfigureAwait(false);
-
-            // Read until the reply with our id arrives, collecting events on the way.
-            var buffer = new byte[1 << 16];
-            var text = new StringBuilder();
-
-            while (true)
-            {
-                text.Clear();
-                WebSocketReceiveResult result;
-                do
-                {
-                    result = await _socket.ReceiveAsync(buffer, inner).ConfigureAwait(false);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                        throw new InvalidOperationException("devtools socket closed");
-                    text.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
-                } while (!result.EndOfMessage);
-
-                using var doc = JsonDocument.Parse(text.ToString());
-                var root = doc.RootElement;
-
-                if (root.TryGetProperty("id", out var replyId) && replyId.GetInt32() == id)
-                {
-                    if (root.TryGetProperty("error", out var error))
-                        throw new InvalidOperationException($"CDP {method}: {error}");
-
-                    return root.TryGetProperty("result", out var res)
-                        ? res.Clone()
-                        : default;
-                }
-
-                // a notification (event) — keep it for header sniffing
-                Events.Add(root.Clone());
-            }
         }
         finally
         {
             _gate.Release();
         }
+
+        var reply = await completion.Task.WaitAsync(inner).ConfigureAwait(false);
+        if (reply.TryGetProperty("error", out var error))
+            throw new InvalidOperationException($"CDP {method}: {error}");
+
+        return reply.TryGetProperty("result", out var res) ? res.Clone() : default;
     }
 
     /// <summary>
@@ -985,6 +1050,36 @@ public sealed class ChromiumBridge : IAsyncDisposable
     /// cannot tell those apart, so the body has to be fetched.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// True once the first request whose path ends in /tl has finished (or failed). The reference harvest
+    /// blocks on exactly this before reading the body, because the token and the epoch-ms it stamps are only
+    /// final after that point -- and because stopping earlier shuts the window down mid-computation.
+    /// </summary>
+    public bool FirstTlFinished()
+    {
+        string? tl = null;
+        foreach (var evt in Events)
+        {
+            if (!evt.TryGetProperty("method", out var method)) continue;
+            if (!evt.TryGetProperty("params", out var p)) continue;
+            var name = method.GetString();
+            if (name == "Network.requestWillBeSent")
+            {
+                if (tl is not null) continue;
+                if (!p.TryGetProperty("requestId", out var idEl)) continue;
+                if (!p.TryGetProperty("request", out var req) || !req.TryGetProperty("url", out var u)) continue;
+                if (!(u.GetString() ?? "").TrimEnd('/').EndsWith("/tl", StringComparison.OrdinalIgnoreCase)) continue;
+                tl = idEl.GetString();
+                continue;
+            }
+
+            if (tl is null) continue;
+            if (!p.TryGetProperty("requestId", out var rid) || rid.GetString() != tl) continue;
+            if (name is "Network.loadingFinished" or "Network.loadingFailed") return true;
+        }
+        return false;
+    }
+
     public async Task<string?> ResponseBodyAsync(string fragment, CancellationToken ct = default)
     {
         string? requestId = null;

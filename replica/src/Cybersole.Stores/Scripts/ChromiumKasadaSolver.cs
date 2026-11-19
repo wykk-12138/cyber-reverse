@@ -1,4 +1,4 @@
-using Cybersole.Stores.Flows;
+﻿using Cybersole.Stores.Flows;
 using System.Text.Json;
 using Cybersole.Stores.Scripts;
 
@@ -195,6 +195,22 @@ public sealed class ChromiumKasadaSolver
                     foreach (var reply in replies)
                         foreach (var kv in reply.Value)
                             sniffedHeaders["response:" + kv.Key] = kv.Value;
+                }
+
+                // Do NOT stop at the first token. The token that matters is the one the submission endpoint
+                // stamps on its reply, and that reply only exists once the challenge has finished computing
+                // -- the reference implementation waits up to 60 s for exactly that message and reads its
+                // body before deciding. Leaving early is what closed the window mid-computation.
+                if (bridge.FirstTlFinished())
+                {
+                    TlBody = await bridge.ResponseBodyAsync("/tl", ct).ConfigureAwait(false);
+                    var pair = bridge.SniffRoundtrips()
+                        .LastOrDefault(rt => rt.Url.Contains("/tl", StringComparison.Ordinal));
+                    if (pair is not null)
+                        foreach (var kv in pair.ResponseHeaders)
+                            sniffedHeaders["tl:" + kv.Key] = kv.Value;
+                    if (pair?.ResponseHeaders.TryGetValue("x-kpsdk-ct", out var afterTl) == true
+                        && afterTl.Length > 8) ctToken = afterTl;
                     break;
                 }
 

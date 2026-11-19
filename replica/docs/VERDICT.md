@@ -68642,3 +68642,27 @@ o-hit）。
 |---|---|
 | src 台账类 | **-1**（剩 3：LambdaWitness / NavigatorCensus / VendorWiring） |
 | 用例 | 2525 通过 / 0 失败 / 2 跳过 |
+---
+
+## 第 1272 轮：`LambdaWitness` 迁 docs——**同一文件里还藏着第二个类**
+
+`LambdaWitness.cs` 第 60 行后还有 `PopMartCartSteps`（6 方法 + ordinal）。
+删整份文件后**编译立刻红**（`PopMartCartWiringTests:123` 用 `PopMartCartSteps.IsMember`）
+⇒ **"删之前读完整文件"再次被验证**。
+
+| 内容 | 处置 |
+|---|---|
+| 两个类的表（见证区间、未见证 6 个、Pop Mart 六方法） | → `docs/LAMBDA_WITNESS.md`（含第七节） |
+| `HasWitness`/`ExaminedCount`/`IsMember` + 14 处引用的测试 | 删 |
+| `PopMartCartWiringTests` 的 `IsMember` 断言 | 删，**真断言保留** |
+
+**这次没有藏运行时规则**（`Duplication` 是告诫，不是行为约束）⇒ 整份迁出。
+
+全量 2525 → **2519**（−6：−5 台账测试文件、−1 台账断言）；无业务断言被削弱。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| src 台账类 | **-2**（LambdaWitness + PopMartCartSteps；剩 NavigatorCensus / VendorWiring） |
+| 用例 | 2519 通过 / 0 失败 / 2 跳过 |

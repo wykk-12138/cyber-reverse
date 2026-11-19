@@ -120,8 +120,9 @@ public sealed class PopMartCartWiringTests
         Assert.DoesNotContain("ClearCartAsync", flow);
         Assert.DoesNotContain("FetchAddressAsync", flow);
 
-        Assert.False(PopMartCartSteps.IsMember("ClearCart") &&
-                     PopMartEndpoints.IsKnown("/shop/v1/cart/clear"));
+        // R1272: this test used to also assert that PopMartCartSteps.IsMember("ClearCart") was false and that no
+        // endpoint served it — a claim about the cart-step ledger, which now lives in docs/LAMBDA_WITNESS.md. What
+        // stays here is the behavioural half: PopMartFlow implements neither method.
         _out.WriteLine("ClearCart / FetchAddress left out: no endpoint in the family");
     }
 }

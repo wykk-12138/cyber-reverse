@@ -46579,3 +46579,48 @@ Inference = 「其余四个同属台账」；Unknown = 各自是否含协议常�
 
 证据等级：Observation = 五个成员的形态、用例 2530→2525、build 0 错、24/24 定向用例；
 Inference = 「IsReadOnly 属运行时」；Unknown = 剩余三个是否也藏运行时规则（逐个读）。
+## R1272 —— 第四个台账：`LambdaWitness` 迁 docs（**文件里藏着第二个类**）
+
+### 一、一个文件里两个类型——差点漏掉
+
+`LambdaWitness.cs`（90 行）里不止 `LambdaWitness`，第 60 行之后还有 **`PopMartCartSteps`**
+（6 方法 + ordinal，`Step` record + `All` 列表 + `IsMember`）。
+
+我先删了整份文件，**编译立刻红**：`PopMartCartWiringTests.cs:123` 用了 `PopMartCartSteps.IsMember`。
+——**"删之前先读完整文件"这条，本轮又被自己验证了一次**。
+
+### 二、处置
+
+| 内容 | 处置 |
+|---|---|
+| `Witnessed`（johnlewis 20–39、nike 41–58） | → `docs/LAMBDA_WITNESS.md` |
+| `Unwitnessed`（6 个流程） | → 同上 |
+| `Duplication` 告诫（R122 的 `Authorize` 例子） | → 同上 |
+| `PopMartCartSteps` 六方法表 | → 同上（第七节） |
+| `HasWitness` / `ExaminedCount` / `IsMember` | **删**（只服务台账与钉子测试） |
+| `LambdaWitnessTests`（14 处引用） | **删** |
+| `PopMartCartWiringTests` 里的 `IsMember` 断言 | **删**，保留同测试的**真断言**（`DoesNotContain("ClearCartAsync"/"FetchAddressAsync")`） |
+
+### 三、这次**没有**藏运行时规则
+
+与 R1271 的 `PayloadCoverage` 不同，这一份里没有任何行为约束——
+`Duplication` 是一句**告诫**（"名字命中不算见证，ordinal 对上才算"），不是代码要执行的东西。
+所以整份迁出，不留运行时残件。
+
+### 四、文档里补的两条易错点
+
+1. **`FetchAddress` 出现在两个 ordinal** ⇒ 按两条保留（同名两方法就是重载，合并会藏掉一个）；
+2. **`ClearCart` / `FetchAddress` 在表里但没有端点服务** ⇒ `PopMartFlow` 不实现，
+   而断言应该断**流程不实现**，不是断**表里有几行**。
+
+### 五、验证
+
+`dotnet build` 0 错；`PopMart*` **37/37**；全量 2525 → **2519**（4m32s，−6；
+−5 来自被删的台账测试文件，−1 来自被移除的那条台账断言）。**无业务断言被削弱。**
+
+### 六、还剩两个
+
+`NavigatorCensus`(106) · `VendorWiring`(273)。
+
+证据等级：Observation = 90 行里两个类型、编译错误的行号、2519 的收据；
+Inference = 「Duplication 是告诫不是规则」；Unknown = 剩下两个是否藏运行时规则。

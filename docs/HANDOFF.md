@@ -7854,3 +7854,13 @@ Observation：
 **下轮**：`LambdaWitness` / `NavigatorCensus` / `VendorWiring`。
 
 还剩什么：① 剩余 3 个台账类；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1272 —— LambdaWitness + PopMartCartSteps 迁 docs（同文件两类型）；全量 2519/0/2/2521
+
+Observation：
+- `LambdaWitness.cs` 90 行含两个类型；删整份后 `PopMartCartWiringTests:123` 编译红。
+- 两张表 + 告诫进 `docs/LAMBDA_WITNESS.md`（含第七节 Pop Mart 六方法）；台账成员与 14 处引用测试删除。
+- 全量 2525 → **2519**（−6，无业务断言削弱）。
+
+**下轮**：`NavigatorCensus`(106) / `VendorWiring`(273)。
+
+还剩什么：① 剩余 2 个台账类；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。

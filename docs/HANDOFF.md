@@ -7334,3 +7334,13 @@ Observation：
 验证：build 0 错；**5/5**；全量 **2497/0/2/2499**（4m30s）。
 
 还剩什么：① 178 条清单继续消费；② 浏览器块嵌套形状 Unknown；③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。
+## R1226 —— CreateUnzerResource **已在**（UnzerGateway :742 同 host 同路径）；CreatePayPalToken 按字面量不可达
+
+Observation：
+- 镜像 `https://api.unzer.com` / `/v1/types/card`；复刻件 `Gateways.cs:725/742` 同 host 同路径 ⇒ **行为已在，仅名字不同**。
+- `CreatePayPalToken` 4 次命中全为名表条目；`api-m.paypal.com`/`/v1/oauth2` 均 0 命中。
+- 清单判定法：名字→网关+动作→查端点字面量→在=大概率已在，缺=走四步链。
+
+**教训**：名字缺席 ≠ 行为缺席（改名允许）。
+
+还剩什么：① 用判定法批量处理 178 条；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）；④ 产物需重新 AOT 发布。

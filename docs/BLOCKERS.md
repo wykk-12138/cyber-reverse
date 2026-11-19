@@ -44566,3 +44566,44 @@ R1219 我写过「字符串、委托槽、派发表都在基址+偏移里，**�
 
 证据等级：Observation = 38 条常量与地址、`transStatus` 26 xref、三项查重缺失、套件收据；
 Inference = 「浏览器块与 3DS2 authenticate 共用同一指纹」；Unknown = JSON 嵌套形状与 `02` 的槽位。
+## R1226 —— 清单里的名字有两种命运：一种**已有实现换个名**，一种**按字面量找不到**
+
+### 一、`CreateUnzerResource`：行为已在，只是名字不同
+
+| 侧 | 证据 |
+|---|---|
+| 镜像 | `https://api.unzer.com`（`UnzerApiHost`，0x143385E8C）· `https://api.unzer.com/v1/types/card`（0x1470551F0） |
+| 复刻件 | `UnzerGateway`：`ApiHost = "https://api.unzer.com"`（`Gateways.cs:725`）· `POST {ApiHost}/v1/types/card`（`:742`） |
+
+⇒ **同一个 host、同一个路径、同一个动作。** `CreateUnzerResource` 在复刻件里**有对应行为**，
+只是没叫这个名字——**而目标是允许改名的**。
+
+**这一条说明 178 条清单的读法必须改**：名字缺席 ≠ 行为缺席。清单只能用来**排阅读顺序**，
+判定必须落到**端点/字段**这一层。
+
+### 二、`CreatePayPalToken`：按字面量定位不到
+
+4 次命中**全是名表条目**（0x143377C0D · 0x1433790E6 · 0x143490DDC · 0x143490E02，形状分别是
+`<CreatePayPalToken>d__56`、`CreatePayPalToken`、`<…>b__0/b__1`），**没有一条协议字面量**。
+而且 `api-m.paypal.com` 与 `/v1/oauth2` 在镜像里**都不存在**（`oauth2/token` 的两次命中是 MSAL 源码路径）。
+
+⇒ 它的令牌不是走 PayPal REST 令牌端点，很可能就是 R1078 已经有了的
+`https://www.paypal.com/graphql/`（0x147097E78）那条路。
+**按字面量定位失败 ≠ 该函数不存在**——这是 R1224 之后要补的第二种失败模式。
+
+### 三、给清单加一条可复算的判定法（下一轮用）
+
+对每一条名字：
+1. 从名字推出**网关**（名字里带 Unzer/Adyen/PayPal/Square/Midtrans）与**动作**（Create/Submit/Complete…）；
+2. 到复刻件里查该网关的**端点字面量**是否已在（host 或 path）；
+3. **端点已在 ⇒ 行为大概率已在**（改名是允许的）；**端点缺 ⇒ 值得走四步链**。
+
+本轮用这条法判了 2 条：**1 条"已在"、1 条"按字面量不可达"**。
+
+### 四、验证
+
+无代码改动（两条都不需要改：一条已有、一条定位不到）。
+仓库里并行会话的改动仍未触碰。
+
+证据等级：Observation = 两侧 host/path 对照、4 次名表命中、`api-m.paypal.com` 与 `/v1/oauth2` 的 0 命中；
+Inference = 「`CreatePayPalToken` 走 GraphQL 那条」；Unknown = 178 条里各自属于哪一种。

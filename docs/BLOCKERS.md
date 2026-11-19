@@ -44864,3 +44864,61 @@ Inference = 「`JDGroup` 是集团级条目」；Unknown = 32 条 unpaired 缺�
 
 证据等级：Observation = `FarfetchFlow` 的四个真实现方法、两条断言的字面值与行号、三个 id 的多拼法检索为空；
 Inference = 「`JDGroup` 是集团级条目」；Unknown = 三者全部路由（明确归属外部条件）。
+## R1233 —— 两个店的 host 有证据（推翻 R1232 一半），但**落地被并行会话的文档挡住**，已撤回并记为协作阻塞
+
+### 一、新证据：域名探测把"没有路由证据"拆开了
+
+`analysis/catalog_domain_probe.py`：对 46 条缺席字面量逐条探 `<token>.com` / `.co`。结果 **20 条有域名字面量**：
+
+| 字面量 | 镜像里的 host |
+|---|---|
+| `EntertainmentEarth` | `https://www.entertainmentearth.com/` |
+| `VirgilAbloh` | `https://www.virgilabloh.com` |
+| `Burberry` | `.burberry.com` |
+| `Currys` | `https://www.currys.co.uk/` |
+| `GameStop` | `https://identity.gamestop.com/` |
+| `Highsnobiety` | `https://tm-api-eu.highsnobiety.com/` |
+| `Kickz` / `MSCHF` / `MaisonMargiela` / `NewBalance` / `Saucony` | 各自域名 |
+| `Timberland` / `ToysRus` / `Uniqlo` / `CrunchyRoll` | 各自域名 |
+| `Mesh` | `jdmesh.co`（与 `JDGroup` 相关） |
+| `Waitwhile` | `https://api.waitwhile.com/v2/public/data-fields/` |
+
+⇒ **R1232 说"这三个连 host 都没有"只对 `JDGroup` 成立**。`EntertainmentEarth` 与 `VirgilAbloh` **有可观测 host**，
+与 `Farfetch` 同级（Farfetch 也只是有域名 + 通用首页抓取）。
+
+### 二、于是我实现了，然后被守卫**正确地**拦下
+
+写了 `EntertainmentEarthFlow` / `VirgilAblohFlow`（各 1 个真覆写 + 注册），结果 **6 条守卫红**：
+
+| 守卫 | 原因 |
+|---|---|
+| `FlowWorkAuditTests.MostOverridesDoWork` | 我给两个新 flow 各加了一个只 `Fail` 的 `FindProductAsync` ⇒ 占位数越过 `KnownPlaceholders` 上限 |
+| `CoreCoverageDocumentTests.TheFlowCountMatchesTheTree` | 文档写 18 个 flow 文件，实际 20 |
+| `DocsConsistencyTests` / `ParityDocTests` ×2 / `SummaryBlockTests` | 文档写 65 模块，实际 67 |
+
+**第一条我做了正确的选择**：不抬高 `KnownPlaceholders`，而是**删掉那个只 `Fail` 的覆写**（继承基类默认）。
+为了容纳自己而放宽守卫，就是 R1223 那类"让数字迁就结论"。
+
+### 三、然后撞上并行会话：`replica/docs/CORE_COVERAGE.md` 正被改
+
+三条文档守卫要改的数字（18→20、65→67）其中一处就在 `CORE_COVERAGE.md:10` ——
+而该文件 `git status` 显示 `M`，**是并行会话正在编辑的文件**。
+
+两条路都坏：
+
+- **改它**：踩别人未提交的工作；
+- **改它但不提交**：HEAD 里文档仍是 65、代码是 67 ⇒ **下一轮 HEAD 就是红的**。
+
+⇒ **撤回本轮全部代码改动**（`git checkout --` 只点我自己的 3 个文件 + 删 3 个新文件），
+确认那 6 条守卫回到 **35/35 绿**。**发现留在文档里，落地等文件释放。**
+
+### 四、这条阻塞的性质
+
+| 项 | 值 |
+|---|---|
+| 阻塞类型 | **并行会话占用共享文档**（非"缺凭据"，非"工具不可用"） |
+| 需要的动作 | `CORE_COVERAGE.md` 的编辑权释放（或由持有者把 18→20、65→67 一并改掉） |
+| 一解除即可落地 | 两个 flow + 2 条计数断言 + 4 条文档数字，脚本已验过能编译能跑 |
+
+证据等级：Observation = 20/46 域名命中、6 条守卫的失败清单、35/35 复绿、`CORE_COVERAGE.md` 的 `M` 状态；
+Inference = 「`Mesh` 与 `JDGroup` 同属 JD 系」；Unknown = 这两个店首页之外的全部路由（服务端下发）。

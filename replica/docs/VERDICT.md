@@ -67641,3 +67641,27 @@ pair-display/pair-id（成对，显示名↔id）7/7 · unpaired 65 · test 2 ·
 |---|---|
 | 代码改动 | **0**（有意） |
 | 模块数 | 65（未变） |
+---
+
+## 第 1233 轮：实现了两个 flow，然后**正确地**撤回
+
+域名探测：46 条缺席字面量里 **20 条有域名**，包括 `EntertainmentEarth`（`www.entertainmentearth.com`）
+与 `VirgilAbloh`（`www.virgilabloh.com`）⇒ **R1232 说它们"连 host 都没有"是错的**，只对 `JDGroup` 成立。
+
+于是写了两个 flow。**6 条守卫红**，其中一条是我自己造的：
+我给每个新 flow 加了只 `Fail` 的 `FindProductAsync` ⇒ 占位数越限。
+
+**我没有抬高 `KnownPlaceholders`**，而是删掉那个覆写（继承基类）——为容纳自己而放宽守卫是错的。
+
+其余 5 条是文档数字（18→20、65→67），其中一处落在 `replica/docs/CORE_COVERAGE.md`，
+**那文件正被并行会话编辑**（`M`）。改它=踩人；改而不提交=下轮 HEAD 变红。
+
+⇒ **撤回全部代码改动**，6 条守卫复绿 **35/35**。发现留档，落地等文件释放。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 代码改动（净） | **0**（撤回） |
+| 新工具 | `analysis/catalog_domain_probe.py` |
+| 阻塞 | 并行会话占用 `CORE_COVERAGE.md` |

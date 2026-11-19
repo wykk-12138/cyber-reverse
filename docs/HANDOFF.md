@@ -7410,3 +7410,16 @@ Observation：
 拿到证据时再补，**同时**改两条断言到 68 并改旧方法名。
 
 还剩什么：① connect/app 通道（外部受阻于登录）；② 32 条 unpaired 归类；③ 两条 Unknown；④ UI CS0108（冻结）。
+## R1233 —— 域名探测 20/46（EntertainmentEarth & VirgilAbloh 有 host）；实现后被 6 条守卫拦下，因 CORE_COVERAGE.md 被并行会话占用而撤回
+
+Observation：
+- `catalog_domain_probe.py`：46 条缺席里 20 条有域名字面量（entertainmentearth.com、virgilabloh.com、burberry.com、currys.co.uk …）。
+- 实现两个 flow 后 6 条守卫红：FlowWorkAudit（我加了只 Fail 的覆写）+ 5 条文档数字（18→20 / 65→67）。
+- `replica/docs/CORE_COVERAGE.md` 状态 `M`（并行会话）。
+- 撤回后 35/35 绿。
+
+**判断**：不抬 `KnownPlaceholders`；不在他人未提交文件上动数字；**撤回**。
+阻塞 = 共享文档占用（一解除即可落地：2 flow + 2 断言 + 4 处数字）。
+
+还剩什么：① 等 CORE_COVERAGE 释放后落地；② 20 条有域名的店逐条评估（Burberry/Currys/GameStop/Uniqlo…）；
+③ connect 通道（需登录）；④ 两条 Unknown；⑤ UI CS0108（冻结）。

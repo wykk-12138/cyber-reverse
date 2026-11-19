@@ -42804,3 +42804,40 @@ art = identity(args.exe)
 
 证据等级：Observation = 两态产物尺寸与 11 行探针读数、`relpath` 的 traceback 原文、修后 4/4、全量与变异收据；
 Inference = 「标注保不住派生类重写」（由 0/9 推出）；Unknown = 描述符的保留粒度能否再收窄（当前是 `Flows.*` 全保留）。
+## R1183 —— 「产物陈旧 17 文件」的真因：**是 `mutation-check` 把 mtime 刷新了，字节没变**
+
+**取件**：这个假信号已出现三轮（R1175/R1177/R1181）。本轮查它。
+
+`
+publish artifact mtime: 2026-11-19 11:09:47
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 11:34:12)
+`
+
+11:34 那个时间点我**没有改过任何 src**。`git status src` → **0 个 dirty**。
+⇒ 11:34 来自 `mutation-check.py`：它把 17 个变异目标**改写后还原**，**字节回到提交状态，mtime 前进**。
+所以「17 文件」= **变异目标被触摸**，不是内容变了。前三轮我一直在追一个不存在的陈旧。
+
+### 改了什么
+
+- `tools/artifact_freshness.py`：新增 `of those, changed against HEAD: N`（`git status --porcelain` 对比），
+  **`state` 由「有文件更新」改为「有文件真的不同」**；两类都打印，**不隐藏触摸事实**：
+  `
+  17 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
+  targets, which updates mtime without changing a byte. Nothing to rebuild.
+  `
+  无法判断时（git 调用失败）**仍按保守方向报 stale** —— 原有的「宁可误报」取舍保留。
+- `tools/metrics_report.py`：把这个字段登记进正则表与字段列表，**METRICS.md 里读得到**
+  （否则只有工具自己知道，正是 R1171 抱怨过的「数字分开写就等于打架」）。
+- 新 `FreshnessHonestyTests` 1 条：不变式 `changed == 0 ⇒ state == current`，反向亦然。
+  **这条在变异期间也成立**（那时树是脏的），所以守卫不会跟它监视的工具打架。
+
+验证：`artifact_freshness` → `changed against HEAD: 0`、`state: current`；
+`dotnet build` **0 错**；该守卫 **1/1**（`--logger detailed` 确认 128 ms 真执行、捕获到原文）；
+全量 **2475 通过 / 0 失败 / 2 跳过 / 2477**（4m32s）；
+变异 `ran_at 2026-11-19T11:56:47`、**59/59 fired，tree GREEN**。
+
+度量变化：`函数数量` **179,456 / 277,120 = 64.76%**（描述符保住步骤体后的真实值）；
+`产物陈旧度` 现在同时给出 `17 更新 / 0 真的改动`。
+
+证据等级：Observation = 两次 mtime、`git status src` 0 dirty、改后两行输出、守卫与套件收据；
+Inference = 「11:34 来自变异还原」（由无 dirty + 该工具行为推出）；Unknown = 若将来有工具改字节而不改 git 状态，本判据会漏（未发生）。

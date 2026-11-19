@@ -6808,3 +6808,17 @@ Observation：
 验证：守卫 **4/4**；全量 **2474/0/2/2476**（4m29s）；变异 **59/59 fired，restored tree GREEN**（11:38:50）。
 
 还剩什么：① 描述符保留粒度（现为 `Flows.*` 全保留）能否收窄；② 产物陈旧度仍显示 17 文件（tests 计入）。
+## R1183 —— 陈旧度改为「内容判据」：mutation 触摸不再误报；字段进 METRICS
+
+Observation：
+- 产物 mtime 11:09 / 最新 src mtime 11:34，但 `git status src` **0 dirty** ⇒ 11:34 是 mutation 还原触摸。
+- 改后：`of those, changed against HEAD: 0`、`state: current`，并打印「17 newer but unchanged」。
+
+改动：`artifact_freshness.py`（新增 changed-against-HEAD，state 改按内容；git 判不了时仍保守报 stale）、
+`metrics_report.py`（字段登记进正则表与字段列表）、新 `FreshnessHonestyTests`（changed==0 ⇒ current）。
+
+验证：build 0 错；守卫 1/1（128 ms 真执行）；全量 **2475/0/2/2477**（4m32s）；
+变异 **59/59 fired, tree GREEN**（11:56:47）。函数比 **64.76%**。
+
+还剩什么：① 若将来有工具改字节却不改 git 状态，此判据会漏（未发生，记着）；
+② 描述符保留粒度（`Flows.*` 全保留）仍可收窄。

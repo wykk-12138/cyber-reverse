@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-19T11:38:50+08:00",
+  "ran_at": "2026-11-19T11:56:47+08:00",
   "total": 59,
   "fired": 59,
   "decorative": 0,
@@ -464,6 +464,7 @@
     "tests/Cybersole.Tests/FlowWorkAuditTests.cs": "1dc26a63b6dc69a5a39017ccf5d24a7d02c080381dd4615bc747fd859981ba67",
     "tests/Cybersole.Tests/FontMediaSurfaceTests.cs": "e48ee102ae25316096e7144338fa00b55e3e43d400e7127b5e4ac1aeac3ef352",
     "tests/Cybersole.Tests/ForwardingShimTests.cs": "8b731ff236f85b90720c535fbe6364d9a6da32c889b0107ff1e9e38bf94274ff",
+    "tests/Cybersole.Tests/FreshnessHonestyTests.cs": "e5c544ec1587047e9d9bfbfd1dbea28c7cbb8dc2a5fcf7b17a8ea49569ca5f33",
     "tests/Cybersole.Tests/FrontendSurfaceTests.cs": "690186145eee7beeeb07a4d6e506565f2abceff2886553767a21472110b07a7e",
     "tests/Cybersole.Tests/GatewaySelectionTests.cs": "a66b47d1f55e1daa8840742086bc8a4ce445a0768d5f3dc8ed09f7463ed4bde0",
     "tests/Cybersole.Tests/GeneralSettingsLayoutTests.cs": "5ebe6f8201c5d99533ccb32fb0058da7d195181af07eac0d46f6fc102ac7d333",
@@ -798,7 +799,7 @@
     "tools/absent_checkout.py": "7de43606912f8539f3e19cc90c70f1fbe7da358397eb3f0a551592fe66d18960",
     "tools/addtocart_family.py": "4f26c627835e25de254df42a36531ed84885212990ccd139f1774be4f0a86907",
     "tools/aot_member_coverage.py": "79c37bf52a4890548b67b6b4403ba64ae145acf70bc19680a8dbfee053577677",
-    "tools/artifact_freshness.py": "85a5b84491f6e7e6d205fa07ed1ac34cee92aa268166f9dc26b177ed7b3951fd",
+    "tools/artifact_freshness.py": "a06abe9bec2edf828dc92a38c7c15c80fadaf90f37ea503060bb0328935eb0fe",
     "tools/artifact_probe.py": "331dc683994d5136ecac148c37061251ab5633aa90b5482b3df06d3245f37031",
     "tools/async_method_coverage.py": "d7afa96a21506b6d9b52ef39122d882b00bda8b833e095821b50ac97affbbbb6",
     "tools/backlog_report.py": "e98f788e965101644173781063d6fb373dc4be4460b3bc9fc766b2058ee677af",

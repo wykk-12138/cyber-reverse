@@ -15,6 +15,7 @@ a missed one costs a figure quoted about code that no longer exists.
 
 import io
 import os
+import subprocess
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -28,6 +29,7 @@ def newest_source():
         return None, 0, 0
 
     newest, newest_path, newer, newer_lines = 0.0, None, 0, 0
+    touched = []
     for dirpath, dirnames, filenames in os.walk(SOURCE):
         dirnames[:] = [d for d in dirnames if d not in ("obj", "bin")]
         for name in filenames:
@@ -42,12 +44,35 @@ def newest_source():
                 newest, newest_path = m, p
             if os.path.exists(ARTIFACT) and m > os.path.getmtime(ARTIFACT):
                 newer += 1
+                touched.append(p)
                 try:
                     with io.open(p, encoding="utf-8", errors="replace") as fh:
                         newer_lines += sum(1 for _ in fh)
                 except OSError:
                     pass
-    return newest_path, newer, newer_lines
+    return newest_path, newer, newer_lines, touched
+
+
+def dirty_among(paths):
+    """
+    How many of these files differ from HEAD.
+
+    R1183: mutation-check.py rewrites every mutation target and restores it, which updates mtime while the
+    bytes go back to exactly what was committed. Before this, each mutation run therefore left the artifact
+    looking stale by seventeen files for the rest of the session - a false alarm that cost three rounds of
+    wondering. Touching a file is not changing it, so the two are counted apart, and a file that really did
+    change still marks the artifact stale.
+    """
+    if not paths:
+        return 0
+    try:
+        out = subprocess.run(["git", "status", "--porcelain", "--"] + paths,
+                             cwd=ROOT, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return len(paths)          # cannot tell: stay on the cautious side
+    if out.returncode != 0:
+        return len(paths)
+    return sum(1 for line in out.stdout.split("\n") if line.strip())
 
 
 def main():
@@ -57,7 +82,9 @@ def main():
         return 1
 
     art = os.path.getmtime(ARTIFACT)
-    newest_path, newer, newer_lines = newest_source()
+    newest_path, newer, newer_lines, touched = newest_source()
+
+    dirty = dirty_among(touched)
 
     print("publish artifact: %s" % os.path.relpath(ARTIFACT, ROOT))
     print("publish artifact mtime: %s" % _stamp(art))
@@ -65,12 +92,17 @@ def main():
         print("newest source: %s (%s)" % (os.path.relpath(newest_path, ROOT), _stamp(os.path.getmtime(newest_path))))
     print("source files newer than the artifact: %d" % newer)
     print("lines in those files: %d" % newer_lines)
-    print("publish artifact state: %s" % ("stale" if newer else "current"))
+    print("of those, changed against HEAD: %d" % dirty)
+    print("publish artifact state: %s" % ("stale" if dirty else "current"))
 
-    if newer:
+    if dirty:
         print("")
         print("  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an")
         print("  older build, so it must be labelled as such wherever it is quoted rather than presented as current.")
+    elif newer:
+        print("")
+        print("  %d files are newer but unchanged against HEAD: mutation-check rewrites and restores its" % newer)
+        print("  targets, which updates mtime without changing a byte. Nothing to rebuild.")
     return 0
 
 

@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 11:39:13 +0800 |
+| 生成时间 | 2026-11-19 11:59:52 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | **有非零退出，见下** |
@@ -15,6 +15,8 @@
 ## 时效警告（生成）
 
 > **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新（共 13599 行）。它描述的是更旧的一次构建，不是当前源码。
+>
+> **变异套件那一组数来自上一次运行，而它已经过期**：`1 -- tools/metrics_report.py differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -40,6 +42,7 @@
 | 函数数量（.pdata） — functions: ratio | 64.76% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
 | 产物陈旧度（.publish-aot vs src） — lines in those files | 13599 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -55,7 +58,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file's content differs from the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 1 -- tools/metrics_report.py differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -363,13 +366,14 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-19 11:09:47
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 11:34:12)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 11:51:02)
 source files newer than the artifact: 17
 lines in those files: 13599
-publish artifact state: stale
+of those, changed against HEAD: 0
+publish artifact state: current
 
-  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
-  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
+  17 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
+  targets, which updates mtime without changing a byte. Nothing to rebuild.
 ```
 
 ### 核心覆盖：store 宿主
@@ -537,9 +541,10 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 0 -- no exercised file's content differs from the run
+  mutation-fit-staleness: 1 -- tools/metrics_report.py differs from the run's manifest
 
-  Every mutation fired, none was decorative and none was skipped at the time of that run.
+  The counts above are from 2026-11-19T11:56:47+08:00 and the tree has moved since. They are a record of that run, not a
+  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
 ```
 
 ### 完整套件

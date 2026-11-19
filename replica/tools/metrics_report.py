@@ -64,7 +64,7 @@ METRICS = [
     # R932: the function ratio comes from .publish-aot, so whether that artifact matches the current source is
     # part of reading the number. Criterion (c) asks for a recomputable artifact comparison; a stale artifact
     # makes it recomputable but about the wrong build.
-    ("产物陈旧度（.publish-aot vs src）", ["tools/artifact_freshness.py"], ["source files newer than the artifact", "lines in those files"]),
+    ("产物陈旧度（.publish-aot vs src）", ["tools/artifact_freshness.py"], ["source files newer than the artifact", "lines in those files", "of those, changed against HEAD"]),
     # R921: criterion (f) has two columns and only the store one had been measured. These add the vendor column, so the
     # coverage table the criterion asks for comes out of the single number source instead of being assembled by hand.
     ("核心覆盖：store 宿主", ["tools/core_coverage.py"],
@@ -162,6 +162,9 @@ def summary_bits(name_out, owned):
         "mutation-fit: decorative": r"mutation-fit-decorative:\s*(\d+)",
         "mutation-fit: skipped": r"mutation-fit-skipped:\s*(\d+)",
         "mutation-fit: staleness": r"mutation-fit-staleness:\s*(.+)",
+        # R1183: freshness now separates a touched file from a changed one; the count is what decides whether
+        # the artifact is really stale, so it belongs in METRICS.md and not only in the tool's own output.
+        "of those, changed against HEAD": r"of those, changed against HEAD:\s*(\d+)",
     }
     for label, pattern in patterns.items():
         if label not in owned:

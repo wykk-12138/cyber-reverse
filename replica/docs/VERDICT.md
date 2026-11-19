@@ -66167,3 +66167,33 @@ os.path.relpath(path, ROOT)  →  ValueError: path is on mount 'C:', start on mo
 | 探针（无 BOM） | **10 yes / 1 负对照 no** |
 | 全量 | **2474 通过 / 0 失败 / 2 跳过 / 2476**（4m29s） |
 | 变异 | **59/59 fired，`restored tree: GREEN`**（11:38:50） |
+---
+
+## 第 1183 轮：追了三轮的「陈旧」，是变异工具在刷新 mtime
+
+`产物陈旧 17 文件` 这个信号我记了三轮。这轮查到底：
+
+- 产物 mtime **11:09**，最新源文件 mtime **11:34**；
+- 但 11:34 那一刻我**没有改过 src**，`git status src` **0 dirty**。
+
+⇒ 11:34 来自 `mutation-check`：它把 17 个变异目标**改写再还原**，**字节回到原样、mtime 前进**。
+
+> **「文件比产物新」不等于「文件变了」。** 我追的是一个由工具自己制造的时间戳。
+
+### 改法：把「触摸」和「改动」分开报
+
+- 新增 `of those, changed against HEAD: N`（git 对比），`state` 只在**真有改动**时才是 stale；
+- 触摸仍如实打印（17 files are newer but unchanged…），**不隐藏**；
+- git 判不了时**仍按保守方向报 stale**——原有取舍保留；
+- 字段同时登记进 `metrics_report` 的正则表，**METRICS.md 里读得到**（R1171 的教训：数字分开写就等于打架）。
+
+新守卫 `FreshnessHonestyTests` 钉住不变式 `changed==0 ⇒ current`，**在变异期间也成立**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 函数比 | **64.76%**（179,456 / 277,120） |
+| 陈旧度 | **17 更新 / 0 真的改动 ⇒ current** |
+| 全量 | **2475 通过 / 0 失败 / 2 跳过 / 2477**（4m32s） |
+| 变异 | **59/59 fired，tree GREEN**（11:56:47） |

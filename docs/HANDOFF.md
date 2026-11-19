@@ -7093,3 +7093,14 @@ Observation：
 
 还剩什么：① Farfetch 7 条（服务端下发，已定性）；② 两条 Unknown（`BotTask.Running`/`Task`）；
 ③ abort 分支未验证；④ UI 29 条冻结；⑤ 原版店清单未枚举。
+## R1206 —— 店清单分档：30 确认 / 1 池外确认（Bodega）/ 1 扩展（BSTN）/ 2 未定（Livestock、HMVS）
+
+Observation：
+- 池筛：34 家里 30 家名字或域名命中；4 家池外。
+- `ida.py str`：`Bodega` n=1（0x146b5fff4）；`Livestock` 仅命中模板变量 `_raffleProduct`；`HMVS`/`shophmvs.com` 全 0。
+- 解析器只认 34 家（多词店名被跳过）⇒ **下界**，非全量。
+
+方法固化：**池筛用于省调用，池外一律回 `ida.py str`**（Bodega 再次证明池子会漏）。
+
+还剩什么：① Livestock / HMVS 的显示名形状；② 原版店清单的完整枚举（下界 34，未穷举）；
+③ 两条 Unknown（`BotTask.Running`/`Task`）；④ abort 分支未验证；⑤ UI 29 条冻结。

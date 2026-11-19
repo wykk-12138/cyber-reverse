@@ -274,6 +274,37 @@ dotnet test --filter "FullyQualifiedName~VoiceListTests" -m:1
 
 ---
 
+## 4.5 可达性只能用哈希差分判（R1266 立规，推翻多年的字面量探测）
+
+> **问「这段代码在不在产物里」，唯一可信的仪器是：改一处 → 重发 → 比 SHA-256。**
+> **「搜不到某个字面量」一律不能推出「代码被裁」。**
+
+R1266 三连测（同一产物、三处改体、行为不变）：
+
+| 探针 | 尺寸 | SHA-256 |
+|---|---|---|
+| `MagentoRest.Under` | **+0** | 变 |
+| `PopMartFlow.PollRestockAsync` | **+0** | 变 |
+| `StoreFlow.Process3DSAsync` | **+0** | 变 |
+
+三个方法**全部编进镜像**。而 `Process3DSAsync` 的几个字面量（含普通字典键 `3dsRequired`）
+在同一份产物里 **ascii 与 utf16 双编码都搜不到**。
+
+⇒ NativeAOT 把部分串存成**逐字节搜索看不见的形态**，而另一些（`GetOrders is not implemented by`）又能搜到
+——**存储是混合的，缺席没有信息量**。
+
+**由此作废的结论**（Observation 留下，Inference 划掉）：
+
+- 「九个支付字面量缺席 ⇒ `ProcessPaymentAsync` 被裁」（R1241）；
+- 「链断在反射表/上层」的整段分析（R1242，前提失效）；
+- 「缺口 = 需要 AOT 方法表 dump」（R1243，**不需要**）；
+- `path_audit.py` 的 `no-hit` 一档（R1248/R1252）——`exact` 命中仍有效，`no-hit` 只能读作 **unknown**。
+
+**尺寸也是钝的**：改体后尺寸可以一字不动。`analysis/reach_oracle.py` 已改为记 `artifact_sha256`。
+构建本身**字节可复现**（同源两次发布同哈希，R1264），所以哈希差分是可靠的。
+
+---
+
 ## 5. 一句话总结
 
 > **抄公开仓库的方法，用公开仓库的工具，只在它们够不到的地方动手；**

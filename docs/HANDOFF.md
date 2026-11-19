@@ -7449,3 +7449,15 @@ Observation：
 
 还剩什么：① 其余 19 条有域名的店（需评估是否值得/是否碰目录）；② connect 通道（需登录）；
 ③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）；⑤ 产物需重新 AOT（本轮新增 1 文件）。
+## R1236 —— 字节实测：产物里 waitwhile / pi.midtrans.com 全 absent ⇒ **整个支付层被裁剪**
+
+Observation：
+- 重发 AOT：exit 0、57,404,928 B（与上次同）、freshness 0。
+- 产物字节：waitwhile/first-available-slots/maxNumSlots/**api.midtrans.com** = absent；DFReferenceId/termsconditions = PRESENT。
+- 变异 59/59 GREEN（04:38:31）。
+
+**结论**：支付层无入口可达 ⇒ 被 trimmer 裁掉。**「解出+落地+测试绿」≠「在产品里」。**
+**下一步（明确）**：接可达（IPaymentGateway + 任务属性选网关 = 复刻件设计决定；原版派发仍 Unknown），
+验收判据 = pi.midtrans.com 出现在产物字节。
+
+还剩什么：① 支付层可达化（下轮）；② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）。

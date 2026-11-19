@@ -67718,3 +67718,34 @@ Unknown = **location id 来源与响应字段名**（响应形状本就不在客
 |---|---|
 | 全量 | **2506 通过 / 0 失败 / 2 跳过 / 2508**（4m27s，+5） |
 | WaitwhileQueue | **5/5** |
+---
+
+## 第 1236 轮：**产物里整个支付层不存在**
+
+重发 AOT 后尺寸**一分不变**。直接在产物里搜字节：
+
+| 字面量 | 产物里 |
+|---|---|
+| `waitwhile` / `first-available-slots` / `maxNumSlots` | **absent** |
+| **`api.midtrans.com`**（R1225 之前就有） | **absent** |
+| `DFReferenceId` / `termsconditions` | **PRESENT** |
+
+⇒ 被裁的**不是新类，是整个支付层**（Gateways / PayPalThreeDs / StripeChallenge…），因为没有入口能到达。
+对照组（Demandware 的两个串在）正好坐实「可达⇒保留 / 不可达⇒裁剪」。
+
+### 这是本会话最重要的一次自我纠正
+
+**「解出 + 落地 + 测试绿」≠「在产品里」。** 判据 (c) 是产物级对照，而现状是
+**原版产物有全套支付端点，复刻件产物一个都没有**。
+
+### 下一轮
+
+**把支付层接成可达**（`IPaymentGateway` + 任务属性选网关 = **复刻件的设计决定**，
+原版派发形状仍是 Unknown，两者分开写）。验收判据：**`api.midtrans.com` 出现在产物字节里**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 产物 | 57,404,928 B，freshness 0 |
+| 变异 | **59/59 GREEN** |

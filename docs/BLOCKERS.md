@@ -45006,3 +45006,61 @@ R1231 的域名探测把 `Waitwhile` 列为「有域名字面量」的一条。�
 
 证据等级：Observation = 三个端点的地址与四个引用函数、五条常量、三拼法零命中、套件收据；
 Inference = 「两端当天零点」；Unknown = location id 来源与响应字段。
+## R1236 —— 产物里**整个支付层被裁剪掉了**：这不是推测，是字节实测
+
+### 一、怎么发现的
+
+R1236 重发 AOT（19 个源文件落后），产物尺寸 **57,404,928 B 与上次一模一样**。
+R1228 那次新增 1,536 B，这次**新增 0**。于是直接在产物里搜本轮新字面量：
+
+| 字面量 | 在 `.publish-aot/Cybersole.Ui.exe` 里 |
+|---|---|
+| `waitwhile` | **absent** |
+| `first-available-slots` | **absent** |
+| `maxNumSlots` | **absent** |
+| `api.midtrans.com` | **absent** |
+| `DFReferenceId` | **PRESENT** |
+| `termsconditions` | **PRESENT** |
+
+### 二、结论比"新类被裁"严重得多
+
+`api.midtrans.com` 是 **R1225 之前就在****的** `MidtransGateway` 的 host —— 它也不在产物里。
+⇒ **被裁的不是那个新类，是整个支付层**（`Gateways.cs` 的 Midtrans/Stripe/Unzer/Square、
+`PayPalThreeDs`、`StripeChallenge`…），因为**没有任何入口点能到达它们**。
+
+而 `DFReferenceId` / `termsconditions` 在（`DemandwareControllers` 有 flow 引用）——
+**对照组正好把「可达 ⇒ 保留 / 不可达 ⇒ 裁剪」这条区分坐实了。**
+
+### 三、这对判据 (c) 意味着什么
+
+判据 (c) 要的是**产物级**对照（`target\Cybersole.exe` ↔ `.publish-aot`）。
+现状是：**原版产物里有全套支付端点，复刻件产物里一个都没有。**
+
+⇒ 前面十轮解出的 Stripe 三版本、三 UA、PayPal mandate、Midtrans 3DS、Demandware 指纹查询——
+**协议是对的、测试是绿的，但产品里不存在**。这是本会话最重要的一次自我纠正：
+**「解出 + 落地 + 测试绿」不等于「在产品里」。**
+
+### 四、这也解释了那个反复出现的 Unknown
+
+R1218/R1219 我一直在问「原版哪一步调用哪条支付表面」，卡在派发不可走。
+现在看清：**复刻件侧连「有支付层」这件事都还没成立**。
+原版的派发形状仍是 Unknown，但**复刻件要功能对等就得有自己的可达路径**——
+用 `IPaymentGateway` 接口 + 任务属性选择网关，是**复刻件的设计决定**，不是对原版的断言。
+这两件事必须分开写：**我们的接线是我们的；原版的接线是 Unknown。**
+
+### 五、本轮验证
+
+| 项 | 值 |
+|---|---|
+| 发布 | exit 0，57,404,928 B，freshness **0** |
+| 字节探测 | 六条见上表 |
+| 变异 | `ran_at 2026-11-20T04:38:31`、**59/59 fired、tree GREEN** |
+
+### 六、下一轮取件（明确）
+
+**把支付层接成可达**：`IPaymentGateway` 已存在、网关实现已存在，缺的是**执行路径上的选择与调用**。
+落地后重发 AOT，**以 `api.midtrans.com` 等字面量出现在产物里作为验收判据**——
+这一次判据是字节，不是测试。
+
+证据等级：Observation = 六条字节探测、两次发布的尺寸、59/59 变异；
+Inference = 「不可达 ⇒ 被裁」（对照组的 `DFReferenceId` 支持它）；Unknown = 原版派发形状（不变）。

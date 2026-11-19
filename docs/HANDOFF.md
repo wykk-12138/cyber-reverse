@@ -7287,3 +7287,17 @@ Observation：
 **下一步**：名表当名字全集，与 StoreFlowSteps 名字集合做差（镜像有、表无）。
 
 还剩什么：① 名字差集检验；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。
+## R1222 —— 名字全集做差：镜像 3,693 / 表 111 / 镜像有表无 3,582 / **表有镜像无 0**
+
+Observation：
+- `analysis/extract_step_names.py`（IDA 侧扫描，stdout 4 KB 截断故落文件）：`analysis/state_machine_names.json`，3,693 名。
+- 复刻件 `new Step` 名 111（StoreFlowSteps 105 / NikeSteps 16 / GraphQlCartSteps 6）。
+- **0 个表内名字不在镜像里** ⇒ 无编造。
+- 支付形状且表内无名 122（含 ConfirmStripeSetup/CreateSetupIntent，= R1214 已解码的协议）。
+
+**度量假象**：JSON 的地址是 ASCII 串起始地址 ⇒ 相邻名字同址，**不能当别名用**。
+
+验证：无代码改动；产物可复算。
+
+还剩什么：① 3,582 条里分类（原版真步骤 vs 框架生成）；② 122 条支付名的处置（很多是别名/内部方法）；
+③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。

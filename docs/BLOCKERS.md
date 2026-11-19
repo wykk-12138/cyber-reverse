@@ -44384,3 +44384,47 @@ R1220 我从 ASCII 名表的**连续地址**里读出一串名字并给出"序�
 
 证据等级：Observation = 130 条表项、序号 39/40/41 的多重对应、两套编号不一致；
 Inference = 「序号是每 flow 局部编号」；Unknown = 两套编号之间的映射关系。
+## R1222 —— 名字全集做差：**3,582 个镜像步骤名不在表里；表里 0 个名字不在镜像里**
+
+### 一、方法（可在 IDA 里一次复算）
+
+`analysis/extract_step_names.py`：在 IDA 内部扫 `.text`/`.rdata`/`.data` 的 **ASCII 运行段**，
+按 `<Method>d__N` / `b__N_M` / `g__Local|N_M` 三种编译器形状抽方法名，写 `analysis/state_machine_names.json`。
+
+> 为什么在 IDA 里扫：`ida.py py` 的 stdout 在 **~4 KB 处截断**，256 KB 的字节转储传不回来。
+> IDA 与本机同机，所以扫描在 IDA 侧完成、结果落文件。
+
+### 二、结果
+
+| 项 | 值 |
+|---|---|
+| 镜像方法名（全段扫描） | **3,693** |
+| 复刻件 `new Step("名", 序号)` 名 | **111**（`StoreFlowSteps` 105 · `NikeSteps` 16 · `GraphQlCartSteps` 6） |
+| **镜像有、表里没有** | **3,582** |
+| **表里有、镜像没有** | **0** |
+
+**第三行是工作量，第四行是质量**：复刻件的步骤名**没有一个是编造的**——全部能在镜像里找到。
+这条可以直接进判据 (d) 的 claim 表。
+
+### 三、122 条"支付形状且表里没有"的名字（优先级②的候选清单）
+
+含 `ConfirmStripeSetup` · `CreateSetupIntent` · `CompletePayment` · `BuildAdyenThreeDsResult` ·
+`CardinalInit`/`CardinalContinue` · `CreatePayPalToken` · `CompletePayPal`/`CompletePayPalGuestPayment` ·
+`CreateUnzerResource` · `ContinueUnzerThreeDs` · `CaptureCard` · `CheckGiftCard` 等。
+
+**交叉印证**：`ConfirmStripeSetup`/`CreateSetupIntent` 正是 R1214 解码落地的那条协议
+（`sub_140BE0F80` → `SetupConfirmForm`）——**名字在镜像里，协议也已解出，只是没接进表**。
+
+### 四、必须记下的**度量假象**（防止下一轮误读）
+
+`state_machine_names.json` 里每个名字附的地址是**该 ASCII 串的起始地址**，
+所以**同一条串里相邻的多个名字地址相同**。
+⇒ **地址相同 ≠ 别名、≠ 指向同一函数**。只能用**集合**，不能用地址做配对。
+（例：`ConfirmStripeSetup` 与 `CreateSetupIntent` 同址，只是因为在同一段名表里挨着。）
+
+### 五、验证
+
+本轮无代码改动；`analysis/state_machine_names.json` 为可复算产物（脚本 + 窗口声明在文件头）。
+
+证据等级：Observation = 3,693/111/3,582/0 四个数、122 条名字与形状、片段清单；
+Inference = 「0 编造 ⇒ 复刻件步骤名有据」；Unknown = 3,582 条里哪些是原版真有、哪些是框架生成（未分类）。

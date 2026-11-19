@@ -50,27 +50,7 @@ public sealed class PerimeterXMarkerTests
             Assert.DoesNotContain(page, evidence, System.StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>The row says which gap this is, and the note names the reason rather than leaving it to inference.</summary>
-    [Fact]
-    public void TheRowRecordsTheGapAsAMissingPageMarker()
-    {
-        var row = VendorWiring.Rows.Single(r => r.Vendor == "perimeterx");
-
-        Assert.Equal(VendorWiring.Gap.NoPageMarker, row.Gap);
-        Assert.Equal(VendorWiring.MarkerSource.Inferred, row.MarkerFrom);
-        Assert.Equal("px-captcha", row.Marker);
-    }
-
-    /// <summary>
-    /// The two gap kinds are carried by different vendors, so a reader can see both states in one table rather than
-    /// having to trust that the taxonomy has two live cases.
-    /// </summary>
-    [Fact]
-    public void BothGapKindsHaveALiveExample()
-    {
-        Assert.Equal(VendorWiring.Gap.VendorAbsent,
-            VendorWiring.Rows.Single(r => r.Vendor == "imperva").Gap);
-        Assert.Equal(VendorWiring.Gap.NoPageMarker,
-            VendorWiring.Rows.Single(r => r.Vendor == "perimeterx").Gap);
-    }
+    // R1278: the two assertions that used to sit here read VendorWiring.Rows to check the gap kind, the marker
+    // source and that both gap kinds have a live example. Those are rows in the audit table, which now lives in
+    // docs/VENDOR_WIRING.md; what stays in this file is what the runtime inventory can be asked about.
 }

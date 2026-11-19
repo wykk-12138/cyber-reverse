@@ -68765,3 +68765,23 @@ Imperva 的三条结论（六拼写不在产物 / 两源一致 / 分支属扩展
 |---|---|
 | 已解耦 | **2 / 9** |
 | 下一个 | `PerimeterXMarkerTests` |
+---
+
+## 第 1278 轮：`PerimeterXMarkerTests` 留 2 条、删 2 条；两种缺口进文档第十节
+
+留：两条测 `AntiBotVendors` 的运行断言。删：两条读 `VendorWiring.Rows` 的台账断言。
+
+文档新增第十节：**imperva = `VendorAbsent`** vs **perimeterx = `NoPageMarker` + `Inferred` + `px-captcha`**，
+并把 PerimeterX 五条字面量逐条分类（其中 `Solving PerimeterX` @0x146e9423c 是**原版真的解这一家**的唯一证据）。
+⇒ 这一节就是 `MarkerSource.Inferred` 存在的理由：**`px-captcha` 是推断，不是字面量**。
+
+锚点一次没匹配，改写成脚本 `trim_perimeterx_tests.py`（77 → 57 行）。
+
+验证：build 0 错；10/10；全量 2509 → **2507**（−2）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 已解耦 | **3 / 9** |
+| 下一个 | `VendorGapTests` |

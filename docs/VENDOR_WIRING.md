@@ -138,4 +138,30 @@ Get-ChildItem tests\Cybersole.Tests -Filter *.cs | Select-String -Pattern 'Vendo
 **状态因此是 `DetectedOnly`，不是 `NotAChallenge`**；`NotAChallenge` 这个枚举值**保留但空置**——
 让分类法显示一个空状态，而不是悄悄缩小。
 
+## 十、PerimeterX 与 Imperva：两种**不同**的缺口（R1278 从 `PerimeterXMarkerTests` 搬出）
+
+这两家互为镜像，把它们放在一起才看得出 `Gap` 那一列在区分什么：
+
+| 厂商 | `Gap` | `MarkerSource` | `Marker` | 含义 |
+|---|---|---|---|---|
+| `imperva` | **`VendorAbsent`** | — | — | 厂商**整体不在**镜像里（六种拼写都没有） |
+| `perimeterx` | **`NoPageMarker`** | **`Inferred`** | `px-captcha` | 厂商**在**（清单里有五条字面量），但**没有一条能作为页面标记** |
+
+### PerimeterX 的五条字面量，逐条分类
+
+```
+PerimeterX             本仓自己的叙述文字
+PerimeterX-Token       cookie 名
+PerimeterXHandler      类名
+_pxHandler             字段名
+Solving PerimeterX     现在进行时 —— 唯一一条说明「原版真的解这一家」而不是只绕开它
+```
+
+**R1023 的更正**：原先记的是**四条**。R1022 那条查询取了显示名的前四个匹配就停了，
+所以没看见 `Solving PerimeterX`（`0x146e9423c`）。它推翻了 R1022 的猜测「换代理就是它的全部应对」。
+
+⇒ **`MarkerSource.Inferred` 这一列存在的理由就在这里**：`px-captcha` 是**推断**出来的页面标记，
+不是镜像里的字面量。把「读到的」与「推断的」分成两列，才不会把后者当前者用。
+
+
 

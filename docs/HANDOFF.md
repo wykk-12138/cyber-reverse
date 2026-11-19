@@ -7914,3 +7914,13 @@ Observation：
 **下轮**：`PerimeterXMarkerTests`（Gap 5 · Rows 3 · MarkerSource 1）。
 
 还剩什么：① VendorWiring 第 2 步（7/9）；② 三个同名碰撞确认；③ 17 条 no-hit；④ connect 通道（需登录）。
+## R1278 —— PerimeterXMarkerTests 留 2 删 2；两种缺口（Absent vs NoPageMarker）进 docs §10；3/9 完成
+
+Observation：
+- 四条断言：两条测 `AntiBotVendors`（行为）、两条读 `Rows`（台账）。
+- 文档新增 §10：五条字面量分类 + `Solving PerimeterX` @0x146e9423c + `Inferred` 的理由。
+- 全量 2509 → **2507**（−2）。
+
+**下轮**：`VendorGapTests`（Gap 7 · Rows 2 · MarkerSource 2）。
+
+还剩什么：① VendorWiring 第 2 步（6/9）；② 三个同名碰撞确认；③ 17 条 no-hit；④ connect 通道（需登录）。

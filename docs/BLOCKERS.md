@@ -46827,3 +46827,50 @@ Inference = 「两条清单断言属行为」；Unknown = QueueIt 那个文件�
 
 证据等级：Observation = 六条命中数与首条原文、44/44、2509 收据；
 Inference = 「四条断言纯台账」；Unknown = PerimeterX 那三条 `Rows` 是否也纯台账（下轮读）。
+## R1278 —— 第 3 个文件：`PerimeterXMarkerTests` 只留**两条真断言**，两种缺口写进文档
+
+### 一、四条里两条是行为、两条是台账
+
+| 断言 | 性质 | 处置 |
+|---|---|---|
+| `TheInventoryEntryIsTheFiveClassifiedLiterals` | 运行时清单（`AntiBotVendors.All`） | **留** |
+| `NoneOfTheFourIsAPageLevelLiteral` | 运行时清单 | **留** |
+| `TheRowRecordsTheGapAsAMissingPageMarker` | 读 `VendorWiring.Rows` 的 gap/marker/来源 | **删** |
+| `BothGapKindsHaveALiveExample` | 读两行台账证明"两种状态都有实例" | **删** |
+
+### 二、删掉的两条，其内容进文档第十节
+
+| 厂商 | `Gap` | `MarkerSource` | `Marker` |
+|---|---|---|---|
+| `imperva` | **`VendorAbsent`** | — | — |
+| `perimeterx` | **`NoPageMarker`** | **`Inferred`** | `px-captcha` |
+
+这两行并排放才看得出 `Gap` 那一列在区分什么：**整体不在** vs **在但没有页面标记**。
+
+并且把 PerimeterX 的**五条字面量逐条分类**写清：
+`PerimeterX` 是本仓叙述、`PerimeterX-Token` 是 cookie 名、`PerimeterXHandler` 是类名、
+`_pxHandler` 是字段名、**`Solving PerimeterX`（0x146e9423c）是现在进行时**——
+唯一一条说明**原版真的解这一家**而不是只绕开它的。
+
+⇒ 这正是 `MarkerSource.Inferred` 存在的理由：**`px-captcha` 是推断，不是镜像字面量**。
+
+### 三、一次锚点失败，改用脚本
+
+`edit` 的 old_string 因措辞差异没匹配上。**没有硬凑字符串**，而是写了
+`analysis/trim_perimeterx_tests.py`：定位第二个测试方法的闭合花括号、截断、追加说明。
+结果：77 行 → **57 行**，两条真断言完整保留。
+
+### 四、验证
+
+`dotnet build` 0 错；`PerimeterX` **10/10**（原 12）；全量 2509 → **2507**（5m42s，−2，
+正是被删的两条台账断言）。
+
+### 五、进度
+
+| 项 | 值 |
+|---|---|
+| 已解耦 | **3 / 9** |
+| 下一个 | `VendorGapTests`（`Gap` 7 · `Rows` 2 · `MarkerSource` 2） |
+
+证据等级：Observation = 四条断言的性质、77→57 行、10/10、2507 收据；
+Inference = 「两行并排才显出 Gap 的分类力」；Unknown = VendorGapTests 里哪几条是真行为（下轮读）。

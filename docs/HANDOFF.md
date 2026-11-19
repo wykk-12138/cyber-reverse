@@ -7924,3 +7924,12 @@ Observation：
 **下轮**：`VendorGapTests`（Gap 7 · Rows 2 · MarkerSource 2）。
 
 还剩什么：① VendorWiring 第 2 步（6/9）；② 三个同名碰撞确认；③ 17 条 no-hit；④ connect 通道（需登录）。
+## R1279 —— VendorGapTests 删除；四条列间不变量进 docs §11（含"加行须人工核"的代价）；4/9 完成
+
+Observation：
+- 四条断言全读 `Rows`，守的是列间关系（缺口⇔推断、无缺口⇔字面量、分组两桶）。
+- 全量 2507 → **2503**（−4）。
+
+**下轮**：`VendorSolvingModeTests`（Solver 7 · Rows 4）。
+
+还剩什么：① VendorWiring 第 2 步（5/9）；② 三个同名碰撞；③ 17 条 no-hit；④ connect 通道（需登录）。

@@ -46874,3 +46874,40 @@ Inference = 「四条断言纯台账」；Unknown = PerimeterX 那三条 `Rows` 
 
 证据等级：Observation = 四条断言的性质、77→57 行、10/10、2507 收据；
 Inference = 「两行并排才显出 Gap 的分类力」；Unknown = VendorGapTests 里哪几条是真行为（下轮读）。
+## R1279 —— 第 4 个文件：`VendorGapTests` 整份删，但把**四条不变量**留下
+
+### 一、四条断言都走 `VendorWiring.Rows`，但内容不是"某一行写了什么"
+
+它们守的是**两列之间的关系**：
+
+| 不变量 | 内容 |
+|---|---|
+| **I-1** | 只有 `imperva`（`VendorAbsent`）与 `perimeterx`（`NoPageMarker`）带缺口，其余行 `Gap == None` |
+| **I-2** | `Gap == None` 的每一行，`MarkerFrom == ImageLiteral` |
+| **I-3** | `Gap != None` 的每一行，`MarkerFrom == Inferred` |
+| **I-4** | 按 `Gap` 分组：`VendorAbsent` 恰好 `[imperva]`、`NoPageMarker` 恰好 `[perimeterx]` |
+
+### 二、I-2 与 I-3 合起来是一条**硬约束**
+
+> **有缺口** 的厂商，它的页面标记**不可能**是镜像里的字面量——若是字面量，那就不叫缺页面标记了。
+
+这是整张表**自洽性**的来源：谁往表里加一行"有缺口、但标记是字面量"，它就自相矛盾，I-2/I-3 立刻指出。
+
+### 三、代价写清楚
+
+表搬走之后**没有测试守这四条了**。所以文档里明写：
+**以后加行必须人工核这四条**。这是"台账搬出 `src`"的真实代价，不掩饰。
+
+### 四、验证
+
+`dotnet build` 0 错；`Vendor|Wall` **76/76**；全量 2507 → **2503**（4m43s，−4，正是这四条）。
+
+### 五、进度
+
+| 项 | 值 |
+|---|---|
+| 已解耦 | **4 / 9** |
+| 下一个 | `VendorSolvingModeTests`（`Solver` 7 · `Rows` 4） |
+
+证据等级：Observation = 四条不变量的原文、76/76、2503 收据；
+Inference = 「I-2/I-3 是自洽约束」；Unknown = `VendorSolvingModeTests` 里 `Solver` 那七处是否全为台账。

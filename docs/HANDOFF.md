@@ -7389,3 +7389,13 @@ Observation：
 新产物：`analysis/catalog_literals.py`、`analysis/site_catalog_names.txt`。
 
 还剩什么：① 56 条逐条归类（店铺/id/测试）；② connect 通道；③ 两条 Unknown；④ UI CS0108（冻结）。
+## R1231 —— 88 条五档；真缺口 = EntertainmentEarth / JDGroup / VirgilAbloh 三个店 id
+
+Observation：
+- 五档：pair-id 7（复刻件有 3）、pair-display 7（有 4）、unpaired 65（有 33）、test 2、utility 7。
+- 修正大小写敏感比较后，缺口从"虚增 8 条"回到真实值；`NikeGS` 实为 `NikeGsFlow.cs:13`。
+- 三 id 各拼法与域名均检索：`EntertainmentEarth`/`JDGroup`/`VirgilAbloh` 缺。
+
+**下一步**：按 `FarfetchFlow` 的处理方式补这三个目录条目（id + 显示名，端点标 Unknown + 所缺条件）。
+
+还剩什么：① 32 条 unpaired 缺席归类；② connect 通道；③ 两条 Unknown；④ UI CS0108（冻结）。

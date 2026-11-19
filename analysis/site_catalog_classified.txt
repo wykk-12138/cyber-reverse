@@ -1,0 +1,104 @@
+# Classification of the 88 literals referenced by sub_140F7DDE0.
+# pair-display / pair-id are the two halves of one catalog entry (display name and id).
+# "in replica" means the same literal appears somewhere under replica/src; it does not
+# prove the replica lists that store in its catalog, only that the token exists there.
+# Regenerate with: python analysis/catalog_classify.py
+
+# pair-id: 7 total, 3 appear in replica/src
+CheckoutTest                  	-
+DicksSportingGoods            	in-replica
+EntertainmentEarth            	-
+JDGroup                       	-
+JohnLewis                     	in-replica
+NikeGS                        	in-replica
+VirgilAbloh                   	-
+
+# pair-display: 7 total, 4 appear in replica/src
+Checkout Test                 	-
+Dicks Sporting Goods          	in-replica
+Entertainment Earth           	-
+JD Group                      	in-replica
+John Lewis                    	in-replica
+Nike GS                       	in-replica
+Virgil Abloh                  	-
+
+# unpaired: 65 total, 33 appear in replica/src
+Asics                         	in-replica
+Burberry                      	-
+Casio                         	in-replica
+Converse                      	in-replica
+ConversePH                    	-
+CpCompany                     	in-replica
+Crocs                         	in-replica
+Crocs ES                      	-
+Crocs EU                      	in-replica
+CrunchyRoll                   	-
+Currys                        	-
+Demandware                    	in-replica
+Demandware (Funko)            	in-replica
+Disney                        	in-replica
+EndClothing                   	in-replica
+Endclothing                   	in-replica
+FC2                           	-
+Farfetch                      	in-replica
+Footlocker (Asia)             	in-replica
+FootlockerMagento             	-
+Footsites                     	in-replica
+ForseClub                     	-
+Funko                         	in-replica
+FunkoShop                     	-
+GameStop                      	-
+Goat                          	in-replica
+HBX                           	in-replica
+Hbx                           	in-replica
+Highsnobiety                  	-
+HumanMade                     	-
+Jacquemus                     	in-replica
+Kickz                         	-
+MSCHF                         	-
+Magento                       	in-replica
+MaisonMargiela                	-
+MarcJacobs                    	in-replica
+Mesh                          	-
+NewBalance                    	-
+Nike                          	in-replica
+OffSpring                     	in-replica
+On (Korea)                    	-
+OnKorea                       	-
+Panini                        	in-replica
+PaniniUS                      	-
+Popmart                       	in-replica
+Puma                          	in-replica
+Round1                        	in-replica
+Saucony                       	-
+Scheels                       	in-replica
+Shopify                       	in-replica
+SportShoes                    	-
+StoneIsland                   	in-replica
+Supreme Signups               	-
+SupremeWaitwhile              	-
+Swatch                        	in-replica
+Timberland                    	-
+ToysRus                       	-
+Uniqlo                        	-
+Vans                          	in-replica
+VansDrops                     	-
+VansUS                        	-
+Waitwhile                     	-
+Warhammer                     	in-replica
+Yoox                          	-
+Yoox Group                    	-
+
+# test: 2 total, 0 appear in replica/src
+Captcha Test                  	-
+CaptchaTestPublic             	-
+
+# utility: 7 total, 2 appear in replica/src
+ ^\\d+$                       	-
+AO                            	in-replica
+Buffering                     	in-replica
+^[0-9]{12}$                   	-
+^[0-9]{13}$                   	-
+^[3|4|5|6|7][0-9]{13}$        	-
+^[A-Za-z]{2,4}_[0-9]{6,}$     	-
+

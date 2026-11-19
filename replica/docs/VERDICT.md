@@ -67581,3 +67581,33 @@ R1204–R1207 从域名/显示名/标签/xref 四条路找店目录，全败。
 |---|---|
 | 新工具 | `analysis/catalog_literals.py` + `site_catalog_names.txt` |
 | 代码改动 | 无（`replica/src`） |
+---
+
+## 第 1231 轮：五档分完，3 个真店 id 缺；并修了自己脚本的大小写假阳性
+
+第一版用大小写敏感的 `in` 判存在 ⇒ `NikeGS` 被误判缺失（实际在 `NikeGsFlow.cs:13`）。
+**镜像与复刻件标识符大小写不同**，改成小写比较后：pair-id 2→**3**/7、pair-display 3→**4**/7、unpaired 25→**33**/65。
+
+⇒ **一次大小写能让"缺口"虚增 8 条。**
+
+### 五档
+
+pair-display/pair-id（成对，显示名↔id）7/7 · unpaired 65 · test 2 · utility 7。
+
+### 真缺口：3 个店 id
+
+| id | 状态 |
+|---|---|
+| `EntertainmentEarth` | **缺**（任何拼法/域名都无） |
+| `JDGroup` | **缺**（有 `jdsports`，无 `JDGroup` 条目；疑为集团级） |
+| `VirgilAbloh` | **缺**（`virgilabloh`/`off---white` 均无） |
+| `CheckoutTest` | 测试条目，**不该有** |
+
+端点属服务端下发（connect 通道）⇒ 即便补目录条目，flow 主体仍 `Unknown`（同 `FarfetchFlow` 处理）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 代码改动 | 无 |
+| 新工具 | `analysis/catalog_classify.py` + `site_catalog_classified.txt` |

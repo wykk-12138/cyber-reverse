@@ -44776,3 +44776,48 @@ R1230 给 `dis` 加了 `--lines` / `--offset` 转发。
 证据等级：Observation = 237/88/32/56 四个数、成对出现的样本、`dis` 只回 10 条的实测；
 Inference = 「成对即 name/display 两字段」（与 R1077 的 `{name,display,typeId,flag}` 一致）；
 Unknown = 56 条各自的归类（店铺 / id / 测试 / 工具串）。
+## R1231 —— 88 条分成五档；**3 个真店 id 复刻件没有**；并修了我自己脚本的大小写假阳性
+
+### 一、先记我自己的错
+
+第一版 `catalog_classify.py` 用 `t in replica`（**大小写敏感**）判存在，
+于是 `NikeGS` 被判「复刻件没有」—— 而它明明在 `NikeGsFlow.cs:13` 与 `Registry.cs:264`。
+**镜像与复刻件的标识符大小写不同**（`NikeGS` vs `NikeGs`）⇒ 改成小写比较后才算对。
+
+| 档 | 修正前 | 修正后（在复刻件里） |
+|---|---|---|
+| pair-id | 2/7 | **3/7** |
+| pair-display | 3/7 | **4/7** |
+| unpaired | 25/65 | **33/65** |
+| test | 0/2 | 0/2 |
+| utility | 2/7 | 2/7 |
+
+⇒ **一次大小写就能让"缺口"虚增 8 条。** 这条写进产物文件头。
+
+### 二、五档的划分依据（规则，非判决）
+
+| 档 | 判定 | 数量 |
+|---|---|---|
+| pair-display / pair-id | 带空格的显示名与去空格孪生成对（`Dicks Sporting Goods` ↔ `DicksSportingGoods`） | 7 / 7 |
+| unpaired | 无孪生的单词条目（单词店铺就是这个形状） | 65 |
+| test | 字面量含 `Test` | 2 |
+| utility | 正则/数字/日志串（`^\d+$`、`Buffering`、`AO`） | 7 |
+
+### 三、真缺口：3 个店 id
+
+| id | 复刻件 | 判读 |
+|---|---|---|
+| `EntertainmentEarth` | 无任何拼法、无域名 | **缺** |
+| `JDGroup` | 有 `jdsports`（`MagentoFlow:515/517`），但没有 `JDGroup` 这一条 | **缺**（可能是集团级条目） |
+| `VirgilAbloh` | 无（`virgilabloh`/`off---white` 均无） | **缺** |
+| `CheckoutTest` | 无 | 测试条目，**不该有** |
+
+⇒ **优先①的下一批取件就是这三条**。注意：它们的端点属**服务端下发**（R1229 的 connect 通道），
+所以即便补上目录条目，flow 主体仍是 `Unknown` —— 与 `FarfetchFlow` 的处理方式一致。
+
+### 四、验证
+
+无 `replica/src` 改动。产物：`analysis/site_catalog_classified.txt`（五档 + 逐条 in-replica 标记 + 大小写说明）。
+
+证据等级：Observation = 五档计数、修正前后的差、三个 id 的多拼法检索、`NikeGsFlow` 的实际位置；
+Inference = 「`JDGroup` 是集团级条目」；Unknown = 32 条 unpaired 缺席里哪些是真店名。

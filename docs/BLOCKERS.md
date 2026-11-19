@@ -44206,3 +44206,49 @@ Inference = 「两条构建器分属不同调用面」；Unknown = 第一段之�
 
 证据等级：Observation = 45 条常量与地址、三处 UA 地址不同、三项查重缺失；
 Inference = 「`paypal` + `mandate_data` ⇒ 钱包付款路径」；Unknown = `true` 归属哪个键、两条 `*_flow` 的取值。
+## R1218 —— 「解出协议」与「接进流程」是两件事：**四个构建器经间接派发到达，xref 走不通**
+
+### 一、查调用面（本轮的核心问题）
+
+对 R1214–R1217 落地的四个构建器查 `xrefs_to`：
+
+| 函数 | xrefs | 调用者 |
+|---|---|---|
+| `sub_140BE0F80`（setup confirm） | 4 | `sub_14254DD40` · `sub_14254DDE0` · `sub_142B8E620` |
+| `sub_141145DB0`（setup retrieve） | 4 | `sub_14258B650` · `sub_14258B6E0` · `sub_142C7C700` |
+| `sub_140A40170`（pi retrieve, clover） | 4 | `sub_1428DFAA0` · `sub_1428DFB40` · `sub_142B317A0` |
+| `sub_140B58D60`（paypal confirm） | 4 | `sub_1425456E0` · `sub_142545780` · `sub_142B71940` |
+
+**全部落在 `0x1425xxxx`–`0x142Bxxxx` 区**。抽一个看体：
+
+`c
+__int64 __fastcall sub_1425456E0(__int64 a1) { return sub_140B58D60(a1 + 64); }
+`
+
+**一行 thunk**，自身上游 `xrefs=2` 且**调用者为无名/data 引用**。
+
+### 二、结论（不是"没查到"，是这条路走不通）
+
+四个构建器都经 **delegate / 虚表间接派发**到达 ⇒ **「哪个 flow 调用哪条 Stripe 表面」无法用 xref 走链回答**。
+这与 `PAYMENT_CHALLENGES.md` 里"六个步骤名是数据表条目、0 代码引用"是同一现象的两端：
+**名字在数据里，调用在间接派发里。**
+
+**缺的工件**（写死）：派发槽的解析结果——即某条 flow 步骤表里指向这些函数的那一格；
+在此之前，任何"把 X 接到 Y flow"的写法都是**对行为的猜测**，不做。
+
+### 三、复刻件侧的诚实状态
+
+本轮实测：`PayPalConfirmForm` / `SetupConfirmForm` / `SetupIntentRetrieveUrl` / `PaymentIntentRetrieveUrl` /
+`PaymentIntentConfirmUrl` 在 `replica/src` 里**只命中各自的定义行，没有任何调用点**。
+
+⇒ **四个表面是"能力已就位、尚未接线"**，不是"已落地到流程"。两者差别很大，账上必须写清。
+本轮**不接线**：接线的依据（派发槽）不在手上。
+
+### 四、这条与判据的关系
+
+- 判据 (a)/(b)：不受影响（形状 91/3、类型级 0、名字级 real gap 0）；
+- 判据 (d)：新增 4 条 claim 的**证据链完整**（函数地址 → 常量 → 落地位置），但 claim 的性质是
+  **"协议已解码并可用"**，**不是"流程已使用"**。措辞必须保持这个区别。
+
+证据等级：Observation = 四组 xref 与 thunk 反编译、`replica/src` 五个名字零调用点；
+Inference = 「经 delegate/虚表间接派发」；Unknown = 各 flow 步骤表里指向它们的槽位。

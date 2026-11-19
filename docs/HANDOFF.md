@@ -7240,3 +7240,14 @@ Observation：
 验证：build 0 错；**15/15**；全量 **2492/0/2/2494**（4m24s）。
 
 下一步：三条 UA 的三处调用面是否都需在 flow 里接线（当前只有 MagentoFlow 用其一）。
+## R1218 —— 四个构建器经间接派发，xref 走不到调用面；复刻件侧零调用点（能力已就位、未接线）
+
+Observation：
+- 四组 xref 的调用者全在 0x1425xxxx–0x142Bxxxx；`sub_1425456E0` 反编译为一行 thunk `return sub_140B58D60(a1 + 64);`，上游无名。
+- `PayPalConfirmForm`/`SetupConfirmForm`/`SetupIntentRetrieveUrl`/`PaymentIntentRetrieveUrl`/`PaymentIntentConfirmUrl`
+  在 replica/src **只命中定义行，零调用点**。
+
+**判断**：协议已解码可用 ≠ 流程已使用。**不接线**（缺派发槽依据）。
+缺的工件：flow 步骤表里指向这些函数的那一格。
+
+还剩什么：① 派发槽解析（vtable/步骤表）；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。

@@ -7569,3 +7569,15 @@ Observation：
 
 还剩什么：① 两钉与表面的对应（需派发或实机）；② Middleware/Waitwhile 余项；③ connect 通道（需登录）；
 ④ 两条 Unknown（BotTask.Running/Task）；⑤ UI CS0108（冻结）。
+## R1246 —— Omise: 镜像只有 checkout-page.omise.co（3 条），api.omise.co 零命中；补 sessions + 裸根（+4 测试）
+
+Observation：
+- 六家网关 host 各 2 次命中；`api.omise.co` **0**。
+- `omise` 的 8 次命中全是 "Promise"（假阳性），须带 host 搜。
+- 真命中：`checkout-page.omise.co/`（0x14705CD0C）、`/api/payment`（0x14705CD64）、`/api/sessions/`（0x14705CDD4）。
+
+改动：`CheckoutPageUrl` + `SessionsPath`/`SessionsUrl`；`ApiHost` 注释改为"未获证据"（不删）。
+验证：build 0 错；4/4；全量 **2520/0/2/2522**（4m29s）。
+
+还剩什么：① 原版真正的 Omise tokenising host（若有）；② Square/CommerceHub 端点逐条核；
+③ connect 通道（需登录）；④ 两条 Unknown；⑤ UI CS0108（冻结）。

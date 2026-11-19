@@ -68008,3 +68008,24 @@ R1216 的 `sub_140A40170` 是 clover。⇒ **同形状、两个钉**。
 |---|---|
 | 全量 | **2516 通过 / 0 失败 / 2 跳过 / 2518**（4m31s，+2） |
 | StripeSetupIntent | **17/17** |
+---
+
+## 第 1246 轮：Omise 的 host 与镜像不符
+
+七家网关 host 逐条对照镜像：Square / CommerceHub / Paynamics / Sibs / EshopWorld / Disney **都有 2 次命中**；
+**`api.omise.co` 0 次**。而 `ida.py str omise` 的 8 条命中**全是 "Pr**omise**"**——必须带 host 才是真命中。
+
+镜像真有的是 **`checkout-page.omise.co`** 三条：裸根（0x14705CD0C）、`/api/payment`（0x14705CD64）、
+**`/api/sessions/`（0x14705CDD4）**。
+
+`/api/payment` 复刻件已有（`MagentoFlow:838`）；补 `CheckoutPageUrl` 与 `SessionsUrl`。
+`ApiHost` **不删**，但注释改成**"镜像 0 命中、未获证据"**——状态是"未证"不是"已验证"。
+
+测试刻意钉「镜像有据的 host 是 checkout 那个」⇒ **把"哪个 host 有证据"变成断言**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2520 通过 / 0 失败 / 2 跳过 / 2522**（4m29s，+4） |
+| OmiseSurface | **4/4** |

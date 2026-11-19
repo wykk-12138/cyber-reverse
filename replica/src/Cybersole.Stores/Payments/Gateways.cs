@@ -917,8 +917,30 @@ public sealed class CommerceHubGateway : IPaymentGateway
 /// <summary>Omise — <c>api.omise.co/tokens</c> then a hosted checkout page.</summary>
 public sealed class OmiseGateway : IPaymentGateway
 {
+    /// <summary>
+    /// <b>Not attested in the image.</b> R1246 searched the binary for <c>api.omise.co</c> and found nothing; the
+    /// three Omise literals it does carry all sit on <see cref="CheckoutHost"/>. This constant is kept rather than
+    /// removed because deleting a tokenising host is a product decision, but a later round should either find the
+    /// evidence for it or replace it with whatever the image actually posts to — the honest state is "unevidenced",
+    /// not "verified".
+    /// </summary>
     private const string ApiHost = "https://api.omise.co";
+
     public const string CheckoutHost = "https://checkout-page.omise.co";
+
+    /// <summary>The hosted checkout root, verbatim (0x14705CD0C) — with the trailing slash the image carries.</summary>
+    public const string CheckoutPageUrl = "https://checkout-page.omise.co/";
+
+    /// <summary>
+    /// The sessions endpoint (0x14705CDD4). It had no presence in the replica before R1246, while the image carries it
+    /// together with <c>https://checkout-page.omise.co/api/payment</c> (0x14705CD64) — the latter was already used at
+    /// <c>MagentoFlow:838</c>, so only the sessions path was missing.
+    /// </summary>
+    public const string SessionsPath = "/api/sessions/";
+
+    /// <summary><c>{CheckoutHost}/api/sessions/{id}</c>.</summary>
+    public static string SessionsUrl(string sessionId) =>
+        CheckoutHost + SessionsPath + Uri.EscapeDataString(sessionId ?? string.Empty);
 
     public string Id => "omise";
     public string Name => "Omise";

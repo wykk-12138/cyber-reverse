@@ -45489,3 +45489,51 @@ Inference = 「location → data-fields 的调用顺序」；Unknown = `?_=` 的
 
 证据等级：Observation = 五条常量与地址、basil 的地址；
 Inference = 「同形状两钉」；Unknown = 哪个表面用哪个钉。
+## R1246 —— Omise：镜像里的 host 是 **`checkout-page`**，复刻件的 `api.omise.co` **零证据**
+
+### 一、五家网关 host 逐条对照镜像（`ida.py str`）
+
+| host | 镜像 | 例 |
+|---|---|---|
+| `pci-connect.squareup.com` | **2** | `SquareHost@https://pci-connect.squareup.com` |
+| `commercehub-secure-data-capture.fiservapps.com` | **2** | `3.8.16(CommercehubSdcOriginlhttps://…` |
+| `api.paynamics.net` | **2** | `<GetPaymentPage>b__10_0@https://api.paynamics.net/v1/rp…` |
+| `api.sibspayments.com` | **2** | `ValidationDate8https://api.sibspayments.com` |
+| `payments-panel.production.eshopworld.com` | **2** | 直出 |
+| `paymentsheet-ent.wdprapps.disney.com` | **2** | 直出 |
+| **`api.omise.co`** | **0** | — |
+
+⇒ 五家**有据**，**Omise 的 tokenising host 一分证据都没有**。
+
+### 二、搜 `omise` 会骗人（本轮实测）
+
+`ida.py str omise` 返回 **8 条，全是 "Pr**omise**"**（`Promise`/`BrowserPromise`/`JsPromise`…）。
+**必须带 host** 才是真命中：
+
+| 字面量 | 地址 |
+|---|---|
+| `https://checkout-page.omise.co/` | 0x14705CD0C |
+| `https://checkout-page.omise.co/api/payment` | 0x14705CD64 |
+| **`https://checkout-page.omise.co/api/sessions/`** | 0x14705CDD4 |
+
+### 三、闭环
+
+`/api/payment` 复刻件**已有**（`MagentoFlow:838`）；**`/api/sessions/` 与裸根缺** ⇒ 补齐：
+
+| 新增 | 内容 |
+|---|---|
+| `CheckoutPageUrl` | `https://checkout-page.omise.co/`（含尾斜杠，逐字） |
+| `SessionsPath` / `SessionsUrl(id)` | `/api/sessions/?{id}` 形状 |
+
+`ApiHost` **不删**（删 host 是产品决定），但注释改成**明确写"镜像 0 命中、未获证据"**，
+并写明后续要么找到证据、要么换成镜像真用的 host——**状态是"未证"，不是"已验证"**。
+
+### 四、验证
+
+`dotnet build` 0 错；`OmiseSurface` **4/4**；全量 **2520 通过 / 0 失败 / 2 跳过 / 2522**（4m29s，+4）。
+
+测试里刻意钉了「镜像有据的那个 host 是 checkout 那个」——**把"哪个 host 有证据"变成断言**，
+不是只写在注释里。
+
+证据等级：Observation = 七家 host 的命中计数、三条 Omise 字面量与地址、`omise` 的 8 次 "Promise" 假命中；
+Inference = 「`api.omise.co` 未被证据支持」；Unknown = 原版真正用的 tokenising host（若存在）。

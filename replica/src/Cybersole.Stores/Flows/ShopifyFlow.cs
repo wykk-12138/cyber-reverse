@@ -154,6 +154,8 @@ public class ShopifyFlow : StoreFlow
             ["quantity"] = c.Session.Quantity,
         };
 
+        // R1253: the image carries cart/add.js as a token without the leading slash, so this URL is the origin plus
+        // an attested token rather than an invented path. Same for cart/update.js below.
         var res = await PostJsonAsync(c, Origin(c.Url) + "/cart/add.js",
             payload.ToString(Newtonsoft.Json.Formatting.None), "shopify-cart-add", ct)
             .ConfigureAwait(false);
@@ -237,6 +239,7 @@ public class ShopifyFlow : StoreFlow
         if (c.Session.Quantity <= 1) return StepOutcome.Success();
 
         var payload = new JObject { ["line"] = 1, ["quantity"] = c.Session.Quantity };
+        // R1253: cart/update.js is likewise an attested token (no leading slash in the image).
         var res = await PostJsonAsync(c, Origin(c.Url) + "/cart/update.js",
             payload.ToString(Newtonsoft.Json.Formatting.None), "shopify-cart-change", ct)
             .ConfigureAwait(false);

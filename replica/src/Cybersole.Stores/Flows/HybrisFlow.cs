@@ -68,6 +68,8 @@ public sealed class HybrisFlow : StoreFlow
     /// <summary>Verified: GET /view/component/basket/minibasketAjax answers JSON.</summary>
     public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
     {
+        // R1253: view/component/basket/minibasketAjax is attested in the image as a token without the leading slash;
+        // this URL is the origin plus that token, not an invented path.
         var res = await GetAsync(c, Origin(c.Url) + "/view/component/basket/minibasketAjax",
             _id + "-minibasket", ct).ConfigureAwait(false);
 
@@ -196,6 +198,8 @@ public sealed class HybrisFlow : StoreFlow
             ["qty"] = c.Session.Vars.TryGetValue("qty", out var qty) && qty.Length > 0 ? qty : "1",
         };
 
+        // R1253: view/basket/add is an attested token too (the image also carries view/basket/addPromotionalCode
+        // beside it, which is what identified this family as Hybris basket endpoints rather than guessed ones).
         var res = await PostFormAsync(c, Origin(c.Url) + "/view/basket/add", form,
             _id + "-basket-add", ct).ConfigureAwait(false);
 

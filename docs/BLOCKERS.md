@@ -45786,3 +45786,35 @@ Inference = 「原版由这两段拼出同一路径」；Unknown = 哪家店用�
 
 证据等级：Observation = 9/17 两个数、六条 token 命中、两条异站命中及其 host；
 Inference = 「6 条属 assembled」；Unknown = 17 条各自属于"片段拼接/不使用/服务端下发"哪一种。
+## R1253 —— 六条 assembled 全部**已在源码里实现**：本轮只补证据标注（行为零改动）
+
+### 一、查重结果：四条 token 的调用点都存在
+
+| 字面量 | 源码位置 | 镜像形态 |
+|---|---|---|
+| `cart/add.js` | `ShopifyFlow.cs:157` 的 `/cart/add.js` | **无前导斜杠 token** |
+| `cart/update.js` | `ShopifyFlow.cs:240` | 同上 |
+| `view/basket/add` | `HybrisFlow.cs:199` | 同上（旁边还有 `view/basket/addPromotionalCode`） |
+| `view/component/basket/minibasketAjax` | `HybrisFlow.cs:71` | 同上 |
+| `/rest/V1/carts/mine` · `/rest/V2/carts/mine` | `MagentoFlow`（R1251 已改用 `MagentoRest` 组合） | `/rest/V1` + `carts/mine` |
+
+⇒ **六条的运行时行为一直都在**。上一轮把它们从"无近邻"改成"assembled"，
+**改变的是证据等级，不是代码行为**。这一点必须写清，否则会被误读成"又补了六个端点"。
+
+### 二、本轮只做一件事：把证据写进代码
+
+四处调用点各加一行注释，说明**镜像是无前导斜杠的 token**，所以该 URL 是
+**origin + 已证实 token**，不是编造路径。**零行为改动**。
+
+### 三、为什么值得单独一轮
+
+判据 (d) 要求**每条 claim 有权威出处**。这四条原本在 `flow_path_audit` 里是 "no-hit"，
+读者会以为它们没证据；现在代码里写着"镜像存的是 token"，
+**审计表与源码注释对同一事实给出同一个答案**。
+
+### 四、验证
+
+`dotnet build` 0 错；`Shopify|Hybris` **41/41**；全量 **2526 通过 / 0 失败 / 2 跳过 / 2528**（4m44s）。
+
+证据等级：Observation = 四条 token 的镜像形态、四处调用点行号、全量套件收据；
+Inference = 无新增；Unknown = 无（这四条已定性）。

@@ -7648,3 +7648,14 @@ Observation：
 **纪律**：近邻命中必须看来源 host，否则就是噪声。
 
 还剩什么：① 17 条逐条定性；② 6 条 assembled 写进常量；③ connect 通道（需登录）；④ 两条 Unknown；⑤ UI CS0108（冻结）。
+## R1253 —— 六条 assembled 已实现（行为 0 改动），只在四处补"镜像是 token"的证据注释
+
+Observation：
+- `cart/add.js`（ShopifyFlow:157）· `cart/update.js`（:240）· `view/basket/add`（HybrisFlow:199）·
+  `view/component/basket/minibasketAjax`（:71）——调用点全在；`carts/mine` 两条 R1251 已用组合。
+- 镜像形态：四条均为**无前导斜杠 token**。
+
+验证：build 0 错；Shopify|Hybris 41/41；全量 **2526/0/2/2528**（4m44s）。
+
+还剩什么：① 17 条无近邻逐条定性；② connect 通道（需登录）；③ 两条 Unknown（BotTask.Running/Task）；
+④ UI CS0108（冻结）；⑤ 产物已落后（多轮 src 改动）。

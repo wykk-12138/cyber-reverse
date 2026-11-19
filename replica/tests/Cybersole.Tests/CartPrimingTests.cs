@@ -103,21 +103,6 @@ public class CartPrimingTests
         Assert.Contains("per-shop", unknown);
     }
 
-    /// <summary>The coverage table now records the corrected meaning rather than the dry-run claim.</summary>
-    [Fact]
-    public void TheCoverageNoteIsCorrected()
-    {
-        var rows = ((string, bool, string)[])typeof(AddToCartCoverage)
-            .GetField("Rows", BindingFlags.NonPublic | BindingFlags.Static)!
-            .GetValue(null)!;
-
-        var dummy = rows.Single(r => r.Item1 == "AddToCartDummy");
-        Assert.Contains("cart priming", dummy.Item3);
-        // the note names the old reading in order to reject it, so the test asserts the rejection rather than the absence
-        // of the words -- which is what the first version of this test got wrong.
-        Assert.Contains("not a dry run", dummy.Item3);
-    }
-
     private static string RepoRoot()
     {
         var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);

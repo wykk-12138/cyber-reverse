@@ -7833,3 +7833,13 @@ Observation：
 **下轮**：扫 src 里名字含 `Gaps|Wiring|Witness|Coverage` 的其余类，同口径处置。
 
 还剩什么：① src 台账扫描；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1270 —— AddToCartCoverage 迁 docs（R941/R942 错案原文保留）；src 台账类剩 4；全量 2530/0/2/2532
+
+Observation：
+- 五个台账类行数：90/87/106/97/273，均无协议常量。
+- 处置：表进 `docs/ADD_TO_CART_COVERAGE.md`；源 + 11 条测试删除；两处反射钉子清除（保留真断言）。
+- 全量 2542 → **2530**（−12）。
+
+**下轮**：`LambdaWitness` / `NavigatorCensus` / `PayloadCoverage` / `VendorWiring` 逐个处置。
+
+还剩什么：① 剩余 4 个台账类；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。

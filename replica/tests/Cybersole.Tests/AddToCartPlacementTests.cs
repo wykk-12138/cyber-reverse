@@ -65,12 +65,9 @@ public class AddToCartPlacementTests
             .GetRawConstantValue()!;
 
         Assert.Contains("add-many-boxes", note);
-
-        var coverage = ((string, bool, string)[])typeof(AddToCartCoverage)
-            .GetField("Rows", BindingFlags.NonPublic | BindingFlags.Static)!
-            .GetValue(null)!;
-        var multi = coverage.Single(r => r.Item1 == "AddToCartMulti");
-        Assert.Contains("not a generic multi-item cart", multi.Item3);
+        // R1270: this test used to read AddToCartCoverage.Rows by reflection and assert the wording of its note. That
+        // table is a coverage ledger, so it moved to docs/ADD_TO_CART_COVERAGE.md and its class left src; the assertion
+        // that survives is the one about placement, which is behaviour, not prose.
     }
 
     /// <summary>

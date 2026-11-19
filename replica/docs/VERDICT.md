@@ -68595,3 +68595,28 @@ o-hit）。
 | src 台账类 | **-1** |
 | 协议事实 | 0 丢失 |
 | 用例 | 2543 → 2542（台账钉子随台账走） |
+---
+
+## 第 1270 轮：`AddToCartCoverage` 迁 docs，源与钉子删除（用例 −12 正确）
+
+扫出**五个**台账类：`LambdaWitness`(90) · `AddToCartCoverage`(87) · `NavigatorCensus`(106) ·
+`PayloadCoverage`(97) · `VendorWiring`(273)。全部无协议常量。
+
+本轮处置最小的 `AddToCartCoverage`：
+
+| 动作 | 结果 |
+|---|---|
+| 表 + 两处错案（R941/R942） | 搬进 `docs/ADD_TO_CART_COVERAGE.md`（含复算方法） |
+| `AddToCartCoverage.cs` | 删 |
+| `AddToCartCoverageTests.cs` | 删（11 条） |
+| `AddToCartPlacementTests` 反射块 | 删，**保留 placement 真断言** |
+| `CartPrimingTests.TheCoverageNoteIsCorrected` | 整条删（只测措辞） |
+
+全量 2542 → **2530**（**−12 正确**，无业务断言被削弱）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| src 台账类 | **-1**（剩 4） |
+| 用例 | 2530 通过 / 0 失败 / 2 跳过 |

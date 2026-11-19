@@ -46498,3 +46498,45 @@ Inference = 「文档成员名是措辞产物」；Unknown = 无。
 
 证据等级：Observation = 109 行原文、where_is 的引用面、-1 的用例数；
 Inference = 「改名+拆分比重写更保守」；Unknown = src 里是否还有别的台账类（下轮扫）。
+## R1270 —— 第二个台账类处置：`AddToCartCoverage` 迁到 `docs/`，源与钉子测试一并删除
+
+### 一、五个候选，本轮取最小的那个
+
+扫 `src` 里名字含 `Gap|Wiring|Witness|Coverage|Ledger|Census|Inventory|Audit` 的文件：
+
+| 文件 | 行数 | 内容 |
+|---|---|---|
+| `Flows/LambdaWitness.cs` | 90 | 台账 |
+| `Scripts/AddToCartCoverage.cs` | **87** | 台账（本轮） |
+| `Scripts/NavigatorCensus.cs` | 106 | 台账 |
+| `Scripts/PayloadCoverage.cs` | 97 | 台账 |
+| `Scripts/VendorWiring.cs` | 273 | 台账 |
+
+**五个都是纯台账**（字典/列表 + 备注，无协议常量）。单轮单目标，先取 87 行那个。
+
+### 二、查连带：它被**三**个测试引用，其中两个是反射钉子
+
+`where_is` 显示引用面 6 个文件，其中 `AddToCartPlacementTests`、`CartPrimingTests`
+是用**反射读私有 `Rows` 字段**去断言注记措辞——正是 §3 说的"锁台账行数的钉子"。
+
+### 三、处置（沿用 R1269 的口径：先搬事实，再删代码）
+
+1. 表 + 两处**错案原文**（R941「Dummy 不是试运行」、R942「Multi 是加多盒不是通用多件」）
+   搬进 **`docs/ADD_TO_CART_COVERAGE.md`**，并写明**怎么复算**（`where_is.py <名字>` 看 `implementation` 组）；
+2. 删 `src/Cybersole.Stores/Scripts/AddToCartCoverage.cs`；
+3. 删 `tests/AddToCartCoverageTests.cs`（11 条）；
+4. `AddToCartPlacementTests` 只删那段反射块，**保留关于 placement 的真断言**；
+5. `CartPrimingTests.TheCoverageNoteIsCorrected` **整条删除**——它只断言台账措辞，不测行为。
+
+### 四、用例数 −12 是正确结果
+
+2542 → **2530**（−11 来自被删的台账测试文件，−1 来自那条注记测试）。
+**没有一条业务断言被削弱**：placement 与 priming 的真断言都在。
+
+### 五、还剩四个
+
+`LambdaWitness` / `NavigatorCensus` / `PayloadCoverage` / `VendorWiring`——下轮继续，
+一次一个，同样先搬事实再删。
+
+证据等级：Observation = 五个文件的行数与成员形态、引用面、2542→2530；
+Inference = 「其余四个同属台账」；Unknown = 各自是否含协议常量（逐个读）。

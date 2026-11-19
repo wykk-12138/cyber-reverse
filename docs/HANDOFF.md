@@ -6971,3 +6971,15 @@ Observation：
 还剩什么：① `IWebhook.Events`/`ExtraFields` 回二进制确认可写性；
 ② 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；
 ③ abort 分支未验证；④ 判据 e 两处文档手抄数字；⑤ UI 侧 prop-get（冻结）。
+## R1196 —— IWebhook.Events/ExtraFields 改可写（89/4→88/3）；记下 Type 过度宽松（未改）
+
+Observation：
+- `ida.py str "IWebhook"`：Name/Url/Enabled/Events/ExtraFields 均 Getter+Setter；**Type 仅 Getter**。
+- 改 `Webhook.Events`/`ExtraFields` 为 `{ get; set; }`（仍初始化为空集合）。
+
+验证：build 0 错；全量 **2476/0/2/2478**（4m22s）；变异 **59/59 fired GREEN**（01:32:25）；形状 **88/3**。
+
+**新增未办**：`Webhook.Type` 原版只读、复刻件可写（审计查不出"过度宽松"）——下一轮评估改只读的影响面。
+
+还剩什么：① `Type` 改只读评估；② 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；
+③ abort 分支未验证；④ 判据 e 两处文档手抄数字；⑤ UI 侧 prop-get（冻结）。

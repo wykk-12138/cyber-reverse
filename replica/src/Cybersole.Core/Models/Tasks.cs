@@ -321,7 +321,7 @@ public sealed class Webhook : Cybersole.Core.Webhooks.IWebhook
     /// Extra key/value pairs posted alongside the payload (R318: the image binds IWebhook.ExtraFields and the locale has
     /// Settings.Webhook.ExtraFields, so the settings page has somewhere to put them).
     /// </summary>
-    public Dictionary<string, string> ExtraFields { get; } = new();
+    public Dictionary<string, string> ExtraFields { get; set; } = new();
 
     /// <summary>
     /// The platform the payload is shaped for (R342: bound as <c>IWebhook.Type</c>). Empty means "not chosen yet" —
@@ -333,7 +333,7 @@ public sealed class Webhook : Cybersole.Core.Webhooks.IWebhook
     /// Which notifications fire this hook (R342: bound as <c>IWebhook.Events</c>). The five names are the locale's
     /// <c>Settings.Webhook.Event.*</c> keys: Checkouts, Declines, PayPal, PaymentRequests, SmartActions.
     /// </summary>
-    public List<string> Events { get; } = new();
+    public List<string> Events { get; set; } = new();
 
     /// <inheritdoc />
     System.Collections.Generic.IReadOnlyList<string> Cybersole.Core.Webhooks.IWebhook.Events => Events;

@@ -43283,3 +43283,42 @@ XAML 绑的是 **`Webhook` 实例**（集合是 `ObservableCollection<Webhook>`�
 
 证据等级：Observation = 我脚本的正则（缺 `interface`）、`IWebhook` 与 `Webhook` 原文、两次度量；
 Inference = 「绑的是实例不是契约」；Unknown = `Events`/`ExtraFields` 在原版是否可写。
+## R1196 —— `IWebhook` 两条关掉；**在范围内只剩 3 条，全是已写明的 Unknown**；顺带记下一条「过度宽松」
+
+### 一、原版观测（`ida.py str "IWebhook"`）
+
+`Cybersole.Webhook.IWebhook` 的六条绑定：
+
+| 成员 | 原版 |
+|---|---|
+| `Name` / `Url` / `Enabled` | Getter + **Setter** |
+| `Events` / `ExtraFields`（另带 `!Property`） | Getter + **Setter** |
+| `Type` | **只有 Getter** |
+
+⇒ 复刻件 `Webhook.Events`/`ExtraFields` 由只读改为可写（仍初始化为空集合，**既有调用点不变**）。
+
+### 二、**新记一条：复刻件在 `Type` 上过度宽松**
+
+原版 `IWebhook.Type` **没有 Setter**，而复刻件 `Webhook.Type` 是 `{ get; set; }`。
+形状审计只查"该有没有"，**查不出"不该有却有"**——所以它不会报，但事实如此。
+**未改**：改成只读会影响现有赋值点与测试，属于独立改动，留给下一轮单独评估（同 R1196 的证据已在手）。
+
+### 三、度量
+
+`成员形状差异` **89/4 → 88/3**。剩下 3 条**全部**是已知 Unknown：
+
+| 类型 | 成员 | 缺什么 |
+|---|---|---|
+| `BotTask` | `Running` | 成员类型（int/bool 都满足描述符），无同名可比对 |
+| `BotTask` | `Task` | 成员类型；原版无 `Task` 模型类型 |
+| `CreateModel` | `Inputs` | 集合类型；R363 理由仍成立 |
+
+⇒ **在范围内，形状一类已到证据边界**：能修的都修了（R1188–R1196 共 9 条），剩下的是"存在但类型不可得"。
+
+### 四、验证
+
+`dotnet build` 0 错；全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（4m22s）；
+变异 `ran_at 2026-11-20T01:32:25`、**59/59 fired，tree GREEN**；`成员形状差异` **88 / 3**。
+
+证据等级：Observation = 六条 IWebhook 描述符（含 `Type` 仅 Getter）、两处源码改动、两次度量、全量与变异收据；
+Inference = 「剩余三条已到证据边界」；Unknown = 三条成员的最终类型、`Type` 改只读的影响面。

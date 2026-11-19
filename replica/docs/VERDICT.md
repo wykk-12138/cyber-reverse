@@ -68156,3 +68156,30 @@ R1249 说 26 条全无近邻；扩大 key 宽度后 **Magento 这批全找到了
 | 全量 | **2526 通过 / 0 失败 / 2 跳过 / 2528**（4m27s） |
 | Magento* | **12/12** |
 | 新分类 | assembled-from-attested |
+---
+
+## 第 1252 轮：R1249 的「0/26」是**仪器 bug**，重算 **9/17**
+
+审计表用 `%-58s` 右填充空格，读回没 strip ⇒ key 带 38 个空格 ⇒ **必然 0 命中**。已修并重跑。
+
+| 项 | 数 |
+|---|---|
+| 有近邻 | **9** |
+| 无近邻 | **17** |
+
+### 9 条里 6 条真、2 条假
+
+真：`/cart/add.js` · `/cart/update.js` · `/view/basket/add` · `/view/component/basket/minibasketAjax`
+（镜像存**无前导斜杠的 token** ⇒ assembled）；`/rest/V1|V2/carts/mine`（前缀 + token）；`/api/cart/add`（镜像用 `/cart/add`）。
+
+假：`/api/cart/items` 撞到 **openai.com** 的串、`/buy/carts/v2/app` 撞到 **checkout.ao.com** 的串。
+
+⇒ **近邻命中不算证据，要看它来自哪个 host**（同 R1205 Bodega 那族的错）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 代码改动 | 无 |
+| 更正 | 1 条（R1249 的 0/26） |
+| 新数 | 9 有 / 17 无 |

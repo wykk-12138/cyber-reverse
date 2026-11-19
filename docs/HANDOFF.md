@@ -7637,3 +7637,14 @@ Observation：
 
 还剩什么：① 修 R1249 的载入 bug 并重跑近邻表；② 其余条目逐条定性；③ connect 通道（需登录）；
 ④ 两条 Unknown；⑤ UI CS0108（冻结）。
+## R1252 —— R1249「0/26」系解析 bug（未 strip 填充），重算 9/17；9 中 6 真 2 假
+
+Observation：
+- `flow_path_neighbours.py` 未 strip 审计行的空格填充 ⇒ 全部 key 带尾随空格 ⇒ 0 命中。
+- 修正后：**9 有近邻 / 17 无**。
+- 6 条真（`cart/add.js` 等无前导斜杠 token、`carts/mine` 前缀组合、`/cart/add` 原形）；
+  2 条异站假邻（openai.com、checkout.ao.com）。
+
+**纪律**：近邻命中必须看来源 host，否则就是噪声。
+
+还剩什么：① 17 条逐条定性；② 6 条 assembled 写进常量；③ connect 通道（需登录）；④ 两条 Unknown；⑤ UI CS0108（冻结）。

@@ -35,8 +35,12 @@ def main():
             break
         if in_no_hit and line and not line.startswith('#'):
             parts = line.rstrip('\n').split('\t')
-            if parts and parts[0]:
-                targets.append((parts[0], parts[-1]))
+            # R1252: the audit pads its first column with %-58s, and the previous version read that column raw, so
+            # every key carried trailing spaces and nothing could ever match -- which is exactly how R1249 concluded
+            # "zero neighbours" for all twenty-six. The stripped column is the fix; the conclusion has to be redone.
+            lit = parts[0].strip()
+            if lit:
+                targets.append((lit, parts[-1].strip()))
 
     print('no-hit literals to explain: %d' % len(targets))
     out = []

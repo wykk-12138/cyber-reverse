@@ -45746,3 +45746,43 @@ Inference = 「locale 段位 ⇒ 按区域组前缀」；Unknown = 每店用哪�
 
 证据等级：Observation = `carts/mine` 与 `/rest/V1` 皆为独立字符串、组合后与复刻件路径逐字相等；
 Inference = 「原版由这两段拼出同一路径」；Unknown = 哪家店用哪条动作后缀（不变）。
+## R1252 —— 修 R1249 的解析 bug 并重算：**9 有近邻 / 17 无**（原结论 0/26 作废）
+
+### 一、bug 是什么
+
+`path_audit.py` 写审计表时用 `%-58s` **右填充空格**；`flow_path_neighbours.py` 读回时**没 strip**，
+于是每条 key 都带 38 个尾随空格，**必然 0 命中**。
+⇒ R1249 的「26 条全无近邻」**是仪器 bug 的产物，不是事实**。已修（`.strip()`）并重跑。
+
+### 二、重算结果
+
+| 项 | 数 |
+|---|---|
+| no-hit 字面量 | 26 |
+| **有近邻** | **9** |
+| 无近邻 | **17** |
+
+### 三、9 条里有 6 条是**真证据**，2 条是**异站假邻**
+
+| 字面量 | 近邻 | 判读 |
+|---|---|---|
+| `/cart/add.js` | `cart/add.js` | **assembled**：镜像存的是**无前导斜杠的 token** |
+| `/cart/update.js` | `cart/update.js` | 同上 |
+| `/view/basket/add` | `view/basket/add` | 同上 |
+| `/view/component/basket/minibasketAjax` | 同名 token | 同上 |
+| `/rest/V1/carts/mine` | `/V1/carts/mine/…` | assembled（前缀 + token） |
+| `/rest/V2/carts/mine` | 同上 | assembled |
+| `/api/cart/add` | `/cart/add` | assembled（镜像用 `/cart/add`，复刻件多加了 `/api`） |
+| `/api/cart/items` | `openai.com/backend/supply/cart/items/` | **异站假邻**，不算证据 |
+| `/buy/carts/v2/app` | `checkout.ao.com/v2/app/contact` | **异站假邻**，不算证据 |
+
+⇒ **一条近邻命中不是证据**，必须看它来自哪个 host（与 R1205 的 Bodega 错误同族）。
+
+### 四、所以真实图景
+
+- **17 条无任何近邻**（下一批读代码的对象）；
+- **6 条是 assembled-from-attested**（片段在、整条不在）——与 R1251 立的第四类同型；
+- **2 条是我自己的检索噪声**。
+
+证据等级：Observation = 9/17 两个数、六条 token 命中、两条异站命中及其 host；
+Inference = 「6 条属 assembled」；Unknown = 17 条各自属于"片段拼接/不使用/服务端下发"哪一种。

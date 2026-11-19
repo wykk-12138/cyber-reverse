@@ -7032,3 +7032,15 @@ Observation：
 
 还剩什么：① 三条 Unknown 的取证尝试；② over-permissive 37 条分诊（`Element.PropName` 一类）；
 ③ abort 分支未验证；④ 变异全量重跑（本轮未跑）。
+## R1201 —— 37 条 over-permissive 分诊第一步：证伪「持久化驱动」假设；Element.PropName 记 Accepted
+
+Observation：
+- `Core\Store` 中 grep 八类型：仅 Proxy/BotTask/Solver 命中；CaptchaProvider/IWebhook/Shortcut/License/Element **0 命中**。
+- 分区：**core 8 / UI 29**。
+- `Element.PropName`：0 个赋值点，但随 tasks.json 往返 ⇒ 收窄有丢字段风险 ⇒ Accepted（前置：`[JsonProperty]` + 往返测试）。
+- 变异补跑：**59/59 fired，GREEN**（02:09:40）。
+
+验证：形状 **92 / 4 / 37**（本轮无代码改动）。
+
+还剩什么：① 查实各类型真实序列化路径（Settings 图 vs 独立 json）；
+② 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；③ abort 分支未验证；④ UI 29 条冻结。

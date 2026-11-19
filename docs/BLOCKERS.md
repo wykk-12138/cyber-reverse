@@ -43490,3 +43490,43 @@ R1199 之前 `kind_of` 用 400 字符窗口，`{ get; init; }` 后面的 `{ get;
 证据等级：Observation = 四处声明原文、修前修后三组数字、套件收据；
 Inference = 「修仪器带来的新工作量而非新缺陷」（由 R1199 的窗口缺陷直接解释）；
 Unknown = 三条成员的类型。
+## R1201 —— 37 条 over-permissive 的**分诊第一步**：先证伪了我自己的假设
+
+### 一、假设与证伪
+
+我原本的理由是「多数是持久化模型需要公开 setter」。**这个假设没被证实**：
+在 `Cybersole.Core\Store` 里 grep 八个 core 侧类型，只有 `Proxy`/`BotTask`/`Solver` 出现，
+`CaptchaProvider`/`IWebhook`/`Shortcut`/`License`/`Element` **一个都没有**。
+⇒ 它们要么在别处序列化，要么根本不需要 setter。**没查清之前不拿这个理由当结论。**
+
+### 二、分区（可复算）
+
+| 归属 | 条数 |
+|---|---|
+| core 侧（Core/Services/Stores） | **8** |
+| UI 侧（冻结，优先级 ④） | **29** |
+| 合计 | **37** |
+
+core 8 条：`CaptchaProvider.{ApiKey,BalanceSupported,Type}`、`Element.PropName`、`BotTask.Product`、
+`Solver.{Reload,View}`、`IWebhook.Type`。
+
+### 三、逐条把一条走到底：`Element.PropName`
+
+- 声明：`TaskSteps.cs` 的 `class Element`，`public string? PropName { get; set; }`；
+- **全仓无任何 `PropName =` 赋值点**（src + tests 均为 0）；
+- 但 `Element` 属于任务步骤、会随 tasks.json 往返 ⇒ **收窄成只读有丢字段风险**。
+
+⇒ **Accepted deviation（有理由的偏离）**，与 `Webhook.Type` 同类。
+**前置条件**（写清才叫推迟，不叫搁置）：先给该成员加 `[JsonProperty]`，并加一条 JSON 往返测试，
+证明反序列化能写回非公开 setter，再收窄。
+
+### 四、变异收据（上轮跳过，本轮补）
+
+`ran_at 2026-11-20T02:09:40`、**59/59 fired，`restored tree: GREEN`**。
+
+### 五、验证
+
+`成员形状差异` **92 / 4 / 37**（未变，本轮无代码改动）；变异 59/59 GREEN。
+
+证据等级：Observation = Core\Store 的 grep 结果、`Element` 声明与 0 个赋值点、变异收据；
+Inference = 无（本轮**刻意不下结论**，假设已证伪）；Unknown = 37 条里各类型的真实序列化路径。

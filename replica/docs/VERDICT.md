@@ -66664,3 +66664,32 @@ C7b 本来就是这么写的——**这轮是把其余三处拉齐到它的标�
 |---|---|
 | 成员形状 | **92 / 4**（+ over-permissive 37） |
 | 全量 | **2477 通过 / 0 失败 / 2 跳过 / 2479**（4m22s） |
+---
+
+## 第 1201 轮：先证伪自己的假设
+
+37 条 over-permissive，我上轮给的理由是"多数是持久化模型需要公开 setter"。
+**这一轮把它证伪了**：在 `Core\Store` 里 grep 那八个 core 侧类型，
+`CaptchaProvider`/`IWebhook`/`Shortcut`/`License`/`Element` **一个都没出现**。
+
+⇒ 要么它们在别处序列化，要么根本不需要 setter。**没查清之前，那个理由是猜测。**
+
+分区倒是干净的：**core 8 / UI 29**（UI 冻结）。
+
+### 把一条走到底
+
+`Element.PropName`：全仓 **0 个赋值点**，但 `Element` 随 tasks.json 往返 ⇒ 收窄有丢字段风险
+⇒ **Accepted deviation**，与 `Webhook.Type` 同类。
+
+**前置条件写清了**才叫推迟：加 `[JsonProperty]` + 一条 JSON 往返测试，证明反序列化能写回非公开 setter。
+
+### 补跑变异
+
+上轮跳过，本轮补：`59/59 fired，restored tree: GREEN`（02:09:40）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 成员形状 | **92 / 4 / 37**（未变） |
+| 变异 | **59/59 fired，GREEN** |

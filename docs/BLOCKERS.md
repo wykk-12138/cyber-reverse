@@ -44116,3 +44116,46 @@ Unknown = `pasted_fields`/`time_on_page`/`referrer` 的**运行期取值**（字
 证据等级：Observation = 4 条字面量与地址、185 行伪代码规模、查重分布；
 Inference = 「payment_intents 与 setup_intents 共用同一查询形状」（由三段片段完全相同推出）；
 Unknown = 原版是否在检取后轮询（伪代码里没有循环证据，未断言）。
+## R1216 —— **原版里有三个 Stripe API 版本**，不是两个；payment_intents 检取是 alse + clover
+
+### 一、`sub_140A40170`（1,472 B）解出的全部常量
+
+| 字面量 | 地址 |
+|---|---|
+| `https://api.stripe.com/v1/payment_intents/` | 0x147054F08 |
+| `?is_stripe_sdk=false&client_secret=` | 0x146B287A8 |
+| `&key=` | 0x146A84588 |
+| `&_stripe_version=` + `2025-09-30.clover` | 0x146A7B010 / 0x146ADFC98 |
+| `&_stripe_account=` | 0x146A7AFD8 |
+| `acct_1S0JRiIiwyy5Cf6X` | 0x146F6D140 |
+
+### 二、与既有实现的关系（查重结果：3/7 已存在，但**指向另一个函数**）
+
+`MagentoFlow.cs:1433-1445` 已有 payment_intents 的 GET，注释写的是 **`sub_1411458f0`**（R1093，JL 变体）：
+`is_stripe_sdk=**true**`、**没有** version 片段。
+而 `sub_140A40170` 是 `is_stripe_sdk=**false**`、**带 clover**。
+
+⇒ **同一个端点两条构建器**，不是重复品，落地时按调用面区分命名（`PaymentIntentRetrieveUrl`）。
+
+### 三、新增事实：镜像里有**三个** Stripe API 版本
+
+| 版本 | 出现处 | 地址 |
+|---|---|---|
+| `2025-01-27.acacia` | payment_methods 表单（`sub_140BDA320`） | 0x146ADFBE0 |
+| `2025-08-27.basil` | payment_methods 挑战面（`sub_140959320`） | 0x146ADFC60 |
+| `2025-09-30.clover` | payment_intents 检取（`sub_140A40170`） | 0x146ADFC98 |
+
+三条地址相邻（`0x146ADFBE0`/`C60`/`C98`）——**同一张串池里排着的三个版本**，写测试断言"三者不相等"，防止将来被"统一"。
+
+### 四、片段的**顺序**：只知其一，不猜其余
+
+`?is_stripe_sdk=false&client_secret=` 是**一个完整字面量**且含 `?` ⇒ 可断言它开查询串；
+其余三条是独立字面量，**拼接顺序反编译无法确定** ⇒ 注释里写明 "Unknown: 第一段之后各片段的顺序"，
+测试只断言**片段存在**，不断言整串（避免把推断写成断言）。
+
+### 五、验证
+
+`dotnet build` 0 错；`StripeSetupIntent` **12/12**；全量 **2489 通过 / 0 失败 / 2 跳过 / 2491**（4m23s，+2）。
+
+证据等级：Observation = 7 条字面量与地址、三处版本地址、`MagentoFlow` 注释里的 `sub_1411458f0`；
+Inference = 「两条构建器分属不同调用面」；Unknown = 第一段之后各片段的顺序。

@@ -7214,3 +7214,15 @@ Observation：
 验证：build 0 错；StripeSetupIntent **10/10**；全量 **2487/0/2/2489**（4m23s）。
 
 下一步：`/v1/payment_intents/` 四个函数中未实现的（sub_140A40170 0x5c0、sub_140B58D60 0x9d4）。
+## R1216 —— payment_intents 检取落地（sub_140A40170，false + clover）；镜像有**三个** Stripe 版本
+
+Observation：
+- `sub_140A40170`：0x147054F08 + 0x146B287A8(`?is_stripe_sdk=false&client_secret=`) + 0x146A84588 + 0x146A7B010 + 0x146ADFC98(`2025-09-30.clover`) + 0x146A7AFD8 + `acct_1S0JRiIiwyy5Cf6X`。
+- 既有 `MagentoFlow:1441` 注释指向 `sub_1411458f0`（true、无版本）⇒ 两条构建器，非重复。
+- 三版本地址相邻：0x146ADFBE0(acacia) / C60(basil) / C98(clover)。
+
+新增 `StripeGateway.IntentVersion` + `PaymentIntentRetrieveUrl`；测试断言三版本互不相等、片段存在（**不断言整串顺序**）。
+
+验证：build 0 错；**12/12**；全量 **2489/0/2/2491**（4m23s）。
+
+下一步：`sub_140B58D60`（0x9d4，payment_intents 的第三条构建器）。

@@ -221,6 +221,42 @@ public sealed class StripeGateway : IPaymentGateway
     public static string SetupConfirmUrl(string setupIntentId) =>
         ApiHost + SetupIntentPath + Uri.EscapeDataString(setupIntentId ?? string.Empty) + SetupConfirmSuffix;
 
+    /// <summary>The third frozen API version in the image: the payment-intent retrieve's (0x146ADFC98).</summary>
+    public const string IntentVersion = "2025-09-30.clover";
+
+    /// <summary>
+    /// The payment-intent retrieve built by <c>sub_140A40170</c> (1,472 bytes) — the one that is not the John
+    /// Lewis variant.
+    ///
+    /// <para>
+    /// <b>Observed</b>: the function loads <c>https://api.stripe.com/v1/payment_intents/</c> (0x147054F08),
+    /// <c>?is_stripe_sdk=false&amp;client_secret=</c> (0x146B287A8), <c>&amp;key=</c> (0x146A84588),
+    /// <c>&amp;_stripe_version=</c> (0x146A7B010) with <c>2025-09-30.clover</c> (0x146ADFC98),
+    /// <c>&amp;_stripe_account=</c> (0x146A7AFD8) and the account id <c>acct_1S0JRiIiwyy5Cf6X</c> (0x146F6D140).
+    /// </para>
+    ///
+    /// <para>
+    /// It differs from the John Lewis confirm that <c>MagentoFlow</c> already builds from
+    /// <c>sub_1411458f0</c> in two ways: that one sends <c>is_stripe_sdk=true</c> and no version fragment, this one
+    /// sends <c>false</c> and pins clover. Two builders, two shapes — the same lesson as the two user agents.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown</b>: the order of the fragments after the first. Only <c>?is_stripe_sdk=false&amp;client_secret=</c>
+    /// is known to open the query, because it is a single literal with the <c>?</c> in it; the other three are
+    /// separate strings whose concatenation order the decompiler does not settle. Callers that assert on the URL
+    /// should compare fragments, not the whole string.
+    /// </para>
+    /// </summary>
+    public static string PaymentIntentRetrieveUrl(string intentId, string clientSecret, string publishableKey,
+        string? stripeAccount = null) =>
+        ApiHost + "/v1/payment_intents/" + Uri.EscapeDataString(intentId ?? string.Empty) +
+        "?is_stripe_sdk=false" +
+        "&client_secret=" + Uri.EscapeDataString(clientSecret ?? string.Empty) +
+        "&key=" + Uri.EscapeDataString(publishableKey ?? string.Empty) +
+        "&_stripe_version=" + Uri.EscapeDataString(IntentVersion) +
+        "&_stripe_account=" + Uri.EscapeDataString(stripeAccount ?? string.Empty);
+
     /// <summary>
     /// The setup-intent retrieve URL (sub_141145DB0, 1,138 bytes): the same frozen prefix and id, then the query
     /// the image builds from three more literals — <c>?is_stripe_sdk=true&amp;client_secret=</c> at 0x146B28808,

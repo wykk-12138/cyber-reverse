@@ -60,6 +60,27 @@ public sealed class StripeSetupIntentTests
     }
 
     [Fact]
+    public void ThePaymentIntentRetrieveIsTheOtherShapeFromTheJohnLewisConfirm()
+    {
+        // sub_140A40170 vs sub_1411458f0: false and a pinned version, against true and none
+        var url = StripeGateway.PaymentIntentRetrieveUrl("pi_1", "sec", "pk", "acct");
+        Assert.StartsWith("https://api.stripe.com/v1/payment_intents/pi_1?is_stripe_sdk=false&client_secret=", url);
+        Assert.Contains("&_stripe_version=2025-09-30.clover", url);
+        Assert.Contains("&key=pk", url);
+        Assert.Contains("&_stripe_account=acct", url);
+        Assert.DoesNotContain("is_stripe_sdk=true", url);
+    }
+
+    [Fact]
+    public void TheImageCarriesThreeDistinctStripeApiVersions()
+    {
+        // acacia (form, 0x146adfbe0) · basil (challenge, 0x146adfc60) · clover (intent retrieve, 0x146adfc98)
+        Assert.Equal("2025-01-27.acacia", StripeGateway.FormVersion);
+        Assert.Equal("2025-09-30.clover", StripeGateway.IntentVersion);
+        Assert.NotEqual(StripeGateway.FormVersion, StripeGateway.IntentVersion);
+    }
+
+    [Fact]
     public void TheCardElementUserAgentIsTheOtherSurfaceNotThePaymentElementOne()
     {
         // 0x1471654a0 vs the payment-method create's 0x1471655c8

@@ -67120,3 +67120,35 @@ Farfetch 7 条早已定性（服务端下发路由）。这轮查 **Bstn 4 条**
 |---|---|
 | 全量 | **2487 通过 / 0 失败 / 2 跳过 / 2489**（4m23s，+3） |
 | StripeSetupIntent | **10/10** |
+---
+
+## 第 1216 轮：三个版本，两个构建器
+
+`sub_140A40170`（1,472 B）解完，发现两件事：
+
+**一、原版有三个 Stripe API 版本**（此前只知道两个）：
+
+| 版本 | 用在哪 |
+|---|---|
+| `2025-01-27.acacia` | payment_methods 表单 |
+| `2025-08-27.basil` | payment_methods 挑战面 |
+| `2025-09-30.clover` | **payment_intents 检取** |
+
+三条地址相邻（`0x146ADFBE0`/`C60`/`C98`），就是串池里排着的三个版本。
+
+**二、payment_intents 有两条构建器**：`sub_1411458f0`（JL 变体，`is_stripe_sdk=true`，无版本片段，已在 MagentoFlow）
+与 `sub_140A40170`（`is_stripe_sdk=false`，带 clover，此前没有）。⇒ 补 `PaymentIntentRetrieveUrl`。
+
+### 一条边界写清楚
+
+`?is_stripe_sdk=false&client_secret=` 是**一个完整字面量**、含 `?` ⇒ 可断言它开查询串；
+其余三条是独立字面量，**拼接顺序反编译定不下来** ⇒ 注释写明 Unknown，**测试只断言片段存在，不断言整串**。
+**不把推断写成断言。**
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2489 通过 / 0 失败 / 2 跳过 / 2491**（4m23s，+2） |
+| StripeSetupIntent | **12/12** |
+| Stripe 版本数 | **3**（acacia / basil / clover） |

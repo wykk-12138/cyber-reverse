@@ -7251,3 +7251,15 @@ Observation：
 缺的工件：flow 步骤表里指向这些函数的那一格。
 
 还剩什么：① 派发槽解析（vtable/步骤表）；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。
+## R1219 —— 派发槽定位到（0x147228EF8 / 0x1472279C8）但槽自身 0 xref；「0 xref」是 NativeAOT 的结构性质而非多个谜团
+
+Observation：
+- 新工具 `analysis/ptr_sites.py`：8 字节小端指针搜 .rdata/.data/.idata。
+- `0x1425456E0` → 槽 `0x147228EF8`；`0x14254DD40` → 槽 `0x1472279C8`。
+- 两个槽 `xrefs_to` 均为 **0**。
+
+**结论**：字符串 / 委托槽 / 派发表都在「基址+偏移」算出的数据里，静态 xref 原理上看不见。
+回答"哪个 flow 用哪条表面"需：解析 NativeAOT 元数据表（未开工）或动态观察（外部受阻）。
+
+还剩什么：① 元数据表解析是否可行（下一类工件）；② 两条 Unknown（BotTask.Running/Task）；
+③ UI CS0108（冻结）；④ 4 条待接线表面（等派发解析）。

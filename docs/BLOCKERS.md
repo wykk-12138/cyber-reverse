@@ -40805,7 +40805,8 @@ Inference = 无（两条结论都由伪代码直接给出）。
 **全量与收据（本轮收数）**：
 - 全量：**2419 通过 / 0 失败 / 2 跳过 / 2421**（2m30s）；相关子集（JohnLewis|RetailApi|SourceEncodingTests|FlowSequenceTests）**56/56**。
 - 动作顺序：改 src 后先查 staleness → **2**（RetailApiFamilies.cs +1 在被变异集内）→ **重跑变异套件** →
-  新收据 an_at 2026-11-19T01:07:13、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  新收据 
+an_at 2026-11-19T01:07:13、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   staleness 0（mtime 01:07:20，读于 01:07:26 —— 6 秒新鲜）。
 ## R1133 —— 抓到一处**实打实的错实现**：`SubmitShipping` 打的是个镜像里不存在的端点
 
@@ -40854,7 +40855,8 @@ Inference = 无（两条结论都由伪代码直接给出）。
 **全量与收据（本轮收数）**：
 - 全量：**2424 通过 / 0 失败 / 2 跳过 / 2426**（2m31s）。
 - 改 src+	ests 后先查 staleness → **331** → **重跑变异套件** → 新收据
-  an_at 2026-11-19T01:22:50、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
+  
+an_at 2026-11-19T01:22:50、**59/59 fired，decorative 0，skipped 0，tree GREEN**、
   staleness 0（mtime 01:22:56，读于 01:23:02 —— 6 秒新鲜）。
 ## R1134 —— `DeliveryPage`(序号 26) 从**零实现**落地；顺带把 `delivery-address` 的三层体读全
 
@@ -43746,7 +43748,7 @@ Inference = 「BSTN 不在原版」（叠加上轮对照）；Unknown = Livestoc
 ### 一、先把上轮的"下限 34"修掉
 
 改用源码提取（`FlowStoreModule(new XxxFlow())` + 每个 flow 的 `Domains`）：
-**66 个模块、24 个 flow 声明了 Domains、38 个不同域名**。（上轮 34 是解析器口径缺陷。）
+**模块与域名的清单（条数以度量工具当前输出为准，不在本文重述）**。（上轮 34 是解析器口径缺陷。）
 
 ### 二、四条形状逐一实测
 
@@ -43871,3 +43873,47 @@ dotnet publish ... -p:PublishAot=true -p:UseSharedCompilation=false -o .publish-
 
 证据等级：Observation = 两次 publish 的 exit 与尺寸、csproj grep 0 命中、`BINDING_BACKLOG.md:5782` 的命令、
 三组度量前后对比；Inference = 「震去的那次是 apphost」；Unknown = 是否还有别处直接调 `dotnet publish` 而未传该参数。
+## R1210 —— Checkout.Profile 有两份、**类型还互相矛盾**（我 R1192 加的）；顺带修掉审计「不跟继承」
+
+### 一、CS0108 背后是真矛盾
+
+编译器警告 `Checkout.cs(46,21) warning CS0108: "Checkout.Profile" hides inherited member`。查下去：
+
+| 位置 | 声明 |
+|---|---|
+| `BaseCheckout`（L24） | `public string? Profile { get; set; }` —— **string** |
+| `Checkout : BaseCheckout`（R1192 加的） | `public Profile? Profile { get; set; }` —— **对象** |
+
+**同一个概念名，两种类型**。而且 R1192 自己的注释就写着类型是 **Inference**（"描述符分不出对象还是 id"）
+—— 基类早就把它当 **string** 了，我却再叠了一个对象版。
+
+### 二、处理
+
+删除 `Checkout` 上的那份与 `_profile` 字段（全仓**无任何**把 `Checkout.Profile` 当对象赋值的调用点），
+**保留基类 string**。描述符要的 `Profile!Getter/!Setter` 由继承成员满足。
+
+### 三、删完形状变红：审计**不跟继承**（第三类"只看一处声明"）
+
+删掉后 `Checkout.Profile` 变成 `replica=?` ⇒ 92/4。原因：`shape_audit.py` 只读**被声明那个类的类体**，
+继承来的成员看不见。**这与 R1195 的接口问题同源，只是上一层。**
+
+修：采集 `class X : Y` 的**基类关系**（区别于 `I*` 接口），判成员前把基类类体并进来（BFS，最多 40 层）。
+
+### 四、又撞上自己的文档数字守卫
+
+全量跑红一条：`TheModuleCountPhraseDoesNotSpread`——「短语从 16 涨到 17」。
+**是我 R1207/R1208 在 BLOCKERS/HANDOFF/VERDICT 里写了四次带数字的模块清单句。**
+守卫的指示很具体：**去掉数字、改引度量**。四处改成「模块与域名的清单（条数以度量工具为准）」。
+
+> 这是我立的规矩抓住了我自己，**而它给的修法比我原本的写法更好**——数字少写一次，就少漂一处。
+
+### 五、度量与验证
+
+| 项 | 值 |
+|---|---|
+| 成员形状 | **91 / 3 / 37**（回到矛盾前的数字，且 Profile 经继承解析） |
+| 全量 | **2477 通过 / 0 失败 / 2 跳过 / 2479**（4m22s） |
+| build | 0 错；`Checkout` 的 CS0108 消失（余下三处 CS0108 都在 UI 层，冻结） |
+
+证据等级：Observation = 两处声明原文、CS0108 警告文本、四次文档短语位置、修前修后三组数字、全量收据；
+Inference = 「基类 string 是正确选择」（由类型为 Inference + 零个对象赋值点推出）；Unknown = 原版存对象还是 id。

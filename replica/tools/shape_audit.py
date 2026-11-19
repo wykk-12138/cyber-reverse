@@ -106,6 +106,7 @@ bodies = {}
 body_projects = {}
 is_interface = set()
 implementors = {}
+bases = {}
 for dirpath, _d, files in os.walk(os.path.join(ROOT, "src")):
     if f"{os.sep}obj{os.sep}" in dirpath or f"{os.sep}bin{os.sep}" in dirpath:
         continue
@@ -125,6 +126,14 @@ for dirpath, _d, files in os.walk(os.path.join(ROOT, "src")):
         for _c in re.finditer(r"\bclass\s+(\w+)\s*(?:<[^>]*>)?\s*:\s*([^{\n]+)", text):
             for _name in re.findall(r"\b(I[A-Z]\w*)\b", _c.group(2)):
                 implementors.setdefault(_name, []).append(_c.group(1))
+            # R1210: and which class inherits from which. A binding resolves against the runtime type, so a member
+            # declared once on a base class is present on every derived type - but this scan reads one declared
+            # body, so BaseCheckout.Profile was invisible to Checkout and the member came back as `?`, "the
+            # replica does not have this member", right after the duplicate that hid it was removed. That is the
+            # same defect as R1195's interface case one level up the hierarchy.
+            for _name in re.findall(r"\b([A-Z]\w*)\b", _c.group(2)):
+                if not _name.startswith("I"):
+                    bases.setdefault(_c.group(1), []).append(_name)
         for m in re.finditer(r"\b(?:class|record|interface)\s+(\w+)[^;{]*\{", text):
             depth, start = 0, m.end() - 1
             for i in range(start, len(text)):
@@ -210,6 +219,18 @@ for full, members in sorted(json.load(io.open(BINDS, encoding='utf-8')).items())
     short = full.split('.')[-1]
     ev = shape.get(short)
     body = "\n".join(bodies.get(short, []))
+    # R1210: append the inherited bodies. A binding is resolved against the object, and the object has every
+    # member its base classes declare, so judging only the declared body reports inherited members as absent.
+    # Each base is visited once; the walk is bounded in case a base name never resolves.
+    _seen = {short}
+    _queue = list(bases.get(short, []))
+    while _queue and len(_seen) < 40:
+        _b = _queue.pop(0)
+        if _b in _seen or _b not in bodies:
+            continue
+        _seen.add(_b)
+        body += "\n" + "\n".join(bodies.get(_b, []))
+        _queue.extend(bases.get(_b, []))
     # R1195: an interface is a contract, not the object the binder was handed. When the matched type is an
     # interface that some class implements, judge the implementing class instead; if nothing implements it, the
     # honest answer is that the replica exposes the contract and no concrete type, which is its own reason.

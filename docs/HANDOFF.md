@@ -7107,7 +7107,7 @@ Observation：
 ## R1207 —— 店清单四条字符串形状全否决；下一步＝读表字节，但先修 ida.py call 输出
 
 Observation：
-- 源码提取：66 模块 / 24 flow 声明 Domains / **38 个不同域名**。
+- 源码提取：模块与域名的清单（条数以度量工具为准）。
 - 池外 9 域名 `ida.py str` **全 0**（含 farfetch.com / yeezy.com / snkrs.nike.com）⇒ 域名判据死亡。
 - `Farfetch` n=3（0x14338eadc / 0x146d8dfdc / 0x146d8e004 "Farfetch Checkout"）；`Yeezy` 命中商品名；`Pop Mart` 命中 CSS。
 - `0x146d8dfcc`（chars）与 `0x146d8dfc0`（obj_va）**0 xref**；disp32 全扫 **0 site**。
@@ -7141,3 +7141,15 @@ Observation：
 
 还剩什么：① 查是否别处也裸调 publish；② CS0108 警告（Checkout.Profiles 隐藏继承成员）待看；
 ③ 两条 Unknown（BotTask.Running/Task）；④ abort 分支未验证；⑤ 变异需重跑（本轮改了产物）。
+## R1210 —— 删掉 Checkout.Profile 的重复声明（类型矛盾）；审计补基类继承（第三次"只看一处声明"）
+
+Observation：
+- `BaseCheckout.Profile` 是 `string?`；R1192 在 `Checkout` 又加了 `Profile?`（对象）⇒ CS0108 + 类型矛盾。
+- 全仓无对象形式赋值 ⇒ 删除派生那份，保留 string。
+- `shape_audit.py` 现在并进基类类体（BFS ≤40 层）⇒ `Checkout.Profile` 不再报 `?`。
+- 文档守卫 `TheModuleCountPhraseDoesNotSpread` 16→17 报红，四处改写成"清单（条数以度量工具为准）"。
+
+验证：build 0 错；形状 **91 / 3 / 37**；全量 **2477/0/2/2479**（4m22s）。
+
+还剩什么：① 三处 UI 层 CS0108（冻结）；② 两条 Unknown（BotTask.Running/Task）；③ abort 分支未验证；
+④ 变异需重跑（本轮改了 src）。

@@ -26,7 +26,7 @@ public sealed class CreateInputModel
     public string Input { get; set; } = string.Empty;
 
     /// <summary>Bound as <c>MaxPrice</c> (getter only in the original) — a price; type inferred.</summary>
-    public decimal MaxPrice { get; init; }
+    public decimal MaxPrice { get; set; }
 
     /// <summary>Bound as <c>MinPrice</c> — a price; type inferred.</summary>
     public decimal MinPrice { get; set; }

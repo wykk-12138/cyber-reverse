@@ -199,7 +199,7 @@ public sealed class CreateModel : ObservableObject
     public ProxyGroup? ProxyGroup { get; set; }
 
     /// <summary>The profiles the form offers (bound as <c>Profiles</c>).</summary>
-    public List<Profile> Profiles { get; } = new();
+    public List<Profile> Profiles { get; set; } = new();
 
     /// <summary>How many of the product to buy (bound as <c>Quantity</c>).</summary>
     public int Quantity { get; set; } = 1;
@@ -219,7 +219,7 @@ public sealed class CreateModel : ObservableObject
     public string Store { get; set; } = string.Empty;
 
     /// <summary>The tasks the form produced (bound as <c>Tasks</c>).</summary>
-    public List<BotTask> Tasks { get; } = new();
+    public List<BotTask> Tasks { get; set; } = new();
 
     /// <summary>How many tasks it would create — derived, never stored (bound as <c>Total</c>).</summary>
     public int Total => Tasks.Count;

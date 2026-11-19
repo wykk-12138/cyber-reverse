@@ -7020,3 +7020,15 @@ Observation：
 
 还剩什么：① core 8 条缺口逐条（含 prop-init 新增的 5 条）；② over-permissive 37 条分诊；
 ③ abort 分支未验证；④ UI 侧（20 条）冻结。
+## R1200 —— 修 4 处 init/只读集合 → 可写：缺口 96→92、core 8→4
+
+Observation：
+- `CreateInputModel.MaxPrice`（init→set）、`BotTask.Properties`、`CreateModel.Profiles`/`Tasks`（get→get;set;）。
+- 四处均为纯放宽，且初始化为空集合；全量仍 2477 绿。
+- 度量 `92 / 4 / 37`（over-permissive 未变）。
+
+**剩下 3 条 core 缺口全是 Unknown**（`BotTask.Running`/`Task`、`CreateModel.Inputs`：成员类型不可得）。
+**在范围内，可修缺口已清零。**
+
+还剩什么：① 三条 Unknown 的取证尝试；② over-permissive 37 条分诊（`Element.PropName` 一类）；
+③ abort 分支未验证；④ 变异全量重跑（本轮未跑）。

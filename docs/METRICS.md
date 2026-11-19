@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 01:49:43 +0800 |
+| 生成时间 | 2026-11-20 02:00:36 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,9 +14,9 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 23 个源文件比产物新（共 15240 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 24 个源文件比产物新（共 15301 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`3 -- tests/Cybersole.Tests/DocumentNumbersAreSourcedTests.cs (+2 more) differs from the run's manifest`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`6 -- src/Cybersole.Core/Models/Checkout.cs (+5 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -27,8 +27,8 @@
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
 | 类型缺失（type presence） — classified | renamed 13, out of scope 2, unimplemented 0, unclassified 0 |
-| 成员形状差异 — total mismatches | 96 |
-| 成员形状差异 — core mismatches | 8 |
+| 成员形状差异 — total mismatches | 92 |
+| 成员形状差异 — core mismatches | 4 |
 | 成员形状差异 — over-permissive total | 37 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
@@ -42,9 +42,9 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,456 |
 | 函数数量（.pdata） — functions: ratio | 64.76% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 23 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 15240 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 24 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 15301 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 3 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -63,7 +63,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 3 -- tests/Cybersole.Tests/DocumentNumbersAreSourcedTests.cs (+2 more) differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 6 -- src/Cybersole.Core/Models/Checkout.cs (+5 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -148,13 +148,9 @@ C:\Python312\python.exe tools/shape_audit.py --baseline
 ```text
 evidence: baseline (211 types, kinds kept)
 mismatches: member has Setter evidence but the replica is not a settable property
-  BotTask                    Properties             evidence=Getter,Property,Setter     replica=prop-get
   BotTask                    Running                evidence=Getter,Property,Setter     replica=?
   BotTask                    Task                   evidence=Getter,Property,Setter     replica=?
-  CreateInputModel           MaxPrice               evidence=Getter,Property,Setter     replica=prop-init
   CreateModel                Inputs                 evidence=Getter,Property,Setter     replica=?
-  CreateModel                Profiles               evidence=Getter,Property,Setter     replica=prop-get
-  CreateModel                Tasks                  evidence=Getter,Property,Setter     replica=prop-get
   SmartAction                Logs                   evidence=Getter,Property,Setter     replica=prop-get
   AccountGrid                Delete                 evidence=Getter,Property,Setter     replica=?
   AccountGrid                Edit                   evidence=Getter,Property,Setter     replica=prop-get
@@ -244,7 +240,7 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   StoreGroupModal            RemoveStore            evidence=Getter,Property,Setter     replica=method
   StoreGroupModal            Save                   evidence=Getter,Property,Setter     replica=?
   UtilitiesView              CreateStoreGroup       evidence=Getter,Property,Setter     replica=method
-total mismatches: 96
+total mismatches: 92
 
 over-permissive: member is read-only in the original but settable here
   CaptchaProvider            ApiKey                 evidence=Getter,Property            replica=prop+set
@@ -288,8 +284,8 @@ over-permissive total: 37
 
 by owning project (priority order: Stores > Services > Http > Core > Ui):
   Cybersole.Ui            88
-  Cybersole.Core           8
-core mismatches: 8
+  Cybersole.Core           4
+core mismatches: 4
 ```
 
 ### 文案缺口总表
@@ -414,14 +410,14 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-19 11:09:47
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-20 01:27:58)
-source files newer than the artifact: 23
-lines in those files: 15240
-of those, changed against HEAD: 0
-publish artifact state: current
+newest source: src\Cybersole.Core\Models\Checkout.cs (2026-11-20 01:55:47)
+source files newer than the artifact: 24
+lines in those files: 15301
+of those, changed against HEAD: 3
+publish artifact state: stale
 
-  23 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
-  targets, which updates mtime without changing a byte. Nothing to rebuild.
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -595,7 +591,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 3 -- tests/Cybersole.Tests/DocumentNumbersAreSourcedTests.cs (+2 more) differs from the run's manifest
+  mutation-fit-staleness: 6 -- src/Cybersole.Core/Models/Checkout.cs (+5 more) differs from the run's manifest
 
   The counts above are from 2026-11-20T01:32:25+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.

@@ -210,7 +210,10 @@ public sealed class BotTask : ObservableObject
     public ProxyGroup? ProxyGroup { get; set; }
 
     /// <summary>Free-form properties the store module attaches (bound as <c>Properties</c>).</summary>
-    public Dictionary<string, string> Properties { get; } = new();
+    // R1200: settable because the original binds Properties with a Setter as well as a Getter (BotTask's
+    // descriptor set). Same shape as Events/ExtraFields: it still starts as an empty dictionary, so callers that
+    // add to it are untouched, and the setter exists for the binding and for the serialiser alike.
+    public Dictionary<string, string> Properties { get; set; } = new();
 
     /// <summary>The one-line status the grid prints (bound as <c>Status</c>).</summary>
     public string Status { get; set; } = string.Empty;

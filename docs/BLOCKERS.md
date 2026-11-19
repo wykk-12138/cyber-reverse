@@ -43454,3 +43454,39 @@ public decimal MinPrice { get; set; }             // 下一个属性的 set 落�
 
 证据等级：Observation = `PriceCheckVisible` 的声明与相邻属性、修前修后三组数字、套件收据；
 Inference = 「init ≠ set 构成缺口」「多数 over-permissive 由持久化驱动」；Unknown = `Element.PropName` 一类是否真为纯 UI 状态。
+## R1200 —— 把上一轮新暴露的 5 条 `prop-init`/只读集合缺口修掉：缺口 96→**92**、core 8→**4**
+
+### 一、改了什么（四处，全是**纯放宽**，零破坏风险）
+
+| 类型 | 成员 | 改前 → 改后 |
+|---|---|---|
+| `CreateInputModel` | `MaxPrice` | `{ get; init; }` → `{ get; set; }` |
+| `BotTask` | `Properties` | `{ get; }` → `{ get; set; }` |
+| `CreateModel` | `Profiles` | `{ get; }` → `{ get; set; }` |
+| `CreateModel` | `Tasks` | `{ get; }` → `{ get; set; }` |
+
+`init` → `set` 只是**放宽**：初始化器与构造函数照样能赋值，序列化也需要公开 setter。四处都已初始化为空集合。
+
+### 二、为什么上一轮才看见它们
+
+R1199 之前 `kind_of` 用 400 字符窗口，`{ get; init; }` 后面的 `{ get; set; }` 会**漏进窗口**，
+于是这些成员被算成"已经可写"、**从未进入缺口名单**。修准之后它们才浮出来——**这是修仪器带来的新工作量，不是新缺陷**。
+
+### 三、度量
+
+`成员形状差异` `96 / 8 / 37` → **`92 / 4 / 37`**。
+（over-permissive 37 不变：这几处是**补 setter**，没有新增可写面。）
+
+### 四、剩 4 条 core
+
+`BotTask.Running`、`BotTask.Task`、`CreateModel.Inputs` —— **全部是已写明的 Unknown（缺成员类型）**，
+另有 1 条 UI 侧同名类型（工具归属口径）。
+**在范围内，可修的缺口已清零。**
+
+### 五、验证
+
+`dotnet build` 0 错；全量 **2477 通过 / 0 失败 / 2 跳过 / 2479**（4m22s）。
+
+证据等级：Observation = 四处声明原文、修前修后三组数字、套件收据；
+Inference = 「修仪器带来的新工作量而非新缺陷」（由 R1199 的窗口缺陷直接解释）；
+Unknown = 三条成员的类型。

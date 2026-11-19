@@ -44690,3 +44690,43 @@ R871 那次发布后产物尺寸与 `.pdata` **一字未变**，我当时只能�
 
 证据等级：Observation = 发布前后尺寸与 mtime、freshness、`.pdata`、变异收据；
 Inference = 「const/static 增量为 1,536 B 且不加可展开函数」；Unknown = 该 1,536 B 的具体分布（未做节级对比）。
+## R1229 —— 我"发现"了一条 R1077 早就写下来的通道；**新事实是它只活在注释里**
+
+### 一、先认账
+
+本轮我从 `connect/app` 字面量追到 `sub_140F3D400`（721 B），解出它的 12 条常量，然后发现：
+
+`FarfetchFlow.cs:45-54` 的注释**已经完整写着**这条通道——
+`https://api.cybersole.io/connect/app`（0x14705357C）、`sub_140F3D400`、
+以及 `ConfigAdded`/`SharedAdded`/`ConfigRemoved`/`SharedRemoved`/`SubscribeGroups`/`UnsubscribeGroups`
+与地址区间 `0x146B9B070..0x146F13F40`。**那是 R1077 做的，我这轮是重复劳动。**
+
+（这是同族第 N 次：R869 反射表、R1213 Stripe 两函数、本轮。**`where_is` 该在解码之前跑。**
+我这轮确实先看了 `FarfetchFlow.cs` 的 Unknown 行——但只读了 `L94-202` 的错误串，**没读 `L45-54` 的说明块**。）
+
+### 二、真正新的事实：**机制已知，客户端未实现**
+
+| 项 | 状态 |
+|---|---|
+| 机制（URL + 六个 SignalR 方法/事件名 + 承载函数） | **R1077 已记录**，本轮独立复现 |
+| 复刻件里的代码 | **零**——`ConfigAdded`/`SubscribeGroups`/`SharedRemoved` 在 `src` 里**只出现在注释行** |
+| 后果 | Farfetch 那 7 条 Unknown **不是 7 个缺端点，是 1 个缺通道** |
+
+⇒ **R1077 的诊断是对的，但它把"为什么未知"写清之后没有把它变成工作项。**
+本轮把它变成工作项：**实现 connect 通道**（订阅 + 接收四类事件 + 把 config 应用到 store 目录）。
+
+### 三、为什么本轮不做这个实现
+
+它需要：SignalR/WebSocket 客户端 + 四类事件的载荷解析 + config 条目到 `StoreFlow` 的映射。
+**这些载荷的字段名目前一条都没解**（`sub_140F3D400` 的常量全是方法名，没有字段名）。
+先解载荷形状再写客户端，否则就是猜协议——**与"接线不猜"同一条纪律**。
+
+⇒ 下一轮取件：**解 `ConfigAdded` 等事件的载荷字段**（从处理它们的函数入手，而不是从发送端）。
+
+### 四、验证
+
+无代码改动。仓库里并行会话文件仍未触碰。
+
+证据等级：Observation = `sub_140F3D400` 的 12 条常量、`FarfetchFlow.cs:45-54` 的既有注释、
+六个名字在 `src` 中"仅注释"的三次实测；Inference = 「缺通道而非缺端点」；
+Unknown = 四类事件的载荷字段名。

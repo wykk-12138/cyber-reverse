@@ -7366,3 +7366,14 @@ Observation：
 **信息量**：尺寸变而 `.pdata` 不变 ⇒ const/static 增量不加可展开函数（对比 R871 两者皆不变）。
 
 还剩什么：① 128 条推不出网关的（换个判据或放弃）；② Cardinal 自身端点未解；③ 两条 Unknown；④ UI CS0108（冻结）。
+## R1229 —— 重复发现 R1077 的 connect/app 通道（我只读了 Unknown 行没读说明块）；新事实=仅注释未实现
+
+Observation：
+- `sub_140F3D400`（721 B）12 条常量：URL + ConfigAdded/ConfigRemoved/SharedAdded/SharedRemoved/SubscribeGroups/UnsubscribeGroups。
+- `FarfetchFlow.cs:45-54` **早已记录**同一批（R1077）。
+- 六个名字在 `src` 里**仅注释**（三次实测）⇒ **通道未实现**。
+
+**结论**：Farfetch 7 条 Unknown = **1 个缺通道**，不是 7 个缺端点。已转为工作项。
+**下一步**：解四类事件的**载荷字段名**（从处理端入手），再写客户端——不猜协议。
+
+还剩什么：① connect 通道（多轮）；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。

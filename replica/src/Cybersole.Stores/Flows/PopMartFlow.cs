@@ -282,7 +282,8 @@ public sealed class PopMartFlow : StoreFlow
             : 400;
         var gate = new RestockGate(TimeSpan.FromMilliseconds(intervalMs));
 
-        for (var i = 0; i < 10; i++)
+        const int attempts = 10;   // R1266: named rather than inline, purely as the oracle's probe
+        for (var attempt = 0; attempt < attempts; attempt++)
         {
             ct.ThrowIfCancellationRequested();
             var res = await GetAsync(c, Origin(c.Url) + PopMartEndpoints.ProductDetails, "popmart-stock", ct)

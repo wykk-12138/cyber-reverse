@@ -46310,3 +46310,60 @@ R1262 我写的是：「改 `PollRestockAsync` → 尺寸 +0 ⇒ **该方法体�
 
 证据等级：Observation = 尺寸与哈希的前后值、预言机新判据输出、7/7 与全量收据；
 Inference = 「MagentoRest 可达」「尺寸判据会假阴性」；Unknown = `PollRestockAsync` 是否也在（下轮测）。
+## R1266 —— **重大撤回**：字面量缺席这个仪器整体无效；步骤方法其实**都在镜像里**
+
+### 一、三连测（都用哈希判据，输出行为不变）
+
+| 探针 | 尺寸 | SHA-256 | 结论 |
+|---|---|---|---|
+| `MagentoRest.Under` 改实现 | +0 | `93E1BC…` → `606346AC…` | **可达** |
+| `PopMartFlow.PollRestockAsync` 循环次数抽常量 | +0 | `606346AC…` → `34727459…` | **可达** |
+| `StoreFlow.Process3DSAsync` 键名抽常量 | +0 | `34727459…` → `C7EF9802…` | **可达** |
+
+**三次都是尺寸 0、哈希变。** ⇒ 三个方法**全都编进镜像**。
+
+### 二、于是出现**自相矛盾**，而矛盾指向我的仪器
+
+`Process3DSAsync` 确定在镜像里，但用 `artifact_literals.py` 在**同一份产物**里搜它的字面量：
+
+| 字面量 | ascii | utf16 |
+|---|---|---|
+| `3DS required but no transStatus` | False | False |
+| `adyen.transStatus` | False | False |
+| **`3dsRequired`**（普通字典键） | False | False |
+| `3DS rejected by issuer` | False | False |
+
+**连 `3dsRequired` 都搜不到**，而它所在的函数明明编译了。
+
+### 三、结论：**"搜不到字面量" 不能推出 "代码被裁"**
+
+NativeAOT 显然把这些串存成了**逐字节搜索看不见的形态**（压缩块 / 非连续 UTF-16 / 别的编码）。
+而早前 `GetOrders is not implemented by`、`declared order has no runnable step for` **又能搜到** ——
+**混合存储** ⇒ **缺席一律不可用**。
+
+### 四、因此撤回这些结论（Observation 保留，Inference 作废）
+
+| 轮 | 原结论 | 现状 |
+|---|---|---|
+| R1241 | 九个字面量缺席 ⇒ `ProcessPaymentAsync` 被裁 | **Inference 作废**（方法在，串不可搜） |
+| R1242 | 支付层「链断」分析（元数据/root 两个假设都失败） | **前提失效**，整段不再成立 |
+| R1243 | 缺口 = 「需要方法表 dump」 | **改为不需要**：哈希差分就是仪器 |
+| R1252/R1249 | 路径审计里 `no-hit` 的含义 | **口径要改**：no-hit 不能当"原版没有" |
+
+R1249/R1252 的路径审计还**部分**成立（`exact` 命中＝确实有），但 **`no-hit` 一档失去意义**——
+它可能只是"串不可搜"。**这条必须写进入口纪律**。
+
+### 五、现在什么是可信的仪器
+
+**哈希差分**：改一处 → 重发 → 比 SHA-256。已在三个不同层（适配类 / 流程步骤 / 基类步骤）验证有效。
+
+**下一轮**：把这条写进 `AGENTS.md` 的证据规则（不动别人的文件，只追加一节），
+并据此重估"支付层缺口"——**大概率不是缺口**，只是搜索仪器坏了。
+
+### 六、验证
+
+`dotnet build` 0 错；全量 **2543 通过 / 0 失败 / 2 跳过 / 2545**（5m52s）；
+`reach_oracle.json` 第 6 条；三次发布尺寸均 57,481,728。
+
+证据等级：Observation = 三组哈希、四个字面量的双编码结果、所有尺寸；
+Inference = 「字面量缺席不可用作裁断」；Unknown = NativeAOT 具体的串存储形态（不影响结论）。

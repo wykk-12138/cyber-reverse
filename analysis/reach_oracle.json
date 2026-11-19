@@ -23,5 +23,12 @@
     "src_files": 378,
     "src_sha256": "a8cdc1eca4b6768d9b7ad6bfcf8da69f784018f1454d4690634ca055f47d3c54",
     "note": "R1265: MagentoRest.Under body rewritten (same outputs); hash moved, size did not -- so this class reaches the image and size alone is a blunt instrument"
+  },
+  {
+    "artifact_size": 57481728,
+    "artifact_sha256": "c7ef9802e8b862994d13e7185ac8e6a741684a267712d3efa6a1415bb320aee6",
+    "src_files": 378,
+    "src_sha256": "b234969946153c4e3780fd3a6381ca83ea47782ec7159462331f5e9f22567c9a",
+    "note": "R1266: Process3DSAsync body renamed a key literal (same behaviour); hash moved -- so base StoreFlow step methods DO reach the image while their literals are not byte-findable"
   }
 ]

@@ -43741,3 +43741,36 @@ Inference = 「原版无 BSTN」；Unknown = 原版店清单的完整成员（�
 
 证据等级：Observation = 池筛的 30/4 分布、四条 `ida.py str` 结果与地址、解析器只认 34 家的下限；
 Inference = 「BSTN 不在原版」（叠加上轮对照）；Unknown = Livestock / HMVS 是否在原版、原版店清单的完整成员。
+## R1207 —— 店清单：**四条字符串形状全部实测否决**，改走「读表字节」路线（并发现工具缺口）
+
+### 一、先把上轮的"下限 34"修掉
+
+改用源码提取（`FlowStoreModule(new XxxFlow())` + 每个 flow 的 `Domains`）：
+**66 个模块、24 个 flow 声明了 Domains、38 个不同域名**。（上轮 34 是解析器口径缺陷。）
+
+### 二、四条形状逐一实测
+
+| # | 形状 | 实测 | 判定 |
+|---|---|---|---|
+| 1 | **域名字面量**（池筛 + `ida.py str`） | 池内 29/38 命中；池外 9 个**全部 0**——其中包括 `farfetch.com`/`yeezy.com`/`snkrs.nike.com` 这类**几乎必然存在**的店 | **判据死亡**（9/9 假阴性） |
+| 2 | **显示名子串** | `Farfetch` **n=3**（`0x14338eadc`/`0x146d8dfdc`/`0x146d8e004`）✓；但 `Yeezy` 命中的是**商品名** "Yeezy Boost 350 V2"，`Pop Mart` 命中的是 **CSS 文本** | **假阳性不可控** |
+| 3 | **`"<X> Checkout"` 标签** | 确有 `"Farfetch Checkout"`（`0x146d8e004`），但搜 `" Checkout"` 得到的多是 `Create checkout`/`Load checkout` 之类的**动作短语** | **噪声为主** |
+| 4 | **代码引用**（`xrefs_to` chars 与 `obj_va`，再退到 `disp32_scan_any`） | `0x146d8dfcc`（chars）**0 xref**；`0x146d8dfc0`（obj_va = chars-12）**0 xref**；全 `.text` 3,148,400 字节 disp32 扫描 **0 site** | **该字面量不被代码直接引用** |
+
+### 三、结论：字符串 + xref 这条路**枚举不了店清单**
+
+四条形状全试过、每条都有实测数字。**不是参数没调好，是方法类不对**：
+店清单在镜像里是**数据表**（由运行时扫描访问，不由 `.text` 直接 lea 引用），
+所以「搜字符串 + 找引用」从原理上够不到它。
+
+### 四、下一步（唯一有希望的工件）
+
+**读表字节**：取已知店字面量（`0x146d8dfdc` "Farfetch"）**邻近的 UTF-16 串**，
+把连续出现的一批店名读出来 —— 那就是原版清单本身。
+
+**但这步现在被一个工具缺口挡住**：`python analysis/ida.py call get_bytes '{...}'` 的**输出不是可解析 JSON**
+（本轮实测 `json.loads` 失败，返回体形如 Python repr）。⇒ **先修 `ida.py` 的 `call` 输出格式**，
+再做字节转储。这是下一轮的取件项，已写进 HANDOFF。
+
+证据等级：Observation = 66/24/38 三个提取数、四组实测（29+9、Farfetch 三地址、Yeezy/Pop Mart 误命中、0 xref 与 0 site）；
+Inference = 「店清单是数据表、不被代码直接引用」；Unknown = 原版清单的真实成员；**工具缺口**已定位到 `ida.py call` 的输出。

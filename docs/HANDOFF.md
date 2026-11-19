@@ -7104,3 +7104,16 @@ Observation：
 
 还剩什么：① Livestock / HMVS 的显示名形状；② 原版店清单的完整枚举（下界 34，未穷举）；
 ③ 两条 Unknown（`BotTask.Running`/`Task`）；④ abort 分支未验证；⑤ UI 29 条冻结。
+## R1207 —— 店清单四条字符串形状全否决；下一步＝读表字节，但先修 ida.py call 输出
+
+Observation：
+- 源码提取：66 模块 / 24 flow 声明 Domains / **38 个不同域名**。
+- 池外 9 域名 `ida.py str` **全 0**（含 farfetch.com / yeezy.com / snkrs.nike.com）⇒ 域名判据死亡。
+- `Farfetch` n=3（0x14338eadc / 0x146d8dfdc / 0x146d8e004 "Farfetch Checkout"）；`Yeezy` 命中商品名；`Pop Mart` 命中 CSS。
+- `0x146d8dfcc`（chars）与 `0x146d8dfc0`（obj_va）**0 xref**；disp32 全扫 **0 site**。
+
+⇒ 店清单是**数据表**，字符串 + xref 路线原理上够不到。
+
+**下一轮取件（已定位）**：① 修 `analysis/ida.py call` 的输出为可解析 JSON；② 用 `get_bytes` 转储 `0x146d8dfdc` 邻近 UTF-16 串，重建原版清单。
+
+还剩什么：两条 Unknown（`BotTask.Running`/`Task`）；abort 分支未验证；UI 29 条冻结。

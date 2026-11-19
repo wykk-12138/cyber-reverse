@@ -10,5 +10,11 @@
     "src_files": 378,
     "src_sha256": "8137b959b0d5739db20215bf1d5b8deb8dc5ffb283fcec2d1c97f465808e5961",
     "note": "R1263: AccountRoutes.PasswordReset + six characters, an unreferenced constant class"
+  },
+  {
+    "artifact_size": 57481728,
+    "src_files": 378,
+    "src_sha256": "40c9219f9f578fa3e9a4d50ef723391539cb87f1f217b7275c9b68f523353988",
+    "note": "R1264: identical source, republished, to test whether the build is deterministic in size"
   }
 ]

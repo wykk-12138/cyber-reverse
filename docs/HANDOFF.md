@@ -6959,3 +6959,15 @@ Observation：
 还剩什么：① 口径差异（工具 8 vs 我 3，同名类型分属不同项目）→ 下轮按完整命名空间归位；
 ② `BotTask.Running`/`Task`、`CreateModel.Inputs` 三条 Unknown；
 ③ abort 分支未验证；④ 判据 e 两处文档手抄数字；⑤ UI 侧 prop-get（冻结）。
+## R1194/R1195 —— 撤回统计口径（我漏 interface）；修接口判到实现类；形状 93/8 → 89/4
+
+Observation：
+- 我上轮统计正则缺 `interface` ⇒ `IWebhook` 未入表 ⇒ 8 被我数成 3。**工具是对的。**
+- `IWebhook` 六成员全 `{ get; }`；实现类 `Webhook` 的 Url/Name/Enabled/Type 有 setter，Events/ExtraFields 只读。
+- 改：`shape_audit.py` 采集 `class X : IY` 关系，接口类型改判实现类类体；归属改按类体来源文件。
+
+验证：build 0 错；全量 **2476/0/2/2478**（4m20s）；形状 **89 / 4**。
+
+还剩什么：① `IWebhook.Events`/`ExtraFields` 回二进制确认可写性；
+② 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；
+③ abort 分支未验证；④ 判据 e 两处文档手抄数字；⑤ UI 侧 prop-get（冻结）。

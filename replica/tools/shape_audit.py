@@ -103,13 +103,28 @@ def strip_non_code(text):
 
 
 bodies = {}
+body_projects = {}
+is_interface = set()
+implementors = {}
 for dirpath, _d, files in os.walk(os.path.join(ROOT, "src")):
     if f"{os.sep}obj{os.sep}" in dirpath or f"{os.sep}bin{os.sep}" in dirpath:
         continue
+    _parts = dirpath.replace("/", os.sep).split(os.sep)
+    # R1194: remember which project each body came from. The owner map further down is keyed by bare type name
+    # and takes the first project it sees, so a name declared in two projects was attributed to whichever came
+    # first in the walk. Recording the provenance here settles that without guessing.
+    _proj = _parts[_parts.index("src") + 1] if "src" in _parts and _parts.index("src") + 1 < len(_parts) else "(unknown)"
     for fn in files:
         if not fn.endswith(".cs"):
             continue
         text = strip_non_code(io.open(os.path.join(dirpath, fn), encoding='utf-8', errors='replace').read())
+        # R1195: which classes name which interfaces. A binding to IWebhook.ExtraFields is resolved by the binder
+        # against the object it was handed, and that object is a Webhook instance, not the interface - so judging
+        # the interface body reported five members as read-only that the implementing class already exposes with
+        # setters. The contract was being measured instead of the thing the contract describes.
+        for _c in re.finditer(r"\bclass\s+(\w+)\s*(?:<[^>]*>)?\s*:\s*([^{\n]+)", text):
+            for _name in re.findall(r"\b(I[A-Z]\w*)\b", _c.group(2)):
+                implementors.setdefault(_name, []).append(_c.group(1))
         for m in re.finditer(r"\b(?:class|record|interface)\s+(\w+)[^;{]*\{", text):
             depth, start = 0, m.end() - 1
             for i in range(start, len(text)):
@@ -118,6 +133,9 @@ for dirpath, _d, files in os.walk(os.path.join(ROOT, "src")):
                     depth -= 1
                     if depth == 0:
                         bodies.setdefault(m.group(1), []).append(text[m.start():i+1])
+                        body_projects.setdefault(m.group(1), set()).add(_proj)
+                        if m.group(0).lstrip().startswith("interface"):
+                            is_interface.add(m.group(1))
                         break
 
 def kind_of(body, member):
@@ -175,6 +193,13 @@ for full, members in sorted(json.load(io.open(BINDS, encoding='utf-8')).items())
     short = full.split('.')[-1]
     ev = shape.get(short)
     body = "\n".join(bodies.get(short, []))
+    # R1195: an interface is a contract, not the object the binder was handed. When the matched type is an
+    # interface that some class implements, judge the implementing class instead; if nothing implements it, the
+    # honest answer is that the replica exposes the contract and no concrete type, which is its own reason.
+    if short in is_interface:
+        _impls = [n for n in implementors.get(short, []) if n in bodies]
+        if _impls:
+            body = "\n".join("\n".join(bodies.get(n, [])) for n in _impls)
     if not ev or not body:
         continue
     for m in sorted(members):
@@ -223,7 +248,19 @@ for _dp, _dirs, _fs in os.walk(os.path.join(ROOT, "src")):
         for _m in re.finditer(r"\b(?:class|record|interface)\s+(\w+)", _text):
             _owner.setdefault(_m.group(1), _proj)
 
-_by_proj = collections.Counter(_owner.get(t, "(unknown)") for t, _m, _k, _h in rows_out)
+# R1194: the owner is the project that actually supplied the body the row was judged against, and a name that
+# two projects both declare is reported as (shared) rather than silently credited to whichever came first in the
+# walk.
+def _owner_of(_short):
+    _ps = body_projects.get(_short, set())
+    if len(_ps) == 1:
+        return next(iter(_ps))
+    if len(_ps) > 1:
+        return "(shared)"
+    return _owner.get(_short, "(unknown)")
+
+
+_by_proj = collections.Counter(_owner_of(t) for t, _m, _k, _h in rows_out)
 print("")
 print("by owning project (priority order: Stores > Services > Http > Core > Ui):")
 for _p, _n in _by_proj.most_common():

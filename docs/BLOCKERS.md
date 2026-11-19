@@ -43235,3 +43235,51 @@ Inference = `Profile` 的类型选择；Unknown = 原版 `Checkout.Profile` 的�
 
 证据等级：Observation = 三条描述符的 `!Setter`、三处源码原文、两次度量、套件收据；
 Inference = 「覆盖层不改变未赋值行为」（由实现直接保证）；Unknown = 三个 setter 被调用时的原版语义、那 2 个成员的类型。
+## R1194/R1195 —— 上轮那个「口径差异」是**我数错了**；顺带修掉第三类「判错对象」缺陷
+
+### 一、撤回：8 是对的，3 是我漏了 `interface`
+
+我上轮的统计脚本用 `class|record|struct|enum`，**没有 `interface`** ⇒ `IWebhook` 这类接口类型落不进我的归属表，
+于是 8 被我数成 3。工具一直是对的，**是我的计数器有洞**。
+
+### 二、但顺着查出了真问题：**判的是接口，不是绑定时拿到的对象**
+
+8 条里有 **5 条是 `IWebhook` 的成员**。看代码：
+
+- 接口 `IWebhook` 六个成员**全是 `{ get; }`**；
+- 实现类 `Webhook` 的 `Url`/`Name`/`Enabled`/`Type` **都有 setter**，只有 `Events`/`ExtraFields` 是只读集合。
+
+XAML 绑的是 **`Webhook` 实例**（集合是 `ObservableCollection<Webhook>`），不是接口。
+所以工具报的 `prop-get` 是**在度量契约，而不是契约描述的那个东西**。
+
+修：`shape_audit.py` 记录 `class X : IY` 的实现关系；当匹配到的是**接口**时，改判**实现类**的类体；
+若无人实现，则如实报「只有契约、没有具体类型」。
+
+### 三、度量变化
+
+| | 修前 | 修后 |
+|---|---|---|
+| total | 93 | **89** |
+| core | 8 | **4** |
+
+（另含 R1194 的**归属改为按类体来源文件**，不再靠名字映射猜项目；本轮没有出现 `(shared)`，因为无同名跨项目声明。）
+
+### 四、剩余 4 条 core
+
+| 类型 | 成员 | 性质 |
+|---|---|---|
+| `BotTask` | `Running` | Unknown（类型不可得） |
+| `BotTask` | `Task` | Unknown（类型不可得，且无同名比对） |
+| `CreateModel` | `Inputs` | Unknown（集合类型不可得） |
+| `IWebhook` | `Events`（及 `ExtraFields`） | 实现类为**只读集合** —— 绑定只读集合是合法设计，**下一轮须按二进制确认原版是否可写** |
+
+### 五、验证
+
+`dotnet build` 0 错；全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（4m20s）；
+`成员形状差异` **89 / 4**。
+
+**这是同一族的第三次**：位置记录参数（R1187）、注释里的英文词（R1186）、接口契约（R1195）——
+**三次都是"判的对象不是绑定的对象"**。
+
+证据等级：Observation = 我脚本的正则（缺 `interface`）、`IWebhook` 与 `Webhook` 原文、两次度量；
+Inference = 「绑的是实例不是契约」；Unknown = `Events`/`ExtraFields` 在原版是否可写。

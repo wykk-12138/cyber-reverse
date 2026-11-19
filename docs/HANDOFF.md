@@ -6891,3 +6891,16 @@ Observation：
 
 还剩什么：① 变异收据为何判 RED / 恢复集为何 2393；② 其余 8 条 `prop-get` 转可写；
 ③ 3 条成员缺失/挂错类型；④ `CreateModel.Inputs` 补或写明理由；⑤ 判据 e 的两处文档数字。
+## R1189 —— IDA 就绪（清模态框）；Notification 四对 Getter/Setter 由二进制直接观测确认
+
+Observation：
+- `ida.py health` → `status ok`, `hexrays_ready true`, `auto_analysis_ready true`，库 `target\Cybersole.exe.i64`。
+- `ida.py str "Cybersole.Models.Notification"` 命中 `0x143210299`/`0x143210dd8`：
+  Title/Timestamp/Message/Type 各一对 `!Getter` + `!Setter`；**未见** Kind/Body 绑定。
+- 首次搜 `"Notification,.Title!Getter"` → `n:0`：**形状错**（真实为 `,Cybersole.Core.Title!Getter`），非缺席。
+
+环境：`PROXY: MISSING`（需人工切换 DSH 的 ida 条目）；IDA 模态框已用 CUA 清除。
+
+还剩什么：① 用 xrefs_to → site_to_func → Hex-Rays 还原这些 setter **实际写入什么**；
+② 3 条成员缺失/挂错类型（`BotTask.Running`/`Task`、`Checkout.Profile`）回二进制取证；
+③ 变异收据为何判 RED / 恢复集为何 2393；④ 其余 8 条 `prop-get`；⑤ 判据 e 的两处文档数字。

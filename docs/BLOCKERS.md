@@ -43047,3 +43047,41 @@ restored tree: RED
 证据等级：Observation = 两类度量值、clean-HEAD worktree 的 153/159、守卫前后 Expected/Actual、
 变异日志末 12 行原文；Inference = 「Notification 由不可解析桶转入可解析桶」（由 153→154 与成员可见性推出）；
 Unknown = 变异收据为何判 RED、恢复校验为何跑 2393 条。
+## R1189 —— IDA 重新就绪；`Notification` 的四对 Getter/Setter 由**二进制直接观测**确认（并记一次差点又误判的假阴性）
+
+### 一、环境（YG 问「怎么分析的」→ 如实回答）
+
+`analysis/ida.py health` 此前**连接被拒**：IDA 没起。这十轮（R1180–R1188）我处理的是**仪器与复刻件自身**的问题
+（探针 BOM、`relpath` 跨盘、陈旧度口径、形状解析、判据复算），证据来自**我自己的工具源码 vs 它的输出**，
+以及仓库里**早前从原版提取并版本化**的 `replica/docs/xaml_bindings.json`、`docs/MEMBER_GAP_EVIDENCE.md`（11/16 落盘）。
+这类问题**不需要 IDA**。
+
+本轮起 IDA：`ida-mcp-doctor` 报 `PROXY: MISSING`（DSH 未拉起代理，需人工在 DSH 里把 `ida` 条目关/开）
+＋ `PORT 13337 REFUSED`，但实例在（`pid 32404`，已载 `Cybersole.exe`），卡在**「请确认 / Restore packed base」模态框**。
+用 CUA 点掉后 70 s：`{"status":"ok", ..., "hexrays_ready":true, "auto_analysis_ready":true}`。
+⇒ **`analysis/ida.py` 直连插件即可，不依赖那个缺失的代理。**
+
+### 二、直接观测（四步链第 1 步）
+
+`python analysis\ida.py str "Cybersole.Models.Notification" --limit 6` → saturated，命中含：
+
+`
+0x143210299  ... Cybersole.Models.Notification,Cybersole.Core.Type!Getter / !Setter
+                 Cybersole.Models.Notification,Cybersole.Core.Title!Getter / !Setter
+                 Cybersole.Models.Notification,Cybersole.Core.Message!Getter / !Setter
+0x143210dd8  ... Cybersole.Models.Notification,Cybersole.Core.Timestamp!Getter / !Setter
+`
+
+**Title / Timestamp / Message / Type 四个成员，各有一对 Getter+Setter** —— R1188 的改动方向由此从
+「引用 `MEMBER_GAP_EVIDENCE.md`」升级为**原版观测**。同时可见原版**没有**绑定 `Kind`/`Body`，
+说明它们只是内部承载成员（复刻件这样暴露属实现细节，不影响绑定面）。
+
+### 三、**差点又误判一次**
+
+我第一次搜 `"Notification,.Title!Getter"` 得 `n: 0, saturated: false`。
+**那不是「原版没有」，是我的形状假设错了**：真实字面量在逗号与成员名之间还有**命名空间段**
+（`,Cybersole.Core.Title!Getter`）。这正是 AGENTS §2.7 那条老规矩——**先问这东西有几种写法**。
+若我停在那一步，就会得出与事实相反的结论。
+
+证据等级：Observation = `health` JSON、模态框原文、两条字符串对象原文与地址、错误形状的 `n:0`；
+Inference = 「四对描述符即 R1188 的依据」；Unknown = 这些 setter 在运行时**具体写什么**（下一步：xrefs_to → site_to_func → Hex-Rays）。

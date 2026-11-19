@@ -66374,3 +66374,34 @@ restored tree: RED
 | 成员形状 | **98 total / 13 core** |
 | 全量 | **2476 通过 / 0 失败 / 2 跳过 / 2478**（6m06s） |
 | 变异 | **收据矛盾，未采信** |
+---
+
+## 第 1189 轮：把 IDA 拉起来，然后用它验证我一直在引用的东西
+
+YG 问：「你一直没拉起 IDA，怎么分析的？」——这十轮我处理的是**仪器和复刻件自身**的问题
+（BOM 假阴性、跨盘崩溃、陈旧度口径、形状解析、判据复算），证据是我自己的工具源码与输出，
+加上仓库里早前从原版提取并版本化的两份绑定证据文件。**那类问题不需要 IDA。**
+
+但确实该起了，而且一起来就派上用场：
+
+`
+0x143210299 / 0x143210dd8
+  Cybersole.Models.Notification,Cybersole.Core.Title!Getter  + !Setter
+  Cybersole.Models.Notification,Cybersole.Core.Timestamp!Getter + !Setter
+  Cybersole.Models.Notification,Cybersole.Core.Message!Getter + !Setter
+  Cybersole.Models.Notification,Cybersole.Core.Type!Getter   + !Setter
+`
+
+**四个成员各有 Getter+Setter**——上一轮我按文档把 `Notification` 改成可写，现在这条依据
+从「引用」变成**原版观测**。
+
+### 又差点栽在形状假设上
+
+第一次搜 `"Notification,.Title!Getter"` 返回 `n: 0`。**不是没有，是我写错了形状**：
+真实字面量在逗号后还有命名空间段（`,Cybersole.Core.Title!Getter`）。
+**老规矩第 N 次生效：先问这东西有几种写法。** 停在那一步就会得出与事实相反的结论。
+
+### 环境备注
+
+`ida-mcp-doctor` 报 `PROXY: MISSING`（需人工在 DSH 把 `ida` 条目关/开一次）；IDA 卡在
+「Restore packed base」模态框，CUA 点掉后 70 s 就绪。**`analysis/ida.py` 直连插件 13337，不受该代理影响。**

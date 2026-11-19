@@ -44301,3 +44301,41 @@ Inference = 「经 delegate/虚表间接派发」；Unknown = 各 flow 步骤表
 
 证据等级：Observation = 两个槽地址、两次 `xrefs_to` 返回 0、`ptr_sites.py` 的输出；
 Inference = 「派发表由基址+偏移计算，故不可见」；Unknown = 元数据表的解析是否会给出同样的答案。
+## R1220 —— 找到**流程步骤总表**：状态机名以 **ASCII 名表**形式存放（不是 UTF-16 冻结串）
+
+### 一、先纠一个我自己的假设
+
+`ida.py str "CreateStripePaymentMethod"` 命中的是 `2CreateStripePaymentMethodg` ——
+**带长度前缀的 ASCII**，不是 `[MT*:8][len:4][UTF-16]` 的冻结 `System.String`。
+所以按 UTF-16 解那一片只得到 4 个串（24 KiB 窗口），**换 ASCII 扫描得到 116 条**。
+
+新工具 `analysis/name_region.py`：解一个地址窗口，两种编码都扫，筛 `d__N` / `b__N_M`。
+**这解释了为什么之前"六个步骤名 0 xref"**——它们在**名表**里，名表和代码的对应关系不在 xref 上。
+
+### 二、解出的支付步骤总表（编译器生成的状态机名，带序号）
+
+| 网关 | 步骤序列（序号） |
+|---|---|
+| **Adyen** | `SetAdyenPayment`(6) → `SubmitAdyenOrder`(7) → `GetAdyenPaymentStatus`(8) → `HandleAdyenAction`(10) → `HandleAdyenResult`(90) |
+| **Square** | `GetCardNonce`(73) → `SquareHydrate`(74) → `SquareCardNonce`(75) |
+| **Stripe** | `GetStripeConfiguration`(**87**) → `SetStripePayment`(**88**) → `CreateStripePaymentMethod`(**89**) → `SubmitS…`(续) → `GetStripePaymentIntent`(**93**) |
+| **Unzer** | `SetUnzerPayment`(98) → `CreateUnzerResource`(99) → `SubmitUnzerOrder`(100) → `HandleUnzerRedirect`(101) → `RunUnzerThreeDs`(102) → `ContinueUnzerThreeDs`(103) → `GetUnzerCallback`(107) |
+
+**这是 `PAYMENT_CHALLENGES.md` 里"六步流程只有名字"那一条的答案**：
+序号 87→93 就是 Stripe 那六步，`CreateStripePaymentMethod` 是第 3 步（89）。
+
+### 三、另外解出的站点流程段（同一张表）
+
+`<Start>d__39` → `<Login>d__40` → `<ClearCart>d__41` → `<GetCustomerToken>d__42` → `<GetHome>d__43` →
+`<ResolveSku>d__44` → `<FindProduct>d__45` → `<CreateCart>d__46` → `<AddToCart>d__47` → `<SetEmail>d__48` →
+`<GetCheckoutPage>d__49` → `<GetShippingRates>d__50` → `<SubmitShipping>d__51` → `<SetPayment>d__52` → `<SubmitOrder>d__53`
+
+**这是一条完整的 Magento 型结账链**，序号连续 39–53，与优先级①的 flow 步骤一一对应。
+
+### 四、边界（不越界）
+
+名表给出的是**存在性与顺序**，**不给"哪一步调用哪个函数"**（R1219 已证静态 xref 走不通）。
+所以本轮**不改代码、不接线**，只把这份总表记下来，作为 claim 的 Observation 层证据。
+
+证据等级：Observation = 116 条 ASCII 名表命中与地址、两段步骤序列的序号；
+Inference = 「序号即执行顺序」（生成序，非运行序）；Unknown = 名表与具体函数的槽对应。

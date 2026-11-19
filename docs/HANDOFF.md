@@ -7263,3 +7263,15 @@ Observation：
 
 还剩什么：① 元数据表解析是否可行（下一类工件）；② 两条 Unknown（BotTask.Running/Task）；
 ③ UI CS0108（冻结）；④ 4 条待接线表面（等派发解析）。
+## R1220 —— 支付步骤总表（Stripe 87-93 / Adyen 6-90 / Square 73-75 / Unzer 98-107）；名表是 ASCII 不是 UTF-16
+
+Observation：
+- 状态机名以 **ASCII 长度前缀表**存放（`2CreateStripePaymentMethodg`），UTF-16 解码该区只出 4 条，ASCII 出 **116** 条。
+- Stripe：GetStripeConfiguration(87) → SetStripePayment(88) → CreateStripePaymentMethod(89) → … → GetStripePaymentIntent(93)。
+- Adyen 6/7/8/10/90；Square 73/74/75；Unzer 98→107；站点链 Start(39)→…→SetPayment(52)→SubmitOrder(53)。
+- 新工具 `analysis/name_region.py`。
+
+**边界**：名表只给存在性与顺序，不给"哪步调哪个函数"（R1219 已证）。
+
+还剩什么：① 用序号表核对复刻件 `StoreFlowSteps` 的步骤顺序是否一致（下轮可做）；
+② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。

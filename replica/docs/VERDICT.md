@@ -67247,3 +67247,35 @@ Farfetch 7 条早已定性（服务端下发路由）。这轮查 **Bstn 4 条**
 | 新工具 | `analysis/ptr_sites.py` |
 | 代码改动 | 无 |
 | 成员形状 | 91 / 3 / 37（未变） |
+---
+
+## 第 1220 轮：找到步骤总表，并纠了自己一个编码假设
+
+`CreateStripePaymentMethod` 命中的是 `2CreateStripePaymentMethodg`——**ASCII 名表**，不是 UTF-16 冻结串。
+按 UTF-16 解那一片只出 4 条；**换 ASCII 得 116 条**。
+
+新工具 `analysis/name_region.py`（两种编码都扫），由此解出**支付步骤总表**：
+
+| 网关 | 步骤（序号） |
+|---|---|
+| Adyen | SetAdyenPayment(6) → SubmitAdyenOrder(7) → GetAdyenPaymentStatus(8) → HandleAdyenAction(10) → HandleAdyenResult(90) |
+| Square | GetCardNonce(73) → SquareHydrate(74) → SquareCardNonce(75) |
+| **Stripe** | **GetStripeConfiguration(87) → SetStripePayment(88) → CreateStripePaymentMethod(89) → … → GetStripePaymentIntent(93)** |
+| Unzer | SetUnzerPayment(98) → … → GetUnzerCallback(107) |
+
+**「六步流程只有名字」那条结案了**：87→93 就是那六步，`CreateStripePaymentMethod` 是第 3 步。
+
+同一张表还给出站点链：`Start(39) → Login(40) → … → SetPayment(52) → SubmitOrder(53)`。
+
+### 边界
+
+名表给**存在性与顺序**，**不给"哪步调哪个函数"**（R1219 已证）。⇒ 不改代码、不接线。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 新工具 | `analysis/name_region.py` |
+| 名表命中 | 116（窗口 24 KiB） |
+| 代码改动 | 无 |
+| 成员形状 | 91 / 3 / 37（未变） |

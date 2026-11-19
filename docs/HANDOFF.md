@@ -7473,3 +7473,15 @@ Observation（双编码，`analysis/artifact_literals.py`）：
 
 还剩什么：① Adyen host 缺席原因；② 支付层接线（让未接线项进产物）；③ connect 通道（需登录）；
 ④ 两条 Unknown（BotTask.Running/Task）；⑤ UI CS0108（冻结）。
+## R1238 —— 裁剪粒度是**方法**：同类里主路径字面量在、3DS/confirm 的不在
+
+Observation：
+- `PaymentGateway.cs:67` 注册了 `AdyenGateway`（R1002 注释已记"七个网关曾被裁"）。
+- 双编码：api.stripe.com/api.unzer.com/app.midtrans.com/paypal.com/graphql = **在**；
+  threeDS2/{deviceSupport,challenge,contingency,authenticate}、shopperLocale、payment_method_data[type]、submission[clientStateDataIndicator] = **不在**。
+
+**结论**：裁剪按方法粒度。类实例化+接口实现保不住无调用点的方法。
+**下一步**：Adyen 四态接进 `StoreFlow.CompleteActionAsync`；验收判据 = `threeDS2/challenge` 出现在产物字节。
+
+还剩什么：① 四个待接面（Adyen 四态 / Stripe setup+intent / Midtrans 3DS / Waitwhile）；② connect 通道（需登录）；
+③ 两条 Unknown；④ UI CS0108（冻结）。

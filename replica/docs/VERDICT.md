@@ -67785,3 +67785,34 @@ Adyen 的两个 host 为何缺席（可能不在注册表，或由拼接产生�
 |---|---|
 | 撤回 | 1 条主结论 |
 | 保留 | "未接线 ⇒ 被裁" |
+---
+
+## 第 1238 轮：裁剪是**方法级**的
+
+Adyen 缺席**不是注册表问题**（`PaymentGateway.cs:67` 确实注册了，R1002 还专门修过）。
+
+双编码扩大样本后规律清楚：
+
+| 字面量 | 产物 |
+|---|---|
+| `api.stripe.com` / `api.unzer.com` / `app.midtrans.com` / `paypal.com/graphql`（主路径） | **在** |
+| `threeDS2/deviceSupport|challenge|contingency|authenticate`（Adyen 四态） | **不在** |
+| `payment_method_data[type]`（R1214 的 SetupConfirmForm） | **不在** |
+
+⇒ **同一个类里，主路径留着，3DS/confirm 的方法体连同字面量一起消失。**
+
+> **裁剪粒度是「方法」不是「类」。** 类被实例化、接口被实现，都保不住一个没有调用点的方法。
+
+这解开了 R1237 的表面矛盾：**不是网关之间不同，是方法之间不同。**
+
+### 下一轮
+
+从 **Adyen 四态接进 `StoreFlow.CompleteActionAsync`**（现在只处理 PayPal 3DS）开始。
+验收判据 = **`threeDS2/challenge` 出现在产物字节里**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 代码改动 | 无 |
+| 新增事实 | 方法级裁剪模型 |

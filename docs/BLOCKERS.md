@@ -45114,3 +45114,52 @@ R1236 我还把 `api.midtrans.com` 当成 `MidtransGateway` 的 host —— **�
 
 证据等级：Observation = 八行双编码结果、`MidtransGateway.ApiHost` 的实际取值；
 Inference = 「未接线 ⇒ 被裁」（由 `result-completion` 那条支持）；Unknown = Adyen host 缺失的原因。
+## R1238 —— 裁剪是**方法级**的：同一类里 `AuthorizeAsync` 的字面量在，3DS/confirm 的不在
+
+### 一、Adyen 缺席不是"没注册"
+
+`PaymentGatewayRegistry.CreateDefault()` **确实** `r.Register(new AdyenGateway())`（`PaymentGateway.cs:67`），
+且该类注释记着 R1002 已发现「九个网关里七个不在产物里」并用 `Default` + `StoreFlow.SubmitPaymentAsync` 修过。
+所以 Adyen 缺席**不是注册表问题**。
+
+### 二、双编码探测扩大了样本，规律清楚了
+
+| 字面量 | 出处 | 产物里 |
+|---|---|---|
+| `api.stripe.com` | `StripeGateway` 主路径 | **UTF-16 在** |
+| `api.unzer.com` / `app.midtrans.com` / `paypal.com/graphql` | 各网关主路径 | **在** |
+| `threeDS2/deviceSupport` / `challenge` / `contingency` / `authenticate` | `AdyenGateway` 的 3DS2 四态（:145/:186/:213/:261） | **皆不在** |
+| `shopperLocale` | Adyen | 不在 |
+| `payment_method_data[type]` | `StripeGateway.SetupConfirmForm`（R1214 落地的） | **不在** |
+| `submission[clientStateDataIndicator]` | Stripe | 不在 |
+
+⇒ **同一个类里，主路径的字面量留着，3DS/setup/confirm 这些方法的字面量被裁。**
+
+### 三、所以精确结论是（替换上一轮那句粗话）
+
+> **裁剪粒度是「方法」不是「类」**：可达的方法是可达的，不可达方法的**方法体连同其字面量**一起消失。
+> 类被实例化、接口被实现，都不足以保住一个方法——**必须有调用点能到达它**。
+
+这解释了 R1237 里"stripe 在、adyen 不在"的表面矛盾：**不是网关之间不同，是方法之间不同。**
+
+### 四、这条直接指出下一轮的活
+
+要达到「解出的协议在产品里成立」，需要让这些方法**可达**：
+
+| 待接 | 方法 | 现状 |
+|---|---|---|
+| Adyen 3DS2 四态 | `deviceSupport` → `authenticate` → `contingency` → `challenge` | 无调用点 |
+| Stripe setup/confirm/intent | `SetupConfirmForm` / `SetupIntentRetrieveUrl` / `PaymentIntentRetrieveUrl` / `PayPalConfirmForm` | 无调用点 |
+| Midtrans 3DS 完成 | `ResultCompletionUrl`（R1225） | 无调用点 |
+| Waitwhile 队列 | `FirstAvailableSlotsUrl`（R1235） | 无调用点 |
+
+接线点是现成的：`StoreFlow.SubmitPaymentAsync`（主路径，已可达）与 `StoreFlow.CompleteActionAsync`
+（现在只处理 PayPal 3DS）。**下一轮从 Adyen 四态接进 `CompleteActionAsync` 开始**——
+这是优先级②的正题，且验收判据是**字节**（`threeDS2/challenge` 出现在产物里）。
+
+### 五、验证
+
+双编码探测（`analysis/artifact_literals.py`）七条记录见上表；本轮无源码改动。
+
+证据等级：Observation = `PaymentGateway.cs:67` 的注册行、七个字面量的双编码结果、R1002 的既有注释；
+Inference = 「裁剪粒度是方法」；Unknown = 除这几条外还有多少方法处于同样状态（未逐个数）。

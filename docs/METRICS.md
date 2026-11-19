@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 11:06:32 +0800 |
+| 生成时间 | 2026-11-19 11:39:13 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | **有非零退出，见下** |
@@ -362,8 +362,8 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-19 10:51:00
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 11:01:52)
+publish artifact mtime: 2026-11-19 11:09:47
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 11:34:12)
 source files newer than the artifact: 17
 lines in those files: 13599
 publish artifact state: stale

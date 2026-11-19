@@ -42764,3 +42764,43 @@ Paypal-GetPurchaseUnit   ascii=30799082
 证据等级：Observation = 字节偏移 4 条、文件头 8 字节、首行 repr、修后 10 行读数、三处守卫与套件输出；
 Inference = 「BOM 解释全部首行 no」（由文件头与修后读数直接支持）；
 Unknown = 描述符与泛型标注各自的作用（**未分离测量**）；产物当前 17 文件 stale（`StepAction.cs` 之后又改过）。
+## R1181 —— 分离测量：**描述符必需，泛型标注单独不够**；顺带修掉 `relpath` 跨盘崩溃
+
+**取件**：R1180 遗留「描述符 vs 泛型标注各自作用未分离」。
+
+### 一、干净的两态对照（无 BOM 探针文件，11 条含负对照）
+
+| 配置 | 产物 | 9 条控制器字面量 |
+|---|---|---|
+| 泛型标注 **+** 描述符 | **54.72 MB** | **9/9 yes** |
+| 泛型标注 only（移除描述符） | **54.25 MB** | **0/9 yes** |
+| 负对照 `definitely-not-in-any-build-1181` | — | **no** ✓ |
+
+⇒ **保留描述符**。泛型标注 `Build<T>() where T : StoreFlow` 让 `GetMethods` 的反射请求合法，
+但**它保不住派生类里的重写方法体**；真正保住字面量的是描述符。这句话已写进 csproj 注释（含两态数字）。
+
+### 二、变异第一次是 RED，追下去是**工具的跨盘崩溃**
+
+`ShapeAuditGuardTests` 又失败（R1169 之后第二次）。查下来不是它自己的问题：
+
+`
+art = identity(args.exe)
+  path: os.path.relpath(path, ROOT)  → ValueError: path is on mount 'C:', start on mount 'D:'
+`
+
+我新加的两个探针守卫用 `%TEMP%` 里的**合成文件**当 `--exe`（C: 盘），而仓库在 D: ⇒
+`relpath` 抛异常 ⇒ **工具直接崩，退出码 1**。
+
+两处修：
+- `tools/artifact_probe.py`：`relpath` 加 `try/except ValueError`，跨盘时回退绝对路径；
+- 两个守卫改为传入**小合成文件**（而非默认去读 54 MB 产物）——它们检验的是**读取逻辑**，不是发布产物；
+  顺带把变异负载下「python 子进程读 54 MB」这一压力源去掉。
+
+修后：`ProbeBom|ArtifactProbeCaveat|ShapeAuditGuard` **4/4**；全量 **2474 通过 / 0 失败 / 2 跳过 / 2476**（4m29s）；
+变异 `ran_at 2026-11-19T11:38:50`、**59/59 fired，`restored tree: GREEN`**。
+
+**一次「守卫红了」的完整链条**：守卫红 → 不是被测行为变了，而是**它的夹具触发了另一个工具缺陷** →
+修工具 + 减小夹具负载 → 红转绿。**红不一定是被测对象的错，也不一定是抖动。**
+
+证据等级：Observation = 两态产物尺寸与 11 行探针读数、`relpath` 的 traceback 原文、修后 4/4、全量与变异收据；
+Inference = 「标注保不住派生类重写」（由 0/9 推出）；Unknown = 描述符的保留粒度能否再收窄（当前是 `Flows.*` 全保留）。

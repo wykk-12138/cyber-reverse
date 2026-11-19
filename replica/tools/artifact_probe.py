@@ -55,8 +55,14 @@ def identity(path):
             h.update(block)
             size += len(block)
     st = os.stat(path)
+    # R1182: relpath raises ValueError when the artifact sits on another drive than the repository, and two
+    # guards that passed a temporary file from %TEMP% hit exactly that - the tool crashed instead of reading.
+    try:
+        rel = os.path.relpath(path, ROOT)
+    except ValueError:
+        rel = path
     return {
-        "path": os.path.relpath(path, ROOT).replace("\\", "/"),
+        "path": rel.replace("\\", "/"),
         "sha256": h.hexdigest(),
         "bytes": size,
         "mtime": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(st.st_mtime)),

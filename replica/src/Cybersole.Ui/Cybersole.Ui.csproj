@@ -12,9 +12,11 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
-    <!-- R1178: step dispatch is by reflection over StoreFlow's public methods, which the trimmer cannot see
-         through. With this descriptor the published image is 54.72 MB and keeps the controller literals; with
-         the item removed it is 54.25 MB and keeps none of them. See ILLink.Descriptors.xml. -->
+    <!-- R1181 measured the two mechanisms apart. Step dispatch is reflection over StoreFlow's public
+         methods, and with only the DynamicallyAccessedMembers annotation in StepActionRunner.Build the
+         published image is 54.25 MB and retains none of the nine controller literals; with this descriptor
+         it is 54.72 MB and retains all nine. The annotation legitimises the GetMethods call, the descriptor
+         is what actually keeps the bodies. See ILLink.Descriptors.xml. -->
     <TrimmerRootDescriptor Include="ILLink.Descriptors.xml" />
   </ItemGroup>
   <ItemGroup>

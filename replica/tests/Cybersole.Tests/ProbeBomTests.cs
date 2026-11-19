@@ -37,12 +37,16 @@ public sealed class ProbeBomTests
         var path = Path.Combine(Path.GetTempPath(), "probe-bom-" + Guid.NewGuid().ToString("N") + ".txt");
         // the literal the artifact is known to carry, with the BOM in front of it
         File.WriteAllText(path, "www.paypal.com/v2/checkout/orders\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        // R1182: a tiny synthetic subject keeps this guard about the reader, not the 54 MB publish.
+        var fake = Path.Combine(Path.GetTempPath(), "probe-fake-" + Guid.NewGuid().ToString("N") + ".bin");
+        File.WriteAllText(fake, "www.paypal.com/v2/checkout/orders");
         try
         {
             var psi = new ProcessStartInfo
             {
                 FileName = "python",
-                Arguments = "tools/artifact_probe.py --strings-file \"" + path + "\" --no-record",
+                Arguments = "tools/artifact_probe.py --exe \"" + fake + "\" --strings-file \"" + path +
+                            "\" --no-record",
                 WorkingDirectory = root,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -59,6 +63,7 @@ public sealed class ProbeBomTests
         finally
         {
             File.Delete(path);
+            if (File.Exists(fake)) File.Delete(fake);
         }
     }
 

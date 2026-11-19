@@ -6794,3 +6794,17 @@ Observation：
 **Unknown**：描述符 vs 泛型标注各自作用未分离；产物 stale 17 文件（`StepAction.cs` 后改动）。
 
 还剩什么：① 重发产物；② 分离测「描述符是否仍必需」；③ 恢复 R1176 里被 BOM 带偏的结论表述。
+## R1181 —— 描述符必需（54.72MB/9-of-9）vs 标注单独（54.25MB/0-of-9）；修 relpath 跨盘崩溃
+
+Observation：
+- 两态对照（无 BOM 探针）：标注+描述符 **54.72MB / 9-9 yes**；仅标注 **54.25MB / 0-9 yes**；负对照 no。
+- 变异 RED 真因：`os.path.relpath(path, ROOT)` 跨盘 `ValueError`（C: temp vs D: repo）⇒ 工具退出 1。
+
+改动：
+- `tools/artifact_probe.py`：`relpath` 加 try/except，跨盘回退绝对路径。
+- 两个探针守卫改传**小合成文件**当 `--exe`（检验读取逻辑，不读 54 MB 产物）。
+- csproj / 描述符注释写入两态数字，说明「标注合法化、描述符保命」。
+
+验证：守卫 **4/4**；全量 **2474/0/2/2476**（4m29s）；变异 **59/59 fired，restored tree GREEN**（11:38:50）。
+
+还剩什么：① 描述符保留粒度（现为 `Flows.*` 全保留）能否收窄；② 产物陈旧度仍显示 17 文件（tests 计入）。

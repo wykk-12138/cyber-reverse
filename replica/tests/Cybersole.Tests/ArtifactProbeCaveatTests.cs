@@ -40,12 +40,19 @@ public sealed class ArtifactProbeCaveatTests
         // is intact, the fixture was measuring a world that no longer exists. A string no build can contain
         // keeps the negative deterministic, and a literal the image is known to carry keeps the positive.
         File.WriteAllText(probes, "definitely-not-in-any-build-1177\nwww.paypal.com/v2/checkout/orders\n");
+        // R1182: this guard is about how the tool reads its input, not about the shipped artifact, so it runs
+        // against a tiny synthetic file. Without --exe the tool defaults to the 54 MB publish and every run
+        // paid for that read - under the mutation cycle that is exactly the load that makes a python child
+        // fail, and ShapeAuditGuardTests has now failed that way twice.
+        var fake = Path.Combine(Path.GetTempPath(), "probe-fake-" + Guid.NewGuid().ToString("N") + ".bin");
+        File.WriteAllText(fake, "www.paypal.com/v2/checkout/orders");
         try
         {
             var psi = new ProcessStartInfo
             {
                 FileName = "python",
-                Arguments = "tools/artifact_probe.py --strings-file \"" + probes + "\" --no-record",
+                Arguments = "tools/artifact_probe.py --exe \"" + fake + "\" --strings-file \"" + probes +
+                            "\" --no-record",
                 WorkingDirectory = root,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -62,6 +69,7 @@ public sealed class ArtifactProbeCaveatTests
         finally
         {
             File.Delete(probes);
+            if (File.Exists(fake)) File.Delete(fake);
         }
     }
 

@@ -42356,3 +42356,67 @@ Unknown = 那两个例程的 flow 与 ordinal。
 证据等级：Observation = `0x143372d80` 的状态机名串、`FLOW_SEQUENCES.md` §3 原文、`Pairs` 实测 14 个 key、
 `where_is` 两处缺席；Inference = 「两个地址是同一张表」（内容逐项吻合）；Unknown = JL 第 37 步的真实实现
 与 `/Paypal-GetPaypalOrderId` 是否同一段代码。
+## R1172 —— **两家整店缺失**：Jacquemus 与 Maison Margiela 在镜像里，复刻件里一个字都没有
+
+**取件**：R1171 的 Unknown「JL 第 37 步的真实实现 / `/Paypal-GetPaypalOrderId` 是否同一段代码」。
+读那两条例程的**全部字面量**，答案既关掉了这个 Unknown，又开出一个更大的口子。
+
+### 一、字面量把归属钉死了（Observation）
+
+| 例程 | 全部字面量 |
+|---|---|
+| `0x140a32f30`（574 行，await `GetPaypalOrderId`） | `'PayPal'`、`'/moon-shoe-jacquemus-%2B-nike/'`、`'.html'`、`'Jacquemus-Preload'`、`'3700943201515'` |
+| `0x140a530f0`（438 行，await `GetPurchaseUnit`+`GetOrderDetails`） | `'PayPal'`、`'Margiela-Preload'`、`'8058260839474'`、`'Region'` |
+
+**两条都没有 host 字面量**（宿主机来自配置），但控制器名把店名写在了里面：
+`Jacquemus-Preload` / `Margiela-Preload` —— SFCC 的 `控制器-动作` 形态。
+
+再搜这两个词，拿到主机与区域：
+`
+str "Jacquemus" → 0x14709486c  "https://www.jacquemus.com/"
+                  'Jacquemus' / 'Jacquemus US' / 'JacquemusUS' / 'Jacquemus-Preload'
+str "Margiela"  → 'Maison Margiela' / 'Maison Margiela UAE' / 'MaisonMargiela'
+                  'Margiela-Preload' / 'MargielaEU' 'MargielaEU2' 'MargielaAPAC' 'MargielaAU' 'MargielaCA'
+                  'MARGIELA-DEBUG' / 'MARGIELA-ERROR'   ← 日志分类
+`
+**⇒ 这两条例程分别属 Jacquemus 与 Maison Margiela，不是 John Lewis。**
+R1171 里我拿「JL 第 37 步也叫 `GetPayPalOrderId`」去对控制器——**那是跨店重名**。
+JL 走 BFF、这两家走 SFCC，本来就不矛盾；**是我把两个不同店的同名步骤当成同一个。**
+
+### 二、复刻件里这两家**完全没有**
+
+`
+grep -r "acquemus|argiela" replica/src/Cybersole.Stores/**  → 0 命中
+where_is Jacquemus → 只有 docs/VERDICT.md（我自己的轮次记录）
+where_is Margiela  → docs/VERDICT.md + docs/shopify_hosts.txt
+`
+
+镜像有它们的主机、控制器、区域、显示名、SKU、**日志分类**（`MARGIELA-DEBUG`/`MARGIELA-ERROR` ——
+Cybersole 里按店分 logger 意味着这是**一等支持的店铺**），以及可运行的结账机器；
+复刻件**一家都没有**。这是本轮发现的最大缺口，比此前记的 12 条占位大一个量级。
+
+### 三、加一家店的**准确成本**（下一轮按这个做，不靠试错）
+
+| 位置 | 现状 | 加一家要做的事 |
+|---|---|---|
+| `Modules/Registry.cs:159` `StoreModuleCatalog.CreateAll()` | **显式数组**（不是反射） | 新模块必须**手加进数组** |
+| `src/Cybersole.Stores/Modules/*` | `StoreModuleBase` 子类：`Id`/`Name`/`Domains`/`MonitorAsync` | 新建一个类 |
+| `tests/Cybersole.Tests/CoreTests.cs:133` | `Assert.Equal(65, registry.Modules.Count)` | **65 → 66**（硬编码计数） |
+| `DocsConsistencyTests.EveryModuleHasAtLeastOneDomain` | — | 域名不能空 |
+| `DuplicateModuleAuditTests.EveryModuleDuplicatesARegisteredFlow` | `Assert.Equal(5, Pairs.Length)` | 新模块**不在**这 5 条里即可（它审计的是重复注册） |
+| `FirstDomainResolvesTests.TheFirstDomainOfEveryModuleResolves` | — | **会真去解析首域名**，加店即触发网络 |
+
+**两份证据不对称，这很重要**：
+- **Jacquemus 有主机**（`https://www.jacquemus.com/`）⇒ 域名可断言；
+- **Maison Margiela 没有主机字面量**（搜到的全是名称/区域/日志分类）⇒ **域名 Unknown**，
+  不能替它编一个。所以下一轮应当**先只加 Jacquemus**，Margiela 等主机证据。
+
+### 四、本轮为什么停在这里
+
+加一家店要新写 `MonitorAsync`，而那需要 PDP 的**观测**（价格/库存标记）。Jacquemus 我只观测到
+主机、PDP 路径形态（`/<slug>.html`）、SKU、控制器——**没有观测到页面标记**。
+硬写一个 monitor 就是编。**所以这轮把成本与证据摊开，下一轮带着 SFCC 的知识去补观测。**
+
+证据等级：Observation = 两条例程的字面量全表、`str` 的 21 条命中（含主机与日志分类）、
+`grep` 零命中、六处守卫的行号与断言、`CreateAll()` 是数组；Inference = 「按店分 logger ⇒ 一等店铺」；
+Unknown = Margiela 的域名、两家的 PDP 标记、两家的 step 表（除这两步外）。

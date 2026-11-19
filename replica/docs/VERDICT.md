@@ -65847,3 +65847,38 @@ R1162/R1163 我把三个 PayPal 控制器名放在 `DemandwareFlow` 上。这一
 ⇒「JL 第 37 步 = 我写的那个方法」**目前不成立**。把名字像当证据，**R1160 的 `beast` 已经教过一次。**
 
 证据等级：Observation = 状态机名串、§3 原文、14 个 key、两处缺席；Inference = 两地址同一张表；Unknown = 第 37 步的真实实现。
+---
+
+## 第 1172 轮：查一个 Unknown，挖出两家整店缺失
+
+想知道「JL 第 37 步的真实实现」。读那两条例程的**全部字面量**：
+
+`
+0x140a32f30 → 'Jacquemus-Preload' / '/moon-shoe-jacquemus-%2B-nike/' / '3700943201515'
+0x140a530f0 → 'Margiela-Preload' / '8058260839474' / 'Region'
+str "Jacquemus" → https://www.jacquemus.com/  ·  'Jacquemus US' · 'JacquemusUS'
+str "Margiela"  → 'Maison Margiela UAE' · 'MargielaEU/APAC/AU/CA' · 'MARGIELA-DEBUG' · 'MARGIELA-ERROR'
+`
+
+**这两条例程属 Jacquemus 与 Maison Margiela，不是 John Lewis。**
+
+### 我又犯了重名当同一的错误
+
+R1171 我用「JL 第 37 步也叫 `GetPayPalOrderId`」去对控制器，才觉得矛盾。
+**两家不同店的步骤可以同名**；JL 走 BFF、这两家走 SFCC，本来就并行不悖。
+**我把「名字相同」当成了「同一个实现」——R1160 的 `beast` 之后第三次。**
+
+### 更重的发现
+
+`grep -r "acquemus|argiela" replica/src/Cybersole.Stores/**` → **0 命中**。
+镜像有这两家的主机、控制器、区域、显示名、SKU、**按店分 logger**（`MARGIELA-DEBUG`），
+以及能跑的结账机器；复刻件**一家都没有**。**这比此前记的 12 条占位大一个量级。**
+
+### 这轮为什么不动手
+
+加一家店要写 `MonitorAsync`，那需要 PDP 的**观测**（价格/库存标记）。Jacquemus 我只有主机、
+路径形态、SKU、控制器——**没有页面标记，硬写就是编**。
+所以本轮把**加店成本摊开**：`CreateAll()` 是显式数组、`CoreTests:133` 是硬编码 65、
+`FirstDomainResolvesTests` 会真解析域名……**下一轮带着观测去补，而不是边撞守卫边修。**
+
+证据不对称也写清了：**Jacquemus 有主机可断言；Margiela 的域名是 Unknown，不替它编。**

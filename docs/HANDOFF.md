@@ -6674,3 +6674,19 @@ Observation：
 
 还剩什么：① 定 JL 第 37 步的真实实现（从 `0x140a32f30` 的 574 行里读它请求的宿主）；
 ② `GetCartCsrf` 的端点（镜像里未找到，可能同为 BFF）。
+## R1172 —— Jacquemus / Maison Margiela 两家整店缺失（镜像有、src 零命中）；加店成本已摊开
+
+Observation：
+- `0x140a32f30` 字面量 = Jacquemus 家族；`0x140a530f0` = Margiela 家族（含 `Margiela-Preload`）。
+- `str "Jacquemus"` → `https://www.jacquemus.com/`（0x14709486c）、`Jacquemus US`、`JacquemusUS`。
+- `str "Margiela"` → `Maison Margiela UAE`、`MargielaEU/EU2/APAC/AU/CA`、`MARGIELA-DEBUG`/`-ERROR`。
+- `grep acquemus|argiela` 于 `replica/src/Cybersole.Stores/**` → **0**。
+
+**错类（第三次）**：跨店重名当同一实现（R1160 `beast`、R1171 JL 第 37 步）。
+
+加店成本（下轮据此执行）：`Registry.cs:159` 显式数组、`CoreTests:133` 硬编码 65、
+`EveryModuleHasAtLeastOneDomain`、`DuplicateModuleAuditTests`(Pairs==5)、`FirstDomainResolvesTests`(真解析)。
+
+**本轮不加店**：Jacquemus 缺 PDP 标记观测；**Margiela 缺主机字面量（域名 Unknown，不编）**。
+
+还剩什么：① 观测 Jacquemus PDP 标记 → 加 `JacquemusModule` 与 flow；② 找 Margiela 主机；③ 两家其余步骤表。

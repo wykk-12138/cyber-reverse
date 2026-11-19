@@ -43530,3 +43530,43 @@ core 8 条：`CaptchaProvider.{ApiKey,BalanceSupported,Type}`、`Element.PropNam
 
 证据等级：Observation = Core\Store 的 grep 结果、`Element` 声明与 0 个赋值点、变异收据；
 Inference = 无（本轮**刻意不下结论**，假设已证伪）；Unknown = 37 条里各类型的真实序列化路径。
+## R1202 —— 37 条 over-permissive 的**实证分诊**：core 8 条全部有据可依
+
+### 一、上轮假设的修正：不是"也许"，是**能查清**
+
+上轮我在 `Core\Store` 里 grep 八个类型名，五个没命中，于是判定"持久化假设证伪"。
+**查错了地方**：配置根不是 `Core\Store`，而是 `GlobalSettings` 与各自的 json。本轮按**配置根**重查：
+
+| 类型 | 配置根（可复算） | 结论 |
+|---|---|---|
+| `CaptchaProvider` | `GlobalSettings.cs:178` `List<CaptchaProvider> CaptchaProviders` | 持久化 ⇒ **Accepted** |
+| `IWebhook` | `Settings.Webhooks`（`ProviderViews.cs` 直接 `Settings.Webhooks.Add`） | 持久化 ⇒ **Accepted** |
+| `Solver` | `Config.Solvers`（`Checkout.cs` `List<Solver> Solvers`） | 持久化 ⇒ **Accepted** |
+| `BotTask` | tasks.json（`Product` 字段） | 持久化 ⇒ **Accepted** |
+| `Element` | 嵌套于任务步骤（tasks.json 往返） | 持久化 ⇒ **Accepted** |
+
+⇒ **core 侧 8 条全部是持久化配置模型**：公开 setter 正是序列化写入通道，**收窄就会开始丢字段**。
+
+### 二、「假设」与「实证」的差别
+
+上轮我写的是"要么别处序列化，要么不需要 setter"——**两者都没查**。
+本轮把每一个的**配置根**指出来了，结论才成立。**同样一句话，有根和无根，可信度差一整个等级。**
+
+### 三、分区与去向
+
+| 归属 | 条数 | 去向 |
+|---|---|---|
+| core 侧 | **8** | **Accepted deviation**（附前置条件） |
+| UI 侧 | **29** | 随 UI 层冻结（优先级 ④） |
+
+**前置条件**（写进 `shape_audit.py` 注释，不只写在文档）：给该成员加 `[JsonProperty]` 配非公开 setter，
+并加一条 JSON 往返测试证明反序列化能写回，才谈得上收窄。
+
+### 四、验证
+
+`shape_audit.py --baseline` 仍 **92 / 4 / 37**（本轮只加注释，无逻辑改动）；
+文档钉子 `DocumentNumbers|ParityDoc|DocsConsistency` **18/18**。
+
+证据等级：Observation = 四个配置根的文件与行号、`Solver` 的声明与 `Config.Solvers`、度量与钉子收据；
+Inference = 「公开 setter 是序列化通道」（由 Newtonsoft 默认行为 + 各类型确在持久化图上推出）；
+Unknown = UI 侧 29 条（不在本轮范围）。

@@ -235,6 +235,14 @@ for full, members in sorted(json.load(io.open(BINDS, encoding='utf-8')).items())
         # descriptors carry Type!Getter with no !Setter, while the replica's Webhook.Type is settable - and it
         # went unnoticed until a binding table was read by hand. These rows are counted apart from the totals
         # rather than mixed in: an extra setter does not break a binding, it widens what the UI can do.
+        #
+        # R1202: the core-side rows were triaged and all eight are persisted configuration models, checked at
+        # their config roots rather than assumed - CaptchaProvider under GlobalSettings.CaptchaProviders,
+        # IWebhook under Settings.Webhooks, Solver under Config.Solvers, BotTask in tasks.json and Element
+        # nested inside a task step. A public setter is what the serialiser writes through, so narrowing any of
+        # them would start dropping stored fields; they are accepted deviations, and the twenty-nine UI rows are
+        # deferred with the UI layer. The precondition for narrowing one is a JsonProperty attribute on a
+        # non-public setter plus a round-trip test.
         elif (not want_set) and have == 'prop+set' and 'command' not in (have,):
             over_out.append((short, m, ','.join(sorted(kinds)), have))
 

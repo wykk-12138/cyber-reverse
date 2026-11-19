@@ -7044,3 +7044,14 @@ Observation：
 
 还剩什么：① 查实各类型真实序列化路径（Settings 图 vs 独立 json）；
 ② 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；③ abort 分支未验证；④ UI 29 条冻结。
+## R1202 —— over-permissive 实证分诊：core 8 条全部有配置根可指（Accepted）；上轮 grep 位置错了
+
+Observation：
+- 配置根：`GlobalSettings.cs:178`（CaptchaProviders）、`Settings.Webhooks`、`Config.Solvers`、tasks.json、任务步骤内嵌 Element。
+- 上轮"证伪"因 grep 的是 `Core\Store` 而非配置根 ⇒ **撤回该证伪**。
+- `shape_audit.py` 注释补入分诊结论与前置条件（逻辑未改，度量仍 92/4/37）。
+
+验证：文档钉子 18/18。
+
+还剩什么：① 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；
+② abort 分支未验证；③ UI 29 条随冻结层；④ 变异需在下一次 src 改动后重跑。

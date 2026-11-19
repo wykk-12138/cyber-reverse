@@ -66693,3 +66693,33 @@ C7b 本来就是这么写的——**这轮是把其余三处拉齐到它的标�
 |---|---|
 | 成员形状 | **92 / 4 / 37**（未变） |
 | 变异 | **59/59 fired，GREEN** |
+---
+
+## 第 1202 轮：查错了地方，然后查对了
+
+上轮我断言「持久化假设证伪」——因为在 `Core\Store` 里 grep 不到那五个类型。
+**是我查错了地方**：配置根不在 `Core\Store`，在 `GlobalSettings` 与各自 json。
+
+按配置根重查，八个 core 侧类型**全部命中**：
+
+| 类型 | 配置根 |
+|---|---|
+| CaptchaProvider | `GlobalSettings.CaptchaProviders`（L178） |
+| IWebhook | `Settings.Webhooks` |
+| Solver | `Config.Solvers` |
+| BotTask | tasks.json |
+| Element | 嵌套于任务步骤 |
+
+⇒ **core 8 条全是持久化配置模型，公开 setter 就是序列化通道，收窄即丢字段。**
+**Accepted deviation**，前置条件（`[JsonProperty]` + 往返测试）写进了工具注释。
+
+> 上轮我写的是"要么别处序列化，要么不需要 setter"——**两者都没查**。
+> 本轮把配置根一个个指出来，**同一句话，有根和无根，可信度差一整个等级。**
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 成员形状 | **92 / 4 / 37**（未变，本轮只加注释） |
+| over-permissive 分诊 | **core 8 → Accepted（有据）**；UI 29 → 随 UI 层冻结 |
+| 文档钉子 | **18/18** |

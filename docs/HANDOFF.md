@@ -7874,3 +7874,14 @@ Observation：
 **下轮**：`VendorWiring`(273)。
 
 还剩什么：① VendorWiring；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1274 —— VendorWiring 分两步：本轮搬内容（5 行逐字 + 4 枚举 + Akamai 证据），下轮改 9 个测试再删类
+
+Observation：
+- 294 行、19 文件引用（9 个测试）、正则抓到 5 行、三行多行格式未抓到。
+- Akamai 证据地址：`AkamaiGHost 0x146b249dc` · `"Solving Akamai (" 0x146e77ebc`。
+- 本轮 src 无改动。
+
+判断：真缺口 = 本仓无 Akamai 求解器（镜像有）。
+**下轮**：补 3 行 + 改 9 个测试 + 删 `VendorWiring.cs` 与 `VendorWiringTests.cs`。
+
+还剩什么：① VendorWiring 第 2 步；② Akamai 求解器缺口；③ 17 条 no-hit 按新口径；④ connect 通道（需登录）。

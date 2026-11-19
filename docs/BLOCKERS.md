@@ -46664,3 +46664,46 @@ R166 的测量：镜像那 **50 个 navigator 名字**在本引擎里的归宿�
 
 证据等级：Observation = 三分计数、11 条推迟理由、2514 收据；
 Inference = 「无运行时消费者」；Unknown = VendorWiring 里是否有真协议常量（下轮读）。
+## R1274 —— 最大的台账 `VendorWiring`（294 行）：**分两步**，本轮只搬内容
+
+### 一、为什么不分一轮做完
+
+`where_is` 显示它被 **19 个文件**引用，其中 **9 个测试文件**
+（`VendorWiringTests` 31 处 · `VendorGapTests` 15 · `VendorSolvingModeTests` 15 · `PerimeterXMarkerTests` 9 · 另 5 个）。
+一次删会同时打断九处断言——**R1233 的教训**：动一处、九处红，然后整轮回滚。
+
+所以：**本轮搬内容，下一轮连代码带测试一起改。**
+
+### 二、本轮搬了什么（可核实的部分，逐字）
+
+`docs/VENDOR_WIRING.md`：
+
+- 审计要问的问题（R140 命名的缺陷）：**检测在、存储在、两者之间的调用不在**；
+- 源码头部自带的六行表（cloudflare/kasada/imperva/datadome/perimeterx/queue-it）；
+- 四个缺口**各是哪一种**：DataDome 有 host 没协议、PerimeterX 两样都无、
+  Imperva 的 cookie 家族镜像里根本不存在、**Queue-it 是队列不是挑战——该等不该解**；
+- 四个枚举的全部取值（`State` 5 个 / `MarkerSource` 2 个 / `Gap` 3 个 / `Solver` 5 个）；
+- **已逐字转录的 5 行**（cloudflare / kasada / datadome / queue-it / vercel）；
+- Akamai 的证据地址（`AkamaiGHost 0x146b249dc` · `"Solving Akamai (" 0x146e77ebc` …）。
+
+### 三、**没有**搬的部分：我明确不凭记忆补
+
+`imperva` / `perimeterx` / `akamai` 三行是**多行格式**，本轮正则抓不到。
+**文档里写明"尚未转录，第 2 步读源码补"**，而不是照着印象写三行上去。
+
+> 这是 R2.7 那条规矩：**先假设形状，再把"不符合假设"读成"不存在"**——这次的表现是"抓不到就自己编"，
+> 两者都是同一类错。
+
+### 四、顺带确认的一条真缺口
+
+Akamai 的证据显示镜像**确实解 Akamai**（`"Solving Akamai"` + `(SBSD)`/`(SDS)` 两个模式 + `SkipAkamai` 控制项），
+而本仓**没有 Akamai 求解器**——它在 fanatics 等站只以失败文案出现。
+**这是真缺口，不是记账笔误**，已写进文档第五节。
+
+### 五、验证
+
+本轮**无 src 改动**（只新增 `docs/VENDOR_WIRING.md` 与一个提取脚本 `analysis/extract_vendor_wiring.py`）。
+上一轮全量 **2514/0/2/2516** 仍成立。
+
+证据等级：Observation = 294 行、19 个引用文件、5 条抓到与 3 条没抓到的行、Akamai 的地址；
+Inference = 「该分两步」；Unknown = 那三行的完整内容（第 2 步读源码）。

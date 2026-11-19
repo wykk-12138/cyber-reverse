@@ -7823,3 +7823,13 @@ Observation：
 **遗留**：`src/.../PaymentHostGaps.cs` 是 `*Gaps` 类，违反 §3 红线（早于本轮），下轮单独清。
 
 还剩什么：① PaymentHostGaps 清理（查连带）；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1269 —— PaymentHostGaps → VendorPaymentEndpoints（拆台账保事实）；全量 2542/0/2/2544（-1 正确）
+
+Observation：
+- where_is：仅自己 + 测试 + 文档引用。
+- 原文含 Braintree 商户号/2 路径、Vipps 3 路径、BigCommerce 1 路径 ⇒ 删会丢证据。
+- 改名保留协议成员，删 `Hosts`/`IsPaymentHost`；测试 5/5；全量 -1。
+
+**下轮**：扫 src 里名字含 `Gaps|Wiring|Witness|Coverage` 的其余类，同口径处置。
+
+还剩什么：① src 台账扫描；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。

@@ -68570,3 +68570,28 @@ o-hit）。
 | payment_surfaces | **7/7** |
 | payment_challenges control | **ok=True** |
 | src 改动 | 无 |
+---
+
+## 第 1269 轮：PaymentHostGaps 改名 VendorPaymentEndpoints，台账成员拆除
+
+先查连带：只有自己 + 测试 + 文档引用，无运行时依赖。
+
+读完发现它**不是纯台账**——含 Braintree 商户号与 2 条路径、Vipps 3 条路径、BigCommerce 1 条路径。
+**删会删掉证据** ⇒ 拆：
+
+| 部分 | 处置 |
+|---|---|
+| 路径/host/商户号/UrlFor/Urls/Url | **保留**（运行时协议事实） |
+| Hosts 数组 · IsPaymentHost 谓词 | **删除**（覆盖报表逻辑） |
+
+`PaymentHostGapTests` → `VendorPaymentEndpointTests`（5 条，含新增的"只记录不解释"）。
+
+全量 **2542/0/2/2544**（**-1**，正是被删的台账断言）——**用例下降是正确结果**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| src 台账类 | **-1** |
+| 协议事实 | 0 丢失 |
+| 用例 | 2543 → 2542（台账钉子随台账走） |

@@ -46452,3 +46452,49 @@ Inference = 「重演风险因此降低」；Unknown = 无。
 
 证据等级：Observation = 两次运行的 5/7 与 7/7、生成器行号、被覆盖后重生成的事实；
 Inference = 「文档成员名是措辞产物」；Unknown = 无。
+## R1269 —— 遗留 `*Gaps` 类处置：**不删，改名并拆掉台账成员**
+
+### 一、先查连带（按规矩）
+
+`where_is PaymentHostGaps`：只有**自己** + `PaymentHostGapTests.cs`（19 处）+ 两份文档引用。
+无运行时依赖 ⇒ 可以动。
+
+### 二、读完之后发现它不是纯台账
+
+`PaymentHostGaps.cs`（109 行）里有**真实协议事实**：
+
+| 厂商 | 镜像里的字面量 |
+|---|---|
+| Braintree | 商户号 `rfbkw27jcwmw2xgp` + `/payment_methods/paypal_account` + `/paypal_hermes/create_payment_resource` + `assets.` 与 `api.` 两个 host |
+| Vipps | `/adyen-card-enrollment/initiate` · `/commit` · `/checkout-frontend/session/` + 两条文案 |
+| BigCommerce | `/api/public/v1/orders/payments` |
+
+⇒ **删掉就把证据一起删了**（§2.7b 那条教训）。**正确处置是拆**：
+
+| 部分 | 归属 | 处置 |
+|---|---|---|
+| 路径 / host / 商户号 / `UrlFor` · `Urls` · `Url` | **运行时协议事实** | **保留** |
+| `Hosts` 数组 · `IsPaymentHost` 谓词 | **覆盖报表逻辑**（台账） | **删除** |
+
+### 三、落地
+
+1. `PaymentHostGaps.cs` → **`VendorPaymentEndpoints.cs`**（名字描述"是什么"，不再叫"缺口"）；
+2. 台账两个成员删除，注释里写明**为什么改名**与**哪两个成员走了**；
+3. `PaymentHostGapTests` → `VendorPaymentEndpointTests`：保留 5 条协议断言，删掉唯一的台账断言
+   （`ThreePaymentHostsAreRecorded`）；顺带新增一条 `TheVippsWordingIsRecordedNotInterpreted`——
+   把"只记录不解释"这条口径也钉住。
+
+### 四、验证
+
+`dotnet build` 0 错；`VendorPaymentEndpoint` **5/5**；
+全量 **2542 通过 / 0 失败 / 2 跳过 / 2544**（4m30s；比上轮 **-1**，正是被删的那条台账断言）。
+
+**用例数下降 1 是正确结果**，不是回归——台账钉子跟着台账一起走。
+
+### 五、`src` 里还有没有别的台账类
+
+本轮只处置了这一处。下轮用一条命令扫 `src` 里名字含 `Gaps|Wiring|Witness|Coverage` 的类，
+按同样口径逐个处置：**有协议事实的改名保留，纯报表的删**。
+
+证据等级：Observation = 109 行原文、where_is 的引用面、-1 的用例数；
+Inference = 「改名+拆分比重写更保守」；Unknown = src 里是否还有别的台账类（下轮扫）。

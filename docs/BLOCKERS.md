@@ -43610,3 +43610,51 @@ R363 当年拒它的理由是「input 可能是选项也可能是列表，选了
 
 证据等级：Observation = `xaml_bindings.json` 的 `CreateModel`/`CreateInputModel` 成员表、`.cyb` 备份实读；
 Inference = 元素类型；Unknown = 原版行内容与另两条成员类型。
+## R1204 —— 复核优先级①的 11 条占位：**BstnFlow 的 4 条"未知端点"可能根本不是缺口**
+
+### 一、占位现状（可复算）
+
+`docs/CORE_COVERAGE.md` 逐 flow 表：18 个 flow 里只有两个有 Unknown——
+**`BstnFlow` 4 条**、`FarfetchFlow` 7 条（后者已定性为服务端下发路由）。其余 16 个 flow 全 0。
+
+### 二、Bstn 那 4 条是什么
+
+`BstnFlow.cs` 自述：**product / cart / checkout / order 四个端点未知**。
+
+### 三、回到二进制查这三个形状——**全部为 0**
+
+| 搜索 | 形状 | `ida.py str` 结果 |
+|---|---|---|
+| `bstn` | 小写域名/标识 | **n=0** |
+| `BSTN` | 大写显示名 | **n=0** |
+| `beastinpeace` | 品牌全名（BstnFlow 注释里的自述） | **n=0** |
+
+唯一含 "Beast" 的是 **ARROW & BEAST**（`arrowandbeast.com` / `arrowbeast.myshopify.com`）——**另一家店**。
+
+### 四、那 BstnFlow 是怎么来的
+
+`analysis/bstn.txt` 是**复刻件源码的副本**，开头写着：
+> Registered against `ShopifyFlow` until a **live capture** showed otherwise:
+> `GET /api/beast/geoIP` / `/api/beast/monetate` / `checkoutanalytics-live.adyen.com` / `/cart.js -> 404`
+
+⇒ **BSTN 来自对 bstn.com 的实机探测，不是原版二进制。**
+
+### 五、这条结论的两个分支（都不许跳）
+
+1. **原版确实没有 BSTN** ⇒ 复刻件的 `BstnFlow` 是**多出来的店**，
+   它的 4 条"未知端点"**不是与原版之间的缺口**，而是这个额外实现自身的空缺。此时该做的是**决定去留**（按目标"1:1"倾向删或标注）。
+2. **原版有 BSTN，但存在我还没试过的形状**（R760 教训：店名可能存成域名或字段名）。
+   已试三种形状皆 0，**但"试了三种"不等于"没有第四种"**。
+
+**⇒ 记 Unknown + 缺什么**：缺一个能证明原版店清单形状的产物（例如原版店名表/枚举的元数据），
+在此之前**既不删 BstnFlow，也不宣称它的 4 条是缺口**。
+
+### 六、顺带查实一处循环论证
+
+`analysis/store_catalog.py` 打印的 "65 条" 读的是**复刻件自己的** `CreateAll()`，
+**不是原版**。拿它对"原版有 62 家店"的说法做交叉验证是**循环论证**——
+这也解释了为什么它里面会出现 `bstn`。
+
+证据等级：Observation = 三次 `ida.py str` 的 n=0、`analysis/bstn.txt` 原文、`store_catalog.py` 的输出源；
+Inference = 「BSTN 非原版所有」（由三种形状皆 0 + 来源为 live capture 推出，**仍留第四种形状的可能**）；
+Unknown = 原版店清单的真实形状。

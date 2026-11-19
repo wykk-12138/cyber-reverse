@@ -7067,3 +7067,15 @@ Observation：
 **证据边界（缺什么已写明）**：`BotTask.Running`/`Task` 需类型元数据字段类型或含运行中任务的原版 tasks.json。
 
 还剩什么：① 三条→两条 Unknown 的定期重试条件；② abort 分支未验证；③ 变异需在下次 src 改动后重跑；④ UI 29 条冻结。
+## R1204 —— Bstn 4 条占位存疑：二进制三形状皆 0；store_catalog.py 是循环论证
+
+Observation：
+- `ida.py str` 搜 `bstn` / `BSTN` / `beastinpeace` → **n=0**；唯一 Beast 命中是 ARROW & BEAST。
+- `analysis/bstn.txt` 自述来源为 **live capture**（`/api/beast/geoIP`、Adyen、`/cart.js` 404）。
+- `analysis/store_catalog.py` 读的是复刻件 `CreateAll()`（65 条）⇒ 不能用来证明原版店清单。
+
+判定：**Bstn 4 条记 Unknown（缺：原版店清单形状的证据）**；**不删 BstnFlow，也不宣称 4 条是缺口**。
+两种可能：原版无此店（则它是额外实现）/ 原版有此店但形状未试尽。
+
+还剩什么：① 找原版店清单形状（第 4 种可能）；② 两条 Unknown（`BotTask.Running`/`Task`）；
+③ abort 分支未验证；④ UI 29 条冻结；⑤ 变异需在下次 src 改动后重跑。

@@ -43002,3 +43002,48 @@ Unknown = 其余 10 条 core 行的真实性质。
 证据等级：Observation = 12 行的类体原文（含 `record Notification(...)` 签名与 `BotTask` 全成员清单）、
 修后 `record-positional` 两行、度量与套件收据；Inference = 「11 真差异 + 1 有意省略」；
 Unknown = 每条真差异在原版里的**确切语义**（setter 是赋值还是空操作，需按第三节四步链取证）。
+## R1188 —— 修 `Notification` 4 条（在途）并撞出两个新问题：一个守卫数字、一个**变异收据自相矛盾**
+
+**取件**：C7b 分组里的 `record-positional` ×2 + `prop-get` ×2，全在 `Notification` 上。
+
+### 一、改了什么（src，真代码）
+
+`Notification` 由**位置记录**改为**可写记录**：
+`Kind`/`Title`/`Body`/`Timestamp` 四个成员移进类体并带 `set`，
+`Message`/`Type` 的别名也补上 setter（写穿到 `Body`/`Kind`）。
+依据是绑定期望 `Title!Getter`+`Title!Setter`（`docs/MEMBER_GAP_EVIDENCE.md`），
+位置记录的 `init` 不等于 `set`——UI 无法就地更新通知。保留 `record`（值语义不变），
+保留四参构造（唯一构造点 `NotificationService.cs:89` 不动）。
+
+**度量**：`成员形状差异` **102/17 → 98/13**（一次修掉 4 条，total 与 core 同步减 4）。
+
+### 二、连带：`BindScopeGuardTests` 的常数从 6 变 5（有据）
+
+改完守卫红：`present 159` vs `examined 154 + 6 = 160`。
+用 `git worktree add .tmp-wt HEAD` 在**干净 HEAD** 上实测：**examined 153 / present 159**（不变式成立）。
+⇒ 我这轮把 `examined` 从 153 推到 154：`Notification` 原本「名字在源里、但成员是位置参数不可解析」，
+属于 `KnownUnseenTypes` 这一桶；成员移进类体后可解析，**这一桶少一个**。
+常数改为 **5**，原因写进注释，**不变式本身没动**。
+
+### 三、**变异收据自相矛盾**（本轮新发现，未修）
+
+`.tmp-mut850b.log` 末尾：
+
+`
+restored tree: RED
+  失败: 0，通过: 2391，跳过: 2，总计: 2393
+`
+
+**0 失败却判 RED**。同一份收据里两个字段互相打脸。
+本轮**不宣称变异绿**，也不宣称红——**如实记：收据失效，待修**。
+（注意总计是 2393 而非全量的 2478：恢复校验跑的是另一个过滤集，这一差异也待查。）
+
+### 四、验证
+
+`dotnet build` **0 错**；`BindScopeGuardTests` **2/2**；
+全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（6m06s）；
+`成员形状差异` **98 / 13**。
+
+证据等级：Observation = 两类度量值、clean-HEAD worktree 的 153/159、守卫前后 Expected/Actual、
+变异日志末 12 行原文；Inference = 「Notification 由不可解析桶转入可解析桶」（由 153→154 与成员可见性推出）；
+Unknown = 变异收据为何判 RED、恢复校验为何跑 2393 条。

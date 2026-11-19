@@ -37,8 +37,32 @@ public sealed class NotificationService
     /// convention the rest of the codebase already follows (<c>EventBus.LogEntry</c> and the monitor's event both
     /// carry the time they were created).
     /// </remarks>
-    public sealed record Notification(NotificationKind Kind, string Title, string Body, DateTime Timestamp)
+    public sealed record Notification
     {
+        public Notification() { }
+
+        public Notification(NotificationKind kind, string title, string body, DateTime timestamp)
+        {
+            Kind = kind;
+            Title = title;
+            Body = body;
+            Timestamp = timestamp;
+        }
+
+        // R1188: settable because the original's binding descriptors say so - the compiled XAML carries Title!Getter
+        // AND Title!Setter, and the same for Timestamp (docs/MEMBER_GAP_EVIDENCE.md). A positional record gives
+        // `init`, which is a different thing: the UI cannot write the member after construction, so a notification
+        // that updates in place cannot update. The shape audit reported both as absent because the parameters live
+        // in the declaration line (now its own reason code, record-positional), but the repair is the same: keep the
+        // type a record, keep every constructor call working, and make the members writable.
+        public NotificationKind Kind { get; set; }
+
+        public string Title { get; set; } = string.Empty;
+
+        public string Body { get; set; } = string.Empty;
+
+        public DateTime Timestamp { get; set; }
+
         /// <summary>
         /// Bound as <c>Notification.Message</c> — the original's compiled XAML carries
         /// <c>Cybersole.Models.Notification,...,Message!Getter</c> and <c>!Setter</c>
@@ -53,10 +77,18 @@ public sealed class NotificationService
         /// Behaviour is untouched — this is an alias over the existing positional member, so every constructor call
         /// and every code path stays exactly as it was. What it makes possible is a binding to `Message` resolving.
         /// </summary>
-        public string Message => Body;
+        public string Message
+        {
+            get => Body;
+            set => Body = value;
+        }
 
         /// <inheritdoc cref="Message"/>
-        public NotificationKind Type => Kind;
+        public NotificationKind Type
+        {
+            get => Kind;
+            set => Kind = value;
+        }
     }
 
     /// <summary>

@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 12:37:15 +0800 |
+| 生成时间 | 2026-11-19 12:46:15 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | **有非零退出，见下** |
@@ -14,9 +14,9 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 18 个源文件比产物新（共 13929 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 19 个源文件比产物新（共 14093 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`1 -- tools/shape_audit.py differs from the run's manifest`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`329 -- src/Cybersole.Services/NotificationService.cs (+328 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -27,8 +27,8 @@
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
 | 类型缺失（type presence） — classified | renamed 13, out of scope 2, unimplemented 0, unclassified 0 |
-| 成员形状差异 — total mismatches | 102 |
-| 成员形状差异 — core mismatches | 17 |
+| 成员形状差异 — total mismatches | 98 |
+| 成员形状差异 — core mismatches | 13 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
 | 绑定缺口分桶 — backlog: types absent | 2 |
@@ -41,9 +41,9 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,456 |
 | 函数数量（.pdata） — functions: ratio | 64.76% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 18 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 13929 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 19 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 14093 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -59,7 +59,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 1 -- tools/shape_audit.py differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 329 -- src/Cybersole.Services/NotificationService.cs (+328 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -93,7 +93,7 @@ C:\Python312\python.exe tools/bind_scope.py
 ```text
 type-scoped check: types present, members missing on THAT type
 types with scope misses: 0
-types examined: 153
+types examined: 154
 types skipped for generic arity: 2
 note: base-class inheritance is counted (by design since R343)
 ```
@@ -149,10 +149,6 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   BotTask                    Task                   evidence=Getter,Property,Setter     replica=?
   Checkout                   Profile                evidence=Getter,Property,Setter     replica=?
   CreateModel                Inputs                 evidence=Getter,Property,Setter     replica=?
-  Notification               Message                evidence=Getter,Property,Setter     replica=prop-get
-  Notification               Timestamp              evidence=Getter,Property,Setter     replica=record-positional
-  Notification               Title                  evidence=Getter,Property,Setter     replica=record-positional
-  Notification               Type                   evidence=Getter,Property,Setter     replica=prop-get
   TaskGroup                  Running                evidence=Getter,Property,Setter     replica=prop-get
   ClockService               Current                evidence=Getter,Property,Setter     replica=prop-get
   AccountGrid                Delete                 evidence=Getter,Property,Setter     replica=?
@@ -246,13 +242,13 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   IWebhook                   ExtraFields            evidence=Getter,Property,Setter     replica=prop-get
   IWebhook                   Name                   evidence=Getter,Property,Setter     replica=prop-get
   IWebhook                   Url                    evidence=Getter,Property,Setter     replica=prop-get
-total mismatches: 102
+total mismatches: 98
 
 by owning project (priority order: Stores > Services > Http > Core > Ui):
   Cybersole.Ui            85
   Cybersole.Core          12
-  Cybersole.Services       5
-core mismatches: 17
+  Cybersole.Services       1
+core mismatches: 13
 ```
 
 ### 文案缺口总表
@@ -377,14 +373,14 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-19 11:09:47
-newest source: src\Cybersole.Stores\Scripts\ChromiumBridge.cs (2026-11-19 12:27:55)
-source files newer than the artifact: 18
-lines in those files: 13929
-of those, changed against HEAD: 0
-publish artifact state: current
+newest source: src\Cybersole.Services\NotificationService.cs (2026-11-19 12:46:01)
+source files newer than the artifact: 19
+lines in those files: 14093
+of those, changed against HEAD: 1
+publish artifact state: stale
 
-  18 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
-  targets, which updates mtime without changing a byte. Nothing to rebuild.
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -552,7 +548,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: UNKNOWN (cut off)
-  mutation-fit-staleness: 1 -- tools/shape_audit.py differs from the run's manifest
+  mutation-fit-staleness: 329 -- src/Cybersole.Services/NotificationService.cs (+328 more) differs from the run's manifest
 
   The counts above are from 2026-11-19T12:28:43+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.

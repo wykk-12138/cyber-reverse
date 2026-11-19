@@ -51,7 +51,12 @@ public sealed class BindScopeGuardTests
     // R976 raised this from 5 to 6 by adding ObservableDictionary<TKey,TValue>, which is a second generic-arity type:
     // bind_scope's DECL pattern matches a declaration with no type parameters, so a two-parameter type is present to
     // bind_diff and invisible to bind_scope. The reconciliation below is what makes that visible rather than silent.
-    private const int KnownUnseenTypes = 6;
+    // R1188: was 6. Cybersole.Services.Notification used to declare its members as positional record
+    // parameters, so its name was present in source while bind_scope could not resolve a single member on it -
+    // it sat in this bucket. Moving those members into the body (they needed setters anyway) made it
+    // examinable, so the bucket is one smaller. The invariant is unchanged; only the count of present-but-
+    // unexamined types moved.
+    private const int KnownUnseenTypes = 5;
 
     private readonly ITestOutputHelper _out;
 

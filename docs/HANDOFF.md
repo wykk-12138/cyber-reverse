@@ -6879,3 +6879,15 @@ Observation：
 
 还剩什么：① 8 条 `prop-get` 转可写；② `Notification` 改可写；③ 3 条成员缺失/挂错类型；
 ④ `CreateModel.Inputs` 补或写明理由；⑤ 判据 e 的两处文档数字。
+## R1188 —— Notification 改可写（形状 102/17 → 98/13）；守卫常数 6→5；变异收据矛盾待修
+
+Observation：
+- `Notification` 由位置记录改为可写记录（`Kind`/`Title`/`Body`/`Timestamp` 带 set；`Message`/`Type` 写穿）。
+- 形状度量 **102/17 → 98/13**。
+- `BindScopeGuardTests` 红（159 vs 160）；干净 HEAD worktree 实测 **153/159** ⇒ `KnownUnseenTypes` 6 → **5**（Notification 转入可解析桶）。
+- 变异日志：`restored tree: RED` 但同处写着 `失败: 0，通过 2391/2393` ⇒ **收据矛盾**。
+
+验证：build 0 错；守卫 2/2；全量 **2476/0/2/2478**（6m06s）。
+
+还剩什么：① 变异收据为何判 RED / 恢复集为何 2393；② 其余 8 条 `prop-get` 转可写；
+③ 3 条成员缺失/挂错类型；④ `CreateModel.Inputs` 补或写明理由；⑤ 判据 e 的两处文档数字。

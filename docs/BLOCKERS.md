@@ -45668,3 +45668,44 @@ Inference = 「26 条是读代码的起点而非缺口判决」；Unknown = 每�
 
 证据等级：Observation = 26/0/26 三个数、全量 dump 的条数、Accept 头那一条；
 Inference = 「不是拼写差异」；Unknown = 每条属于片段拼接/不使用/服务端下发中的哪一种。
+## R1250 —— 26 条里 Magento 那批**不是缺，是写法不同**：镜像按动作分后缀，复刻件写成了另一条
+
+### 一、从"无近邻"到"找到 17 条真实形状"
+
+R1249 说 26 条全无近邻。本轮用全量 dump 扩大 key 宽度后，Magento 这一批**全部找到了**：
+
+| 镜像里真实存在的（17 条 distinct） | |
+|---|---|
+| `/carts/mine/payment-information` · `/carts/mine/shipping-information` | 不带 `/V1` 的一对 |
+| `/V1/carts/mine/payment-information` · `/V1/carts/mine/shipping-information` | 带 `/V1` 的同一对 |
+| `/carts/mine/items/` · `/carts/mine/items/?estimate=true` · `/carts/mine/coupons/` · `/carts/mine/estimate-shipping-methods?` | 购物车动作 |
+| `/adyen/carts/mine/payments-details` · `/adyen/orders/carts/mine/payment-status` | **Adyen 的 Magento 插件** |
+| `/rest/V1` · `/rest/V1/ppcp/` · `carts/mine` | 前缀与裸 token |
+| `https://api2.endclothing.com/rest/V1` · `/end/carts/mine/` | End Clothing 的形状（前缀在 host 里） |
+| `rest/en_ph/V1/carts/mine/payment-information` · `…/shipping-information` | **locale 段在 rest 与 V1 之间** |
+
+**而复刻件写的 `/rest/V1/carts/mine` 与 `/rest/V1/carts/mine/totals` 在镜像里一条都没有。**
+
+### 二、落地
+
+`MagentoRest.cs`（新）：11 条字面量常量 + `RestBase(locale)` + `Under(base, path)`。
+测试 `MagentoRestTests` **6 条**，其中两条是关键：
+
+- `TheV1PrefixedPairAndTheBarePairAreBothCarried`——**两种前缀都存在**，不能只留一种；
+- `TheLocaleSegmentSitsBetweenRestAndV1`——`rest/{locale}/V1` 的段位，由 `RestBase("en_ph")` 复现。
+
+**Inference 写清**：`rest/en_ph/V1/…` 与 `rest/V1/…` 并存 ⇒ 店铺可能**按 locale 组前缀**（注释里说明这是推断）。
+**Unknown 写清**：哪个店用哪种前缀、哪条动作——派发不可观察（R1219）。
+
+### 三、查重复核（避免重复品）
+
+落地前查过：`/carts/mine/payment-information` / `shipping-information` / `items` / `coupons` /
+`payments-details` / `payment-status` / `rest/en_ph` 在 `replica/src` 里**全部无**；
+只有 `estimate-shipping-methods` 已有（`FootsitesFlow:295`），所以那条只做常量引用、不重写逻辑。
+
+### 四、验证
+
+`dotnet build` 0 错；`MagentoRest` **6/6**；全量 **2525 通过 / 0 失败 / 2 跳过 / 2527**（4m27s，+6）。
+
+证据等级：Observation = 17 条 distinct 字面量（含地址可重查的全量 dump）、六项上游查重为空；
+Inference = 「locale 段位 ⇒ 按区域组前缀」；Unknown = 每店用哪种前缀与哪条动作。

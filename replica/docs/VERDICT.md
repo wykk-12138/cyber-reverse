@@ -68111,3 +68111,26 @@ R1216 的 `sub_140A40170` 是 clover。⇒ **同形状、两个钉**。
 | 代码改动 | 无 |
 | 新产物 | `flow_path_neighbours.py` + `flow_path_neighbours.txt` |
 | 无近邻 | **26/26** |
+---
+
+## 第 1250 轮：Magento 那批不是缺，是写法不同
+
+R1249 说 26 条全无近邻；扩大 key 宽度后 **Magento 这批全找到了**（17 条 distinct）：
+`/carts/mine/{payment-information,shipping-information,items/,coupons/,estimate-shipping-methods?}`、
+`/V1/…` 前缀对、`/adyen/…/payments-details`、`/adyen/orders/…/payment-status`、
+`/rest/V1`、`/rest/V1/ppcp/`、`https://api2.endclothing.com/rest/V1`、`/end/carts/mine/`、
+以及 **`rest/en_ph/V1/…`（locale 段在 rest 与 V1 之间）**。
+
+**复刻件的 `/rest/V1/carts/mine` 与 `/rest/V1/carts/mine/totals` 在镜像里一条都没有。**
+
+落地 `MagentoRest.cs`（11 常量 + `RestBase(locale)` + `Under`），测试 **6/6**。
+两条关键断言：两种前缀都存在；`rest/{locale}/V1` 段位可复现。
+
+查重：七项在 src 里全无（`estimate-shipping-methods` 已有，只引用不重写）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2525 通过 / 0 失败 / 2 跳过 / 2527**（4m27s，+6） |
+| MagentoRest | **6/6** |

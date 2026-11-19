@@ -7613,3 +7613,15 @@ Observation：
 **下轮**：① 加 `header` 档；② 26 条逐条给理由（或改成 inferred 标注）。
 
 还剩什么：① 26 条归类；② connect 通道（需登录）；③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。
+## R1250 —— Magento REST 真实形状找到（17 条），落地 MagentoRest + 6 测试
+
+Observation：
+- 镜像 17 条 distinct：carts/mine 各动作后缀、/V1 对、adyen 插件两条、/rest/V1、/rest/V1/ppcp/、endclothing host、rest/en_ph/V1、/end/carts/mine/。
+- 复刻件的 /rest/V1/carts/mine 与 /totals **零命中**。
+
+改动：`MagentoRest.cs` + `MagentoRestTests`（6 条）。**Unknown**：每店用哪种前缀/动作。
+
+验证：build 0 错；6/6；全量 **2525/0/2/2527**（4m27s）。
+
+还剩什么：① 其余 25 条逐条定性；② 把 MagentoFlow 的旧写法改为引用 MagentoRest（需先确认调用面）；
+③ connect 通道（需登录）；④ 两条 Unknown；⑤ UI CS0108（冻结）。

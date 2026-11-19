@@ -9,14 +9,40 @@ namespace Cybersole.Core.Store;
 /// </summary>
 public sealed class ConfigurationStore
 {
-    private readonly JsonFileStore _settings = new(AppPaths.Settings);
-    private readonly JsonFileStore _accounts = new(AppPaths.Accounts);
-    private readonly JsonFileStore _tasks = new(AppPaths.Tasks);
-    private readonly JsonFileStore _proxies = new(AppPaths.Proxies);
-    private readonly JsonFileStore _billing = new(AppPaths.Billing);
-    private readonly JsonFileStore _solvers = new(AppPaths.Solvers);
-    private readonly JsonFileStore _analytics = new(AppPaths.Analytics);
-    private readonly JsonFileStore _smartActions = new(AppPaths.SmartActions);
+    private readonly string _root;
+    private readonly string _backupsDir;
+    private readonly JsonFileStore _settings;
+    private readonly JsonFileStore _accounts;
+    private readonly JsonFileStore _tasks;
+    private readonly JsonFileStore _proxies;
+    private readonly JsonFileStore _billing;
+    private readonly JsonFileStore _solvers;
+    private readonly JsonFileStore _analytics;
+    private readonly JsonFileStore _smartActions;
+
+    /// <summary>
+    /// R1168: the root is a parameter now, defaulting to <see cref="AppPaths.DataRoot"/> so every existing
+    /// caller keeps the shipped behaviour. The reason is the shared-file race: with one static root, every
+    /// test in a process read and wrote the same <c>settings.json</c>, and the suite has 135 production
+    /// <c>Save()</c> call sites, so parallel collections raced a writer against a reader. A store built
+    /// with its own root touches nothing else.
+    /// </summary>
+    public ConfigurationStore(string? root = null)
+    {
+        _root = root ?? AppPaths.DataRoot;
+        _backupsDir = AppPaths.BackupsDirFor(_root);
+        _settings = new(Path.Combine(_root, "settings.json"));
+        _accounts = new(Path.Combine(_root, "accounts.json"));
+        _tasks = new(Path.Combine(_root, "tasks.json"));
+        _proxies = new(Path.Combine(_root, "proxies.json"));
+        _billing = new(Path.Combine(_root, "billing.json"));
+        _solvers = new(Path.Combine(_root, "solvers.json"));
+        _analytics = new(Path.Combine(_root, "analytics.json"));
+        _smartActions = new(Path.Combine(_root, "smartActions.json"));
+    }
+
+    /// <summary>The directory every document of this store lives under.</summary>
+    public string Root => _root;
 
     public GlobalSettings Settings { get; private set; } = new();
     public AccountsDocument Accounts { get; private set; } = new();
@@ -31,7 +57,7 @@ public sealed class ConfigurationStore
 
     public void Load()
     {
-        AppPaths.EnsureCreated();
+        AppPaths.EnsureCreated(_root);
 
         Settings = _settings.LoadOrDefault(() => new GlobalSettings());
         Accounts = _accounts.LoadOrDefault(() => new AccountsDocument());
@@ -52,7 +78,7 @@ public sealed class ConfigurationStore
 
     public void Save()
     {
-        AppPaths.EnsureCreated();
+        AppPaths.EnsureCreated(_root);
         _settings.Save(Settings);
         _accounts.Save(Accounts);
         _tasks.Save(TaskGroups);
@@ -67,7 +93,7 @@ public sealed class ConfigurationStore
     /// <summary>Full snapshot written to Backups/Backup &lt;timestamp&gt;.cyb.</summary>
     public void Backup()
     {
-        AppPaths.EnsureCreated();
+        AppPaths.EnsureCreated(_root);
         var snapshot = new BackupDocument
         {
             Settings = Settings,
@@ -93,10 +119,10 @@ public sealed class ConfigurationStore
             DateTimeZoneHandling = Json.Default.DateTimeZoneHandling,
             Converters = Json.Default.Converters,
         };
-        File.WriteAllText(Path.Combine(AppPaths.BackupsDir, name), Newtonsoft.Json.JsonConvert.SerializeObject(snapshot, settings));
+        File.WriteAllText(Path.Combine(_backupsDir, name), Newtonsoft.Json.JsonConvert.SerializeObject(snapshot, settings));
 
         // retention
-        var files = new DirectoryInfo(AppPaths.BackupsDir)
+        var files = new DirectoryInfo(_backupsDir)
             .GetFiles("*.cyb")
             .OrderByDescending(f => f.LastWriteTimeUtc)
             .Skip(Math.Max(1, Settings.MaxBackups))

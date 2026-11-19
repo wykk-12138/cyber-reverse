@@ -52,11 +52,14 @@ public sealed class AppServices : IDisposable
         Backups = backups;
     }
 
-    public static AppServices Create(Action<StoreRegistry, Cybersole.Core.Settings.GlobalSettings>? registerStores = null)
+    public static AppServices Create(Action<StoreRegistry, Cybersole.Core.Settings.GlobalSettings>? registerStores = null,
+        string? dataRoot = null)
      {
         var bus = new EventBus();
 
-        var config = new ConfigurationStore();
+        // R1168: a caller-supplied root keeps this instance off the shared on-disk settings.
+        // See ConfigurationStore(string?) for why the suite needed it.
+        var config = new ConfigurationStore(dataRoot);
         config.Load();
 
         // settings.maxLogRetention / maxLogSize keep the in-memory log bounded
@@ -83,7 +86,7 @@ public sealed class AppServices : IDisposable
         var backups = new BackupScheduler(config.Settings.BackupInterval, config.Backup);
 
         var stats = new CheckoutStats(bus,
-            System.IO.Path.Combine(Cybersole.Core.Store.AppPaths.DataRoot, "checkoutHistory.json"));
+            System.IO.Path.Combine(config.Root, "checkoutHistory.json"));
 
         HttpDebug.Attach(analytics);
         bus.Info("App", "services initialised");

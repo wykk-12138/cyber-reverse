@@ -6612,3 +6612,21 @@ xunit 默认并行类 ⇒ 12 个碰 `Config` 的类互相踩。**解释了「只
 
 还剩什么：① 若嫌慢，正解是给 `ConfigurationStore` 一个每测试独立的 root（需 src 改动，未做）；
 ② 三条 Demandware PayPal 控制器仍未接到步骤调用。
+## R1168 —— ConfigurationStore 带 root（默认不变）；TestServices 每测试独立 root；并行无收益
+
+改了什么（src + tests）：
+- `AppPaths`：`EnsureCreated(string)` / `BackupsDirFor(string)`。
+- `ConfigurationStore(string? root = null)`：8 个 store 从 root 派生；`Load/Save/Backup` 用 `_root`；
+  `BackupsDir` → 实例 `_backupsDir`；新增 `Root`。
+- `AppServices.Create(..., string? dataRoot = null)`；`checkoutHistory.json` 跟随 `config.Root`。
+- `TestServices.Create`：每测试 `%TEMP%/cybersole-tests/<guid>`。
+
+**实测（推翻上轮归因）**：串行+共享 5m09s / 串行+独立 **5m18s** / 并行+独立 **5m43s**
+⇒ 并行无收益，瓶颈是每测试小文件 I/O。**保持串行。**
+
+验证：build 0 错；全量 **2468/0/2**；变异 **59/59 fired，restored tree GREEN**（08:15:16）。
+
+**自伤**：批量子串替换把 `AppPaths.BackupsDirFor` 改坏（CS0103），修回一行。
+
+还剩什么：① 若嫌 5m 慢，正解是**减少每测试的文件数**（如仅为改动项建 root 子集），需 profile 先；
+② 三条 Demandware PayPal 控制器仍未接到步骤调用。

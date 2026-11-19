@@ -192,6 +192,21 @@ public class SettingsShellTests
 /// <summary>Builds an <see cref="AppServices"/> isolated from the user's real settings.</summary>
 internal static class TestServices
 {
-    public static AppServices Create(Action<Cybersole.Http.Stores.StoreRegistry, Cybersole.Core.Settings.GlobalSettings>? register = null) =>
-        AppServices.Create(register);
+    /// <summary>
+    /// R1168: every call gets its own temporary root, so one store cannot see another test's files.
+    ///
+    /// <para>
+    /// Until this, all of them bound to the one static <c>AppPaths.DataRoot</c> while production code
+    /// saves from 135 call sites, which is the race R1165 traced and R1167 worked around by serialising
+    /// the whole suite. The directory is left behind on purpose: a failing test's settings stay on disk
+    /// for inspection, and the OS temp cleaner owns the lifetime.
+    /// </para>
+    /// </summary>
+    public static AppServices Create(Action<Cybersole.Http.Stores.StoreRegistry, Cybersole.Core.Settings.GlobalSettings>? register = null)
+    {
+        var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "cybersole-tests",
+            System.Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(root);
+        return AppServices.Create(register, root);
+    }
 }

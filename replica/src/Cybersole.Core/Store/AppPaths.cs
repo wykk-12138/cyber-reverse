@@ -59,11 +59,26 @@ public static class AppPaths
     public static string ChromiumDir => Path.Combine(DataRoot, "Chromium");
     public static string TelemetryDir => Path.Combine(DataRoot, "telemetry");
 
-    public static void EnsureCreated()
+    public static void EnsureCreated() => EnsureCreated(DataRoot);
+
+    /// <summary>
+    /// R1168: the same three directories, under a caller-supplied root.
+    ///
+    /// <para>
+    /// <see cref="DataRoot"/> is a static initialised once per process, so every test in a run shared one
+    /// <c>settings.json</c> while production code calls <c>Config.Save()</c> from 135 sites — a reader in
+    /// one test collection racing a writer in another. <see cref="ConfigurationStore"/> now takes a root,
+    /// and this overload is what lets a store outside the default root still create its directories.
+    /// </para>
+    /// </summary>
+    public static void EnsureCreated(string root)
     {
-        foreach (var dir in new[] { DataRoot, BackupsDir, LogsDir })
+        foreach (var dir in new[] { root, Path.Combine(root, "Backups"), Path.Combine(root, "Logs") })
             Directory.CreateDirectory(dir);
     }
+
+    /// <summary>The backup directory belonging to a caller-supplied root.</summary>
+    public static string BackupsDirFor(string root) => Path.Combine(root, "Backups");
 }
 
 /// <summary>Serialization policy shared by every on-disk document.</summary>

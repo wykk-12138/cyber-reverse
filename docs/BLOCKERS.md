@@ -42193,3 +42193,38 @@ MainViewModel.cs 6    SolverWindow.cs 5     MainWindow.cs 5       BillingView.cs
 证据等级：Observation = 19 文件 135 处的分组计数、`runner config copied: yes`、5m09s 与 59/59；
 Inference = 两次 `GroupSummaryTests` 抖动由读写竞争引起（**仍无复现用例**，但竞争面已消除）；
 Unknown = 串行化是否掩盖了别的顺序依赖（若将来有测试依赖并行顺序，会暴露为失败——本轮 2468 全绿）。
+## R1168 —— 把竞争**从根上**拆掉：ConfigurationStore 现在带自己的 root
+
+**取件**：R1167 遗留「若嫌慢，正解是给 `ConfigurationStore` 每测试独立的 root（需 src 改动）」。
+
+改了什么（**src**）：
+- `AppPaths`：新增 `EnsureCreated(string root)` 与 `BackupsDirFor(string root)`（原无参版本改为委托）。
+- `ConfigurationStore`：**root 变成构造参数**（默认 `AppPaths.DataRoot`，所有既有调用者行为不变）；
+  8 个 `JsonFileStore` 从 root 派生；`Load/Save/Backup` 用 `EnsureCreated(_root)`；
+  `BackupsDir`（2 处）改用本实例的 `_backupsDir`；新增 `Root` 属性。
+- `AppServices.Create`：新增可选 `string? dataRoot = null`；`checkoutHistory.json` 也改用它
+  （原先硬绑 `AppPaths.DataRoot`）。
+- `TestServices.Create`：每次调用生成 `%TEMP%/cybersole-tests/<guid>` 作为 root
+  ⇒ **一个测试的 store 看不到另一个测试的文件**。
+
+验证（含一次**推翻我自己上轮判断**的实测）：
+
+| 配置 | wall | 结果 |
+|---|---|---|
+| R1167 并行 + 共享 root | ~2m30s | 2468/0/2（但会抖） |
+| R1167 串行 + 共享 root | 5m09s | 2468/0/2 |
+| **本轮 串行 + 独立 root** | **5m18s** | **2468/0/2** |
+| **本轮 并行 + 独立 root** | **5m43s** | **2468/0/2** |
+
+**并行恢复后反而更慢**（5m43s > 5m18s）⇒ **R1167 里「串行让套件慢一倍」这个归因不完整**：
+在独立 root 之后，瓶颈是**每测试 8 个小文件的 I/O**，不是并行度。所以**保持串行**（确定且更快）。
+
+- 变异 `ran_at 2026-11-19T08:15:16`、**59/59 fired**、`restored tree: GREEN`；`dotnet build` **0 错**。
+
+**过程中的一次自伤（值得记）**：我用「子串批量替换」把 `AppPaths.BackupsDir` → `_backupsDir` 时，
+**连构造器里的 `AppPaths.BackupsDirFor` 一起改坏**（它含同一子串）→ 编译报 `CS0103`。
+按规则「改代码用锚点、不用子串」，**自己却用了子串**；修回一行即恢复。
+
+证据等级：Observation = 四次 wall 计时与四组 2468/0/2、变异收据、CS0103 与修复；
+Inference = 「瓶颈在每测试小文件 I/O」（由并行反而更慢反推，**未做 profile**）；
+Unknown = 是否仍有测试依赖默认 root（若有，会被隔离暴露为失败——本轮全绿）。

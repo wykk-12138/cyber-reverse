@@ -36,6 +36,35 @@ public static class DemandwareControllers
     public const string SubmitPayment = "CheckoutServices-SubmitPayment";
     public const string PlaceOrder = "CheckoutServices-PlaceOrder";
 
+    /// <summary>
+    /// The place-order query when a Cardinal device-fingerprint reference exists (0x146AAF3F0).
+    ///
+    /// <para>
+    /// <b>Observed</b> in <c>sub_140A729F0</c> (3,138 bytes), whose whole constant set is this literal, the
+    /// undefined-variant below, the storefront prefix <c>on/demandware.store/Sites-</c> (0x147107D30), the
+    /// <c>-Site/</c> joiner (0x146AA36D0), <c>0_</c> (0x146AC39D0), <c>NBJP</c> (0x146E10D68) and the report line
+    /// <c>Submit order</c> (0x146EA00F0). The reference is Cardinal's DFReferenceId, the device-fingerprint id the
+    /// 3-D Secure MPI hands back — so this is where an MPI fingerprint rides into a Demandware checkout.
+    /// </para>
+    /// </summary>
+    public const string PlaceOrderQueryWithFingerprint =
+        "?termsconditions=true&DFReferenceId=";
+
+    /// <summary>
+    /// The place-order query when there is no fingerprint (0x146AAF488): the literal says
+    /// <c>undefined</c>, not an empty value — the storefront's own quirk, kept verbatim.
+    /// </summary>
+    public const string PlaceOrderQueryWithoutFingerprint = "?termsconditions=undefined";
+
+    /// <summary>
+    /// The place-order path plus the query that belongs to it. Pass the fingerpint id when the 3-D Secure device
+    /// fingerprint ran, and null when it did not; the two shapes are the image's, not a choice of ours.
+    /// </summary>
+    public static string PlaceOrderPathWith(string? dfReferenceId) =>
+        "/" + PlaceOrder + (string.IsNullOrEmpty(dfReferenceId)
+            ? PlaceOrderQueryWithoutFingerprint
+            : PlaceOrderQueryWithFingerprint + Uri.EscapeDataString(dfReferenceId!));
+
     // ---- account and product
     public const string AccountLogin = "Account-Login";
     public const string CsrfGenerate = "CSRF-Generate";

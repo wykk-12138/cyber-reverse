@@ -1,0 +1,190 @@
+# Triage of SECTION 2 of payment_name_gaps.txt, by gateway host presence in replica/src.
+# Rule: name -> gateway -> is that gateway host already spoken in src?
+# present  = the behaviour probably exists under another name (renaming is allowed)
+# absent   = candidate for the four-step chain
+# undecided= the name implies no gateway, so this test cannot answer
+# Regenerate with: python analysis/triage_payment_names.py
+
+# GATEWAY HOST PRESENT (47)
+ApplyPayPal                               	paypal.com
+BuildAdyenThreeDsResult                   	adyen.com
+ConfirmStripeSetup                        	api.stripe.com
+ContinueUnzerThreeDs                      	api.unzer.com
+CreatePayPalToken                         	paypal.com
+CreateUnzerResource                       	api.unzer.com
+Create_ListPayPalAccountDto               	paypal.com
+Create_PayPalAccountDto                   	paypal.com
+Create_RemotePayPalAccount                	paypal.com
+GetAdyenPaymentStatus                     	adyen.com
+GetPayPalDetails                          	paypal.com
+GetPayPalNonce                            	paypal.com
+GetPayPalPaymentOptions                   	paypal.com
+GetPayPalResult                           	paypal.com
+GetPaypalBearer                           	paypal.com
+GetPaypalId                               	paypal.com
+GetStripeConfiguration                    	api.stripe.com
+HandleAdyenAction                         	adyen.com
+HandleAdyenResult                         	adyen.com
+HandleUnzerRedirect                       	api.unzer.com
+InitialisePayPal                          	paypal.com
+InitializePayPal                          	paypal.com
+PayPalAccountDtoPropInit                  	paypal.com
+PayPalEditor                              	paypal.com
+ProcessOrderPaypalCreditCard              	paypal.com
+ProcessOrderStripe                        	api.stripe.com
+ProcessPayPal                             	paypal.com
+ProcessPaymentPaypalCreditCard            	paypal.com
+RemotePayPalAccountPropInit               	paypal.com
+RpcCapturePayPal                          	paypal.com
+RpcInitiatePayPal                         	paypal.com
+RpcSubmitAdyenDetails                     	adyen.com
+RunUnzerThreeDs                           	api.unzer.com
+SetAdyenPayment                           	adyen.com
+SetUnzerPayment                           	api.unzer.com
+SolvePayPalHosted3DS                      	paypal.com
+SquareCardNonce                           	squareup.com
+SquareHydrate                             	squareup.com
+StartPayPalExpress                        	paypal.com
+SubmitAdyenOrder                          	adyen.com
+SubmitAdyenPayment                        	adyen.com
+SubmitPaypal                              	paypal.com
+SubmitStripeOrder                         	api.stripe.com
+SubmitUnzerOrder                          	api.unzer.com
+ToPayPalAccount                           	paypal.com
+VerifyStripeChallenge                     	api.stripe.com
+WalkUnzerReturn                           	api.unzer.com
+
+# GATEWAY HOST ABSENT - candidates (3)
+CardinalContinue                          	cardinalcommerce.com
+CardinalInit                              	cardinalcommerce.com
+RunCardinal                               	cardinalcommerce.com
+
+# NO GATEWAY IN THE NAME - undecided (128)
+AddAddress
+AddPaymentMethod
+AddPaymentToCart
+AddToCart2
+AddressDtoPropInit
+ApplyPaymentMethod
+ApproveMemberPayment
+AuthorizePayment
+BaseCheckoutPropInit
+BuildCheckoutForm
+CaptureCard
+CardDtoPropInit
+CardHolderName
+CheckCart
+CheckGiftCard
+CheckPreOrderState
+CheckoutItemPropInit
+CheckoutPropInit
+CheckoutStatsPropInit
+ClearActiveCart
+ClearAddresses
+Complete3DSOrder
+CompleteOrder
+ConfirmShippingAddress
+CreateCheckout
+CreateCustomCheckout
+CreateIntent
+CreatePayment
+CreatePaymentToken
+CreateRaffleCheckout
+CreateSetupIntent
+Create_AddressDto
+Create_BaseCheckout
+Create_CardDto
+Create_Checkout
+Create_CheckoutItem
+Create_CheckoutStats
+Create_ListCheckout
+Create_ListCheckoutStats
+Create_ShippingRate
+CreditCardNumber
+DetectByteOrderMarkAsync
+DragBorderDrop
+DragBorderPressed
+EncryptCard
+EncryptCardData
+ExecuteLoadCheckouts
+FinalizeCheckout
+FormatIPv6Address
+GenerateCheckout
+GetActiveCart
+GetAppCartToken
+GetCardNonce
+GetCartCookie
+GetCartCsrf
+GetCartId
+GetCartItemId
+GetCartLines
+GetCartPage
+GetCartValue
+GetCartValueApp
+GetCheckoutLogin
+GetCheckoutPage
+GetCookieOrder
+GetHostEntryOrAddressesCoreAsync
+GetOrder
+GetPayment
+GetPaymentSession
+GetProcAddress
+GetSetupIntent
+GetShippingId
+GetSweepStakeCheckout
+GetSweepStakesShippingMethod
+HandleCartUpdate
+HandleOrderResult
+HasInvalidAddress
+InitalizePayment
+InitialisePayment
+LoadCheckout
+LoadCheckoutPage
+MaintainShippingGroups
+ParseCheckoutState
+ParseEnvelopeAddressAsync
+ParseEnvelopeAddressListAsync
+PreloadCheckout
+ProcessDeferredPayment
+ProcessExternalPayment
+ProcessOrderCommerce
+ProcessThreeDs
+RaffleOrder
+ReadPaymentResponse
+RpcSolveThreeDS
+SaveAddress
+SelectBillingAddress
+SetBillingAddress
+SetPayment
+SetPaymentFee
+SetShippingAddress
+SetShippingMethod
+ShippingDeliveryLine
+ShippingRatePropInit
+ShippingRates
+ShopAddToCart
+StartCheckout
+StartInvoiceCheckout
+StartPaymentGCash
+StartPaymentSG
+StepByteOrderMarkAsync
+SubmitCheckoutPayment
+SubmitCreditCard
+SubmitExternalPayment
+SubmitHpsPayment
+SubmitOrderCommerce
+SubmitShippingApp
+SubmitShippingInformation
+SubmitSweepStakesShipping
+SubmitThreeDSAuthentication
+SwapByteOrder
+TokenizeCard
+UpdatePayment
+UpdateShippingMethodsList
+ValidateCheckout
+VerifyCart
+VerifyCheckout
+eglGetProcAddress
+get_LoadCheckouts
+get_Reorder
+get_ShowCartView

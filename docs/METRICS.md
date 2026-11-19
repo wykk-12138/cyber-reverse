@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 03:45:33 +0800 |
+| 生成时间 | 2026-11-20 03:53:17 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,9 +14,9 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新（共 14070 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 18 个源文件比产物新（共 14295 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`658 -- src/Cybersole.Stores/Payments/Gateways.cs (+657 more) differs from the run's manifest`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`660 -- src/Cybersole.Stores/Flows/DemandwareControllers.cs (+659 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -42,8 +42,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,584 |
 | 函数数量（.pdata） — functions: ratio | 64.80% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 14070 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 18 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 14295 |
 | 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
@@ -63,7 +63,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 658 -- src/Cybersole.Stores/Payments/Gateways.cs (+657 more) differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 660 -- src/Cybersole.Stores/Flows/DemandwareControllers.cs (+659 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -411,9 +411,9 @@ publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-20 02:46:27
 publish artifact size: 57403392 bytes
 publish artifact sha256: 847757a0949bd90fcc2121602019c1ee8895d8b9dab2ae367142ca4c156eb853
-newest source: src\Cybersole.Stores\Payments\Gateways.cs (2026-11-20 03:40:21)
-source files newer than the artifact: 17
-lines in those files: 14070
+newest source: src\Cybersole.Stores\Flows\DemandwareControllers.cs (2026-11-20 03:48:12)
+source files newer than the artifact: 18
+lines in those files: 14295
 of those, changed against HEAD: 1
 publish artifact state: stale
 
@@ -592,7 +592,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 658 -- src/Cybersole.Stores/Payments/Gateways.cs (+657 more) differs from the run's manifest
+  mutation-fit-staleness: 660 -- src/Cybersole.Stores/Flows/DemandwareControllers.cs (+659 more) differs from the run's manifest
 
   The counts above are from 2026-11-20T02:55:22+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.

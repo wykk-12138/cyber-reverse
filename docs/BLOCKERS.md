@@ -44607,3 +44607,54 @@ Inference = 「浏览器块与 3DS2 authenticate 共用同一指纹」；Unknown
 
 证据等级：Observation = 两侧 host/path 对照、4 次名表命中、`api-m.paypal.com` 与 `/v1/oauth2` 的 0 命中；
 Inference = 「`CreatePayPalToken` 走 GraphQL 那条」；Unknown = 178 条里各自属于哪一种。
+## R1227 —— 178 条三档分完（47/3/128），并从唯一候选里解出**两种下单查询形状**
+
+### 一、把判定法脚本化
+
+`analysis/triage_payment_names.py` → `analysis/payment_name_triage.txt`：
+
+| 档 | 数量 | 含义 |
+|---|---|---|
+| 网关 host **已在** `replica/src` | **47** | 行为大概率已存在（改名允许） |
+| 网关 host **缺失** | **3** | 走四步链的候选 |
+| 名字里推不出网关 | **128** | 这条判据答不了，**不猜** |
+
+**3 条候选全部指向 Cardinal**：`CardinalInit` · `CardinalContinue` · `RunCardinal`（缺 `cardinalcommerce.com`）。
+
+### 二、Cardinal 是真的缺
+
+| 侧 | 证据 |
+|---|---|
+| 镜像 | `CardinalCommerceHandler`（0x14323D34A） · `songbirdJwt`/`cardinalTransactionId`（0x143534D52） · `DFReferenceId`（0x146AAF3F0，**4 xref**） |
+| 复刻件 | `cardinal` 一次都不出现 |
+
+### 三、解码：`sub_140A729F0`（3,138 B）是**Demandware 下单**，不是 Cardinal 自己的端点
+
+9 条常量全部解出：
+
+| 字面量 | 地址 |
+|---|---|
+| `/CheckoutServices-PlaceOrder?termsconditions=true&DFReferenceId=` | 0x146AAF3F0 |
+| `/CheckoutServices-PlaceOrder?termsconditions=undefined` | 0x146AAF488 |
+| `on/demandware.store/Sites-` | 0x147107D30 |
+| `-Site/` | 0x146AA36D0 |
+| `0_` · `NBJP` · `Submit order` | 0x146AC39D0 / 0x146E10D68 / 0x146EA00F0 |
+
+⇒ **Cardinal 的设备指纹参考号是从 Demandware 的下单 URL 里过去的**：
+有指纹走 `termsconditions=true&DFReferenceId=<id>`，没有就走 `termsconditions=undefined`
+（注意是字面量 `undefined`，**不是空值** —— 店铺自己的怪癖，照抄不改写）。
+
+### 四、查重与落地
+
+复刻件有 `CheckoutServices-PlaceOrder`（`DemandwareControllers.cs:37` / `DemandwareStepMap.cs:19`），
+但 `termsconditions` 与 `DFReferenceId` **都没有**。
+
+新增 `PlaceOrderQueryWithFingerprint` · `PlaceOrderQueryWithoutFingerprint` · `PlaceOrderPathWith(id?)`
+（带地址注释）；测试 `DemandwarePlaceOrderQueryTests` **4 条**：两种形状、`undefined` 字面量、转义、字面量逐字。
+
+### 五、验证
+
+`dotnet build` 0 错；新测试 **4/4**；全量 **2501 通过 / 0 失败 / 2 跳过 / 2503**（4m27s，+4）。
+
+证据等级：Observation = 47/3/128 分档、`DFReferenceId` 的 4 个 xref、9 条常量与地址、两项查重缺失；
+Inference = 「Cardinal 指纹经 Demandware 下单 URL 传递」；Unknown = 该 URL 在 flow 里由哪一步触发。

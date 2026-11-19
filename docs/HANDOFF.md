@@ -7344,3 +7344,15 @@ Observation：
 **教训**：名字缺席 ≠ 行为缺席（改名允许）。
 
 还剩什么：① 用判定法批量处理 178 条；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）；④ 产物需重新 AOT 发布。
+## R1227 —— 178 条三档（47/3/128）；Cardinal 指纹经 Demandware 下单 URL 传递，两形状落地 +4 测试
+
+Observation：
+- `triage_payment_names.py`：47 网关 host 已在 / 3 host 缺 / 128 推不出网关。
+- 3 候选全为 Cardinal：`CardinalInit`/`CardinalContinue`/`RunCardinal`；复刻件无 `cardinal`。
+- `sub_140A729F0`（3,138 B）：`?termsconditions=true&DFReferenceId=` / `?termsconditions=undefined` + `on/demandware.store/Sites-`。
+- 复刻件缺 `termsconditions` 与 `DFReferenceId` ⇒ 新增 `PlaceOrderPathWith` 等 3 成员。
+
+验证：build 0 错；**4/4**；全量 **2501/0/2/2503**（4m27s）。
+
+还剩什么：① 128 条推不出网关的需另一种判据；② Cardinal 自身端点（songbird）未解（其字面量 0 xref）；
+③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）；⑤ 产物待重新 AOT 发布。

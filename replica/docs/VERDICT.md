@@ -67472,3 +67472,27 @@ R1219 我写「字符串/槽/派发表都靠基址+偏移，静态 xref 看不�
 |---|---|
 | 代码改动 | 无 |
 | 消费清单 | 2 条（累计 3） |
+---
+
+## 第 1227 轮：三档分完，唯一候选解出两种下单形状
+
+判定法脚本化后：**47 已在 / 3 候选 / 128 推不出网关（不猜）**。
+
+3 条候选全指向 **Cardinal**（`CardinalInit`/`CardinalContinue`/`RunCardinal`）——复刻件里 `cardinal` 一次都不出现，
+镜像里有 `CardinalCommerceHandler`、`songbirdJwt`、`cardinalTransactionId`、`DFReferenceId`（**4 xref**）。
+
+顺着 `DFReferenceId` 解出 `sub_140A729F0`（3,138 B）：**那是 Demandware 的下单 URL**，两形状——
+
+| 有指纹 | `?termsconditions=true&DFReferenceId=` |
+| 无指纹 | `?termsconditions=undefined` |
+
+⇒ **Cardinal 的指纹参考号是从下单 URL 过去的**。没有就走字面量 `undefined`（**不是空值**，店铺怪癖照抄）。
+
+复刻件有 `CheckoutServices-PlaceOrder`，但两种查询形状都没有 ⇒ 新增 3 个成员 + **4 条测试**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2501 通过 / 0 失败 / 2 跳过 / 2503**（4m27s，+4） |
+| 三档 | 47 / 3 / 128 |

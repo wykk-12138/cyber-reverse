@@ -6854,3 +6854,16 @@ Observation：
 **口径澄清**：`shape_audit.py` 默认 78/1 与 `--baseline` 94/17 是**两种口径**，METRICS 用后者。
 
 本轮无代码改动（仅审计与文档）；变异收据沿用 R1184（12:21:52，src 未变）。
+## R1186 —— 修 shape_audit 解析缺陷（注释造出伪类型）；撤回「Checkout.Profile 假阴性」
+
+Observation：
+- `Checkout.cs` 含注释 `record of the checkout` ⇒ 扫描器造出类型 `of`（body 1002 字符、含 Checkout 成员），
+  `Checkout` 只得 590 字符残片 ⇒ 其成员被判 `?`。
+- 修（`strip_non_code` 先抹注释/字符串）后：`total mismatches` **94 → 102**，`core` **17 不变**。
+- **撤回**：`Checkout.Profile` 的 `?` **不是**假阴性——可写的 `Profile` 在 `CreateModel` 类体里；
+  `Checkout` 类体内无该成员 ⇒ **真缺陷**（成员挂错类型）。我原先按整文件 grep，第四次犯同类错。
+
+验证：`metrics` 102/17；全量 **2476/0/2/2478**（5m45s）；src 未变，变异沿用 R1184（59/59 GREEN）。
+
+还剩什么：① 其余 10 条 core 行逐条核实（有意省略 vs 真缺陷）；② `CreateModel.Inputs` 一类「有意省略」
+需按绑定口径重新裁定；③ `PARITY_PRODUCT.md`/`PARITY_CLAIMS.md` 手抄数字仍过期（判据 e）。

@@ -42908,3 +42908,53 @@ METRICS 用的是 `--baseline`（`metrics_report.py:50`）⇒ **94/17 才是权�
 证据等级：Observation = 六行判据原文、四组 METRICS 输出、`PARITY_CLAIMS.md` 表头与 C7b 行、
 `shape_audit --baseline` 前 16 行、全量与变异收据；Inference = 「11 条占位即外部受阻项」（R823 已定性）；
 Unknown = 17 条 core 形状差异的**完整清单**（本轮只看到前 16 行里的 10 条，未穷举）。
+## R1186 —— 修好形状审计的**解析缺陷**（注释里的英文词被当成类型），并**撤回我自己本轮的「铁证」**
+
+**取件**：R1185 留下的 C7b（94 total / core 17）。第一步是逐条核实，结果先查出工具坏、再查出我自己错。
+
+### 一、工具缺陷（已修，证据可复现）
+
+`shape_audit.py` 声明用 `(?:class|record|interface)\s+(\w+)[^;{]*\{` 提取类体，**扫的是原文**。
+`Checkout.cs` 里有一句注释含 `record of the checkout` ⇒ 扫描器**造出一个叫 `of` 的类型**：
+
+`
+of         closed=1191 body_len=1002 has_Profile=True     ← Checkout 的成员被记到 "of" 名下
+Checkout   closed=1898 body_len=590  has_Profile=False    ← Checkout 只剩残片
+`
+
+修：新增 `strip_non_code()`，**先把注释、字符串、字符字面量抹成空格（保留偏移与行结构）再解析**。
+这就是 AGENTS §2.7 记的 R764「花括号计数被非代码文本干扰」**在第二个地方复发**。
+修后 `total mismatches` **94 → 102**（原先被「抢走类体」遮住的真实差异露出来了），**core 仍 17**。
+
+### 二、撤回：我说的「`Checkout.Profile` 是工具假阴性」**是错的**
+
+我按**整个文件** grep 看到 `public string? Profile { get; set; }`，就断言工具误报。按**类体**重查：
+
+`
+== Checkout    body_len 590    （无 Profile 任何形态）
+== CreateModel body_len 2790
+     public Profile? Profile { get; set; }      ← 可写的 Profile 在 CreateModel 上
+     // existing member of the same name are here; Input / Inputs are left out on purpose
+`
+
+⇒ **工具是对的**：绑定期望 `Checkout.Profile` 可写，而复刻件把它放在 `CreateModel` 上。
+**这是真缺陷（成员挂错了类型），不是仪器误差。**
+这也是「**证据取自离结论最近的文件，而不是决定结论的那一段**」的**第四次**（R1166 记过第三次）。
+
+### 三、12 条 core 行（本轮已核实的两条）
+
+| # | 类型 | 成员 | 工具 | 真相 |
+|---|---|---|---|---|
+| 4 | Checkout | Profile | `?` | **真缺陷**：可写 Profile 在 `CreateModel` 上 |
+| 5 | CreateModel | Inputs | `?` | **源码注释明说「left out on purpose」**⇒ 有意省略，需按绑定口径重新裁定 |
+| 其余 10 | BotTask / Notification / TaskGroup / ClockService / ExpressionExample | — | `?`/`prop-get` | **未逐条核实**（下一轮做完再定性） |
+
+### 四、验证
+
+`metrics_report` → `成员形状差异 {'total mismatches': '102', 'core mismatches': '17'}`；
+全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（5m45s）。本轮只改工具，**src 未变**，
+故变异收据沿用 R1184（`ran_at 2026-11-19T12:21:52`，59/59 fired，tree GREEN）。
+
+证据等级：Observation = `of`/`Checkout` 两次类体提取长度与命中、类体内的 `Profile`/`Inputs` 原文、
+94→102 的度量变化、全量收据；Inference = 「注释里的 `record` 造出 `of`」（由名字与偏移直接印证）；
+Unknown = 其余 10 条 core 行的真实性质。

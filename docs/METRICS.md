@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 12:22:57 +0800 |
+| 生成时间 | 2026-11-19 12:30:04 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | **有非零退出，见下** |
@@ -14,7 +14,7 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新（共 13599 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 18 个源文件比产物新（共 13929 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -25,7 +25,7 @@
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
 | 类型缺失（type presence） — classified | renamed 13, out of scope 2, unimplemented 0, unclassified 0 |
-| 成员形状差异 — total mismatches | 94 |
+| 成员形状差异 — total mismatches | 102 |
 | 成员形状差异 — core mismatches | 17 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
@@ -39,9 +39,9 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,456 |
 | 函数数量（.pdata） — functions: ratio | 64.76% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 13599 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 18 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 13929 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 2 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -126,7 +126,7 @@ type presence: 174 declared in bindings, 159 present in source, 15 absent
 classified: renamed 13, out of scope 2, unimplemented 0, unclassified 0
 
 note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed to rename
-      types (AGENTS.md §0), so each ABSENT must be classified in tools/type_classification.json
+      types (AGENTS.md ��0), so each ABSENT must be classified in tools/type_classification.json
       as RENAMED (with the counterpart), OUT_OF_SCOPE (with the ruling) or UNIMPLEMENTED.
 ```
 
@@ -153,12 +153,19 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   Notification               Type                   evidence=Getter,Property,Setter     replica=prop-get
   TaskGroup                  Running                evidence=Getter,Property,Setter     replica=prop-get
   ClockService               Current                evidence=Getter,Property,Setter     replica=prop-get
+  AccountGrid                Delete                 evidence=Getter,Property,Setter     replica=?
   AccountGrid                Edit                   evidence=Getter,Property,Setter     replica=prop-get
   AccountGroupView           Delete                 evidence=Getter,Property,Setter     replica=?
   AccountGroupView           Save                   evidence=Getter,Property,Setter     replica=?
   CreateGroupModal           Create                 evidence=Getter,Property,Setter     replica=?
   AnalyticsView              ChangeChart            evidence=Getter,Property,Setter     replica=method
   AnalyticsView              OpenRelease            evidence=Getter,Property,Setter     replica=method
+  CustomBrowser              Autofill               evidence=Getter,Property,Setter     replica=?
+  CustomBrowser              Back                   evidence=Getter,Property,Setter     replica=method
+  CustomBrowser              Exit                   evidence=Getter,Property,Setter     replica=method
+  CustomBrowser              Forward                evidence=Getter,Property,Setter     replica=method
+  CustomBrowser              Minimise               evidence=Getter,Property,Setter     replica=method
+  CustomBrowser              Refresh                evidence=Getter,Property,Setter     replica=method
   GoogleLogin                Close                  evidence=Getter,Property,Setter     replica=?
   SolverWindow               Add                    evidence=Getter,Property,Setter     replica=method
   SolverWindow               CloseSolver            evidence=Getter,Property,Setter     replica=method
@@ -198,6 +205,7 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   PayPalAccountCreatorView   Close                  evidence=Getter,Property,Setter     replica=?
   SizeCreatorView            Close                  evidence=Getter,Property,Setter     replica=?
   SizeCreatorView            ToggleSizeSelected     evidence=Getter,Property,Setter     replica=method
+  StoreCreatorView           Close                  evidence=Getter,Property,Setter     replica=?
   WebhookCreatorView         Close                  evidence=Getter,Property,Setter     replica=?
   NotificationsView          PlaySound              evidence=Getter,Property,Setter     replica=?
   NotificationsView          ResetSound             evidence=Getter,Property,Setter     replica=method
@@ -236,10 +244,10 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   IWebhook                   ExtraFields            evidence=Getter,Property,Setter     replica=prop-get
   IWebhook                   Name                   evidence=Getter,Property,Setter     replica=prop-get
   IWebhook                   Url                    evidence=Getter,Property,Setter     replica=prop-get
-total mismatches: 94
+total mismatches: 102
 
 by owning project (priority order: Stores > Services > Http > Core > Ui):
-  Cybersole.Ui            77
+  Cybersole.Ui            85
   Cybersole.Core          12
   Cybersole.Services       5
 core mismatches: 17
@@ -367,14 +375,14 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-19 11:09:47
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 12:15:37)
-source files newer than the artifact: 17
-lines in those files: 13599
-of those, changed against HEAD: 0
-publish artifact state: current
+newest source: src\Cybersole.Stores\Scripts\ChromiumBridge.cs (2026-11-19 12:27:55)
+source files newer than the artifact: 18
+lines in those files: 13929
+of those, changed against HEAD: 2
+publish artifact state: stale
 
-  17 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
-  targets, which updates mtime without changing a byte. Nothing to rebuild.
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -541,7 +549,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-fired: 59
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
-  mutation-fit-tree: GREEN
+  mutation-fit-tree: UNKNOWN (cut off)
   mutation-fit-staleness: 0 -- no exercised file's content differs from the run
 
   Every mutation fired, none was decorative and none was skipped at the time of that run.

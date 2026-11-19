@@ -49,6 +49,59 @@ else:
     print("evidence: string pool (%d types, sampled)" % len(shape))
 
 # 2) replica declarations, per type body (brace matched)
+# R1186: blank out comments and string literals before looking for declarations. The declaration regex is
+# `(?:class|record|interface)\s+(\w+)`, and prose uses those words too: Checkout.cs carries a comment with
+# "a record of the checkout ..." in it, so the scanner invented a type called `of`, claimed a thousand
+# characters of the file as its body - which contained Checkout's own members - and left Checkout with a
+# fragment. Every member beyond that point then read as `replica=?`, i.e. "the replica does not have this
+# member" for a member that is right there in the file. This is the R764 failure (brace counting disturbed by
+# text that is not code) surviving in a second place, and the same lesson applies: strip first, parse second.
+
+
+def strip_non_code(text):
+    """Blank comments and string/char literals, preserving offsets and line structure."""
+    out = []
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == '/' and i + 1 < n and text[i + 1] == '/':
+            while i < n and text[i] != '\n':
+                out.append(' ')
+                i += 1
+        elif c == '/' and i + 1 < n and text[i + 1] == '*':
+            out.append(' ')
+            out.append(' ')
+            i += 2
+            while i < n and not (text[i] == '*' and i + 1 < n and text[i + 1] == '/'):
+                out.append('\n' if text[i] == '\n' else ' ')
+                i += 1
+            if i < n:
+                out.append(' ')
+                out.append(' ')
+                i += 2
+        elif c == '"' or c == "'":
+            quote = c
+            verbatim = i > 0 and text[i - 1] == '@'
+            out.append(' ')
+            i += 1
+            while i < n:
+                if text[i] == '\\' and not verbatim and i + 1 < n:
+                    out.append(' ')
+                    out.append(' ')
+                    i += 2
+                    continue
+                if text[i] == quote:
+                    out.append(' ')
+                    i += 1
+                    break
+                out.append('\n' if text[i] == '\n' else ' ')
+                i += 1
+        else:
+            out.append(c)
+            i += 1
+    return ''.join(out)
+
+
 bodies = {}
 for dirpath, _d, files in os.walk(os.path.join(ROOT, "src")):
     if f"{os.sep}obj{os.sep}" in dirpath or f"{os.sep}bin{os.sep}" in dirpath:
@@ -56,7 +109,7 @@ for dirpath, _d, files in os.walk(os.path.join(ROOT, "src")):
     for fn in files:
         if not fn.endswith(".cs"):
             continue
-        text = io.open(os.path.join(dirpath, fn), encoding='utf-8', errors='replace').read()
+        text = strip_non_code(io.open(os.path.join(dirpath, fn), encoding='utf-8', errors='replace').read())
         for m in re.finditer(r"\b(?:class|record|interface)\s+(\w+)[^;{]*\{", text):
             depth, start = 0, m.end() - 1
             for i in range(start, len(text)):

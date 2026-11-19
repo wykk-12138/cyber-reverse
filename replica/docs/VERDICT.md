@@ -66405,3 +66405,26 @@ YG 问：「你一直没拉起 IDA，怎么分析的？」——这十轮我处�
 
 `ida-mcp-doctor` 报 `PROXY: MISSING`（需人工在 DSH 把 `ida` 条目关/开一次）；IDA 卡在
 「Restore packed base」模态框，CUA 点掉后 70 s 就绪。**`analysis/ida.py` 直连插件 13337，不受该代理影响。**
+---
+
+## 第 1190 轮：三条缺口，一条能修、两条必须承认不知道
+
+用二进制绑定面把 `BotTask` 摊开：
+
+- `Products` 有 `!Setter` → 复刻件只读 ⇒ **修**（覆盖层，零行为变更）；
+- `Running` 有 `!Getter`+`!Setter`+`!Property` → 复刻件只有 `IsRunning`；
+- `Task` 有 `!Getter`+`!Setter` → 复刻件无此成员，且**原版没有叫 Task 的模型类型**。
+
+后两条的**成员类型无从得知**——`int` 计数和 `bool` 标志都满足描述符。
+**我不编一个 setter 出来**：R363 已用同样理由拒过 `CreateModel.Input/Inputs`，
+没有能收敛候选的证据，任何选择都是发明，而"编出来的成员"会让形状数字变好看、功能却是假的。
+
+**修一条、记两条 Unknown（各写明缺什么）**，形状 **98/13 → 97/12**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 成员形状 | **97 total / 12 core** |
+| 全量 | **2476 通过 / 0 失败 / 2 跳过 / 2478**（6m20s） |
+| IDA | **ok / hexrays_ready**（宿主重启后已重新拉起） |

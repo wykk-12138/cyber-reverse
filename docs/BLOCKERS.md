@@ -43085,3 +43085,43 @@ Unknown = 变异收据为何判 RED、恢复校验为何跑 2393 条。
 
 证据等级：Observation = `health` JSON、模态框原文、两条字符串对象原文与地址、错误形状的 `n:0`；
 Inference = 「四对描述符即 R1188 的依据」；Unknown = 这些 setter 在运行时**具体写什么**（下一步：xrefs_to → site_to_func → Hex-Rays）。
+## R1190 —— 用二进制绑定面坐实 `BotTask` 的缺口：修 1 条、**2 条判为不可得（写明缺什么）**
+
+**取件**：C7b 里 `BotTask.Running`/`Task`、`Checkout.Profile` 三条挂错/缺失的成员。
+
+### 一、原版观测（`ida.py str` 直查冻结堆）
+
+`Cybersole.Models.BotTask` 的绑定面（`0x14321f5d0`、`0x1432231eb`、`0x14322358f`）：
+
+`
+Store!G/!S  Product!G  Profile!G/!S  ProxyGroup!G/!S  Task!G/!S  StartTime!G/!S
+MonitorMode!G/!S  MonitorDelay!G/!S  RetryDelay!G/!S  Timeout!G/!S
+Properties!G/!S  Running!G/!S  Products!G/!S  Status!G/!S
+`
+
+⇒ 三条缺口各自的位置清楚了：`Products` 有 **Setter**（复刻件只读）、`Running` 有 **Getter+Setter**（复刻件只有 `IsRunning`）、
+`Task` 有 **Getter+Setter**（复刻件无此成员）。
+
+### 二、能落地的只有一条，改了
+
+`BotTask.Products` 改为**可写**，但用「覆盖层」实现：`_productsOverride` 为 null 时仍走原来的计算式，
+**现有消费者读到的还是同一个列表**；只有绑定向它写入后覆盖层才生效。
+⇒ **零行为变更**，同时满足 `Products!Setter` 的绑定契约。
+
+度量：`成员形状差异` **98/13 → 97/12**。
+
+### 三、另两条**判为不可得**（不猜）
+
+- `BotTask.Task`：搜 `Cybersole.Models.Task` 命中全是 `TaskGroup` ⇒ **原版不存在名为 Task 的模型类型**。
+  绑定名存在、但**成员类型无法从描述符得出**。缺的条件：需要该属性在 `BotTask` 类型元数据里的**字段类型**。
+- `BotTask.Running`：有 `!Getter`+`!Setter`+`!Property`，但**类型同样未知**（`int` 计数 还是 `bool` 标志，两者都能满足描述符）。
+  缺的条件：同上，或该属性的写入点伪代码。
+
+按判据 a「不可得写 Unknown + 缺什么」，两条如实记为 Unknown，**不编一个 setter 出来**——
+R363 已因同样理由拒过 `CreateModel.Input/Inputs`：没有能收敛候选的证据，任何选择都是发明。
+
+验证：`dotnet build` **0 错**；全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（6m20s）；
+`成员形状差异` **97 / 12**；IDA `status: ok`/`hexrays_ready: true`（宿主重启后重新拉起并清模态框）。
+
+证据等级：Observation = 四段绑定描述符原文与地址、`Task` 搜索只命中 `TaskGroup`、度量与套件收据；
+Inference = 「三条缺口各自缺什么」；Unknown = `Task`/`Running` 的成员类型与语义。

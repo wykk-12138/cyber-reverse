@@ -179,7 +179,19 @@ public sealed class BotTask : ObservableObject
     // so it stays named in docs/BINDING_BACKLOG.md.
 
     /// <summary>Every product this task watches (bound as <c>Products</c>) — the same list <see cref="AllProducts"/> returns.</summary>
-    public IReadOnlyList<Product> Products => AllProducts;
+    // R1190: the original binds Products with BOTH Getter and Setter - observed at 0x1432231eb, where
+    // "Cybersole.Models.BotTask,Cybersole.Core.Products!Getter" sits beside "...!Setter" - so the member has to
+    // be assignable. It stays computed while nothing has been assigned: the override is consulted first and
+    // stays null until a binding writes to it, so every existing consumer keeps reading the same list.
+    // What the original stores here is Unknown; what this setter must not do is quietly change which products a
+    // task watches, which is why nothing reads the override until someone writes it.
+    private List<Product>? _productsOverride;
+
+    public IReadOnlyList<Product> Products
+    {
+        get => _productsOverride ?? AllProducts;
+        set => _productsOverride = value is null ? null : value.ToList();
+    }
 
     /// <summary>The profile chosen for this task (bound as <c>Profile</c>).</summary>
     public Profile? Profile { get; set; }

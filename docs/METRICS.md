@@ -6,17 +6,17 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 12:46:15 +0800 |
+| 生成时间 | 2026-11-20 00:48:03 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
-| 度量脚本结果 | **有非零退出，见下** |
+| 度量脚本结果 | 全部 exit 0 |
 | 完整套件 | 本次跳过（`--skip-tests`） |
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 19 个源文件比产物新（共 14093 行）。它描述的是更旧的一次构建，不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 20 个源文件比产物新（共 14748 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`329 -- src/Cybersole.Services/NotificationService.cs (+328 more) differs from the run's manifest`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`657 -- src/Cybersole.Core/Models/Tasks.cs (+656 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -27,8 +27,8 @@
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
 | 类型缺失（type presence） — classified | renamed 13, out of scope 2, unimplemented 0, unclassified 0 |
-| 成员形状差异 — total mismatches | 98 |
-| 成员形状差异 — core mismatches | 13 |
+| 成员形状差异 — total mismatches | 97 |
+| 成员形状差异 — core mismatches | 12 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
 | 绑定缺口分桶 — backlog: types absent | 2 |
@@ -41,14 +41,17 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,456 |
 | 函数数量（.pdata） — functions: ratio | 64.76% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 19 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 14093 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 20 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 14748 |
 | 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
-| 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
+| 核心覆盖：vendor 宿主 — vendor: controls ok | True |
+| 核心覆盖：vendor 宿主 — vendor: named in image | 13 |
+| 核心覆盖：vendor 宿主 — vendor: wiring rows | 9 |
+| 核心覆盖：vendor 宿主 — vendor: missing | 5 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
 | 可执行段体量 — section-mass: replica executable | 29445120 |
 | 可执行段体量 — section-mass: ratio | 56.96% |
@@ -59,7 +62,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 329 -- src/Cybersole.Services/NotificationService.cs (+328 more) differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 657 -- src/Cybersole.Core/Models/Tasks.cs (+656 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -144,7 +147,6 @@ C:\Python312\python.exe tools/shape_audit.py --baseline
 ```text
 evidence: baseline (211 types, kinds kept)
 mismatches: member has Setter evidence but the replica is not a settable property
-  BotTask                    Products               evidence=Getter,Property,Setter     replica=prop-get
   BotTask                    Running                evidence=Getter,Property,Setter     replica=?
   BotTask                    Task                   evidence=Getter,Property,Setter     replica=?
   Checkout                   Profile                evidence=Getter,Property,Setter     replica=?
@@ -242,13 +244,13 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   IWebhook                   ExtraFields            evidence=Getter,Property,Setter     replica=prop-get
   IWebhook                   Name                   evidence=Getter,Property,Setter     replica=prop-get
   IWebhook                   Url                    evidence=Getter,Property,Setter     replica=prop-get
-total mismatches: 98
+total mismatches: 97
 
 by owning project (priority order: Stores > Services > Http > Core > Ui):
   Cybersole.Ui            85
-  Cybersole.Core          12
+  Cybersole.Core          11
   Cybersole.Services       1
-core mismatches: 13
+core mismatches: 12
 ```
 
 ### 文案缺口总表
@@ -373,9 +375,9 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-19 11:09:47
-newest source: src\Cybersole.Services\NotificationService.cs (2026-11-19 12:46:01)
-source files newer than the artifact: 19
-lines in those files: 14093
+newest source: src\Cybersole.Core\Models\Tasks.cs (2026-11-20 00:40:59)
+source files newer than the artifact: 20
+lines in those files: 14748
 of those, changed against HEAD: 1
 publish artifact state: stale
 
@@ -404,10 +406,16 @@ cd D:\projects\cyber-reverse\replica
 C:\Python312\python.exe tools/vendor_coverage.py
 ```
 
-`exit 2`
+`exit 0`
 
 ```text
-  !! controls failed (kpsdk=0, datadome=0) -- IDA is not ready; refusing to overwrite docs/VENDOR_COVERAGE.md with false zeros
+  wrote docs/VENDOR_COVERAGE.md
+  controls ok=True  vendors named=13  wiring rows=9  missing=5
+    missing: Stripe challenge   n=1   0x146e9427c
+    missing: PayPal 3DS         n=9   0x146e93fb4
+    missing: captcha            n=1   0x146e94334
+    missing: proof of work      n=1   0x146e93f74
+    missing: checkpoint         n=1   0x146e94464
 ```
 
 ### 可执行段体量
@@ -547,10 +555,10 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-fired: 59
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
-  mutation-fit-tree: UNKNOWN (cut off)
-  mutation-fit-staleness: 329 -- src/Cybersole.Services/NotificationService.cs (+328 more) differs from the run's manifest
+  mutation-fit-tree: RED
+  mutation-fit-staleness: 657 -- src/Cybersole.Core/Models/Tasks.cs (+656 more) differs from the run's manifest
 
-  The counts above are from 2026-11-19T12:28:43+08:00 and the tree has moved since. They are a record of that run, not a
+  The counts above are from 2026-11-19T13:24:35+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
 ```
 

@@ -6904,3 +6904,19 @@ Observation：
 还剩什么：① 用 xrefs_to → site_to_func → Hex-Rays 还原这些 setter **实际写入什么**；
 ② 3 条成员缺失/挂错类型（`BotTask.Running`/`Task`、`Checkout.Profile`）回二进制取证；
 ③ 变异收据为何判 RED / 恢复集为何 2393；④ 其余 8 条 `prop-get`；⑤ 判据 e 的两处文档数字。
+## R1190 —— BotTask 绑定面取证：Products 改可写（形状 98/13→97/12）；Task/Running 判 Unknown
+
+Observation：
+- `ida.py str "Cybersole.Models.BotTask"` 命中 `0x14321f5d0/0x1432231eb/0x14322358f`：14 个成员，
+  其中 `Products`/`Running`/`Task` 均带 `!Getter`+`!Setter`（`Running` 另有 `!Property`）。
+- `ida.py str "Cybersole.Models.Task"` 只命中 `TaskGroup` ⇒ 无 `Task` 模型类型。
+- 改动：`BotTask.Products` 加 setter（`_productsOverride ?? AllProducts`），未赋值时行为不变。
+
+验证：build 0 错；全量 **2476/0/2/2478**（6m20s）；形状 **97/12**。
+
+**Unknown（写明缺什么）**：
+- `BotTask.Task`：成员类型未知（原版无 Task 模型类型；需要 BotTask 元数据里的字段类型）。
+- `BotTask.Running`：类型未知（int 计数 / bool 标志都满足描述符；需要写入点伪代码）。
+
+还剩什么：① 用 `xrefs_to`+`site_to_func`+Hex-Rays 找 `Running` 的写入点定其类型；
+② `Checkout.Profile` 归位；③ 变异收据 RED/0 失败矛盾；④ 其余 7 条 `prop-get`；⑤ 判据 e 两处文档数字。

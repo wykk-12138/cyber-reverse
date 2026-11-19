@@ -6747,3 +6747,21 @@ Observation：
 
 还剩什么：① 若要真正判可达性，得看 AOT 中间产物或 `[DynamicallyAccessedMembers]` 是否已声明；
 ② 所有用 `no` 立过的结论要标「靠形状而非探针」。
+## R1177 —— ILLink 描述符保住 Flows（6/8 探针 no→yes，产物 +0.47 MB）；两条仍未保留
+
+改动：
+- 新 `src/Cybersole.Ui/ILLink.Descriptors.xml`（`Cybersole.Stores.Flows.*` preserve=all，含实测对照注释）
+  + csproj `<TrimmerRootDescriptor Include="ILLink.Descriptors.xml" />`。
+- `ArtifactProbeCaveatTests` 负样本改为 `definitely-not-in-any-build-1177`（原用 `Cart-AddProduct`，
+  描述符让它存在后警示不再打印）。
+
+Observation：
+- **抓到自证注释**：`StepAction.cs:208` 声称有 `DynamicallyAccessedMembers`，`:210` 却是裸 `typeof()`。
+- 产物 **54.25 → 54.72 MB**；探针 `Cart-AddProduct`/`Checkout-Begin`/`Paypal-GetPaypalOrderId`/
+  `Paypal-GetOrderDetails`/`Jacquemus-Preload`/`Margiela-Preload` **no→yes**；
+  `Paypal-GetPurchaseUnit` 与 `Product-Show` **仍 no**。
+
+验证：build 0 错；守卫 1/1；全量 **2473/0/2/2475**（5m07s）；变异 **59/59 fired, tree GREEN**（10:29:02）。
+
+还剩什么：① `Product-Show`（裸字面量）与 `Paypal-GetPurchaseUnit` 仍被裁——**第二个机制未明**；
+② 查明后重跑全套探针，才能说「步骤体全部保住」。

@@ -34,7 +34,12 @@ public sealed class ArtifactProbeCaveatTests
     {
         var root = FindReplicaRoot();
         var probes = Path.Combine(Path.GetTempPath(), "probe-caveat-" + Guid.NewGuid().ToString("N") + ".txt");
-        File.WriteAllText(probes, "Cart-AddProduct\nwww.paypal.com/v2/checkout/orders\n");
+
+        // R1177: this fixture used to rely on Cart-AddProduct being absent, and the trimmer descriptor made
+        // it present, which silently removed the caveat and turned this guard red - the intended behaviour
+        // is intact, the fixture was measuring a world that no longer exists. A string no build can contain
+        // keeps the negative deterministic, and a literal the image is known to carry keeps the positive.
+        File.WriteAllText(probes, "definitely-not-in-any-build-1177\nwww.paypal.com/v2/checkout/orders\n");
         try
         {
             var psi = new ProcessStartInfo

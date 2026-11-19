@@ -6,11 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 09:50:25 +0800 |
+| 生成时间 | 2026-11-19 10:29:35 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | **有非零退出，见下** |
 | 完整套件 | 本次跳过（`--skip-tests`） |
+
+## 时效警告（生成）
+
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新（共 13599 行）。它描述的是更旧的一次构建，不是当前源码。
 
 ## 摘要素值
 
@@ -32,21 +36,21 @@
 | 数据文件名对照 — datafiles: original-on-disk not in replica | 0 |
 | 数据文件名对照 — datafiles: replica-only | 2 |
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
-| 函数数量（.pdata） — functions: replica .pdata | 177,365 |
-| 函数数量（.pdata） — functions: ratio | 64.00% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
+| 函数数量（.pdata） — functions: replica .pdata | 179,456 |
+| 函数数量（.pdata） — functions: ratio | 64.76% |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 13599 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
 | 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 29281280 |
-| 可执行段体量 — section-mass: ratio | 56.64% |
+| 可执行段体量 — section-mass: replica executable | 29445120 |
+| 可执行段体量 — section-mass: ratio | 56.96% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
-| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 0 |
-| 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1B00000 |
+| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 604 |
+| 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1C00000 |
 | 变异套件（上次运行） — mutation-fit: total | 59 |
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
@@ -341,8 +345,8 @@ C:\Python312\python.exe tools/func_count.py
 ```text
 function count (non-leaf, from .pdata):
   pdata-original: 277,120
-  pdata-replica: 177,365
-  pdata-ratio: 64.00%
+  pdata-replica: 179,456
+  pdata-ratio: 64.76%
   .pdata holds one RUNTIME_FUNCTION per non-leaf function: it excludes inlined and trimmed code, so this
   compares function mass between the two images and does not establish function-level equality.
 ```
@@ -358,11 +362,14 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-19 09:46:06
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 09:38:21)
-source files newer than the artifact: 0
-lines in those files: 0
-publish artifact state: current
+publish artifact mtime: 2026-11-19 10:07:35
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 10:24:24)
+source files newer than the artifact: 17
+lines in those files: 13599
+publish artifact state: stale
+
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -413,21 +420,21 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 56881664 bytes ===
+=== REPLICA  image base 0x140000000  file 57375744 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
-  .text      0x1000       0xFEA68      1039360      X
-  .managed   0xFF000      0x1BEDEB8    28241920     X
-  hydrated   0x1BEE000    0x2B3AB98    0            RW
-  .rdata     0x2B3B000    0x42FAF06    24903680     R
-  .data      0x42FB000    0x43F3368    224768       RW
-  .pdata     0x43F4000    0x45FB84C    2128384      R
-  _RDATA     0x45FC000    0x45FC0F4    512          R
-  .rsrc      0x45FD000    0x46487E7    309248       R
-  .reloc     0x4649000    0x4650F20    32768        R
+  .text      0x1000       0x102C28     1056256      X
+  .managed   0x103000     0x1C15D88    28388864     X
+  hydrated   0x1C16000    0x2B8CEF0    0            RW
+  .rdata     0x2B8D000    0x4397036    25207296     R
+  .data      0x4398000    0x4492C58    226304       RW
+  .pdata     0x4493000    0x46A0C00    2153472      R
+  _RDATA     0x46A1000    0x46A10F4    512          R
+  .rsrc      0x46A2000    0x46ED7E7    309248       R
+  .reloc     0x46EE000    0x46F5FD0    32768        R
 
-  section-mass-replica-executable: 29281280
-  section-mass-ratio: 56.64%
+  section-mass-replica-executable: 29445120
+  section-mass-ratio: 56.96%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
   code does: the replica links a different BCL and Avalonia, so part of the difference is not its own.
@@ -445,39 +452,39 @@ C:\Python312\python.exe tools/pdata_sections.py
 ```text
 pdata bucket histogram (bucket = 0x100000 bytes)
   original: 277,120 functions, image base 0x140000000
-  replica : 177,365 functions, image base 0x140000000
+  replica : 179,456 functions, image base 0x140000000
 
   range from     original   replica    replica/original
   ----------------------------------------------------
-  0x0            5,475      1,973        36.0%
-  0x100000       5,089      4,823        94.8%
-  0x200000       4,333      5,316       122.7%
-  0x300000       2,213      3,589       162.2%
-  0x400000       5,791      5,912       102.1%
-  0x500000       2,057      3,870       188.1%
-  0x600000       1,074      3,508       326.6%
-  0x700000       3,411      3,279        96.1%
-  0x800000       4,076      2,696        66.1%
-  0x900000       3,556      3,097        87.1%
-  0xA00000       3,178      5,246       165.1%
-  0xB00000       3,227      6,043       187.3%
-  0xC00000       3,982      6,851       172.0%
-  0xD00000       3,921      7,474       190.6%
-  0xE00000       3,371      5,129       152.2%
-  0xF00000       7,792      3,924        50.4%
-  0x1000000      5,626      8,610       153.0%
-  0x1100000      2,020      9,563       473.4%
-  0x1200000      2,046      10,150      496.1%
-  0x1300000      5,065      9,466       186.9%
-  0x1400000      10,107     10,083       99.8%
-  0x1500000      11,107     9,199        82.8%
-  0x1600000      2,864      9,263       323.4%
-  0x1700000      2,242      9,632       429.6%
-  0x1800000      4,058      8,423       207.6%
-  0x1900000      4,506      5,533       122.8%
-  0x1A00000      2,310      6,346       274.7%
-  0x1B00000      6,033      8,367       138.7%
-  0x1C00000      6,218      0             0.0%
+  0x0            5,475      1,895        34.6%
+  0x100000       5,089      4,810        94.5%
+  0x200000       4,333      5,258       121.3%
+  0x300000       2,213      3,758       169.8%
+  0x400000       5,791      5,768        99.6%
+  0x500000       2,057      3,981       193.5%
+  0x600000       1,074      4,218       392.7%
+  0x700000       3,411      3,204        93.9%
+  0x800000       4,076      2,983        73.2%
+  0x900000       3,556      2,612        73.5%
+  0xA00000       3,178      5,610       176.5%
+  0xB00000       3,227      5,815       180.2%
+  0xC00000       3,982      6,469       162.5%
+  0xD00000       3,921      7,768       198.1%
+  0xE00000       3,371      5,573       165.3%
+  0xF00000       7,792      3,945        50.6%
+  0x1000000      5,626      8,029       142.7%
+  0x1100000      2,020      9,538       472.2%
+  0x1200000      2,046      10,272      502.1%
+  0x1300000      5,065      9,566       188.9%
+  0x1400000      10,107     10,069       99.6%
+  0x1500000      11,107     9,162        82.5%
+  0x1600000      2,864      9,579       334.5%
+  0x1700000      2,242      9,336       416.4%
+  0x1800000      4,058      9,202       226.8%
+  0x1900000      4,506      5,736       127.3%
+  0x1A00000      2,310      5,768       249.7%
+  0x1B00000      6,033      8,928       148.0%
+  0x1C00000      6,218      604           9.7%
   0x1D00000      6,893      0             0.0%
   0x1E00000      5,418      0             0.0%
   0x1F00000      4,991      0             0.0%
@@ -501,15 +508,15 @@ pdata bucket histogram (bucket = 0x100000 bytes)
   0x3100000      324        0             0.0%
 
   the five thinnest buckets with at least 500 original functions:
-    0x1C00000        0.0%   original 6,218    replica 0
     0x1D00000        0.0%   original 6,893    replica 0
     0x1E00000        0.0%   original 5,418    replica 0
     0x1F00000        0.0%   original 4,991    replica 0
     0x2000000        0.0%   original 7,513    replica 0
+    0x2100000        0.0%   original 10,388   replica 0
 
   pdata-above-0x1C00000-original: 156590
-  pdata-above-0x1C00000-replica: 0
-  pdata-last-replica-bucket: 0x1B00000
+  pdata-above-0x1C00000-replica: 604
+  pdata-last-replica-bucket: 0x1C00000
 
   Buckets are compared by density, not by identity: the two images are laid out independently, so equal
   counts in a bucket do not mean the same code. This says where the gap sits and nothing about why.

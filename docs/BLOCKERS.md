@@ -42604,3 +42604,66 @@ o 读不出「死代码」
 证据等级：Observation = 11 条探针读数、`DemandwareFlow.cs:279/425` 两处真调用、工具源码行 149–162、
 测试 158 ms 与捕获文本、全量与变异收据；Inference = 「反射派发 ⇒ 整段裁剪」（由两常量缺席且在用推出，
 **未做 IL/AOT 中间产物核对**）；Unknown = 是否有别的机制也导致字面量丢失。
+## R1177 —— 裁剪描述符：**6/8 条字面量从 
+o 翻成 yes**，产物 +0.47 MB
+
+**取件**：R1176 判定的根因——反射派发 + AOT 裁剪 ⇒ 步骤体连同字面量被丢弃。这**不只是测量问题**：
+被裁掉的步骤，发布版**跑不起来**。
+
+### 一、先抓到一个「自证注释」
+
+`StepAction.cs:208` 写着：
+
+`
+// R967: GetMethods on a type annotated with DynamicallyAccessedMembers.PublicMethods is a request the trimmer
+// understands, which is what keeps the table populated in the published image ...
+`
+
+而 `:210` 是裸 `typeof(StoreFlow).GetMethods(...)` —— **`typeof()` 表达式无法承载该标注**。
+项目里**没有**任何 `DynamicallyAccessed`、**没有**裁剪描述符、csproj 里连 `PublishAot` 都没有。
+**那句注释描述了代码没做的事**（与 R1155「注释数字是自证」同一类）。
+
+### 二、修法：`ILLink.Descriptors.xml` + `TrimmerRootDescriptor`
+
+`xml
+<assembly fullname="Cybersole.Stores">
+  <type fullname="Cybersole.Stores.Flows.*" preserve="all" />
+</assembly>
+`
+
+理由与实测对照都写进了描述符注释里（含 `DemandwareFlow.cs:279/425` 两处真调用）。
+
+### 三、决定性验证（用 R1176 刚校准的探针）
+
+| 探针 | 旧产物 | **加描述符后** |
+|---|---|---|
+| `Cart-AddProduct` | no | **yes** |
+| `Checkout-Begin` | no | **yes** |
+| `Paypal-GetPaypalOrderId` | no | **yes** |
+| `Paypal-GetOrderDetails` | no | **yes** |
+| `Jacquemus-Preload` | no | **yes** |
+| `Margiela-Preload` | no | **yes** |
+| `Paypal-GetPurchaseUnit` | no | **no** ← 仍未保留 |
+| `NOPE-…` 负对照 | no | no ✓ |
+
+产物 **54.25 MB → 54.72 MB（+0.47 MB）**，`state: current`。
+
+### 四、**不完整**，如实说
+
+描述符**必要但不充分**：`Product-Show`（`DemandwareFlow:65` 的裸字面量）与 `Paypal-GetPurchaseUnit`
+仍是 `no`。而 `Cart-Show` / `Checkout-Submit` / `CheckoutServices-SubmitCash` / `ShopperInfo-IP` 都是 `yes`。
+⇒ **同一类里有的进来有的没进来**，说明还有第二个机制在决定去留（裸字面量 vs `DemandwareControllers.*` 常量？
+async 状态机嵌套类型？）——**未查明前不能声称「所有步骤都保住了」。**
+
+### 五、我的守卫因为这轮变好而红了
+
+`ArtifactProbeCaveatTests` 用 `Cart-AddProduct` 当「必然缺席」的样本；描述符让它**存在**了，
+于是工具不再打印警示，断言失败。**判断行为正确，夹具过时。**
+改成 `definitely-not-in-any-build-1177`（任何构建都不可能有）作负样本，并把这个原因写进测试注释。
+
+验证：`dotnet build` **0 错**；该守卫 **1/1**；全量 **2473 通过 / 0 失败 / 2 跳过 / 2475**（5m07s）；
+变异 `ran_at 2026-11-19T10:29:02`、**59/59 fired，tree GREEN**；`artifact_freshness` 0 stale / current。
+
+证据等级：Observation = 8 条探针前后对照、产物尺寸、`StepAction.cs:208` 与 `:210` 的原文、
+描述符与 csproj 改动、守卫红→绿、全量与变异收据；Inference = 「反射派发导致裁剪」（由两处真调用缺席推出）；
+Unknown = `Product-Show`/`Paypal-GetPurchaseUnit` 为何仍被裁。

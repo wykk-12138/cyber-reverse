@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  R1177: keep the flow step bodies in the published image.
+
+  StepActionRunner dispatches a step by name: it reflects over StoreFlow's public instance methods that
+  return Task<StepOutcome>, builds an invocation table, and calls MethodInfo.Invoke. The trimmer cannot see
+  through that, so in the published artifact whole step bodies were dropped together with their string
+  literals.
+
+  Measured, not assumed: on the artifact published before this file, artifact_probe.py reported Cart-AddProduct
+  and Checkout-Begin as absent even though DemandwareFlow posts and gets them at runtime (DemandwareFlow.cs
+  lines 279 and 425). A step method that is trimmed away is not a measurement problem - it is a step the
+  shipped application cannot run.
+
+  The comment at StepAction.cs line 208 claimed the type was annotated with DynamicallyAccessedMembers. It was
+  not: the code reads typeof(StoreFlow).GetMethods(...), and a typeof() expression cannot carry that attribute.
+  This descriptor is the supported way to say what that comment meant.
+-->
+<linker>
+  <assembly fullname="Cybersole.Stores">
+    <!-- every flow type, and everything it declares, because dispatch is by name -->
+    <type fullname="Cybersole.Stores.Flows.*" preserve="all" />
+  </assembly>
+</linker>

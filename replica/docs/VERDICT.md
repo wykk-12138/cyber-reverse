@@ -67379,3 +67379,34 @@ JSON 里每个名字附的地址是**ASCII 串的起始地址** ⇒ **同一串�
 | 分桶 | 79 / 3,503（启发式，**不作结论**） |
 | 代码改动 | 无 |
 | 本轮结论 | **判据已证否，不硬下结论** |
+---
+
+## 第 1224 轮：三条静态路都试完了，转出候选清单
+
+名表里的名字**不带类型**：`MagentoFlow`/`ShopifyFlow` 在镜像里 0 命中，`Flow+<` 命中的是 CSS 定义 XML。
+
+⇒ 加上 R1213（名 0 xref）、R1219（槽 0 xref），**三条静态路全部试过**。剩下的只有
+**NativeAOT 元数据表解析**（新工件类别）或**动态观察**（凭据受阻）。
+
+### 于是转做能落地的
+
+`analysis/payment_name_gaps.py` → `payment_name_gaps.txt`：
+
+- 关键词形状且**不在步骤表**：**239**
+- 且**整个 src 一次都不出现**：**178**
+
+样例：`AddPaymentMethod` · `ApplyPayPal` · `AuthorizePayment` · `BuildAdyenThreeDsResult` ·
+`CreatePayPalToken` · `CreateUnzerResource` · `FinalizeCheckout` …
+
+### 这不是缺口判决
+
+文件头点名三条已知假阳性（`DetectByteOrderMarkAsync`/`FormatIPv6Address`/`DragBorderPressed`）。
+**一行在这里的意思是"值得读"，不是"缺功能"。**
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 候选清单 | 239 / **178** |
+| 代码改动 | 无 |
+| 并行会话文件 | 未触碰、未暂存 |

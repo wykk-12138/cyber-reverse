@@ -44472,3 +44472,48 @@ Inference = 「0 编造 ⇒ 复刻件步骤名有据」；Unknown = 3,582 条里
 
 证据等级：Observation = 79/3,503 的分桶、四个反例名、产物行数；
 Inference = 无（本轮**有意不下分类结论**）；Unknown = 3,582 条各自的业务/框架属性。
+## R1224 —— 类型分组那第三条路也堵死；转出一份**可复算的支付名候选清单**（239 / 178）
+
+### 一、先报第三条否定
+
+R1223 说"要真分类需类型表"。本轮先试了最省的一种：**名字里是否自带类型前缀**（`Type+<Method>d__N`）。
+
+| 探测 | 结果 |
+|---|---|
+| `MagentoFlow` / `ShopifyFlow` | **0 命中**——镜像里没有店铺 flow 的类型名 |
+| `Flow+<` | 1 命中，但是 **CSS 语法定义 XML**（`<SyntaxDefinition name="CSS"…`），**假阳性** |
+
+⇒ 名表里的名字**不带所属类型**。加上 R1219（槽 0 xref）、R1213（名字 0 xref），
+**三条静态路都试过了**：剩下的只有真正的 NativeAOT 元数据表解析（新的工件类别，需解析器），或动态观察（凭据受阻）。
+
+### 二、转做能落地的事：支付名候选清单
+
+`analysis/payment_name_gaps.py` → `analysis/payment_name_gaps.txt`：
+
+| 分组 | 数量 |
+|---|---|
+| 关键词形状 且 **不在任何 `new Step(...)` 里** | **239** |
+| 且**整个 `replica/src` 里一次都不出现** | **178** |
+
+样例（第二组）：`AddPaymentMethod` · `AddPaymentToCart` · `ApplyPayPal` · `ApplyPaymentMethod` ·
+`AuthorizePayment` · `BuildAdyenThreeDsResult` · `CreatePayPalToken` · `CreateUnzerResource` ·
+`EncryptCardData` · `FinalizeCheckout` · `Create_PayPalAccountDto` …
+
+### 三、这份清单**不是**缺口判决（写进文件头）
+
+关键词过滤器有已知假阳性，文件头逐条点名：
+
+- `DetectByteOrderMarkAsync` —— 命中 "Order"（在 "ByteOrder" 里）；
+- `FormatIPv6Address` —— 命中 "Address"（IPv6 格式化器）；
+- `DragBorderPressed` —— 命中 "Order"（在 "Border" 里）。
+
+⇒ **一行在这里的意思是"值得读"，不是"缺功能"。** 这与 R1223 的教训同源：
+名字形状只能拿来**排序阅读顺序**，不能拿来下结论。
+
+### 四、验证
+
+无代码改动；两个产物可复算（脚本内嵌关键词与再生成命令）。
+仓库里另有并行会话的改动（`CORE_COVERAGE.md`、`Hook.log` 等），**本轮未触碰、未暂存**。
+
+证据等级：Observation = 三组探测结果、239/178 两个数、文件头三条假阳性；
+Inference = 「三条静态路都已试过」（分别见 R1213/R1219/本轮）；Unknown = 178 条各自的业务/框架属性。

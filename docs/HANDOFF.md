@@ -7313,3 +7313,13 @@ Observation：
 仍成立：镜像 3,693 / 表 111 / **编造 0**。
 
 还剩什么：① 元数据表（类型→方法）是否可解析；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。
+## R1224 —— 名字不带类型（第三条路堵死）；支付名候选清单 239/178（关键词启发式，非判决）
+
+Observation：
+- `MagentoFlow`/`ShopifyFlow` 镜像 0 命中；`Flow+<` 命中 CSS 定义 XML（假阳性）。
+- `analysis/payment_name_gaps.txt`：239 条关键词形状且不在步骤表；其中 **178** 条在整个 replica/src 不出现。
+- 文件头点名三条假阳性（ByteOrder / IPv6 / Border）。
+
+**三条静态路已试完**（名 xref / 槽 xref / 类型前缀）⇒ 只剩元数据表解析或动态观察。
+
+还剩什么：① 元数据表解析（新工件类别，多轮）；② 178 条逐条读；③ 两条 Unknown；④ UI CS0108（冻结）。

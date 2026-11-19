@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 12:06:16 +0800 |
+| 生成时间 | 2026-11-19 12:22:57 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | **有非零退出，见下** |
@@ -15,8 +15,6 @@
 ## 时效警告（生成）
 
 > **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新（共 13599 行）。它描述的是更旧的一次构建，不是当前源码。
->
-> **变异套件那一组数来自上一次运行，而它已经过期**：`3 -- tests/Cybersole.Tests/TypeClassificationTests.cs (+2 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -59,7 +57,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 3 -- tests/Cybersole.Tests/TypeClassificationTests.cs (+2 more) differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file's content differs from the run |
 
 ## 逐条命令与原始输出
 
@@ -369,7 +367,7 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-19 11:09:47
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 11:51:02)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 12:15:37)
 source files newer than the artifact: 17
 lines in those files: 13599
 of those, changed against HEAD: 0
@@ -544,10 +542,9 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 3 -- tests/Cybersole.Tests/TypeClassificationTests.cs (+2 more) differs from the run's manifest
+  mutation-fit-staleness: 0 -- no exercised file's content differs from the run
 
-  The counts above are from 2026-11-19T11:56:47+08:00 and the tree has moved since. They are a record of that run, not a
-  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
+  Every mutation fired, none was decorative and none was skipped at the time of that run.
 ```
 
 ### 完整套件

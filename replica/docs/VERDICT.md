@@ -66234,3 +66234,41 @@ os.path.relpath(path, ROOT)  →  ValueError: path is on mount 'C:', start on mo
 | 全量 | **2476 通过 / 0 失败 / 2 跳过 / 2478**（4m36s） |
 | 变异 | **59/59 fired，tree GREEN**（12:21:52） |
 | 类型缺失 | `15 = renamed 13 + out_of_scope 2`，未实现 0 |
+---
+
+## 第 1185 轮：第一次把 a–f 摆成一张表
+
+多轮以来我都是「按队列取一条」推进，**没有整表核对过判据**。这一轮补上：
+
+| 判据 | 状态 |
+|---|---|
+| a) 类型级/类型缺失/名字级三分类 | **达标** |
+| b) 剩余仅不可得文案 | **达标**（0 缺口） |
+| c) 产物级对照报告可复算 | **文档在，数字过期** |
+| d) claim 表 authority/command/gap_reason | **达标**，而且表里**自带一条 fail** |
+| e) 全量绿 + 变异 fired + 文档数字来自 METRICS | **前两项达标，第三项不达标** |
+| f) 核心覆盖可复算 + 外部受阻写原因 | **达标** |
+
+### 好消息与坏消息都在同一处
+
+`PARITY_CLAIMS.md` 就是判据 d) 要的那张表，而且它诚实：**C7b 标着 fail**。
+所以「还差什么」不需要我猜——**表里写着**：
+
+> **成员形状差异 94 total / core 17。**
+
+`--baseline` 的输出立刻给出两类真缺陷：
+- `replica=?` —— **成员根本不存在**（`BotTask.Running`、`Notification.Title`、`Checkout.Profile`…）
+- `replica=prop-get` —— **该可写却是只读**（`BotTask.Products`、`TaskGroup.Running`、`ClockService.Current`…）
+
+### 顺带解决一个口径冲突
+
+`shape_audit.py` 默认 **78/1**，`--baseline` **94/17**。不是工具打架，是**两种口径**；
+METRICS 用 `--baseline` ⇒ **94/17 权威**。这句话以前没人写过，**拿 78 去对 94 的人会以为其中一个是错的**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2476 通过 / 0 失败 / 2 跳过 / 2478** |
+| 变异 | **59/59 fired，tree GREEN**（12:21:52） |
+| 待办（非外部受阻） | **C7b 17 条 core 形状差异**；**两处文档数字过期** |

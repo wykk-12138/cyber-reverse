@@ -6836,3 +6836,21 @@ Observation：
 **不精确处**：`Concurrency`/`ActionConfig`/`TaskCreatorCartView` 三条映射记的是成员所在文件而非精确类型名。
 
 还剩什么：① 补齐那三条精确映射；② 描述符保留粒度可收窄；③ 其余判据（b–f）逐条复算。
+## R1185 —— 判据 a–f 整表复算：5 达标 / 1 自带 fail / 2 处文档数字过期
+
+| 判据 | 状态 |
+|---|---|
+| a) 类型级 0 / 类型缺失（13 renamed + 2 out_of_scope + 0 unimpl + 0 unclassified）/ 名字级 real gap 0 | 达标 |
+| b) 文案缺口 0 | 达标 |
+| c) `PARITY_PRODUCT.md` 存在但数字过期（175,104 / 69.3% vs 现 179,456 / 64.76%） | **未达标** |
+| d) `PARITY_CLAIMS.md` 有 id/claim/status/authority/command/gap_reason；C7b 标 fail | 达标 |
+| e) 全量 2476/0/2、变异 59/59 GREEN；但文档数字未全部来自 METRICS | **部分** |
+| f) core flows 18 / steps 369 / placeholders 11（均外部受阻并写明） | 达标 |
+
+**下一步（非外部受阻）**：
+1. **C7b：94 total / core 17 形状差异**。`--baseline` 已见两类：成员不存在（`BotTask.Running`/`Notification.Title`/`Checkout.Profile`）、只读该可写（`BotTask.Products`/`TaskGroup.Running`/`ClockService.Current`）。**先穷举 17 条，再逐条补。**
+2. 修 `PARITY_PRODUCT.md` / `PARITY_CLAIMS.md` 里的手抄数字（或标为时点快照）。
+
+**口径澄清**：`shape_audit.py` 默认 78/1 与 `--baseline` 94/17 是**两种口径**，METRICS 用后者。
+
+本轮无代码改动（仅审计与文档）；变异收据沿用 R1184（12:21:52，src 未变）。

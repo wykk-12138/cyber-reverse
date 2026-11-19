@@ -42880,3 +42880,31 @@ METRICS 现为 `{'types absent from source': '15', 'classified': 'renamed 13, ou
 
 证据等级：Observation = 15 行定性输出、METRICS 新字段、守卫执行与耗时、全量与变异收据；
 Inference = 「13 条为改名」（依据既有实现文件里存在对应成员）；Unknown = 三条映射的精确类型名。
+## R1185 —— 判据 a–f 逐条复算（首次整表核对）：**5 条达标、1 条自带 fail、2 处文档数字过期**
+
+**取件**：`docs/GOAL.md:42-48` 的六条判据。此前多轮都是按「队列取件」推进，**没有整表核对过**。
+
+| 判据 | 状态 | 证据（可复算） |
+|---|---|---|
+| **a)** 类型级缺口 0 + 类型缺失 0 + 名字级三分类结案 | **达标** | `metrics_report`：`types with scope misses: 0`；`real gap: 0`（noise 12 + out_of_scope 2 + real 0 = missing 14）；类型缺失 `renamed 13 + out_of_scope 2 + unimplemented 0 + unclassified 0`（R1184） |
+| **b)** 剩余仅不可得文案且每条写明原因 | **达标** | `copy: zones with a missing key: 0 (in 0 zone[s])` |
+| **c)** 产物级对照报告可复算 | **文档在，数字过期** | `docs/PARITY_PRODUCT.md`（51 KB）存在，但内含 `175,104`/`170,137`/`69.3%`；**当前 METRICS 是 179,456 / 64.76%** |
+| **d)** claim 表每条有 authority + command + gap_reason | **达标（且自带一条 fail）** | `docs/PARITY_CLAIMS.md` 表头即 `id\|claim\|status\|authority\|command\|gap_reason`；**C7b 标 `fail`**：成员形状不一致 |
+| **e)** 全量绿 + 变异全 fired + 文档数字来自 METRICS | **前两项达标，第三项不达标** | 全量 **2476/0/2/2478**；变异 **59/59 fired，tree GREEN**（12:21:52）；但 (c) 那三处数字与 METRICS 不符 ⇒ **这一条未达标** |
+| **f)** 核心覆盖可复算 + 核心逻辑逐项落地 + 外部受阻写原因 | **达标（有 11 条外部受阻已写明）** | `core: flows 18 / override steps 369 / unknown placeholders 11`；11 条占位 = R823 定性的 Farfetch 7（服务端下发路由）+ Bstn 4（站方 live 可通、其余端点未取） |
+
+### 于是「还差什么」被压缩成两件（都不是外部受阻）
+
+1. **C7b 成员形状差异：94 total / core 17**。`shape_audit.py --baseline` 原文（前 16 行）已暴露两类：
+   - `replica=?`（**成员在复刻件里根本不存在**）：`BotTask.Running`、`BotTask.Task`、`Notification.Title`、`Notification.Timestamp`、`Checkout.Profile`、`CreateModel.Inputs`…
+   - `replica=prop-get`（**应有 setter 却是只读**）：`BotTask.Products`、`Notification.Message`、`Notification.Type`、`TaskGroup.Running`、`ClockService.Current`、`AccountGrid.Edit`…
+2. **`PARITY_PRODUCT.md` 与 `PARITY_CLAIMS.md` 里的手抄数字过期**（(e) 明令「文档数字来自 METRICS」）。
+
+### 一条口径澄清（本轮顺带查实）
+
+`shape_audit.py` 默认模式报 **78 / 1**，`--baseline` 报 **94 / 17**。**两者不矛盾，是不同口径**；
+METRICS 用的是 `--baseline`（`metrics_report.py:50`）⇒ **94/17 才是权威数**。此前若有人拿 78/1 去对 94/17，会以为工具打架。
+
+证据等级：Observation = 六行判据原文、四组 METRICS 输出、`PARITY_CLAIMS.md` 表头与 C7b 行、
+`shape_audit --baseline` 前 16 行、全量与变异收据；Inference = 「11 条占位即外部受阻项」（R823 已定性）；
+Unknown = 17 条 core 形状差异的**完整清单**（本轮只看到前 16 行里的 10 条，未穷举）。

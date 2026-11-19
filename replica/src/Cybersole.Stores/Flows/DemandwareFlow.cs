@@ -73,6 +73,15 @@ public class DemandwareFlow : StoreFlow
     /// Reads the PayPal purchase unit for the current cart. The image does this with a GET on the
     /// controller path (see <see cref="PaypalGetPurchaseUnit"/>), and the answer is kept for the
     /// gateway call that follows it in the same machine.
+    ///
+    /// <para>
+    /// R1170 walked the caller chain, because for three rounds the honest note here was "nothing calls
+    /// this": the controller machine 0x140a50cd0 is awaited from a state machine, which is started by
+    /// the async method 0x140a45380, and that method has exactly one caller — <b>0x140a530f0</b>, a
+    /// 438-line routine. The same routine also awaits the order-details method 0x140a453d0. So these
+    /// two calls sit together inside one step; the order-id lookup, whose async method 0x140a27e50 is
+    /// awaited from a <i>different</i> routine (0x140a32f30, 574 lines), does not.
+    /// </para>
     /// </summary>
     public async Task<StepOutcome> PaypalPurchaseUnitAsync(FlowContext c, CancellationToken ct)
     {

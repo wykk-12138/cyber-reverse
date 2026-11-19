@@ -6646,3 +6646,18 @@ xunit 默认并行类 ⇒ 12 个碰 `Config` 的类互相踩。**解释了「只
 
 还剩什么：① 三条 PayPal 控制器方法仍未被任何步骤调用（需序列/动作证据）；
 ② 若要坐实 OOM 猜测，需在跑套件时采样可用内存。
+## R1170 —— PayPal 三条控制器的四级调用链走通；PurchaseUnit 与 OrderDetails 属同一 438 行步骤
+
+改了什么（**仅 doc 注释**，无行为改动）：`DemandwareFlow.PaypalPurchaseUnitAsync` 注释写入
+四级调用链、两条共用 `0x140a530f0`、`GetPaypalOrderId` 在 `0x140a32f30`。
+
+链：机器 `0x140a50cd0`/`0x140a31e40`/`0x140a51e20` → MoveNext → async 入口
+`0x140a45380`/`0x140a27e50`/`0x140a453d0` → 唯一调用者 `0x140a530f0`/`0x140a32f30`/`0x140a530f0`。
+
+验证：build 0 错；全量 **2468/0/2**（5m56s）；变异 **59/59 fired，tree GREEN**（08:52:58）。
+
+**自纠**：① 「有调用者」≠「找到人写的调用者」（前者全是编译器生成）；② 把 async 入口当成 stub。
+**不接线**：两个例程的 flow 与 ordinal 未知，下一步从产品字面量反查 store。
+
+还剩什么：① 从 `'8058260839474'`/`'/moon-shoe-jacquemus-%2B-nike/'` 等反查 store → flow → ordinal；
+② 两个大型例程的步骤语义（438/574 行）尚未读全。

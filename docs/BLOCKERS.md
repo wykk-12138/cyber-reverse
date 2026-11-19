@@ -42266,3 +42266,43 @@ Unknown = 是否仍有测试依赖默认 root（若有，会被隔离暴露为�
 
 证据等级：Observation = 41/41、2/2、`exit: 0`、78 与 Core 1、CS0117 与修复、变异收据；
 Inference = 「OOM 导致子进程 exit 1」（**未取内存峰值证据**）；Unknown = 该失败的确切成因。
+## R1170 —— 「没有调用者」正式退休：四条链走通，两条机器共用一个 438 行的步骤
+
+**取件**：R1162–R1169 一直挂着「三条 PayPal 控制器方法没有调用者，缺序列证据」。本轮把它走到底。
+
+**调用链（四级，全部 Observation）**：
+
+| 层 | GetPurchaseUnit | GetPaypalOrderId | GetOrderDetails |
+|---|---|---|---|
+| 控制器机器 | `0x140a50cd0` | `0x140a31e40` | `0x140a51e20` |
+| ↑ 状态机 `MoveNext` | `0x142532020`(37行) | `0x14252f840`(38行) | `0x142532160`(36行) |
+| ↑ `AsyncTaskMethodBuilder` 入口 | `0x140a45380` | `0x140a27e50` | `0x140a453d0` |
+| ↑ **唯一调用者** | **`0x140a530f0`（438 行）** | **`0x140a32f30`（574 行）** | **`0x140a530f0`（438 行）** |
+
+**结论（这才是本轮真正拿到的东西）**：
+- `GetPurchaseUnit` 与 `GetOrderDetails` 被**同一个** 438 行例程等待 ⇒ **两条调用在同一步骤内**，
+  不是两个步骤；
+- `GetPaypalOrderId` 的等待者在**另一个** 574 行例程里 ⇒ 它属于**另一条**路径。
+
+旁证：`0x140a45380` 与 `0x140a453d0` 相邻（相距 0x50），而 `0x140a27e50` 很远——与上表一致。
+
+**过程中的两次自我纠正**：
+1. 我第一次跑出三个「调用者」就写「是 async 编译机制」——**对，但没用**：5 行 thunk / 37 行 `MoveNext` /
+   stub 全是编译器生成的，真正的问题是**谁 await 了这个 async 方法**。
+2. 我第二步把 `0x140a45380` 当作「stub」，反编译后才看清它是
+   `builder.Initialize(); Start&lt;TStateMachine&gt;(ref sm); GetResult();` —— **它就是 async 方法本身**。
+   于是第三步才落到人写的代码上。
+
+**代码里写下的边界**（`DemandwareFlow.PaypalPurchaseUnitAsync` 的 doc 注释）：上面这条链、
+「两条共用 `0x140a530f0`」、「`GetPaypalOrderId` 在另一条路径」。**写在会被读到的地方。**
+
+验证：`dotnet build` **0 错**；全量 **2468 通过 / 0 失败 / 2 跳过 / 2470**（5m56s）；
+变异 `ran_at 2026-11-19T08:52:58`、**59/59 fired，tree GREEN**。
+
+**仍未取得**：那两个 438/574 行例程**属于哪个 flow、哪个 ordinal**。已知它们同时含
+`'PayPal'` 与产品级字面量（`'8058260839474'`、`'/moon-shoe-jacquemus-%2B-nike/'`、`'Margiela-Preload'`），
+下一步应从这些字面量反查 store，再定 flow 与 ordinal——**在此之前给它们接步骤仍是猜。**
+
+证据等级：Observation = 四级调用链与行数、三条 stub 的 `Initialize/Start/GetResult` 反编译、相邻地址、
+两组 literal 清单、全量与变异收据；Inference = 「两条调用属同一步骤」（由同一等待者推出）；
+Unknown = 那两个例程的 flow 与 ordinal。

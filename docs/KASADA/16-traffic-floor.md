@@ -129,18 +129,57 @@ Remove-Item Env:\KASADA_FRESH
 
 ---
 
-## 7. 再往下只能换路
+## 7. 再往下没有量级空间了（原 §7 的"80 KB"已撤回）
 
-435 KB 里 417 KB 是 `ips.js`，它每轮必变。要再降一个量级，只有离开浏览器：
+### 7.1 先纠正一条错结论
 
-1. **本地执行 `p.js` + 自己实现 `/tl` 的 PoW**（Jint）—— 脚本下载一次，每轮只付 `ips.js`？
-   不，`ips.js` 仍要下。真正的省法是把 `p.js` 的算法本地跑完，不再请求 `ips.js`
-   —— 这是原版 Cybersole 对 Nike 的做法（`docs/KASADA/02-local-jint.md`）。
-   障碍：现行构型 `KPSDK` 只暴露 `configure`/`isReady`，`ct()`/`cd()` 不在。
-2. **验证 `ips.js` 是否真的必需** —— 如果某些路径只要 `p.js` 就能出可用的 ct，
-   单次成本会掉到 80 KB 量级。未验证，但它决定了这条路能压到多低。
+本文档上一版写过"本地执行 `p.js`、跳过 `ips.js` 下载，单次成本会掉到 80 KB"。**那是错的，撤回。**
 
-在换路之前，**435 KB 是可用的最好数字，而且它稳定产得出能过 `cart.get` 的 CT**。
+错在两处叠加：一是把 417,741 读成了 `p.js`（95 字符截断，见 §8），二是假设 `ips.js` 可以不取。
+
+### 7.2 `ips.js` 是什么（实测）
+
+```
+HTTP/1.1 200 OK
+Content-Length: 809554
+content-type: application/javascript; charset=utf-8
+cache-control: no-cache, no-store, must-revalidate
+```
+
+788,720 字符、84 个 `function`、1 处 `new Function`，开头是
+
+```js
+KPSDK.scriptStart=KPSDK.now();"use strict";(function(){var S;var l=function(n,e,r){...
+```
+
+`KPSDK.scriptStart=KPSDK.now()` 说明它接着 `p.js` 建好的 `KPSDK` 对象继续执行；
+大量数值常量（`-171615552+1333476568-516796168+…`）每轮随机化。
+
+⇒ **`ips.js` 不是资源，是这一轮挑战程序的本体。** `p.js`（65 KB）是引导与协议框架，
+真正的计算在这 809 KB 里，每轮现生成、明令不缓存。
+
+### 7.3 所以"本地执行"省不掉它
+
+用 Jint 本地跑 `p.js`，它执行到那一步照样会请求 `ips.js` 并把它跑掉。
+唯一能"跳过"的办法是自己复刻那 809 KB 的算法 —— 而它的数值常量每轮都换，
+**没有一份固定算法可供复刻**。
+
+本地执行真正省的是**进程、并发、GUI**，不是流量；而且还要自己维护脚本副本，
+失去浏览器缓存对 HTML 与 `p.js` 的托底。
+
+### 7.4 真正的摊薄在这里
+
+435 KB 换来的那一个 `x-kpsdk-ct`，实测连续打 3 次 `cart.get` 全部 200
+（每次返回不同的 cart id），每轮只多约 1.3 KB，`/tl` 轮次 +0：
+
+```
+round 1: +  1,332 bytes, submission +0, ct 01XJe84J0n0f… -> status=200
+round 2: +  1,487 bytes, submission +0, ct 01XJe84J0n0f… -> status=200
+round 3: +  1,330 bytes, submission +0, ct 01XJe84J0n0f… -> status=200
+```
+
+⇒ **一个 `ips.js` 支撑一整段会话。单请求成本 = 435 KB ÷ N。**
+要压"每次业务请求的流量"，靠的是复用这个会话，不是再去砍那 435 KB。
 
 ---
 
@@ -164,6 +203,10 @@ Remove-Item Env:\KASADA_FRESH
 
 ## 9. 待查
 
-- `ips.js` 417,741 是 brotli 后的大小，原始体量未测。若 `Accept` 协商可换更优压缩，或许还能小一点。
+- `ips.js` 未压缩 809,554 字节，传输 417,741（brotli）。协商更优编码的空间极小，但没测过 `zstd`。
+- **`ips.js` 的复用边界**：一个 `ips.js` 能支撑同一会话里多少次受保护请求、能撑多久。
+  目前测到 3 次 `cart.get` 未触发新的 `/tl`，边界未探。
 - 清身份需要清到哪一层才能**稳定**触发挑战（cookie 够不够、要不要 `local_storage`/`indexedDB` 一起清）。
   本轮出现过"同样清法有时触发有时不触发"，机制未定。
+- 探测 `ips.js` 时 `Range: bytes=0-1023` 被忽略（回 `200` 而非 `206`，整份 809,554 字节返回），
+  白花了 809 KB。要取头部得自己截流，不能靠 `Range`。

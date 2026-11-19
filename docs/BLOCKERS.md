@@ -46779,3 +46779,51 @@ Imperva「六种拼写都不在产物里、两道独立来源都同意、检测�
 
 证据等级：Observation = 三条断言的性质、2/2、残留引用 0；
 Inference = 「两条清单断言属行为」；Unknown = QueueIt 那个文件里哪几条是真行为（下轮读）。
+## R1277 —— 第 2 步第二个文件：`QueueItStateTests` 整份删除，但先**复验了八条证据**
+
+### 一、四条断言**全部只测台账**
+
+`VendorWiring.Rows.Single(r => r.Vendor == "queue-it")` ×3 + `DoesNotContain(State.NotAChallenge)`——
+没有一条碰运行时行为。但文件头的文档注释里带着 **R1025 的实质结论**，不能连着注释一起扔掉。
+
+### 二、先把证据拿到图标里复验（全量 dump，324,901 条）
+
+| 证据 | 命中 | 首条 |
+|---|---|---|
+| `Fetching Queue-it challenge` | 1 | 同左 |
+| `/softblock` | 1 | `/softblock` |
+| `Softblock` | 3 | `/softblock` 等 |
+| `BotDeflector` | **40** | `BotDeflector` |
+| `/challengeapi/queueitcaptcha/challenge/` | 1 | 同左 |
+| `X-queueit-challange-*` | **7** | `X-queueit-challange-reason` |
+
+**六条全部命中**。⇒ 这一家**既有等待室、也有挑战面**：取挑战、softblock 上求解/初始化失败、
+原版**明确标不支持**的 BotDeflector 页、`/softblock`、`queueitcaptcha` 挑战端点、
+深到 `ruleid`/`rulename` 的七个请求头。
+
+### 三、一个拼写细节值得单独记
+
+镜像里写的是 **`challange`**（少一个 `e`），不是 `challenge`。
+**按正确拼写去搜是搜不到的**——这类"镜像自带错字"正是 §2.7 那条「先问有几种写法」的具体形态。
+
+### 四、结论写进文档，代码删掉
+
+`docs/VENDOR_WIRING.md` 新增第九节：R1025 的更正（等待是处理的一部分，但"只有等待"是错的）、
+八条证据及其命中数、拼写注意事项、**`NotAChallenge` 枚举值保留但空置**的理由。
+
+然后整份删除 `QueueItStateTests.cs`（4 条）。
+
+### 五、验证
+
+`dotnet build` 0 错；`QueueIt|Wall` **44/44**；全量 2514 → **2509**（4m38s，−4 来自被删文件，
+另 −1 来自上轮的 Imperva 那条，累计 2514→2509 已解释）。
+
+### 六、进度
+
+| 项 | 值 |
+|---|---|
+| 已解耦 | **2 / 9** |
+| 下一个 | `PerimeterXMarkerTests`（`Gap` 5 · `Rows` 3 · `MarkerSource` 1） |
+
+证据等级：Observation = 六条命中数与首条原文、44/44、2509 收据；
+Inference = 「四条断言纯台账」；Unknown = PerimeterX 那三条 `Rows` 是否也纯台账（下轮读）。

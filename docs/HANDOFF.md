@@ -7904,3 +7904,13 @@ Observation：
 **下轮**：`QueueItStateTests`（State 3 · Rows 3 · Gap 1 · MarkerSource 1）。
 
 还剩什么：① VendorWiring 第 2 步（8/9 文件）；② 三个同名碰撞确认；③ 17 条 no-hit；④ connect 通道（需登录）。
+## R1277 —— QueueItStateTests 删除（4 条台账断言）；八条证据复验后进 docs（含 challange 拼写坑）；2/9 完成
+
+Observation：
+- 四条断言全走 `Rows.Single`/`NotAChallenge`。
+- 复验：`Fetching Queue-it challenge` 1 / `/softblock` 1 / `BotDeflector` 40 / `queueitcaptcha` 1 / `X-queueit-challange` 7。
+- 全量 2514 → **2509**（−4）。
+
+**下轮**：`PerimeterXMarkerTests`（Gap 5 · Rows 3 · MarkerSource 1）。
+
+还剩什么：① VendorWiring 第 2 步（7/9）；② 三个同名碰撞确认；③ 17 条 no-hit；④ connect 通道（需登录）。

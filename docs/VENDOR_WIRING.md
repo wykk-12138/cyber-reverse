@@ -113,3 +113,29 @@ Get-ChildItem tests\Cybersole.Tests -Filter *.cs | Select-String -Pattern 'Vendo
 **做法建议**：从 `ImpervaAbsenceTests` 开始（依赖最小），一次改一个文件、跑一次定向用例，
 **不要九个一起改**——那样红了就分不清是哪一处的问题（R1233 的形态）。
 
+## 九、Queue-it：R1025 的更正与**八条证据**（R1277 从 `QueueItStateTests` 搬出并复验）
+
+原先这一行被判为 `NotAChallenge`，理由是「队列就是队列，处理办法是等」。
+**这个结论只对了一半**：等待是处理的一部分，**但"只是等待"是错的**。
+
+在**全量字符串 dump** 里逐条复验（`analysis/ida_strings.txt`，324,901 条）：
+
+| 证据 | 命中数 | 首条 |
+|---|---|---|
+| `Fetching Queue-it challenge` | 1 | `Fetching Queue-it challenge` |
+| `/softblock` | 1 | `/softblock` |
+| `Softblock` | 3 | `/softblock` 等 |
+| `BotDeflector` | **40** | `BotDeflector` |
+| `/challengeapi/queueitcaptcha/challenge/` | 1 | 同左 |
+| `X-queueit-challange-*` | **7** | `X-queueit-challange-reason` |
+
+⇒ 镜像里这一家**既有等待室、也有挑战面**：取挑战、在 softblock 上求解与初始化的失败、
+一个原版**明确标为不支持**的 BotDeflector 页、`/softblock` 端点、
+`queueitcaptcha` 挑战端点，以及深到 `ruleid` / `rulename` 的七个 `X-queueit-challange-*` 头。
+
+**注意拼写**：镜像里是 `challange`（少一个 `e`），不是 `challenge`。搜索时按镜像的拼法才命中。
+
+**状态因此是 `DetectedOnly`，不是 `NotAChallenge`**；`NotAChallenge` 这个枚举值**保留但空置**——
+让分类法显示一个空状态，而不是悄悄缩小。
+
+

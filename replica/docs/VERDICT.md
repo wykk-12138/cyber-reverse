@@ -68743,3 +68743,25 @@ Imperva 的三条结论（六拼写不在产物 / 两源一致 / 分支属扩展
 |---|---|
 | 已解耦测试文件 | 1 / 9 |
 | 用例 | −1（删的是注释/台账断言） |
+---
+
+## 第 1277 轮：`QueueItStateTests` 整份删（4 条纯台账断言），证据先复验再搬
+
+四条断言全部走 `Rows.Single(...)` 与 `NotAChallenge`——**没有一条测行为**。
+
+删之前把 R1025 的八条证据在**全量 dump** 里逐条复验：`Fetching Queue-it challenge` 1 ·
+`/softblock` 1 · `BotDeflector` **40** · `/challengeapi/queueitcaptcha/challenge/` 1 ·
+`X-queueit-challange-*` **7** · `Softblock` 3 ——**全部命中**。
+
+**拼写坑**：镜像是 `challange`（少个 e），按正确拼写搜不到。
+
+结论进 `docs/VENDOR_WIRING.md` 第九节；文件删除。
+
+验证：build 0 错；QueueIt|Wall **44/44**；全量 2514 → **2509**（−4）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 已解耦 | **2 / 9** |
+| 下一个 | `PerimeterXMarkerTests` |

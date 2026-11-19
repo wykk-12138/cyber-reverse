@@ -44339,3 +44339,48 @@ Inference = 「派发表由基址+偏移计算，故不可见」；Unknown = 元
 
 证据等级：Observation = 116 条 ASCII 名表命中与地址、两段步骤序列的序号；
 Inference = 「序号即执行顺序」（生成序，非运行序）；Unknown = 名表与具体函数的槽对应。
+## R1221 —— **撤回 R1220 的"步骤顺序"结论**：序号是**每 flow 独立**的，地址相邻 ≠ 执行顺序
+
+### 一、怎么被否掉的
+
+R1220 我从 ASCII 名表的**连续地址**里读出一串名字并给出"序号即顺序"，
+还写「六步流程结案了」「这是一条完整 Magento 型结账链」。
+
+本轮拿它去核对复刻件 `StoreFlowSteps.cs`（130 条 `new Step("名", 序号)`），**当场推翻**：
+
+| 序号 | 复刻件表里对应的步骤（同一序号，多个） |
+|---|---|
+| **39** | `GetBasket` · `GetCartDw` · `GetPaymentMethod` · `GetShippingRate` · `GetStripePaymentIntent` |
+| 40 | `AddToCart` · `CreateStripePaymentMethod` · `EditLine` · `FindProductApp` · `SubmitShipping` |
+| 41 | `AddToCart` · `AddToCartApp` · `CalculateTaxes` · `CreateOrder` · `StartEcomSession` · `SubmitDiscount` |
+
+⇒ **同一个序号在不同 flow 里指不同的步骤** —— **序号是每 flow 内的局部编号，不是全局执行序列。**
+
+### 二、我错在哪
+
+名表是**全部状态机名按地址排放的平坦清单**。**地址相邻只说明编译器把它们放在一起，不说明执行先后。**
+我把「连续地址」读成了「流程顺序」——这是「**相邻 ≠ 因果**」的又一例。
+
+而且 R1220 我写的 `Stripe: 87/88/89/93` 与复刻件表里的 `CreateStripePaymentMethod = 40` 也不一致：
+`d__87` 是**类型名后缀序号**，与表里的**步骤序号**不是同一套编号。**两套编号被我当成了一套。**
+
+### 三、站得住的部分（保留）
+
+| 结论 | 状态 |
+|---|---|
+| 状态机名以 **ASCII 长度前缀表**存放（非 UTF-16） | **Observation，成立** |
+| 这些步骤名在镜像里存在（含 `CreateStripePaymentMethod`/`GetStripePaymentIntent` 等） | **Observation，成立** |
+| 名表 0 xref ⇒ 名与代码的对应不在 xref 上 | **Observation，成立** |
+| **"序号给出流程顺序"** | **撤回** |
+| **"39→53 是一条完整结账链"** | **撤回** |
+
+### 四、真正能定顺序的是什么
+
+**复刻件里那张表自己**——`StoreFlowSteps.cs` 的 `new Step("名", 序号)` 是**按 flow 分组**的，
+且注释写明 R112 处理过"序号跳空不等于缺步骤"的情况。那才是顺序的证据形态。
+
+⇒ **下一步**：不再从名表推顺序；改为把名表当作**名字全集**，与 `StoreFlowSteps` 的
+**名字集合**做差（谁在镜像里但不在表里），那是有意义且不越界的检验。
+
+证据等级：Observation = 130 条表项、序号 39/40/41 的多重对应、两套编号不一致；
+Inference = 「序号是每 flow 局部编号」；Unknown = 两套编号之间的映射关系。

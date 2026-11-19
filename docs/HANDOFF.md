@@ -7275,3 +7275,15 @@ Observation：
 
 还剩什么：① 用序号表核对复刻件 `StoreFlowSteps` 的步骤顺序是否一致（下轮可做）；
 ② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。
+## R1221 —— 撤回 R1220「序号即顺序」与「39→53 一条链」；序号是每 flow 局部编号
+
+Observation：
+- `StoreFlowSteps.cs` 130 条 `new Step("名", 序号)`；序号 39 同时对应 GetBasket/GetCartDw/GetPaymentMethod/GetShippingRate/GetStripePaymentIntent。
+- `d__87`（类型名后缀）与表里 `CreateStripePaymentMethod = 40`（步骤序号）不是同一套编号。
+
+**撤回**：「序号给出流程顺序」「39→53 是一条完整结账链」。
+**保留**：ASCII 名表存在；名字存在；名表 0 xref。
+
+**下一步**：名表当名字全集，与 StoreFlowSteps 名字集合做差（镜像有、表无）。
+
+还剩什么：① 名字差集检验；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108（冻结）。

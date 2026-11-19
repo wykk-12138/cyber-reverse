@@ -258,8 +258,30 @@ public sealed class PopMartFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    /// <summary>
+    /// Polls for a restock window.
+    ///
+    /// <para>
+    /// R1261: the delay between pings goes through <see cref="RestockGate"/> instead of being a literal 400 ms in the
+    /// loop. The image carries <c>RestockInterval _lastRestockPing</c> (0x1433A28C7), so the original's cadence is a
+    /// configured interval with a stored last ping; the class is the reading of those two names, and the number below
+    /// is the replica's previous value rather than a measured default — a distinction that matters, because the image
+    /// keeps the field names and not the values.
+    /// </para>
+    ///
+    /// <para>
+    /// A flow or test may supply <c>restockIntervalMs</c> in the session vars to drive the interval; absent that, the
+    /// previous 400 ms is used so behaviour is unchanged for callers that never set it.
+    /// </para>
+    /// </summary>
     public override async Task<StepOutcome> PollRestockAsync(FlowContext c, CancellationToken ct)
     {
+        var intervalMs = c.Session.Vars.TryGetValue("restockIntervalMs", out var configured) &&
+                         int.TryParse(configured, out var parsed) && parsed > 0
+            ? parsed
+            : 400;
+        var gate = new RestockGate(TimeSpan.FromMilliseconds(intervalMs));
+
         for (var i = 0; i < 10; i++)
         {
             ct.ThrowIfCancellationRequested();
@@ -273,7 +295,14 @@ public sealed class PopMartFlow : StoreFlow
                 c.Session.Vars["restock"] = "1";
                 return StepOutcome.Success();
             }
-            await Task.Delay(TimeSpan.FromMilliseconds(400), ct).ConfigureAwait(false);
+
+            // IsDue stays true for the whole window, so the wait happens exactly when the gate says it should and a
+            // failed request earlier in the loop does not silently consume the interval.
+            if (gate.IsDue)
+            {
+                await Task.Delay(gate.RestockInterval, ct).ConfigureAwait(false);
+                gate.MarkPinged();
+            }
         }
         return StepOutcome.Fail("popmart: no restock window", retryable: true);
     }

@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 06:07:16 +0800 |
+| 生成时间 | 2026-11-20 06:27:44 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,9 +14,7 @@
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 19 个源文件比产物新（共 17038 行）。它描述的是更旧的一次构建，不是当前源码。
->
-> **变异套件那一组数来自上一次运行，而它已经过期**：`4 -- src/Cybersole.Stores/Flows/CheckoutRoutes.cs (+3 more) differs from the run's manifest`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`10 -- src/Cybersole.Stores/Flows/AccountRoutes.cs (+9 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -42,9 +40,9 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,797 |
 | 函数数量（.pdata） — functions: ratio | 64.88% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 19 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 17038 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 3 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -54,16 +52,16 @@
 | 核心覆盖：vendor 宿主 — vendor: wiring rows | 9 |
 | 核心覆盖：vendor 宿主 — vendor: missing | 5 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 29501952 |
+| 可执行段体量 — section-mass: replica executable | 29502464 |
 | 可执行段体量 — section-mass: ratio | 57.07% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
-| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 1185 |
+| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 1194 |
 | 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1C00000 |
 | 变异套件（上次运行） — mutation-fit: total | 59 |
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 4 -- src/Cybersole.Stores/Flows/CheckoutRoutes.cs (+3 more) differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 10 -- src/Cybersole.Stores/Flows/AccountRoutes.cs (+9 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -408,17 +406,14 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-20 05:49:56
-publish artifact size: 57477120 bytes
-publish artifact sha256: 8fcf37190a463f0b2a54b3b63fa58766130fdd23ad883337a972c03490bc6551
-newest source: src\Cybersole.Stores\Flows\StoreFlow.cs (2026-11-20 06:01:25)
-source files newer than the artifact: 19
-lines in those files: 17038
-of those, changed against HEAD: 3
-publish artifact state: stale
-
-  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
-  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
+publish artifact mtime: 2026-11-20 06:27:43
+publish artifact size: 57481728 bytes
+publish artifact sha256: 861d208c9be716a499de87c8160c1fae4be140821499ac1390842d6739a1f858
+newest source: src\Cybersole.Stores\Flows\RestockGate.cs (2026-11-20 06:21:28)
+source files newer than the artifact: 0
+lines in those files: 0
+of those, changed against HEAD: 0
+publish artifact state: current
 ```
 
 ### 核心覆盖：store 宿主
@@ -475,20 +470,20 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 57477120 bytes ===
+=== REPLICA  image base 0x140000000  file 57481728 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
-  .text      0x1000       0x1031C8     1057280      X
-  .managed   0x104000     0x1C24608    28444672     X
-  hydrated   0x1C25000    0x2BA2980    0            RW
-  .rdata     0x2BA3000    0x43B6B86    25246720     R
-  .data      0x43B7000    0x44B20A8    226816       RW
-  .pdata     0x44B3000    0x46C1A10    2157568      R
-  _RDATA     0x46C2000    0x46C20F4    512          R
-  .rsrc      0x46C3000    0x470E7E7    309248       R
-  .reloc     0x470F000    0x4717014    33280        R
+  .text      0x1000       0x1031D8     1057280      X
+  .managed   0x104000     0x1C249F8    28445184     X
+  hydrated   0x1C25000    0x2BA2BE0    0            RW
+  .rdata     0x2BA3000    0x43B7A56    25250816     R
+  .data      0x43B8000    0x44B30F8    226816       RW
+  .pdata     0x44B4000    0x46C2AF4    2157568      R
+  _RDATA     0x46C3000    0x46C30F4    512          R
+  .rsrc      0x46C4000    0x470F7E7    309248       R
+  .reloc     0x4710000    0x4718004    33280        R
 
-  section-mass-replica-executable: 29501952
+  section-mass-replica-executable: 29502464
   section-mass-ratio: 57.07%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
@@ -511,35 +506,35 @@ pdata bucket histogram (bucket = 0x100000 bytes)
 
   range from     original   replica    replica/original
   ----------------------------------------------------
-  0x0            5,475      1,936        35.4%
+  0x0            5,475      1,917        35.0%
   0x100000       5,089      4,803        94.4%
   0x200000       4,333      5,228       120.7%
   0x300000       2,213      3,795       171.5%
   0x400000       5,791      5,737        99.1%
   0x500000       2,057      4,004       194.7%
-  0x600000       1,074      4,218       392.7%
-  0x700000       3,411      3,164        92.8%
-  0x800000       4,076      3,095        75.9%
-  0x900000       3,556      2,539        71.4%
-  0xA00000       3,178      5,674       178.5%
-  0xB00000       3,227      5,602       173.6%
-  0xC00000       3,982      6,634       166.6%
-  0xD00000       3,921      7,577       193.2%
-  0xE00000       3,371      5,824       172.8%
-  0xF00000       7,792      3,922        50.3%
-  0x1000000      5,626      7,766       138.0%
+  0x600000       1,074      4,226       393.5%
+  0x700000       3,411      3,161        92.7%
+  0x800000       4,076      3,098        76.0%
+  0x900000       3,556      2,537        71.3%
+  0xA00000       3,178      5,675       178.6%
+  0xB00000       3,227      5,599       173.5%
+  0xC00000       3,982      6,638       166.7%
+  0xD00000       3,921      7,574       193.2%
+  0xE00000       3,371      5,827       172.9%
+  0xF00000       7,792      3,921        50.3%
+  0x1000000      5,626      7,763       138.0%
   0x1100000      2,020      9,520       471.3%
   0x1200000      2,046      10,244      500.7%
-  0x1300000      5,065      9,626       190.0%
-  0x1400000      10,107     10,068       99.6%
-  0x1500000      11,107     9,080        81.8%
-  0x1600000      2,864      9,692       338.4%
-  0x1700000      2,242      9,189       409.9%
-  0x1800000      4,058      9,531       234.9%
-  0x1900000      4,506      5,624       124.8%
-  0x1A00000      2,310      5,771       249.8%
-  0x1B00000      6,033      8,749       145.0%
-  0x1C00000      6,218      1,185        19.1%
+  0x1300000      5,065      9,634       190.2%
+  0x1400000      10,107     10,065       99.6%
+  0x1500000      11,107     9,078        81.7%
+  0x1600000      2,864      9,698       338.6%
+  0x1700000      2,242      9,183       409.6%
+  0x1800000      4,058      9,536       235.0%
+  0x1900000      4,506      5,621       124.7%
+  0x1A00000      2,310      5,775       250.0%
+  0x1B00000      6,033      8,746       145.0%
+  0x1C00000      6,218      1,194        19.2%
   0x1D00000      6,893      0             0.0%
   0x1E00000      5,418      0             0.0%
   0x1F00000      4,991      0             0.0%
@@ -570,7 +565,7 @@ pdata bucket histogram (bucket = 0x100000 bytes)
     0x2100000        0.0%   original 10,388   replica 0
 
   pdata-above-0x1C00000-original: 156590
-  pdata-above-0x1C00000-replica: 1185
+  pdata-above-0x1C00000-replica: 1194
   pdata-last-replica-bucket: 0x1C00000
 
   Buckets are compared by density, not by identity: the two images are laid out independently, so equal
@@ -592,7 +587,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 4 -- src/Cybersole.Stores/Flows/CheckoutRoutes.cs (+3 more) differs from the run's manifest
+  mutation-fit-staleness: 10 -- src/Cybersole.Stores/Flows/AccountRoutes.cs (+9 more) differs from the run's manifest
 
   The counts above are from 2026-11-20T06:00:02+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.

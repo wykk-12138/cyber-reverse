@@ -7737,3 +7737,13 @@ Observation：
 
 还剩什么：① 17 条无近邻；② WaitRestock/RestockMonitoring 的步骤级 I/O（尚不足）；③ connect 通道（需登录）；
 ④ 两条 Unknown；⑤ 产物待重发（本轮有 src 改动）。
+## R1261 —— 发布信号：尺寸 +4,608 / **pdata +0** ⇒ 新类方法被裁；把 RestockGate 接进 PollRestockAsync（默认 400ms 不变）
+
+Observation：
+- 57,477,120 → **57,481,728**；`.pdata` 179,797 → **179,797**；freshness 0。
+- 变异 59/59 GREEN（06:37:55）；PopMart|RestockGate 44/44；全量 2543/0/2/2545。
+
+改动：`PollRestockAsync` 用 `restockIntervalMs`（缺省 400ms）+ `RestockGate` 节流 + `MarkPinged`。
+**预测（下轮验）**：重发后 pdata 若增长 ⇒ 无调用点即被裁；否则 ⇒ 步骤方法本身不在产物里。
+
+还剩什么：① 重发验预测；② 17 条无近邻；③ connect 通道（需登录）；④ 两条 Unknown。

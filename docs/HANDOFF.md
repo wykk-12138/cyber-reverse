@@ -7532,3 +7532,16 @@ Observation：
 **下一轮换仪器**：TrimmerRootDescriptor root StoreFlow + TrimmerSingleWarn=false 收告警。
 
 还剩什么：① 上面两步仪器；② Stripe/Midtrans/Waitwhile 接线；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1243 —— 完整元数据与 DynamicDependency 两个实验都失败（串仍不在）；撤回"RunCheckoutAsync 在产物里"；缺口=方法表 dump
+
+Observation：
+- `IlcGenerateCompleteTypeMetadata=true`：63,291,904 B、510 条 IL2/IL3、四条串仍不在。
+- `DynamicDependency` root PayPalThreeDs/AdyenGateway：57,475,072 B（+47,104）、三条串仍不在。
+- 撤回：R1242「RunCheckoutAsync 在产物里」（串在类里 ≠ 在该方法里）。
+
+**缺口（阻塞）**：AOT 镜像方法表 dump 能力（本环境无等价工具）。
+**纪律**：不再用字符串探测推方法存亡。
+
+验证：build 0 错；受影响用例 20/20。
+
+还剩什么：① 方法表 dump（需工具）；② Stripe/Midtrans/Waitwhile 接线；③ connect 通道（需登录）；④ 两条 Unknown。

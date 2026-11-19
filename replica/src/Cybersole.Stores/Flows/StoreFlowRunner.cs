@@ -59,6 +59,33 @@ public static class StoreFlowRunner
     }
 
     /// <summary>Runs the checkout half of a flow and projects it into a CheckoutOutcome.</summary>
+    /// <summary>
+    /// Runs one checkout to its end.
+    ///
+    /// <para>
+    /// R1243: the two <see cref="System.Diagnostics.CodeAnalysis.DynamicDependencyAttribute"/> attributes below are an
+    /// experiment that half worked, and the exact result is recorded here because the comment that justified them was
+    /// wrong. The reasoning was that this class is kept (its message "declared order has no runnable step for" is in
+    /// the artifact) while the payment surface is not, so rooting the two payment types from here should pull them in.
+    /// The publish grew by 47,104 bytes, so the attributes did root something, but paypal3ds.state,
+    /// adyen.deviceSupport and "no action url supplied" are still absent in both encodings.
+    /// </para>
+    ///
+    /// <para>
+    /// Two explanations are now ruled out: it is not metadata trimming (a publish with complete type metadata was
+    /// still missing the literals) and it is not the absence of a root for these two types. The premise that
+    /// <em>this</em> method is the one kept was also an over-read: the surviving message sits in this class, not
+    /// necessarily in this method. Answering the rest needs a dump of the image's method table, which this
+    /// environment does not have, so the attributes stay as a harmless root and the question is parked with that
+    /// named tool gap rather than pursued through more byte probes.
+    /// </para>
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.DynamicDependency(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods,
+        typeof(Cybersole.Stores.Payments.PayPalThreeDs))]
+    [System.Diagnostics.CodeAnalysis.DynamicDependency(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods,
+        typeof(Cybersole.Stores.Payments.AdyenGateway))]
     public static async Task<CheckoutOutcome> RunCheckoutAsync(StoreFlow flow, FlowContext ctx,
         CancellationToken ct)
     {

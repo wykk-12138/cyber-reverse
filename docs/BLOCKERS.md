@@ -45357,3 +45357,51 @@ Unknown = 链在哪一层断（下一轮一条实验判定）。
 
 证据等级：Observation = 八组双编码结果、override 计数、三处行号；
 Inference = 「链未在上层断」（由 runner 与默认体都在支持）；Unknown = 同形方法为何分裂保留。
+## R1243 —— 两个假设都失败，问题**停在这里**并把缺口命名为「需要方法表 dump」
+
+### 一、实验一：完整元数据（`IlcGenerateCompleteTypeMetadata=true`）
+
+产物 **57,427,968 → 63,291,904 B**（+5.9 MB），**510 条 IL2/IL3 告警**收集到；
+但 `paypal3ds.state` / `adyen.deviceSupport` / `no action url supplied` / `3DS required but no transStatus`
+**仍全部不在**。
+
+⇒ **排除"元数据被裁"**：不是 metadata 的问题。
+
+### 二、实验二：`DynamicDependency` 显式 root
+
+在 `StoreFlowRunner.RunCheckoutAsync` 上加两条
+`[DynamicDependency(PublicMethods, typeof(PayPalThreeDs))]` / `(… typeof(AdyenGateway))]`，重发：
+
+| 项 | 值 |
+|---|---|
+| 产物 | 57,475,072 B（**+47,104**）⇒ 属性**确实** root 进了东西 |
+| `paypal3ds.state` / `adyen.deviceSupport` / `no action url supplied` | **仍全部不在** |
+
+⇒ **排除"缺 root"**：也不是可达性问题——至少不是这两个类型的 public 方法的问题。
+
+### 三、我还有一个**读过头**的推断要撤回
+
+R1242 我写「`RunCheckoutAsync` 在产物里」，依据是 `declared order has no runnable step for` 这个串在。
+但那个串在 **`StoreFlowRunner` 这个类**里，**不一定在 `RunCheckoutAsync` 这个方法**里
+（`:394` 的 `Error(...)` 可能在另一个方法）。**"类里有个串在" ≠ "这个方法在"。** 同一族错误第 N 次。
+
+### 四、所以这个问题**停在这里**，缺口命名清楚
+
+要回答「哪些方法体在产物里、为什么」，需要 **dump 产物的方法表**（ILC 生成的 `MethodDesc`/`MethodTable` 表），
+本环境**没有这个工具**（无 `ildasm`/`ilspycmd` 对 AOT 镜像的等价物，REA 也读不了 AOT 元数据）。
+
+**记入阻塞**：工件 = 「对 NativeAOT 镜像的方法表 dump 能力」；
+在那之前**不再用字符串探测推方法存亡**（已四次被诱饵串误导）。
+
+### 五、本轮保留的东西
+
+两条 `DynamicDependency` **保留**（rooting 本身无害，且确实改变了产物尺寸）；
+注释改写为**如实记录这次实验的半成功与撤回的推断**，不再留着"若出现则……"那种未验证的许诺。
+
+### 六、验证
+
+`dotnet build` 0 错；受影响用例 **20/20**（`PaymentLayerIsInTheArtifact` / `StepAction` / `FlowWorkAudit` /
+`StoreModuleTests`）；`.publish-probe` 已清理。
+
+证据等级：Observation = 两次发布的尺寸与四条串的双编码结果、510 条告警计数；
+Inference = 无新增；Unknown = 方法表内容（缺工件）。

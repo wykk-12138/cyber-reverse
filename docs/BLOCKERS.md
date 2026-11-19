@@ -42667,3 +42667,44 @@ async 状态机嵌套类型？）——**未查明前不能声称「所有步骤
 证据等级：Observation = 8 条探针前后对照、产物尺寸、`StepAction.cs:208` 与 `:210` 的原文、
 描述符与 csproj 改动、守卫红→绿、全量与变异收据；Inference = 「反射派发导致裁剪」（由两处真调用缺席推出）；
 Unknown = `Product-Show`/`Paypal-GetPurchaseUnit` 为何仍被裁。
+## R1178 —— 用**可复现的 A/B** 把描述符坐实；并记下我上一轮那次**无效 A/B**
+
+**取件**：R1177 说描述符让 6 条 
+o→yes，本轮去查「`Product-Show` 为何仍被裁」，
+结果先把自己的方法论翻了一遍。
+
+### 一、可复现的对照（同机、同一命令、相隔数分钟）
+
+| 配置 | 产物 | `Cart-AddProduct` | `Checkout-Begin` | 三条 PayPal | 两条 Preload |
+|---|---|---|---|---|---|
+| **描述符在 + csproj 引用** | **54.72 MB** | yes | yes | yes | yes |
+| **csproj item 移除** | **54.25 MB** | **no** | **no** | **no** | **no** |
+
+⇒ **描述符确实有效**，R1177 的结论成立。
+
+### 二、我上一轮那次「A/B」是无效的（记下来）
+
+我先做的是「把 XML 文件移走、保留 csproj item」，得到 **54.72 MB 且 6 条仍 yes**，
+于是写下「描述符毫无作用」。**那个对照组不成立**：item 还在、文件没了，
+MSBuild 用的是**上一次的原生镜像**（mtime 未变），我拿它当「无描述符」的证据。
+**真正的对照必须连 csproj item 一起移除**——这才有了上表。
+
+> **同一个「移走一个文件」的动作，做一半和做全套，结论相反。**
+> 而 mtime 不变这件事我明明上一轮才刚学会看（R1175）。
+
+### 三、仍未解释的一条
+
+`Paypal-GetPurchaseUnit` 与 `Product-Show` 在**描述符生效**的产物里**仍 absent**，
+而同类的六条都在。现在基线是干净的，这条**作为开放问题**记着，不猜。
+
+### 四、收尾状态
+
+- 描述符（`src/Cybersole.Ui/ILLink.Descriptors.xml` + csproj `TrimmerRootDescriptor`）**保留**，
+  文件里写入了上面那张对照表与「无效 A/B」的教训；
+- 产物 **54.72 MB**、`artifact_freshness` **0 stale / current**；
+- 全量 **2473 通过 / 0 失败 / 2 跳过 / 2475**（5m28s）；
+- 变异 `ran_at 2026-11-19T10:48:26`、**59/59 fired，tree GREEN**。
+
+证据等级：Observation = 两次发布尺寸与 7 条探针读数、`artifact_freshness` 四行、`link.rsp` 37 行无描述符项
+（**注意：这说明 `TrimmerRootDescriptor` 不经 `link.rsp` 传递，但两态对照仍可复现**）、全量与变异收据；
+Inference = 「缺失文件时复用旧原生镜像」（由 mtime 未变 + 内容不变推出）；Unknown = 那两条为何仍 absent。

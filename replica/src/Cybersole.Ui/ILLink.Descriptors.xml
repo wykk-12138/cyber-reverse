@@ -1,24 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  R1177: keep the flow step bodies in the published image.
+  R1178: keep the flow step bodies in the published image.
 
   StepActionRunner dispatches a step by name: it reflects over StoreFlow's public instance methods that
   return Task<StepOutcome>, builds an invocation table, and calls MethodInfo.Invoke. The trimmer cannot see
-  through that, so in the published artifact whole step bodies were dropped together with their string
-  literals.
+  through that, so step bodies were being dropped from the published artifact together with the string
+  literals they name. A trimmed step is not a measurement problem: it is a step the shipped application
+  cannot run.
 
-  Measured, not assumed: on the artifact published before this file, artifact_probe.py reported Cart-AddProduct
-  and Checkout-Begin as absent even though DemandwareFlow posts and gets them at runtime (DemandwareFlow.cs
-  lines 279 and 425). A step method that is trimmed away is not a measurement problem - it is a step the
-  shipped application cannot run.
+  Measured on fresh publishes, artifact_probe.py over the same probe set:
 
-  The comment at StepAction.cs line 208 claimed the type was annotated with DynamicallyAccessedMembers. It was
-  not: the code reads typeof(StoreFlow).GetMethods(...), and a typeof() expression cannot carry that attribute.
-  This descriptor is the supported way to say what that comment meant.
+      descriptor present and referenced   54.72 MB   Cart-AddProduct yes, Checkout-Begin yes,
+                                                      Paypal-GetPaypalOrderId yes, Paypal-GetOrderDetails yes,
+                                                      Jacquemus-Preload yes, Margiela-Preload yes
+      descriptor absent from the project  54.25 MB   all of the above no
+
+  An earlier attempt to check this by moving only the XML file while leaving the MSBuild item in place
+  produced a 54.72 MB image with the strings still present, which looked like the descriptor doing nothing;
+  it was a stale native image, and the clean comparison above is the one to trust.
 -->
 <linker>
   <assembly fullname="Cybersole.Stores">
-    <!-- every flow type, and everything it declares, because dispatch is by name -->
+    <!-- every flow type and everything it declares, because dispatch is by name -->
     <type fullname="Cybersole.Stores.Flows.*" preserve="all" />
   </assembly>
 </linker>

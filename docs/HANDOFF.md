@@ -6765,3 +6765,16 @@ Observation：
 
 还剩什么：① `Product-Show`（裸字面量）与 `Paypal-GetPurchaseUnit` 仍被裁——**第二个机制未明**；
 ② 查明后重跑全套探针，才能说「步骤体全部保住」。
+## R1178 —— 描述符有效（可复现 A/B：54.72MB/yes vs 54.25MB/no）；我上轮的否定 A/B 无效
+
+Observation：
+- 描述符在 + csproj 引用 → **54.72 MB**，6 条控制器字面量 **yes**；
+- csproj item 移除 → **54.25 MB**，同一批 **全 no**。
+- 上一轮「只移文件、留 item」的对照产出 54.72 MB 且 yes ⇒ **假对照**（复用旧原生镜像，mtime 未变）。
+- `link.rsp` 37 行不含描述符项（传递渠道不同），但两态对照可复现。
+
+产物：**54.72 MB**、0 stale / current。全量 **2473/0/2/2475**（5m28s）；变异 **59/59 fired, tree GREEN**（10:48:26）。
+
+**开放**：`Paypal-GetPurchaseUnit` 与 `Product-Show` 仍 absent（同类六条都在），基线已干净，待查。
+
+还剩什么：① 那两条为何仍被裁；② `link.rsp` 不含描述符项但对照成立——传递渠道待确认（不影响结论）。

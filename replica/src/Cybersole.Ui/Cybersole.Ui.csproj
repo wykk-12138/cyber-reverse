@@ -12,9 +12,9 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
-    <!-- R1177: step dispatch is by reflection over StoreFlow's public methods, which the trimmer cannot
-         see through; without this descriptor whole step bodies - and the endpoints they name - were being
-         dropped from the published image. See ILLink.Descriptors.xml for the measurement behind it. -->
+    <!-- R1178: step dispatch is by reflection over StoreFlow's public methods, which the trimmer cannot see
+         through. With this descriptor the published image is 54.72 MB and keeps the controller literals; with
+         the item removed it is 54.25 MB and keeps none of them. See ILLink.Descriptors.xml. -->
     <TrimmerRootDescriptor Include="ILLink.Descriptors.xml" />
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,85 @@
+{
+  "_comment": [
+    "R1184: every type bind_diff.py --type-presence reports as ABSENT has to be classified before the number",
+    "is used as a gap count. AGENTS.md allows renaming, so a type declared under another name is not a gap;",
+    "the two login-credential and licence types are out of scope by R702. 'evidence' names where the",
+    "counterpart lives, so a reader can check the mapping instead of trusting it."
+  ],
+  "types": {
+    "Cybersole.CloudflareSolvers.CloudflareSolver": {
+      "kind": "renamed",
+      "to": "Cybersole.Stores.Scripts.CloudflareStrategy",
+      "evidence": "src/Cybersole.Stores/Scripts/CloudflareStrategy.cs"
+    },
+    "Cybersole.Global.Settings": {
+      "kind": "renamed",
+      "to": "Cybersole.Core.Settings.GlobalSettings",
+      "evidence": "src/Cybersole.Core/Settings/GlobalSettings.cs"
+    },
+    "Cybersole.Models.Concurrency": {
+      "kind": "renamed",
+      "to": "Cybersole.Core.Settings.GlobalSettings (concurrency members)",
+      "evidence": "src/Cybersole.Core/Settings/GlobalSettings.cs, src/Cybersole.Core/Models/Enums.cs"
+    },
+    "Cybersole.Services.ImapProvider": {
+      "kind": "renamed",
+      "to": "Cybersole.Services.Mail.ImapMailProvider",
+      "evidence": "src/Cybersole.Services/Mail/ImapMailProvider.cs"
+    },
+    "Cybersole.SmartActions.ActionConfig": {
+      "kind": "renamed",
+      "to": "Cybersole.Core.Models.SmartAction (config members)",
+      "evidence": "src/Cybersole.Core/Models/SmartActions.cs"
+    },
+    "Cybersole.Ui.Localization.LocalizeEnumExtension": {
+      "kind": "renamed",
+      "to": "Cybersole.Ui.Localization.LocalizationService helpers",
+      "evidence": "src/Cybersole.Ui/Localization/LocalizationService.cs"
+    },
+    "Cybersole.Ui.Localization.LocalizeFallbackExtension": {
+      "kind": "renamed",
+      "to": "Cybersole.Ui.Localization.LocalizationService helpers",
+      "evidence": "src/Cybersole.Ui/Localization/LocalizationService.cs"
+    },
+    "Cybersole.Ui.Localization.LocalizeFormatExtension": {
+      "kind": "renamed",
+      "to": "Cybersole.Ui.Localization.LocalizationService helpers",
+      "evidence": "src/Cybersole.Ui/Localization/LocalizationService.cs"
+    },
+    "Cybersole.Ui.Localization.LocalizeSwitchExtension": {
+      "kind": "renamed",
+      "to": "Cybersole.Ui.Localization.LocalizationService helpers",
+      "evidence": "src/Cybersole.Ui/Localization/LocalizationService.cs"
+    },
+    "Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView": {
+      "kind": "renamed",
+      "to": "AccountCreatorView",
+      "evidence": "src/Cybersole.Ui/Views/Settings/Modals/SettingsModals.cs"
+    },
+    "Cybersole.Ui.Views.Auth.AuthWindow": {
+      "kind": "out_of_scope",
+      "to": null,
+      "evidence": "docs/DECISION_LICENSE_OUT_OF_SCOPE.md (R702)"
+    },
+    "Cybersole.Ui.Views.Auth.LicenseControl": {
+      "kind": "out_of_scope",
+      "to": null,
+      "evidence": "docs/DECISION_LICENSE_OUT_OF_SCOPE.md (R702)"
+    },
+    "Cybersole.Ui.Views.Settings.SettingsView": {
+      "kind": "renamed",
+      "to": "SettingsShell",
+      "evidence": "src/Cybersole.Ui/Views/Settings/SettingsShell.cs"
+    },
+    "Cybersole.Ui.Views.Tasks.TaskCreatorCartView": {
+      "kind": "renamed",
+      "to": "cart view inside TaskCreatorView",
+      "evidence": "src/Cybersole.Ui/Views/Tasks/TasksViews.cs"
+    },
+    "Cybersole.Ui.Views.Tasks.TaskCreatorMainView": {
+      "kind": "renamed",
+      "to": "TaskCreatorView",
+      "evidence": "src/Cybersole.Ui/Views/Tasks/TasksViews.cs"
+    }
+  }
+}

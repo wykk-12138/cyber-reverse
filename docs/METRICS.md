@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-19 11:59:52 +0800 |
+| 生成时间 | 2026-11-19 12:06:16 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | **有非零退出，见下** |
@@ -16,7 +16,7 @@
 
 > **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新（共 13599 行）。它描述的是更旧的一次构建，不是当前源码。
 >
-> **变异套件那一组数来自上一次运行，而它已经过期**：`1 -- tools/metrics_report.py differs from the run's manifest`。
+> **变异套件那一组数来自上一次运行，而它已经过期**：`3 -- tests/Cybersole.Tests/TypeClassificationTests.cs (+2 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -26,6 +26,7 @@
 | 名字级绑定缺口 — missing | 14 |
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
+| 类型缺失（type presence） — classified | renamed 13, out of scope 2, unimplemented 0, unclassified 0 |
 | 成员形状差异 — total mismatches | 94 |
 | 成员形状差异 — core mismatches | 17 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
@@ -58,7 +59,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 1 -- tools/metrics_report.py differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 3 -- tests/Cybersole.Tests/TypeClassificationTests.cs (+2 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -108,25 +109,27 @@ C:\Python312\python.exe tools/bind_diff.py --type-presence
 
 ```text
 type presence: 174 declared in bindings, 159 present in source, 15 absent
-  ABSENT  Cybersole.CloudflareSolvers.CloudflareSolver (members: ApiKey, Balance, BalanceSupported, Concurrency, Count, Id, IsFetchingBalance, Name, Type)
-  ABSENT  Cybersole.Global.Settings                  (members: AutoOpen3DS, AutoOpen3DSLimit, BackupInterval, BetaUpdates, BrowserLimit, BrowserPath, BrowserProfileAssignment, BrowserWindowMode, Clock, Currency, Keybinds, Language, MaxBackups, MaxLogRetention, MaxLogSize, MonitorConcurrency, MonitorDelay, MonitorFilters, Notifications, PinGroups, ProfileGroupOrder, ProxyGroupOrder, QueuePresentation, QuickTaskProfiles, QuickTaskProxies, RetryDelay, ScrollbarColor, ScrollbarCornerRadius, ScrollbarWidth, ShopifyBrowserProxy, SmartActions, StartupPage, TaskGroupOrder, Timeout)
-  ABSENT  Cybersole.Models.Concurrency               (members: Maximum, Mode, Ratio)
-  ABSENT  Cybersole.Services.ImapProvider            (members: Host, MessageCount, Status, Username)
-  ABSENT  Cybersole.SmartActions.ActionConfig        (members: Name, Required)
-  ABSENT  Cybersole.Ui.Localization.LocalizeEnumExtension (members: )
-  ABSENT  Cybersole.Ui.Localization.LocalizeFallbackExtension (members: )
-  ABSENT  Cybersole.Ui.Localization.LocalizeFormatExtension (members: )
-  ABSENT  Cybersole.Ui.Localization.LocalizeSwitchExtension (members: )
-  ABSENT  Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView (members: Add, Close)
-  ABSENT  Cybersole.Ui.Views.Auth.AuthWindow         (members: Exit, Logout, Minimise)
-  ABSENT  Cybersole.Ui.Views.Auth.LicenseControl     (members: Authenticate, Dashboard, Refresh)
-  ABSENT  Cybersole.Ui.Views.Settings.SettingsView   (members: AppearanceView, CaptchaProvidersView, CloudflareSolversView, CustomSizesView, CustomStoresView, DataView, GeneralSettingsView, GoogleAccountsView, HelpView, ImapView, KeyBindsView, LogOut, NotificationsView, PayPalAccountsView, PaymentView, Transition, Update, Version, WebhookView)
-  ABSENT  Cybersole.Ui.Views.Tasks.TaskCreatorCartView (members: Add, Delete, SizeItems)
-  ABSENT  Cybersole.Ui.Views.Tasks.TaskCreatorMainView (members: ProfileGroupItems, ProfileItems, ShowCartView, SizeItems)
+  ABSENT  Cybersole.CloudflareSolvers.CloudflareSolver renamed      Cybersole.Stores.Scripts.CloudflareStrategy
+  ABSENT  Cybersole.Global.Settings                  renamed      Cybersole.Core.Settings.GlobalSettings
+  ABSENT  Cybersole.Models.Concurrency               renamed      Cybersole.Core.Settings.GlobalSettings (concurrency members)
+  ABSENT  Cybersole.Services.ImapProvider            renamed      Cybersole.Services.Mail.ImapMailProvider
+  ABSENT  Cybersole.SmartActions.ActionConfig        renamed      Cybersole.Core.Models.SmartAction (config members)
+  ABSENT  Cybersole.Ui.Localization.LocalizeEnumExtension renamed      Cybersole.Ui.Localization.LocalizationService helpers
+  ABSENT  Cybersole.Ui.Localization.LocalizeFallbackExtension renamed      Cybersole.Ui.Localization.LocalizationService helpers
+  ABSENT  Cybersole.Ui.Localization.LocalizeFormatExtension renamed      Cybersole.Ui.Localization.LocalizationService helpers
+  ABSENT  Cybersole.Ui.Localization.LocalizeSwitchExtension renamed      Cybersole.Ui.Localization.LocalizationService helpers
+  ABSENT  Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView renamed      AccountCreatorView
+  ABSENT  Cybersole.Ui.Views.Auth.AuthWindow         out_of_scope 
+  ABSENT  Cybersole.Ui.Views.Auth.LicenseControl     out_of_scope 
+  ABSENT  Cybersole.Ui.Views.Settings.SettingsView   renamed      SettingsShell
+  ABSENT  Cybersole.Ui.Views.Tasks.TaskCreatorCartView renamed      cart view inside TaskCreatorView
+  ABSENT  Cybersole.Ui.Views.Tasks.TaskCreatorMainView renamed      TaskCreatorView
+
+classified: renamed 13, out of scope 2, unimplemented 0, unclassified 0
 
 note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed to rename
-      types (AGENTS.md §0), so each ABSENT must be classified as RENAMED (record the mapping)
-      or UNIMPLEMENTED (a real gap) before the number is used as a gap count.
+      types (AGENTS.md §0), so each ABSENT must be classified in tools/type_classification.json
+      as RENAMED (with the counterpart), OUT_OF_SCOPE (with the ruling) or UNIMPLEMENTED.
 ```
 
 ### 成员形状差异
@@ -541,7 +544,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 1 -- tools/metrics_report.py differs from the run's manifest
+  mutation-fit-staleness: 3 -- tests/Cybersole.Tests/TypeClassificationTests.cs (+2 more) differs from the run's manifest
 
   The counts above are from 2026-11-19T11:56:47+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.

@@ -51,6 +51,14 @@ for typ, members in sorted(bind.items()):
 
 scope_label = 'per-file' if per_file else 'whole-source'
 
+# R1184: the classification that turns "15 types absent" into a number with a meaning. Renaming is allowed
+# (AGENTS.md §0), and R702 put two of these out of scope, so the table lives beside the tool and every absent
+# type must appear in it; anything missing shows up as "unclassified" rather than quietly counting as a gap.
+CLASSIFICATION = {}
+_classification_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'type_classification.json')
+if os.path.exists(_classification_path):
+    CLASSIFICATION = json.load(io.open(_classification_path, encoding='utf-8')).get('types', {})
+
 if '--type-presence' in sys.argv:
     declared = set()
     for m in re.finditer(r'\b(?:class|record|struct|enum|interface)\s+([A-Za-z0-9_]+)', blob):
@@ -62,12 +70,25 @@ if '--type-presence' in sys.argv:
     print('type presence: %d declared in bindings, %d present in source, %d absent'
           % (len(bind), len(present), len(absent)))
     for typ, members in absent:
-        print('  ABSENT  %-42s (members: %s)' % (typ, ', '.join(sorted(members))))
+        entry = CLASSIFICATION.get(typ)
+        if entry:
+            kind = entry.get('kind', '?')
+            to = entry.get('to')
+            print('  ABSENT  %-42s %-12s %s' % (typ, kind, to or ''))
+        else:
+            print('  ABSENT  %-42s (members: %s)' % (typ, ', '.join(sorted(members))))
     if absent:
+        renamed = sum(1 for typ, _ in absent if CLASSIFICATION.get(typ, {}).get('kind') == 'renamed')
+        out_of_scope = sum(1 for typ, _ in absent if CLASSIFICATION.get(typ, {}).get('kind') == 'out_of_scope')
+        unimplemented = sum(1 for typ, _ in absent if CLASSIFICATION.get(typ, {}).get('kind') == 'unimplemented')
+        unclassified = len(absent) - renamed - out_of_scope - unimplemented
+        print()
+        print('classified: renamed %d, out of scope %d, unimplemented %d, unclassified %d'
+              % (renamed, out_of_scope, unimplemented, unclassified))
         print()
         print('note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed to rename')
-        print('      types (AGENTS.md §0), so each ABSENT must be classified as RENAMED (record the mapping)')
-        print('      or UNIMPLEMENTED (a real gap) before the number is used as a gap count.')
+        print('      types (AGENTS.md §0), so each ABSENT must be classified in tools/type_classification.json')
+        print('      as RENAMED (with the counterpart), OUT_OF_SCOPE (with the ruling) or UNIMPLEMENTED.')
     sys.exit(0)
 
 print(f'scope: {scope_label}   types: {len(bind)}   members: {sum(len(v) for v in bind.values())}')

@@ -43,7 +43,7 @@ DOTNET = os.environ.get("DOTNET", r"D:\tools\dotnet8\dotnet.exe")
 METRICS = [
     ("名字级绑定缺口", ["tools/bind_diff.py", "--buckets"], ["real gap", "missing"]),
     ("类型级绑定缺口", ["tools/bind_scope.py"], ["types with scope misses"]),
-    ("类型缺失（type presence）", ["tools/bind_diff.py", "--type-presence"], ["types absent from source"]),
+    ("类型缺失（type presence）", ["tools/bind_diff.py", "--type-presence"], ["types absent from source", "classified"]),
     # R888: the total is dominated by Cybersole.Ui, which the priority order defers behind checkout
     # flows, anti-bot and the request layer. Of the ninety-four rows, seventy-seven are Ui, seventeen
     # are Core or Services, and Stores carries none. The core figure is the one steering should read.
@@ -165,6 +165,9 @@ def summary_bits(name_out, owned):
         # R1183: freshness now separates a touched file from a changed one; the count is what decides whether
         # the artifact is really stale, so it belongs in METRICS.md and not only in the tool's own output.
         "of those, changed against HEAD": r"of those, changed against HEAD:\s*(\d+)",
+        # R1184: an absent type is a rename or a ruling, not automatically a gap, so the classified line
+        # travels with the count into METRICS.md.
+        "classified": r"classified: (renamed .*)$",
     }
     for label, pattern in patterns.items():
         if label not in owned:

@@ -42841,3 +42841,42 @@ newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-19 11:34:
 
 证据等级：Observation = 两次 mtime、`git status src` 0 dirty、改后两行输出、守卫与套件收据；
 Inference = 「11:34 来自变异还原」（由无 dirty + 该工具行为推出）；Unknown = 若将来有工具改字节而不改 git 状态，本判据会漏（未发生）。
+## R1184 —— 「15 个类型缺失」逐条定性：**改名 13 + R702 出范围 2 + 未实现 0 + 未分类 0**
+
+**取件**：`--type-presence` 报 `15 absent`。工具自己的注就写着：
+「每个 ABSENT 必须定性为 RENAMED（记录映射）或 UNIMPLEMENTED（真缺口），**这个数才能当缺口数用**」。
+此前没人做过——**那个 15 一直是裸数字**。
+
+### 逐条定性（每条都带可核对的去处）
+
+| 类 | 条数 | 例 |
+|---|---|---|
+| **renamed** | **13** | `CloudflareSolver`→`Stores.Scripts.CloudflareStrategy`；`Global.Settings`→`Core.Settings.GlobalSettings`；`ImapProvider`→`Services.Mail.ImapMailProvider`；`Localize*Extension`×4→`LocalizationService` 辅助；`SettingsView`→`SettingsShell`；`TaskCreatorMainView`→`TaskCreatorView` 等 |
+| **out_of_scope** | **2** | `AuthWindow`、`LicenseControl`（R702） |
+| **unimplemented** | **0** | — |
+| **unclassified** | **0** | — |
+
+**⇒ 在范围内，「类型缺失」这个槽位没有真缺口。**
+
+### 改了什么
+
+- `tools/type_classification.json`（新）：15 条映射，每条带 `kind` / `to` / `evidence`（指向对应的 **文件**），
+  注释写明「改名是 AGENTS §0 允许的，缺省不是缺口」；
+- `tools/bind_diff.py --type-presence`：逐行打印定性，并汇总
+  `classified: renamed 13, out of scope 2, unimplemented 0, unclassified 0`；
+- `tools/metrics_report.py`：把整行定性带进 METRICS.md（此前只有裸数 `15`，
+  与 R1171 记的「数字分开写就等于打架」同一问题）；
+- 新 `TypeClassificationTests`：断言 `unclassified 0` **且** `unimplemented 0`。
+  **第二项是棘轮**——将来真出现未实现类型会立刻红，而不是被吸进总数。
+
+验证：`dotnet build` **0 错**；该守卫 **1/1**（6 s，`--logger detailed` 确认真执行并捕获到定性行）；
+METRICS 现为 `{'types absent from source': '15', 'classified': 'renamed 13, out of scope 2, unimplemented 0, unclassified 0'}`；
+全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（4m36s）；
+变异 `ran_at 2026-11-19T12:21:52`、**59/59 fired，tree GREEN**。
+
+**一处仍要小心**：`renamed` 的 `to` 有几条我记的是**成员所在文件**而非精确类型名
+（`Concurrency`、`ActionConfig`、`TaskCreatorCartView`）。**它们定性正确但映射不精确**，
+表里已用措辞标出（例如 `GlobalSettings (concurrency members)`）——**下一轮若要精确，按成员名逐个定位**。
+
+证据等级：Observation = 15 行定性输出、METRICS 新字段、守卫执行与耗时、全量与变异收据；
+Inference = 「13 条为改名」（依据既有实现文件里存在对应成员）；Unknown = 三条映射的精确类型名。

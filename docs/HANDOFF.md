@@ -6822,3 +6822,17 @@ Observation：
 
 还剩什么：① 若将来有工具改字节却不改 git 状态，此判据会漏（未发生，记着）；
 ② 描述符保留粒度（`Flows.*` 全保留）仍可收窄。
+## R1184 —— 15 个缺失类型全部定性（改名 13 / R702 2 / 未实现 0 / 未分类 0）+ 棘轮
+
+改动：
+- 新 `tools/type_classification.json`（15 条，含 kind/to/evidence）。
+- `bind_diff.py --type-presence` 逐行 + 汇总 `classified: renamed N, out of scope N, unimplemented N, unclassified N`。
+- `metrics_report.py` 把整行带进 METRICS.md。
+- 新 `TypeClassificationTests`：`unclassified 0` 且 `unimplemented 0`（后者为棘轮）。
+
+验证：build 0 错；守卫 1/1（6 s 真执行）；全量 **2476/0/2/2478**（4m36s）；
+变异 **59/59 fired, tree GREEN**（12:21:52）。
+
+**不精确处**：`Concurrency`/`ActionConfig`/`TaskCreatorCartView` 三条映射记的是成员所在文件而非精确类型名。
+
+还剩什么：① 补齐那三条精确映射；② 描述符保留粒度可收窄；③ 其余判据（b–f）逐条复算。

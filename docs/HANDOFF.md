@@ -7117,3 +7117,15 @@ Observation：
 **下一轮取件（已定位）**：① 修 `analysis/ida.py call` 的输出为可解析 JSON；② 用 `get_bytes` 转储 `0x146d8dfdc` 邻近 UTF-16 串，重建原版清单。
 
 还剩什么：两条 Unknown（`BotTask.Running`/`Task`）；abort 分支未验证；UI 29 条冻结。
+## R1208 —— 串池按字母序、无独立店表；Livestock/HMVS 同 BSTN 属扩展（3/38）
+
+Observation：
+- `ida.py py` 取字节成功（`call` 返回 MCP content 非 JSON ⇒ 绕开）；布局 [MT*:8][Len:4][chars] 再次吻合。
+- 从 0x146d8de30 连读 95 串，**字母序**：Family Mart → Farfetch → **Farfetch Checkout** → Fashion Place → Fear Of God。
+- `HMV` 6 命中全噪声；`Livesto` 2 命中全是模板变量。
+- 分档：30 确认 / **3 扩展（bstn、livestock、shophmvs）** / 0 未定。
+
+**教训**：前四轮在**错误的抽象层次**上找东西——找表，而它是按字母序的平坦串池。
+
+还剩什么：① 若要枚举完整原版清单，需按字母序分段转储并人工筛选（可行但耗调用）；
+② 两条 Unknown（`BotTask.Running`/`Task`）；③ abort 分支未验证；④ UI 29 条冻结。

@@ -43774,3 +43774,51 @@ Inference = 「BSTN 不在原版」（叠加上轮对照）；Unknown = Livestoc
 
 证据等级：Observation = 66/24/38 三个提取数、四组实测（29+9、Farfetch 三地址、Yeezy/Pop Mart 误命中、0 xref 与 0 site）；
 Inference = 「店清单是数据表、不被代码直接引用」；Unknown = 原版清单的真实成员；**工具缺口**已定位到 `ida.py call` 的输出。
+## R1208 —— 店清单终于摸到门：**池子是按字母序排列的单一串池，没有独立店表**；顺带确认 Livestock / HMVS 也不在原版
+
+### 一、先解决工具缺口（call 输出不可解析）
+
+`ida.py call` 返回的是 **MCP content 文本**，不是 JSON，所以上一轮 `json.loads` 失败。
+**不改工具**，改走已经可解析的 `ida.py py`（返回 `{"stdout": ...}`）：
+
+`
+python analysis/ida.py py "import ida_bytes; d=ida_bytes.get_bytes(0x146d8de00, 0x600); print(d.hex())"
+`
+
+### 二、冻结串布局再次实测吻合
+
+`0x146d8de00` 起 1536 字节里第一段是 `...ber not implemented`，紧跟 `0d 00 00 00`（长度 13）
+再接 UTF-16 的 `FallbackValue` ⇒ **[MethodTable*:8][Length:4][chars] 布局实测成立**（本轮第二次独立复现）。
+
+### 三、**关键发现：串池按字母序，店名混在所有字符串中间**
+
+从 `0x146d8de30` 起连读 95 个串，肉眼可见字母序：
+
+`FallbackValue` → `False` → `Familiar` → `Family Mart` → `FamilyId` → `Fan Rewards Signup`
+→ `Fantasy World` → **`Farfetch`** → **`Farfetch Checkout`** → `Faro` → `Fashion Place`
+→ `Fear Of God` → `Feenturm.de` …
+
+⇒ **没有独立的"店表"结构**。这就是为什么前四轮的所有形状都失败：
+我一直在找一张表，而它根本不是表——**店名就是串池里的普通条目**，只是恰好按字母序排在一起。
+
+### 四、用它复查两个未定项
+
+| 店 | `ida.py str` 全库子串搜索 | 结论 |
+|---|---|---|
+| `HMVS` | `HMV` 6 次命中，**全是 base64 / XML / `jzHmv` 噪声** | **不在原版** |
+| `Livestock` | `Livesto` 2 次命中，**全是模板变量** `_raffleProduct` / `livestock_location` | **不在原版** |
+
+搜索走的是**数据库本身**（324,895 条），不是抽样池，所以这两条不是 §2.7b 的假阴性问题。
+
+### 五、店清单分档更新
+
+| 档 | 数量 | 明细 |
+|---|---|---|
+| 池/数据库确认存在 | **29 + 1**（Bodega） | 域名或显示名命中 |
+| **扩展（原版没有）** | **3** | `bstn`、`livestock`、`shophmvs` |
+| 未定 | **0** | —— |
+
+⇒ **38 个复刻件域名里，3 个在原版无对应**。三者都来自对站点的实机探测，不是从镜像反推。
+
+证据等级：Observation = `py` 字节转储与 95 条连读结果、布局吻合、两组全库子串搜索的 6/2 次命中内容；
+Inference = 「没有独立店表」「3 个域名属扩展」；Unknown = 原版是否以**未试过的拼法**收录这三家（已试 HMV/HMVS/Livesto/livestock_location 等）。

@@ -7190,3 +7190,15 @@ Observation：
 
 还剩什么：① 五步 Stripe 中未被端点引用的部分；② setup_intents 两条路径未解；
 ③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108 三处（冻结）。
+## R1214 —— Stripe setup_intent confirm 落地（sub_140BE0F80）：13 个 payment_method_data 键 + card-element UA；+7 测试
+
+Observation：
+- `sub_140BE0F80`（2,844 B）：`/v1/setup_intents/{id}/confirm`；`payment_method_data[card][number|cvc|exp_month|exp_year]`、
+  `[type]`、`[payment_user_agent]`、`[time_on_page]`、`[pasted_fields]`、`[referrer]`、`[sid]`、`[muid]`、`[guid]`、
+  嵌套归属元数据 4 条；`use_stripe_sdk=true`；`expected_payment_method_type`；`radar_options[hcaptcha_token]`。
+- UA `0x1471654A0`（card-element）≠ payment-method create 的 `0x1471655C8`（payment-element/autopm）。
+- 查重（func_strings.py）：14/33 已存在，但**无一条 payment_method_data** ⇒ 真缺口。
+
+验证：build 0 错；新测试 **7/7**；全量 **2484/0/2/2486**（4m25s）。
+
+下一步：`/v1/payment_intents/` 的四个函数里未实现的部分；`setup_intents` 另一条 `sub_141145DB0`（0x472）待解。

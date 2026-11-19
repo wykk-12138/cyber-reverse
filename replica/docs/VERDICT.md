@@ -67071,3 +67071,28 @@ Farfetch 7 条早已定性（服务端下发路由）。这轮查 **Bstn 4 条**
 | 端点表 | **6 端点 / 8 函数** |
 | 代码改动 | 无（已在实现） |
 | 成员形状 | 91 / 3 / 37（未变） |
+---
+
+## 第 1214 轮：终于抓到真缺口——payment_method_data[...]
+
+前两轮都在重复 R1094 的活。这轮**先查后解**（`func_strings.py` 自动比对）：33 条串里 14 条已存在，
+但**全是泛用串**，`payment_method_data[...]` 族**一条都没有** ⇒ 真缺口。
+
+`sub_140BE0F80`（2,844 B）= **Stripe setup_intent confirm**：
+`/v1/setup_intents/{id}/confirm` + 13 个 `payment_method_data[...]` 键 + `use_stripe_sdk=true`
++ `expected_payment_method_type` + `radar_options[hcaptcha_token]`。
+
+**一个细节值得记**：它的 UA 是 `stripe.js/035decdc6c; …; card-element`（0x1471654A0），
+与 payment-method create 的 `…payment-element; deferred-intent; autopm`（0x1471655C8）**是两条不同的冻结串**
+——**同一个 Stripe，两个表面，两个 UA**。测试里专门断言「两者必须不同」，防止将来被"统一"掉。
+
+### 落地
+
+`StripeGateway` 加 6 个成员（每个带地址注释），新测试 **7 条**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2484 通过 / 0 失败 / 2 跳过 / 2486**（4m25s，+7） |
+| 新增 Observation | 1 端点 + 13 键 + 1 UA + 3 旗标 |

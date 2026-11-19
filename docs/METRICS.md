@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 02:46:35 +0800 |
+| 生成时间 | 2026-11-20 03:08:16 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -14,7 +14,9 @@
 
 ## 时效警告（生成）
 
-> **变异套件那一组数来自上一次运行，而它已经过期**：`2 -- src/Cybersole.Core/Models/Checkout.cs (+1 more) differs from the run's manifest`。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新（共 13895 行）。它描述的是更旧的一次构建，不是当前源码。
+>
+> **变异套件那一组数来自上一次运行，而它已经过期**：`330 -- src/Cybersole.Stores/Payments/Gateways.cs (+329 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -40,9 +42,9 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,584 |
 | 函数数量（.pdata） — functions: ratio | 64.80% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 13895 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
@@ -61,7 +63,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 2 -- src/Cybersole.Core/Models/Checkout.cs (+1 more) differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 330 -- src/Cybersole.Stores/Payments/Gateways.cs (+329 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -407,11 +409,16 @@ C:\Python312\python.exe tools/artifact_freshness.py
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-20 02:46:27
-newest source: src\Cybersole.Core\Models\Checkout.cs (2026-11-20 02:33:34)
-source files newer than the artifact: 0
-lines in those files: 0
-of those, changed against HEAD: 0
-publish artifact state: current
+publish artifact size: 57403392 bytes
+publish artifact sha256: 847757a0949bd90fcc2121602019c1ee8895d8b9dab2ae367142ca4c156eb853
+newest source: src\Cybersole.Stores\Payments\Gateways.cs (2026-11-20 03:03:06)
+source files newer than the artifact: 17
+lines in those files: 13895
+of those, changed against HEAD: 1
+publish artifact state: stale
+
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -585,9 +592,9 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 2 -- src/Cybersole.Core/Models/Checkout.cs (+1 more) differs from the run's manifest
+  mutation-fit-staleness: 330 -- src/Cybersole.Stores/Payments/Gateways.cs (+329 more) differs from the run's manifest
 
-  The counts above are from 2026-11-20T02:09:40+08:00 and the tree has moved since. They are a record of that run, not a
+  The counts above are from 2026-11-20T02:55:22+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
 ```
 

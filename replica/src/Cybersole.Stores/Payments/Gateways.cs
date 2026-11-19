@@ -202,6 +202,74 @@ public sealed class StripeGateway : IPaymentGateway
     /// <summary>Stripe's 3DS2 challenge completion (0x147054e90) — the final_cres form.</summary>
     public const string ThreeDs2ChallengeCompletePath = "/v1/3ds2/challenge_complete";
 
+    /// <summary>Stripe's setup-intent confirm endpoint (0x147054fe0, with the /confirm suffix at 0x146ab3a08).</summary>
+    public const string SetupIntentPath = "/v1/setup_intents/";
+
+    /// <summary>The suffix appended to the setup-intent id (0x146ab3a08).</summary>
+    public const string SetupConfirmSuffix = "/confirm";
+
+    /// <summary>
+    /// The card-element user agent the setup-intent confirm sends (0x1471654a0) — verbatim, and different from
+    /// <see cref="PaymentUserAgent"/>: the payment-method create swears by payment-element/autopm, this one by
+    /// card-element. Two surfaces, two frozen strings.
+    /// </summary>
+    public const string CardElementUserAgent = "stripe.js/035decdc6c; stripe-js-v3/035decdc6c; card-element";
+
+    /// <summary>
+    /// The setup-intent confirm's URL: the frozen prefix, the intent id, then <c>/confirm</c> (sub_140BE0F80).
+    /// </summary>
+    public static string SetupConfirmUrl(string setupIntentId) =>
+        ApiHost + SetupIntentPath + Uri.EscapeDataString(setupIntentId ?? string.Empty) + SetupConfirmSuffix;
+
+    /// <summary>
+    /// The setup-intent confirm form (sub_140BE0F80, 2,844 bytes).
+    ///
+    /// <para>
+    /// <b>Observed</b>: every key below is a frozen literal loaded by that function — the
+    /// <c>payment_method_data[...]</c> family at 0x14710FAE0..0x1471102C8, <c>expected_payment_method_type</c>
+    /// at 0x147020F28, <c>use_stripe_sdk</c> at 0x147179510 with its value <c>true</c> at 0x147173DE8,
+    /// <c>client_secret</c> at 0x146FCB508, <c>key</c> at 0x1470AE940, <c>radar_options[hcaptcha_token]</c> at
+    /// 0x147148170, <c>card</c> at 0x146FBFC90, and the cdns host at 0x147057F10.
+    /// <b>Unknown</b>: what the original puts in <c>pasted_fields</c>, <c>time_on_page</c> and <c>referrer</c> at
+    /// runtime — the literals name the fields, not the values.
+    /// </para>
+    /// </summary>
+    public static Dictionary<string, string> SetupConfirmForm(
+        string setupIntentId,
+        string clientSecret,
+        string publishableKey,
+        CardDetails card,
+        string? hcaptchaToken = null,
+        string expectedPaymentMethodType = "card",
+        string integrationSource = "elements",
+        string integrationVersion = "2017")
+    {
+        var form = new Dictionary<string, string>
+        {
+            ["client_secret"] = clientSecret,
+            ["key"] = publishableKey,
+            ["use_stripe_sdk"] = "true",
+            ["expected_payment_method_type"] = expectedPaymentMethodType,
+            ["payment_method_data[type]"] = "card",
+            ["payment_method_data[card][number]"] = card.Number,
+            ["payment_method_data[card][cvc]"] = card.Cvc,
+            ["payment_method_data[card][exp_month]"] = card.ExpMonth,
+            ["payment_method_data[card][exp_year]"] = card.ExpYear,
+            ["payment_method_data[payment_user_agent]"] = CardElementUserAgent,
+            ["payment_method_data[time_on_page]"] = TimeOnPage,
+            ["client_attribution_metadata[merchant_integration_source]"] = integrationSource,
+            ["client_attribution_metadata[merchant_integration_version]"] = integrationVersion,
+            ["payment_method_data[client_attribution_metadata][merchant_integration_source]"] = integrationSource,
+            ["payment_method_data[client_attribution_metadata][merchant_integration_version]"] = integrationVersion,
+        };
+        if (!string.IsNullOrEmpty(hcaptchaToken))
+            form["radar_options[hcaptcha_token]"] = hcaptchaToken!;
+        return form;
+    }
+
+    /// <summary>The card the setup-intent confirm submits (cryptogram-free; the hosted fields fill these).</summary>
+    public readonly record struct CardDetails(string Number, string Cvc, string ExpMonth, string ExpYear);
+
     /// <summary>
     /// The frozen browser fingerprint the authenticate form swears by — the image's own literals:
     /// color depth 24 (0x146ae23f8), screen 1920x1080 (0x146adcfa8/0x146ad59e8), TZ -120

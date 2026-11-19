@@ -44042,3 +44042,37 @@ Inference = 「两条路径」；Unknown = 其余五步（支付意图、提交�
 
 证据等级：Observation = 六端点引用表、两函数各 8/12 条解码、`MagentoFlow.cs` 的地址注释、工具新输出；
 Inference = 无（本轮不新增实现）；Unknown = 其余五步 Stripe 方法体里**未被 Stripe 端点引用**的部分。
+## R1214 —— 优先级②真缺口：**Stripe setup_intent confirm** 全协议解码并落地（首个 `payment_method_data[...]` 族）
+
+### 一、取件与查重（这次**先查后解**）
+
+`func_strings.py` 在解码后自动比对复刻件：`sub_140BE0F80` 的 33 条串里 14 条已存在，
+但**命中的全是泛用串**（`card`/`true`/`client_attribution_metadata[...]`/`use_stripe_sdk`），
+**`payment_method_data[...]` 族一条都没有** ⇒ 这是真缺口，不是重复品。
+
+### 二、解码结果（`sub_140BE0F80`，2,844 B）
+
+| 项 | 冻结字面量与地址 |
+|---|---|
+| 端点 | `https://api.stripe.com/v1/setup_intents/`（0x147054FE0）+ `/confirm`（0x146AB3A08） |
+| 卡数据 | `payment_method_data[type]`=`card` · `[card][number]` · `[card][cvc]` · `[card][exp_month]` · `[card][exp_year]`（0x14710FAE0..0x1471102C8） |
+| 客户端标记 | `payment_method_data[payment_user_agent]` · `[time_on_page]` · `[pasted_fields]` · `[referrer]` · `[sid]` · `[muid]` · `[guid]` |
+| 归属元数据 | 顶层 4 条 + `payment_method_data[client_attribution_metadata][...]` 同名 4 条 —— **同时出现两遍** |
+| SDK 旗标 | `use_stripe_sdk`（0x147179510）= `true`（0x147173DE8） |
+| 其他 | `client_secret`（0x146FCB508） · `key`（0x1470AE940） · `expected_payment_method_type`（0x147020F28） · `radar_options[hcaptcha_token]`（0x147148170） · `https://b.stripecdn.com`（0x147057F10） · `2017` |
+| UA | **`stripe.js/035decdc6c; stripe-js-v3/035decdc6c; card-element`（0x1471654A0）** —— 与 payment-method create 的 `payment-element; deferred-intent; autopm`（0x1471655C8）**是两条不同的串** |
+
+### 三、落地
+
+`StripeGateway` 新增 `SetupIntentPath` / `SetupConfirmSuffix` / `CardElementUserAgent` /
+`SetupConfirmUrl` / `SetupConfirmForm` / `CardDetails`，**每个常量都带地址注释**。
+新测试 `StripeSetupIntentTests` **7 条**：URL 拼接与转义、两条 UA 必须不同、卡族 5 键、
+SDK 旗标与 secret、归属元数据**顶层与嵌套各一遍**、hCaptcha token **有才带**。
+
+### 四、度量与验证
+
+`dotnet build` 0 错；新测试 **7/7**；全量 **2484 通过 / 0 失败 / 2 跳过 / 2486**（4m25s，+7 条）。
+
+证据等级：Observation = 33 条 `names_at` 解码（地址在上表）、两条 UA 的地址不同、`func_strings.py` 的查重结果；
+Inference = 「同时出现两遍是原版真实形状」（照抄字面量，未推断语义）；
+Unknown = `pasted_fields`/`time_on_page`/`referrer` 的**运行期取值**（字面量只给键名）。

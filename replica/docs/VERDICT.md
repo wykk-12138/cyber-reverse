@@ -68317,3 +68317,23 @@ assembled-from-attested 里**证据最重**的一档：不需要推断拼法。
 |---|---|
 | 全量 | **2538 通过 / 0 失败 / 2 跳过 / 2540**（4m26s，+3） |
 | HbxApi | **3/3** |
+---
+
+## 第 1259 轮：PopMart 的路径无据、行为名有据；查出两条行为名缺口
+
+`order/submit`/`cart/add`/`api/stock` 作为**路径**零命中（命中全是方法名）；而
+`SubmitOrder`/`AddToCart`/`AddToCartGraphQL`/`AddToCartPreload`/`SubmitDiscount`/
+`PollRestock`/`PollRestockMulti|Safe`/`WaitRestock`/`RestockMonitoring` **全在镜像里**。
+
+覆盖表：4 有（`CandidateSteps:28` ×2、`LambdaWitness:19`、`PopMartFlow:9`）、**2 缺**：
+`WaitRestock`、`RestockMonitoring`——镜像里是**独立状态机**，说明"等补货"与"轮询补货"是两件事。
+
+**本轮不直接加步骤**：要同步 `StoreFlowSteps` 105→107、两处 65 模块钉、`FlowWorkAudit` 的 override 检查
+——R1233 在这三处撞过一次、整轮回滚。下轮按三处联动做。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 代码改动 | 无（取证 + 对账） |
+| 新缺口 | 2 条行为名 |

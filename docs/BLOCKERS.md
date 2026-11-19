@@ -46006,3 +46006,43 @@ R1251 的 Magento 是`/rest/V1` + `carts/mine` **两个片段**；HBX 是**一�
 
 证据等级：Observation = 四条字面量、`shop/countries` 零命中；
 Inference = 「`origin + token` 复现原版地址」；Unknown = `contents` 端点答什么、哪一步读它。
+## R1259 —— PopMart 三条路径无据，但**行为名有据**：`order/submit`/`cart/add`/`api/stock` 零命中，`SubmitOrder`/`WaitRestock`/`RestockMonitoring` 一堆
+
+### 一、路径 vs 行为名，别再混
+
+| 查什么 | 结果 |
+|---|---|
+| `order/submit` / `cart/add` / `api/stock` **作为路径** | **零命中**（90/164/131 次命中全是方法名与状态机，不是 URL） |
+| `SubmitOrder` · `AddToCart` · `AddToCartGraphQL` · `AddToCartPreload` · `SubmitDiscount` · `PollRestock` · `PollRestockMulti` · `PollRestockSafe` · `WaitRestock` · `RestockMonitoring` **作为行为名** | **全在** |
+
+⇒ 复刻件这三条 REST 路径**没有路径证据**，但**那三个动作原版确实做**。
+这与 R1257/R1255 同型：**行为有据、地址无据**。
+
+### 二、顺手做了一张"行为名覆盖表"（判据 a 的料）
+
+| 镜像行为名 | 复刻件 | 位置 |
+|---|---|---|
+| `AddToCartGraphQL` | **有** | `CandidateSteps.cs:28` |
+| `AddToCartPreload` | **有** | `CandidateSteps.cs:28` |
+| `SubmitDiscount` | **有** | `LambdaWitness.cs:19` |
+| `PollRestock` | **有** | `PopMartFlow.cs:9` |
+| **`WaitRestock`** | **无** | — |
+| **`RestockMonitoring`** | **无** | — |
+
+**两条缺口**：`WaitRestock`、`RestockMonitoring`。镜像里它们是**独立状态机**（`<WaitRestock>d__45`、
+`<PollRestock>b__1` 与 `RestockMonitoring` 同级出现），说明原版把"等补货"和"轮询补货"分成两件事。
+
+### 三、为什么本轮**不**直接把这两个名字加成步骤
+
+加步骤要同步三处：`StoreFlowSteps.cs` 的 105 → 107、`CoreTests:133` 与 `ArrowAndBeastTests:84` 的
+65 模块钉、以及 `FlowWorkAuditTests` 的"每个 override 都要干活"——
+**R1233 就是在这三处撞了一次，最后整轮回滚**。
+
+本轮只把缺口**记清楚**；下一轮按三处联动做，而不是先加名字再修守卫。
+
+### 四、验证
+
+无 `replica/src` 改动（本轮只取证与对账）。上轮全量 **2538/0/2/2540** 仍成立。
+
+证据等级：Observation = 三类关键词的命中分布（路径 0、行为名全在）、六条名字在复刻件的定位；
+Inference = 「等补货与轮询补货是两件事」；Unknown = 这两个状态机的输入输出与触发条件。

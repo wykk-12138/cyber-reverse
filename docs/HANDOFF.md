@@ -7714,3 +7714,13 @@ Observation：
 
 还剩什么：① 19 条无近邻（PopMart/Scheels/Retail/Goat/Hybris/Shopify/StoreFlow）；
 ② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）；⑤ 产物待重发。
+## R1259 —— 路径无据 / 行为名有据；`WaitRestock` 与 `RestockMonitoring` 两条行为名缺口（待三处联动）
+
+Observation：
+- `order/submit`/`cart/add`/`api/stock` 作路径 **0**；作行为名（`SubmitOrder`/`AddToCart`/`WaitRestock`/`RestockMonitoring`…）**全在**。
+- 复刻件覆盖 4/6：`AddToCartGraphQL`、`AddToCartPreload`（CandidateSteps:28）、`SubmitDiscount`（LambdaWitness:19）、`PollRestock`（PopMartFlow:9）。
+
+**缺口**：`WaitRestock`、`RestockMonitoring`。加步骤须三处联动（105→107、两处 65 钉、FlowWorkAudit），
+R1233 撞过一次 ⇒ 下轮按联动做。
+
+还剩什么：① 两条行为名落地（三处联动）；② 18 条无近邻；③ connect 通道（需登录）；④ 两条 Unknown；⑤ 产物待重发。

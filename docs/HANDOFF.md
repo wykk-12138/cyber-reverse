@@ -7681,3 +7681,13 @@ Observation：
 验证：build 0 错；17/17；全量 **2530/0/2/2532**（4m29s）。
 
 还剩什么：① 15 条无近邻继续；② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）；⑤ 产物待重发。
+## R1256 —— 审计加 extension 档（bstn 是原版没有的扩展）：no-hit 26 → 22；总字面量 297 / exact 255
+
+Observation：
+- `/api/beast` 与 `/geoIP` 均出自 `BstnFlow.cs`；R1205 判定 bstn/livestock/shophmvs 为扩展。
+- 重算：297 条 → exact 255 / 前缀 2 / 插值 5 / 散文 11 / **extension 2** / **no-hit 22**。
+
+判断：这两条属**预期缺席**。22 条分布在 9 个文件，是下一批对象。
+验证：无 src 改动；产物重生成。
+
+还剩什么：① 22 条逐条定性；② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）；⑤ 产物待重发（本轮无 src 改动，仅文档/脚本）。

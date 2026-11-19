@@ -45890,3 +45890,41 @@ Inference = 「+213 pdata 是本轮新增方法体被保留」；Unknown = 这 2
 
 证据等级：Observation = 96 条中的 14 条字面量、两条复刻件写法的零命中、`#` 的语义事实；
 Inference = 「镜像按查询串分阶段」；Unknown = 每店属于哪个 family。
+## R1256 —— 给审计加 `extension` 档：**26 → 22**，其中 2 条是"原版本来就没有"的扩展
+
+### 一、这两条为什么不该算缺口
+
+`/api/beast` 与 `/geoIP` 都来自 `BstnFlow.cs`——而 R1205 已判定 **bstn 是原版没有的扩展**
+（同批还有 livestock、shophmvs）。⇒ 它们的路径在镜像里**没有命中是预期结果**，不是缺口。
+
+**上一次我差点把它们当缺口去追**。这正是"分母里混进了不该在的东西"那类错。
+
+### 二、审计加档并重算（`path_audit.py`）
+
+新增 `extension` 档，判据是**文件名**在 `EXTENSION_FILES`（bstn/livestock/shophmvs），
+并在源码里注明：**这份清单说的是复刻件，不是镜像**。
+
+| 档 | 数 | 含义 |
+|---|---|---|
+| `exact` | **255** | 镜像里有 |
+| `prefix-only` | 2 | 只缺查询串后缀 |
+| `assembled` | 5 | 含 `{}` 的模板 |
+| `pattern` | 0 | 正则 |
+| `prose` | 11 | 注释/散文里的路径 |
+| **`extension`** | **2** | **原版没有的扩展流程** |
+| **`no-hit`** | **22** | 仍未解释 |
+
+**总字面量从 270 涨到 297**（R1250/R1255 新增的 `MagentoRest`/`CheckoutRoutes` 带进来的），
+`exact` 从 229 涨到 255。
+
+### 三、22 条的分布（下一批读代码的对象）
+
+`StoreFlow.cs` · `MagentoFlow.cs` · `PopMartEndpoints.cs` · `ScheelsFlow.cs` · `RetailFlows.cs` ·
+`HbxFlow.cs` · `GoatFlow.cs` · `HybrisFlow.cs` · `ShopifyFlow.cs`——**9 个文件**。
+
+### 四、验证
+
+无 `replica/src` 改动；产物 `analysis/flow_path_audit.txt` 重生成（含 extension 段）。
+
+证据等级：Observation = 七个档的计数、两条 extension 条目的来源文件、R1205 的既有判定；
+Inference = 「这两条属预期缺席」；Unknown = 22 条各自的归属（不变）。

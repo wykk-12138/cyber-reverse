@@ -5,10 +5,9 @@
 # no-hit      none of the above -- the only bucket that is a candidate gap
 # Regenerate with: python analysis/path_audit.py "replica/src/Cybersole.Stores/Flows/*.cs" analysis/flow_path_audit.txt
 
-# NO-HIT (26)
+# NO-HIT (22)
 /account/recover                                          	StoreFlow.cs
 /account/verify                                           	MagentoFlow.cs
-/api/beast                                                	BstnFlow.cs
 /api/cart/add                                             	PopMartEndpoints.cs
 /api/cart/items                                           	ScheelsFlow.cs
 /api/checkout/submit                                      	RetailFlows.cs
@@ -21,10 +20,7 @@
 /cart/add.js                                              	ShopifyFlow.cs
 /cart/update.js                                           	ShopifyFlow.cs
 /checkout/#payment                                        	MagentoFlow.cs
-/checkout/complete                                        	StoreFlow.cs
 /collections/new-releases                                 	MagentoFlow.cs
-/geoIP                                                    	BstnFlow.cs
-/rest/V1/carts/mine                                       	MagentoFlow.cs
 /rest/V1/carts/mine/totals                                	MagentoFlow.cs
 /rest/V2/carts/mine                                       	MagentoFlow.cs
 /v1/buys                                                  	GoatFlow.cs
@@ -33,16 +29,22 @@
 /view/resources/getUserInfo                               	HybrisFlow.cs
 text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8	StoreFlow.cs
 
+# EXTENSION (2)
+/api/beast                                                	BstnFlow.cs
+/geoIP                                                    	BstnFlow.cs
+
 # PREFIX-ONLY (2)
 /InitiatePayment?singleStep=true                          	NikeFlow.cs
 /account?email=                                           	StoreFlow.cs
 
-# EXACT (229)
+# EXACT (255)
 /3d_secure_2/hosted?merchant=                             	MagentoFlow.cs
 /3d_secure_2/notify/                                      	MagentoFlow.cs
 /Checkout-SaveGuest                                       	HybrisFlow.cs
 /Checkout-SubmitOrder                                     	HybrisFlow.cs
 /Checkout-SubmitPaymentDetails                            	HybrisFlow.cs
+/V1/carts/mine/payment-information                        	MagentoRest.cs
+/V1/carts/mine/shipping-information                       	MagentoRest.cs
 /account                                                  	MagentoFlow.cs
 /account/login                                            	AccountAndAuthFamilies.cs
 /account/login/                                           	AccountAndAuthFamilies.cs
@@ -52,6 +54,8 @@ text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8	StoreFlow.cs
 /account/login?returnUrl=                                 	AccountAndAuthFamilies.cs
 /account/loginPost/                                       	AccountAndAuthFamilies.cs
 /account/loginPost/referer/                               	AccountAndAuthFamilies.cs
+/adyen/carts/mine/payments-details                        	MagentoRest.cs
+/adyen/orders/carts/mine/payment-status                   	MagentoRest.cs
 /api/auth/callback/                                       	AccountAndAuthFamilies.cs
 /api/auth/callback/credentials                            	AccountAndAuthFamilies.cs
 /api/auth/csrf                                            	AccountAndAuthFamilies.cs
@@ -97,11 +101,33 @@ text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8	StoreFlow.cs
 /cart/add                                                 	RetailFlows.cs
 /cart/add/                                                	SportsshoesFlow.cs
 /cart/checkout                                            	HybrisFlow.cs
+/carts/mine                                               	MagentoRest.cs
+/carts/mine/coupons/                                      	MagentoRest.cs
+/carts/mine/estimate-shipping-methods?                    	MagentoRest.cs
+/carts/mine/items/                                        	MagentoRest.cs
+/carts/mine/items/?estimate=true                          	MagentoRest.cs
+/carts/mine/payment-information                           	MagentoRest.cs
+/carts/mine/shipping-information                          	MagentoRest.cs
 /catalog-productdetails/v4/byPartNumber/                  	DicksSportingGoodsFlow.cs
 /checkout                                                 	FootsitesFlow.cs
+/checkout/                                                	CheckoutRoutes.cs
+/checkout/?stage=payment                                  	CheckoutRoutes.cs
+/checkout/?stage=placeOrder                               	CheckoutRoutes.cs
+/checkout/?stage=shipping                                 	CheckoutRoutes.cs
+/checkout/?step=payment                                   	CheckoutRoutes.cs
+/checkout/cart/                                           	CheckoutRoutes.cs
+/checkout/cart/addcoupon/?couponCode=                     	CheckoutRoutes.cs
+/checkout/cart/couponPost/                                	CheckoutRoutes.cs
+/checkout/confirmation                                    	CheckoutRoutes.cs
+/checkout/onepage/success/                                	CheckoutRoutes.cs
 /checkout/order                                           	StoreFlow.cs
 /checkout/pay                                             	HbxFlow.cs
 /checkout/registration                                    	MagentoFlow.cs
+/checkout/return                                          	CheckoutRoutes.cs
+/checkout/services/placeorder/                            	CheckoutRoutes.cs
+/checkout/shippingservices/submitshipping/                	CheckoutRoutes.cs
+/checkout/sidebar/removeItem/                             	CheckoutRoutes.cs
+/checkout/success                                         	CheckoutRoutes.cs
 /checkout/v1/orders                                       	SharedCommerceEndpoints.cs
 /checkout?setCurrencyId=1                                 	SportsshoesFlow.cs
 /checkout?step=                                           	HbxFlow.cs
@@ -134,6 +160,7 @@ text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8	StoreFlow.cs
 /customer/v1/customer/login                               	CustomerApiEndpoints.cs
 /customer/v1/customer/register                            	CustomerApiEndpoints.cs
 /customer/v1/verification/send                            	CustomerApiEndpoints.cs
+/end/carts/mine/                                          	MagentoRest.cs
 /enter                                                    	RetailFlows.cs
 /get-csrf-token                                           	GoatFlow.cs
 /graphql                                                  	RetailFlows.cs
@@ -150,8 +177,7 @@ text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8	StoreFlow.cs
 /product-core/v1/pdp/sku                                  	SharedCommerceEndpoints.cs
 /products/                                                	ShopifyFlow.cs
 /queue                                                    	FootsitesFlow.cs
-/rest/                                                    	ServiceHosts.cs
-/rest/V1                                                  	ServiceHosts.cs
+/rest/                                                    	MagentoRest.cs
 /rpc/ec/buyRule/validateBuyRule                           	StoreApiFamilies.cs
 /rpc/ec/freight/calculateShippingFee                      	StoreApiFamilies.cs
 /rpc/ec/order/create                                      	StoreApiFamilies.cs
@@ -268,13 +294,16 @@ v4/orderforms/deliveries                                  	RetailApiFamilies.cs
 v4/orderforms/deliveries/                                 	RetailApiFamilies.cs
 v4/orderforms/deliveries/delivery-address                 	RetailApiFamilies.cs
 
-# PROSE (8)
+# PROSE (11)
 /api/payments/                                            	StoreFlow.cs
+/checkout/complete                                        	StoreFlow.cs
 /discount/                                                	StoreFlow.cs
 /methods                                                  	JohnLewisStepMap.cs
 /payments                                                 	MagentoFlow.cs
 /payments/                                                	StoreFlow.cs
+/rest/V1                                                  	MagentoFlow.cs
 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36	StoreFlow.cs
 Mozilla/5.0 (Windows NT 10.0; Win64; x64)                 	StoreFlow.cs
+carts/mine                                                	MagentoFlow.cs
 method/price                                              	ShopifyFlow.cs
 

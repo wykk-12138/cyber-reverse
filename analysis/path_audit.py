@@ -20,6 +20,11 @@ import sys
 
 PATH_LITERAL = re.compile(r'"((?:/[a-z0-9]|[a-z0-9]+/)[^"\\]{3,})"', re.I)
 
+# R1256: three flows are documented as extensions the original does not carry (R1205: bstn, livestock, shophmvs).
+# A path from one of those files having no hit is the expected outcome, not a gap, so it gets its own bucket instead
+# of inflating the no-hit count. The list is data about the replica, not a claim about the image.
+EXTENSION_FILES = ('BstnFlow.cs', 'LivestockFlow.cs', 'ShopHmvsFlow.cs')
+
 
 def load_strings(path='analysis/ida_strings.txt'):
     rows = []
@@ -49,10 +54,13 @@ def main(argv):
                 is_prose = stripped.startswith('//') or ' ' in lit
                 literals.setdefault(lit, (name, is_prose))
 
-    buckets = {'exact': [], 'prefix-only': [], 'assembled': [], 'pattern': [], 'prose': [], 'no-hit': []}
+    buckets = {'exact': [], 'prefix-only': [], 'assembled': [], 'pattern': [], 'prose': [],
+               'extension': [], 'no-hit': []}
     for lit, (src, is_prose) in sorted(literals.items()):
         if is_prose:
             buckets['prose'].append((lit, src))
+        elif src in EXTENSION_FILES:
+            buckets['extension'].append((lit, src))
         elif '{' in lit:
             # R1248: /api/v1/carts/{c.Session.CartId} is not a literal the code sends; it is a template whose parts
             # are concatenated, so the image would hold the fixed prefix only. Counting these as gaps inflated the
@@ -68,7 +76,7 @@ def main(argv):
             buckets['no-hit'].append((lit, src))
 
     print('literals: %d  (%s)' % (len(literals), pattern))
-    for k in ('exact', 'prefix-only', 'assembled', 'pattern', 'prose', 'no-hit'):
+    for k in ('exact', 'prefix-only', 'assembled', 'pattern', 'prose', 'extension', 'no-hit'):
         print('  %-12s %4d' % (k, len(buckets[k])))
 
     with io.open(out_path, 'w', encoding='utf-8', newline='\n') as f:
@@ -78,7 +86,7 @@ def main(argv):
         f.write('# prose       the source line is a comment or the literal contains spaces: not a request\n')
         f.write('# no-hit      none of the above -- the only bucket that is a candidate gap\n')
         f.write('# Regenerate with: python analysis/path_audit.py "%s" %s\n\n' % (pattern, out_path))
-        for k in ('no-hit', 'prefix-only', 'exact', 'prose'):
+        for k in ('no-hit', 'extension', 'prefix-only', 'exact', 'prose'):
             f.write('# %s (%d)\n' % (k.upper(), len(buckets[k])))
             for lit, src in buckets[k]:
                 f.write('%-58s\t%s\n' % (lit, src))

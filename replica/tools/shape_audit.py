@@ -162,12 +162,28 @@ def kind_of(body, member):
     # wrong and inflates the not-found bucket. Take the whole property block first, then look inside it.
     block = re.search(r'\b' + member + r'\s*\{', body)
     if block:
-        # A fixed window rather than a matched block: property bodies can contain lambdas (`get => { … }`),
-        # and requiring a brace-free block dropped those back into '?' (3 regressions when first tried).
-        window = body[block.end():block.end() + 400]
-        if re.search(r'\bset\b', window):
+        # R1199: look inside THIS property's braces, not a fixed window past them. A 400-character window ran
+        # on into the next member, so `public bool PriceCheckVisible { get; init; }` followed by any settable
+        # property was reported as having a setter - inflating the over-permissive count with members that are
+        # not writable at all, and hiding `init` as a distinct kind. The window existed because property bodies
+        # can contain lambdas with their own braces; counting braces handles that better than either the window
+        # or the brace-free requirement that was tried first.
+        _start = block.end() - 1
+        _depth, _end = 0, _start
+        for _i in range(_start, min(len(body), _start + 4000)):
+            if body[_i] == '{':
+                _depth += 1
+            elif body[_i] == '}':
+                _depth -= 1
+                if _depth == 0:
+                    _end = _i
+                    break
+        blocktext = body[_start:_end + 1]
+        if re.search(r'\bset\b', blocktext):
             return 'prop+set'
-        if re.search(r'\bget\b', window):
+        if re.search(r'\binit\b', blocktext):
+            return 'prop-init'
+        if re.search(r'\bget\b', blocktext):
             return 'prop-get'
     if re.search(r'\b' + member + r'\s*=>', body):
         return 'prop-get'

@@ -43403,3 +43403,54 @@ over-permissive total: 45
 
 证据等级：Observation = 新一节输出与 45 这个计数、`IWebhook.Type`/`BotTask.Product` 两行、度量字段、套件收据；
 Inference = 「多数 over-permissive 由持久化需求造成」；Unknown = 45 条里哪几条是真偏差（未分诊）。
+## R1199 —— 修 `kind_of` 的**固定窗口**缺陷：缺口 88→**96**、over-permissive 45→**37**（都是变准）
+
+### 一、缺陷
+
+`kind_of` 判定属性形态时用的是 `window = body[block.end():block.end()+400]` ——**向后 400 字符**。
+属性体后面的**下一个成员**也被算进窗口，于是：
+
+`csharp
+public bool PriceCheckVisible { get; init; }      // 只有 init
+public decimal MinPrice { get; set; }             // 下一个属性的 set 落进了 400 字符窗口
+`
+
+⇒ `PriceCheckVisible` 被报成 `prop+set`。**上一轮那 45 条 over-permissive 里有一部分就是这么来的。**
+
+### 二、修法
+
+改成**按属性自身的花括号配平**取块（注释与字符串早已在 R1186 抹掉，配平可靠），
+并新增 `prop-init` 作为独立形态：`init` **不是** `set`——双向绑定需要 setter，`init` 绑不上。
+
+### 三、数字变化（**变准，不是变坏**）
+
+| | 修前 | 修后 |
+|---|---|---|
+| total mismatches | 88 | **96** |
+| core mismatches | 3 | **8** |
+| over-permissive | 45 | **37** |
+
+- 缺口**升**是因为 `{ get; init; }` 现在如实算 `prop-init`：原版要 setter 而只有 init，**确实是缺口**；
+- over-permissive **降**是因为窗口泄漏把只读成员误报成可写。
+
+### 四、45→37 之后的分诊（首次有可靠清单）
+
+| 类型 | 例 | 判断 |
+|---|---|---|
+| `CaptchaProvider` | `ApiKey`/`BalanceSupported`/`Type` | **持久化字段**（solvers.json）⇒ Accepted |
+| `BotTask.Product` | — | **持久化字段**（tasks.json）⇒ Accepted |
+| `Element.PropName` | — | 待查（可能是纯 UI 状态） |
+| `IWebhook.Type` | — | Accepted（见 R1198：序列化需求） |
+
+**规则**：可写性若由持久化需要驱动 ⇒ 记 Accepted；要收窄必须先加 `[JsonProperty]` 并做往返验证。
+
+### 五、验证
+
+`dotnet build` 0 错；全量 **2477 通过 / 0 失败 / 2 跳过 / 2479**（4m22s）；
+度量三字段 `96 / 8 / 37`。
+
+**连续两轮都是"数字变大/变小但更准"**：R1198 补反方向、R1199 修窗口。
+**数字本身没有意义，口径才有。**
+
+证据等级：Observation = `PriceCheckVisible` 的声明与相邻属性、修前修后三组数字、套件收据；
+Inference = 「init ≠ set 构成缺口」「多数 over-permissive 由持久化驱动」；Unknown = `Element.PropName` 一类是否真为纯 UI 状态。

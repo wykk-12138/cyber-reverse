@@ -7006,3 +7006,17 @@ Observation：
 还剩什么：① 45 条 over-permissive **逐类分诊**（持久化需求 vs 真偏差）；
 ② 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；
 ③ abort 分支未验证；④ UI 侧 prop-get（冻结）。
+## R1199 —— 修 kind_of 固定窗口（88→96 / core 3→8；over-permissive 45→37）；新增 prop-init
+
+Observation：
+- 旧实现 window = body[block.end():block.end()+400] 越界到下一个成员 ⇒ { get; init; } 被误判 prop+set。
+- 改为按属性花括号配平取块；init 单列 prop-init。
+- 数字三处变化均"变准"。
+
+验证：build 0 错；全量 **2477/0/2/2479**（4m22s）；度量 **96 / 8 / 37**。
+
+分诊规则：持久化驱动 → Accepted；收窄前置 = [JsonProperty] + 往返验证。
+待查：Element.PropName 等是否纯 UI 状态。
+
+还剩什么：① core 8 条缺口逐条（含 prop-init 新增的 5 条）；② over-permissive 37 条分诊；
+③ abort 分支未验证；④ UI 侧（20 条）冻结。

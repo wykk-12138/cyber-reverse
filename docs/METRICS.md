@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 01:43:01 +0800 |
+| 生成时间 | 2026-11-20 01:49:43 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py --skip-tests` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -27,9 +27,9 @@
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
 | 类型缺失（type presence） — classified | renamed 13, out of scope 2, unimplemented 0, unclassified 0 |
-| 成员形状差异 — total mismatches | 88 |
-| 成员形状差异 — core mismatches | 3 |
-| 成员形状差异 — over-permissive total | 45 |
+| 成员形状差异 — total mismatches | 96 |
+| 成员形状差异 — core mismatches | 8 |
+| 成员形状差异 — over-permissive total | 37 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
 | 绑定缺口分桶 — backlog: types absent | 2 |
@@ -148,9 +148,14 @@ C:\Python312\python.exe tools/shape_audit.py --baseline
 ```text
 evidence: baseline (211 types, kinds kept)
 mismatches: member has Setter evidence but the replica is not a settable property
+  BotTask                    Properties             evidence=Getter,Property,Setter     replica=prop-get
   BotTask                    Running                evidence=Getter,Property,Setter     replica=?
   BotTask                    Task                   evidence=Getter,Property,Setter     replica=?
+  CreateInputModel           MaxPrice               evidence=Getter,Property,Setter     replica=prop-init
   CreateModel                Inputs                 evidence=Getter,Property,Setter     replica=?
+  CreateModel                Profiles               evidence=Getter,Property,Setter     replica=prop-get
+  CreateModel                Tasks                  evidence=Getter,Property,Setter     replica=prop-get
+  SmartAction                Logs                   evidence=Getter,Property,Setter     replica=prop-get
   AccountGrid                Delete                 evidence=Getter,Property,Setter     replica=?
   AccountGrid                Edit                   evidence=Getter,Property,Setter     replica=prop-get
   AccountGroupView           Delete                 evidence=Getter,Property,Setter     replica=?
@@ -210,6 +215,9 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   NotificationsView          SelectSound            evidence=Getter,Property,Setter     replica=method
   PaymentView                SelectedProfiles       evidence=Getter,Property,Setter     replica=prop-get
   ActionsModal               Close                  evidence=Getter,Property,Setter     replica=?
+  FilterInputEntry           Filter                 evidence=Getter,Property,Setter     replica=prop-get
+  FilterRow                  Filter                 evidence=Getter,Property,Setter     replica=prop-get
+  FilterRow                  Inputs                 evidence=Getter,Property,Setter     replica=prop-get
   PublishTemplateModal       Close                  evidence=Getter,Property,Setter     replica=?
   SmartActionsCreator        AddAction              evidence=Getter,Property,Setter     replica=method
   SmartActionsCreator        AddFilter              evidence=Getter,Property,Setter     replica=method
@@ -236,7 +244,7 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   StoreGroupModal            RemoveStore            evidence=Getter,Property,Setter     replica=method
   StoreGroupModal            Save                   evidence=Getter,Property,Setter     replica=?
   UtilitiesView              CreateStoreGroup       evidence=Getter,Property,Setter     replica=method
-total mismatches: 88
+total mismatches: 96
 
 over-permissive: member is read-only in the original but settable here
   CaptchaProvider            ApiKey                 evidence=Getter,Property            replica=prop+set
@@ -244,8 +252,6 @@ over-permissive: member is read-only in the original but settable here
   CaptchaProvider            Type                   evidence=Getter,Property            replica=prop+set
   Element                    PropName               evidence=Getter,Property            replica=prop+set
   BotTask                    Product                evidence=Getter,Property            replica=prop+set
-  CreateInputModel           PriceCheckVisible      evidence=Getter,Property            replica=prop+set
-  CreateInputModel           Symbol                 evidence=Getter,Property            replica=prop+set
   Input                      Type                   evidence=Getter,Property            replica=prop+set
   License                    Last4                  evidence=Getter,Property            replica=prop+set
   MonitorProduct             AvailableVariants      evidence=Getter,Property            replica=prop+set
@@ -256,13 +262,10 @@ over-permissive: member is read-only in the original but settable here
   Solver                     Reload                 evidence=Getter,Property            replica=prop+set
   Solver                     View                   evidence=Getter,Property            replica=prop+set
   Status                     Clickable              evidence=Getter,Property            replica=prop+set
-  Store                      Info                   evidence=Getter,Property            replica=prop+set
   TaskStep                   Completed              evidence=Getter,Property            replica=prop+set
   TaskStep                   Duration               evidence=Getter,Property            replica=prop+set
   TaskStep                   Running                evidence=Getter,Property            replica=prop+set
   TaskStep                   Started                evidence=Getter,Property            replica=prop+set
-  User                       IsStaff                evidence=Getter,Property            replica=prop+set
-  ValueGroup                 Preview                evidence=Getter,Property            replica=prop+set
   GroupGrid                  Items                  evidence=Getter,Property            replica=prop+set
   GroupGrid                  Store                  evidence=Getter,Property            replica=prop+set
   CustomBrowser              Type                   evidence=Getter,Property            replica=prop+set
@@ -273,23 +276,20 @@ over-permissive: member is read-only in the original but settable here
   MessageBoxDialog           Type                   evidence=Getter,Property            replica=prop+set
   ProfileCreatorView         IsBulk                 evidence=Getter,Property            replica=prop+set
   ProfileCreatorView         ShippingView           evidence=Getter,Property            replica=prop+set
-  LocalizedOption            Text                   evidence=Getter,Property            replica=prop+set
   CaptchaProviderCreatorView Creating               evidence=Getter,Property            replica=prop+set
   CloudflareSolverCreatorView Creating               evidence=Getter,Property            replica=prop+set
   GoogleAccountEditView      EditMode               evidence=Getter,Property            replica=prop+set
   PayPalAccountCreatorView   EditMode               evidence=Getter,Property            replica=prop+set
-  FilterRow                  Passed                 evidence=Getter,Property            replica=prop+set
-  FilterRow                  Title                  evidence=Getter,Property            replica=prop+set
   HistoryWindow              SmartAction            evidence=Getter,Property            replica=prop+set
   HistoryWindow              View                   evidence=Getter,Property            replica=prop+set
   SmartActionsCreator        IsEditing              evidence=Getter,Property            replica=prop+set
   IWebhook                   Type                   evidence=Getter,Property            replica=prop+set
-over-permissive total: 45
+over-permissive total: 37
 
 by owning project (priority order: Stores > Services > Http > Core > Ui):
-  Cybersole.Ui            85
-  Cybersole.Core           3
-core mismatches: 3
+  Cybersole.Ui            88
+  Cybersole.Core           8
+core mismatches: 8
 ```
 
 ### 文案缺口总表

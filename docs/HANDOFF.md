@@ -6661,3 +6661,16 @@ xunit 默认并行类 ⇒ 12 个碰 `Config` 的类互相踩。**解释了「只
 
 还剩什么：① 从 `'8058260839474'`/`'/moon-shoe-jacquemus-%2B-nike/'` 等反查 store → flow → ordinal；
 ② 两个大型例程的步骤语义（438/574 行）尚未读全。
+## R1171 —— JL 步骤表在第二地址复现；36/37 三处无实现；16/19/14 三数字并列；不接线（宿主不符）
+
+Observation：
+- `0x143372d80` 的状态机名串 = `FLOW_SEQUENCES.md` §3 的 JL 22..37 表（**第二地址交叉验证**）。
+- **16**（镜像连续步骤）/ **19**（StepMap 注释总数）/ **14**（实测 `Pairs` key 数）三者并列已写入 BLOCKERS。
+- `GetCartCsrf` 在 `src` **无实现**；`JohnLewisStepMap.Pairs` 无 36/37；`GetPayPalOrderId` 仅在注释。
+
+**不接线**：`/Paypal-GetPaypalOrderId` 是 SFCC 形态，JL 走 BFF ⇒ 归因 Unknown，不以名字相似推断。
+
+本轮无代码改动（docs 三处）；变异收据沿用 R1170（src 未变）。
+
+还剩什么：① 定 JL 第 37 步的真实实现（从 `0x140a32f30` 的 574 行里读它请求的宿主）；
+② `GetCartCsrf` 的端点（镜像里未找到，可能同为 BFF）。

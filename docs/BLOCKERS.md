@@ -42306,3 +42306,53 @@ Inference = 「OOM 导致子进程 exit 1」（**未取内存峰值证据**）�
 证据等级：Observation = 四级调用链与行数、三条 stub 的 `Initialize/Start/GetResult` 反编译、相邻地址、
 两组 literal 清单、全量与变异收据；Inference = 「两条调用属同一步骤」（由同一等待者推出）；
 Unknown = 那两个例程的 flow 与 ordinal。
+## R1171 —— John Lewis 的 36:GetCartCsrf / 37:GetPayPalOrderId：**镜像里有，复刻件里三处都没有**
+
+**取件**：R1170 遗留「那两个 438/574 行例程属于哪个 flow、哪个 ordinal」。查法是从产品字面量反查 store，
+第一个探针就撞上了比预期更硬的东西。
+
+### 一、步骤表在第二个地址被独立复现
+
+`ida.py str "Preload"` 的第 14 条（`0x143372d80`）是一串**状态机名**，内容就是一段带序号的步骤表：
+
+`
+<<GetHome>b__24_1>d · <<FindVariant>b__27_1>d · <<AddToCartPreload>b__28_1>d
+<<SubmitEmail>b__30_1>d · <<GetShippingRate>b__31_1>d · <<SubmitBilling>b__33_1>d
+<<CompleteOrder>b__35_1>d · <<GetCartCsrf>b__36_1>d · <<GetPayPalOrderId>b__37_1>d
+`
+
+它与 `docs/FLOW_SEQUENCES.md` §3 早已记下的 **John Lewis 16 步表**（`0x3371cea`，22–37）**逐项吻合**。
+⇒ **同一段表在两个不同地址被独立读到**（一个是行组，一个是状态机名串）。这是本项目第一次对这张表做交叉验证。
+
+### 二、复刻件里这三处**都没有**
+
+| 位置 | GetCartCsrf | GetPayPalOrderId |
+|---|---|---|
+| `src/**` 实现 | **无**（`where_is` 只在 docs 命中） | 只在 `Gateways.cs` 的**注释**里（步骤名清单，非方法） |
+| `JohnLewisStepMap.Pairs`（**14** 条，配上端点的那些） | **无** | **无** |
+| 镜像 | 有（ordinal **36**） | 有（ordinal **37**） |
+
+### 三、三个数字必须摆清楚（它们数的不是同一件事）
+
+| 数字 | 出处 | 数的是什么 |
+|---|---|---|
+| **16** | `FLOW_SEQUENCES.md` §3，镜像行组 `0x3371cea`（22..37） | 镜像里这一段**连续**的步骤，中间缺 23 |
+| **19** | `JohnLewisStepMap` 类注释「nineteen steps against twelve BFF endpoints」 | R118/R119 配出的**步骤总数**（含无端点的三步） |
+| **14** | 实测 `Pairs` 的 key 数 | **真的配上了 BFF 端点**的步骤 |
+
+三者互不矛盾，但此前没有任何一处把它们并列写下来——**读者只会看到 19 与 16 打架**。
+本轮把这张表落进 BLOCKERS，并把「缺的 23」与「36/37 无实现」分开列。
+
+### 四、**不接线**的理由（这条比结论更重要）
+
+`Paypal-GetPaypalOrderId` 这条控制器是 **SFCC 形态**（`/on/demandware.store/Sites-…` 那套 builder 里出来的），
+而 **John Lewis 不走 Demandware**（它的 12 个端点在 `v2/v3/v4` BFF 上）。
+所以「JL 的第 37 步 = 我 R1162 写的那个方法」**目前不成立**：步骤表说 JL 有 `GetPayPalOrderId`，
+控制器说 `/Paypal-` 属 Demandware 宿主——**两者可能不是同一个实现**。
+
+⇒ 归因保持 **Unknown**。若现在把方法接到 JL 第 37 步，就是拿「名字像」当证据——
+**R1160 的 `beast`/ARROW & BEAST 已经教过一次。**
+
+证据等级：Observation = `0x143372d80` 的状态机名串、`FLOW_SEQUENCES.md` §3 原文、`Pairs` 实测 14 个 key、
+`where_is` 两处缺席；Inference = 「两个地址是同一张表」（内容逐项吻合）；Unknown = JL 第 37 步的真实实现
+与 `/Paypal-GetPaypalOrderId` 是否同一段代码。

@@ -64,6 +64,18 @@ public static class MagentoRest
     public const string EndClothingCartsMine = "/end/carts/mine/";
 
     /// <summary>
+    /// <c>carts/mine</c> as a standalone token (R1251). The image carries it without a leading slash and without any
+    /// suffix, beside <c>/rest/V1</c> as another standalone string — which is why no single literal
+    /// <c>/rest/V1/carts/mine</c> exists even though the original can produce exactly that path by concatenation.
+    /// That distinction matters: the replica's hard-coded path is not fabricated, it is the composition of two
+    /// fragments the image does hold, and the audit could only see it once the assembly was accounted for.
+    /// </summary>
+    public const string CartsMineToken = "carts/mine";
+
+    /// <summary>The same segment with the leading slash the paths below use.</summary>
+    public const string CartsMine = "/carts/mine";
+
+    /// <summary>
     /// <c>rest/</c> plus the locale segment plus <c>/V1</c>. Pass <c>null</c> or empty for the unlocalised
     /// <c>/rest/V1</c> the image also carries; pass <c>"en_ph"</c> for the locale-prefixed form it carries beside it.
     /// </summary>

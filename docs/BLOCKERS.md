@@ -45709,3 +45709,40 @@ R1249 说 26 条全无近邻。本轮用全量 dump 扩大 key 宽度后，Magen
 
 证据等级：Observation = 17 条 distinct 字面量（含地址可重查的全量 dump）、六项上游查重为空；
 Inference = 「locale 段位 ⇒ 按区域组前缀」；Unknown = 每店用哪种前缀与哪条动作。
+## R1251 —— **第四类**：字面量不存在，但**片段存在** ⇒ 复刻件的 /rest/V1/carts/mine 是拼的，不是编的
+
+### 一、镜像里 `carts/mine` 是**独立 token**
+
+全量 dump 里它单独存在（无前导斜杠、无后缀），`/rest/V1` 也是独立的。
+⇒ **原版能把 `/rest/V1/carts/mine` 拼出来，但镜像里不会有整条字面量。**
+
+这解释了 R1249 的"零近邻"：我的 key 取最后两段 `carts/mine`，**应该**命中——那次确实没命中，
+因为 isolate 检索的是 carts/mine 在 s 里，而 dump 里那一条就是 carts/mine 本身……
+**本轮复查它是在的**。⇒ R1249 那句"零近邻"对这一条**是错的**，我在下一轮的方法修正里记下。
+
+（更正：R1249 的 no-hit 档里 `/rest/V1/carts/mine` 的 key 是 `carts/mine`，而它**在** dump 里。
+说明 R1249 的载入把 `\\n` 转义与真实换行混在一起，导致部分条目漏配。**这是仪器 bug，不是事实。**）
+
+### 二、于是这条的定性变了
+
+| 旧判读（R1249） | 新判读（本轮） |
+|---|---|
+| 无近邻 ⇒ 可能编的 | **两个片段都在** ⇒ **组合**而成，不是编的 |
+
+**分类学上要加第四类**：`assembled-from-attested`（整条无、片段全有）。
+与 `assembled`（模板含 `{}`）不同：那条是运行期插值，这条是**编译期常量拼接**。
+
+### 三、落地
+
+1. `MagentoRest.CartsMineToken = "carts/mine"` · `CartsMine = "/carts/mine"`（注释写明"独立 token，故无整条字面量"）；
+2. `MagentoFlow.GetBasketAsync` 改为 `MagentoRest.Under(MagentoRest.RestBase(null), MagentoRest.CartsMine)`
+   ——**同样的 URL，但现在是"用已证实片段组合"**，并在原处加 `inferred: no image evidence for this exact literal`；
+3. 测试新增一条：`Under(RestBase(null), CartsMine) == "/rest/V1/carts/mine"`，且 locale 形态
+   `/rest/en_ph/V1/carts/mine` 也成立 ⇒ **钉的是组合，不是字符串**。
+
+### 四、验证
+
+`dotnet build` 0 错；`Magento*` **12/12**；全量 **2526 通过 / 0 失败 / 2 跳过 / 2528**（4m27s，+1）。
+
+证据等级：Observation = `carts/mine` 与 `/rest/V1` 皆为独立字符串、组合后与复刻件路径逐字相等；
+Inference = 「原版由这两段拼出同一路径」；Unknown = 哪家店用哪条动作后缀（不变）。

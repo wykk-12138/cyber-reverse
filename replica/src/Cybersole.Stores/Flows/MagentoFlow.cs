@@ -192,8 +192,13 @@ public class MagentoFlow : StoreFlow
 
     public override async Task<StepOutcome> GetBasketAsync(FlowContext c, CancellationToken ct)
     {
-        var res = await GetAsync(c, ApiOrigin(c) + "/rest/V1/carts/mine", "magento-basket-get", ct)
-            .ConfigureAwait(false);
+        // inferred: no image evidence for this exact literal (R1251). The image carries "/rest/V1" and "carts/mine"
+        // as separate strings, so the original can produce this path by concatenation and the audit cannot see it as
+        // one literal; what it does carry verbatim are the action suffixes in MagentoRest (items, coupons,
+        // payment-information, shipping-information). Which of those a given storefront reads its basket through is
+        // Unknown, so this call keeps its path rather than switching to one of them.
+        var res = await GetAsync(c, ApiOrigin(c) + MagentoRest.Under(MagentoRest.RestBase(null), MagentoRest.CartsMine),
+            "magento-basket-get", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("magento basket fetch failed", retryable: true);
         if (!res.IsSuccess) return StepOutcome.Fail($"magento basket HTTP {res.StatusCode}", retryable: true);

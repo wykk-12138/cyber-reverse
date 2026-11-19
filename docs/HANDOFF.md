@@ -7625,3 +7625,15 @@ Observation：
 
 还剩什么：① 其余 25 条逐条定性；② 把 MagentoFlow 的旧写法改为引用 MagentoRest（需先确认调用面）；
 ③ connect 通道（需登录）；④ 两条 Unknown；⑤ UI CS0108（冻结）。
+## R1251 —— 第四类 assembled-from-attested（carts/mine + /rest/V1 皆独立 token）；并更正 R1249 的零近邻结论
+
+Observation：
+- dump 里 `carts/mine` 与 `/rest/V1` 都是独立字符串。
+- 组合 `Under(RestBase(null), CartsMine) == "/rest/V1/carts/mine"`（逐字相等）。
+- **更正**：R1249 说该条零近邻是错的（key 在 dump 里）；载入时 `\\n` 转义处理有 bug。
+
+改动：`CartsMineToken`/`CartsMine` + GetBasketAsync 改组合 + inferred 标注 + 组合等式测试。
+验证：build 0 错；12/12；全量 **2526/0/2/2528**。
+
+还剩什么：① 修 R1249 的载入 bug 并重跑近邻表；② 其余条目逐条定性；③ connect 通道（需登录）；
+④ 两条 Unknown；⑤ UI CS0108（冻结）。

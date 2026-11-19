@@ -34,6 +34,17 @@ public sealed class MagentoRestTests
     }
 
     [Fact]
+    public void TheBasketPathIsAssembledFromTwoAttestedFragments()
+    {
+        // R1251: the image carries "/rest/V1" and "carts/mine" as separate standalone strings and no single literal
+        // for the joined path. So the replica's hard-coded basket URL is a composition, not an invention, and this
+        // pins the composition rather than the string.
+        Assert.Equal("carts/mine", MagentoRest.CartsMineToken);
+        Assert.Equal("/rest/V1/carts/mine", MagentoRest.Under(MagentoRest.RestBase(null), MagentoRest.CartsMine));
+        Assert.Equal("/rest/en_ph/V1/carts/mine", MagentoRest.Under(MagentoRest.RestBase("en_ph"), MagentoRest.CartsMine));
+    }
+
+    [Fact]
     public void TheLocaleSegmentSitsBetweenRestAndV1()
     {
         // the image carries both /rest/V1/ppcp/ and rest/en_ph/V1/carts/mine/payment-information

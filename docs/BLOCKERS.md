@@ -45255,3 +45255,58 @@ Inference = 「接线让部分 Adyen 代码进了产物」；Unknown = 四条 3D
 
 证据等级：Observation = 三处调用链行号、6 条测试通过、全量收据；
 Inference = 「不是不可达那一支」；Unknown = URL 片段的具体存储形状（下轮用已有测试手段拆）。
+## R1241 —— 矛盾出清：**`ProcessPaymentAsync` 的方法体本身不在产物里**，R1179 的注解没救到它
+
+### 一、证据（同一产物，双编码）
+
+| 字面量 | 出处 | 结果 |
+|---|---|---|
+| `3DS challenge with no gateway` | 我以为是 `ProcessPaymentAsync` 的 PayPal 分支 | UTF-16 **在** |
+| `paypal3ds.state` | **同一个方法**里更靠前的键 | **不在** |
+| `adyen3ds` | R1239 我新加的分支 | UTF-16 **在** |
+| `adyen3ds.step` | 同上，完整键 | 不在 |
+| `adyen 3ds step with no adyen gateway to run it` | R1239 我新加的失败串 | **不在** |
+| `is not one the chain knows` | R1239 我新加的失败串 | **不在** |
+| `adyen.deviceSupport` / `adyen.supported` / `supportedVersions` / `adyen.paymentData` | `AdyenGateway.LookUpAsync` 体内独有 | **全不在** |
+| `3DS required but no transStatus` | `Process3DSAsync` 体内 | **不在** |
+| `no action url supplied` | `HandleRequiresActionAsync` 体内 | **不在** |
+
+**`3DS challenge with no gateway` 的命中是假象**：那是一句**截断前缀**，`Gateways.cs` 里 PayPal 网关
+自己也有近似文案，所以它**不能**证明 `ProcessPaymentAsync` 被保留。
+
+⇒ **修正上一轮的推断**：`ProcessPaymentAsync` **没有被保留**，R1239 加的分支也是死的。
+（`adyen3ds` 命中同理可疑：可能来自别处或来自被保留的极短片段。）
+
+### 二、那 R1179 的 `DynamicallyAccessedMembers` 为什么没生效
+
+`StepActionRunner.Build<StoreFlow>()`（`StepAction.cs:214-217`）上的注解**是对的**，
+但注解**只在调用被保留时才起作用**。调用链是：
+
+`FlowStoreModule.RunMonitorAsync/RunCheckoutAsync` → `StoreFlowRunner.RunAsync/…` →
+`StepActionRunner.RunAsync` → `Invokers`（反射表）→ `StoreFlow` 各 `*Async`。
+
+⇒ **只要这条链在产物里断了，注解就不生效，`StoreFlow` 全部步骤方法连字面量一起消失。**
+
+### 三、这意味着的可能（比"某个网关缺席"严重得多）
+
+**若整条链真的断了，产物里就没有结账流程执行能力**——那与判据 (a)(b) 的"结构对等"直接冲突。
+但**我还没有直接测这条链**：本轮只测了它的**末端**（步骤方法体）。所以**不下这个结论**。
+
+### 四、下一轮的确定实验（一条，可判定）
+
+在 `StoreFlowRunner.cs` / `FlowStoreModule.cs` 里挑**方法体独有**的字符串（如某个日志标签或失败文案），
+双编码探测：
+
+- **在** ⇒ 链通、只有 `StoreFlow` 的反射表断 ⇒ 结论是"反射表不可达"，修法是给 `Invokers` 一个静态可达的触发；
+- **不在** ⇒ 链断在更高处（任务执行入口），那是一个**产品级缺口**，要单列。
+
+**我故意不先猜是哪一种。** 这条实验下一轮第一件事做。
+
+### 五、本轮验证
+
+无源码改动；探测全部用 `analysis/artifact_literals.py`（双编码），产物 57,427,968 B（04:42:51，
+晚于 `StoreFlow.cs` 的 04:41:43 ⇒ 探测的是含 R1239 改动的产物）。
+
+证据等级：Observation = 九个字面量的双编码结果、产物与源文件的 mtime、调用链五处行号；
+Inference = 「`ProcessPaymentAsync` 未保留」（由 `paypal3ds.state` 缺席支持，且已撤回上轮相反的推断）；
+Unknown = 链在哪一层断（下一轮一条实验判定）。

@@ -67878,3 +67878,35 @@ Adyen 缺席**不是注册表问题**（`PaymentGateway.cs:67` 确实注册了�
 |---|---|
 | 全量 | **2512 通过 / 0 失败 / 2 跳过 / 2514**（4m27s，+6） |
 | 新测试 | PaymentLayerIsInTheArtifact 6 条 |
+---
+
+## 第 1241 轮：`ProcessPaymentAsync` 的**方法体不在产物里**
+
+同一产物双编码探测，九个字面量：
+
+| 结论 | 字面量 |
+|---|---|
+| **不在** | `paypal3ds.state` · `adyen3ds.step` · 我新加的两条失败串 · `adyen.deviceSupport` · `adyen.supported` · `supportedVersions` · `adyen.paymentData` · `3DS required but no transStatus` · `no action url supplied` |
+| 在（但**是假象**） | `3DS challenge with no gateway`——那是**截断前缀**，`Gateways.cs` 的 PayPal 网关也有近似文案 |
+
+⇒ **撤回上一轮的推断**：`ProcessPaymentAsync` **没有被保留**，R1239 的分支是死的。
+
+### R1179 的注解为什么没救到它
+
+`Build<StoreFlow>()` 上的 `DynamicallyAccessedMembers` 是对的，**但注解只在调用被保留时才生效**。
+链：`FlowStoreModule` → `StoreFlowRunner` → `StepActionRunner.RunAsync` → `Invokers`（反射表）→ 各 `*Async`。
+**链断在哪层，注解就在哪层失效。**
+
+### 下一轮的**一条**可判定实验
+
+在 `StoreFlowRunner` / `FlowStoreModule` 里挑方法体独有字符串，双编码探测：
+**在** ⇒ 只有反射表断（修：给 `Invokers` 静态可达的触发）；**不在** ⇒ 链在更高处断，属产品级缺口。
+
+**不先猜是哪一种。**
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 代码改动 | 无 |
+| 撤回 | 1 条（上轮"ProcessPaymentAsync 已达"） |

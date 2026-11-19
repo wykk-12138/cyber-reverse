@@ -7509,3 +7509,14 @@ Observation：
 
 还剩什么：① threeDS2 形状定位；② Stripe setup/intent、Midtrans 3DS、Waitwhile 接线；
 ③ connect 通道（需登录）；④ 两条 Unknown（BotTask.Running/Task）；⑤ UI CS0108（冻结）。
+## R1241 —— ProcessPaymentAsync 方法体不在产物里（paypal3ds.state 缺席）；撤回上轮推断；R1179 注解依赖调用被保留
+
+Observation：
+- 双编码九条：paypal3ds.state / adyen3ds.step / 两条新失败串 / adyen.deviceSupport / adyen.supported / supportedVersions / adyen.paymentData / 3DS required but no transStatus / no action url supplied = **全不在**。
+- `3DS challenge with no gateway` 命中是截断前缀假象（Gateways.cs 有近似文案）。
+- 产物 04:42:51 晚于 StoreFlow.cs 04:41:43。
+
+**判断**：ProcessPaymentAsync 未保留；R1179 的注解因调用未被保留而失效。
+**下一轮一条实验**：探 StoreFlowRunner/FlowStoreModule 体内独有串，判定链断在哪层。
+
+还剩什么：① 上条实验；② 反射表可达化；③ Stripe/Midtrans/Waitwhile 接线；④ connect 通道（需登录）；⑤ 两条 Unknown。

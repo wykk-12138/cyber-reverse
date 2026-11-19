@@ -173,7 +173,11 @@ public sealed class ChromiumBridge : IAsyncDisposable
 
         var bridge = new ChromiumBridge(process, socket, http, port);
         await bridge.SendAsync("Page.enable", null, ct).ConfigureAwait(false);
-        await bridge.SendAsync("Runtime.enable", null, ct).ConfigureAwait(false);
+        // Runtime.enable is deliberately NOT sent. Measured against arcteryx: with it on, the submission
+        // endpoint answers 200 with an empty body -- an unsolved round -- and cart.get stays 429. This is
+        // the same trap the handoff pack records ("do not send Runtime.enable before or during the
+        // challenge") and the reason it exists is that enabling the domain flips a detection flag the
+        // challenge reads. Runtime.evaluate works without it, so EvaluateAsync keeps working.
         await bridge.SendAsync("Network.enable", null, ct).ConfigureAwait(false);
         bridge.ProfilePath = profile;
         bridge._ownsProfile = ownsProfile;
@@ -972,6 +976,41 @@ public sealed class ChromiumBridge : IAsyncDisposable
     /// Bytes per request URL, largest first. A single total says the page is expensive; this says which
     /// requests are paying for it, which is the only thing a caller can act on.
     /// </summary>
+    /// <summary>
+    /// The body of the last response received for a URL containing <paramref name="fragment"/>.
+    /// <para>
+    /// WHY THIS EXISTS: a 200 from /tl means nothing on its own -- the handoff pack is explicit that a 200
+    /// with an empty body is an unsolved round, and only the 15-byte {"reload":true} counts. The status code
+    /// cannot tell those apart, so the body has to be fetched.
+    /// </para>
+    /// </summary>
+    public async Task<string?> ResponseBodyAsync(string fragment, CancellationToken ct = default)
+    {
+        string? requestId = null;
+        foreach (var evt in Events)
+        {
+            if (!evt.TryGetProperty("method", out var method)) continue;
+            if (method.GetString() != "Network.requestWillBeSent") continue;
+            if (!evt.TryGetProperty("params", out var p)) continue;
+            if (!p.TryGetProperty("request", out var req) || !req.TryGetProperty("url", out var u)) continue;
+            if (!(u.GetString() ?? "").Contains(fragment, StringComparison.OrdinalIgnoreCase)) continue;
+            if (p.TryGetProperty("requestId", out var id)) requestId = id.GetString();
+        }
+
+        if (string.IsNullOrEmpty(requestId)) return null;
+
+        try
+        {
+            var result = await SendAsync("Network.getResponseBody", new { requestId }, ct).ConfigureAwait(false);
+            if (result.TryGetProperty("body", out var body)) return body.GetString();
+        }
+        catch (InvalidOperationException)
+        {
+            // A body CDP no longer holds is unknown, not empty.
+        }
+        return null;
+    }
+
     public List<(string Url, long Bytes)> WireBytesByUrl()
     {
         var urls = new Dictionary<string, string>(StringComparer.Ordinal);

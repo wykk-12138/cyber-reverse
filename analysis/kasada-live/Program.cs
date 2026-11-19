@@ -58,6 +58,15 @@ if (args.Contains("--browser"))
         if (!hit) continue;
         foreach (var h in rt.RequestHeaders.Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase)))
             lines.Add($"      req {h.Key}: {Trunc(h.Value)}");
+        // Everything the page itself sent to the cart endpoint, with its status and the CD it carried.
+        if (rt.Url.Contains("cart.get", StringComparison.Ordinal))
+        {
+            lines.Add($"      cart.get status={rt.Status} reqbody={rt.RequestBody.Length}b");
+            foreach (var h in rt.RequestHeaders.Where(h => h.Key.StartsWith("x-kpsdk-", StringComparison.OrdinalIgnoreCase)))
+                lines.Add($"      req {h.Key}: {Trunc(h.Value, 90)}");
+            var cd = rt.RequestHeaders.TryGetValue("x-kpsdk-cd", out var cdv) ? cdv : null;
+            if (cd is not null) lines.Add($"      CD: {cd}");
+        }
         if (rt.Url.Contains("/tl", StringComparison.Ordinal) && rt.RequestBody.Length > 0)
             lines.Add($"      req body [{rt.RequestBody.Length}b]: {Trunc(rt.RequestBody)}");
         if (rt.Url.Contains("/tl", StringComparison.Ordinal))
@@ -70,6 +79,7 @@ if (args.Contains("--browser"))
     }
     foreach (var l in lines) Console.WriteLine(l);
     if (!string.IsNullOrEmpty(dumpPath)) File.WriteAllLines(dumpPath, lines);
+    Console.WriteLine($"TlSolved = {browser.TlSolved}   TlBody = {(browser.TlBody is null ? "(null)" : browser.TlBody.Length > 40 ? browser.TlBody[..40] + "…" : "[" + browser.TlBody + "]")}");
     Console.WriteLine($"Ok      = {live.Ok}");
     Console.WriteLine($"Ct      = {live.Ct ?? "(null)"}");
     Console.WriteLine($"Version = {live.Version ?? "(null)"}");
@@ -305,4 +315,4 @@ foreach (var h in result.Headers.OrderBy(k => k.Key, StringComparer.Ordinal))
 
 return result.Ok ? 0 : 2;
 
-static string Trunc(string v) => v.Length > 60 ? v[..60] + "…" : v;
+static string Trunc(string v, int n = 60) => v.Length > n ? v[..n] + "…" : v;

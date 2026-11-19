@@ -144,3 +144,107 @@ KASADA_CART_URL="https://arcteryx.com/api/cart.get?input=…" \
 
 `kasada-live` 现在会打印：请求数、CDP 真实过线字节、本地丢弃数、最大的 12 个响应、
 以及（给了 `KASADA_CART_URL` 时）`cart.get` 带/不带 token 的两次状态。
+
+---
+
+## 9. 补上 CD 再测：卡在更前面一步
+
+按交接包 §4 Step 4 走本地 CD 生成，先做离线自检（`kasada_cd.mjs`）：
+
+```
+$ node kasada_cd.mjs examples/cd-input.example.json
+{"workTime":1700000000092,"id":"00000000000000000000000000000000",
+ "answers":[30,3,8,60],"duration":0,"d":8,"st":1700000000000,"rst":1700000000008}
+```
+
+**与交接包 §5.C 给的期望输出逐字节一致。** 算法脚本本身是好的。
+
+### 9.1 但四份输入里，三份拿不到
+
+`generateCd({ ct, st, fc, time, id, runtimeSuffix })` 要有这些：
+
+| 输入 | 状态 |
+|---|---|
+| `ct` | ✅ 拿得到（`/tl` 响应头） |
+| `st` | ⚠️ `/tl` 响应头里**没有**（因为那一轮没解出来） |
+| `fc` 里的 `cryptoChallenge` | ❌ **拿不到** |
+| `runtimeSuffix` | ❌ **解不出来** |
+
+**（1）`cryptoChallenge` 拿不到**
+
+浏览器模式下抓到的 fc 和 curl 打 `/mfc` 拿到的一样：
+
+```
+eyJmZWF0dXJlRmxhZ3MiOnt9LCJkeW5hbWljQ29uZmlnIjp7ImZyb250ZW5k…   （截断）
+→ {"featureFlags":{},"dynamicConfig":{"frontend":{"logLevel":40}}}
+```
+
+**没有 `cryptoChallenge`。** 交接包 §2 记的那份带
+`{"difficulty":77,"subchallengeCount":4,"seedSuffix":"melt-u-bot"}` 的 fc，
+在当前这套 headless + stealth 环境里**没出现过**。
+
+**（2）`runtimeSuffix` 解不出来**
+
+```
+$ python kasada_re/decode-pool.py .tmp-arc-p.js .tmp-arc-pool --grep melt
+container markers not found
+```
+
+当前的 `p.js`（158,330 字节）里那个池容器标记没了，脚本报 `container markers not found`。
+交接包 §2 自己就写了"换版后必须重新解出，不能用旧值蒙" —— 而重解这条路现在是断的。
+
+### 9.2 `/tl` 的正文是空的 —— 连浏览器也是
+
+我加了 `ResponseBodyAsync`（`Network.getResponseBody`）去读 `/tl` 的正文，
+因为交接包明确说"200 不等于成功，只有 15 字节 `{"reload":true}` 才算"。
+
+```
+Arc:   TlSolved = False   TlBody = []
+Nike:  TlSolved = False   TlBody = []
+```
+
+**两个站点都是空正文。** 也印证了：
+
+- 页面自己发的 `cart.get` 是 **429**（`reqbody=0b`）
+- `/tl` 响应头里没有 `x-kpsdk-st`，请求里也没有 `x-kpsdk-cd`
+
+**⇒ 这套 headless + stealth 环境下的浏览器，挑战根本没解出来。**
+
+### 9.3 顺手修掉一个交接包点名的陷阱
+
+交接包 §4 Step 0 写：
+
+> **不要**在导航前/挑战期间发 CDP `Runtime.enable`（`Runtime.evaluate` 不需要它）。
+
+复刻件的 `ChromiumBridge.LaunchAsync` **一直在发**（`ChromiumBridge.cs` 原来的 L176）。
+已移除 —— `Runtime.evaluate` 确实不需要它。
+
+**但移除之后 `/tl` 仍然是空正文**，所以这不是唯一原因，
+（`--disable-blink-features=AutomationControlled` 本来就有）。
+**这条改动是对的（文档明确要求），但它没解决问题，不能算修好了。**
+
+### 9.4 这轮的实际结论
+
+**流量那一半是成功的，CD 那一半没打通，而且卡点不在 CD 上。**
+
+```
+流量：13.3 MB → 805 KB（−94%），token 照样拿到   ✅
+CD ：无法生成 —— 缺 cryptoChallenge、缺 runtimeSuffix、缺 st
+     而这三样缺的根因是同一个：这一轮 /tl 没解出挑战
+```
+
+**"解出挑战"和"拿到 ct"是两件事。** 我们这边一直是后者：
+token 有，但它是未解出回合发的，所以 `cart.get` 429。
+
+**要把 CD 这条路走通，得先让 `/tl` 返回 `{"reload":true}`。** 那需要的不是 CD，
+是让挑战本身跑通 —— 交接包说这只有真浏览器能做到，而"真浏览器"的具体条件
+（不是 headless？特定的 stealth 组合？）本轮没有定位到。
+
+### 9.5 我没验证的
+
+- **没有在 headed（非 headless）模式下跑过** —— 这是最可能的下一个变量。
+- **没有对比过官方/供应商产出的 bundle** —— 交接包 §5.D 的基线做法我没做。
+- **没有尝试用旧的 `runtimeSuffix`**（`c7a30a96…`）硬算一份 CD ——
+  文档说换版后会全错但字节合法，测了也说明不了问题。
+- `cart.get` 的 429 可能还有别的成因（真实 cart id、登录态、地域），
+  我只用了随机 32 hex 的 id。

@@ -34,6 +34,15 @@ public sealed class ChromiumKasadaSolver
 
     private ChromiumBridge? _bridge;
 
+    /// <summary>
+    /// The body the submission endpoint answered with. A 200 with an empty body is an unsolved round; only
+    /// the 15-byte {"reload":true} means the challenge was actually solved.
+    /// </summary>
+    public string? TlBody { get; private set; }
+
+    /// <summary>True when the submission answered with the solved marker.</summary>
+    public bool TlSolved => TlBody is not null && TlBody.Contains("reload", StringComparison.Ordinal);
+
     /// <summary>Per-URL bytes, largest first, so a caller can see what to block.</summary>
     public List<(string Url, long Bytes)> WireBreakdown { get; private set; } = new();
 
@@ -151,6 +160,7 @@ public sealed class ChromiumKasadaSolver
                 var replies = bridge.SniffKasadaResponses();
                 LastRoundtrips = bridge.SniffRoundtrips();
                 WireBytes = bridge.WireBytes();
+                TlBody = await bridge.ResponseBodyAsync("/tl", ct).ConfigureAwait(false);
                 WireBreakdown = bridge.WireBytesByUrl();
                 BlockedRequestCount = bridge.BlockedCount();
                 if (sniffed.TryGetValue("x-kpsdk-ct", out var hdrCt) && hdrCt.Length > 8)

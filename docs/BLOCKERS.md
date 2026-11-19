@@ -44658,3 +44658,35 @@ Inference = 「`CreatePayPalToken` 走 GraphQL 那条」；Unknown = 178 条里�
 
 证据等级：Observation = 47/3/128 分档、`DFReferenceId` 的 4 个 xref、9 条常量与地址、两项查重缺失；
 Inference = 「Cardinal 指纹经 Demandware 下单 URL 传递」；Unknown = 该 URL 在 flow 里由哪一步触发。
+## R1228 —— 产物对齐：源码自 R871 后改了 18 个文件，AOT 重新发布并三信号核验
+
+### 一、发布前后
+
+| 项 | 值 |
+|---|---|
+| 发布前产物 | 57,403,392 B（mtime 02:46:27），**18 个源文件比它新**（最新 `DemandwareControllers.cs` 03:48:12） |
+| 发布命令 | `dotnet publish … -p:PublishAot=true -p:UseSharedCompilation=false -o .publish-aot` → **exit 0** |
+| 发布后产物 | **57,404,928 B**（03:55:02）—— **比上次 +1,536 B** |
+| freshness | **0**（无源文件比产物新） |
+| `.pdata`（复刻件） | **179,584**（未变） |
+
+### 二、这次的 1,536 B 是**有意义**的信号
+
+R871 那次发布后产物尺寸与 `.pdata` **一字未变**，我当时只能给出「被 trimmer 裁掉」这个 Inference。
+这次**尺寸变了、`.pdata` 没变** ⇒ 说明新增的常量/方法体进了镜像，但没有新增可展开函数
+（新增的都是 `const` 与 `static` 方法，被内联或合并）。**两者分开变化，正是它们各自度量不同东西的证据。**
+
+### 三、变异
+
+`ran_at 2026-11-20T04:05:28`、**59/59 fired，`restored tree: GREEN`**。
+
+### 四、度量
+
+| 项 | 值 |
+|---|---|
+| 成员形状 | **91 / 3 / 37** |
+| 名字级 real gap / 类型级 | **0 / 0** |
+| 产物陈旧度 | **0** |
+
+证据等级：Observation = 发布前后尺寸与 mtime、freshness、`.pdata`、变异收据；
+Inference = 「const/static 增量为 1,536 B 且不加可展开函数」；Unknown = 该 1,536 B 的具体分布（未做节级对比）。

@@ -7356,3 +7356,13 @@ Observation：
 
 还剩什么：① 128 条推不出网关的需另一种判据；② Cardinal 自身端点（songbird）未解（其字面量 0 xref）；
 ③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）；⑤ 产物待重新 AOT 发布。
+## R1228 —— AOT 重发（18 文件落后 → 57,404,928 B，+1,536 B）；freshness 0；变异 59/59 GREEN
+
+Observation：
+- 发布前 18 个源文件新于产物（最新 DemandwareControllers.cs 03:48:12）。
+- 发布后 **57,404,928 B**（+1,536 B，03:55:02）、freshness **0**、`.pdata` **179,584**（未变）。
+- 变异 **59/59 GREEN**（04:05:28）。
+
+**信息量**：尺寸变而 `.pdata` 不变 ⇒ const/static 增量不加可展开函数（对比 R871 两者皆不变）。
+
+还剩什么：① 128 条推不出网关的（换个判据或放弃）；② Cardinal 自身端点未解；③ 两条 Unknown；④ UI CS0108（冻结）。

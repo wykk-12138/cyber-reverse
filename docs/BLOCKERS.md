@@ -42555,3 +42555,52 @@ dotnet publish -c Release -r win-x64 -p:PublishAot=true ... -o .publish-aot-new 
 证据等级：Observation = 两次发布的 exit/wall/尺寸、`artifact_freshness` 四条、探针 16 行读数、
 两条命令的行号；Inference = 「AOT 原生镜像被 MSBuild 缓存」（4 秒完成，mtime 未变，由缓存复用解释）；
 Unknown = 该缓存是否会因 obj 目录被清理而失效（未验证）。
+## R1176 —— present: no **不构成缺席证据**：两个在用的常量也不在产物里
+
+**取件**：R1175 说「探针现在可信，可重跑此前所有『镜像里没有』的结论」。第一件事就把它自己的前提推翻了。
+
+### 一、实验（带正负对照）
+
+用 `current` 产物（54.25 MB，mtime 09:46:06）跑 11 条：
+
+| 探针 | present |
+|---|---|
+| `www.paypal.com/v2/checkout/orders` | **yes** ← 正对照 |
+| `Paypal-GetPurchaseUnit` / `GetPaypalOrderId` / `GetOrderDetails` | no |
+| `Jacquemus-Preload` / `Margiela-Preload` | no |
+| **`Cart-AddProduct`** / **`Checkout-Begin`** | **no** ← **这两条是早就存在、运行时真在用的** |
+| `NOPE-not-in-any-build-841` | no ← 负对照 |
+
+**关键在第三行**：`Cart-AddProduct` 在 `DemandwareFlow.cs:279` 是一次真 POST，
+`Checkout-Begin` 在 `:425` 是一次真 GET——**它们都不在产物里。**
+
+### 二、结论：
+o 读不出「死代码」
+
+`StepActionRunner` 用**反射**派发步骤方法，AOT 裁剪器看不穿反射 ⇒ **整个步骤体连同其字面量一起被丢弃**。
+所以：
+
+- `present: yes` ⇒ 该字面量被保留，**信息量为正**；
+- `present: no` ⇒ **只说「没保留」**，对「代码是死的」与「代码活着但走反射」**给出同一读数** ⇒ **无信息量**。
+
+**这直接作废 R1150/R1152 里那种用法**——那两轮用 `no` 论证「被裁剪 ⇒ 不可达」。
+本轮之前没人做过对照，所以那个论证一直看着成立。
+
+### 三、改了什么
+
+- `tools/artifact_probe.py`：**只要结果里有 no，就在表尾打两行警示**（ASCII，写明反射派发导致整段裁剪、
+  `no` 不代表代码是死的），并把两个实测对照写进源码注释；
+- 新增 `ArtifactProbeCaveatTests` **1 条**：跑工具、断言输出含 `not that the code is dead`——
+  **让这句话挂在工具上，而不是只挂在文档里**（R1164 的教训：写在代码里的边界才会被处理）。
+  实测该测试 **158 ms**、捕获到警示原文。
+
+验证：`dotnet build` **0 错**；该守卫 **1/1**（158 ms，`--logger console;verbosity=detailed` 确认真的执行）；
+全量 **2473 通过 / 0 失败 / 2 跳过 / 2475**（4m32s）；
+变异 `ran_at 2026-11-19T10:05:25`、**59/59 fired，tree GREEN**。
+
+**连带影响**：凡是用 `present: no` 写下的「镜像/产物里没有」结论，**都要标明它是靠形状而非靠这条探针**。
+这条已写进上面的表里，后面复核时按它筛。
+
+证据等级：Observation = 11 条探针读数、`DemandwareFlow.cs:279/425` 两处真调用、工具源码行 149–162、
+测试 158 ms 与捕获文本、全量与变异收据；Inference = 「反射派发 ⇒ 整段裁剪」（由两常量缺席且在用推出，
+**未做 IL/AOT 中间产物核对**）；Unknown = 是否有别的机制也导致字面量丢失。

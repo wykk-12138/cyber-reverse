@@ -150,6 +150,14 @@ def main():
     for r in rows:
         print("  %-34s %10d %10d  %s" % (r["string"][:34], r["utf-16-le"], r["utf-8"],
                                          "yes" if r["present"] else "no"))
+    # R1176: a "no" is not evidence of absence. Measured on the current artifact: "Cart-AddProduct" and
+    # "Checkout-Begin" are absent even though DemandwareFlow uses both at runtime (posts at line 279, gets
+    # at 425), because StepActionRunner dispatches step bodies by reflection and the AOT trimmer cannot see
+    # through it, so those bodies - and their literals - are dropped. Only a "yes" carries information.
+    if any(not r["present"] for r in rows):
+        print()
+        print("  A 'no' means the literal is not retained, not that the code is dead: reflectively")
+        print("  dispatched step bodies are trimmed whole, so their literals disappear with them.")
     return 0
 
 

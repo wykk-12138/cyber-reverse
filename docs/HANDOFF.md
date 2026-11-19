@@ -6732,3 +6732,18 @@ Observation：
 
 还剩什么：① 缓存复用（4 秒完成）依赖 `obj` 未清理，未验证清理后的耗时；
 ② `present:` 探针现在可信，可重跑此前所有「镜像里没有」的结论复核。
+## R1176 —— present: no 无信息量（反射派发整段裁剪）；警示写进工具并加守卫
+
+Observation：
+- 11 条探针（current 产物）：`www.paypal.com/v2/checkout/orders` **yes**，其余 **no**——
+  其中 `Cart-AddProduct`/`Checkout-Begin` 分别在 `DemandwareFlow.cs:279`(POST) 与 `:425`(GET) **运行时真用**。
+- ⇒ `no` 对「死代码」与「活着但走反射」同读数，**无信息量**；作废 R1150/R1152 的 `no ⇒ 不可达` 论证。
+
+改动：
+- `tools/artifact_probe.py`：有 `no` 时输出两行警示（含两处实测对照写在注释里）。
+- 新 `ArtifactProbeCaveatTests`（1 条）：断言警示文本存在（实测 158 ms 真执行）。
+
+验证：build 0 错；守卫 **1/1**；全量 **2473/0/2/2475**（4m32s）；变异 **59/59 fired, tree GREEN**（10:05:25）。
+
+还剩什么：① 若要真正判可达性，得看 AOT 中间产物或 `[DynamicallyAccessedMembers]` 是否已声明；
+② 所有用 `no` 立过的结论要标「靠形状而非探针」。

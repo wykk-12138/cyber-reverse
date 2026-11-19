@@ -16,5 +16,12 @@
     "src_files": 378,
     "src_sha256": "40c9219f9f578fa3e9a4d50ef723391539cb87f1f217b7275c9b68f523353988",
     "note": "R1264: identical source, republished, to test whether the build is deterministic in size"
+  },
+  {
+    "artifact_size": 57481728,
+    "artifact_sha256": "606346ac76d63b4430b4ad842417a75ac22c85e3e506b08ee0310f974a935bfd",
+    "src_files": 378,
+    "src_sha256": "a8cdc1eca4b6768d9b7ad6bfcf8da69f784018f1454d4690634ca055f47d3c54",
+    "note": "R1265: MagentoRest.Under body rewritten (same outputs); hash moved, size did not -- so this class reaches the image and size alone is a blunt instrument"
   }
 ]

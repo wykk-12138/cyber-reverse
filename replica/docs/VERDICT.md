@@ -68466,3 +68466,25 @@ R1255–R1260 新类让尺寸 **+4,608** 而 pdata 不动——留作下一个�
 |---|---|
 | 尺寸 | 四次一致 57,481,728 |
 | 新旧信念 | 撤回 1 条（不可复现） |
+---
+
+## 第 1265 轮：尺寸钝、哈希利——MagentoRest 可达；R1262 的 Inference 撤回
+
+`MagentoRest.Under` 改实现（输出不变）：尺寸 **+0**、**SHA-256 变了**（`93E1BC…` → `606346AC…`）。
+
+- **好**：`MagentoRest` 确实可达（与 +4,608 归它一致）；
+- **坏**：**尺寸判据会假阴性** ⇒ R1262 的 Inference「`PollRestockAsync` 不在镜像」**撤回**（Observation 仍有效）。
+
+`reach_oracle.py` 已升级为**哈希判据**，本轮记录输出
+`the source and the artifact both moved: what changed reaches the image`。
+
+**下轮第一件事**：用哈希重测 `PollRestockAsync`。若哈希变 ⇒ 步骤方法体**其实在**镜像里，
+则 R1241/R1242「支付层被裁」整条链都要重验。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2543 通过 / 0 失败 / 2 跳过 / 2545**（5m39s） |
+| MagentoRest | **7/7** |
+| 撤回 | 1 条 Inference（R1262） |

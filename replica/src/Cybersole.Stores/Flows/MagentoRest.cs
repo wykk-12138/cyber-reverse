@@ -82,7 +82,18 @@ public static class MagentoRest
     public static string RestBase(string? locale) =>
         string.IsNullOrEmpty(locale) ? "/rest/V1" : "/rest/" + locale + "/V1";
 
-    /// <summary>One REST path under a base, for callers that hold a base from <see cref="RestBase"/>.</summary>
-    public static string Under(string basePath, string path) =>
-        (basePath ?? string.Empty).TrimEnd('/') + (path ?? string.Empty);
+    /// <summary>
+    /// One REST path under a base, for callers that hold a base from <see cref="RestBase"/>.
+    ///
+    /// <para>
+    /// R1265 rewrote this body from concatenation into a trim-then-concat form purely as the reachability oracle's
+    /// probe: the outputs are identical, so any change in the published artifact's hash is attributable to this method
+    /// being compiled, and no change means this class is trimmed even though <c>MagentoFlow</c> calls it.
+    /// </para>
+    /// </summary>
+    public static string Under(string basePath, string path)
+    {
+        var trimmed = (basePath ?? string.Empty).TrimEnd('/');
+        return string.Concat(trimmed, path ?? string.Empty);
+    }
 }

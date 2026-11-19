@@ -53,21 +53,36 @@ def load():
     return json.load(io.open(STATE, encoding='utf-8'))
 
 
+def artifact_identity():
+    """Size is not enough: R1265 changed a method body and the size stayed identical while the hash moved."""
+    if not os.path.exists(ARTIFACT):
+        return None, None
+    h = hashlib.sha256()
+    h.update(io.open(ARTIFACT, 'rb').read())
+    return os.path.getsize(ARTIFACT), h.hexdigest()
+
+
 def record(note):
     digest, files = src_digest()
-    size = os.path.getsize(ARTIFACT) if os.path.exists(ARTIFACT) else None
+    size, art_sha = artifact_identity()
     rows = load()
-    row = {'artifact_size': size, 'src_files': files, 'src_sha256': digest, 'note': note}
+    row = {'artifact_size': size, 'artifact_sha256': art_sha, 'src_files': files,
+           'src_sha256': digest, 'note': note}
     prev = rows[-1] if rows else None
     rows.append(row)
     io.open(STATE, 'w', encoding='utf-8', newline='\n').write(json.dumps(rows, indent=2, ensure_ascii=False))
-    print('recorded: size=%s src_files=%d' % (size, files))
+    print('recorded: size=%s sha=%s src_files=%d' % (size, (art_sha or '')[:16], files))
     if prev:
-        print('vs previous: size %+d bytes, src_files %+d, src_digest %s'
-              % (size - prev['artifact_size'], files - prev['src_files'],
-                 'changed' if digest != prev['src_sha256'] else 'same'))
-        if size == prev['artifact_size'] and digest != prev['src_sha256']:
-            print('=> the source changed and the artifact did not: whatever changed is NOT in the image')
+        src_moved = digest != prev['src_sha256']
+        art_moved = art_sha != prev.get('artifact_sha256')
+        print('vs previous: size %+d, src %s, artifact %s'
+              % ((size or 0) - (prev['artifact_size'] or 0),
+                 'changed' if src_moved else 'same',
+                 'changed' if art_moved else 'same'))
+        if src_moved and art_moved:
+            print('=> the source and the artifact both moved: what changed reaches the image')
+        elif src_moved and not art_moved:
+            print('=> the source moved and the artifact did not: what changed is NOT in the image')
     return 0
 
 
@@ -77,10 +92,11 @@ def compare():
         print('need at least two records; run record after each publish')
         return 1
     a, b = rows[-2], rows[-1]
-    print('previous: size=%s src_files=%d' % (a['artifact_size'], a['src_files']))
-    print('current : size=%s src_files=%d' % (b['artifact_size'], b['src_files']))
-    print('delta   : size %+d, src_files %+d, digest %s'
-          % (b['artifact_size'] - a['artifact_size'], b['src_files'] - a['src_files'],
+    print('previous: size=%s sha=%s' % (a['artifact_size'], (a.get('artifact_sha256') or '')[:16]))
+    print('current : size=%s sha=%s' % (b['artifact_size'], (b.get('artifact_sha256') or '')[:16]))
+    print('delta   : size %+d, artifact %s, src %s'
+          % ((b['artifact_size'] or 0) - (a['artifact_size'] or 0),
+             'changed' if a.get('artifact_sha256') != b.get('artifact_sha256') else 'same',
              'changed' if a['src_sha256'] != b['src_sha256'] else 'same'))
     return 0
 

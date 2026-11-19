@@ -7779,3 +7779,15 @@ Observation：
 **下轮**：改 `MagentoRest.Under` 实现后发布比对（预言机判据升级为哈希）。
 
 还剩什么：① 上条实验；② 17 条无近邻；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1265 —— 哈希变了/尺寸没变 ⇒ 尺寸判据假阴性；MagentoRest 可达；撤回 R1262 的 Inference
+
+Observation：
+- `Under` 改实现（输出不变）→ 尺寸 +0、SHA-256 `93E1BC…`→`606346AC…`。
+- 预言机新判据：`source and artifact both moved`。
+
+判断：`MagentoRest` 可达；尺寸不足以判"不在镜像"。**R1262 的 Inference 撤回**。
+**下轮**：哈希重测 `PollRestockAsync`（决定 R1241/R1242 那条链是否要重验）。
+
+验证：build 0 错；7/7；全量 **2543/0/2/2545**（5m39s）。
+
+还剩什么：① 哈希重测步骤方法体；② 17 条无近邻；③ connect 通道（需登录）；④ 两条 Unknown。

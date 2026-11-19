@@ -29,7 +29,15 @@ public static class AccountRoutes
 {
     public const string Login = "/account/login";
 
-    /// <summary>The image's password-reset route: hyphenated, not nested.</summary>
+    /// <summary>
+    /// The image's password-reset route: hyphenated, not nested.
+    ///
+    /// <para>
+    /// R1263 used this constant as the oracle's negative control: appending six characters to it left the published
+    /// artifact byte-identical, which proves an unreferenced constant class contributes nothing to the image. The
+    /// probe is reverted here; the measurement lives in <c>analysis/reach_oracle.json</c>.
+    /// </para>
+    /// </summary>
     public const string PasswordReset = "/account-passwordreset";
 
     public const string Authorize = "/account/authorize?redirect_uri=";

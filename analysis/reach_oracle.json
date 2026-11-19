@@ -4,5 +4,11 @@
     "src_files": 378,
     "src_sha256": "8e3c1a21dfba66a3760980fe405064ea6238efbc7da3c46db8280a29fe2954f9",
     "note": "R1262: after the PollRestockAsync rewrite; size identical to the 06:37 publish, so that body is not in the image"
+  },
+  {
+    "artifact_size": 57481728,
+    "src_files": 378,
+    "src_sha256": "8137b959b0d5739db20215bf1d5b8deb8dc5ffb283fcec2d1c97f465808e5961",
+    "note": "R1263: AccountRoutes.PasswordReset + six characters, an unreferenced constant class"
   }
 ]

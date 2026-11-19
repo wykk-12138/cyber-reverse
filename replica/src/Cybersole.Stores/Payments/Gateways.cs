@@ -187,6 +187,12 @@ public sealed class StripeGateway : IPaymentGateway
     /// <summary>This form's frozen API version (0x146adfbe0).</summary>
     public const string FormVersion = "2025-01-27.acacia";
 
+    /// <summary>
+    /// The basil pin (0x146ADFC60). It is the version the challenge surface uses and, as of R1245, also the second
+    /// pin observed on the payment-intents retrieve (<c>sub_14095B6C0</c>), so the same value serves two shapes.
+    /// </summary>
+    public const string ChallengeVersion = "2025-08-27.basil";
+
     /// <summary>The PopMart desk session endpoint (0x146ab8a50).</summary>
     public const string DeskCustomerSessionPath = "/shop/v1/shop/cash/desk/stripe/customerSession";
 
@@ -321,13 +327,34 @@ public sealed class StripeGateway : IPaymentGateway
     /// </para>
     /// </summary>
     public static string PaymentIntentRetrieveUrl(string intentId, string clientSecret, string publishableKey,
-        string? stripeAccount = null) =>
+        string? stripeAccount = null, string? version = null) =>
         ApiHost + "/v1/payment_intents/" + Uri.EscapeDataString(intentId ?? string.Empty) +
         "?is_stripe_sdk=false" +
         "&client_secret=" + Uri.EscapeDataString(clientSecret ?? string.Empty) +
         "&key=" + Uri.EscapeDataString(publishableKey ?? string.Empty) +
-        "&_stripe_version=" + Uri.EscapeDataString(IntentVersion) +
+        "&_stripe_version=" + Uri.EscapeDataString(version ?? IntentVersion) +
         "&_stripe_account=" + Uri.EscapeDataString(stripeAccount ?? string.Empty);
+
+    /// <summary>
+    /// The second pin for that same retrieve: <c>sub_14095B6C0</c> (1,271 bytes) builds the identical URL with
+    /// <c>2025-08-27.basil</c> (0x146ADFC60) where <see cref="PaymentIntentRetrieveUrl"/> pins clover.
+    ///
+    /// <para>
+    /// Its whole constant set is the five literals already known —
+    /// <c>https://api.stripe.com/v1/payment_intents/</c>, <c>?is_stripe_sdk=false&amp;client_secret=</c>,
+    /// <c>&amp;key=</c>, <c>&amp;_stripe_version=</c> and basil — so the shape is not a sixth thing to implement, it
+    /// is the same four fragments with a different version value. That is why this is an overload and not a new
+    /// builder: two versions of one request is a parameter, not two protocols.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown</b>: which surfaces call which pin. The version is data here and dispatch is not observable
+    /// (R1219), so both pins exist and neither is claimed for a particular step.
+    /// </para>
+    /// </summary>
+    public static string PaymentIntentRetrieveUrlBasil(string intentId, string clientSecret,
+        string publishableKey, string? stripeAccount = null) =>
+        PaymentIntentRetrieveUrl(intentId, clientSecret, publishableKey, stripeAccount, ChallengeVersion);
 
     /// <summary>
     /// The setup-intent retrieve URL (sub_141145DB0, 1,138 bytes): the same frozen prefix and id, then the query

@@ -72,6 +72,27 @@ public sealed class StripeSetupIntentTests
     }
 
     [Fact]
+    public void ThePaymentIntentRetrieveHasTwoVersionPinsThatDifferOnlyInTheVersion()
+    {
+        // sub_140A40170 pins clover (0x146ADFC98); sub_14095B6C0 pins basil (0x146ADFC60) on the same five literals
+        var clover = StripeGateway.PaymentIntentRetrieveUrl("pi_1", "sec", "pk");
+        var basil = StripeGateway.PaymentIntentRetrieveUrlBasil("pi_1", "sec", "pk");
+
+        Assert.Contains("_stripe_version=" + StripeGateway.IntentVersion, clover);
+        Assert.Contains("_stripe_version=" + StripeGateway.ChallengeVersion, basil);
+        Assert.Equal(clover.Replace(StripeGateway.IntentVersion, "X"),
+            basil.Replace(StripeGateway.ChallengeVersion, "X"));
+    }
+
+    [Fact]
+    public void TheTwoPinsAreTheImagesOwnValues()
+    {
+        Assert.Equal("2025-09-30.clover", StripeGateway.IntentVersion);
+        Assert.Equal("2025-08-27.basil", StripeGateway.ChallengeVersion);
+        Assert.NotEqual(StripeGateway.IntentVersion, StripeGateway.ChallengeVersion);
+    }
+
+    [Fact]
     public void TheImageCarriesThreeDistinctStripeApiVersions()
     {
         // acacia (form, 0x146adfbe0) · basil (challenge, 0x146adfc60) · clover (intent retrieve, 0x146adfc98)

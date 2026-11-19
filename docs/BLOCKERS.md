@@ -45446,3 +45446,46 @@ Inference = 无新增；Unknown = 方法表内容（缺工件）。
 
 证据等级：Observation = 两函数的常量集、`?_=` 的地址、`Find location` 日志行；
 Inference = 「location → data-fields 的调用顺序」；Unknown = `?_=` 的取值语义、响应 schema。
+## R1245 —— 同一条 payment_intents retrieve **有两个版本钉**：basil 与 clover
+
+### 一、`sub_14095B6C0`（1,271 B / 214 行）解完
+
+整个常量集**只有五条**，全是既有字面量：
+
+| 字面量 | 地址 |
+|---|---|
+| `https://api.stripe.com/v1/payment_intents/` | 0x147054F08 |
+| `?is_stripe_sdk=false&client_secret=` | 0x146B287A8 |
+| `&key=` | 0x146A84588 |
+| `&_stripe_version=` | 0x146A7B010 |
+| **`2025-08-27.basil`** | **0x146ADFC60** |
+
+⇒ **形状与 R1216 的 `sub_140A40170` 完全相同，只有版本值不同**（那边是 `2025-09-30.clover`）。
+
+### 二、所以这不是第六个协议，是同一个请求的第二个钉
+
+我先前的实现把 `IntentVersion` 写死成 clover。本轮改成：
+
+| 改动 | 内容 |
+|---|---|
+| `PaymentIntentRetrieveUrl(..., string? version = null)` | 版本变成可选参数，默认仍是 clover |
+| `PaymentIntentRetrieveUrlBasil(...)` | 显式用 `ChallengeVersion`（basil）的同形状构建器 |
+| `ChallengeVersion = "2025-08-27.basil"` | 新常量，注释写明**同一个值服务两个形状**（挑战面 + 这条 retrieve） |
+
+**我没有为 basil 另写一套 URL 拼接**——两版同形，差的是数据，不是协议。
+
+### 三、不猜的部分
+
+**哪个表面用哪个钉，仍 Unknown**：版本在这里是**数据**，而派发不可观察（R1219）。
+所以两个钉都存在、都不被指派给某一步——注释里写明。
+
+### 四、验证
+
+`dotnet build` 0 错；`StripeSetupIntent` **17/17**（+2：两钉差异只在版本、两个值都是镜像的）；
+全量 **2516 通过 / 0 失败 / 2 跳过 / 2518**（4m31s，+2）。
+
+新增测试里那条"把版本值替换成 X 后两串必须相等"是关键断言：
+**它证明两个钉除了版本之外一字不差**，而不是"看起来差不多"。
+
+证据等级：Observation = 五条常量与地址、basil 的地址；
+Inference = 「同形状两钉」；Unknown = 哪个表面用哪个钉。

@@ -7556,3 +7556,16 @@ Observation：
 
 还剩什么：① location id 来源与响应 schema（需实机）；② Stripe/Midtrans 接线（产物层受阻，见 R1243 缺口）；
 ③ connect 通道（需登录）；④ 两条 Unknown（BotTask.Running/Task）；⑤ UI CS0108（冻结）。
+## R1245 —— payment_intents retrieve 两个版本钉（basil / clover），同形状不另写拼接（+2 测试）
+
+Observation：
+- `sub_14095B6C0`（1,271 B）五条常量全既有，版本 `2025-08-27.basil`（0x146ADFC60）。
+- 与 `sub_140A40170`（clover）形状相同。
+
+改动：`version` 可选参数 + `PaymentIntentRetrieveUrlBasil` + `ChallengeVersion` 常量。
+**Unknown**：哪个表面用哪个钉。
+
+验证：build 0 错；17/17；全量 **2516/0/2/2518**（4m31s）。
+
+还剩什么：① 两钉与表面的对应（需派发或实机）；② Middleware/Waitwhile 余项；③ connect 通道（需登录）；
+④ 两条 Unknown（BotTask.Running/Task）；⑤ UI CS0108（冻结）。

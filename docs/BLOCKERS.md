@@ -46624,3 +46624,43 @@ Inference = 「IsReadOnly 属运行时」；Unknown = 剩余三个是否也藏�
 
 证据等级：Observation = 90 行里两个类型、编译错误的行号、2519 的收据；
 Inference = 「Duplication 是告诫不是规则」；Unknown = 剩下两个是否藏运行时规则。
+## R1273 —— 第五个台账：`NavigatorCensus` 迁 docs（50 个名字的三分普查）
+
+### 一、内容是什么
+
+R166 的测量：镜像那 **50 个 navigator 名字**在本引擎里的归宿。
+
+| 归宿 | 数 | 含义 |
+|---|---|---|
+| `Navigator.prototype` 自有 | **27** | 缺的是**值**，不是存在性 |
+| 继承 `Object.prototype` | **10** | `toString` 一族，不动 |
+| **完全缺席** | **13** | 手机有、引擎没有 |
+
+第三行是 `NavPrune` 的镜像——**两个方向都得管**，否则画像恰好缺了移动页要问的东西。
+
+### 二、处置
+
+| 内容 | 处置 |
+|---|---|
+| 三分普查 + 27/10 名单 | → `docs/NAVIGATOR_CENSUS.md` |
+| 这轮装上的两个（`standalone`、`locks`） | → 文档 + 运行时已有 `NavigatorLocks.Installed` |
+| **11 条推迟理由**（credentials 是 WebAuthn 实现、serviceWorker 空注册本身就是破绽、gpu 表面本身就是指纹……） | → 文档**逐条保留** |
+| `NavigatorCensus.cs` + `NavigatorCensusTests.cs`（29 处引用） | **删** |
+| `NavigatorLocksTests` 里两处引用 | 改为**测试内写死那 13 个名字**——断言内容不变（两个已装的名字属于缺席那 13 个） |
+
+### 三、为什么改测试而不是留个空壳类
+
+`Missing` / `InstalledNow` 只有测试在用，**没有任何运行时消费者**。
+把它留在 `src` 就是为了让测试读它——**这正是台账类存在的方式**。
+把它写进测试数据，断言一点没弱，`src` 干净了。
+
+### 四、验证
+
+`dotnet build` 0 错；`Navigator*` **16/16**；全量 2519 → **2514**（4m35s，−5，全来自被删的普查测试文件）。
+
+### 五、还剩一个
+
+`VendorWiring`（273 行，最大的一份）。
+
+证据等级：Observation = 三分计数、11 条推迟理由、2514 收据；
+Inference = 「无运行时消费者」；Unknown = VendorWiring 里是否有真协议常量（下轮读）。

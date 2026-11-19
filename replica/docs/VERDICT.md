@@ -68666,3 +68666,22 @@ o-hit）。
 |---|---|
 | src 台账类 | **-2**（LambdaWitness + PopMartCartSteps；剩 NavigatorCensus / VendorWiring） |
 | 用例 | 2519 通过 / 0 失败 / 2 跳过 |
+---
+
+## 第 1273 轮：`NavigatorCensus` 迁 docs
+
+R166 普查（50 个名字 → 27 自有 / 10 继承 / **13 缺席**）与 **11 条推迟理由**搬进 `docs/NAVIGATOR_CENSUS.md`。
+
+处置：源文件 + 29 处引用的测试删除；`NavigatorLocksTests` 两处引用改成**测试内写死 13 个名字**
+（断言不变，`src` 干净）。
+
+**为什么不留空壳**：`Missing`/`InstalledNow` **无任何运行时消费者**，只为测试而存在——那就是台账。
+
+全量 2519 → **2514**（−5，全来自被删的普查测试）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| src 台账类 | **-1**（剩 `VendorWiring`） |
+| 用例 | 2514 通过 / 0 失败 / 2 跳过 |

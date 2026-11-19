@@ -56,9 +56,16 @@ public sealed class NavigatorLocksTests
     [Fact]
     public void TheTwoNamesComeFromTheThirteen()
     {
+        // R1273: the census that used to answer "which thirteen?" is a document now (docs/NAVIGATOR_CENSUS.md), so the
+        // absent set is spelled out here as test data rather than read from a ledger in the product assembly.
+        var absent = new[]
+        {
+            "standalone", "credentials", "mediaDevices", "wakeLock", "locks", "storage", "share", "canShare",
+            "serviceWorker", "requestMediaKeySystemAccess", "gpu", "clipboard", "audioSession",
+        };
+
         Assert.Equal(new[] { "standalone", "locks" }, NavigatorLocks.Installed);
-        Assert.All(NavigatorLocks.Installed, n => Assert.Contains(n, NavigatorCensus.Missing));
-        Assert.Equal(NavigatorCensus.InstalledNow, NavigatorLocks.Installed);
+        Assert.All(NavigatorLocks.Installed, n => Assert.Contains(n, absent));
     }
 
     /// <summary>Measured: the members exist, answer, and look native.</summary>

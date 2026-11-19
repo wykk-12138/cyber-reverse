@@ -7864,3 +7864,13 @@ Observation：
 **下轮**：`NavigatorCensus`(106) / `VendorWiring`(273)。
 
 还剩什么：① 剩余 2 个台账类；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1273 —— NavigatorCensus 迁 docs（27/10/13 普查 + 11 条推迟理由）；全量 2514/0/2/2516
+
+Observation：
+- 普查三分：27 自有 / 10 继承 / 13 缺席；11 条推迟理由逐条保留。
+- 源 + 29 处引用测试删除；`NavigatorLocksTests` 改为测试内数据（断言不变）。
+- 全量 2519 → **2514**（−5）。
+
+**下轮**：`VendorWiring`(273)。
+
+还剩什么：① VendorWiring；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。

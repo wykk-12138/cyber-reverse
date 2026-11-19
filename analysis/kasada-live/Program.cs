@@ -17,6 +17,214 @@ var pageUrl = args.FirstOrDefault(a => !a.StartsWith("--"))
               ?? "https://arcteryx.com/us/en/shop/X000009417";
 var storeKey = Environment.GetEnvironmentVariable("KASADA_STORE") ?? "arcteryx";
 
+// Boundary test: how many usable identities a session can produce, and what each one costs.
+//
+// A token is not reusable for long -- the same ct producing several cart ids starts drawing 429 -- so the
+// question is whether fresh rounds can be produced one after another, and what each one actually costs.
+// Every cycle is a new browser on the same kept profile with its identity wiped, which is the cheapest way
+// to force a round without downloading the page and p.js again.
+if (args.Contains("--cycles"))
+{
+    Console.WriteLine("browser available = " + ChromiumKasadaSolver.IsAvailable);
+    if (!ChromiumKasadaSolver.IsAvailable) return 1;
+
+    var cycles = int.TryParse(Environment.GetEnvironmentVariable("KASADA_CYCLES"), out var cycleCount) ? cycleCount : 5;
+    var profDir = Environment.GetEnvironmentVariable("KASADA_PROFILE");
+    var blockEnv = Environment.GetEnvironmentVariable("KASADA_BLOCK");
+    var cUrl = Environment.GetEnvironmentVariable("KASADA_CART_URL") ?? "https://arcteryx.com/api/cart.get";
+    var cPath = new Uri(cUrl).PathAndQuery;
+    var cBody = Environment.GetEnvironmentVariable("KASADA_CART_BODY")
+                ?? "{\"country\":\"us\",\"language\":\"en\",\"viewContext\":\"Cart\"}";
+    var cInput = "{\"json\":" + cBody + "}";
+    var cJs = "(async()=>{const r=await fetch(" + System.Text.Json.JsonSerializer.Serialize(cPath)
+               + "+'?input='+encodeURIComponent(" + System.Text.Json.JsonSerializer.Serialize(cInput) + "),"
+               + "{method:'GET',credentials:'include'});"
+               + "const t=await r.text();"
+               + "return JSON.stringify({status:r.status,len:t.length,head:t.slice(0,200)});})()";
+
+    static string CartStatus(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return "(no result)";
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var r = doc.RootElement;
+            var head = r.TryGetProperty("head", out var h0) ? h0.GetString() ?? "" : "";
+            return $"status={r.GetProperty("status").GetInt32()} len={r.GetProperty("len").GetInt32()} {Trunc(head, 120)}";
+        }
+        catch (System.Text.Json.JsonException) { return Trunc(json, 120); }
+    }
+
+    var distinct = new HashSet<string>(StringComparer.Ordinal);
+    var usable = 0;
+
+    // One browser, one profile, several rounds. The page is loaded once and then asked for another round
+    // each time its identity is wiped, which is the only shape where one downloaded challenge program could
+    // serve several tokens. Every ips.js that appears is counted by its own URL -- the KP_UIDz in it differs
+    // per round, so a second distinct URL proves the program was downloaded again rather than reused.
+    if (Environment.GetEnvironmentVariable("KASADA_SESSION") == "1")
+    {
+        var sessionSolver = new ChromiumKasadaSolver();
+        if (!string.IsNullOrEmpty(profDir)) sessionSolver.ProfilePath = profDir;
+        if (!string.IsNullOrEmpty(blockEnv))
+            foreach (var p in blockEnv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                sessionSolver.BlockPatterns.Add(p);
+
+        var origin = Uri.TryCreate(pageUrl, UriKind.Absolute, out var pu)
+            ? pu.GetLeftPart(UriPartial.Authority)
+            : pageUrl;
+
+        var seenRounds = 0;
+        sessionSolver.AfterSolveAsync = async (b, c) =>
+        {
+            async Task<string?> RoundAsync(int index)
+            {
+                var tlBefore = b.CompletedTlCount();
+                var bytesBefore = b.WireBytes();
+                var ipsBefore = b.WireBytesByUrl().Count(x => x.Url.Contains("/ips.js", StringComparison.Ordinal));
+
+                // Wipe who we are. The cache is untouched, so the page and p.js stay free; only the identity
+                // goes, which is what makes the site ask again.
+                await b.ClearCookiesAsync(origin, c, includeStorage: true).ConfigureAwait(false);
+                await b.NavigateAsync(pageUrl, c).ConfigureAwait(false);
+
+                var wait = DateTime.UtcNow.AddSeconds(45);
+                while (DateTime.UtcNow < wait && b.CompletedTlCount() <= tlBefore)
+                    await Task.Delay(150, c).ConfigureAwait(false);
+
+                var tlAfter = b.CompletedTlCount();
+                var bytesAfter = b.WireBytes();
+                var ipsAfter = b.WireBytesByUrl().Count(x => x.Url.Contains("/ips.js", StringComparison.Ordinal));
+
+                var body = tlAfter > tlBefore ? await b.ResponseBodyAsync("/tl", c).ConfigureAwait(false) : null;
+                var tlRt = b.SniffRoundtrips()
+                            .LastOrDefault(x => x.Url.TrimEnd('/').EndsWith("/tl", StringComparison.OrdinalIgnoreCase));
+                var ct = tlRt?.ResponseHeaders.GetValueOrDefault("x-kpsdk-ct") ?? "";
+                var st = tlRt?.ResponseHeaders.GetValueOrDefault("x-kpsdk-st") ?? "";
+
+                var cart = await b.EvaluateAsync(cJs, c, awaitPromise: true).ConfigureAwait(false) ?? "(null)";
+                var cartOk = cart.Contains("\"status\":200", StringComparison.Ordinal);
+
+                var isNew = ct.Length > 0 && distinct.Add(ct);
+                var solved = body is not null && body.Contains("reload", StringComparison.Ordinal);
+                if (isNew && solved && cartOk) usable++;
+
+                Console.WriteLine($"round {index}: new={isNew} solved={solved} cart200={cartOk} "
+                                  + $"submission +{tlAfter - tlBefore} ipsJsFiles +{ipsAfter - ipsBefore}");
+                Console.WriteLine($"          +{bytesAfter - bytesBefore,7:N0} bytes   ct={Trunc(ct, 16)}  st={st}");
+                Console.WriteLine($"          body={(body is null ? "(none)" : Trunc(body, 32))}   cart {CartStatus(cart)}");
+                return ct;
+            }
+
+            // Round zero is the one the page load already produced; it cost what it cost and is reported by
+            // the caller. The rest have to be asked for.
+            var firstTl = b.SniffRoundtrips()
+                           .LastOrDefault(x => x.Url.TrimEnd('/').EndsWith("/tl", StringComparison.OrdinalIgnoreCase));
+            var firstCt = firstTl?.ResponseHeaders.GetValueOrDefault("x-kpsdk-ct") ?? "";
+            if (firstCt.Length > 0) distinct.Add(firstCt);
+            seenRounds = 1;
+
+            for (var k = 1; k < cycles; k++)
+            {
+                await RoundAsync(k).ConfigureAwait(false);
+                seenRounds++;
+            }
+        };
+
+        var started = DateTime.UtcNow;
+        var r = await sessionSolver.SolveAsync(pageUrl, TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+        var secs = (DateTime.UtcNow - started).TotalSeconds;
+        var ipsUrls = sessionSolver.WireBreakdown.Where(x => x.Url.Contains("/ips.js", StringComparison.Ordinal)).ToList();
+
+        Console.WriteLine();
+        Console.WriteLine($"first load: ok={r.Ok} tlSolved={sessionSolver.TlSolved} bytes={sessionSolver.WireBytes:N0} secs={secs:F0}");
+        Console.WriteLine($"ips.js downloads = {ipsUrls.Count}   total {ipsUrls.Sum(x => x.Bytes):N0} bytes");
+        foreach (var (u, by) in ipsUrls)
+        {
+            var q = u.IndexOf("KP_UIDz=", StringComparison.Ordinal);
+            Console.WriteLine($"  {by,9:N0}  KP_UIDz={(q >= 0 ? Trunc(u[(q + 8)..], 24) : "?")}");
+        }
+        Console.WriteLine();
+        Console.WriteLine($"usable identities = {usable}/{seenRounds}   distinct ct = {distinct.Count}");
+        return usable >= seenRounds && seenRounds > 0 ? 0 : 2;
+    }
+
+    for (var i = 1; i <= cycles; i++)
+    {
+        var cycleSolver = new ChromiumKasadaSolver();
+        // Rotating the profile is the only thing that reliably makes the site ask again: wiping the identity
+        // inside one profile left the sensor reusing the token it already had, with no submission on the
+        // wire at all. A different profile is a different device, and a different device gets challenged.
+        // The price is that each profile has an empty cache, so every rotation pays for the page and p.js.
+        var rotate = Environment.GetEnvironmentVariable("KASADA_ROTATE") == "1";
+        var cycleProfile = rotate && !string.IsNullOrEmpty(profDir)
+            ? Path.Combine(profDir, "r" + i)
+            : profDir;
+        if (!string.IsNullOrEmpty(cycleProfile))
+        {
+            cycleSolver.ProfilePath = cycleProfile;
+            cycleSolver.FreshCookies = true;
+        }
+        // One cache directory for every rotated profile, so the page and p.js are downloaded once for all of
+        // them instead of once per device.
+        var sharedCache = Environment.GetEnvironmentVariable("KASADA_CACHE");
+        if (!string.IsNullOrEmpty(sharedCache)) cycleSolver.CachePath = sharedCache;
+        if (!string.IsNullOrEmpty(blockEnv))
+            foreach (var p in blockEnv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                cycleSolver.BlockPatterns.Add(p);
+
+        var cartOut = "(hook did not run)";
+        var rounds = 0;
+        var ipsUrl = "";
+        var ipsHead = "";
+        var ipsLen = 0;
+        cycleSolver.AfterSolveAsync = async (b, c) =>
+        {
+            rounds = b.CompletedTlCount();
+
+            // Keep the challenge program's identity as well as its opening bytes. Whether those bytes are
+            // the same from one profile to the next decides whether one downloaded program could serve
+            // several profiles -- which is the only way to stop paying for it every round.
+            var ipsRt = b.SniffRoundtrips()
+                         .LastOrDefault(x => x.Url.Contains("/ips.js", StringComparison.Ordinal));
+            ipsUrl = ipsRt?.Url ?? "";
+            var body = await b.ResponseBodyAsync("/ips.js", c).ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(body))
+            {
+                ipsLen = body.Length;
+                ipsHead = body.Length > 400 ? body[..400] : body;
+            }
+
+            cartOut = await b.EvaluateAsync(cJs, c, awaitPromise: true).ConfigureAwait(false) ?? "(null)";
+        };
+
+        var started = DateTime.UtcNow;
+        var r = await cycleSolver.SolveAsync(pageUrl, TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+        var secs = (DateTime.UtcNow - started).TotalSeconds;
+
+        var ct = r.Ct ?? "";
+        var isNew = ct.Length > 0 && distinct.Add(ct);
+        var tlRt = cycleSolver.LastRoundtrips
+                         .LastOrDefault(x => x.Url.TrimEnd('/').EndsWith("/tl", StringComparison.OrdinalIgnoreCase));
+        var st = tlRt?.ResponseHeaders.GetValueOrDefault("x-kpsdk-st") ?? "";
+        var ipsBytes = cycleSolver.WireBreakdown.Where(x => x.Url.Contains("/ips.js", StringComparison.Ordinal)).Sum(x => x.Bytes);
+        var pjsBytes = cycleSolver.WireBreakdown.Where(x => x.Url.Contains("/p.js", StringComparison.Ordinal)).Sum(x => x.Bytes);
+        var cartOk = cartOut.Contains("\"status\":200", StringComparison.Ordinal);
+
+        Console.WriteLine($"cycle {i}: ok={r.Ok} tlSolved={cycleSolver.TlSolved} rounds={rounds} "
+                          + $"ct={Trunc(ct, 16)} distinct={isNew} st={st}");
+        Console.WriteLine($"          bytes={cycleSolver.WireBytes:N0}  ips={ipsBytes:N0}  pjs={pjsBytes:N0}  "
+                          + $"dropped={cycleSolver.BlockedRequestCount}  secs={secs:F0}");
+        Console.WriteLine($"          cart: {CartStatus(cartOut)}");
+
+        if (r.Ok && isNew && cycleSolver.TlSolved && cartOk) usable++;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"usable identities = {usable}/{cycles}   distinct ct = {distinct.Count}");
+    return usable == cycles ? 0 : 2;
+}
+
 // The browser road: load the real page in the replica's own Chromium and read whatever x-kpsdk-* the
 // sensor puts on the wire. This is the road that is expected to produce a token for Nike's current build
 // (docs/KASADA/11 5.110), so it is worth being able to run it directly.
@@ -220,13 +428,13 @@ if (args.Contains("--browser"))
         Console.WriteLine("tl st = (absent from the /tl response headers)");
     }
 
-    Console.WriteLine($"TlSolved = {browser.TlSolved}   TlBody = {(browser.TlBody is null ? "(null)" : browser.TlBody.Length > 40 ? browser.TlBody[..40] + "…" : "[" + browser.TlBody + "]")}");
+    Console.WriteLine($"TlSolved = {browser.TlSolved}   TlBody = {(browser.TlBody is null ? "(null)" : browser.TlBody.Length > 40 ? browser.TlBody[..40] + "..." : "[" + browser.TlBody + "]")}");
     Console.WriteLine($"Ok      = {live.Ok}");
     Console.WriteLine($"Ct      = {live.Ct ?? "(null)"}");
     Console.WriteLine($"Version = {live.Version ?? "(null)"}");
     Console.WriteLine($"Error   = {live.Error ?? "-"}");
     foreach (var h in live.Headers.OrderBy(k => k.Key, StringComparer.Ordinal))
-        Console.WriteLine($"  {h.Key}: {(h.Value.Length > 70 ? h.Value[..70] + "…" : h.Value)}");
+        Console.WriteLine($"  {h.Key}: {(h.Value.Length > 70 ? h.Value[..70] + "..." : h.Value)}");
 
     // The token proving anything requires a gated endpoint. cart.get is the handoff pack's main criterion.
     // Dump the bundle the CD signer needs. Only three values: the token, the server epoch-ms and the local
@@ -540,8 +748,8 @@ if (!string.IsNullOrEmpty(seqJson))
 
 Console.WriteLine("headers the host would send:");
 foreach (var h in result.Headers.OrderBy(k => k.Key, StringComparer.Ordinal))
-    Console.WriteLine($"  {h.Key}: {(h.Value.Length > 60 ? h.Value[..60] + "…" : h.Value)}");
+    Console.WriteLine($"  {h.Key}: {(h.Value.Length > 60 ? h.Value[..60] + "..." : h.Value)}");
 
 return result.Ok ? 0 : 2;
 
-static string Trunc(string v, int n = 60) => v.Length > n ? v[..n] + "…" : v;
+static string Trunc(string v, int n = 60) => v.Length > n ? v[..n] + "..." : v;

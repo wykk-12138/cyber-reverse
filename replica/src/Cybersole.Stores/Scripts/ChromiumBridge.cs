@@ -86,7 +86,7 @@ public sealed class ChromiumBridge : IAsyncDisposable
     /// </summary>
     public static async Task<ChromiumBridge> LaunchAsync(string? executable = null, int port = 0,
         bool headed = false, string? profilePath = null, CancellationToken ct = default,
-        string? userAgent = null)
+        string? userAgent = null, string? cachePath = null)
     {
         executable ??= FindBrowser()
                       ?? throw new InvalidOperationException(
@@ -143,6 +143,12 @@ public sealed class ChromiumBridge : IAsyncDisposable
             "--disable-blink-features=AutomationControlled",
             "--disable-features=IsolateOrigins,site-per-process",
         });
+
+        // Rotating profiles is what makes a site ask for a fresh challenge, but each profile carries its own
+        // cache, so every rotation re-downloads the page and the sensor script. Pointing several profiles at
+        // one cache directory keeps them separate devices while letting them share what does not change
+        // between rounds. Runs are sequential, so the directory is never used by two browsers at once.
+        if (!string.IsNullOrWhiteSpace(cachePath)) args.Add($"--disk-cache-dir={cachePath}");
 
         // No automation-enabling switch, in either mode. Measured against the reference implementation
         // (arcbot rust/src/harvest/worker.rs): a debug port otherwise makes Chrome advertise

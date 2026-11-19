@@ -123,6 +123,13 @@ public sealed class ChromiumKasadaSolver
     public string? ProfilePath { get; set; }
 
     /// <summary>
+    /// HTTP cache directory, shared across profiles. Wiping a profile's identity is what makes the site ask
+    /// for a round again, but a fresh profile also starts with an empty cache and pays for the page and the
+    /// sensor script all over again. A shared cache keeps the identities separate and the downloads common.
+    /// </summary>
+    public string? CachePath { get; set; }
+
+    /// <summary>
     /// Drop the profile's cookies and page storage before navigating. Only meaningful with a kept profile:
     /// the point is to keep the downloaded sensor and still ask for a fresh round.
     /// </summary>
@@ -221,7 +228,7 @@ public sealed class ChromiumKasadaSolver
             // hundred kilobytes and never changes between rounds, so on a kept profile it comes from the
             // browser cache instead of the network. A fresh one re-downloads it every single time.
             bridge = await ChromiumBridge.LaunchAsync(headed: !KasadaHeadless, profilePath: ProfilePath,
-                                                      ct: ct).ConfigureAwait(false);
+                                                      ct: ct, cachePath: CachePath).ConfigureAwait(false);
 
             // R135: the browser that solves this token is the browser the payment will describe. One
             // key, recorded here, so the profile folder, the fingerprint and the 3-D Secure profile all
@@ -259,7 +266,10 @@ public sealed class ChromiumKasadaSolver
                 var origin = Uri.TryCreate(pageUrl, UriKind.Absolute, out var pu)
                     ? pu.GetLeftPart(UriPartial.Authority)
                     : pageUrl;
-                await bridge.ClearCookiesAsync(origin, ct).ConfigureAwait(false);
+                // Cookies alone are not always enough: the site also keeps identity in page storage, and one
+                // run that cleared only cookies was observed sailing past the challenge with almost nothing on
+                // the wire. Clearing both is what makes the round happen every time.
+                await bridge.ClearCookiesAsync(origin, ct, includeStorage: true).ConfigureAwait(false);
             }
 
             await bridge.NavigateAsync(pageUrl, ct).ConfigureAwait(false);

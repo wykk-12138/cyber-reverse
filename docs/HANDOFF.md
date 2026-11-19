@@ -7163,3 +7163,17 @@ Observation：
 
 还剩什么：① 两条 Unknown（`BotTask.Running`/`Task`）；② 三处 UI CS0108（冻结）；
 ③ `Checkout.Profile` 是否曾进过历史产物（Unknown，不影响结论）；④ 优先级②支付层可开新取件。
+## R1212 —— Stripe payment_methods 两条路径解码（sub_140959320=basil 挑战 / sub_140BDA320=acacia 表单）
+
+Observation：
+- `sub_140959320`（2,203 B，2 xref）：`https://api.stripe.com/v1/payment_methods` + `Stripe-Version: 2025-08-27.basil`
+  + `card[number|exp_month|exp_year|cvc]` + 8 个 `billing_details[...]` + 6 个 `client_attribution_metadata[...]`。
+- `sub_140BDA320`（6,526 B，2 xref）：载入 `&_stripe_version=2025-01-27.acacia`（0x146a7b048）。
+- 六个 Stripe 步骤名本身 0 xref（数据表条目）。
+
+**判断纠正**：先误判「复刻件版本写错」，实为**两条路径两个版本**，`Gateways.cs:163-164` 早已写明 ⇒ 复刻件正确。
+
+**下一步**：改 `PAYMENT_CHALLENGES.md` 的**生成器**（该文件是生成物，禁手改），把 payment_methods 两条路径写进去；
+其余五步（意图/提交/校验/fallback）仍待解码。
+
+还剩什么：① 五步 Stripe 方法体；② 两条 Unknown（BotTask.Running/Task）；③ UI CS0108 三处（冻结）。

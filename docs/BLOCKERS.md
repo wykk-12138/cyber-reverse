@@ -43960,3 +43960,45 @@ Inference = 「基类 string 是正确选择」（由类型为 Inference + 零�
 
 证据等级：Observation = 两次发布的哈希、尺寸与 `.pdata` 三组数、变异与套件收据、工具输出；
 Inference = 「零引用成员被裁剪」；Unknown = 该成员是否曾出现在任一历史产物里。
+## R1212 —— 优先级②取件：Stripe 侧**两条** payment_methods 构建器全部定位并解码；我差点把复刻件判错
+
+### 一、取件路线（标准四步链）
+
+`ValidateStripeIntent` 等六个名字是**数据表条目**（0 xref、0 disp32 site，与 `Farfetch` 同型），
+所以改用**代码必然加载**的字面量入手：Stripe API 版本串。
+
+### 二、解码结果（`names_at.py` 批量解冻结常量）
+
+**挑战面构建器 `sub_140959320`（2,203 B，2 处引用）**：
+
+| 项 | 值 |
+|---|---|
+| 端点 | `https://api.stripe.com/v1/payment_methods` |
+| 版本头 | `Stripe-Version: 2025-08-27.basil`（`0x146adfc60`） |
+| 卡字段 | `card` · `card[number]` · `card[exp_month]` · `card[exp_year]` · `card[cvc]` |
+| 账单字段 | `billing_details[name]` · `[email]` · `[phone]` · `[address][line1]` · `[line2]` · `[city]` · `[country]` · `[postal_code]` |
+| 归属元数据 | `client_attribution_metadata[client_session_id]` 与 `merchant_integration_source/subtype/version`、`payment_intent_creation_flow`、`payment_method_selection_flow` |
+| 其他 | `allow_redisplay` · `_stripe_version` · `elements` · `guid` · `deferred` · `automatic` · `2021` · `https://b.stripecdn.com` |
+
+**表单面构建器 `sub_140BDA320`（6,526 B，2 处引用）**：载入 `&_stripe_version=2025-01-27.acacia`（`0x146a7b048`）。
+
+⇒ **原版有两条 payment_methods 路径，用两个不同 API 版本**（acacia 表单 / basil 挑战）。
+
+### 三、我差点判错的地方（必须写下来）
+
+我先看到 `sub_140959320` 载入 `basil`，而 `StripeMethodFormTests` 断言 `acacia`，
+**一度判成"复刻件版本写错了"**。查下去：`Gateways.cs:163-164` 早就写着「两个冻结版本：
+`2025-01-27.acacia`（本表单，0x146adfbe0）与 `2025-08-27.basil`（挑战面的常量）」——
+**复刻件的理解是对的，我拿挑战面的构建器去比表单实现。**
+
+**同族的第 N 次**：判据之前先确认"我比的这两个东西是不是同一层"。
+
+### 四、本轮的实际产出
+
+1. 六个"只有名字"的 Stripe 步骤里，**payment_methods 两条路径的协议已完整解码**（端点 + 版本 + 14 个表单键）；
+2. 复刻件已实现且断言一致 ⇒ **无需改代码**（`where_is` 提前拦住了重复品：`StripeMethodFormTests` 18 处）；
+3. `docs/PAYMENT_CHALLENGES.md` 是生成物（标注"不要手改"），**本轮不手改**；其 L77「方法体尚未解码」
+   现在对 payment_methods 已不成立，**下轮应改生成器或在该文件重生成时带上本条**。
+
+证据等级：Observation = 两个函数的地址/大小/引用数、10+ 条 `names_at` 解码、`acacia`/`basil` 各自 xref；
+Inference = 「两条路径」；Unknown = 其余五步（支付意图、提交、校验、fallback）的方法体。

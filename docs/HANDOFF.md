@@ -7691,3 +7691,15 @@ Observation：
 验证：无 src 改动；产物重生成。
 
 还剩什么：① 22 条逐条定性；② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）；⑤ 产物待重发（本轮无 src 改动，仅文档/脚本）。
+## R1257 —— account 族：`/account-passwordreset`（连字符）取代 `/account/recover`；落地 AccountRoutes 11 常量 + 5 测试
+
+Observation：
+- 镜像：`/account/login`、`/account-passwordreset`、`/account/authorize?redirect_uri=`、
+  `/account/searchorder?orderNumber=`、`/account/login/multipass/<regex>`、`/customer/account/{,index/,login}`、
+  `/Account/User/{Login,Register}`、`&returnUrl=/account/login?returnUrl=`。
+- `ResetPassword` / `VerifyEmailLogin` 方法名存在 ⇒ 行为在，路由串无据。
+
+验证：build 0 错；5/5；全量 **2535/0/2/2537**（4m29s）。
+
+还剩什么：① 20 条无近邻继续（PopMart/Scheels/Retail/Hbx/Goat/Hybris/Shopify/StoreFlow）；
+② connect 通道（需登录）；③ 两条 Unknown；④ UI CS0108（冻结）；⑤ 产物待重发。

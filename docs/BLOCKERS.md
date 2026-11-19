@@ -45928,3 +45928,42 @@ Inference = 「镜像按查询串分阶段」；Unknown = 每店属于哪个 fam
 
 证据等级：Observation = 七个档的计数、两条 extension 条目的来源文件、R1205 的既有判定；
 Inference = 「这两条属预期缺席」；Unknown = 22 条各自的归属（不变）。
+## R1257 —— `/account/recover` 与 `/account/verify`：镜像的密码重置路是 **`/account-passwordreset`**（连字符，非嵌套）
+
+### 一、镜像里 `account/` 这一族 35 条，抽取有据形状
+
+| 字面量 | 出处观察 |
+|---|---|
+| `/account/login` | 直接存在 |
+| **`/account-passwordreset`** | **直接存在**——连字符**顶层段**，不是 `account/` 下的嵌套路径 |
+| `/account/authorize?redirect_uri=` | 带查询参数名 |
+| `/account/searchorder?orderNumber=` | 同上 |
+| `/account/login/multipass/[^\\s"'<>\\\\]+` | **存成正则**，不是字面路径 |
+| `/customer/account/` · `/customer/account/index/` · `/customer/account/login` | Demandware 顾客页 |
+| `/Account/User/Login` · `/Account/User/Register` | 驼峰族 |
+| `&returnUrl=/account/login?returnUrl=` | 查询片段 |
+
+### 二、复刻件两条的定性
+
+| 复刻件 | 镜像 | 判断 |
+|---|---|---|
+| `/account/recover` | **无**；有 `/account-passwordreset` | **结构不同**：嵌套段 vs 连字符顶层段——不是同义词，路由匹配都不一样 |
+| `/account/verify` | **无**；但 `VerifyEmailLogin` 是镜像里**存在的方法名** | 行为在，**路由串不同**；具体映射 **Unknown** |
+
+⇒ 两条都**不是编的**（方法名都在），但**路由写法没有证据**。这与 R1255 的 checkout 是同型：
+**行为有据、串无据**。
+
+### 三、落地
+
+`AccountRoutes.cs`（11 常量）+ `AccountRoutesTests` 5 条，其中两条是关键：
+
+- `ThePasswordResetRouteIsHyphenatedNotNested`：断言 `StartsWith("/account-")` 且 `DoesNotContain("/account/")`
+  ——**把"结构不同"钉成断言**，不再是文字描述；
+- `TheMultipassRouteIsStoredAsARegexInTheImage`：钉住"镜像是正则"这一事实。
+
+### 四、验证
+
+`dotnet build` 0 错；`AccountRoutes` **5/5**；全量 **2535 通过 / 0 失败 / 2 跳过 / 2537**（4m29s，+5）。
+
+证据等级：Observation = 11 条字面量、两条复刻件写法的零命中、`ResetPassword`/`VerifyEmailLogin` 方法名存在；
+Inference = 「行为有据、路由无据」；Unknown = `/account/verify` 的真实对应路由。

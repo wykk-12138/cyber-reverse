@@ -68275,3 +68275,26 @@ R1249 说 26 条全无近邻；扩大 key 宽度后 **Magento 这批全找到了
 |---|---|
 | 代码改动 | 无 |
 | 更正 | no-hit 26 → 22（2 条为扩展） |
+---
+
+## 第 1257 轮：account 族——重置路是 `/account-passwordreset`（连字符顶层段）
+
+镜像 `account/` 族 35 条，11 条有据形状落成 `AccountRoutes`：`login` · **`account-passwordreset`** ·
+`authorize?redirect_uri=` · `searchorder?orderNumber=` · `login/multipass/<regex>` ·
+`customer/account/{,index/,login}` · `Account/User/{Login,Register}` · `&returnUrl=…`。
+
+复刻件两条的定性：
+
+| 复刻件 | 镜像 | 判断 |
+|---|---|---|
+| `/account/recover` | 有 `/account-passwordreset` | **结构不同**（嵌套 vs 连字符顶层） |
+| `/account/verify` | 无路由；但 `VerifyEmailLogin` 方法名**在** | 行为有据、串无据，映射 **Unknown** |
+
+关键断言：`StartsWith("/account-")` 且 `DoesNotContain("/account/")` ⇒ **把"结构不同"变成断言**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 全量 | **2535 通过 / 0 失败 / 2 跳过 / 2537**（4m29s，+5） |
+| AccountRoutes | **5/5** |

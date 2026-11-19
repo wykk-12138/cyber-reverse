@@ -68054,3 +68054,30 @@ R1216 的 `sub_140A40170` 是 clover。⇒ **同形状、两个钉**。
 | 代码改动 | 无 |
 | 新产物 | `analysis/payment_path_audit.py` + `payment_path_audit.txt` |
 | 真无据路径 | **1** |
+---
+
+## 第 1248 轮：全量字符串导出 + 流程层审计 26 条真无据
+
+先把仪器换掉：`dump_strings.py` 在 IDA 内导出 **324,901 条**字符串到 `analysis/ida_strings.txt`
+（**IDA 的清单才是全量**，R816 说池子是抽样）。之后审计全本地。
+
+`path_audit.py` 分六档：exact / prefix-only / **assembled** / pattern / prose / **no-hit**。
+加 `assembled` 是因为第一版把 `/api/v1/carts/{c.Session.CartId}`（模板）算成无据，把 26 抬到 31。
+
+| 层 | 字面量 | exact | 前缀 | 插值 | 散文 | **真无据** |
+|---|---|---|---|---|---|---|
+| Payments | 38 | 35 | 1 | 0 | 1 | **1**（`/api/payments`） |
+| **Flows** | **270** | **229** | 2 | 5 | 8 | **26** |
+
+**Payments 与 R1247 独立复算一致**。流程层 26 条 = 优先级①的第一份可复算缺口表
+（`/cart/add.js`、`/rest/V1/carts/mine`、`/geoIP`、`/v1/buys` …）。
+
+**口径**：no-hit ≠ 原版不用，可能是不同写法/片段拼接/该档不请求——**这份表的作用是把 270 压到 26 去读**。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 代码改动 | 无 |
+| 新产物 | `dump_strings.py` / `path_audit.py` / `flow_path_audit.txt` |
+| 全量字符串 | 324,901（未入库，可重建） |

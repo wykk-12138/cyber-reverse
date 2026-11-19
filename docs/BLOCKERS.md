@@ -45573,3 +45573,59 @@ Inference = 「`api.omise.co` 未被证据支持」；Unknown = 原版真正用�
 
 证据等级：Observation = 38/33/5 三个数、四个前缀的命中与原文、`DisneyPaymentSheet.cs:130` 的源码行；
 Inference = 「3 条是片段假阴性、1 条是正则假阳性」；Unknown = `/api/payments` 的原版对应片段（若存在）。
+## R1248 —— 一批次全量字符串导出 + 流程层路径审计：**26 条真无据**（首次给出可复算的流程层证据缺口表）
+
+### 一、换仪器：从"逐条查"到"一次全量"
+
+R1247 用 `ida.py str` 一条一条查（38 条 = 38 次往返）。流程层 270 条那样做不划算，而且
+**逐条查本质上是抽样式的使用**。本轮先做一件事：
+
+`analysis/dump_strings.py` → 在 **IDA 内部**遍历 `idautils.Strings()`，把 **324,901 条**字符串
+（含地址）写到 `analysis/ida_strings.txt`（13.5 MB）。
+
+> 这是 R816 那条规矩的正解：**IDA 自己的清单才是全量**，`analysis/pe_strings.txt` 是抽样。
+> 之后的"某字面量是否有据"全部变成**本地、完整**的查找。
+
+### 二、审计分六档（每档都有理由）
+
+`analysis/path_audit.py`：
+
+| 档 | 含义 |
+|---|---|
+| `exact` | 镜像里有这个字面量 |
+| `prefix-only` | 没有整条，但 `?` 之前的路径部分有 ⇒ 查询串是分开的片段 |
+| `assembled` | 含 `{…}` ⇒ **模板**，镜像里只会有固定前缀（R1248 新增，见下） |
+| `pattern` | 正则，不是请求路径 |
+| `prose` | 源码行是注释，或字面量含空格 ⇒ 不是请求 |
+| `no-hit` | 以上都不是 —— **唯一值得叫"缺口"的档** |
+
+**为什么要加 `assembled`**：第一版把 `/api/v1/carts/{c.Session.CartId}` 算成无据，
+一口气把 no-hit 从 26 抬到 31。那是我把**模板**当成了**字面量**。
+
+### 三、结果
+
+| 层 | 字面量 | exact | 前缀 | 插值 | 正则 | 散文 | **真无据** |
+|---|---|---|---|---|---|---|---|
+| Payments | 38 | 35 | 1 | 0 | 0 | 1 | **1** |
+| **Flows** | **270** | **229** | 2 | 5 | 0 | 8 | **26** |
+
+**Payments 的复算结果与 R1247 独立得出一致结论**：唯一的真无据是 `/api/payments`。
+
+### 四、流程层 26 条（这是优先级①的第一份可复算缺口表）
+
+含 `/cart/add.js` · `/cart/update.js`（Shopify）· `/rest/V1/carts/mine` · `/checkout/#payment` ·
+`/collections/new-releases` · `/api/search` · `/api/cart/items` · `/geoIP` · `/api/beast` · `/v1/buys` …
+逐条列在 `analysis/flow_path_audit.txt`（含来源文件）。
+
+**注意口径**：`no-hit` ≠ "原版不用这条路"（R816）。它=「镜像里没有这个字符串」，
+可能因为原版**用不同写法**、**由片段拼出**、或**该档位压根不请求它**。这三者要逐条读代码才能分，
+而这份表的作用正是**把 270 条压到 26 条**去读。
+
+### 五、验证
+
+无 `replica/src` 改动。两个产物：
+`analysis/ida_strings.txt`（生成物，13.5 MB，**未入库**，脚本 1 分钟可重建）、
+`analysis/flow_path_audit.txt`（审计结果，入库）。
+
+证据等级：Observation = 324,901 条字符串、两层的六档计数、`/api/payments` 的双法一致；
+Inference = 「26 条是读代码的起点而非缺口判决」；Unknown = 每条各自属于"不同写法/片段拼接/不使用"哪一种。

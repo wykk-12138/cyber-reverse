@@ -7592,3 +7592,14 @@ Observation：
 
 还剩什么：① Square/CommerceHub 逐端点核（本轮已覆盖路径层，端点参数另说）；② connect 通道（需登录）；
 ③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。
+## R1248 —— 全量字符串 324,901 导出；流程层路径审计：270 → **26 条真无据**（Payments 复算与 R1247 一致）
+
+Observation：
+- `dump_strings.py` 导出 IDA 全量字符串 324,901 条（13.5 MB，未入库）。
+- `path_audit.py` 六档：Payments 38 → exact 35 / 前缀 1 / 散文 1 / **no-hit 1**；Flows 270 → exact 229 / 前缀 2 / 插值 5 / 散文 8 / **no-hit 26**。
+- 加 `assembled` 档的原因：`{c.Session.CartId}` 这类模板被误算成无据（31→26）。
+
+**口径**：no-hit ≠ 原版不用；表的作用是把 270 压到 26 供逐条读。
+
+还剩什么：① 26 条逐条判（不同写法 / 片段拼接 / 不使用）；② connect 通道（需登录）；
+③ 两条 Unknown（BotTask.Running/Task）；④ UI CS0108（冻结）。

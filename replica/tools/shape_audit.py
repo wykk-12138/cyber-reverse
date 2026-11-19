@@ -189,6 +189,7 @@ def kind_of(body, member):
     return '?'
 
 rows_out = []
+over_out = []
 for full, members in sorted(json.load(io.open(BINDS, encoding='utf-8')).items()):
     short = full.split('.')[-1]
     ev = shape.get(short)
@@ -212,11 +213,25 @@ for full, members in sorted(json.load(io.open(BINDS, encoding='utf-8')).items())
         # exactly what the original's action members are. Only a genuinely missing setter counts.
         if want_set and have not in ('prop+set', 'command'):
             rows_out.append((short, m, ','.join(sorted(kinds)), have))
+        # R1198: the other direction. Every rule above asks for a setter the replica is missing; nothing ever
+        # looked for a setter the replica has and the original does not, so a member that is read-only in the
+        # shipped product and writable here could never be reported. IWebhook.Type is exactly that - the
+        # descriptors carry Type!Getter with no !Setter, while the replica's Webhook.Type is settable - and it
+        # went unnoticed until a binding table was read by hand. These rows are counted apart from the totals
+        # rather than mixed in: an extra setter does not break a binding, it widens what the UI can do.
+        elif (not want_set) and have == 'prop+set' and 'command' not in (have,):
+            over_out.append((short, m, ','.join(sorted(kinds)), have))
 
 print('mismatches: member has Setter evidence but the replica is not a settable property')
 for t, m, kinds, have in rows_out:
     print('  %-26s %-22s evidence=%-26s replica=%s' % (t, m, kinds, have))
 print('total mismatches:', len(rows_out))
+
+print('')
+print('over-permissive: member is read-only in the original but settable here')
+for t, m, kinds, have in over_out:
+    print('  %-26s %-22s evidence=%-26s replica=%s' % (t, m, kinds, have))
+print('over-permissive total:', len(over_out))
 
 # ---------------------------------------------------------------------------------------------
 # R888: the same rows, split by the project that owns each type.

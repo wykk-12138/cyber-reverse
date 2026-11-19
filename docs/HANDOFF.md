@@ -6994,3 +6994,15 @@ Observation：
 
 还剩什么：① `Webhook.Type` 改只读影响面；② 三条 Unknown；③ abort 分支未验证；
 ④ 产品表那次测量对应轮次未记（按 R707 附近处理）；⑤ UI 侧 prop-get（冻结）。
+## R1198 —— 审计补反方向：over-permissive 45（新口径，与 88 分列）；Webhook.Type 记 Accepted deviation
+
+Observation：
+- 新增 `over-permissive` 一节与计数：**45**（原版 Getter-only、复刻件 `prop+set`）。
+- 例：`IWebhook.Type`、`BotTask.Product`。
+- `Webhook.Type` 未改：唯一赋值点在初始化器，且需 Newtonsoft 序列化到 settings.json，改只读有丢字段风险。
+
+验证：build 0 错；全量 **2477/0/2/2479**（4m23s）；度量三字段 `88 / 3 / 45`。
+
+还剩什么：① 45 条 over-permissive **逐类分诊**（持久化需求 vs 真偏差）；
+② 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；
+③ abort 分支未验证；④ UI 侧 prop-get（冻结）。

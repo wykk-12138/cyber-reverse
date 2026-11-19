@@ -48,7 +48,7 @@ METRICS = [
     # flows, anti-bot and the request layer. Of the ninety-four rows, seventy-seven are Ui, seventeen
     # are Core or Services, and Stores carries none. The core figure is the one steering should read.
     ("成员形状差异", ["tools/shape_audit.py", "--baseline"],
-     ["total mismatches", "core mismatches"]),
+     ["total mismatches", "core mismatches", "over-permissive total"]),
     ("文案缺口总表", ["tools/copy_audit_report.py"], ["copy: zones with a missing key"]),
     ("绑定缺口分桶", ["tools/backlog_report.py"], ["backlog: classes missing members", "backlog: types absent"]),
     # R466 fifth metric. Reads the TSV written by analysis/binding_descriptors.py (IDA-dependent, slow);
@@ -128,6 +128,9 @@ def summary_bits(name_out, owned):
         # R888: the same audit's rows restricted to Stores, Services, Http and Core. The total is
         # dominated by Ui, so this is the figure that tracks progress on the deferred-behind work.
         "core mismatches": r"core mismatches:\s*(\d+)",
+        # R1198: the reverse direction the audit never had - members the replica exposes as writable
+        # that the original binds read-only. Counted apart from the mismatch totals.
+        "over-permissive total": r"over-permissive total:\s*(\d+)",
         "copy: zones with a missing key": r"^\s+(\S+)\s+\d+\s+(\d+) missing",
         "backlog: classes missing members": r"classes that EXIST in the replica but miss members:\s*(\d+)",
         "backlog: types absent": r"types that DO NOT exist \(structural\):\s*(\d+)",

@@ -43361,3 +43361,45 @@ Inference = 「剩余三条已到证据边界」；Unknown = 三条成员的最�
 
 证据等级：Observation = 三条文档原文、METRICS 当前值、守卫三次收窄的失败清单、全量收据；
 Inference = 「187,328 与 179,456 是不同口径」；Unknown = 产品表那次测量对应的确切轮次（表内未记，按 R707 附近处理）。
+## R1198 —— 审计补上**反方向**：`over-permissive` 首次可见，**45 条**
+
+### 一、为什么补
+
+上轮记下 `Webhook.Type`「原版只读、复刻件可写」，并发现**审计永远不会报它**——
+所有规则都在查"该有 Setter 却没有"，**没有一条查"不该有却有"**。
+这类偏差不会破坏绑定，但**悄悄放宽了 UI 能做的事**（原版改不了的属性，复刻件能改）。
+
+### 二、新增
+
+`shape_audit.py` 增加反方向收集与独立一节：
+
+`
+over-permissive: member is read-only in the original but settable here
+  IWebhook    Type    evidence=Getter,Property    replica=prop+set
+  ...
+over-permissive total: 45
+`
+
+**与 total mismatches 分开计**（45 不进 88）：多一个 setter 不破坏绑定，混在一起会污染"缺口"的语义。
+计数已接进 `metrics_report.py` 与 METRICS。
+
+### 三、`Webhook.Type` 本轮**没改**，理由
+
+- 唯一赋值点在 `SettingsModals.cs:772` 的对象初始化器；
+- 但 `Webhook` 要经 Newtonsoft **序列化到 settings.json**，改成 `private set` 很可能**丢字段**；
+- 拿"忠于原版"换**数据丢失风险**不划算 —— **记为 Accepted deviation（有理由的偏离）**，不硬改。
+  若将来要改，前置条件是先给该成员加 `[JsonProperty]` 并验证往返。
+
+### 四、度量
+
+`成员形状差异` → `{'total mismatches': '88', 'core mismatches': '3', 'over-permissive total': '45'}`。
+
+**45 条不是 45 个 bug**：其中相当一部分是持久化模型需要可写。**下一轮起逐类分诊**，
+而不是一律改成只读。
+
+### 五、验证
+
+`dotnet build` 0 错；全量 **2477 通过 / 0 失败 / 2 跳过 / 2479**（4m23s）。
+
+证据等级：Observation = 新一节输出与 45 这个计数、`IWebhook.Type`/`BotTask.Product` 两行、度量字段、套件收据；
+Inference = 「多数 over-permissive 由持久化需求造成」；Unknown = 45 条里哪几条是真偏差（未分诊）。

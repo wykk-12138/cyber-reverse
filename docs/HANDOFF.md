@@ -6983,3 +6983,14 @@ Observation：
 
 还剩什么：① `Type` 改只读评估；② 三条 Unknown（`BotTask.Running`/`Task`、`CreateModel.Inputs`）；
 ③ abort 分支未验证；④ 判据 e 两处文档手抄数字；⑤ UI 侧 prop-get（冻结）。
+## R1197 —— 文档数字带时点+口径（判据 e 第三条）；新增 DocumentNumbersAreSourcedTests
+
+改动：`PARITY_CLAIMS.md` C6/C9 补「时点 / 当前见 METRICS / 口径不可相减」；`PARITY_PRODUCT.md` 表头加时点声明；
+新守卫只查「陈述状态」的两份文档（排除 1100 行测量档案与 9000 行 backlog，理由写进注释）。
+
+**口径陷阱**：产品的 187,328 是 `idautils.Functions()`，METRICS 的 179,456 是 `.pdata` —— **都真，但不能相减**。
+
+验证：build 0 错；文档钉子 18/18；全量 **2477/0/2/2479**（4m22s）。
+
+还剩什么：① `Webhook.Type` 改只读影响面；② 三条 Unknown；③ abort 分支未验证；
+④ 产品表那次测量对应轮次未记（按 R707 附近处理）；⑤ UI 侧 prop-get（冻结）。

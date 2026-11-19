@@ -43322,3 +43322,42 @@ Inference = 「绑的是实例不是契约」；Unknown = `Events`/`ExtraFields`
 
 证据等级：Observation = 六条 IWebhook 描述符（含 `Type` 仅 Getter）、两处源码改动、两次度量、全量与变异收据；
 Inference = 「剩余三条已到证据边界」；Unknown = 三条成员的最终类型、`Type` 改只读的影响面。
+## R1197 —— 判据 e 第三条落实：**引用函数数字必须带「时点 + 口径」**；并记一个口径陷阱
+
+### 一、改了什么
+
+| 文档 | 问题 | 处理 |
+|---|---|---|
+| `docs/PARITY_CLAIMS.md` C6 | 复刻件 189,090 / 命名 176,784 写成当前值（实为 **R707 时点**） | 补「R707 时点」＋「当前值见 METRICS.md」＋「口径不同不可相减」 |
+| `docs/PARITY_CLAIMS.md` C9 | 277,094 ↔ 170,137 写成「当前」 | 改为「时点值」＋ 指向 METRICS |
+| `docs/PARITY_PRODUCT.md` 表 | 整表写成现状 | 表头加**时点声明**：这是 `idautils.Functions()` 口径的时点测量，当前值见 METRICS；并说明**两种口径不可相减** |
+
+**C7b 本来就是这个模式**（「当前条数见 METRICS.md」＋「R468 当时的实测」）——本轮把 C6/C9 与产品表拉齐到同一标准。
+
+### 二、口径陷阱（本轮查实，值得记）
+
+`PARITY_PRODUCT.md` 的 **187,328** 与 METRICS 的 **179,456** 看起来矛盾，其实不是：
+- 前者 = `idautils.Functions()`（含 IDA 自动识别的未展开条目）；
+- 后者 = `.pdata` 的 `RUNTIME_FUNCTION` 条目数（`277,120` 原始侧）。
+
+**两个数都真，减起来就是假的。** 该表已写明这一点。
+
+### 三、新守卫 `DocumentNumbersAreSourcedTests`
+
+规则：**陈述状态的文档**（`PARITY_CLAIMS.md`、`GOAL.md`）里，凡提到「函数」的行若含两段式数字，
+必须同处出现 `METRICS` / `时点` / `snapshot` / `R####` / 日期，否则红。
+
+**两次收窄都有理由（写进测试注释）**：
+- 两段式数字 ≠ 函数数（`998,520`、`309,404` 是节大小）⇒ 只查提到「函数」的行；
+- `PARITY_PRODUCT.md`（1100 行测量档案）与 `BINDING_BACKLOG.md`（9000 行工作日志）**逐行都要求标注是错的**——
+  前者表头已声明时点、后者条目自带轮次 ⇒ **排除并写明原因**。
+
+修复过程本身也说明问题：每修一处又露出下一处，**直到把范围收到"陈述状态"才收敛**。
+
+### 四、验证
+
+`dotnet build` 0 错；`DocumentNumbersAreSourced|ParityDoc|DocsConsistency` **18/18**；
+全量 **2477 通过 / 0 失败 / 2 跳过 / 2479**（4m22s，较上轮 +1 条新守卫）。
+
+证据等级：Observation = 三条文档原文、METRICS 当前值、守卫三次收窄的失败清单、全量收据；
+Inference = 「187,328 与 179,456 是不同口径」；Unknown = 产品表那次测量对应的确切轮次（表内未记，按 R707 附近处理）。

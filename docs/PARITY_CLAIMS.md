@@ -52,12 +52,12 @@ Ghidra 留作后手，只有当某条 claim 必须伪代码级证据时才装，
 
 | id | claim | status | authority | command | gap_reason |
 |---|---|---|---|---|---|
-| C6 | 函数数量与符号可见性对照成立 | **pass（Observation 层）** | tool-evidence | `python analysis/func_compare.py --export-only`（两个导出首行自带口径）→ **原版 321,244 / `symbols=no` / 命名 10,041（3.13%）** ↔ **复刻件 189,090 / `symbols=yes` / 命名 176,784（93.49%）**。**R707 在新产物（55,349,248 B、从零重建的 IDB、PDB 已载）上重测**；同口径（不带 PDB）的 186,732 是 R613 在**旧产物**上的测量，**未在新产物上重做** | 两侧符号条件相差一个数量级，见 `BLOCKERS.md` §132 |
+| C6 | 函数数量与符号可见性对照成立 | **pass（Observation 层）** | tool-evidence | `python analysis/func_compare.py --export-only`（两个导出首行自带口径）→ **原版 321,244 / `symbols=no` / 命名 10,041（3.13%）** ↔ **复刻件 189,090 / `symbols=yes` / 命名 176,784（93.49%）**。**R707 在新产物（55,349,248 B、从零重建的 IDB、PDB 已载）上重测**；同口径（不带 PDB）的 186,732 是 R613 在**旧产物**上的测量，**未在新产物上重做**。**R1197：以上数字是 R707 时点值——函数总数的当前口径与当前值见 `docs/METRICS.md`（`.pdata` 口径，与本节 `idautils.Functions()` 口径不同，两者不可直接相减）** | 两侧符号条件相差一个数量级，见 `BLOCKERS.md` §132 |
 | C7a | 绑定成员能否在原版定位到**绑定声明** | **pass** | tool-evidence | `python analysis\binding_descriptors.py` → 原版描述符表 951 条 / 215 类型；**51 个 ABSENT 类型全部在表里、成员全覆盖**（R464） | — |
 | C7b | 成员**形状**（getter / setter）两侧一致 | **fail**（当前条数见 `METRICS.md` 的"成员形状差异"） | tool-evidence | `python tools\shape_audit.py`；**用描述符表交叉验证：报出的每一条在原版描述符表里都有 Setter（0 反例）**（R467） | 构成（**R468 当时的实测，非当前值**；当前条数见 `METRICS.md`）：175 条是"原版要可写属性、复刻件实现成 `method`"；61 条是"复刻件根本找不到该成员"；29 条是"数据属性缺 setter"。运行时不受影响（复刻件代码构造 UI，不走 XAML 绑定），但**结构偏离明确**。R468 同时修掉 10 条误报（`ICommand Foo { get; }` 本来就该只读，不算缺 setter） |
 | C7c | 任意两函数的**伪代码等价** | **unknown**（**R718 起有 15 条行为探针**） | unknown | — | 缺原版符号（PDB / 调试信息）。**Ghidra 不能提供**（它只会把 `sub_` 改名成 `FUN_`），故不再作为选项。若将来要证行为等价，优先做**行为探针**（同输入 → 两侧输出/副作用对照），而不是伪代码 diff |
 | C8 | 字符串池对等 | **unknown** | unknown | — | 缺**分类比对**：`analysis\pe_strings.txt`（原版）↔ AOT 字符串清单，按 locale 键 / URL / 错误消息分三类逐类比。现有工具无此能力 |
-| C9 | `.pdata` 覆盖的展开函数数量级相当 | **unknown** | unknown | — | 该口径只覆盖"需要展开信息的函数"，与 `idautils.Functions()` 不等价；要判对等必须先证明两套口径的换算关系。当前：277,094 ↔ 170,137（`pe_triage` 的 `.pdata` vsize ÷ 12） |
+| C9 | `.pdata` 覆盖的展开函数数量级相当 | **unknown** | unknown | — | 该口径只覆盖"需要展开信息的函数"，与 `idautils.Functions()` 不等价；要判对等必须先证明两套口径的换算关系。**时点值**（`pe_triage` 的 `.pdata` vsize ÷ 12）：277,094 ↔ 170,137；**当前值见 `docs/METRICS.md`（`.pdata` 直接计数，口径不同，不可相减）** |
 
 > **C6 只判到 Observation 层**：数量差 −41.7% 是事实，但"差在哪"需要 C7；不许用 C6 的 pass 去暗示 C7。
 

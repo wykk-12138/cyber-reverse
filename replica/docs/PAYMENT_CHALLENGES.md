@@ -65,7 +65,7 @@
 | 标记 | 复刻件里出现在 | 性质 |
 |---|---|---|
 | `PayPal3DS` | `Gateways.cs` · `WallSolving.cs` | 名字被引用 |
-| `PayPalThreeDs` | `StoreFlow.cs` · `Gateways.cs` · `PayPalThreeDs.cs` | 名字被引用 |
+| `PayPalThreeDs` | `StoreFlow.cs` · `StoreFlowRunner.cs` · `Gateways.cs` · `PayPalThreeDs.cs` | 名字被引用 |
 | `StripeChallenge` | `Gateways.cs` · `StripeChallenge.cs` | 名字被引用 |
 | `Submit3DS` | `PayPalThreeDs.cs` | 名字被引用 |
 | `CreateStripePaymentMethod` | `DemandwareStepMap.cs` · `RetailFlows.cs` · `StoreFlow.cs` · `StoreFlowSteps.cs` | 名字被引用 |
@@ -78,7 +78,7 @@
 
 | 表面 | 函数 | 已落地 |
 | --- | --- | --- |
-| payment_methods 表单 | `sub_140BDA320` | `PaymentMethodForm`，API 版本 `2025-01-27.acacia` |
+| payment_methods 表单 | `sub_140BDA320` | `StripeGateway.TokenizeAsync`（`Gateways.cs:504`），API 版本 `2025-01-27.acacia` |
 | payment_methods 挑战面 | `sub_140959320` | 同一函数的 basil 面，`2025-08-27.basil` |
 | setup_intent confirm | `sub_140BE0F80` | `SetupConfirmUrl` / `SetupConfirmForm`（`payment_method_data[*]` 族） |
 | setup_intent retrieve | `sub_141145DB0` | `SetupIntentRetrieveUrl`（`&_stripe_account=` 即使为空也追加） |

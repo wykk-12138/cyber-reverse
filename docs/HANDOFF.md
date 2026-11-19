@@ -7813,3 +7813,13 @@ Observation：
 
 还剩什么：① 优先级②按源码推进（PayPal 四态机 / Stripe 六步 / 支付挑战）；
 ② 17 条 no-hit 按新口径重读（只能读 unknown）；③ connect 通道（需登录）；④ 两条 Unknown。
+## R1268 —— 支付面可复算（payment_surfaces.py 7/7）；修生成器而非生成物；记下遗留 PaymentHostGaps
+
+Observation：
+- 首跑 5/7：`PaymentMethodForm` 成员不存在（真名 `StripeGateway.TokenizeAsync`，Gateways.cs:504）。
+- 手改文档被重生成覆盖 ⇒ 改 `payment_challenges.py:233` 后重生成，文档 L81 正确。
+- 复算 7/7；control ok=True stages=9。
+
+**遗留**：`src/.../PaymentHostGaps.cs` 是 `*Gaps` 类，违反 §3 红线（早于本轮），下轮单独清。
+
+还剩什么：① PaymentHostGaps 清理（查连带）；② 17 条 no-hit 按新口径；③ connect 通道（需登录）；④ 两条 Unknown。

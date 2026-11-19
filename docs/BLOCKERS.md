@@ -46403,3 +46403,52 @@ o-hit 口径）逐条列出；
 
 证据等级：Observation = 文件行数变化、§4.5 的正文；
 Inference = 「重演风险因此降低」；Unknown = 无。
+## R1268 —— 把「支付面已落地」从**断言**变成**可复算**：首跑就抓到两行写错
+
+### 一、问题
+
+`replica/docs/PAYMENT_CHALLENGES.md` §五 有 7 行「表面 → 反编译函数 → 已落地成员」。
+那是**关于代码的断言**，却没有任何命令能验证它。判据 (d) 要求每条 claim 可复算。
+
+### 二、写了个重算器，第一次运行就失败
+
+`replica/tools/payment_surfaces.py`：逐行检查「成员存在」+「该行点名的常量在源码里」。
+
+首跑 **5/7**：
+
+| 行 | 结果 |
+|---|---|
+| payment_methods 表单 | **`PaymentMethodForm` MISSING** |
+| payment_methods 挑战面 | **`PaymentMethodForm` MISSING** |
+| 其余 5 行 | ok |
+
+**去源码里找真名**：`payment_methods` 的实现是 `StripeGateway.TokenizeAsync`（`Gateways.cs:504`），
+`StoreFlow.cs:1712` 也从那里发。**`PaymentMethodForm` 这个名字在整个仓库里根本不存在**——
+它只活在文档措辞里。
+
+### 三、修的是**生成器**，不是生成物
+
+`PAYMENT_CHALLENGES.md` 是 `tools/payment_challenges.py` 生成的。
+我先把文档手改了一遍，重跑生成器**立刻被覆盖**——**正确的修法是改生成器**（L233）。改完再生成，文档里就是真名。
+
+> 这一步差点犯老错：**改生成物等于没改**。
+
+### 四、修完
+
+- `payment_surfaces.py`：**7/7 rows recompute from source**；
+- `payment_challenges.py`：`control ok=True stages=9 markers absent=0/5`；
+- `PAYMENT_CHALLENGES.md:81` 现在是 `StripeGateway.TokenizeAsync`。
+
+### 五、顺带发现（记下，不在本轮处理）
+
+`replica/src/Cybersole.Stores/Payments/PaymentHostGaps.cs` 是一个 **`*Gaps` 类**，
+按 §3 的产品代码红线**不该存在**于 `src`。它是**本轮之前**就在的，属于遗留；
+下一轮按"先查连带影响再删"的规矩单独处理，不混进本轮。
+
+### 六、验证
+
+`python tools/payment_surfaces.py` → `7/7`；`python tools/payment_challenges.py` → `control ok=True`；
+本轮无 `replica/src` 改动，上一轮全量 **2543/0/2/2545** 仍成立。
+
+证据等级：Observation = 两次运行的 5/7 与 7/7、生成器行号、被覆盖后重生成的事实；
+Inference = 「文档成员名是措辞产物」；Unknown = 无。

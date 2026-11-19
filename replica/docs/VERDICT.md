@@ -68548,3 +68548,25 @@ o-hit）。
 |---|---|
 | AGENTS.md | 281 → **321** 行 |
 | src 改动 | 无 |
+---
+
+## 第 1268 轮：支付面 7 行变可复算；首跑 5/7 抓到两行写错成员名
+
+新增 `tools/payment_surfaces.py`，逐行验证文档 §五 的 7 行。**首跑 5/7**：
+`PaymentMethodForm` 这个名字**在仓库里不存在**（真实实现是 `StripeGateway.TokenizeAsync`，`Gateways.cs:504`）。
+
+**修的是生成器**（`payment_challenges.py:233`）而不是生成物——手改文档被重生成立刻覆盖。
+
+修完：`7/7`；`control ok=True stages=9 markers absent=0/5`；文档 L81 已是真名。
+
+### 顺带记下（下轮单独处理）
+
+`src/Cybersole.Stores/Payments/PaymentHostGaps.cs` 是遗留的 `*Gaps` 类，违反 §3 红线（本轮之前就在）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| payment_surfaces | **7/7** |
+| payment_challenges control | **ok=True** |
+| src 改动 | 无 |

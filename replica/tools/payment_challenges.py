@@ -230,7 +230,10 @@ def main():
     add("")
     add("| 表面 | 函数 | 已落地 |")
     add("| --- | --- | --- |")
-    add("| payment_methods 表单 | `sub_140BDA320` | `PaymentMethodForm`，API 版本 `2025-01-27.acacia` |")
+    # R1268: this row used to name a member "PaymentMethodForm" that exists nowhere in the code. The surface is built
+    # inside StripeGateway.TokenizeAsync (Gateways.cs:504), which tools/payment_surfaces.py checks; the generator was
+    # writing a name that only the prose had ever used, so the fix belongs here rather than in the generated file.
+    add("| payment_methods 表单 | `sub_140BDA320` | `StripeGateway.TokenizeAsync`（`Gateways.cs:504`），API 版本 `2025-01-27.acacia` |")
     add("| payment_methods 挑战面 | `sub_140959320` | 同一函数的 basil 面，`2025-08-27.basil` |")
     add("| setup_intent confirm | `sub_140BE0F80` | `SetupConfirmUrl` / `SetupConfirmForm`（`payment_method_data[*]` 族） |")
     add("| setup_intent retrieve | `sub_141145DB0` | `SetupIntentRetrieveUrl`（`&_stripe_account=` 即使为空也追加） |")

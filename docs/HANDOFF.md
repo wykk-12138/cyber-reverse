@@ -8152,3 +8152,13 @@ Observation：
   一个 `§` 会变成两个 `U+FFFD` 写进这个唯一数字源。管道已改成强制子进程 UTF-8 + 严格解码 + 可见告警。
 - **编码守卫扩大了两处**：仓库根 `docs/` 与 `.py` 工具脚本现在都在扫描面内（此前都不在）。
 - 详见 `replica/docs/VERDICT.md` 第 1301 轮。
+
+---
+
+## 第 1302 轮
+
+- `0x14094c210` 这条 `Unknown` 已从「解出来」推进到「落成代码」：`StripeGateway.FetchConfigurationAsync`，
+  在 `AuthorizeAsync` 入口按镜像自己的判据（还没取到才取）接入；`UnzerGateway.PreparePaymentAsync`
+  与 `unzer.prepareUrl` 一并删除。
+- 头模板按**键值对**落，不按键数；`Akamai`/`1` 与 `a2+226` 因性质未定**未发送**，注释里留着偏移。
+- 见 `replica/docs/VERDICT.md` 第 1302 轮，与 `docs/METRICS.md` 的当前值。

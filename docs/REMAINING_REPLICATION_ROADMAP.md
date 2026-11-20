@@ -18,15 +18,17 @@
   - 店铺流程异步名：原版 `103` 个名（`408` 次实现）已在 `replica/src/` 覆盖 `70/103`（对应 `375/408` 次出现），仍有 **`33` 个长尾步骤名**待反编译补全或逐一核实去向；
   - 支付/3DS 异步名：原版 `124` 个名（`195` 次实现）已覆盖 `47/124`（`118/195` 次出现），仍有 **`77` 个细分支付方法**待进一步对位。
 - **4 处已定位但尚未穷举的静态 `Unknown` 子分支**（见 `docs/PROGRESS_AND_GAP.md`）：
-  1. ~~**Unzer 3DS**：`0x14094c210` prepare 精确子路径~~ —— **R1301 已解且归属纠正**：`0x14094c210` 不是 Unzer，
-     它是**发请求前的配置委托**（`sub_1408B61E0` 里 `(*(a3+32))(a3[1], v6)` 就在 `sub_1408B5EB0` 发送之前调用它），
-     落的 15 条头是全站浏览器模板，另有 `Akamai: 1`（`a2+112`）、`+226 = 1`、`200`/`400` 两条状态处理器；
-     URL 在调用方 `sub_14095B4E0` 内：`https://www.casio.com/{storeCode}/rest/V1/stripe/payments/get_stripe_configuration?_=<tick>`，
-     与同页 `sub_14095c980` 的 `/stripe/payments/get_requires_action?orderId=` 同族。
-     **剩余待办**：把该端点落成 `StripeGateway` 的可执行步骤，并把 `UnzerGateway.PreparePaymentAsync` 里那条
-     靠 `unzer.prepareUrl` 人供的虚构路径撤掉。`apiKey` 的读取方**未定位到这一步**——它的 4 个引用者
-     （`sub_14094DEB0`、`sub_1409F2A60`、`sub_140ECF2B0`、`sub_14117B6C0`）都不在 `0x14095xxxx` prepare 链上。
-     Unzer 侧仍余 `qword_1472c65a0+8` 终态集合与 `0x14094a870` 谓词两项；
+  1. ~~**Unzer 3DS**：`0x14094c210` prepare 精确子路径~~ —— **R1301 已解且归属纠正，R1302 已落码**：
+     `0x14094c210` 不是 Unzer，它是**发请求前的配置委托**（`sub_1408B61E0` 里 `(*(a3+32))(a3[1], v6)` 就在
+     `sub_1408B5EB0` 发送之前调用它），落的 15 条头是全站浏览器模板，另有 `Akamai: 1`（`a2+112`）、
+     `+226 = 1`、`200`/`400` 两条状态处理器；URL 在调用方 `sub_14095B4E0` 内：
+     `https://www.casio.com/{storeCode}/rest/V1/stripe/payments/get_stripe_configuration?_=<tick>`。
+     **R1302 落成** `StripeGateway.FetchConfigurationAsync`（+ `StoreConfigUrl` / `StoreConfigHeaders`），
+     在 `AuthorizeAsync` 里按 `sub_140F9E790` 的「还没取到才取」条件接入；`UnzerGateway.PreparePaymentAsync`
+     与 `unzer.prepareUrl` 那条人供虚构路径已删除。**仍 Unknown**：`a2+112` 那个集合到底是不是 cookie
+     （`Akamai`/`1` 因此未发送）；`apiKey` 的读取方不在本条链上——`0x146F7544C` 的 4 个引用者是
+     `sub_14094DEB0`、`sub_1409F2A60`、`sub_140ECF2B0`、`sub_14117B6C0`。Unzer 侧仍余
+     `qword_1472c65a0+8` 终态集合与 `0x14094a870` 谓词两项；
   2. **Checkout.com**：`0x1408a34f0` 尾部分支中按发卡行 ACS 主机区分的逐家表单字段表；
   3. **Komoju 便利店**：`0x140d98f60` `[1..56]` 的 `formUrl` 后缀表达式；
   4. **`ToppsVariant`**：在二进制 `off_1449B8EB0` 的精确序列化 JSON 键名。

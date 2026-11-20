@@ -38,7 +38,7 @@
 1. **`Cybersole.Stores` 站点流程与支付状态机长尾深化（最大核心业务缺口）**：
    - 原版多信号归因已见 **`5,090`** 个 `Cybersole.Stores` 函数（`4.41 MiB`）vs 复刻全部 **`3,403`** 个 `.pdata` 函数（`829 KiB`）；原版店铺异步名 `103` 个（`408` 次实现）、支付/3DS 异步名 `124` 个（`195` 次实现）——覆盖面分子与剩余长尾**只认** `docs/REMAINING_REPLICATION_ROADMAP.md` §1 与 `docs/MODULE_FUNCTION_CENSUS.md`，本文不复抄、以免双重漂移。
    - **优先消解 4 处已定位但尚未穷举的静态 `Unknown` 子分支**：
-     - Unzer：`0x14094c210` prepare 子路径、`qword_1472c65a0+8` 终态集合、`0x14094a870` 动作判定谓词；
+     - **Unzer**：`qword_1472c65a0+8` 终态集合、`0x14094a870` 动作判定谓词；（`0x14094c210` 已在 R1301 证定**不属于 Unzer**——它是 Magento Stripe 配置端点的请求配置委托，R1302 已落成 `StripeGateway.FetchConfigurationAsync`）；
      - Checkout.com：`0x1408a34f0` 尾部分支中按发卡行 ACS 主机区分的逐家表单字段表；
      - Komoju：`0x140d98f60` `[1..56]` 的 `formUrl` 后缀表达式；
      - `ToppsVariant`：`off_1449B8EB0` 的精确序列化 JSON 键名。

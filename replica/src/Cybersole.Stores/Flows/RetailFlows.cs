@@ -422,13 +422,12 @@ public sealed class CasioFlow : StoreFlow
             is not Cybersole.Stores.Payments.UnzerGateway unzer)
             return StepOutcome.Fail("casio: unzer gateway unavailable");
 
-        if (c.Session.Vars.ContainsKey("unzer.prepareUrl") &&
-            string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("unzer.publicKey")))
-        {
-            var prep = await unzer.PreparePaymentAsync(c, ct).ConfigureAwait(false);
-            if (!prep.Ok) return StepOutcome.Fail(prep.Error ?? "Error preparing payment", retryable: true);
-        }
-
+        // R1302: the "Preparing payment" step that used to run here is not Unzer's. It was attached to
+        // 0x14094c210 on the strength of the status text alone; the function is the request configuration
+        // for the Magento Stripe module's configuration fetch, and it moved to
+        // StripeGateway.FetchConfigurationAsync with the URL its caller composes. Nothing replaces it on
+        // this path, because no evidence ever produced a Unzer-side prepare endpoint — only the
+        // "unzer.prepareUrl" seam that used to sit here.
         var tok = await unzer.TokenizeAsync(c, ct).ConfigureAwait(false);
         if (!tok.Ok) return StepOutcome.Fail(tok.Error ?? "casio: unzer tokenize failed", retryable: false);
 

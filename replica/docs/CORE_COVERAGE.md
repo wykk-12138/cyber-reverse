@@ -35,7 +35,7 @@
 | `NikeGsFlow.cs` | 5 | 0 | 68 |
 | `PopMartFlow.cs` | 27 | 0 | 715 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
-| `RetailFlows.cs` | 102 | 0 | 1698 |
+| `RetailFlows.cs` | 102 | 0 | 1697 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
 | `ShopifyFlow.cs` | 25 | 0 | 1113 |
 | `SportsshoesFlow.cs` | 7 | 0 | 130 |

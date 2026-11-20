@@ -56,7 +56,7 @@
 | 项 | 状态 | 结论与证据（含诚实 Unknown 边界） |
 |---|---|---|
 | PayPal 3DS 九阶段 + Stripe 6 端点与派发 | ✅ | `PayPalThreeDs.cs`、`StripeChallenge.cs`、`Gateways.cs`（8 条静态 `AsyncTaskMethodBuilder.Start` 映射全数对齐 + `StripeSetupIntentTests`） |
-| `UnzerGateway`（`ContinueUnzerThreeDs`，Wave 2B） | ✅ | 基于 `0x140960560` / `0x14095e0f0` 在 `Gateways.cs` / `CasioFlow` / `StoreFlow` 实现 prepare / set-payment / `api.unzer.com/v1/types/card` tokenize / order submit / `unzer/payment/redirect` 与 `#threeds-method-data` 3DS 状态机（`UnzerThreeDsTests`）。<br>**Unknown**：`0x14094c210` 精确 prepare 子路径、`qword_1472c65a0+8` 终态集合、`0x14094a870` 动作判定谓词未全解，已在代码显式保留边界 |
+| `UnzerGateway`（`ContinueUnzerThreeDs`，Wave 2B） | ✅ | 基于 `0x140960560` / `0x14095e0f0` 在 `Gateways.cs` / `CasioFlow` / `StoreFlow` 实现 set-payment / `api.unzer.com/v1/types/card` tokenize / order submit / `unzer/payment/redirect` 与 `#threeds-method-data` 3DS 状态机（`UnzerThreeDsTests`）。<br>**Unknown**：`0x14094c210` 精确 prepare 子路径、`qword_1472c65a0+8` 终态集合、`0x14094a870` 动作判定谓词未全解，已在代码显式保留边界 |
 | `CardinalThreeDs`（`CardinalInit`/`Continue`/`DeviceFingerprint`/`StepUp`，Wave 2B） | ✅ | 基于 `0x14092df10` / `0x140939110` 实现 Centinel `1.35.0`、CardinalTrusted `2.1.0`、`geo.cardinalcommerce.com` 设备指纹采集与 `Cruise/StepUp` + `TermRedirection`，并接入 `StoreFlow`（`RunCardinalStepAsync`）、`DemandwareFlow`（含 `dfReferenceId`）、`WarhammerFlow` 与 `PaynamicsGateway`（`CardinalThreeDsTests`） |
 | `CheckoutComGateway`（`api.checkout.com`，Wave 2B） | ✅ | 实现 Shopify Offsite、`sessions-interceptor`、NIKE-GS/ESW `authentication-devices.checkout.com` 与 Mollie 4 条路径并注册至 `PaymentGatewayRegistry.CreateDefault()`（`CheckoutComGatewayTests`、`UnmatchedGatewaysTests`）。<br>**Unknown**：`0x1408a34f0` 尾部分支中按发卡行 ACS 主机区分的表单字段表尚未逐家穷举 |
 | 便利店结算（Shopify `ConvenienceStores`） | ✅ | 基于 `0x140cf7090` / `0x140d98f60` / `0x140dcecf0` 在 `ShopifyFlow.cs` 实现 Komoju + WebCVS（`shift_jis`）表单逻辑（原版独立名 `CompleteConvenienceStore` 不存在）。<br>**Unknown**：`komoju_api` `formUrl` 后缀表达式 `0x140d98f60` `[1..56]` 仍记为 Unknown |
@@ -88,5 +88,5 @@
 2. **Phase 2 核心模块队列 Waves 2A–2D**：**4/4 已落地并通过验证**（Wave 2A 邮件/OTP 接线、Wave 2B Unzer/Cardinal/CheckoutCom 3DS 与便利店支付、Wave 2C Shopify/Topps CDN/Funko 奖励步骤、Wave 2D `Cybersole.Http` 伴生能力）。
 3. **剩余未做项全部属外部阻塞**：
    - **原版有效登录凭据**：Farfetch 7 条与 `/connect/app` payload、`SignalR`/`Remote*` 云端同步；
-   - **live capture（真实请求/响应）**：23 条 0 命中 `inferred` 字面量，以及静态未解子分支（Unzer prepare 子路径/终态集、CheckoutCom 各发卡行 ACS 表单表、Komoju `formUrl` 后缀、`ToppsVariant` JSON 键名）；
+   - **live capture（真实请求/响应）**：23 条 0 命中 `inferred` 字面量，以及静态未解子分支（Unzer 终态集、CheckoutCom 各发卡行 ACS 表单表、Komoju `formUrl` 后缀、`ToppsVariant` JSON 键名）；
    - **商业引擎 / 外部运行时**：`DotNetBrowser 4.3.5.8591` + Chromium、`MSAL` Outlook OAuth 交互流、`Velopack` CDN。

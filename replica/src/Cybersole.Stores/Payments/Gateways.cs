@@ -485,6 +485,125 @@ public sealed class StripeGateway : IPaymentGateway
             ? ApiUrl(c) + url[ApiHost.Length..]
             : url;
 
+    // ── R1302: the store-side Stripe configuration fetch ────────────────────────────────────────────
+    //
+    // This is the step R1301 recovered from 0x14094C210 while disproving that it was Unzer's. The whole
+    // chain is: the async machine sub_14095B4E0 composes the URL, wraps 0x14094C210 in a delegate,
+    // sub_1408B61E0 invokes that delegate on the request object it just built and then sub_1408B5EB0
+    // sends it -- so 0x14094C210 configures the outgoing request, it is not a response callback.
+
+    /// <summary>
+    /// The Magento Stripe module's configuration path (0x146AB93D0) — and its query is a cache buster,
+    /// not a parameter name: the image concatenates the tick straight onto the <c>=</c>.
+    /// </summary>
+    public const string StoreConfigPath = "/stripe/payments/get_stripe_configuration?_=";
+
+    /// <summary>
+    /// The origin the image composes the config URL from, verbatim (0x147090DF0). It is the Casio
+    /// storefront because <c>sub_140947750</c> concatenates this literal, the store code and
+    /// <see cref="MagentoRestPrefix"/> — the same Magento REST root <c>Sub_140959320</c>'s
+    /// <c>PaymentMethodCreate</c> sits behind.
+    /// </summary>
+    public const string DefaultStoreOrigin = "https://www.casio.com/";
+
+    /// <summary>The REST root between the store code and the path (0x146AB7298).</summary>
+    public const string MagentoRestPrefix = "/rest/V1";
+
+    /// <summary>
+    /// The config URL as <c>sub_140947750</c> + <c>sub_14094A600</c> build it: origin, store code,
+    /// <c>/rest/V1</c>, the path, then the millisecond tick. A trailing slash on the origin is tolerated
+    /// because the frozen literal has one and a configured host usually does not.
+    /// </summary>
+    public static string StoreConfigUrl(string? storeOrigin, string? storeCode, long tick)
+    {
+        var declared = string.IsNullOrEmpty(storeOrigin) ? DefaultStoreOrigin : storeOrigin!;
+        var origin = declared.TrimEnd('/') + "/";
+        var code = (storeCode ?? string.Empty).Trim('/');
+        var root = code.Length == 0 ? origin.TrimEnd('/') : origin + code;
+        return root + MagentoRestPrefix + StoreConfigPath + tick.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// The fifteen-entry browser template <c>0x14094C210</c> installs at <c>a2+80</c>, minus the three
+    /// entries the image computes at build time (<c>user-agent</c>, <c>sec-ch-ua</c> and
+    /// <c>sec-ch-ua-platform</c> — <c>sub_140F9BCE0</c> / <c>sub_140F9A950</c> / the session UA) and the
+    /// one it leaves null (<c>cookie</c>).
+    ///
+    /// <para>
+    /// The three computed entries are carried by the request's TLS profile here, which is where the
+    /// replica's own fingerprint lives, and the cookie entry by the session's jar — so they are absent
+    /// from this dictionary rather than re-invented in it.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown</b>: <c>0x14094C210</c> also writes <c>"Akamai"</c> = <c>"1"</c> into <c>a2+112</c>,
+    /// a field that is not the header dictionary at <c>a2+80</c>, and sets the byte at <c>a2+226</c> to
+    /// one. Whether that pair is a cookie, a header of another collection, or a request flag is not
+    /// established, so neither is emitted — an <c>Akamai</c> header on a request to an Akamai-fronted
+    /// host would be a wire-level guess, not a replication.
+    /// </para>
+    /// </summary>
+    public static Dictionary<string, string> StoreConfigHeaders(FlowContext c) =>
+        new()
+        {
+            ["x-requested-with"] = "XMLHttpRequest",
+            ["accept"] = "*/*",
+            ["content-type"] = "application/json",
+            ["sec-ch-ua-mobile"] = "?0",
+            ["sec-fetch-site"] = "same-origin",
+            ["sec-fetch-mode"] = "cors",
+            ["sec-fetch-dest"] = "empty",
+            ["accept-encoding"] = "gzip, deflate, br, zstd",
+            ["accept-language"] = "en-US,en;q=0.9",
+            ["priority"] = "u=1, i",
+            ["referer"] = c.Session.Vars.GetValueOrDefault("stripe.storeReferer") ?? c.Url ?? string.Empty,
+        };
+
+    /// <summary>
+    /// Fetch the store's Stripe configuration and take its <c>apiKey</c> as the publishable key —
+    /// <c>0x14094C210</c> for the request side, <c>sub_14095B4E0</c> for the URL.
+    ///
+    /// <para>
+    /// <b>Observed</b>: the status pair the caller's status object carries — <c>"Preparing payment"</c>
+    /// (0x146E49298) with colour <c>"white"</c> (0x147184330) and kind <c>"StatusInfo"</c>
+    /// (0x146E9B830), and on the failure branch <c>"Error preparing payment"</c> (0x146D0F904). The
+    /// endpoint answers with <c>{"apiKey": "pk_…"}</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Inference</b>: that this response's <c>apiKey</c> is the value later handed to
+    /// <c>api.stripe.com</c> as <c>key</c>. The endpoint is Magento's Stripe module configuration and
+    /// that module returns exactly this field, but the reader of the literal inside the image is not on
+    /// this chain: <c>0x146F7544C</c>'s four referencing functions are <c>sub_14094DEB0</c>,
+    /// <c>sub_1409F2A60</c>, <c>sub_140ECF2B0</c> and <c>sub_14117B6C0</c>, none of them in
+    /// <c>0x14095xxxx</c>. Storing it under <c>stripe.publishableKey</c> is therefore the replica's
+    /// choice, named here so a later round can move it if the reader turns up somewhere else.
+    /// </para>
+    /// </summary>
+    public async Task<PaymentResult> FetchConfigurationAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = StoreConfigUrl(
+            c.Session.Vars.GetValueOrDefault("stripe.storeOrigin"),
+            c.Session.Vars.GetValueOrDefault("stripe.storeCode"),
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+
+        c.Emit("Preparing payment", "StatusInfo");
+        var res = await ThreeDsTransportHelpers
+            .GetRawAsync(c, url, StoreConfigHeaders(c), "stripe-store-config", ct)
+            .ConfigureAwait(false);
+
+        var apiKey = ThreeDsTransportHelpers.TryParseJson(res?.Body)?["apiKey"]?.ToString();
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            c.Emit("Error preparing payment", "error");
+            return PaymentResult.Fail("Error preparing payment");
+        }
+
+        c.Session.Vars["stripe.publishableKey"] = apiKey!;
+        c.Session.Vars["stripe.storeConfig"] = res!.Body ?? string.Empty;
+        return PaymentResult.Success(apiKey);
+    }
+
     /// <summary>Execute a PaymentIntent retrieve via GET (<see cref="PaymentIntentRetrieveUrl"/> / <see cref="PaymentIntentRetrieveUrlBasil"/>).</summary>
     public async Task<PaymentResult> RetrievePaymentIntentAsync(
         FlowContext c,
@@ -757,6 +876,21 @@ public sealed class StripeGateway : IPaymentGateway
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
     {
+        // R1302: the store's own configuration comes first when the flow declared the Magento Stripe
+        // surface and no key is loaded yet. That is the condition sub_140F9E790 tests inside the image —
+        // it returns the session flag at +120 only while the counter at +32 is zero, i.e. "fetch the
+        // config unless it is already there" — and the key it produces is what every call below sends as
+        // form["key"], so an empty one would have gone out as key= and failed at Stripe rather than here.
+        // Declaring the store (stripe.storeCode / stripe.storeOrigin) is this replica's stand-in for that
+        // flag: without it a flow keeps supplying its own publishable key and no request is made.
+        var declaredStore = !string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("stripe.storeCode")) ||
+                            !string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("stripe.storeOrigin"));
+        if (declaredStore && string.IsNullOrEmpty(PublishableKey(c)))
+        {
+            var configured = await FetchConfigurationAsync(c, ct).ConfigureAwait(false);
+            if (!configured.Ok) return configured;
+        }
+
         // R1087: the decoded desk chain — when the flow set the desk host (the PopMart surface's
         // own endpoints), the gateway runs the machine's order: session, method create, desk pay.
         var deskHost = c.Session.Vars.GetValueOrDefault("stripe.deskHost");
@@ -927,10 +1061,18 @@ public sealed class StripeGateway : IPaymentGateway
 /// <c>ContinueUnzerThreeDs</c> / <c>RunUnzerThreeDs</c> state machine (<c>0x143383aa9</c>, <c>0x140960560</c>).
 ///
 /// <para>
-/// <b>Unknown</b>: (1) Exact prepare-payment subpath in <c>0x14094c210</c> (only <c>"Preparing payment"</c>,
-/// <c>X-Requested-With: XMLHttpRequest</c>, and <c>"apiKey"</c> extraction were recovered — only invoked when
-/// <c>unzer.prepareUrl</c> is provided); (2) exact terminal exclusion set in <c>qword_1472c65a0+8</c>;
-/// (3) exact URL predicate inside <c>0x14094a870</c> gating <c>RunUnzerThreeDs</c>.
+/// <b>R1302: this class no longer claims <c>0x14094c210</c>.</b> That function was labelled the Unzer
+/// prepare sub-path with the sub-path itself unknown; decompiling it shows the opposite — it is the
+/// request configuration for the Magento Stripe module's configuration fetch, whose URL
+/// <c>sub_14095B4E0</c> composes from <c>https://www.casio.com/</c>, the store code and
+/// <c>/rest/V1/stripe/payments/get_stripe_configuration?_=</c>. It lives on
+/// <see cref="StripeGateway.FetchConfigurationAsync"/> now, and the step below is gone with it: its
+/// <c>unzer.prepareUrl</c> requirement was a seam for a URL no evidence ever produced.
+/// </para>
+///
+/// <para>
+/// <b>Unknown</b>: (1) exact terminal exclusion set in <c>qword_1472c65a0+8</c>;
+/// (2) exact URL predicate inside <c>0x14094a870</c> gating <c>RunUnzerThreeDs</c>.
 /// </para>
 /// </summary>
 public sealed class UnzerGateway : IPaymentGateway
@@ -974,30 +1116,6 @@ public sealed class UnzerGateway : IPaymentGateway
         return isGuest
             ? $"guest-carts/{Uri.EscapeDataString(c.Session.CartId ?? string.Empty)}"
             : "carts/mine";
-    }
-
-    /// <summary>
-    /// Optional prepare-payment step (<c>0x14094c210</c>): fetches <c>unzer.prepareUrl</c> when provided
-    /// (the exact subpath in <c>0x14094c210</c> is Unknown) and extracts <c>"apiKey"</c> into <c>unzer.publicKey</c>.
-    /// </summary>
-    public async Task<PaymentResult> PreparePaymentAsync(FlowContext c, CancellationToken ct)
-    {
-        if (!c.Session.Vars.TryGetValue("unzer.prepareUrl", out var url) || string.IsNullOrEmpty(url))
-            return PaymentResult.Fail("unzer: prepare subpath unknown — supply unzer.prepareUrl or unzer.publicKey");
-
-        c.Emit("Preparing payment", "StatusInfo");
-        var res = await ThreeDsTransportHelpers.GetRawAsync(
-            c, url, new Dictionary<string, string> { ["X-Requested-With"] = "XMLHttpRequest" },
-            "unzer-prepare", ct).ConfigureAwait(false);
-        var apiKey = ThreeDsTransportHelpers.TryParseJson(res?.Body)?["apiKey"]?.ToString();
-        if (string.IsNullOrEmpty(apiKey))
-        {
-            c.Emit("Error preparing payment", "error");
-            return PaymentResult.Fail("Error preparing payment");
-        }
-
-        c.Session.Vars["unzer.publicKey"] = apiKey!;
-        return PaymentResult.Success(apiKey);
     }
 
     /// <summary>

@@ -62,6 +62,12 @@
   - `ProxyTester.Name`、`SmartActionsView.Export`、`Cybersole.Providers.IDataProvider` 契约落地；
   - 原版专用的 `AvaloniaEdit` 代码编辑器控件与独立的 `TaskCreatorAdvancedView`（复刻件已合并至 `TaskCreatorView`）。
 
+
+  7. **店铺面差距是结构性的，不是"还差几家"**（R1318/R1319）：镜像列出 **2669** 个裸源站，
+     复刻件源码里有 **800** 个注册域，差集 **1213 个注册域**（清单见 `docs/STOREFRONT_SURFACE.md`）。
+     加二级后缀归并后数字几乎不变，说明它们彼此独立而非区域变体。
+     **这条不再是待办列表，而是一个范围决定**：要么给出建模优先级（哪些店值得做），
+     要么在路线图里写清「通用 flow 覆盖到哪一层为止」的边界。
 ### 3. 传输层（HTTP/3、生产级自定义 TLS 指纹）与 HTML 解析栈对位
 
 - **网络传输对位**：复刻件当前生产路径为 BCL `SocketsHttpHandler` + `SslStream`（Phase 1 已证实原版 BCL `Http3Support="false"`，无 `System.Net.Quic`/`msquic`），自研 `BouncyTls` 明确标注为实验传输；而原版针对店铺请求包含 Go 移植自定义传输栈（默认 `chrome_131`，且 ASICS 路径启用支持 HTTP/3 的 `chrome_150`）。若需要完整网络指纹与 HTTP/3 生产级对等，需继续补齐生产级自定义 TLS 握手与 QUIC/HTTP3 传输层。

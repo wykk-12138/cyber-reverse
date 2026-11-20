@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 06:37:20 +0800 |
+| 生成时间 | 2026-11-21 06:45:38 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -401,7 +401,7 @@ publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-21 06:13:56
 publish artifact size: 61295104 bytes
 publish artifact sha256: 3c832881a6f134f3272fb85d75bb7eef98dbc1050721301e1eaa305dac574069
-embedded source revision: a519f73b2b76 (HEAD is 7148e847b44e -- built before the current commit)
+embedded source revision: a519f73b2b76 (HEAD is a82db1f02659 -- built before the current commit)
 newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 06:19:51)
 source files newer than the artifact: 17
 lines in those files: 15750
@@ -607,7 +607,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2626，已跳过:     0，总计:  2626，持续时间: 5 m 43 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2626，已跳过:     0，总计:  2626，持续时间: 5 m 38 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

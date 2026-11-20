@@ -103,10 +103,12 @@ public class ShopifyFlow : StoreFlow
     /// </para>
     ///
     /// <para>
-    /// <b>Unknown</b>: Exact serialized JSON property names on the NativeAOT <c>ToppsVariant</c> class
-    /// (<c>off_1449B8EB0</c>, fields <c>v6[1]</c>, <c>v6[3]</c>, <c>v6[5]</c>, <c>v6[6]</c>, <c>v6[7]</c>)
-    /// were not statically recovered, so this method stores the raw JSON payload and marks
-    /// <c>topps.schema = "unknown"</c> rather than inventing proprietary property names.
+    /// <b>R1305 replaced the Unknown with a shape.</b> <c>off_1449B8EB0</c> is a JSON type handle, not a
+    /// string table; the properties came out of the reflection metadata the image still ships, and they
+    /// are <c>ToppsCommerceProduct</c> with <c>PriceAmount</c>, <c>ProductImage</c>, <c>ProductVariant</c>,
+    /// <c>SelectedOption</c>, <c>VariantImage</c>, <c>ToppsCommerceProductUrl</c> and <c>JToken</c> —
+    /// see <see cref="ToppsCdn"/>, which parses the list and matches keys case-insensitively because the
+    /// serialised casing was not recovered. <c>topps.schema</c> now records which shape was recognised.
     /// </para>
     /// </summary>
     public async Task<StepOutcome> FindProductCdnAsync(FlowContext c, CancellationToken ct)
@@ -144,7 +146,25 @@ public class ShopifyFlow : StoreFlow
 
         c.Session.Vars["raw"] = res.Body ?? string.Empty;
         c.Session.Vars["topps.cdnResponse"] = res.Body ?? string.Empty;
-        c.Session.Vars["topps.schema"] = "unknown";
+
+        // R1305: the payload's shape is known now — a list of ToppsCommerceProduct with seven properties
+        // (see ToppsCdn). What is not known is whether the keys are PascalCase or camelCase, so the reader
+        // matches case-insensitively and the schema label says which shape was recognised rather than
+        // claiming the casing.
+        var toppsProducts = ToppsCdn.Parse(res.Body);
+        if (toppsProducts.Count > 0)
+        {
+            c.Session.Vars["topps.schema"] = "ToppsCommerceProduct";
+            c.Session.Vars["topps.count"] = toppsProducts.Count.ToString();
+            c.Session.Vars["topps.products"] = Newtonsoft.Json.JsonConvert.SerializeObject(toppsProducts);
+            var firstUrl = toppsProducts.FirstOrDefault(p => !string.IsNullOrEmpty(p.ToppsCommerceProductUrl));
+            if (firstUrl is not null)
+                c.Session.Vars["topps.productUrl"] = firstUrl.ToppsCommerceProductUrl;
+        }
+        else
+        {
+            c.Session.Vars["topps.schema"] = "unknown";
+        }
 
         try
         {

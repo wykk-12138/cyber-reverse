@@ -8182,3 +8182,12 @@ Observation：
   全部落成常量与可测构建器；卡凭据体已解但**未落码**（目标 URL 未配对）。
 - 网关注册数 14 → 15（守卫与测试名同步改，理由写在注释里）。
 - 见 `replica/docs/VERDICT.md` 第 1304 轮。
+
+---
+
+## 第 1305 轮
+
+- Topps 那条 Unknown 是问错了对象：`off_1449B8EB0` 是 JSON 类型句柄，不是键名表。类形已从镜像的反射元数据
+  读出（`ToppsCommerceProduct` 七个属性 + 四个 `List*` 承载名），落成 `ToppsCdn` 并接回 `FindProductCdnAsync`。
+- **仍 Unknown** 只剩序列化键的大小写；读取器按大小写不敏感匹配绕开，两种拼法都有测试。
+- 见 `replica/docs/VERDICT.md` 第 1305 轮。

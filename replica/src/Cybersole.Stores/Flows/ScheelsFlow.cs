@@ -203,7 +203,7 @@ public class ScheelsFlow : StoreFlow
         // the shared SendJsonAsync helper does not need a per-call header bag
         c.Session.Vars["scheels.clientSource"] = "www.scheels.com";
 
-        var res = await SendJsonAsync(c, HttpMethod.Post, SearchHost + "/api/search",  // inferred: no image evidence (R294)
+        var res = await SendJsonAsync(c, HttpMethod.Post, SearchHost + "/api/search",  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             payload.ToString(Newtonsoft.Json.Formatting.None), "scheels-search", ct)
             .ConfigureAwait(false);
 

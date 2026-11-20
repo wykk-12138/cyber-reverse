@@ -1340,7 +1340,7 @@ public sealed class FanaticsFlow : StoreFlow
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
-        var res = await PostJsonAsync(c, Origin(c.Url) + "/api/checkout/submit", "{}", "fanatics-order", ct)  // inferred: no image evidence (R294)
+        var res = await PostJsonAsync(c, Origin(c.Url) + "/api/checkout/submit", "{}", "fanatics-order", ct)  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             .ConfigureAwait(false);
         if (res is null) return StepOutcome.Fail("fanatics order failed", retryable: true);
         if (!res.IsSuccess) return StepOutcome.Fail($"fanatics order HTTP {res.StatusCode}", retryable: true);
@@ -1490,7 +1490,7 @@ public sealed class RiotGamesFlow : StoreFlow
 
     public override async Task<StepOutcome> EnterRaffleAsync(FlowContext c, CancellationToken ct)
     {
-        var res = await PostJsonAsync(c, Origin(c.Url) + "/api/preorder/entry",  // inferred: no image evidence (R294)
+        var res = await PostJsonAsync(c, Origin(c.Url) + "/api/preorder/entry",  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             Newtonsoft.Json.JsonConvert.SerializeObject(new
             {
                 email = c.ProfileData?.Email ?? c.Account?.Email,

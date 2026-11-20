@@ -5,7 +5,7 @@ namespace Cybersole.Stores.Flows;
 /// <c>/shop/v1/*</c> endpoints, verbatim.
 ///
 /// <para>
-/// The replica's <c>PopMartFlow</c> posted to <c>/api/cart/add</c> and <c>/api/order/submit</c>.  // inferred: no image evidence (R294)
+/// The replica's <c>PopMartFlow</c> posted to <c>/api/cart/add</c> and <c>/api/order/submit</c>.  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
 /// Neither is in the image: the real surface is this family, and the names say exactly what the
 /// flow needed — <c>/shop/v1/box/boxCart/addBoxListToCart</c> for the basket and
 /// <c>/shop/v1/order/pre/v2/buyNow</c> for the order, with a payment desk for each provider
@@ -128,7 +128,7 @@ public static class PopMartEndpoints
     /// <summary>The two paths the replica invented, kept as data so a test can forbid them.</summary>
     public static readonly IReadOnlyList<string> Invented = new[]
     {
-        "/api/cart/add", "/api/order/submit", "/api/stock",  // inferred: no image evidence (R294)
+        "/api/cart/add", "/api/order/submit", "/api/stock",  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
     };
 
     /// <summary>True when <paramref name="path"/> starts with one of the thirty-nine.</summary>

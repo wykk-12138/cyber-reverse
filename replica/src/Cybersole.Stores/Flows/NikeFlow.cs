@@ -96,7 +96,7 @@ public class NikeFlow : StoreFlow
 
     public override async Task<StepOutcome> GetSessionAsync(FlowContext c, CancellationToken ct)
     {
-        if (c.Session.Cookies.TryGetValue("NIKE_COMMERCE_COUNTRY", out var country))  // inferred: no image evidence (R297)
+        if (c.Session.Cookies.TryGetValue("NIKE_COMMERCE_COUNTRY", out var country))  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R297)
             c.Session.Vars["country"] = country;
 
         // R88: the image carries four Nike request headers (nike-api-caller-id, x-nike-ux-id,
@@ -947,7 +947,7 @@ public class NikeFlow : StoreFlow
     /// and why closing the gap needs ``auto_analysis_ready``.
     /// </summary>
     private string CartUrl() =>
-        $"https://api.nike.com/buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified";  // inferred: no image evidence (R294)
+        $"https://api.nike.com/buy/carts/v2/{CountryCode}/Nike/SNKRS?format=simplified";  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
 
     private static string? StyleColorOf(string url)
     {

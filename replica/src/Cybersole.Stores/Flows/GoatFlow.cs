@@ -11,7 +11,7 @@ namespace Cybersole.Stores.Flows;
 /// actually calls:
 ///
 ///   GET /web-api/v1/countries
-///   GET /web-api/v1/product_variants/buy_bar_data?productTemplateId={id}&amp;countryCode={cc}  // inferred: no image evidence (R298)
+///   GET /web-api/v1/product_variants/buy_bar_data?productTemplateId={id}&amp;countryCode={cc}  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R298)
 ///   GET /web-api/v1/product_variants/buy_bar_copies?productTemplateId={id}
 ///   GET /web-api/v1/product_templates/recommended?productTemplateId={id}&amp;count=8
 ///   GET /web-api/v1/consumer-segment-access/get-user-segments/{cc}
@@ -139,11 +139,11 @@ public class GoatFlow : StoreFlow
         }
 
         // the page embeds the numeric template id; the URL only carries the slug
-        var id = Regex.Match(res.Body, @"""productTemplateId""\s*:\s*(\d+)").Groups[1].Value;  // inferred: no image evidence (R298)
+        var id = Regex.Match(res.Body, @"""productTemplateId""\s*:\s*(\d+)").Groups[1].Value;  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R298)
         if (string.IsNullOrEmpty(id))
             id = Regex.Match(res.Body, @"""product_template_id""\s*:\s*(\d+)").Groups[1].Value;
 
-        if (!string.IsNullOrEmpty(id)) c.Session.Vars["productTemplateId"] = id;  // inferred: no image evidence (R298)
+        if (!string.IsNullOrEmpty(id)) c.Session.Vars["productTemplateId"] = id;  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R298)
 
         var cc = Regex.Match(c.Url, @"goat\.com/([a-z]{2})/").Groups[1].Value;
         if (cc.Length == 2) c.Session.Vars["goat.country"] = cc.ToUpperInvariant();
@@ -153,15 +153,15 @@ public class GoatFlow : StoreFlow
 
     public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
     {
-        if (!c.Session.Vars.TryGetValue("productTemplateId", out var id) || id is not { Length: > 0 })  // inferred: no image evidence (R298)
+        if (!c.Session.Vars.TryGetValue("productTemplateId", out var id) || id is not { Length: > 0 })  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R298)
         {
             // no embedded id: fall back to the buy-bar call keyed on nothing useful, so fail
             // with a clear reason instead of firing a malformed request
-            return StepOutcome.Fail("goat: page carried no productTemplateId");  // inferred: no image evidence (R298)
+            return StepOutcome.Fail("goat: page carried no productTemplateId");  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R298)
         }
 
         var res = await GetAsync(c,
-            WebApi(c, $"/v1/product_variants/buy_bar_data?productTemplateId={id}&countryCode={Region(c)}"),  // inferred: no image evidence (R298)
+            WebApi(c, $"/v1/product_variants/buy_bar_data?productTemplateId={id}&countryCode={Region(c)}"),  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R298)
             "goat-buy-bar", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("goat buy bar unreachable", retryable: true);
@@ -263,7 +263,7 @@ public class GoatFlow : StoreFlow
             ["quantity"] = c.Session.Quantity,
         };
 
-        var res = await PostJsonAsync(c, WebApi(c, "/v1/buys"),  // inferred: no image evidence (R294)
+        var res = await PostJsonAsync(c, WebApi(c, "/v1/buys"),  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             payload.ToString(Newtonsoft.Json.Formatting.None), "goat-buy", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("goat buy failed", retryable: true);
@@ -287,7 +287,7 @@ public class GoatFlow : StoreFlow
             return StepOutcome.Success();
         }
 
-        var res = await GetAsync(c, WebApi(c, $"/v1/buys/{c.Session.CartId}"),  // inferred: no image evidence (R294)
+        var res = await GetAsync(c, WebApi(c, $"/v1/buys/{c.Session.CartId}"),  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             "goat-buy-state", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("goat buy state unreachable", retryable: true);
@@ -311,7 +311,7 @@ public class GoatFlow : StoreFlow
             return StepOutcome.Fail("goat: no saved address on this account", retryable: true);
 
         // GOAT confirms the purchase server-side; the buy id is the order reference.
-        var res = await GetAsync(c, WebApi(c, $"/v1/buys/{c.Session.CartId}"),  // inferred: no image evidence (R294)
+        var res = await GetAsync(c, WebApi(c, $"/v1/buys/{c.Session.CartId}"),  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             "goat-confirm", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("goat confirm failed", retryable: true);

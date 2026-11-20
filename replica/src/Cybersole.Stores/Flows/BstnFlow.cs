@@ -31,7 +31,7 @@ public class BstnFlow : StoreFlow
     public override IReadOnlyList<string> Domains => new[] { "bstn.com" };
 
     /// <summary>Verified: this prefix answers (geoIP and monetate both live under it).</summary>
-    private static string BeastApi(FlowContext c, string path) => Origin(c.Url) + "/api/beast" + path;  // inferred: no image evidence (R294)
+    private static string BeastApi(FlowContext c, string path) => Origin(c.Url) + "/api/beast" + path;  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
 
     public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
     {
@@ -140,8 +140,8 @@ public class BstnFlow : StoreFlow
 
     public override Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(StepOutcome.Fail(
-            // inferred: no image evidence — ida.py str answers 0 for bstn, BSTN, bstn.com and beast/geoIP
-            "bstn: cart route unrecorded — /api/beast answers for geoIP and monetate, " +  // inferred: no image evidence
+            // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information — ida.py str answers 0 for bstn, BSTN, bstn.com and beast/geoIP
+            "bstn: cart route unrecorded — /api/beast answers for geoIP and monetate, " +  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information
             "its cart child route is not attested; /cart.js answers 404 at the store"));
 
     /// <summary>
@@ -183,7 +183,7 @@ public class BstnFlow : StoreFlow
 
     public override Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(StepOutcome.Fail(
-            "bstn: cart route unrecorded — /api/beast answers, its cart child route does not appear anywhere"));  // inferred: no image evidence
+            "bstn: cart route unrecorded — /api/beast answers, its cart child route does not appear anywhere"));  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information
 
     public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(StepOutcome.Fail(

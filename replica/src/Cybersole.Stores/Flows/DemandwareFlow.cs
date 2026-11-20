@@ -319,7 +319,7 @@ public class DemandwareFlow : StoreFlow
                 ["quantity"] = c.Session.Quantity,
             };
 
-            var url = origin + ScapiEndpoints.AddItemToBasket + "?siteId=" + Uri.EscapeDataString(SiteId);  // inferred: no image evidence (R298)
+            var url = origin + ScapiEndpoints.AddItemToBasket + "?siteId=" + Uri.EscapeDataString(SiteId);  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R298)
 
             var added = await PostJsonAsync(c, url, body.ToString(Newtonsoft.Json.Formatting.None),
                 Tag() + "-scapi-add", ct).ConfigureAwait(false);
@@ -541,7 +541,7 @@ public class DemandwareFlow : StoreFlow
         var order = Regex.Match(res.Body,
             @"""orderNo""\s*:\s*""([A-Za-z0-9\-]+)""").Groups[1].Value;
         if (string.IsNullOrEmpty(order))
-            order = Regex.Match(res.Body, @"order-confirmation[^?]*\?orderID=([A-Za-z0-9\-]+)")  // inferred: no image evidence (R298)
+            order = Regex.Match(res.Body, @"order-confirmation[^?]*\?orderID=([A-Za-z0-9\-]+)")  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R298)
                 .Groups[1].Value;
 
         if (string.IsNullOrEmpty(order))

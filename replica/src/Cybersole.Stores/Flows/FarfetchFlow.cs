@@ -11,7 +11,7 @@ namespace Cybersole.Stores.Flows;
 /// Farfetch runs its catalogue behind a JSON API that the storefront itself calls:
 ///
 ///   GET  /api/ff-products/v1/products/{productId}/          product + variants
-///   POST /api/basket/v1/items                               add to basket  // inferred: no image evidence (R294)
+///   POST /api/basket/v1/items                               add to basket  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
 ///   GET  /api/basket/v1/                                     basket summary
 ///   GET  /api/checkout/v1/basket/{id}                        checkout entry
 ///   PUT  /api/checkout/v1/basket/{id}/shipping               shipping block
@@ -19,7 +19,7 @@ namespace Cybersole.Stores.Flows;
 ///   POST /api/checkout/v1/basket/{id}/place-order            submit
 ///
 /// Three headers matter and are set on every call: <c>X-Requested-With: XMLHttpRequest</c>
-/// (the API 403s without it), <c>ffid</c> (a client id issued on the first page load) and the  // inferred: no image evidence (R297)
+/// (the API 403s without it), <c>ffid</c> (a client id issued on the first page load) and the  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R297)
 /// usual storefront <c>Accept: application/json</c>.
 /// </summary>
 /// <summary>
@@ -79,8 +79,8 @@ public class FarfetchFlow : StoreFlow
         c.Session.Vars["farfetch.origin"] = Origin(c.Url);
 
         // the storefront hands out its client id in a cookie on first load
-        if (res.Cookies.TryGetValue("ffid", out var ffid) && !string.IsNullOrEmpty(ffid))  // inferred: no image evidence (R297)
-            c.Session.Vars["farfetch.ffid"] = ffid;  // inferred: no image evidence (R297)
+        if (res.Cookies.TryGetValue("ffid", out var ffid) && !string.IsNullOrEmpty(ffid))  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R297)
+            c.Session.Vars["farfetch.ffid"] = ffid;  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R297)
 
         return StepOutcome.Success();
     }

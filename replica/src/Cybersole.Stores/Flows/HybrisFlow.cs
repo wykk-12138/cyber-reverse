@@ -57,7 +57,7 @@ public sealed class HybrisFlow : StoreFlow
         c.Session.Vars["home"] = res.Body;
 
         // verified endpoint: confirms the session cookie is usable before any cart work
-        var info = await GetAsync(c, Origin(c.Url) + "/view/resources/getUserInfo",  // inferred: no image evidence (R294)
+        var info = await GetAsync(c, Origin(c.Url) + "/view/resources/getUserInfo",  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             _id + "-userinfo", ct).ConfigureAwait(false);
 
         if (info is { IsSuccess: true }) c.Session.Vars["userInfo"] = info.Body;

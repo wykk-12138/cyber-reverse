@@ -8034,3 +8034,12 @@ Observation：
 - 全量 2478/0/2/2480。
 
 下轮：剩 9 个文件共 22 处 inferred，用同一脚本 `check_inferred_literals.py` 扩到全目录再跑一轮。
+
+## R1290 —— Stores/Flows 全目录 inferred 收官；全量 2478/0/2/2480
+
+Observation：
+- 24 处字面量：1 命中（`/rest/V1` 146AB72A4），23 零命中；两轮共 41 行注释。
+- `EndpointEvidenceRatchet`/`FlowWorkAudit` 5/5；全量 2478/0/2/2480。
+
+判断：`inferred` 从"待办数量"变成"已查证状态"；继续推进需要 live capture（外部条件）。
+下轮：回优先级②——`PAYMENT_CHALLENGES.md` 里 PayPal 3DS 阶段 2–8 的落地（或 `Cybersole.Http` 首块）。

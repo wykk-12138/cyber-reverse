@@ -38,7 +38,7 @@ public class HbxFlow : StoreFlow
     public override IReadOnlyList<string> Domains => new[] { "hbx.com" };
 
     /// <summary>Verified: this endpoint answers and returns a country list.</summary>
-    private static string CountriesUrl(FlowContext c) => Origin(c.Url) + "/api/v2/shop/countries";  // inferred: no image evidence (R294)
+    private static string CountriesUrl(FlowContext c) => Origin(c.Url) + "/api/v2/shop/countries";  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
 
     public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
     {

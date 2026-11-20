@@ -411,6 +411,12 @@ public abstract class StoreFlow
             headers.Contains("cloudflare", StringComparison.OrdinalIgnoreCase) ? "cloudflare" :
             "none";
 
+        // R1286: which captcha the page is asking for, from the loader it names. The image ships the solver
+        // pages themselves, so hCaptcha, Turnstile, Enterprise, v2 and v3 are each identifiable by their own
+        // script literal (CaptchaSurface carries the five, with addresses). This is separate from the wall
+        // vendor above: a Cloudflare edge can serve a Turnstile, and DataDome can sit in front of either.
+        c.Session.Vars["captcha.kind"] = CaptchaSurface.Classify(body);
+
         c.Session.Vars["antibot"] = vendor;
         c.Emit($"{Name}: anti-bot = {vendor}", "detect");
 

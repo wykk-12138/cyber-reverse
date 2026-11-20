@@ -7993,3 +7993,14 @@ Observation：
 改：字段 `init` + 模态框只在新建时定来源 + 3 条契约测试。全量 2468/0/2/2470。
 
 下轮：变体层（`RecaptchaEnterprise` / `CloudflareTurnstile` / `HCaptchaInvisible`）落地——先取协议端点，再写驱动。
+
+## R1286 —— 挑战识别面（Enterprise/Turnstile/hCaptcha/v2/v3）接进 DetectAsync；全量 2478/0/2/2480
+
+Observation：
+- 五个 loader 字面量逐字取自 `143ca6a9f`/`143ca8507`/`143cb2699`/`147153cf4`/`146ab71b4`。
+- `Captcha.Type`：0=点击复选框、1=隐形 execute（`CAPTCHA_COVERAGE.md` 第 73 行的 Unknown 结案）。
+- 四家共用回传桥 `document.Solver.Captcha.Solve(token)`。
+- 全量 2478/0/2/2480。
+
+改：`CaptchaSurface`（识别 + Type 语义）+ `DetectAsync` 写 `captcha.kind` + 9 条测试。
+下轮：求解面要么接宿主 WebView（真执行 `execute()`），要么把三条标记明确记为结构性不可做。

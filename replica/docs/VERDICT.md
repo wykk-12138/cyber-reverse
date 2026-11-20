@@ -68892,3 +68892,13 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - 复刻件改为 `init`；编辑模态框不再改既有行的来源，Type 下拉在编辑时禁用。
 - 新测 3 条（`IsExternalInit` modreq 判据）；`Captcha*` 43/43；全量 **2468/0/2/2470**。
 - 顺带取到下一轮的证：变体域（4 值）、`TurnstileSiteKey` 实值、`HCaptchaSpoof` 是 bool 属性。
+
+---
+
+## 第 1286 轮：三种挑战识别面落地（镜像自带求解页）
+
+- 证据：`143ca8507`（Enterprise loader）、`143cb2699`（Turnstile loader）、`147153cf4`（hCaptcha 选择器）、
+  `146ab71b4`（v2 anchor）、`143ca6a9f`（`Captcha.Type` 0=点击 / 1=隐形 execute）。
+- `CaptchaSurface.Classify` 接进 `DetectAsync`，写 `captcha.kind`；与墙厂商**分开**（一个页可同时是 CF 边缘 + Turnstile）。
+- 新测 9 条；全量 **2478/0/2/2480**。
+- 三标记从"完全缺失"→"识别有、求解无"（求解需 JS 引擎，结构性阻塞）。

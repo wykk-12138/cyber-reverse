@@ -8052,3 +8052,12 @@ Observation：
 - 已在 `BouncyTls.cs` 写明差异地址与「为什么要连 getter 一起换」。
 
 下轮：换到 BouncyCastle 的 TLS 1.3 客户端基类（连带 getter），或先核 HTTP/2 帧与 HPACK 动态表。
+
+## R1292 —— 撤回 R1291 的 TLS 差异结论：默认路径已同源（SChannel）；自写栈仅 OwnTls 可达
+
+Observation：
+- `NetClient.Transport` 默认 `SChannel` → `new SocketsHttpHandler`；镜像同样带 SocketsHttpHandler/SslStream/Http3Support。
+- `TLS_AES_128/256_GCM` 是 SslStream 套件名（非 BouncyCastle 表）。
+- `Tls|Transport|Ja3` 58/58。
+
+下轮：`OwnTls` 的定位写清后，继续 ③ 的下一块——Brotli 字典与重定向/Cookie 吸收；或转 ② 的 PayPal 3DS 阶段 2–8。

@@ -68949,3 +68949,14 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - 复刻件：同库 ✅ · GREASE 1+1 ✅ · 1.3 套件名映射 ✅ · **协商只有 TLSv12 ❌**。
 - 该差异属结构性（换 BC 1.3 基类要连 getter 一起换），本轮在代码里写明地址与原因，不顺手改。
 - `Tls|Ja3|Http` **75/75**。
+
+---
+
+## 第 1292 轮：三轮读对同一件事——默认传输与原版同源
+
+- 证据：`1432D5FE6` SocketsHttpHandler · `1433D4B8A` SslStream · `1436F9152` Http2StreamWindowManager ·
+  `144A7C56A` Http3Support · `NetClient.cs:42` 默认 `TransportMode.SChannel`。
+- 结论：生产路径两边都是平台 TLS/H2；自写 BouncyCastle 栈只在 `OwnTls` 可达，只提供 1.2，用于指纹实验。
+- R1291 的"真差异"**撤回**：`TLS_AES_*` 是 SslStream 的套件名，不是 BouncyCastle 的表。
+- 教训：先读入口默认值，再读实现。
+- `Tls|Transport|Ja3` **58/58**。

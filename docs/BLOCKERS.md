@@ -47385,3 +47385,48 @@ Inference = 「0 命中 = unknown」；**Unknown** = 这 23 条的真实路径/b
 
 证据等级：Observation = 四个地址的字符串原文、`GetSupportedVersions()` 的返回值；
 Inference = 「TLS 1.3 套件名 ⇒ 原版协商 1.3」；**Unknown** = 原版 1.3 握手的扩展顺序（需流量）。
+
+## R1292 —— 同一件事读了三轮才读对：**默认传输本来就与原版同源**
+
+### 一、三轮的过程（都留在这里，因为错法本身是教训）
+
+| 轮 | 结论 | 错在哪 |
+|---|---|---|
+| R1291 | 镜像用 BouncyCastle TLS，复刻件只 1.2 ⇒ 真差异 | 拿 `BouncyCastle.Cryptography.dll` 与 `TLS_AES_*` 相邻就下了"TLS 栈是它"的结论；`TLS_AES_*` 其实是 **SslStream 的套件名** |
+| R1292 第一次 | 原版是平台传输，那复刻件是自写栈 ⇒ 结构性偏离 | 只看了 `BouncyTls.cs`，**没看 `NetClient.Transport` 的默认值** |
+| **R1292 最终** | **默认 `TransportMode.SChannel` = `SocketsHttpHandler`，与原版同源；自写栈只在 `OwnTls` 时可达** | —— |
+
+### 二、决定性证据（46 条字符串）
+
+| 地址 | 字符串 |
+|---|---|
+| `1432D5FE6` | `SocketsHttpConnectionContext` / `SocketsHttpHandler` |
+| `1433D4B8A` | `SslStream` |
+| `1436F9152` | `Http2StreamWindowManager` |
+| `146EA88EC` | `System.Net.Http.SocketsHttpHandler.Http2Support` |
+| `146EA8B04` | `System.Net.SocketsHttpHandler.Http2FlowControl.DisableDynamicWindowSizing` |
+| `144A7C56A` | `System.Net.SocketsHttpHandler.Http3Support`（原版连 HTTP/3 开关都带） |
+| `146EA89FC` | `System.Net.Security.DisableTlsResume` |
+
+而 `NetClient.cs:42` —— `public TransportMode Transport { get; set; } = TransportMode.SChannel;`，
+`ClientFor` 里 `new SocketsHttpHandler`。
+
+**⇒ 生产路径两边都是平台的 TLS/HTTP2/HTTP3。TLS 1.3、GREASE、H2 窗口全由平台给，不存在差异需要"补"。**
+
+### 三、真正剩下的是什么
+
+`OwnTls`（自写 BouncyCastle 栈 + `Tls12Client` + `BouncyH2Client`）是**可达但非默认**的路径，
+它只提供 TLS 1.2，握手字节永远不会等于平台的。它的价值是**指纹实验**（改扩展顺序看服务端反应），
+不是生产。这一点现在写在 `BouncyTls.GetSupportedVersions()` 上方，并标明三轮的错法。
+
+### 四、教训（写进纪律）
+
+**"某个类怎么实现" ≠ "运行时走哪条路"。** 下结论前先读**入口的默认值**（`NetClient.Transport`），
+再读实现。R1291 花的这一轮，是因为跳过了这一问。
+
+### 五、验证
+
+`Tls|Transport|Ja3` **58/58**；构建 0 错。
+
+证据等级：Observation = 七条地址与字符串、`NetClient.cs:42` 的默认值、`ClientFor` 里的 `new SocketsHttpHandler`；
+Inference = 「生产路径同源」；**Unknown** = 原版是否真的启用 HTTP/3（只有开关字符串，无协商证据）。

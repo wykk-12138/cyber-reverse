@@ -7982,3 +7982,14 @@ Observation：
 
 Unknown：BSTN 的加车与下单真实路由——需要新的 live capture（原版页面 JS 驱动，客户端无字面量）。
 下轮：`docs/CAPTCHA_COVERAGE.md` 的 `CaptchaProvider.Type` 分发语义 + 缺失客户端协议（优先级②）。
+
+## R1285 —— 只读契约对齐（Type/BalanceSupported）；全量 2468/0/2/2470
+
+Observation：
+- `Type`/`BalanceSupported` 无 Setter（两处 descriptor 互证）；其余七成员可写。
+- 变体域 `RecaptchaV3|HCaptchaInvisible|RecaptchaEnterprise|CloudflareTurnstile`（14330480F）与复刻 `CaptchaKind` 不同层。
+- `HCaptchaSpoof` 是 bool 属性（backing field 证据），不是独立类型。
+
+改：字段 `init` + 模态框只在新建时定来源 + 3 条契约测试。全量 2468/0/2/2470。
+
+下轮：变体层（`RecaptchaEnterprise` / `CloudflareTurnstile` / `HCaptchaInvisible`）落地——先取协议端点，再写驱动。

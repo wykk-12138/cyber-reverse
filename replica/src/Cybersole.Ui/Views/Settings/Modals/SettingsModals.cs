@@ -101,6 +101,9 @@ public sealed class CaptchaProviderCreatorView : SettingsModal
         var enabled = UiKit.Check("Enabled", target.Enabled);
         var creating = new TextBlock { Text = existing is null ? "new" : "editing", Opacity = 0.6 };
 
+        // R1285: Type has no setter in the image (1432159DC getter, no setter), so an existing row
+        // cannot change its source — the combo is read-only when editing.
+        if (existing is not null) type.IsEnabled = false;
         Body.Children.Add(UiKit.Row("Type", type));
         Body.Children.Add(UiKit.Row("Name", name));
         Body.Children.Add(UiKit.Row("API key", apiKey));
@@ -129,16 +132,24 @@ public sealed class CaptchaProviderCreatorView : SettingsModal
 
         var save = SaveButton(() =>
         {
-            target.Type = drivers.Count > 0 && type.SelectedIndex >= 0
-                ? drivers.ElementAt(type.SelectedIndex).Type
-                : target.Type;
-            target.Name = string.IsNullOrWhiteSpace(name.Text) ? target.Type : name.Text!;
-            target.ApiKey = apiKey.Text;
-            if (UiKit.TryReadInt(concurrency.Text, out var c)) target.Concurrency = c;
-            if (UiKit.TryReadInt(priority.Text, out var p)) target.Priority = p;
-            target.Enabled = enabled.IsChecked == true;
+            // R1285: only creation picks a Type. An existing row keeps the source it was opened with,
+            // because the image gives that property a getter and no setter.
+            var row = existing is null
+                ? new CaptchaProviderConfig
+                {
+                    Type = drivers.Count > 0 && type.SelectedIndex >= 0
+                        ? drivers.ElementAt(type.SelectedIndex).Type
+                        : target.Type,
+                }
+                : target;
 
-            if (existing is null) registry.AddConfig(target);
+            row.Name = string.IsNullOrWhiteSpace(name.Text) ? row.Type : name.Text!;
+            row.ApiKey = apiKey.Text;
+            if (UiKit.TryReadInt(concurrency.Text, out var c)) row.Concurrency = c;
+            if (UiKit.TryReadInt(priority.Text, out var p)) row.Priority = p;
+            row.Enabled = enabled.IsChecked == true;
+
+            if (existing is null) registry.AddConfig(row);
             services.Config.Save();
         });
         BuildFooter(save,

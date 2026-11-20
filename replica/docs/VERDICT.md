@@ -68883,3 +68883,12 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - 4 处文案从 `unknown` 改成 **route unrecorded / live host route unrecorded**，并指向 `ENDPOINT_PROVENANCE.md`。
 - 两处守卫从"绑措辞"改为"绑意图"（每行标记移到使用行；占位说明接受 `unrecorded`）。
 - 全量 **2465/0/2/2467**。
+
+---
+
+## 第 1285 轮：captcha provider 只读契约对齐（Type / BalanceSupported）
+
+- 镜像 `Type`、`BalanceSupported` 只有 getter（1432159DC / 143215D50，均无 Setter）；其余七成员双访问器。
+- 复刻件改为 `init`；编辑模态框不再改既有行的来源，Type 下拉在编辑时禁用。
+- 新测 3 条（`IsExternalInit` modreq 判据）；`Captcha*` 43/43；全量 **2468/0/2/2470**。
+- 顺带取到下一轮的证：变体域（4 值）、`TurnstileSiteKey` 实值、`HCaptchaSpoof` 是 bool 属性。

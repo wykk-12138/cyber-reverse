@@ -10,14 +10,14 @@ namespace Cybersole.Services.Captcha;
 /// </summary>
 public sealed class CaptchaProviderConfig
 {
-    public string Type { get; set; } = "humanpresence";
+    public string Type { get; init; } = "humanpresence";
     public string Name { get; set; } = string.Empty;
     public string? ApiKey { get; set; }
     public int Concurrency { get; set; } = 10;
     public int Priority { get; set; }
     public bool Enabled { get; set; } = true;
     public decimal? Balance { get; set; }
-    public bool BalanceSupported { get; set; }
+    public bool BalanceSupported { get; init; }
     public int Count { get; set; }
     public bool IsFetchingBalance { get; set; }
 }

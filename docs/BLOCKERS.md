@@ -47093,3 +47093,40 @@ ConfirmAsync。外层由 billing 步骤驱动。
 
 **还剩什么**：这 4 条**永远**只能是 unrecorded，除非拿到 BSTN 加车/下单的**活抓包**（原版靠页面 JS，
 客户端不持字面量）。要真落地就得有新的 live capture，属外部条件。
+
+## R1285 —— `CaptchaProvider.Type` / `BalanceSupported` 的**只读契约**对齐（优先级②）
+
+### 一、取证（descriptor 原文，两处互相印证）
+
+`Cybersole.CaptchaProviders.CaptchaProvider` 的成员块（`1432158BC`…`143215DF5` 与 `14363E0A0`…`14363E3EC`）：
+
+| 成员 | Getter | Setter |
+|---|---|---|
+| `Type` | ✅ `1432159DC` | **无** |
+| `BalanceSupported` | ✅ `143215D50` | **无** |
+| `Name` · `ApiKey` · `Balance` · `Count` · `Concurrency` · `Priority` · `IsFetchingBalance` | ✅ | ✅ |
+
+**⇒ `Type` 与 `BalanceSupported` 在镜像里是只读的**；其余可写。这个不对称是镜像自己的，不是我们的选择。
+
+### 二、顺带取证到的两处（下一轮的料，先记下来）
+
+- `14330480F`：`RecaptchaV3" HCaptchaInvisible& RecaptchaEnterprise& CloudflareTurnstile` —— 这是**挑战变体**域，
+  与复刻件的 `CaptchaKind{ReCaptcha,HCaptcha,Turnstile,Geetest,Question}` **不是同一层**（变体 4 个 vs 家族 5 个）。
+- `14339635D`：`TurnstileSiteKey` + 实值 `0x4AAAAAACm-_-PQVKerNsuH` + `KlaviyoCompanyId` —— 某店铺配置里的字段块。
+- `1432258DF` / `143225A55` / `143225B68`：`get_HCaptchaSpoof`、`<HCaptchaSpoof>k__BackingField` ⇒ `HCaptchaSpoof`
+  是**某类型上的 bool 属性**（同块还有 `Castle`、`TrustDeviceGen`、`TrustDeviceBotD`），不是独立类型。
+
+### 三、改了什么
+
+1. `CaptchaProviderConfig.Type` / `.BalanceSupported` → **`init`**（构造时可设、之后不可改）；
+2. `CaptchaProviderCreatorView` 的保存逻辑重写：**只有新建行**用 `init` 定 `Type`，
+   编辑既有行**保留原来源**；Type 下拉在编辑模式 **`IsEnabled = false`**（原版没有那个 setter，UI 也就不该给）。
+3. 新测 `CaptchaProviderTypeContractTests`（3 条）：两个成员带 `IsExternalInit` modreq；
+   七个可写成员**没有**该 modreq；新建仍能选来源且默认 `humanpresence`。
+
+### 四、验证
+
+`Captcha*` **43/43**；全量 **2468 通过 / 0 失败 / 2 跳过 / 2470**。
+
+**为什么用 modreq 而不是"没有 setter"**：C# 的 `init` 在反射里**仍有** get-setter 方法，
+标记它的是返回参数上的 `IsExternalInit` modreq——那正是编译器拒绝构造后赋值的东西，也是镜像"缺 setter"的等价表达。

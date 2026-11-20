@@ -40,6 +40,20 @@ public static class CasioGraphQL
     public const string Sort = "{name:ASC}";
 
     /// <summary>
+    /// The document's head, byte for byte from 0x147197250 (28 characters). R1313's note said the head had
+    /// not been recovered and had to be inferred; it had, and the inference was right — this is the string
+    /// that opens <c>sku:{in:[</c>, which is why the captured tail could begin with <c>"]</c>.
+    /// </summary>
+    public const string ObservedHead = "{products(filter:{sku:{in:[\"";
+
+    /// <summary>
+    /// The query parameter the document travels in, from 0x146B28A80 (7 characters). The image concatenates
+    /// it after the endpoint, so the search is a <b>GET</b> — a POST with a JSON body would be a different
+    /// request from the one this store is built for.
+    /// </summary>
+    public const string QueryParameter = "?query=";
+
+    /// <summary>
     /// The field selection, byte for byte from 0x146A758CC — 274 characters, beginning with the quote that
     /// closes the filter's last value and with the <c>]</c> that closes its array. That leading <c>"]</c> is
     /// itself evidence: the filter carries a list, not a single value, so the head has to open
@@ -59,13 +73,8 @@ public static class CasioGraphQL
     };
 
     /// <summary>
-    /// The document, wrapped around the observed selection.
-    ///
-    /// <para>
-    /// <b>Inference</b>: the wrapper. <c>products(filter: ...)</c> with a <c>sku</c> equality is the shape
-    /// whose closing braces match the tail the image captured, but the head itself was not recovered, so a
-    /// caller with better evidence should pass its own document to <see cref="SearchAsync"/>.
-    /// </para>
+    /// The document as the image builds it: the head, the sku, the tail — concatenated, with no <c>query{...}</c>
+    /// wrapper, because a Magento shorthand query is the braces themselves.
     /// </summary>
     public static string SearchDocument(string skuOrName)
     {
@@ -73,14 +82,19 @@ public static class CasioGraphQL
             .Replace("\\", "\\\\", StringComparison.Ordinal)
             .Replace("\"", "\\\"", StringComparison.Ordinal);
 
-        // The captured tail begins with the quote that closes the filter's value and the bracket that
-        // closes its list, so the head opens `sku:{in:[` and the tail completes it.
-        return "query{products(filter:{sku:{in:[\"" + escaped + ObservedSelection;
+        return ObservedHead + escaped + ObservedSelection;
     }
 
-    /// <summary>The request body: a GraphQL POST with the document under <c>query</c>.</summary>
-    public static JObject SearchBody(string skuOrName) =>
-        new() { ["query"] = SearchDocument(skuOrName) };
+    /// <summary>The URL for a search: the endpoint, the query parameter and the encoded document.</summary>
+    public static string SearchUrl(string endpoint, string skuOrName) =>
+        endpoint + QueryParameter + Uri.EscapeDataString(SearchDocument(skuOrName));
+
+    /// <summary>The endpoint for a storefront origin: the origin plus <see cref="Path"/>.</summary>
+    public static string EndpointFor(string origin) => origin.TrimEnd('/') + Path;
+
+    /// <summary>Whether a URL is a GraphQL GET for this store — used by the caller to log what it sent.</summary>
+    public static bool IsSearchUrl(string url) =>
+        url.Contains(Path + QueryParameter, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Ask the store. Returns null when the reply carries no product, which is the ordinary answer for a
@@ -93,16 +107,31 @@ public static class CasioGraphQL
         string? path = null,
         string? document = null)
     {
-        var target = path ?? Path;
-        // A caller may hand in an absolute endpoint (tests do); only a relative path gets the origin.
-        var url = target.StartsWith("http", StringComparison.OrdinalIgnoreCase)
-            ? target
-            : Payments.GatewayHttp.OriginOf(c.Url) + target;
-        var body = document is null ? SearchBody(skuOrName) : new JObject { ["query"] = document };
+        // `path` names the endpoint, absolute in tests and relative in the flow. Without one the storefront
+        // origin plus /graphql is the endpoint; appending Path to a path that already ends in it would ask
+        // for /graphql/graphql, which is what the first version of this did.
+        var target = path ?? EndpointFor(Payments.GatewayHttp.OriginOf(c.Url));
+        var endpoint = target.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? target.TrimEnd('/')
+            : Payments.GatewayHttp.OriginOf(c.Url) + (target.StartsWith("/graphql", StringComparison.Ordinal) ? target : Path);
 
-        var reply = await Payments.GatewayHttp
-            .PostAsync(c, url, body, "casio-graphql", ct)
-            .ConfigureAwait(false);
+        var url = SearchUrl(endpoint, skuOrName);
+        // `document` overrides the composed document when a caller has one from a capture. It was a parameter
+        // with no effect after the GET rewrite; honouring it keeps the seam honest instead of decorative.
+        if (!string.IsNullOrEmpty(document))
+            url = endpoint + QueryParameter + Uri.EscapeDataString(document!);
+
+        JObject? reply;
+        try
+        {
+            var res = await c.Http.GetAsync(url, c.Options("casio-graphql"), ct).ConfigureAwait(false);
+            c.Session.AbsorbCookies(res.Cookies);
+            reply = res.IsSuccess ? JObject.Parse(res.Body) : null;
+        }
+        catch (Exception)
+        {
+            reply = null;
+        }
 
         return ReadProduct(reply);
     }

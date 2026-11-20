@@ -47801,3 +47801,14 @@ Inference = 「17 文件 mtime 来自变异改写」；**Unknown** = 并行会�
 - **正确方向（下轮）**：从 **Casio 特有的步骤名**出发——`<SetAdyenPayment>d__6`、`<SubmitAdyenOrder>d__7`、
   `<GetAdyenPaymentStatus>d__8` 的状态机类型，或 `casio_can_purchase` 这类**只有 Casio 有**的串。
 - **状态**：签名方案**未解**，不当作已知写入任何实现。
+
+---
+
+## R1314 · 锚点方法论的修正（替代 R1313 那条）
+
+- **R1313 记的错因是「拿通用值当锚」，本轮验证了正解**：用**只有这家店有**的串。
+  判据不是"看起来独特"，而是**在 `.text` 里只有一个引用点**：
+  `casio_image_url` → 1 处，选择集尾部 → 1 处；而 `productCode` 有 6 处、New Relic id 有 9 处。
+- **可直接复用**：`disp32_scan_any.py <obj_va>` 的输出行数就是判据。行数 = 1，锚点是专用的；行数多，
+  那是通用值，别用。
+- **`_timestamp`/`_hash`**：仍未解，仍未写入任何实现。

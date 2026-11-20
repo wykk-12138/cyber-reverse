@@ -61,7 +61,7 @@ public sealed class CasioGraphQLTests
     {
         var document = CasioGraphQL.SearchDocument("G-SHOCK \"Limited\"");
 
-        Assert.StartsWith("query{products(filter:{sku:{in:[\"", document);
+        Assert.StartsWith(CasioGraphQL.ObservedHead, document);
         Assert.Contains("G-SHOCK \\\"Limited\\\"", document);
         Assert.EndsWith(CasioGraphQL.ObservedSelection, document);
     }
@@ -118,8 +118,13 @@ public sealed class CasioGraphQLTests
         Assert.Null(CasioGraphQL.ReadProduct(null));
     }
 
+    /// <summary>
+    /// R1314 corrected this: the search is a <b>GET</b> with the document in <c>?query=</c>, which is what the
+    /// image concatenates (<c>?query=</c> at 0x146B28A80), not a POST body. The case therefore asserts the
+    /// method and the request target rather than parsing a body that a GET does not have.
+    /// </summary>
     [Fact]
-    public async Task TheSearchPostsTheDocumentAndReadsTheAnswer()
+    public async Task TheSearchAsksByGetAndReadsTheAnswer()
     {
         var item = "{\"sku\":\"GA-2100-1A\",\"name\":\"G-SHOCK\",\"stock_status\":\"IN_STOCK\",\"casio_can_purchase\":\"true\"}";
         using var server = new TinyServer((_, _) =>
@@ -132,9 +137,13 @@ public sealed class CasioGraphQLTests
         Assert.NotNull(product);
         Assert.Equal("GA-2100-1A", product!.Sku);
         Assert.True(CasioGraphQL.CanBuy(product));
+        Assert.Equal("GET", server.Requests[0].Method);
         Assert.Equal("/graphql", server.Requests[0].Path);
-        var sent = JObject.Parse(server.Requests[0].Body!);
-        Assert.Contains("casio_can_purchase", sent["query"]!.Value<string>());
+
+        var target = server.RequestTargets[0];
+        Assert.Contains(CasioGraphQL.QueryParameter, target);
+        Assert.Contains("casio_can_purchase", Uri.UnescapeDataString(target));
+        Assert.Contains("sku:{in:", Uri.UnescapeDataString(target));
     }
 
     /// <summary>

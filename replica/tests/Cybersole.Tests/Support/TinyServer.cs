@@ -15,6 +15,9 @@ public sealed class TinyServer : IDisposable
     /// <summary>Headers of each request, in the same order as <see cref="Requests"/>.</summary>
     public List<Dictionary<string, string>> RequestHeaders { get; } = new();
 
+    /// <summary>Raw request target — path plus query — of each request, in the same order as <see cref="Requests"/>.</summary>
+    public List<string> RequestTargets { get; } = new();
+
     public TinyServer(Func<HttpListenerRequest, string, (int Status, string Body)> handler)
     {
         // R206: FreePort() closes its probe socket before this listener binds, so another process (or a listener left
@@ -71,6 +74,9 @@ public sealed class TinyServer : IDisposable
                 foreach (string key in ctx.Request.Headers)
                     headers[key] = ctx.Request.Headers[key] ?? string.Empty;
                 RequestHeaders.Add(headers);
+                // R1314: the query string, because a GET carries its payload there and `Requests` keeps only
+                // the path. Additive again: the existing tuple shape is untouched.
+                RequestTargets.Add(ctx.Request.RawUrl ?? string.Empty);
 
                 var (status, responseBody) = handler(ctx.Request, body);
                 var bytes = Encoding.UTF8.GetBytes(responseBody);

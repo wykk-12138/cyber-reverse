@@ -8275,3 +8275,13 @@ Observation：
 - **AO.com 进目录**（第五家原本缺的店，66 → 67）：`AoFlow` 只实现 `GetHome`/`FindProduct`，
   三个 `/v2/app/{contact,delivery,payment}` **请求体未知所以不重写**，占位上限停在 16 没动。
 - 产物搜 `AoFlow` 1 次，尺寸 61,293,568。
+
+---
+
+## 第 1314 轮
+
+- 换锚点（只认单引用点）立刻见效：`sub_14095A090` 的 MoveNext 两次拼接暴露了 GraphQL 文档头
+  `{products(filter:{sku:{in:["`(0x147197250, 28 字符) 与 `?query=`(0x146B28A80)。
+- 三处纠正：上一轮的 Inference 变 Observation 且**猜对了**；文档无 `query{}` 外壳；**搜索是 GET 不是 POST**。
+- `CasioGraphQL` GET 化 + endpoint 双拼 `/graphql/graphql` 修正 + `document` 参数接上（无效参数即装饰）。
+- `TinyServer` 加 `RequestTargets`（additive）：GET 的载荷在查询串里，不记 target 就没有断言点。

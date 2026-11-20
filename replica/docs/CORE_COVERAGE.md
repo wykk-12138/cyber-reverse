@@ -9,12 +9,11 @@
 |---|---|---|
 | flow 文件 | 18 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
 | 覆写步骤总数 | 369 | 本文件生成时统计 |
-| 其中报告「端点为 Unknown」的 | 11 | 同上（匹配 `endpoint unknown` / `not captured`） |
-| 含报告的 flow | 2 | 同上 |
-| 其中**属于扩展、不构成与原版缺口**的 | **4** | R1205：BstnFlow 的 product / cart / checkout / order 四条。原版二进制里 `bstn` / `BSTN` / `beastinpeace` / `Beast in Peace` / `BSTN Store` **五种形状全为 0**，而同批对照组 `Bodega`（显示名形状）命中、`100thieves.com`/`afew-store.com`/`capsuletoronto.com` 三个域名也命中 |
-| 端点常量 / 逐字在池 | 214 / 214 | `python tools/endpoint-provenance.py` |
+| 其中报告「端点为 Unknown」的 | 0 | 同上（匹配 `endpoint unknown` / `not captured`） |
+| 含报告的 flow | 0 | 同上 |
+| 端点常量 / 逐字在池 | 230 / 230 | `python tools/endpoint-provenance.py` |
 | 常量 invented / unresolved | 0 / 1 | 同上 |
-| inline 字面量 / 不在池 | 337 / 33 | 同上 |
+| inline 字面量 / 不在池 | 354 / 33 | 同上 |
 | inline 已登记 / 未登记 | 33 / 0 | 同上 |
 | 端点门 exit | **0** | 同上 |
 
@@ -22,23 +21,23 @@
 
 | flow | 覆写步骤 | 报告 Unknown | 行数 |
 |---|---|---|---|
-| `BstnFlow.cs` | 12 | 4 | 191 |
-| `DemandwareFlow.cs` | 13 | 0 | 578 |
+| `BstnFlow.cs` | 12 | 0 | 196 |
+| `DemandwareFlow.cs` | 13 | 0 | 585 |
 | `DicksSportingGoodsFlow.cs` | 6 | 0 | 145 |
-| `FarfetchFlow.cs` | 13 | 7 | 223 |
+| `FarfetchFlow.cs` | 13 | 0 | 223 |
 | `FlowStoreModule.cs` | 4 | 0 | 61 |
 | `FootsitesFlow.cs` | 21 | 0 | 468 |
-| `GoatFlow.cs` | 11 | 0 | 325 |
+| `GoatFlow.cs` | 11 | 0 | 329 |
 | `HbxFlow.cs` | 13 | 0 | 330 |
-| `HybrisFlow.cs` | 13 | 0 | 371 |
-| `MagentoFlow.cs` | 57 | 0 | 1617 |
+| `HybrisFlow.cs` | 13 | 0 | 375 |
+| `MagentoFlow.cs` | 57 | 0 | 1626 |
 | `NikeFlow.cs` | 23 | 0 | 980 |
 | `NikeGsFlow.cs` | 4 | 0 | 47 |
-| `PopMartFlow.cs` | 27 | 0 | 685 |
+| `PopMartFlow.cs` | 27 | 0 | 715 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
 | `RetailFlows.cs` | 99 | 0 | 1588 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
-| `ShopifyFlow.cs` | 23 | 0 | 661 |
+| `ShopifyFlow.cs` | 23 | 0 | 664 |
 | `SportsshoesFlow.cs` | 7 | 0 | 130 |
 
 ## 二、原版侧（不可得 —— Unknown + 缺什么）
@@ -103,7 +102,7 @@ ConfigRemoved / SharedRemoved / SubscribeGroups / UnsubscribeGroups** 六键同�
 ## 三、风控清单（可复算）
 
 由 `VendorWiring.Rows` 与 `tests/Cybersole.Tests/VendorWiringTests.cs` 逐条钉住：
-9 行 × 9 列（`Vendor` · `Marker` · `Cookie` · `State` · `Note` · `MarkerFrom` · `Gap` · `Solver` · `Relayed`）。
+接线表已于 R1282 删除（`VendorWiring.cs` 在运行期无真实调用者，取证与对照移入 `docs/VENDOR_WIRING.md`）—— 这里不再有行数可数。
 复算：`dotnet test --filter "FullyQualifiedName~VendorWiring"`，完整对账见 `docs/VENDOR_COVERAGE.md`。
 
 原版在进度文案或请求头中点名 8 家站点风控（cloudflare · kasada · datadome · akamai · queue-it softblock · perimeterx · botdeflector · vercel）；

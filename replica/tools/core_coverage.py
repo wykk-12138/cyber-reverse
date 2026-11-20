@@ -69,7 +69,15 @@ def provenance():
 
 
 def wiring_row_count():
+    """Rows in the vendor wiring table, or None once that table is gone.
+
+    R1282 removed src/Cybersole.Stores/Scripts/VendorWiring.cs: nothing in the running product called it, and the vendor
+    evidence it carried lives in docs/VENDOR_WIRING.md. Counting `new Row(` in a file that no longer exists is not a
+    measurement, so this returns None and the report states the removal instead of a number.
+    """
     w = os.path.join(ROOT, "src", "Cybersole.Stores", "Scripts", "VendorWiring.cs")
+    if not os.path.exists(w):
+        return None
     text = io.open(w, encoding="utf-8", errors="replace").read()
     return text.count("new Row(")
 
@@ -179,7 +187,12 @@ def main():
     add("## 三、风控清单（可复算）")
     add("")
     add("由 `VendorWiring.Rows` 与 `tests/Cybersole.Tests/VendorWiringTests.cs` 逐条钉住：")
-    add("%d 行 × 9 列（`Vendor` · `Marker` · `Cookie` · `State` · `Note` · `MarkerFrom` · `Gap` · `Solver` · `Relayed`）。" % wiring_n)
+    if wiring_n is None:
+        add("接线表已于 R1282 删除（`VendorWiring.cs` 在运行期无真实调用者，取证与对照移入 "
+            "`docs/VENDOR_WIRING.md`）—— 这里不再有行数可数。")
+    else:
+        add("%d 行 × 9 列（`Vendor` · `Marker` · `Cookie` · `State` · `Note` · `MarkerFrom` · `Gap` · "
+            "`Solver` · `Relayed`）。" % wiring_n)
     add("复算：`dotnet test --filter \"FullyQualifiedName~VendorWiring\"`，完整对账见 `docs/VENDOR_COVERAGE.md`。")
     add("")
     add("原版在进度文案或请求头中点名 8 家站点风控（cloudflare · kasada · datadome · akamai · queue-it softblock · perimeterx · botdeflector · vercel）；")

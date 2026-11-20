@@ -8095,3 +8095,16 @@ Observation：
 
 教训：**改文案=改变异锚**，改完必须重跑变异；`skipped` 不是红，最容易被忽略。
 下轮：`metrics_report.py` 重跑刷新 METRICS（陈旧产物警告仍在），或处理并行会话结束后的 `tree` 复验。
+
+## R1296 —— ① placeholders=0、② stages=9/markers 0/5、metrics 全部 exit 0
+
+Observation：
+- `core_coverage.py` → `flows=18 steps=369 placeholders=0 provenance exit=0`
+- `payment_challenges.py` → `control ok=True stages=9 markers absent=0/5`
+- `vendor_coverage.py` → `controls ok=True vendors named=13 wiring rows=0 missing=0` exit 0
+- `metrics_report.py` → **全部 exit 0**；套件 2468/0/0/2468
+- METRICS 警告：产物陈旧 31 文件 / 变异组数过期（本轮改了生成器）
+
+下轮（两条长任务，单独做）：
+1. 重新 AOT 发布消除"产物陈旧"（`-p:PublishAot=true -p:UseSharedCompilation=false`，产物 ≈57.4 MB）；
+2. 重跑 `mutation-check.py` 让 manifest 重新对齐（预期仍 59/59/0/0）。

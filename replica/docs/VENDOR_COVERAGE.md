@@ -1,7 +1,7 @@
 # 风控厂商覆盖表（生成物 —— 不要手改）
 
 由 `python tools/vendor_coverage.py` 生成。完成判据 (f) 的风控一半：
-**原版清单从二进制取证 ↔ `VendorWiring` 逐条对**。
+**原版清单从二进制取证**；接线表已于 **R1282 删除**（`VendorWiring.cs` 在运行期无真实调用者，取证与对照移入 `docs/VENDOR_WIRING.md`），所以本表**只有镜像侧清点，没有逐条对照**。
 
 ## 一、对照是否成立
 
@@ -38,34 +38,14 @@ Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。
 
 ## 三、与 `VendorWiring` 的对账
 
-`VendorWiring` 现有 **9** 行：
+`VendorWiring` 现有 **0** 行：
 
 | Vendor | State | Solver | Relayed |
 |---|---|---|---|
-| `cloudflare` | `Wired` | `UserThirdParty` | True |
-| `kasada` | `Wired` | `Unknown` | False |
-| `akamai` | `DetectedOnly` | `Unknown` | False |
-| `imperva` | `DetectedOnly` | `None` | False |
-| `datadome` | `Wired` | `SelfHosted` | True |
-| `perimeterx` | `DetectedOnly` | `Local` | False |
-| `queue-it` | `DetectedOnly` | `Local` | False |
-| `botdeflector` | `DetectedOnly` | `Local` | False |
-| `vercel` | `DetectedOnly` | `Local` | False |
 
-### 原版点名而台账里没有的（5）
+### 原版点名而台账里没有的（0）
 
-| 缺的 | 命中 | 类别 | 处置 |
-|---|---|---|---|
-| **Stripe challenge** | 1 | payment | 支付侧挑战，不是站点风控。`VendorWiring` 是站点风控台账 ⇒ **不该进这张表**；它属于支付层（`AdyenGateway` 那一族），要在那里记。 |
-| **PayPal 3DS** | 9 | payment | 九条分期文案（`(1)`…`(8)` 加 `(2.1)` 子阶段），是 3DS 流程的阶段，同样**不属于站点风控台账**。→ 归支付层。分期数本身是有用证据：3DS 有 9 个可观察阶段（详见 `PAYMENT_CHALLENGES.md`）。 |
-| **captcha** | 1 | challenge | 通用验证码挑战，不是某个厂商 ⇒ 台账形状不建模，且不该建模。 |
-| **proof of work** | 1 | challenge | 通用 PoW 挑战，同上。注意镜像原文拼作 `challange` —— 保留拼写，不修正。 |
-| **checkpoint** | 1 | challenge | 通用检查点，同上。 |
-
-**→ 分成两类，而这是完成判据 (f) 要的「未覆盖的每条写为什么」：**
-
-- **真厂商缺口 0 个**（无）：`VendorWiring` 应该补行。
-- **不属于这张表的 5 个**（`Stripe challenge` · `PayPal 3DS` · `captcha` · `proof of work` · `checkpoint`）：它们不是站点风控厂商 —— 支付挑战归支付层，通用挑战类型是 `VendorWiring` 的形状不该建模的东西。
+（无）
 
 **→ 这些是 `VendorWiring` 的缺口**：原版对它们有进度文案，说明原版确实走到那一步，
 而台账没有对应的行 ⇒ 按 (f)「未覆盖的每条写为什么」。

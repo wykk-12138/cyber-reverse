@@ -96,6 +96,11 @@ def wiring_rows():
     missing -- a wrong parser producing a confident false inventory, which is the R764 shape. The vendor is a plain
     lowercase string, so the split is on the constructor and each block is parsed for its state, solver and relay.
     """
+    if not os.path.exists(WIRING):
+        # R1296: R1282 removed VendorWiring.cs because nothing in the running product called it. The
+        # image-side vendor inventory is still a real measurement, so "the table is gone" must not look
+        # like "the parser found nothing".
+        return None
     text = io.open(WIRING, encoding="utf-8", errors="replace").read()
     rows = []
     for block in text.split("new Row(")[1:]:
@@ -130,13 +135,18 @@ def main():
         found.append((name, pattern, n, addr))
 
     rows = wiring_rows()
-    if not rows:
+    wiring_removed = rows is None
+    if wiring_removed:
+        rows = []
+    elif not rows:
         print("  !! parsed zero wiring rows -- refusing to publish a table that would claim every vendor is missing")
         return 2
 
     wired = {r[0] for r in rows}
+    # R1296: with the table removed there is nothing to compare against, so a missing list would name all
+    # thirteen vendors -- a confident wrong answer rather than an honest "not applicable".
     missing = []
-    for name, pattern, n, addr in found:
+    for name, pattern, n, addr in (() if wiring_removed else found):
         if n <= 0:
             continue
         stem = re.sub(r"[^a-z]", "", name.lower())[:5]
@@ -148,7 +158,11 @@ def main():
     add("# 风控厂商覆盖表（生成物 —— 不要手改）")
     add("")
     add("由 `python tools/vendor_coverage.py` 生成。完成判据 (f) 的风控一半：")
-    add("**原版清单从二进制取证 ↔ `VendorWiring` 逐条对**。")
+    if wiring_removed:
+        add("**原版清单从二进制取证**；接线表已于 **R1282 删除**（`VendorWiring.cs` 在运行期无真实调用者，"
+            "取证与对照移入 `docs/VENDOR_WIRING.md`），所以本表**只有镜像侧清点，没有逐条对照**。")
+    else:
+        add("**原版清单从二进制取证 ↔ `VendorWiring` 逐条对**。")
     add("")
     add("## 一、对照是否成立")
     add("")

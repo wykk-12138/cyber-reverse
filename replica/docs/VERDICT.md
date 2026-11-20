@@ -68989,3 +68989,13 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - 加 `[Theory] EachStepCarriesTheReasonItself` 逐条断言；手动单条验证从 `STILL DECORATIVE` 变为 `guard fired`。
 - 最终：套件 **2485/0/2/2487**；变异 **59 fired / 0 decorative / 0 skipped**。
 - 同一结果 `tree=RED`，归因并行会话（`CORE_COVERAGE.md` 等），我的改动全绿（文档测试 21/21）。
+
+---
+
+## 第 1296 轮：① ② 判据转绿；三个生成器修掉 R1282 遗留
+
+- `core_coverage.py`：`flows=18 steps=369 **placeholders=0** provenance exit=0`。
+- `payment_challenges.py`：`control ok=True stages=9 markers absent=0/5`。
+- 三个生成器都还在读 R1282 删除的 `VendorWiring.cs` ⇒ 全部改成"表已删"分支（并区分"删了"与"解析零行"）。
+- `metrics_report.py` **首次全部 exit 0**；`vendor: controls ok=True`。
+- METRICS 仍有两条时效警告：产物陈旧（31 文件/22549 行）、变异组数过期（因本轮改生成器）。

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
+using Cybersole.Stores.Payments;
 
 namespace Cybersole.Stores.Flows;
 /// <summary>
@@ -307,6 +308,43 @@ public sealed class CasioFlow : StoreFlow
     /// what it returned before, so nothing regresses while the token stays unknown.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Cybersource Flex tokenisation — the step between a card and anything Adyen sees.
+    ///
+    /// <para>
+    /// <b>Observation:</b> the Casio class's metadata carries <c>_flexTokensUrl</c>, <c>_captureContext</c> and
+    /// <c>_cybersource</c> beside the helper trio <c>GetCaptureContext</c> / <c>Tokenize</c> / <c>GetCardBrand</c>,
+    /// and the image holds <c>https://flex.cybersource.com/flex/v2/tokens</c> as a frozen literal. So the tokenise
+    /// call is <see cref="CybersourceFlex"/>; this method is the flow-side step that uses it.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown:</b> where the capture context comes from. <c>_captureContext</c> is a field, not a literal, and
+    /// no string in the image spells the store endpoint that issues one — so this refuses when the session has none
+    /// rather than inventing a URL, and it says which state machine step would supply it.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetPaymentTokenAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!string.IsNullOrEmpty(c.Session.PaymentToken)) return StepOutcome.Success();
+
+        var capture = c.Session.Vars.GetValueOrDefault("casio.captureContext");
+        if (string.IsNullOrEmpty(capture))
+            return StepOutcome.Fail(
+                "casio: no capture context — GetCaptureContext (d__37) issues one from a store endpoint no literal names");
+
+        var result = await CybersourceFlex
+            .TokenizeAsync(c, capture!, ct, c.Session.Vars.GetValueOrDefault("casio.flexTokensUrl"))
+            .ConfigureAwait(false);
+
+        if (!result.Ok) return StepOutcome.Fail("casio: " + result.Error);
+
+        c.Session.PaymentToken = result.Token;
+        c.Session.Vars["casio.flexToken"] = result.Token;
+        if (!string.IsNullOrEmpty(result.CardType)) c.Session.Vars["casio.cardType"] = result.CardType;
+        return StepOutcome.Success();
+    }
+
     protected static string RegionPath(FlowContext c, string rest)
     {
         var trimmed = rest.TrimStart('/');

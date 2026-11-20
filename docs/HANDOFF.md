@@ -8243,3 +8243,14 @@ Observation：
   测试钉住派生关系与 8 个冻结设备取值（5120x1440 / -120 / Win32 / 5 插件 / 35 字体）。
 - 归属：这是 **Web Payments SDK 的 `card.browserData`**，不是服务端 `/v2/card-nonce` 请求体，**没有动那个请求**。
 - 顺带记一笔：`str.format` 遇上 C# 的花括号会被当成字段，脚本改了两轮才通——生成器里改用 `%` 格式化。
+
+---
+
+## 第 1311 轮
+
+- **Cybersource Flex 落地并确认进产物**：`Payments/CybersourceFlex.cs`（7 个 URL 字面量、两代微表单 iframe、
+  `TokenizeBody`、`TokenizeAsync`），接在 `CasioFlow.GetPaymentTokenAsync`——该步骤由
+  `StoreFlowRunner` 注册，所以可达。产物里类型名 **1 次命中**，尺寸 61,259,776 → 61,270,016。
+- 无 capture context 时**拒绝并指名 d__37**：那个签发端点在镜像里是字段不是字面量，没有串拼出它。
+- `TinyServer` 加了并行 `RequestHeaders`（additive），否则"bearer 真的发出去了"没有断言点。
+- 对照：`SquareBrowserData` 仍不在产物里（R1310 记录的裁剪项）。

@@ -1,0 +1,16 @@
+216  public sealed class CasioFlow : StoreFlow
+218  public const string RecaptchaSiteKey = "6LfeU4ofAAAAAHTDXnfN1V9EroVWvwEPeqrXybdj";
+220  public override string Id => "casio";
+221  public override string Name => "Casio";
+222  public override IReadOnlyList<string> Domains => new[] { "casio.com" };
+224  public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
+228  c.Session.Vars["home"] = res.Body;
+232  public override async Task<StepOutcome> GetCaptchaAsync(FlowContext c, CancellationToken ct)
+234  c.Session.Vars["captchaSiteKey"] = RecaptchaSiteKey;
+235  c.Session.Vars["captchaKind"] = "recaptcha";
+239  public override async Task<StepOutcome> SolveCaptchaAsync(FlowContext c, CancellationToken ct)
+248  public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
+254  c.Session.Vars["raw"] = res.Body;
+255  c.Session.Vars["product"] = Regex.Match(res.Body, @"<title>([^<|]+)").Groups[1].Value;
+256  c.Session.Vars["price"] = Regex.Match(res.Body, @"(?:USD|€|£|\$)\s?([\d,.]+)").Groups[1].Value;
+295  [next class] /// configuration -- which matches a setting read by name. This class therefore takes it f

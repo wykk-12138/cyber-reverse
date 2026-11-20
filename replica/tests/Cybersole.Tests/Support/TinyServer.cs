@@ -12,6 +12,9 @@ public sealed class TinyServer : IDisposable
     /// <summary>Requests seen, in arrival order: (method, path, body).</summary>
     public List<(string Method, string Path, string Body)> Requests { get; } = new();
 
+    /// <summary>Headers of each request, in the same order as <see cref="Requests"/>.</summary>
+    public List<Dictionary<string, string>> RequestHeaders { get; } = new();
+
     public TinyServer(Func<HttpListenerRequest, string, (int Status, string Body)> handler)
     {
         // R206: FreePort() closes its probe socket before this listener binds, so another process (or a listener left
@@ -59,6 +62,15 @@ public sealed class TinyServer : IDisposable
                     body = await reader.ReadToEndAsync().ConfigureAwait(false);
 
                 Requests.Add((ctx.Request.HttpMethod, ctx.Request.Url?.AbsolutePath ?? "/", body));
+
+                // R1311: the headers, alongside the request, because some behaviour only exists in them --
+                // Cybersource Flex carries its capture context as an Authorization bearer, and a body-only
+                // record cannot tell a request that sent it from one that did not. Additive: `Requests` keeps
+                // its shape so no existing case changes.
+                var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string key in ctx.Request.Headers)
+                    headers[key] = ctx.Request.Headers[key] ?? string.Empty;
+                RequestHeaders.Add(headers);
 
                 var (status, responseBody) = handler(ctx.Request, body);
                 var bytes = Encoding.UTF8.GetBytes(responseBody);

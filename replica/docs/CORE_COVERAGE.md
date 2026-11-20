@@ -8,7 +8,7 @@
 | 度量 | 值 | 命令 |
 |---|---|---|
 | flow 文件 | 19 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
-| 覆写步骤总数 | 387 | 本文件生成时统计 |
+| 覆写步骤总数 | 388 | 本文件生成时统计 |
 | 其中报告「端点为 Unknown」的 | 1 | 同上（匹配 `endpoint unknown` / `not captured`） |
 | 含报告的 flow | 1 | 同上 |
 | 端点常量 / 逐字在池 | 230 / 230 | `python tools/endpoint-provenance.py` |
@@ -35,7 +35,7 @@
 | `NikeGsFlow.cs` | 5 | 0 | 68 |
 | `PopMartFlow.cs` | 27 | 0 | 715 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
-| `RetailFlows.cs` | 102 | 0 | 1697 |
+| `RetailFlows.cs` | 103 | 0 | 1735 |
 | `SauconyFlow.cs` | 9 | 1 | 152 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
 | `ShopifyFlow.cs` | 25 | 0 | 1142 |

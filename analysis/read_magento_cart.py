@@ -17,6 +17,11 @@ SITES = {
     'add_products': 0x1470FD624,
     'create_empty': 0x1470FD4C4,
     'customer_cart': 0x14718FB74,
+    # R1321: the rest of the frozen GraphQL documents found in the same sweep.
+    'add_billing_address': 0x1470E4F94,
+    'approve_member_payment': 0x1470E9FA4,
+    'add_to_cart_query': 0x14713DE4C,
+    'buynow': 0x14713E034,
 }
 OUT = 'analysis/.magento_cart_docs.json'
 

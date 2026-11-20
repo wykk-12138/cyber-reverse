@@ -125,9 +125,66 @@ public sealed class MagentoCartTests
     }
 
     /// <summary>
-    /// The flow's own step: it creates a cart, adds the line, and records the totals — and falls back to the
-    /// old POST when GraphQL refuses, because that request is what this flow used to send.
+    /// R1321: the billing document, 323 characters from 0x1470E4F94 — Magento's updateMyCart with two actions.
+    /// It uses GraphQL variables, unlike the add mutation's substitution tokens, so the two documents in this
+    /// class are filled in two different ways and both have to stay that way.
     /// </summary>
+    [Fact]
+    public void TheBillingDocumentIsTheStringTheImageHolds()
+    {
+        Assert.Equal(323, MagentoCart.AddBillingAddressDocument.Length);
+        Assert.StartsWith("mutation addBillingAddressToCart($cartId: String!, $version: Long!, " +
+                          "$address: AddressInput!, $emailAddress: String)", MagentoCart.AddBillingAddressDocument);
+        Assert.Contains("{setBillingAddress: {address: $address}}, {setCustomerEmail: {email: $emailAddress}}",
+            MagentoCart.AddBillingAddressDocument);
+        Assert.EndsWith("    id\n    version\n    isAbleToCheckout\n  }\n}", MagentoCart.AddBillingAddressDocument);
+    }
+
+    [Fact]
+    public async Task TheBillingStepSendsVariablesAndKeepsTheNewVersion()
+    {
+        using var server = new TinyServer((_, _) =>
+            (200, "{\"data\":{\"updateMyCart\":{\"id\":\"masked-9\",\"version\":7,\"isAbleToCheckout\":true}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/products/x" };
+        ctx.Session.Vars["casio.sku"] = "GA-2100-1A";
+        ctx.Session.Vars["casio.cartId"] = "masked-9";
+        ctx.Session.Vars["casio.cartVersion"] = "6";
+        ctx.Session.Vars["casio.graphqlPath"] = server.BaseUrl + "/graphql";
+        ctx.Session.Vars["email"] = "buyer@example.test";
+
+        var outcome = await new CasioFlow().SubmitBillingAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Equal("7", ctx.Session.Vars["casio.cartVersion"]);
+        Assert.Equal("true", ctx.Session.Vars["casio.isAbleToCheckout"]);
+
+        var sent = JObject.Parse(server.Requests[0].Body!);
+        Assert.Equal(MagentoCart.AddBillingAddressDocument, sent["query"]!.Value<string>());
+        Assert.Equal("masked-9", sent["variables"]!["cartId"]!.ToString());
+        Assert.Equal(6, sent["variables"]!["version"]!.Value<long>());
+        Assert.Equal("buyer@example.test", sent["variables"]!["emailAddress"]!.ToString());
+    }
+
+    /// <summary>
+    /// The version is a required variable the add mutation never returns, so the step refuses rather than
+    /// inventing one. A fabricated 0 or 1 would be a number the store validates and rejects.
+    /// </summary>
+    [Fact]
+    public async Task WithoutAVersionTheBillingStepSaysWhichVariableIsMissing()
+    {
+        using var server = new TinyServer((_, _) => (200, "{}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/products/x" };
+        ctx.Session.Vars["casio.cartId"] = "masked-9";
+        ctx.Session.Vars["email"] = "buyer@example.test";
+
+        var outcome = await new CasioFlow().SubmitBillingAsync(ctx, default);
+
+        Assert.False(outcome.Ok);
+        Assert.Contains("cart version", outcome.Error);
+        Assert.Empty(server.Requests);
+    }
     [Fact]
     public async Task TheCasioStepCreatesACartThenAddsTheLine()
     {

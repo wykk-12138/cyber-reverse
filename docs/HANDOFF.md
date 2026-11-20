@@ -8349,3 +8349,14 @@ Observation：
 - `CasioFlow.AddToCartAsync` 原来是 POST `/cart/add`（自带注释承认 404）；现在 **GraphQL 优先 + 旧路径兜底**。
 - 返工一次：我直接写了新的 `AddToCartAsync`，撞 `CS0111`——它早就存在。**该先跑 `where_is`。**
 - 还留着没落地的冻结文档：`approveMemberPayment`、`addBillingAddressToCart`、`addToCart(query)`、`buynow`。
+
+---
+
+## 第 1321 轮
+
+- 五份冻结文档全部解出：账单 323、支付编排 **5407**、`addToCart(query)` 232、`buynow` 216。
+- 账单变更**已落地并接线**（`CasioFlow.SubmitBillingAsync`），加购用字面令牌、账单用 GraphQL 变量，两套填法都钉住。
+- **不肯编 `$version`**：加购回复里没有 version，取不到就明说缺哪个变量，**一个请求都不发**。
+- **5407 字那份是 PayPal/Braintree 支付编排**（`approveMemberPayment`/`fundingOption`/`contingencyContext`/`jwtSpecification`）——
+  **R1312 那条死路解出的 `jwtIssuer`/`jwtOrgUnitId` 就是这份文档的字段**，答案在这里。
+- 它**没有落地**：没有已证实的端点，硬塞会被 AOT 裁掉。等端点。

@@ -553,6 +553,72 @@ public sealed class CasioFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    /// <summary>
+    /// Set the billing address through Magento's <c>updateMyCart</c> mutation.
+    ///
+    /// <para>
+    /// <b>Observed:</b> the document is frozen in the image at 0x1470E4F94, 323 characters — two actions,
+    /// <c>setBillingAddress</c> and <c>setCustomerEmail</c>, answering <c>id</c>, <c>version</c> and
+    /// <c>isAbleToCheckout</c>. See <see cref="MagentoCart.AddBillingAddressDocument"/>.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown, and refused rather than guessed:</b> the cart version. The mutation declares
+    /// <c>$version: Long!</c> and the add mutation does not return one, so a flow that has never seen a
+    /// version has nothing honest to send. It is read from <c>casio.cartVersion</c> and, when absent, the
+    /// step says which variable is missing instead of inventing 0 or 1.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> SubmitBillingAsync(FlowContext c, CancellationToken ct)
+    {
+        var cartId = c.Session.Vars.GetValueOrDefault("casio.cartId");
+        if (string.IsNullOrEmpty(cartId))
+            return StepOutcome.Fail("casio: no cart id — add a line before submitting billing");
+
+        var versionText = c.Session.Vars.GetValueOrDefault("casio.cartVersion");
+        if (string.IsNullOrEmpty(versionText) || !long.TryParse(versionText, out var version))
+            return StepOutcome.Fail(
+                "casio: no cart version — the billing mutation requires $version: Long! and the add mutation " +
+                "does not return one, so it has to come from a capture (casio.cartVersion)");
+
+        var profile = c.ProfileData;
+        var email = c.Session.Vars.GetValueOrDefault("email");
+        if (string.IsNullOrEmpty(email)) email = profile?.Email;
+        if (string.IsNullOrEmpty(email)) return StepOutcome.Fail("casio: no email for the billing address");
+
+        // Magento's AddressInput takes a street array and the profile model carries two lines, so both go in
+        // and a blank one is dropped rather than sent as an empty string.
+        var street = new JArray();
+        if (!string.IsNullOrWhiteSpace(profile?.Address1)) street.Add(profile!.Address1);
+        if (!string.IsNullOrWhiteSpace(profile?.Address2)) street.Add(profile!.Address2);
+
+        var address = new JObject
+        {
+            ["firstname"] = profile?.FirstName,
+            ["lastname"] = profile?.LastName,
+            ["street"] = street,
+            ["city"] = profile?.City,
+            ["region"] = profile?.State,
+            ["postcode"] = profile?.Zip,
+            ["country_code"] = profile?.Country,
+            ["telephone"] = profile?.Phone,
+        };
+
+        var endpoint = c.Session.Vars.GetValueOrDefault("casio.graphqlPath");
+        if (string.IsNullOrEmpty(endpoint))
+            endpoint = Payments.GatewayHttp.OriginOf(c.Url) + CasioGraphQL.Path;
+
+        var result = await MagentoCart
+            .SetBillingAsync(c, endpoint!, cartId!, version, address, email!, ct)
+            .ConfigureAwait(false);
+
+        if (!result.Ok) return StepOutcome.Fail(result.Error);
+
+        c.Session.Vars["casio.cartVersion"] = result.Version;
+        c.Session.Vars["casio.isAbleToCheckout"] = result.CanCheckout;
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
         if (Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve("unzer")

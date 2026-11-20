@@ -41,6 +41,19 @@ public static class MagentoCart
     /// <summary>The customer-cart query.</summary>
     public const string CustomerCartDocument = "{ customerCart { id total_quantity items { uid quantity } } }";
 
+    /// <summary>
+    /// R1321: the billing-address mutation, 323 characters from 0x1470E4F94. It is Magento's
+    /// <c>updateMyCart</c> with two actions — set the billing address, set the customer email — and it
+    /// answers <c>id</c>, <c>version</c> and <c>isAbleToCheckout</c>. Unlike the add mutation it uses
+    /// GraphQL variables rather than substitution tokens, and it needs the cart's <c>version</c>, which is
+    /// why the flow has to carry one.
+    /// </summary>
+    public const string AddBillingAddressDocument =
+        "mutation addBillingAddressToCart($cartId: String!, $version: Long!, $address: AddressInput!, " +
+        "$emailAddress: String) {\n  updateMyCart(\n    actions: [{setBillingAddress: {address: $address}}, " +
+        "{setCustomerEmail: {email: $emailAddress}}]\n    version: $version\n    id: $cartId\n  ) {\n" +
+        "    id\n    version\n    isAbleToCheckout\n  }\n}";
+
     /// <summary>The three tokens the add mutation substitutes.</summary>
     public static readonly string[] Placeholders = { "%CART_ID%", "%QTY%", "%SKU%" };
 
@@ -108,6 +121,60 @@ public static class MagentoCart
         };
     }
 
+    /// <summary>
+    /// Set the billing address and customer email, returning the cart's new version and whether it can now
+    /// check out. The version is an argument because the document requires one and the add mutation does not
+    /// return it — a caller that has never seen a version has nothing to pass, and guessing 0 or 1 would be a
+    /// fabricated number in a request the store validates.
+    /// </summary>
+    public static async Task<MagentoBillingResult> SetBillingAsync(
+        FlowContext c,
+        string endpoint,
+        string cartId,
+        long version,
+        JObject address,
+        string email,
+        CancellationToken ct)
+    {
+        var body = new JObject
+        {
+            ["query"] = AddBillingAddressDocument,
+            ["variables"] = new JObject
+            {
+                ["cartId"] = cartId,
+                ["version"] = version,
+                ["address"] = address,
+                ["emailAddress"] = email,
+            },
+        };
+
+        var reply = await PostAsync(c, endpoint, body, ct).ConfigureAwait(false);
+        if (reply is null) return MagentoBillingResult.Fail("billing: no reply");
+
+        if (reply["errors"] is JArray topLevel && topLevel.Count > 0)
+            return MagentoBillingResult.Fail("billing: " + (topLevel[0]?["message"]?.ToString() ?? "graphql error"));
+
+        var cart = reply["data"]?["updateMyCart"];
+        if (cart is null) return MagentoBillingResult.Fail("billing: no cart in reply");
+
+        // Magento answers a JSON boolean, and JToken.ToString() renders it "True"; the session carries strings
+        // that other steps compare, so it is normalised here rather than at every reader.
+        var canCheckout = cart["isAbleToCheckout"];
+        var canCheckoutText = canCheckout is null
+            ? string.Empty
+            : canCheckout.Type == JTokenType.Boolean
+                ? (canCheckout.Value<bool>() ? "true" : "false")
+                : canCheckout.ToString();
+
+        return new MagentoBillingResult
+        {
+            Ok = true,
+            CartId = cart["id"]?.ToString() ?? cartId,
+            Version = cart["version"]?.ToString() ?? version.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            CanCheckout = canCheckoutText,
+        };
+    }
+
     private static async Task<JObject?> PostAsync(FlowContext c, string endpoint, JObject body, CancellationToken ct)
     {
         try
@@ -127,6 +194,18 @@ public static class MagentoCart
 
     private static string Escape(string value) =>
         value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+}
+
+/// <summary>What the billing mutation produced.</summary>
+public sealed class MagentoBillingResult
+{
+    public bool Ok { get; init; }
+    public string CartId { get; init; } = string.Empty;
+    public string Version { get; init; } = string.Empty;
+    public string CanCheckout { get; init; } = string.Empty;
+    public string Error { get; init; } = string.Empty;
+
+    public static MagentoBillingResult Fail(string error) => new() { Ok = false, Error = error };
 }
 
 /// <summary>What an add-to-cart mutation produced.</summary>

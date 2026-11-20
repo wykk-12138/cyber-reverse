@@ -113,7 +113,11 @@ private const int KnownPlaceholders = 12;
             if (count < 2) continue;      // a single one is the deliberate no-op case, which carries its reason in a comment
 
             var text = File.ReadAllText(Path.Combine(FlowsDir(), flow + "Flow.cs"));
-            Assert.True(text.Contains("endpoint unknown", StringComparison.OrdinalIgnoreCase),
+            // R1284: the guard is that the flow says WHY, not that it uses one particular word. "unrecorded" is the
+            // accurate term where the route was looked for and not attested — BstnFlow's /api/beast answers for geoIP
+            // and monetate while its cart and order children are unrecorded — so both spellings satisfy the intent.
+            Assert.True(text.Contains("endpoint unknown", StringComparison.OrdinalIgnoreCase)
+                        || text.Contains("unrecorded", StringComparison.OrdinalIgnoreCase),
                 $"{flow} has {count} placeholder overrides and never says why; a placeholder that does not name what is "
                 + "missing reads as an oversight rather than a recorded gap");
         }

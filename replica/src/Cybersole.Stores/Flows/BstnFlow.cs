@@ -18,7 +18,8 @@ namespace Cybersole.Stores.Flows;
 /// were: it compiles, it runs, and every cart call hits a route that is not there.
 ///
 /// Verified:   the /api/beast/ prefix, the Adyen checkout, the /us_en locale path
-/// Unknown:    the product endpoint, the cart endpoint, the checkout endpoint
+/// Unrecorded: the product endpoint (page-driven), the cart route, the Adyen order route — each classified
+/// below with what was checked, per docs/ENDPOINT_PROVENANCE.md ('live' = answered, no image literal).
 ///
 /// The unknown steps report that they are unknown. A guessed POST would land on BSTN's 404
 /// handler, return a response, and look like progress.
@@ -139,8 +140,9 @@ public class BstnFlow : StoreFlow
 
     public override Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct) =>
         Task.FromResult(StepOutcome.Fail(
-            "bstn: cart endpoint unknown — /cart.js is 404 and the cart lives under /api/beast/ " +  // inferred: no image evidence (R294)
-            "at a path not yet captured"));
+            // inferred: no image evidence — ida.py str answers 0 for bstn, BSTN, bstn.com and beast/geoIP
+            "bstn: cart route unrecorded — /api/beast answers for geoIP and monetate, " +  // inferred: no image evidence
+            "its cart child route is not attested; /cart.js answers 404 at the store"));
 
     /// <summary>
     /// BSTN's CSRF token, read the way this shop actually serves it.
@@ -180,11 +182,14 @@ public class BstnFlow : StoreFlow
     }
 
     public override Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct) =>
-        Task.FromResult(StepOutcome.Fail("bstn: cart endpoint unknown"));
+        Task.FromResult(StepOutcome.Fail(
+            "bstn: cart route unrecorded — /api/beast answers, its cart child route does not appear anywhere"));  // inferred: no image evidence
 
     public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
-        Task.FromResult(StepOutcome.Fail("bstn: checkout endpoint unknown (Adyen)"));
+        Task.FromResult(StepOutcome.Fail(
+            "bstn: checkout is live on checkoutanalytics-live.adyen.com; no checkout route is recorded"));
 
     public override Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct) =>
-        Task.FromResult(StepOutcome.Fail("bstn: order endpoint unknown"));
+        Task.FromResult(StepOutcome.Fail(
+            "bstn: order route unrecorded — Adyen answers, the submit path is not attested anywhere"));
 }

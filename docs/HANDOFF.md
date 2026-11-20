@@ -7972,3 +7972,13 @@ Observation：
 
 Inference：外层触发条件由 billing 步骤决定（镜像无状态码比较），以 `CAPTCHA_REQUIRED` 落地。
 下轮：BstnFlow 的 4 个 `endpoint unknown`（`chars_va-12` 链）；随后 Captcha 协议层；再 `Cybersole.Http`。
+
+## R1284 —— BstnFlow 占位分类结案；两处守卫改为绑意图；全量 2465/0/2/2467
+
+Observation：
+- `ida.py str`：`bstn`/`BSTN`/`bstn.com`/`BstnFlow`/`Bstn` 全 0（`saturated:false`）；`/api/beast` 仅 live 证据。
+- 4 处占位改判：cart×2 / checkout / order 全部 `route unrecorded`（checkout 为 live host）。
+- 全量 2465/0/2/2467；Bstn 相关 28/28。
+
+Unknown：BSTN 的加车与下单真实路由——需要新的 live capture（原版页面 JS 驱动，客户端无字面量）。
+下轮：`docs/CAPTCHA_COVERAGE.md` 的 `CaptchaProvider.Type` 分发语义 + 缺失客户端协议（优先级②）。

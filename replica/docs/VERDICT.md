@@ -68874,3 +68874,12 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - `ConfirmChallengeAsync` host 走 `ApiUrl` 注入缝、path 单独拼（`ConfirmAsync` 的 url 是整体替换）。
 - 端到端两测：有令牌 → `POST intent` → `PUT /challenge/confirm` → `POST intent` 成功；无令牌 → 只发一次、报失败。
 - `StripeChallenge` 6/6；全量 **2465/0/2/2467**。
+
+---
+
+## 第 1284 轮：BstnFlow 4 个占位分类结案（镜像五写法 0 命中 → 三种性质）
+
+- `bstn`/`BSTN`/`bstn.com`/`BstnFlow`/`Bstn` **全部 0 命中**；`/api/beast` 只有 live 证据（geoIP、monetate）。
+- 4 处文案从 `unknown` 改成 **route unrecorded / live host route unrecorded**，并指向 `ENDPOINT_PROVENANCE.md`。
+- 两处守卫从"绑措辞"改为"绑意图"（每行标记移到使用行；占位说明接受 `unrecorded`）。
+- 全量 **2465/0/2/2467**。

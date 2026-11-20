@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-21T05:35:15+08:00",
+  "ran_at": "2026-11-21T06:04:01+08:00",
   "total": 59,
   "fired": 59,
   "decorative": 0,
@@ -834,7 +834,7 @@
     "tools/absent_checkout.py": "7de43606912f8539f3e19cc90c70f1fbe7da358397eb3f0a551592fe66d18960",
     "tools/addtocart_family.py": "4f26c627835e25de254df42a36531ed84885212990ccd139f1774be4f0a86907",
     "tools/aot_member_coverage.py": "79c37bf52a4890548b67b6b4403ba64ae145acf70bc19680a8dbfee053577677",
-    "tools/artifact_freshness.py": "66564aa768f2f21421044df8db1c7d017deb6efe683f82d629f12aa70fd66555",
+    "tools/artifact_freshness.py": "a069d4e99785cd566c3628c72027ff04b89fbdfa1931d08a36f730a569dfb958",
     "tools/artifact_probe.py": "331dc683994d5136ecac148c37061251ab5633aa90b5482b3df06d3245f37031",
     "tools/async_method_coverage.py": "d7afa96a21506b6d9b52ef39122d882b00bda8b833e095821b50ac97affbbbb6",
     "tools/backlog_report.py": "e98f788e965101644173781063d6fb373dc4be4460b3bc9fc766b2058ee677af",

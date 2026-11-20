@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 05:35:40 +0800 |
+| 生成时间 | 2026-11-21 06:04:12 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
@@ -398,10 +398,11 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 05:23:04
+publish artifact mtime: 2026-11-21 05:45:24
 publish artifact size: 61294592 bytes
-publish artifact sha256: bcbee69f45c4b84c3e06d8f52c51a30084b919d174c49d0ae6a197a04d0cdf29
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 05:29:25)
+publish artifact sha256: 35f339234ed21177cb4ad3127cecd31956d234e4fb1296651facc1ad364f880e
+embedded source revision: 828e9290ac98 (is HEAD)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 05:58:05)
 source files newer than the artifact: 17
 lines in those files: 15750
 of those, changed against HEAD: 0

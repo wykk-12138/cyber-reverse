@@ -8296,3 +8296,14 @@ Observation：
 - 确认 R1312 读取器忠实：`casio_can_purchase` 接受 `"true"`/`"1"` 两种拼法，价格走四级路径，均已钉测试。
 - **产物哈希问题**：两次连发逐字节相同（`bcbee69f…`），但与 R1314 记录的 `dab75acb…` 尺寸相同、哈希不同。
   在查清前，哈希差分只读作「可能变了」，需独立确认。见 BLOCKERS。
+
+---
+
+## 第 1316 轮
+
+- **构建可复现，"不可复现"是内嵌 git sha 造成的错觉**：产物里含 `<InformationalVersion>+<sha>`。
+  跨提交构建同尺寸不同字节属正常；同 HEAD 连发逐字节相同（实测）。
+- 已改写 `artifact_freshness.py` 里 R1211 的错误结论，并新增 `embedded source revision` 一行（与 HEAD 比对）。
+  工具首跑即抓到「mtime 说 current、内容说上一提交」。
+- 重发布后 `sha256 35f33923…`，内嵌 `828e9290ac98 (is HEAD)`。
+- §4.5 的哈希差分**仍然有效**，条件是同一内嵌提交号。

@@ -88,12 +88,12 @@ def main():
 
     print("publish artifact: %s" % os.path.relpath(ARTIFACT, ROOT))
     print("publish artifact mtime: %s" % _stamp(art))
-    # R1211: size and a content digest, printed as provenance rather than as a change detector. I added them to
-    # answer "did this rebuild change the executable", and then calibrated that question and lost the answer:
-    # publishing the same unchanged tree twice produced 39e8fd73... and 847757a0..., so this build is not
-    # reproducible and two digests are not comparable across builds. What the report can still say is which
-    # artifact was on disk at a given time; what it cannot say is whether a source change reached it. For that,
-    # the usable signals are the .pdata count and section mass, or a marker string the new source introduces.
+    # R1211 wrote here that publishing the same unchanged tree twice produced two different digests, and
+    # concluded the build is not reproducible and digests are not comparable across builds. R1316 found the
+    # cause and the conclusion was wrong: the assembly embeds the git commit sha in its informational
+    # version, so two artifacts built from the same HEAD are byte-identical (verified twice at R1315) and two
+    # built either side of a commit are not, at the same size. The digest is therefore usable, but only
+    # against an artifact built from the same revision -- which is what the embedded revision below says.
     try:
         import hashlib
         _size = os.path.getsize(ARTIFACT)
@@ -105,6 +105,17 @@ def main():
         print("publish artifact sha256: %s" % _h.hexdigest())
     except OSError as _e:
         print("publish artifact size/sha256: unavailable (%s)" % _e)
+
+    embedded = embedded_revision()
+    head = git_revision()
+    if head:
+        if embedded == head:
+            print("embedded source revision: %s (is HEAD)" % embedded[:12])
+        elif embedded:
+            print("embedded source revision: %s (HEAD is %s -- built before the current commit)" % (
+                embedded[:12], head[:12]))
+        else:
+            print("embedded source revision: not found (HEAD is %s)" % head[:12])
     if newest_path:
         print("newest source: %s (%s)" % (os.path.relpath(newest_path, ROOT), _stamp(os.path.getmtime(newest_path))))
     print("source files newer than the artifact: %d" % newer)
@@ -126,6 +137,51 @@ def main():
 def _stamp(t):
     import datetime
     return datetime.datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def git_revision():
+    """HEAD's commit sha, or None when this is not a checkout with git available."""
+    import subprocess
+    try:
+        done = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    text = (done.stdout or "").strip()
+    return text if done.returncode == 0 and len(text) == 40 else None
+
+
+def embedded_revision():
+    """The commit sha the artifact was built from, read out of the binary.
+
+    The SDK bakes `<InformationalVersion>+<sha>` into the assembly, so the sha appears as a plain 40-hex
+    substring. Reading it turns "is this artifact current?" from an mtime guess into a content fact — and it
+    is why two artifacts either side of a commit differ byte for byte at the same size.
+    """
+    import re
+    try:
+        with open(ARTIFACT, "rb") as handle:
+            blob = handle.read()
+    except OSError:
+        return None
+
+    head = git_revision()
+    if head:
+        needle = head.encode()
+        if blob.count(needle) == 1:
+            return head
+
+    # Not HEAD: report the first 40-hex run that is a reachable commit, so a stale artifact names its parent.
+    candidates = {m.group(0).decode() for m in re.finditer(rb"[0-9a-f]{40}", blob)}
+    if not candidates:
+        return None
+    import subprocess
+    for sha in sorted(candidates):
+        done = subprocess.run(["git", "cat-file", "-e", sha + "^{commit}"], cwd=ROOT,
+                              capture_output=True, timeout=20)
+        if done.returncode == 0:
+            return sha
+    return None
 
 
 if __name__ == "__main__":

@@ -24,6 +24,23 @@ public sealed class ImapCreatorView : SettingsModal
         Body.Children.Add(UiKit.Row("Password", pass));
         Body.Children.Add(UiKit.Row("TLS", ssl));
 
+        var verifyStatus = UiKit.Status();
+        Body.Children.Add(verifyStatus);
+        Body.Children.Add(UiKit.Button("Test Connection", async () =>
+        {
+            verifyStatus.Text = "Connecting...";
+            var candidate = new ImapAccount
+            {
+                Host = host.Text?.Trim() ?? string.Empty,
+                Port = UiKit.TryReadInt(port.Text, out var parsedPort) ? parsedPort : 993,
+                User = user.Text?.Trim() ?? string.Empty,
+                Password = pass.Text ?? string.Empty,
+                UseSsl = ssl.IsChecked == true,
+            };
+            var (ok, count, err) = await services.Mail.VerifyImapAsync(candidate);
+            verifyStatus.Text = ok ? $"Connected ({count} messages)." : $"Failed: {err}";
+        }));
+
         BuildFooter(SaveButton(() =>
         {
             if (string.IsNullOrWhiteSpace(host.Text) || string.IsNullOrWhiteSpace(user.Text))
@@ -61,6 +78,17 @@ public sealed class AycdInboxCreatorView : SettingsModal
         Body.Children.Add(UiKit.Row("Template", template));
         Body.Children.Add(UiKit.Row("Timeout (s)", timeout));
         Body.Children.Add(UiKit.Row("State", enabled));
+
+        var verifyStatus = UiKit.Status();
+        Body.Children.Add(verifyStatus);
+        Body.Children.Add(UiKit.Button("Test Connection", async () =>
+        {
+            verifyStatus.Text = "Verifying...";
+            var (ok, err, credits) = await services.Mail.VerifyAycdAsync(key.Text);
+            verifyStatus.Text = ok
+                ? (credits.HasValue ? $"Connected ({credits.Value} credits)." : "Connected.")
+                : $"Failed: {err}";
+        }));
 
         BuildFooter(SaveButton(() =>
         {

@@ -1095,9 +1095,40 @@ public sealed class ImapView : UserControl
         aycd.Enabled = true;
         _imapServices!.Config.Save();
 
-        // "connect requested" implied a network call. There is none: this only flips the
-        // AYCD inbox switch and persists it, so say that instead.
-        return "AYCD Inbox enabled. Save to keep it.";
+        return "AYCD Inbox enabled. Verifying connection...";
+    }
+
+    public async Task<string> VerifyAycdAsync(string? origin = null, CancellationToken ct = default)
+    {
+        var services = _imapServices;
+        var aycd = services?.Config.Accounts.AycdInbox;
+        if (services is null || aycd is null) return "No account document.";
+        if (string.IsNullOrWhiteSpace(aycd.ApiKey)) return "Add an AYCD API key first.";
+
+        var (ok, error, credits) = await services.Mail.VerifyAycdAsync(aycd.ApiKey, origin, ct).ConfigureAwait(false);
+        if (!ok)
+        {
+            aycd.Enabled = false;
+            services.Config.Save();
+            return $"AYCD verify failed: {error}";
+        }
+
+        aycd.Enabled = true;
+        services.Config.Save();
+        return credits.HasValue
+            ? $"AYCD Inbox connected ({credits.Value} credits)."
+            : "AYCD Inbox connected.";
+    }
+
+    public async Task<string> VerifyImapAccountAsync(ImapAccount account, CancellationToken ct = default)
+    {
+        var services = _imapServices;
+        if (services is null) return "No account document.";
+        var (ok, count, error) = await services.Mail.VerifyImapAsync(account, ct).ConfigureAwait(false);
+        if (!ok) return $"IMAP verify failed ({account.User}): {error}";
+        account.InboxCount = count;
+        services.Config.Save();
+        return $"IMAP connected ({account.User}: {count} messages).";
     }
 
     /// <summary>
@@ -1197,9 +1228,26 @@ public sealed class ImapView : UserControl
             status.Text = "Imap account saved.";
         }
 
-        var connect = UiKit.Button(AycdConnectLabel, () =>
+        var connect = UiKit.Button(AycdConnectLabel, async () =>
         {
             status.Text = ConfigureAycd();
+            Refresh();
+            if (!string.IsNullOrWhiteSpace(aycd.ApiKey))
+            {
+                status.Text = await VerifyAycdAsync();
+                Refresh();
+            }
+        });
+
+        var testImapButton = UiKit.Button("Test Selected", async () =>
+        {
+            if (rows.SelectedIndex < 0 || rows.SelectedIndex >= doc.Imap.Count)
+            {
+                status.Text = "Select an account first.";
+                return;
+            }
+            status.Text = "Connecting...";
+            status.Text = await VerifyImapAccountAsync(doc.Imap[rows.SelectedIndex]);
             Refresh();
         });
 
@@ -1244,6 +1292,7 @@ Content = UiKit.Scroll(UiKit.Form(
                 UiKit.Row("Password", password),
                 UiKit.Row("", UiKit.Buttons(
                     UiKit.Button("Save", Save),
+                    testImapButton,
                     deleteButton)),
                 new Border { Height = 1, Background = Brushes.DimGray, Margin = new Thickness(0, 8) },
                 UiKit.Row("AYCD Inbox", UiKit.Buttons(aycdDot, aycdState, connect)),

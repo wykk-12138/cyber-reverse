@@ -4,6 +4,7 @@ using Cybersole.Http.Stores;
 using Cybersole.Services.Auth;
 using Cybersole.Services.Captcha;
 using Cybersole.Services.Licensing;
+using Cybersole.Services.Mail;
 
 namespace Cybersole.Services;
 
@@ -24,6 +25,7 @@ public sealed class AppServices : IDisposable
     public CaptchaSolverService Captcha { get; }
     public StoreRegistry Stores { get; }
     public TaskEngine Tasks { get; }
+    public MailCodeService Mail { get; }
     public NotificationService Notify { get; }
     public SmartActionEngine SmartActions { get; }
     public CheckoutStats Stats { get; }
@@ -32,7 +34,7 @@ public sealed class AppServices : IDisposable
     private AppServices(ConfigurationStore config, EventBus bus, HttpAnalytics analytics,
         NetClient http, AuthService auth, LicenseService license, ClockService clock,
         ProxyTester proxyTester, CaptchaSolverService captcha, StoreRegistry stores,
-        TaskEngine tasks, NotificationService notify, SmartActionEngine smartActions,
+        TaskEngine tasks, MailCodeService mail, NotificationService notify, SmartActionEngine smartActions,
         CheckoutStats stats, BackupScheduler backups)
     {
         Config = config;
@@ -46,6 +48,7 @@ public sealed class AppServices : IDisposable
         Captcha = captcha;
         Stores = stores;
         Tasks = tasks;
+        Mail = mail;
         Notify = notify;
         SmartActions = smartActions;
         Stats = stats;
@@ -75,7 +78,8 @@ public sealed class AppServices : IDisposable
         var captcha = new CaptchaSolverService(http, bus);
         var stores = new StoreRegistry();
         registerStores?.Invoke(stores, config.Settings);
-        var tasks = new TaskEngine(http, bus, stores, config.Settings, config, captcha, clock);
+        var mail = new MailCodeService(http, config, bus);
+        var tasks = new TaskEngine(http, bus, stores, config.Settings, config, captcha, clock, mail);
 
         // The engine raises its own event; everything downstream (Smart Actions, analytics,
         // desktop notifications, CSV history) listens on the bus. Without this bridge a real
@@ -92,7 +96,7 @@ public sealed class AppServices : IDisposable
         bus.Info("App", "services initialised");
 
         return new AppServices(config, bus, analytics, http, auth, license, clock,
-            proxyTester, captcha, stores, tasks, notify, smartActions, stats, backups);
+            proxyTester, captcha, stores, tasks, mail, notify, smartActions, stats, backups);
     }
 
     public void Dispose()

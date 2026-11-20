@@ -49,6 +49,24 @@ public sealed class MonitorContext
     public string? GroupId { get; init; }
 }
 
+public sealed class MailCodeInquiry
+{
+    public string? Recipient { get; init; }
+    public string? SenderContains { get; init; }
+    public string? SubjectContains { get; init; }
+    public string? CodeRegex { get; init; }
+    public DateTimeOffset? Since { get; init; }
+    public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
+    public string? BaseOriginOverride { get; init; }
+}
+
+public sealed record MailCodeAnswer(
+    bool Ok,
+    string? Code,
+    string Source,
+    IReadOnlyDictionary<string, string>? Values = null,
+    string? Error = null);
+
 public sealed class CheckoutContext
 {
     public required NetClient Http { get; init; }
@@ -61,6 +79,9 @@ public sealed class CheckoutContext
     public TlsProfile BrowserProfile { get; init; } = TlsProfile.Chrome;
     public int TimeoutSeconds { get; init; } = 20;
     public Dictionary<string, string> Extra { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Optional email verification code lookup hook supplied by <c>TaskEngine</c>.</summary>
+    public Func<MailCodeInquiry, CancellationToken, Task<MailCodeAnswer>>? WaitForMailCodeAsync { get; init; }
 }
 
 public sealed class CheckoutOutcome

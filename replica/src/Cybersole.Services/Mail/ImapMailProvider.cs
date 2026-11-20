@@ -1,4 +1,7 @@
 using Cybersole.Core.Models;
+using Cybersole.Core.Store;
+using Cybersole.Http;
+using Cybersole.Http.Stores;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
@@ -16,16 +19,42 @@ public enum ImapConnectionStatus
 }
 
 /// <summary>
-/// IMAP mailbox reader (Cybersole.Services.ImapProvider).
-///
-/// The shipped binary links MailKit/MimeKit — the recovered symbols
-/// <c>MultipartScanEpilogueAsync</c>, <c>ParseMessageAsync</c>, <c>SaslMechanism*</c>,
-/// <c>ArcMessageSignature</c>, <c>UUEncoder</c> are all MailKit internals. This is the same
-/// dependency doing the same job: log in, read the newest message, hand back the code.
+/// IMAP mailbox reader (<c>Cybersole.Services.ImapProvider</c>), aligning connect/IDLE cadence,
+/// <c>IdentifyAsync</c>, <c>SemaphoreSlim</c> locking, and <see cref="WaitImapAsync"/> filtering
+/// with the shipped MailKit/MimeKit implementation.
 /// </summary>
 public sealed class ImapMailProvider : IDisposable
 {
+    public const int DefaultPort = 993;
+    public static readonly TimeSpan DisconnectedRetryDelay = TimeSpan.FromSeconds(5);
+    public static readonly TimeSpan OAuthDisconnectedRetryDelay = TimeSpan.FromSeconds(300);
+    public static readonly TimeSpan IdleWindowMax = TimeSpan.FromSeconds(300);
+    public static readonly TimeSpan FetchDebounceDelay = TimeSpan.FromMilliseconds(150);
+    public static readonly TimeSpan ErrorBackoffDelay = TimeSpan.FromMilliseconds(5000);
+
+    private static readonly string[] OutlookOAuthHosts =
+    {
+        "outlook.office365.com",
+        "outlook.office.com",
+        "imap-mail.outlook.com",
+        "imap.outlook.com",
+    };
+
+    private readonly SemaphoreSlim _gate = new(1, 1);
     private ImapClient? _client;
+
+    public ImapMailProvider()
+    {
+    }
+
+    public ImapMailProvider(string host, string username, string? password = null)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(username);
+        Host = host;
+        Username = username;
+        _ = password;
+    }
 
     public string Host { get; private set; } = string.Empty;
     public string Username { get; private set; } = string.Empty;
@@ -35,8 +64,15 @@ public sealed class ImapMailProvider : IDisposable
 
     public bool IsConnected => Status == ImapConnectionStatus.Connected && _client is { IsConnected: true };
 
+    public event EventHandler<int>? CountChanged;
+
+    public static bool IsOutlookOAuthHost(string? host) =>
+        !string.IsNullOrWhiteSpace(host) &&
+        OutlookOAuthHosts.Any(h => string.Equals(h, host.Trim(), StringComparison.OrdinalIgnoreCase));
+
     public ImapMailProvider WithAccount(ImapAccount account)
     {
+        ArgumentNullException.ThrowIfNull(account);
         Host = account.Host;
         Username = account.User;
         return this;
@@ -45,33 +81,65 @@ public sealed class ImapMailProvider : IDisposable
     /// <summary>Open the mailbox. Returns false and records <see cref="LastError"/> on failure.</summary>
     public async Task<bool> ConnectAsync(ImapAccount account, CancellationToken ct = default)
     {
-        Host = account.Host;
-        Username = account.User;
-        Status = ImapConnectionStatus.Connecting;
-        LastError = null;
-
+        await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            _client?.Dispose();
-            _client = new ImapClient();
+            Host = account.Host;
+            Username = account.User;
+            Status = ImapConnectionStatus.Connecting;
+            LastError = null;
 
-            var socket = account.UseSsl
-                ? SecureSocketOptions.SslOnConnect
-                : SecureSocketOptions.StartTlsWhenAvailable;
+            try
+            {
+                _client?.Dispose();
+                var client = new ImapClient();
+                client.Disconnected += (_, _) => Status = ImapConnectionStatus.Disconnected;
+                _client = client;
 
-            await _client.ConnectAsync(account.Host, account.Port, socket, ct).ConfigureAwait(false);
-            await _client.AuthenticateAsync(account.User, account.Password, ct).ConfigureAwait(false);
+                var port = account.Port > 0 ? account.Port : DefaultPort;
+                var socket = account.UseSsl
+                    ? SecureSocketOptions.SslOnConnect
+                    : SecureSocketOptions.Auto;
 
-            await _client.Inbox.OpenAsync(FolderAccess.ReadOnly, ct).ConfigureAwait(false);
-            MessageCount = _client.Inbox.Count;
-            Status = ImapConnectionStatus.Connected;
-            return true;
+                await client.ConnectAsync(account.Host, port, socket, ct).ConfigureAwait(false);
+                await client.AuthenticateAsync(account.User, account.Password, ct).ConfigureAwait(false);
+
+                try
+                {
+                    await client.IdentifyAsync(new ImapImplementation
+                    {
+                        Name = "Cybersole",
+                        Version = "1.0",
+                        SupportUrl = "https://cybersole.io",
+                    }, ct).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    // IMAP ID (RFC 2971) is optional on some servers
+                }
+
+                client.Inbox.CountChanged += (_, _) =>
+                {
+                    MessageCount = client.Inbox.Count;
+                    CountChanged?.Invoke(this, MessageCount);
+                };
+
+                await client.Inbox.OpenAsync(FolderAccess.ReadOnly, ct).ConfigureAwait(false);
+                MessageCount = client.Inbox.Count;
+                account.InboxCount = MessageCount;
+                Status = ImapConnectionStatus.Connected;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LastError = ex.Message;
+                Status = ImapConnectionStatus.Error;
+                return false;
+            }
         }
-        catch (Exception ex)
+        finally
         {
-            LastError = ex.Message;
-            Status = ImapConnectionStatus.Error;
-            return false;
+            _gate.Release();
         }
     }
 
@@ -136,7 +204,7 @@ public sealed class ImapMailProvider : IDisposable
         return results;
     }
 
-    /// <summary>Search the mailbox for a code that arrived after <paramref name="since"/>.</summary>
+    /// <summary>Search the mailbox for a code matching filters/elements after <paramref name="request.Since"/>.</summary>
     public async Task<MailCodeResult> FindCodeAsync(MailCodeRequest request,
         CancellationToken ct = default)
     {
@@ -172,53 +240,36 @@ public sealed class ImapMailProvider : IDisposable
         if (uids.Count == 0)
             uids = await inbox.SearchAsync(SearchQuery.All, ct).ConfigureAwait(false);
 
-        // newest first, bounded so a huge mailbox does not stall the flow
+        var snapshots = new List<MailMessageSnapshot>();
         foreach (var uid in uids.Reverse().Take(25))
         {
             ct.ThrowIfCancellationRequested();
-            MimeMessage message;
             try
             {
-                message = await inbox.GetMessageAsync(uid, ct).ConfigureAwait(false);
+                var message = await inbox.GetMessageAsync(uid, ct).ConfigureAwait(false);
+                snapshots.Add(ToSnapshot(message));
             }
             catch (Exception ex)
             {
                 LastError = ex.Message;
-                continue;
             }
-
-            if (request.Recipient is { Length: > 0 } to &&
-                !message.To.Mailboxes.Any(m =>
-                    m.Address.Contains(to, StringComparison.OrdinalIgnoreCase)))
-                continue;
-
-            var text = (message.Subject ?? string.Empty) + "\n" + (message.TextBody
-                       ?? message.HtmlBody
-                       ?? string.Empty);
-
-            var code = VerificationCodeExtractor.Extract(text);
-            if (code is null) continue;
-
-            return new MailCodeResult
-            {
-                Ok = true,
-                Code = code,
-                Subject = message.Subject,
-                From = message.From.Mailboxes.FirstOrDefault()?.Address,
-                Received = message.Date,
-                Source = "imap",
-            };
         }
 
-        return MailCodeResult.Fail("no code found in mailbox", "imap");
+        var matched = MailMessageMatcher.EvaluateMessages(snapshots, request, "imap");
+        return matched ?? MailCodeResult.Fail("no code found in mailbox", "imap");
     }
 
     /// <summary>Block until a code arrives or the request times out.</summary>
-    public async Task<MailCodeResult> WaitForCodeAsync(MailCodeRequest request,
+    public Task<MailCodeResult> WaitForCodeAsync(MailCodeRequest request, CancellationToken ct = default)
+        => WaitImapAsync(request, ct);
+
+    /// <summary>Poll/search an IMAP mailbox matching <c>0x140f40490</c> until filters + elements match.</summary>
+    public async Task<MailCodeResult> WaitImapAsync(MailCodeRequest request,
         CancellationToken ct = default)
     {
         var deadline = DateTimeOffset.UtcNow + request.Timeout;
         MailCodeResult last = MailCodeResult.Fail("not polled yet", "imap");
+        var delay = request.PollInterval > TimeSpan.Zero ? request.PollInterval : FetchDebounceDelay;
 
         while (DateTimeOffset.UtcNow < deadline)
         {
@@ -226,48 +277,207 @@ public sealed class ImapMailProvider : IDisposable
             last = await FindCodeAsync(request, ct).ConfigureAwait(false);
             if (last.Ok) return last;
 
-            await Task.Delay(request.PollInterval, ct).ConfigureAwait(false);
+            await Task.Delay(delay, ct).ConfigureAwait(false);
             if (IsConnected) await RefreshCountAsync(ct).ConfigureAwait(false);
         }
 
         return last.Ok ? last : MailCodeResult.Fail("timeout waiting for code", "imap");
     }
 
+    public static MailMessageSnapshot ToSnapshot(MimeMessage message) => new(
+        message.Subject,
+        message.From.Mailboxes.Select(m => m.Address).ToArray(),
+        message.To.Mailboxes.Select(m => m.Address).ToArray(),
+        message.TextBody,
+        message.HtmlBody,
+        message.Date);
+
     public void Dispose()
     {
         try { _client?.Dispose(); }
         catch (Exception) { /* nothing to salvage */ }
         _client = null;
+        _gate.Dispose();
         Status = ImapConnectionStatus.Disconnected;
     }
 }
 
 /// <summary>
-/// Single entry point a checkout step calls: try IMAP first, then AYCD, and report which
-/// mailbox actually answered.
+/// Unified email-OTP orchestrator (<c>0x140f486c0</c>): races configured IMAP accounts and AYCD Inbox
+/// concurrently via <see cref="Task.WhenAny{TResult}(IEnumerable{Task{TResult}})"/> and returns the first
+/// matching code while cancelling sibling loops.
 /// </summary>
 public sealed class MailCodeService
 {
-    private readonly Cybersole.Http.NetClient _http;
+    private readonly NetClient _http;
+    private readonly ConfigurationStore? _config;
+    private readonly EventBus? _bus;
 
-    public MailCodeService(Cybersole.Http.NetClient http) => _http = http;
+    public MailCodeService(NetClient http) => _http = http;
+
+    public MailCodeService(NetClient http, ConfigurationStore? config, EventBus? bus = null)
+    {
+        _http = http;
+        _config = config;
+        _bus = bus;
+    }
+
+    public async Task<(bool Ok, string? Error, int? Credits)> VerifyAycdAsync(
+        string? apiKey = null,
+        string? origin = null,
+        CancellationToken ct = default)
+    {
+        var key = apiKey ?? _config?.Accounts.AycdInbox.ApiKey;
+        if (string.IsNullOrWhiteSpace(key))
+            return (false, "empty api key", null);
+
+        var client = new AycdInboxClient(_http);
+        return string.IsNullOrWhiteSpace(origin)
+            ? await client.VerifyAsync(key!, ct).ConfigureAwait(false)
+            : await client.VerifyAsync(key!, origin!, ct).ConfigureAwait(false);
+    }
+
+    public async Task<(bool Ok, int MessageCount, string? Error)> VerifyImapAsync(
+        ImapAccount account,
+        CancellationToken ct = default)
+    {
+        if (account is null || string.IsNullOrWhiteSpace(account.Host) || string.IsNullOrWhiteSpace(account.User))
+            return (false, 0, "imap host and username are required");
+
+        using var provider = new ImapMailProvider();
+        var ok = await provider.ConnectAsync(account, ct).ConfigureAwait(false);
+        var count = provider.MessageCount;
+        var err = provider.LastError;
+        await provider.DisconnectAsync(ct).ConfigureAwait(false);
+        return (ok, count, err);
+    }
+
+    public async Task<MailCodeAnswer> ResolveForInquiryAsync(
+        MailCodeInquiry inquiry,
+        Account? account = null,
+        CancellationToken ct = default)
+    {
+        var accounts = _config?.Accounts;
+        var imapList = accounts?.Imap ?? new List<ImapAccount>();
+        var aycd = accounts?.AycdInbox is { Enabled: true, ApiKey.Length: > 0 } configuredAycd
+            ? configuredAycd
+            : null;
+
+        var elements = string.IsNullOrWhiteSpace(inquiry.CodeRegex)
+            ? Array.Empty<MailElement>()
+            : new[]
+            {
+                new MailElement
+                {
+                    Name = "code",
+                    Target = MailFilterTarget.Body,
+                    Type = MailElementType.Numeric,
+                    Regex = inquiry.CodeRegex,
+                },
+            };
+
+        var req = new MailCodeRequest
+        {
+            ImapAccounts = imapList,
+            Aycd = aycd,
+            Recipient = inquiry.Recipient ?? account?.Email,
+            SenderContains = inquiry.SenderContains,
+            SubjectContains = inquiry.SubjectContains,
+            Elements = elements,
+            Since = inquiry.Since,
+            Timeout = inquiry.Timeout,
+            PollInterval = TimeSpan.FromMilliseconds(20),
+            AycdBaseOriginOverride = inquiry.BaseOriginOverride,
+        };
+
+        var res = await GetCodeAsync(req, ct).ConfigureAwait(false);
+        if (res.Ok)
+            _bus?.Info("Mail", $"code resolved via {res.Source}");
+        return new MailCodeAnswer(res.Ok, res.Code, res.Source, res.Values, res.Error);
+    }
 
     public async Task<MailCodeResult> GetCodeAsync(MailCodeRequest request,
         CancellationToken ct = default)
     {
+        var imapAccounts = new List<ImapAccount>();
         if (request.Imap is not null)
+            imapAccounts.Add(request.Imap);
+        if (request.ImapAccounts is not null)
         {
-            using var imap = new ImapMailProvider();
-            var result = await imap.WaitForCodeAsync(request, ct).ConfigureAwait(false);
-            if (result.Ok) return result;
+            foreach (var acc in request.ImapAccounts)
+                if (!imapAccounts.Contains(acc))
+                    imapAccounts.Add(acc);
         }
 
-        if (request.Aycd is { Enabled: true, ApiKey: not null })
+        var hasAycd = request.Aycd is { Enabled: true, ApiKey.Length: > 0 };
+        if (imapAccounts.Count == 0 && !hasAycd)
+            return MailCodeResult.Fail("no mailbox configured", "none");
+
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var tasks = new List<Task<MailCodeResult>>();
+
+        foreach (var account in imapAccounts)
         {
-            var client = new AycdInboxClient(_http);
-            return await client.WaitForCodeAsync(request, ct).ConfigureAwait(false);
+            var singleRequest = new MailCodeRequest
+            {
+                Imap = account,
+                Recipient = request.Recipient,
+                SenderContains = request.SenderContains,
+                SubjectContains = request.SubjectContains,
+                Filters = request.Filters,
+                Elements = request.Elements,
+                AllowMultiple = request.AllowMultiple,
+                Since = request.Since,
+                Timeout = request.Timeout,
+                PollInterval = request.PollInterval,
+            };
+            tasks.Add(RunImapAsync(singleRequest, linkedCts.Token));
         }
 
-        return MailCodeResult.Fail("no mailbox configured", "none");
+        if (hasAycd)
+            tasks.Add(RunAycdAsync(request, linkedCts.Token));
+
+        MailCodeResult? lastFailure = null;
+        while (tasks.Count > 0)
+        {
+            var finished = await Task.WhenAny(tasks).ConfigureAwait(false);
+            tasks.Remove(finished);
+
+            MailCodeResult result;
+            try
+            {
+                result = await finished.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                result = MailCodeResult.Fail(ex.Message, "mail");
+            }
+
+            if (result.Ok)
+            {
+                linkedCts.Cancel();
+                return result;
+            }
+
+            lastFailure = result;
+        }
+
+        return lastFailure ?? MailCodeResult.Fail("no mailbox configured", "none");
+    }
+
+    private static async Task<MailCodeResult> RunImapAsync(MailCodeRequest request, CancellationToken ct)
+    {
+        using var imap = new ImapMailProvider();
+        return await imap.WaitImapAsync(request, ct).ConfigureAwait(false);
+    }
+
+    private async Task<MailCodeResult> RunAycdAsync(MailCodeRequest request, CancellationToken ct)
+    {
+        var client = new AycdInboxClient(_http);
+        return await client.WaitForCodeAsync(request, ct).ConfigureAwait(false);
     }
 }

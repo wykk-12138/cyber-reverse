@@ -1,11 +1,15 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Cybersole.Core.Store;
+using Cybersole.Http.Content;
+using Newtonsoft.Json.Linq;
 
 namespace Cybersole.Http;
 
@@ -147,9 +151,11 @@ public sealed class NetClient : IDisposable
 
         if (Transport != TransportMode.SChannel)
         {
-            var bodyText = options.Content is null
-                ? null
-                : await options.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            string? bodyText = null;
+            if (options.Content is not null)
+                bodyText = await options.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            else if (options.Body is { } customBody)
+                bodyText = Encoding.UTF8.GetString(MaterializeBody(customBody).Span);
             var proxy = string.IsNullOrWhiteSpace(options.Proxy) ? null : Cybersole.Core.Models.Proxy.Parse(options.Proxy);
             var headerCopy = options.Headers.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
 
@@ -218,6 +224,19 @@ public sealed class NetClient : IDisposable
 
         var sw = Stopwatch.StartNew();
         Exception? last = null;
+        var wireId = HttpDebug.StreamEnabled ? Guid.NewGuid().ToString("N") : null;
+        byte[]? wireReqBody = null;
+        if (wireId is not null)
+        {
+            if (options.Body is { } debugBody)
+                wireReqBody = MaterializeBody(debugBody).ToArray();
+            else if (options.Content is not null)
+                wireReqBody = await options.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+
+            HttpDebug.RecordWireRequest(
+                wireId, method.Method, url, options.Headers, options.Profile.Name,
+                options.Proxy, options.Tag, wireReqBody);
+        }
 
         for (var attempt = 0; attempt <= options.Retries; attempt++)
         {
@@ -247,6 +266,14 @@ public sealed class NetClient : IDisposable
                     Bytes = body.Length,
                     Protocol = response.Version.Major >= 2 ? "h2" : "http/1.1",
                 };
+
+                if (wireId is not null)
+                {
+                    HttpDebug.RecordWireResponse(
+                        wireId, result.StatusCode, response.ReasonPhrase ?? string.Empty,
+                        result.Protocol, result.Headers, result.Elapsed,
+                        Encoding.UTF8.GetBytes(result.Body), attempt + 1);
+                }
 
                 // R951: the redirect branch is here rather than in each transport, so all three share one policy.
                 // A chain that exceeds the limit throws rather than returning the last hop, because a truncated chain
@@ -324,6 +351,9 @@ public sealed class NetClient : IDisposable
                 await Task.Delay(250 * (attempt + 1), ct).ConfigureAwait(false);
         }
 
+        if (wireId is not null && last is not null)
+            HttpDebug.RecordWireError(wireId, sw.Elapsed, last, last is NetException ne && ne.Message.StartsWith("timeout ", StringComparison.Ordinal));
+
         throw last as NetException ?? new NetException($"request failed: {url}", null, last);
     }
 
@@ -339,12 +369,37 @@ public sealed class NetClient : IDisposable
         return SendAsync(HttpMethod.Post, url, options, ct);
     }
 
+    public Task<NetResponse> PostJsonAsync(string url, JToken json, RequestOptions? options = null,
+        CancellationToken ct = default)
+    {
+        IBody body = json is JArray arr ? new LegacyJarrayBody(arr) : new LegacyJsonBody(json);
+        options ??= new RequestOptions();
+        options.Headers.TryAdd("Accept", "application/json");
+        return PostBodyAsync(url, body, options, ct);
+    }
+
+    public Task<NetResponse> PostBodyAsync(string url, IBody body, RequestOptions? options = null,
+        CancellationToken ct = default)
+    {
+        options ??= new RequestOptions();
+        options.Body = body;
+        return SendAsync(HttpMethod.Post, url, options, ct);
+    }
+
     public Task<NetResponse> PostFormAsync(string url, IDictionary<string, string> form,
         RequestOptions? options = null, CancellationToken ct = default)
     {
         options ??= new RequestOptions();
         options.Content = new FormUrlEncodedContent(form);
         return SendAsync(HttpMethod.Post, url, options, ct);
+    }
+
+    private static ReadOnlyMemory<byte> MaterializeBody(IBody body)
+    {
+        if (body is BytesBody bb) return bb.Memory;
+        var writer = new ArrayBufferWriter<byte>(body.SizeHint is > 0 and var hint ? hint : 256);
+        body.WriteTo(writer);
+        return writer.WrittenMemory;
     }
 
     private HttpRequestMessage BuildRequest(HttpMethod method, string url, RequestOptions options)
@@ -370,7 +425,19 @@ public sealed class NetClient : IDisposable
             request.Headers.TryAddWithoutValidation(k, v);
 
         if (options.Content is not null)
+        {
             request.Content = options.Content;
+        }
+        else if (options.Body is { } customBody)
+        {
+            var raw = MaterializeBody(customBody);
+            var content = new ByteArrayContent(raw.ToArray());
+            if (!options.Headers.TryGetValue("Content-Type", out var explicitContentType))
+                content.Headers.TryAddWithoutValidation("Content-Type", customBody.ContentType);
+            else if (MediaTypeHeaderValue.TryParse(explicitContentType, out var parsedType))
+                content.Headers.ContentType = parsedType;
+            request.Content = content;
+        }
 
         return request;
     }

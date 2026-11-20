@@ -16,6 +16,21 @@ public sealed class HttpRequestEvent
     public string? Proxy { get; init; }
     public string? Tag { get; init; }
     public DateTime At { get; init; } = DateTime.UtcNow;
+    public string? RequestId { get; init; }
+    public string? RedirectOf { get; init; }
+    public string? ErrorKind { get; init; }
+    public string? ErrorMessage { get; init; }
+    public bool TimedOut { get; init; }
+    public bool BodyTruncated { get; init; }
+    public string? ContentType { get; init; }
+    public string? ContentEncoding { get; init; }
+    public int RequestHeaderBytes { get; init; }
+    public long RequestBodyBytes { get; init; }
+    public int ResponseHeaderBytes { get; init; }
+    public int Attempts { get; init; } = 1;
+    public string? ConnectionId { get; init; }
+    public bool ConnectionReused { get; init; }
+    public string? RemoteAddress { get; init; }
 }
 
 /// <summary>
@@ -43,6 +58,24 @@ public sealed class HttpConnectionEvent
     public string? Proxy { get; init; }
     public string? Reason { get; init; }
     public DateTime At { get; init; } = DateTime.UtcNow;
+    public string? ConnectionId { get; init; }
+    public string? Protocol { get; init; }
+    public string? RemoteAddress { get; init; }
+    public string? Profile { get; init; }
+    public int DnsMs { get; init; }
+    public int ConnectMs { get; init; }
+    public int ProxyMs { get; init; }
+    public int TlsMs { get; init; }
+    public int TotalMs { get; init; }
+    public int LifetimeMs { get; init; }
+    public string? TlsVersion { get; init; }
+    public string? CipherSuite { get; init; }
+    public string? Alpn { get; init; }
+    public bool TlsResumed { get; init; }
+    public int HandshakeBytesSent { get; init; }
+    public int HandshakeBytesReceived { get; init; }
+    public int Requests { get; init; }
+    public string? ErrorKind { get; init; }
 }
 
 /// <summary>
@@ -72,7 +105,17 @@ public sealed class HttpAnalytics : IDisposable
     /// </para>
     /// </summary>
     public ISessionSink? SessionSink { get; set; }
+    /// <summary>Optional structured ClickHouse JSONEachRow + gzip sink backed by a bounded in-memory channel.</summary>
+    public ClickHouseSink? ClickHouse { get; set; }
+
     public int BatchSize { get; set; } = 100;
+
+    public ClickHouseSink ConfigureClickHouse(ClickHouseSinkOptions options, bool startBackgroundLoop = false)
+    {
+        var sink = new ClickHouseSink(options, startBackgroundLoop);
+        ClickHouse = sink;
+        return sink;
+    }
 
     public HttpAnalytics(bool autoFlush = false)
     {
@@ -87,6 +130,7 @@ public sealed class HttpAnalytics : IDisposable
     public void Record(HttpRequestEvent evt)
     {
         _requests.Enqueue(evt);
+        ClickHouse?.TryEnqueue(evt);
         RequestRecorded?.Invoke(this, evt);
         if (_requests.Count >= BatchSize) Flush();
     }
@@ -94,6 +138,7 @@ public sealed class HttpAnalytics : IDisposable
     public void RecordConnection(HttpConnectionEvent evt)
     {
         _connections.Enqueue(evt);
+        ClickHouse?.TryEnqueue(evt);
         ConnectionRecorded?.Invoke(this, evt);
     }
 
@@ -138,6 +183,15 @@ public sealed class HttpAnalytics : IDisposable
             {
                 try { await session.SendAsync(CancellationToken.None).ConfigureAwait(false); }
                 catch (Exception ex) { _failures.Enqueue($"{DateTime.UtcNow:O} session sink failed: {ex.Message}"); }
+            });
+        }
+
+        if (ClickHouse is { IsConfigured: true } clickHouse)
+        {
+            _ = Task.Run(async () =>
+            {
+                try { await clickHouse.DrainLocalQueueAsync(CancellationToken.None).ConfigureAwait(false); }
+                catch (Exception ex) { _failures.Enqueue($"{DateTime.UtcNow:O} clickhouse drain failed: {ex.Message}"); }
             });
         }
 
@@ -191,45 +245,9 @@ public sealed class HttpAnalytics : IDisposable
         });
     }
 
-    public void Dispose() => _flushTimer?.Dispose();
-}
-
-/// <summary>Live request stream for the debug viewer (Cybersole.Http.Debug).</summary>
-public static class HttpDebug
-{
-    private static readonly object Gate = new();
-    private static readonly List<DebugEntry> Buffer = new();
-    private static bool _enabled;
-
-    public static bool Enabled => _enabled;
-    public static event EventHandler<DebugEntry>? Entry;
-
-    public static void Enable() { lock (Gate) _enabled = true; }
-    public static void Disable() { lock (Gate) _enabled = false; }
-
-    public static void Attach(HttpAnalytics analytics)
+    public void Dispose()
     {
-        analytics.RequestRecorded += (_, e) => Push(new DebugEntry(
-            e.At, e.Method, e.Url, e.Status, e.ElapsedMs, e.Bytes, e.Protocol, e.Proxy, e.Tag));
-    }
-
-    private static void Push(DebugEntry entry)
-    {
-        if (!_enabled) return;
-        lock (Gate)
-        {
-            Buffer.Add(entry);
-            if (Buffer.Count > 500) Buffer.RemoveAt(0);
-        }
-        Entry?.Invoke(null, entry);
-    }
-
-    public static IReadOnlyList<DebugEntry> Dump()
-    {
-        lock (Gate) return Buffer.ToArray();
+        _flushTimer?.Dispose();
+        ClickHouse?.Dispose();
     }
 }
-
-public sealed record DebugEntry(
-    DateTime At, string Method, string Url, int Status,
-    int ElapsedMs, long Bytes, string Protocol, string? Proxy, string? Tag);

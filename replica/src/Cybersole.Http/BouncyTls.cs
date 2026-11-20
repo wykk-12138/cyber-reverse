@@ -195,9 +195,17 @@ public sealed class ProfileTlsClient : DefaultTlsClient
         {
             if (!_validate) return;
             var chain = serverCertificate.Certificate;
-            if (chain == null) throw new TlsFatalAlert(AlertDescription.bad_certificate);
-            var leaf = chain.GetCertificateAt(0);
-            if (leaf == null) throw new TlsFatalAlert(AlertDescription.bad_certificate);
+            if (chain == null || chain.IsEmpty) throw new TlsFatalAlert(AlertDescription.bad_certificate);
+            var certs = new List<System.Security.Cryptography.X509Certificates.X509Certificate2>(chain.Length);
+            for (var i = 0; i < chain.Length; i++)
+            {
+                var bcCert = chain.GetCertificateAt(i);
+                if (bcCert is null) continue;
+                certs.Add(new System.Security.Cryptography.X509Certificates.X509Certificate2(bcCert.GetEncoded()));
+            }
+            if (certs.Count == 0 ||
+                !Cybersole.Http.X509.RootCertificateStore.Shared.VerifyChain(certs[0], certs.Skip(1).ToList()))
+                throw new TlsFatalAlert(AlertDescription.bad_certificate);
         }
 
         public TlsCredentials GetClientCredentials(CertificateRequest certificateRequest) => null!;

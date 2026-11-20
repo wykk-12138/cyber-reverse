@@ -157,6 +157,7 @@ public sealed class RequestOptions
     /// </summary>
     public int? MaxRedirects { get; set; }
     public HttpContent? Content { get; set; }
+    public Cybersole.Http.Content.IBody? Body { get; set; }
 
     public RequestOptions Clone()
     {
@@ -168,7 +169,9 @@ public sealed class RequestOptions
             Retries = Retries,
             Tag = Tag,
             FollowRedirects = FollowRedirects,
+            MaxRedirects = MaxRedirects,
             Content = Content,
+            Body = Body,
         };
         foreach (var (k, v) in Headers) c.Headers[k] = v;
         foreach (var (k, v) in Cookies) c.Cookies[k] = v;

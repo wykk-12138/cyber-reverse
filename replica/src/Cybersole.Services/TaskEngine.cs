@@ -45,6 +45,7 @@ public sealed class TaskEngine
     private readonly ConfigurationStore _config;
     private readonly Captcha.CaptchaSolverService _captcha;
     private readonly ClockService _clock;
+    private readonly Mail.MailCodeService _mail;
 
     private readonly ConcurrentDictionary<string, TaskRuntime> _runtime = new();
 
@@ -55,7 +56,8 @@ public sealed class TaskEngine
     private readonly ConcurrencyGate _slots;
 
     public TaskEngine(NetClient http, EventBus bus, StoreRegistry stores, GlobalSettings settings,
-        ConfigurationStore config, Captcha.CaptchaSolverService captcha, ClockService clock)
+        ConfigurationStore config, Captcha.CaptchaSolverService captcha, ClockService clock,
+        Mail.MailCodeService? mail = null)
     {
         _http = http;
         _bus = bus;
@@ -64,6 +66,7 @@ public sealed class TaskEngine
         _config = config;
         _captcha = captcha;
         _clock = clock;
+        _mail = mail ?? new Mail.MailCodeService(http, config, bus);
         _slots = new ConcurrencyGate(settings.MonitorConcurrency.Maximum <= 0 ? 3 : settings.MonitorConcurrency.Maximum);
     }
 
@@ -278,6 +281,7 @@ public sealed class TaskEngine
                         Proxy = proxy,
                         TimeoutSeconds = timeout,
                         Extra = form,
+                        WaitForMailCodeAsync = (inq, token) => _mail.ResolveForInquiryAsync(inq, account, token),
                     }, ct).ConfigureAwait(false);
 
                     rt.Checkouts++;

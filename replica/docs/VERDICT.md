@@ -69443,3 +69443,68 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   （由辅助方法名推定，方法体未反编译）。Unknown —— 六个拒绝步骤的目标路径与报文。
 - **还剩什么**：那六个步骤的 API 路径（这是 Saucony 唯一剩下的硬骨头）；`HandleOrderResult` /
   `PayerAuthenticate` 的报文；66 个 absent 支付名其余部分。
+
+---
+
+## 第 1310 轮：Square 的设备指纹——不是手抄，是从镜像字节生成
+
+- **发现**：Casio 那个类的元数据里并排躺着**同一份 JSON 的两份拷贝**——
+  `0x143385527` 起 **1124 字节**（首成员 `"user_agent":"__UA__"`，占位符等人替换）与
+  `0x1433859A0` 起 **1102 字节**；两者**只差一个成员**（9 个成员逐字相同）。
+  旁边就是 `ComponentsV1` / `ComponentsV1SansUa` 两个名字，以及 `SquareSdkVersion` = `1.83.9`、
+  `SquareLocationId` = `L0NR598Z0FFW5`、`_cardNonce`、`_ccType`。
+- **数值是店主的测试设备，不是用户的**：分辨率 `5120x1440`（可用 `5120x1392`）、时区偏移 `-120`、
+  `Win32`、**5 个** PDF 插件、**35 个**字体、`adblock:false`、`touch_support:[10,false,false]`。
+  随机化指纹是与镜像不同的主张，所以这里照抄冻结值。
+- **不手抄**：新增 `analysis/extract_square_fingerprint.py`（按大括号计数、带字符串字面量感知地切出 JSON）
+  与 `analysis/write_square_browser_data.py`（**从字节生成** `SquareBrowserData.cs`）。
+  手抄 1124 字节是"复刻件在某一个字体名上与镜像不同而没人发现"的标准成因。
+- **只存一份，另一份派生**：`WithoutUserAgent()` = 从模板里删掉 `"user_agent":"__UA__",`（22 字节）。
+  测试断言这个派生**恰好**得到 1102 字节、且两份对象的其余 9 个成员逐字相同。
+  存两份会让它们漂移；派生才能证明关系。
+- **归属写清楚了**：这是 Square **Web Payments SDK** 的 `card.browserData` 载荷，
+  **不是** `SquareGateway.TokenizeAsync` 那个服务端 `/v2/card-nonce` 请求体——所以**没有动那个请求**。
+  改动它会是在猜"哪一面读这个字段"。
+
+### 五要素
+
+- **改了什么**：新增 `replica/src/Cybersole.Stores/Payments/SquareBrowserData.cs`（生成，95 行）、
+  新增 `replica/tests/Cybersole.Tests/SquareBrowserDataTests.cs`（11 条）、
+  新增 `analysis/extract_square_fingerprint.py` 与 `analysis/write_square_browser_data.py`；
+  NativeAOT 重发布；`docs/METRICS.md` 重生成。
+- **验证命令与输出**：`python analysis/extract_square_fingerprint.py` → 两份模板 `1124 / 1102` 字节、
+  `10 / 9` 个成员、`only in the with-UA template: ['user_agent']`、`identical members: 9 of 10`；
+  `dotnet test --filter SquareBrowserDataTests` → **11/11**（首轮 10/1，红的是 `JArray.ToString()` 多行渲染）；
+  `artifact_freshness.py` → `state: current`；`metrics_report.py` → 全部 exit 0；
+  `mutation-check.py` → 见本轮 METRICS 变异行。
+- **数字变化**：套件 2576 → 见 METRICS 当前值（+11）；产物 `61,259,776` → 见 METRICS「发布产物」行。
+- **证据等级**：Observation —— 两份模板的地址、字节数、成员数、逐成员相同性、8 个设备取值、
+  三个常量，全部由字节读出并被测试钉住。Inference —— 该指纹属于 SDK 的 `card.browserData`
+  （由 `ComponentsV1` / `SquareSdkVersion` / `_cardNonce` 三个名字推定）。Unknown —— 镜像在哪一步把
+  它填进请求（未反编译调用点）。
+- **还剩什么**：Adyen 的托管面（`<SetAdyenPayment>d__6` / `<SubmitAdyenOrder>d__7` /
+  `<GetAdyenPaymentStatus>d__8` / `<HandleAdyenAction>d__10` 与 `RpcSubmitAdyenDetails` + `_rpcAdyenPayId`）；
+  Saucony 六个步骤的 API 路径；其余 absent 支付名。
+
+### 第 1310 轮 · 补记：这份代码**没有进产物**
+
+发布之后按 §4.5 的规矩复核，结果是：
+
+| 检查 | 结果 |
+|---|---|
+| 产物里搜 `__UA__`（ASCII 与 UTF-16 两种） | **0** |
+| 产物里搜 `L0NR598Z0FFW5`、`5120,1440` | **0** |
+| 产物里搜类型名 `SquareBrowserData` | **0** |
+| 同一次搜索里的 `SquareGateway` / `KomojuGateway` / `SauconyFlow` / `ToppsCdn` | **1 / 1 / 1 / 2** |
+| 产物尺寸 | **61,259,776** —— 与上一轮**一字不差** |
+
+四个同类都能搜到，说明"搜类型名"这个仪器本身是好的；而新类型一个都没有、尺寸又分毫未动，
+合起来只能有一个解释：**`SquareBrowserData` 是不可达代码，被 AOT 裁剪掉了**。
+应用里没有任何地方调用它，唯一调用者是测试，而测试不在产物里。
+
+所以本轮的实际交付是**源码级 API 面 + 从字节生成的精确数据**，不是"随产物发布的行为"。
+这与 §4.5 的告诫正好互为补充：§4.5 说"搜不到字面量不能推出被裁"，这里反过来——
+**尺寸没变 + 同类名字都在 + 新名字不在**，三条同向，才敢下这个结论。
+
+要让它进产物，得先有一条真实调用链（Square 的浏览器流程落地时自然就有了）。在那之前，
+把它写进任何"已发布行为"的清单里都是错的。

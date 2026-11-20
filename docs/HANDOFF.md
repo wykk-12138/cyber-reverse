@@ -8233,3 +8233,13 @@ Observation：
 - `ArrowAndBeastTests.TheCatalogueIsSixtyThreeModules` 断言的一直是 65——名字与数字早就不符，
   已改名 `TheCatalogueSizeIsPinned` 并钉住 66 + `saucony` 存在。
 - Saucony 唯一剩下的硬骨头：**六个步骤的 API 路径**（镜像里没有任何字面量拼出它们）。
+
+---
+
+## 第 1310 轮
+
+- **Square 设备指纹**：镜像里并排两份 JSON（1124 / 1102 字节，只差 `user_agent` 一个成员），
+  已**从字节生成** `SquareBrowserData.cs`，另一份由 `WithoutUserAgent()` 派生（删 22 字节），
+  测试钉住派生关系与 8 个冻结设备取值（5120x1440 / -120 / Win32 / 5 插件 / 35 字体）。
+- 归属：这是 **Web Payments SDK 的 `card.browserData`**，不是服务端 `/v2/card-nonce` 请求体，**没有动那个请求**。
+- 顺带记一笔：`str.format` 遇上 C# 的花括号会被当成字段，脚本改了两轮才通——生成器里改用 `%` 格式化。

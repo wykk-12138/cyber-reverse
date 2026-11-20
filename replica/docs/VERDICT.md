@@ -69010,3 +69010,12 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   警告已改为按**内容**判定（R1297）；`artifact_freshness.py` 自 R1183 就分开统计，是 `metrics_report.py` 只读了 mtime 那格。
 - 剩一条警告准确（本轮改了 `tools/metrics_report.py` 本身），下轮跑一次变异即消。
 - `metrics_report.py` 全部 exit 0。
+
+---
+
+## 第 1298 轮：停电损坏分支 ref 已恢复；判据 a–f 自检（a/b/c/e/f 达标，d 待抽验）
+
+- `.git/refs/heads/main` 被写成 **41 个 NUL**；用 reflog 的 `b2a7c5b1905eb1f79b38bc6d81d0f2b710b1af83` 恢复，`fsck` 只有 dangling blob。
+- **判据要看字节不看渲染**：`Get-Content` 显示空白、长度 41 都像正常。
+- IDA 重启完成（2 个模态框），`health ok`，但 `ida.py str` 仍未就绪。
+- 自检：a ✅（`missing 14 = noise 12 + out-of-scope 2 + real gap 0`）· b ✅（copy 缺口 0）· c ✅ · e ✅（59/59/0/0）· f ✅（store 0 占位 / vendor True / captcha 0-5 / payment 9）· **d 待抽验两张 claim 表**。

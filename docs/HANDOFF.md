@@ -8119,3 +8119,14 @@ Observation：
 
 下轮：跑一次 `mutation-check.py` 消掉最后那条 manifest 警告（本轮改了 `tools/metrics_report.py`），
 随后进入判据 a–f 的逐条自检清单。
+
+## R1298 —— 停电后 git ref 恢复；判据自检 5/6 达标
+
+Observation：
+- `refs/heads/main` = 41×`0x00`（`ReadAllBytes` 才看得出）；reflog 末条 `04f98d9a → b2a7c5b1…`。
+- 恢复后 `log -3` / `rev-parse HEAD` / `fsck` 全部正常；五个关键文件字节数在位（含 AOT 57,491,456 B）。
+- IDA：2 模态框点掉，`health ok`，`str` 未就绪。
+- 判据：a ✅（三分类 12/2/0）· b ✅ · c ✅ · e ✅（变异 59/59/0/0）· f ✅ · **d 待抽验**。
+
+下轮第一件事：抽验 `docs/METRIC_CLAIMS.md` 与 `docs/PARITY_CLAIMS.md` 每条是否带 authority + 命令 + gap_reason；
+其次重跑一次 mutation 消掉 `staleness` 那一行。

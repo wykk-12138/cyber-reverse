@@ -6,11 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 15:24:49 +0800 |
+| 生成时间 | 2026-11-20 17:04:23 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2468 通过 / 0 失败 / 0 跳过 / 2468 总计** |
+| 完整套件 | **2486 通过 / 0 失败 / 0 跳过 / 2486 总计** |
+
+## 时效警告（生成）
+
+> **变异套件那一组数来自上一次运行，而它已经过期**：`350 -- src/Cybersole.Core/Models/SmartActions.cs (+349 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -21,8 +25,8 @@
 | 类型级绑定缺口 — types with scope misses | 0 |
 | 类型缺失（type presence） — types absent from source | 15 |
 | 类型缺失（type presence） — classified | renamed 13, out of scope 2, unimplemented 0, unclassified 0 |
-| 成员形状差异 — total mismatches | 91 |
-| 成员形状差异 — core mismatches | 3 |
+| 成员形状差异 — total mismatches | 84 |
+| 成员形状差异 — core mismatches | 1 |
 | 成员形状差异 — over-permissive total | 37 |
 | 文案缺口总表 — copy: zones with a missing key | 0 (in 0 zone[s]) |
 | 绑定缺口分桶 — backlog: classes missing members | 0 |
@@ -32,19 +36,19 @@
 | 原版绑定描述符表 — only in descriptors | 137 |
 | 原版绑定描述符表 — only in xaml table | 0 |
 | 数据文件名对照 — datafiles: original-on-disk not in replica | 0 |
-| 数据文件名对照 — datafiles: replica-only | 2 |
+| 数据文件名对照 — datafiles: replica-only | 1 |
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,840 |
 | 函数数量（.pdata） — functions: ratio | 64.90% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 14192 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 30 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 20062 |
 | 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 369 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 0 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
 | 核心覆盖：vendor 宿主 — vendor: controls ok | True |
-| 核心覆盖：vendor 宿主 — vendor: named in image | 11 |
+| 核心覆盖：vendor 宿主 — vendor: named in image | 13 |
 | 核心覆盖：vendor 宿主 — vendor: wiring rows | 0 |
 | 核心覆盖：vendor 宿主 — vendor: missing | 0 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
@@ -57,7 +61,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file's content differs from the run |
+| 变异套件（上次运行） — mutation-fit: staleness | 350 -- src/Cybersole.Core/Models/SmartActions.cs (+349 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -112,10 +116,10 @@ type presence: 174 declared in bindings, 159 present in source, 15 absent
   ABSENT  Cybersole.Models.Concurrency               renamed      Cybersole.Core.Settings.GlobalSettings (concurrency members)
   ABSENT  Cybersole.Services.ImapProvider            renamed      Cybersole.Services.Mail.ImapMailProvider
   ABSENT  Cybersole.SmartActions.ActionConfig        renamed      Cybersole.Core.Models.SmartAction (config members)
-  ABSENT  Cybersole.Ui.Localization.LocalizeEnumExtension renamed      Cybersole.Ui.Localization.LocalizationService helpers
-  ABSENT  Cybersole.Ui.Localization.LocalizeFallbackExtension renamed      Cybersole.Ui.Localization.LocalizationService helpers
-  ABSENT  Cybersole.Ui.Localization.LocalizeFormatExtension renamed      Cybersole.Ui.Localization.LocalizationService helpers
-  ABSENT  Cybersole.Ui.Localization.LocalizeSwitchExtension renamed      Cybersole.Ui.Localization.LocalizationService helpers
+  ABSENT  Cybersole.Ui.Localization.LocalizeEnumExtension renamed      Cybersole.Ui.Localization.LocalizeHelpers.Enum
+  ABSENT  Cybersole.Ui.Localization.LocalizeFallbackExtension renamed      Cybersole.Ui.Localization.LocalizeHelpers.Fallback
+  ABSENT  Cybersole.Ui.Localization.LocalizeFormatExtension renamed      Cybersole.Ui.Localization.LocalizeHelpers.Format
+  ABSENT  Cybersole.Ui.Localization.LocalizeSwitchExtension renamed      Cybersole.Ui.Localization.LocalizeHelpers.Switch
   ABSENT  Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView renamed      AccountCreatorView
   ABSENT  Cybersole.Ui.Views.Auth.AuthWindow         out_of_scope 
   ABSENT  Cybersole.Ui.Views.Auth.LicenseControl     out_of_scope 
@@ -126,7 +130,7 @@ type presence: 174 declared in bindings, 159 present in source, 15 absent
 classified: renamed 13, out of scope 2, unimplemented 0, unclassified 0
 
 note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed to rename
-      types (AGENTS.md ��0), so each ABSENT must be classified in tools/type_classification.json
+      types (AGENTS.md §0), so each ABSENT must be classified in tools/type_classification.json
       as RENAMED (with the counterpart), OUT_OF_SCOPE (with the ruling) or UNIMPLEMENTED.
 ```
 
@@ -142,9 +146,7 @@ C:\Python312\python.exe tools/shape_audit.py --baseline
 ```text
 evidence: baseline (211 types, kinds kept)
 mismatches: member has Setter evidence but the replica is not a settable property
-  BotTask                    Running                evidence=Getter,Property,Setter     replica=?
   BotTask                    Task                   evidence=Getter,Property,Setter     replica=?
-  SmartAction                Logs                   evidence=Getter,Property,Setter     replica=prop-get
   AccountGrid                Delete                 evidence=Getter,Property,Setter     replica=?
   AccountGrid                Edit                   evidence=Getter,Property,Setter     replica=prop-get
   AccountGroupView           Delete                 evidence=Getter,Property,Setter     replica=?
@@ -167,7 +169,6 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   MessageBoxDialog           Close                  evidence=Getter,Property,Setter     replica=?
   UserView                   OpenUrl                evidence=Getter,Property,Setter     replica=method
   ExpressionView             Refresh                evidence=Getter,Property,Setter     replica=?
-  ProfileGroupView           GroupName              evidence=Getter,Property,Setter     replica=prop-get
   ProfileView                CreateTest             evidence=Getter,Property,Setter     replica=method
   ProfileView                MoveGroup              evidence=Getter,Property,Setter     replica=method
   ProxyCreatorView           Add                    evidence=Getter,Property,Setter     replica=?
@@ -204,9 +205,6 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   NotificationsView          SelectSound            evidence=Getter,Property,Setter     replica=method
   PaymentView                SelectedProfiles       evidence=Getter,Property,Setter     replica=prop-get
   ActionsModal               Close                  evidence=Getter,Property,Setter     replica=?
-  FilterInputEntry           Filter                 evidence=Getter,Property,Setter     replica=prop-get
-  FilterRow                  Filter                 evidence=Getter,Property,Setter     replica=prop-get
-  FilterRow                  Inputs                 evidence=Getter,Property,Setter     replica=prop-get
   PublishTemplateModal       Close                  evidence=Getter,Property,Setter     replica=?
   SmartActionsCreator        AddAction              evidence=Getter,Property,Setter     replica=method
   SmartActionsCreator        AddFilter              evidence=Getter,Property,Setter     replica=method
@@ -221,7 +219,6 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   SmartActionsCreator        UseTemplate            evidence=Getter,Property,Setter     replica=method
   SmartActionsView           Export                 evidence=Getter,Property,Setter     replica=?
   GroupSummary               Edit                   evidence=Getter,Property,Setter     replica=prop-get
-  TaskGroupView              Link                   evidence=Getter,Property,Setter     replica=?
   TaskGroupView              Reset                  evidence=Getter,Property,Setter     replica=?
   TaskView                   CopyUrl                evidence=Getter,Property,Setter     replica=method
   TaskView                   Delete                 evidence=Getter,Property,Setter     replica=?
@@ -233,7 +230,7 @@ mismatches: member has Setter evidence but the replica is not a settable propert
   StoreGroupModal            RemoveStore            evidence=Getter,Property,Setter     replica=method
   StoreGroupModal            Save                   evidence=Getter,Property,Setter     replica=?
   UtilitiesView              CreateStoreGroup       evidence=Getter,Property,Setter     replica=method
-total mismatches: 91
+total mismatches: 84
 
 over-permissive: member is read-only in the original but settable here
   CaptchaProvider            ApiKey                 evidence=Getter,Property            replica=prop+set
@@ -276,9 +273,9 @@ over-permissive: member is read-only in the original but settable here
 over-permissive total: 37
 
 by owning project (priority order: Stores > Services > Http > Core > Ui):
-  Cybersole.Ui            88
-  Cybersole.Core           3
-core mismatches: 3
+  Cybersole.Ui            83
+  Cybersole.Core           1
+core mismatches: 1
 ```
 
 ### 文案缺口总表
@@ -364,10 +361,13 @@ C:\Python312\python.exe tools/datafiles_diff.py
 data directory : C:\Users\wykk\AppData\Roaming\Cybersole
   files on disk : 11  accounts.json, analytics.json, billing.json, checkoutHistory.json, proxies.json, sessions.json, settings.json, smartActionUtilities.json, smartActions.json, solvers.json, tasks.json
   image literals: 23
-  replica references: 13  Cybersole.ProfileValidation.en.json, accounts.json, analytics.json, billing.json, checkoutHistory.json, license.json, proxies.json, sessions.json, settings.json, smartActionUtilities.json, smartActions.json, solvers.json, tasks.json
+  embedded resources excluded (csproj): 6  Cybersole.Locales.en.json, Cybersole.Locales.ja.json, Cybersole.Locales.ko.json, Cybersole.Locales.zh-Hans.json, Cybersole.ProfileValidation.en.json, Fingerprint.template.json
+  replica references: 12  accounts.json, analytics.json, billing.json, checkoutHistory.json, license.json, proxies.json, sessions.json, settings.json, smartActionUtilities.json, smartActions.json, solvers.json, tasks.json
 
 original-on-disk but not written by the replica : 0  -
-replica-referenced, found in neither source      : 2  Cybersole.ProfileValidation.en.json, license.json
+written-by-replica-only                          : 0  -
+read-only fallback candidate (ProbePaths)        : 1  license.json
+replica-referenced, found in neither source      : 1  (license.json [read-only fallback candidate])
 literal-only (a string in the image, not a file) : 13  CreateToken.json, __data.json, config.json, graphql.json, meta.json, popDraw.json, products.json, prop.json, public.json, shipping_rates.json, sku-stores.json, system.text.json.serialization.json, wpt.json
 
 wrote D:\projects\cyber-reverse\docs\DATAFILES.md
@@ -405,13 +405,13 @@ publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-20 14:15:16
 publish artifact size: 57491456 bytes
 publish artifact sha256: fcff1bcda0a10638f9929544959a1f8dee9381ae987b98093db8c521139e19bf
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-20 15:13:27)
-source files newer than the artifact: 17
-lines in those files: 14192
+newest source: src\Cybersole.Ui\Views\Analytics\AnalyticsViews.cs (2026-11-20 16:57:20)
+source files newer than the artifact: 30
+lines in those files: 20062
 of those, changed against HEAD: 0
 publish artifact state: current
 
-  17 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
+  30 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
   targets, which updates mtime without changing a byte. Nothing to rebuild.
 ```
 
@@ -440,7 +440,7 @@ C:\Python312\python.exe tools/vendor_coverage.py
 
 ```text
   wrote docs/VENDOR_COVERAGE.md
-  controls ok=True  vendors named=11  wiring rows=0  missing=0
+  controls ok=True  vendors named=13  wiring rows=0  missing=0
 ```
 
 ### 可执行段体量
@@ -581,9 +581,10 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: RED
-  mutation-fit-staleness: 0 -- no exercised file's content differs from the run
+  mutation-fit-staleness: 350 -- src/Cybersole.Core/Models/SmartActions.cs (+349 more) differs from the run's manifest
 
-  Every mutation fired, none was decorative and none was skipped at the time of that run.
+  The counts above are from 2026-11-20T15:18:54+08:00 and the tree has moved since. They are a record of that run, not a
+  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
 ```
 
 ### 完整套件
@@ -593,24 +594,24 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2468 通过 / 0 失败 / 0 跳过 / 2468 总计
+`exit 0` · 2486 通过 / 0 失败 / 0 跳过 / 2486 总计
 
 ```text
-  正在确定要还原的项目…
-D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-  所有项目均是最新的，无法还原。
-  Cybersole.Core -> D:\projects\cyber-reverse\replica\src\Cybersole.Core\bin\Debug\net8.0\Cybersole.Core.dll
-  Cybersole.Http -> D:\projects\cyber-reverse\replica\src\Cybersole.Http\bin\Debug\net8.0\Cybersole.Http.dll
-D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr
-  Cybersole.Services -> D:\projects\cyber-reverse\replica\src\Cybersole.Services\bin\Debug\net8.0\Cybersole.Services.dll
-  Cybersole.Stores -> D:\projects\cyber-reverse\replica\src\Cybersole.Stores\bin\Debug\net8.0\Cybersole.Stores.dll
-  Cybersole.Ui -> D:\projects\cyber-reverse\replica\src\Cybersole.Ui\bin\Debug\net8.0\Cybersole.Ui.dll
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\MethodPatchTableTests.cs(77,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayPalChallengeNotificationUrlTests.cs(54,9): warning xUnit2000: The literal or constant value PayPalThreeDs.NotifyChallengeCompleteUrl should be passed as the 'expected' argument in the call to 'Assert.NotEqual(expected, actual)' in method 'TheTwoSiblingsDifferInMoreThanTheirMiddleWord' on type 'PayPalChallengeCallbackBaseTests'. Swap the parameter values. (https://xunit.net/xunit.analyzers/rules/xUnit2000) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(109,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\UnmatchedGatewaysTests.cs(58,78): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SizePaletteTests.cs(24,9): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StepActionTests.cs(293,89): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SportsshoesFlowTests.cs(128,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StripeChallengeWiringTests.cs(78,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
   Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2468，已跳过:     0，总计:  2468，持续时间: 5 m 11 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2486，已跳过:     0，总计:  2486，持续时间: 3 m 42 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

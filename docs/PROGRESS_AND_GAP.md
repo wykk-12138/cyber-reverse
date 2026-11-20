@@ -1,136 +1,110 @@
-# 进度与差距（生成于 R1300，2026-11-20）
+# 进度与差距（Phase 1 收口更新 · 接续 R1300，2026-11-20）
 
-> **数字唯一来源**：`docs/METRICS.md`（2026-11-20 15:24:49 +0800，度量脚本全部 exit 0、时效警告为空）。
-> 本文只回答两件事：**哪些面已经结案**、**离「核心模块完全逆向」还差什么**。
-> 判据 a–f 的逐条证据在 `docs/GOAL_VERIFICATION.md`；本文不重复它。
+> **动态度量唯一事实源**：`docs/METRICS.md`（在 `replica/` 下由 `python tools/metrics_report.py` 生成；本文活区不硬编码易漂移的全量数值）。
+> **模块普查与差距依据**：`docs/MODULE_FUNCTION_CENSUS.md`、`docs/DESCRIPTOR_TRIAGE.md`、`docs/SHAPE_GAPS.md`、`docs/DATAFILES.md`。
+> 判据 a–f 的逐条结构性证明在 `docs/GOAL_VERIFICATION.md`；本文只回答：**Phase 1 已结案面**、**原版 vs 复刻件的模块差距真相**、以及 **Phase 2 核心模块复刻待办队列**。
 
 ---
 
 ## 一、一句话结论
 
-**判据 a–f 六条全部达标**（那是「证据完整、可复算」的判据）；
-**核心模块没有全部逆向完**。已完成的是「主干链路 + 取证台账」，未完成的是
-**13 类具体欠账**，其中 5 类需要外部条件、8 类本机可做。
+1. **R1300 列出的 8 项本机可做差距已全部收口**（含第 1 项 137 条描述符归类与本地化行为、第 2 项模块级函数分布与类型/方法普查、以及原本归为外部阻塞的 `BotTask.Running`/`BotTask.Task` 静态定型）。
+2. **`docs/MODULE_FUNCTION_CENSUS.md` 实证了剩余真正的核心业务缺口**：`.pdata` 比率不能直接当功能完成度（双方 BCL/三方库组成与内存布局不同），但原版 `Cybersole.Stores`、`Cybersole.Services.Mail`（当前在复刻件为被 AOT 整块裁掉的零调用死岛）、`Cybersole.Http` 伴生包存在明确可静态还原、可在本机工程化落地的运行时模块 → 列入 **Phase 2 核心复刻队列**（Waves 2A–2D）。
 
 ---
 
-## 二、已经结案的面（有数字）
+## 二、已结案度量面与可复算入口
 
-| 面 | 数字 | 命令 |
+> 最新实测值以 `docs/METRICS.md` 当次生成快照为准。
+
+| 面 | 口径与来源 | 复算命令 |
 |---|---|---|
-| 站点流程 | `flows 18` · `override steps 369` · **`unknown placeholders 0`** · `provenance exit 0` | `python tools/core_coverage.py` |
-| 支付挑战 | `stages 9` · **`markers absent 0/5`** · `control ok True` | `python tools/payment_challenges.py` |
-| captcha（识别面） | `families 6` · **`markers absent 0/5`**；四家 loader 字面量全部实证并接进 `StoreFlow.DetectAsync` | `python tools/captcha_coverage.py` |
-| 风控厂商 | `controls ok True` · `missing 0` | `python tools/vendor_coverage.py` |
-| 名字级绑定 | **`real gap 0`**；`missing 14` = noise 12 + out-of-scope 2 | `python tools/bind_diff.py --buckets` |
-| 类型级绑定 | **`scope misses 0`** | `python tools/bind_scope.py` |
-| 类型缺失 | `absent 15` = renamed 13 + out-of-scope 2 + **`unimplemented 0`** + **`unclassified 0`** | `python tools/bind_diff.py --type-presence` |
-| 文案 | **`copy: zones with a missing key 0`** | `python tools/copy_audit_report.py` |
-| 数据文件名 | `original-on-disk not in replica 0` | `python tools/datafiles_diff.py` |
-| 传输层 | 默认路径与镜像同源：`SocketsHttpHandler` + `SslStream` + `Tls12\|Tls13` + GREASE + 六个 handler 属性 | 见 `docs/BLOCKERS.md` R1293 |
-| 套件 | 全量 `2485 通过 / 0 失败 / 2 跳过 / 2487` | `dotnet test --filter "Speed!=Slow" -m:1` |
-| 变异 | **`59 fired / 0 decorative / 0 skipped`** · `staleness 0` | `python tools/mutation-check.py` |
+| 站点流程 | 见 `docs/METRICS.md`（`CORE_COVERAGE.md`：`unknown placeholders 0`、`provenance exit 0`） | `python tools/core_coverage.py` |
+| 支付挑战 | `PAYMENT_CHALLENGES.md`（PayPal 3DS 九阶段 + Stripe 六端点与挑战 + 静态派发映射） | `python tools/payment_challenges.py` |
+| captcha（识别面） | 四家 loader 字面量实证并接入 `StoreFlow.DetectAsync` | `python tools/captcha_coverage.py` |
+| 风控厂商 | `controls ok True`、IDA 字符串缓存完整后 13 项全部命中（含 `Solving POW challange` / `Solving checkpoint`） | `python tools/vendor_coverage.py` |
+| 名字 / 类型绑定缺口 | 见 `docs/METRICS.md`（`bind_diff.py` / `bind_scope.py`，`real gap 0`、`scope misses 0`、`unclassified 0`） | `python tools/bind_scope.py`、`python tools/bind_diff.py --buckets`、`python tools/bind_diff.py --type-presence` |
+| 文案 | 见 `docs/METRICS.md`（19 区无缺） | `python tools/copy_audit_report.py` |
+| 数据文件名 | `original-on-disk not in replica 0`；内嵌资源与只读兜底已区分（`docs/DATAFILES.md`） | `python tools/datafiles_diff.py` |
+| 传输层与 HTTP/3 | `NetClient` 默认路径对齐原版 `SocketsHttpHandler`/`SslStream`，并补齐 30s/90s 超时与 `TlsProfile.Chrome150` | 见下 §三 ③ 与 `replica/src/Cybersole.Http/NetClient.cs` |
+| 套件与变异 | 全量非慢速套件与 `mutation-check.py` 最新结果见 `docs/METRICS.md` | `python tools/metrics_report.py`、`python tools/mutation-check.py` |
 
 ---
 
 ## 三、核心模块逐项状态
 
-图例：**✅ 结案**（证据齐全、无待办） · **🟡 部分**（有实现但还剩明确条目） · **⛔ 外部阻塞**
+图例：**✅ Phase 1 已结案** · **🟡 列入 Phase 2 核心复刻** · **⛔ 外部阻塞** · **🚫 范围外（禁止实现）**
 
 ### ① 站点与结账流程（`Cybersole.Stores/Flows`）
 
-| 项 | 状态 | 差什么 |
+| 项 | 状态 | 结论与下一步 |
 |---|---|---|
-| 18 个 Flow / 369 个 override step | ✅ | 占位零、provenance exit 0 |
-| 62 个店铺 → 18 个 Flow 的映射 | ✅ | 共用 Flow 由 `StoreRegistry` 决定（`store_catalog.py` 62 与 `DocsConsistencyTests` 交叉校验） |
-| **per-store 差异** | 🟡 | `Stores/Flows` 的 **24 条 `inferred`** 已全部查过 324,901 条字符串 dump：**1 命中**（`/rest/V1` @`146AB72A4`）、**23 条 0 命中**。按 R1266（哈希差分已证 NativeAOT 部分串逐字节不可搜），0 命中只能读作 **unknown**，要 live capture |
-| Farfetch 7 条 | ⛔ | `connect/app` 是**服务端下发**配置，schema 需原版登录（R1077 反编译结论；R1294 已按此分类结案） |
-| `connect/app` channel payload 字段 | ⛔ | 同上，需登录后的真实响应 |
+| 已接入流程骨架与 62 店映射 | ✅ | 18 Flow / override steps、占位零、provenance exit 0；`AddressModels` 已纳入 `DemandwareFlow` |
+| `CheckPriceLimitApp` / `FindProductCDN` / `CheckFanRewardState` / `SignUpFanRewards` | 🟡 | `docs/MODULE_FUNCTION_CENSUS.md` 在基线异步方法清单检出原版独有步骤（如 `0x143373f5f`、`0x1433a0f23`）；**Phase 2 Wave 2C** 用 IDA 反编译核对，仅在获知确切端点与载荷后落地 |
+| per-store 差异（23 条 0 命中 `inferred`） | ⛔ | R1266 证实 NativeAOT 部分字面量逐字节不可搜；静态归 `unknown`，待 live capture |
+| Farfetch 7 条与 `connect/app` payload | ⛔ | `connect/app` 属服务端下发配置，需原版有效登录凭据与实机抓包（R1077 / R1294） |
 
-### ② 支付与客户端校验层
+### ② 支付与客户端校验层（`Cybersole.Stores/Payments` & Scripts）
 
-| 项 | 状态 | 差什么 |
+| 项 | 状态 | 结论与下一步 |
 |---|---|---|
-| PayPal 3DS 九阶段 | ✅ | `PayPalThreeDs.cs` 1608 行；四份 GraphQL 文档全文；`stages 9 / markers 0/5` |
-| Stripe 六端点 | ✅ | `descriptor` 面已落地（`GetStripePaymentIntent` / `CreateStripePaymentMethod` / `ValidateStripeIntent` / `StripeFallbackHandler` / API 版本 `2025-08-27.basil`） |
-| Stripe 四构建器的**派发关系** | 🟡 | 文档记为 Unknown：四个构建器经 delegate/虚表间接派发，其 thunk 与存放槽（`0x147228EF8` / `0x1472279C8`）自身无 xref，**静态不可得** |
-| captcha **识别面** | ✅ | 四家 loader 字面量 + `CaptchaSurface.Classify` + 接进 `DetectAsync` |
-| captcha **执行面**（3 项） | ⛔ | `HCaptchaSpoof` / `RecaptchaEnterprise` / `TurnstileSiteKey`：原版在嵌入式 **DotNetBrowser 4.3.5.8591 + 外部 Chromium**（`DOTNETBROWSER_CHROMIUM_DIR`，AOT 须手工预置）里跑 `enterprise.execute()` 与 `turnstile.render()`。复刻件无该引擎，接入＝引入新依赖 |
+| PayPal 3DS 九阶段 + Stripe 六端点与挑战 | ✅ | `PayPalThreeDs.cs`、`StripeChallenge.cs`、`Gateways.cs`（含 SetupIntent/PaymentIntent 检索与确认路径） |
+| Stripe 构建器派发关系（原 Gap #5） | ✅ | Phase 1 静态证毕：`0x147228EF8`/`0x1472279C8` 为 `AsyncStateMachineBox` 冻结 `ContextCallback` 字段而非派发表；通过 `AsyncTaskMethodBuilder.Start` 映射 8 个构建器至 Casio / John Lewis / Highsnobiety / PopMart / Above The Clouds / HBX / Sportsshoes / Shopify（已更新 `Gateways.cs`） |
+| `UnzerGateway`（`ContinueUnzerThreeDs`） / `CardinalInit` / `api.checkout.com` | 🟡 | `docs/MODULE_FUNCTION_CENSUS.md` 实证 `UnzerGateway.CompleteActionAsync` 仍为占位桩，且缺少 `CardinalInit`/`CardinalContinue`（`0x14338294f`）与 `Checkout.com`（`0x1470530bc`）网关机；**Phase 2 Wave 2B** 重点反编译落地 |
+| captcha 识别面（被动分类） | ✅ | 四家 loader 字面量 + `CaptchaSurface.Classify` 接入 `DetectAsync` |
+| 反爬传感器伪造与验证码绕过执行面 | 🚫 | `GetSbsdHash` / `GetSbsdScript`、`DdMobileTouchEvent` / `SensorPow`、`ExecuteClipModelAsync` / `SolveImageInCloudAsync` / `ClickCellsAsync` / `MoveMouseAndClickWithoutTrajectoryAsync`、以及 `HCaptchaSpoof` / `RecaptchaEnterprise` / `TurnstileSiteKey` 绕过执行均属严格 **Out of Scope**，严禁复现 |
 
-### ③ 传输层（`Cybersole.Http`）
+### ③ 传输层与可观测性伴生包（`Cybersole.Http`）
 
-| 项 | 状态 | 差什么 |
+| 项 | 状态 | 结论与下一步 |
 |---|---|---|
-| 默认路径 | ✅ | `NetClient` 六属性：`Tls12\|Tls13`、`CipherSuitesPolicy`、ALPN、`MaxAutomaticRedirections=10`、`AutomaticDecompression=All`、`UseCookies` —— 全是平台同名属性，与镜像所用 `SocketsHttpHandler` 同源 |
-| Brotli 字典 | ✅ | 122,784 B（RFC 7932 规定值）、`offset 0x62DD580`、标准前缀表；复刻件携带同一份。**限制**：.NET 8 的 `BrotliDecoder`/`BrotliStream` 不暴露字典参数 |
-| `OwnTls` 自写栈 | 🟡 | 只提供 TLS 1.2，握手字节永不等于平台；**刻意保留**作指纹实验路径，非生产 |
-| HTTP/3 是否真启用 | 🟡 | 镜像只有 `SocketsHttpHandler.Http3Support` 开关字符串，**无协商证据** |
+| 默认路径 / HTTP/3 与超时参数（原 Gap #6） | ✅ | Phase 1 IDA 静态实证：原版 BCL `SocketsHttpHandler.Http3Support` 编译期固定为 `"false"`（`0x144b19cb8`），`System.Net.Quic`/`msquic` 缺失；门店流量走自定义 Go 移植栈 `Cybersole.Http`（`0x144BDE5D0`），默认 `chrome_131` 关闭 H3，仅 ASICS 切用 `chrome_150` 开启 `ProtocolRacing`。复刻件 `NetClient` 已对齐连接 30s / 空闲 90s 超时并增加 `TlsProfile.Chrome150` |
+| `OwnTls` 定位收口（原 Gap #7） | ✅ | 已在 `NetClient.cs` 与 `BouncyTls.cs` 显式区分 `IsProductionTransport` 与 `IsExperimentalTransport`（TLS 1.2 实验栈） |
+| `Cybersole.Http.{Newtonsoft,Analytics,Debug}` 能力 | 🟡 | 原版含 `IBody`/`LegacyJsonBody`/`LegacyJarrayBody`、`ClickHouseSink`（`FlushOnceAsync`/`DrainLocalQueueAsync`）本地队列落盘重发、`Cybersole.Http.Debug` 调试捕获流及 `RootCertificates.bin`；**Phase 2 Wave 2D** 反编译对齐 |
 
-### ④ UI 绑定与本地化（冻结面）
+### ④ 服务与业务模型 / 冻结 UI 面（`Cybersole.Services` & `Cybersole.Core` / `Ui`）
 
-| 项 | 状态 | 差什么 |
+| 项 | 状态 | 结论与下一步 |
 |---|---|---|
-| `real gap` / `unclassified` | ✅ | 均为 0 |
-| 文案缺口 | ✅ | 0 |
-| **`only in descriptors 137`** | 🟡 | 原版绑定描述符里 **137 条**只在描述符表、不在 XAML 表。`METRIC_CLAIMS.md` 只写了「差集那一侧不等于 XAML 没用它」，**这 137 条从未逐条看过** |
-| **`shape mismatches 91`（core 3）** | 🟡 | 已列 `docs/SHAPE_GAPS.md` 并逐条处置过一轮，但 91 条未全部结案 |
-| `datafiles: replica-only 2` | 🟡 | 复刻件提到 2 个原版数据目录与镜像字面量都查不到的文件名 |
-| `AuthWindow` / `LicenseControl` | ✅（裁决） | R702 判 `OUT_OF_SCOPE`，见 `docs/DECISION_LICENSE_OUT_OF_SCOPE.md` |
+| `Cybersole.Services.Mail`（`ImapMailProvider` / `AycdInboxClient`） | 🟡 | Phase 1 PDB 普查发现致命死岛：类与单测虽在 `Cybersole.Services`，但 `AppServices` / `TaskEngine` / `StoreFlow` 无任何真实调用，`MailKit`/`MimeKit` 在 AOT 产物中 **0 函数被保留**；**Phase 2 Wave 2A** 对照 `WaitImapAsync`（`0x14336b99e`）接入主链与设置页验证动作 |
+| `BotTask.Running` / `BotTask.Task`（原外部阻塞 #4） | ✅ | **Phase 1 已静态突破**：`BotTask.Running`（`0x14080E0F0`）确认为 `bool`（非 `int`）并联动 `TaskGroup.Running` 增减与 `PropertyChanged`，已落地并测试；`BotTask.Task`（`0x14080CA20`）确认为 `TaskBase`/`StoreModuleBase`（MT `0x144C963C8`，69 个子类），结构差异已在 `Tasks.cs` 与 `SHAPE_GAPS.md` 阐明 |
+| `only in descriptors`（原本机 #1） | ✅ | `analysis/triage_only_in_descriptors.py` → `docs/DESCRIPTOR_TRIAGE.md` 全量归类（0 未分类），`Cybersole.Ui.Localization` 5 项扩展行为已在 `LocalizationService` / `LocalizeHelpers` 实现并接线 |
+| `shape mismatches`（原本机 #3） | ✅（核心收口） | `SmartAction.Logs` 与 `BotTask.Running`（core 3 中可做 2 项）及 unambiguous `prop-get`/`Link` 均已修补；`analysis/shape_gaps_report.py --baseline` 对齐 `METRICS.md` 并更新 `docs/SHAPE_GAPS.md`；仅余 UI 需选择模型方法与 `BotTask.Task` 结构分层 |
+| `datafiles: replica-only`（原本机 #4） | ✅ | `tools/datafiles_diff.py` 自动从 `*.csproj` 排除 `<EmbeddedResource>`（`Cybersole.ProfileValidation.en.json`），并区分只读兜底候选 `license.json`（R702）与 `written-by-replica-only: 0` |
+| 云同步 / 嵌入式浏览器 / 登录授权 | ⛔ / 🚫 | `DotNetBrowser`（商业库）、`SignalR` `/connect/app`、`MSAL`、`RabbitMQ`、`Velopack` 远端更新归 **External Blocked**；`AuthWindow`/`LicenseControl` 维持 **R702 Out of Scope** |
 
 ---
 
-## 四、为什么「函数数量」不能当完成度
+## 四、Phase 1 差距清单核销总账
 
-`functions: 277,120 ↔ 179,840 = 64.90%`、`section-mass 57.09%` 这两个数**记录在案但不构成完成度**。证据是 .pdata 地址桶对照：
+### 原 R1300「本机可做 8 项」→ 8/8 已结案
 
-```
-range        original   replica   replica/original
-0x0             5,475     1,937        35.4%
-0x600000        1,074     4,199       391.0%
-0x1100000       2,020     9,500       470.3%
-0x1200000       2,046    10,220       499.5%
-0x1600000       2,864     9,730       339.7%
-```
+| # | 原待办 | Phase 1 结案状态 | 证据 / 产出 |
+|---|---|---|---|
+| 1 | 137 条 `only-in-descriptors` 逐条分类 | ✅ 已结案 | `analysis/triage_only_in_descriptors.py` → `docs/DESCRIPTOR_TRIAGE.md` + `LocalizationService`/`LocalizeHelpers` + 单测 |
+| 2 | 函数分布按模块对照 | ✅ 已结案 | `analysis/module_function_census.py` → `docs/MODULE_FUNCTION_CENSUS.md`（复刻 100% PDB 归因 + 原版 321,244 函数多信号归因） |
+| 3 | `shape mismatches`（core 优先） | ✅ 已结案 | `SmartAction.Logs`、`BotTask.Running` (`bool`)、`FilterRow`/`ProfileGroupView`/`TaskGroupView.Link` + `analysis/shape_gaps_report.py --baseline` |
+| 4 | `datafiles: replica-only` | ✅ 已结案 | `replica/tools/datafiles_diff.py` 排除 csproj 内嵌资源并分离只读候选 → `docs/DATAFILES.md` |
+| 5 | Stripe 四构建器派发关系 | ✅ 已结案 | `AsyncStateMachineBox` 静态定性与 `AsyncTaskMethodBuilder.Start` 全 8 条店铺级映射（`Gateways.cs`） |
+| 6 | HTTP/3 是否真启用 | ✅ 已结案 | BCL `Http3Support="false"` 实证 + Go `Cybersole.Http` `chrome_131`/`chrome_150` ASICS H3 分支核实 + `NetClient`/`TlsProfile` 对齐 |
+| 7 | `OwnTls` 定位写清 | ✅ 已结案 | `NetClient.cs` / `BouncyTls.cs` 显式标注并暴露生产/实验传输区分与退避计数测试 |
+| 8 | `vendor named 11` 复核 | ✅ 已结案 | IDA 串缓存完备（324,901）下验证 `Solving POW challange` / `Solving checkpoint`，`vendor_coverage.py` 全量命中 |
 
-两侧代码**布局完全不同**（同样大小的桶里，复刻件的函数数可以是原版的 35%，也可以是 500%），
-所以桶与桶之间没有对应关系，**无法从 64.90% 推出「实现了 64.9% 的功能」**。
+### 剩余外部阻塞项（已从 5 项收窄为 4 项）
 
-要做成有意义的对照，需要**按模块归属**而不是按地址：原版无符号名，只能靠 IDA 里的字符串/描述符归属反推。
-**这个分析从未做过**（列为第五节第 2 项）。
-
----
-
-## 五、差距清单
-
-### 本机可做（8 项，按性价比排序）
-
-| # | 待办 | 为什么值得先做 |
+| # | 阻塞项 | 所缺外部条件 |
 |---|---|---|
-| 1 | **137 条 only-in-descriptors 逐条分类** | 唯一一个「有明确数字、完全没查」的洞；分类后能把绑定面从「差集未知」变成「差集已解释」 |
-| 2 | **函数分布按模块对照** | 决定 64.90% 里「框架差异」与「真没实现」各占多少；不做这一步，任何完成度都是猜 |
-| 3 | `shape mismatches 91`（core 3 优先） | 绑定形状逐条结案，`SHAPE_GAPS.md` 已有底子 |
-| 4 | `datafiles: replica-only 2` | 确认这 2 个名字是复刻件虚造还是原版运行时拼接 |
-| 5 | Stripe 四构建器派发关系 | 目前判「静态不可得」，可用 `disp32_scan_any.py` 再扫一遍存放槽 |
-| 6 | HTTP/3 是否真启用 | 需要一条能让原版走的请求路径；只有开关字符串不足 |
-| 7 | `OwnTls` 的定位写清 | 避免后人把它当生产路径（已在 `BouncyTls.cs` 注释，可再收口） |
-| 8 | `vendor named 11` 复核 | IDA 字符串缓存未建完时的**下限**，真值应为 13；缓存就绪后重跑即证 |
-
-### 外部阻塞（5 项）
-
-| # | 待办 | 所缺条件 |
-|---|---|---|
-| 1 | Farfetch 7 条 + `connect/app` payload | 原版有效登录凭据 |
+| 1 | Farfetch 7 条与 `connect/app` payload + 云端 `Remote*`/SignalR 同步 | 原版有效登录凭据 |
 | 2 | 23 条 `inferred` 的 0 命中 | live capture（真实请求/响应） |
-| 3 | captcha 三项执行面 | 浏览器引擎（DotNetBrowser 商业授权，或另行裁决 WebView2/CefSharp） |
-| 4 | `BotTask.Running` / `BotTask.Task` 成员类型 | 需运行态观察（同 1） |
-| 5 | 8 条 claim 的 `unknown` | 逐条见 `docs/PARITY_CLAIMS.md` 的 `gap_reason` 列 |
+| 3 | 嵌入式浏览器与 `DotNetBrowser` / captcha 执行面 | 商业授权 `DotNetBrowser` 与外部 Chromium；且主动绕过属范围外 |
+| 4 | `docs/PARITY_CLAIMS.md` 其余静态不可知 `unknown` | 逐条见 `PARITY_CLAIMS.md` 的 `gap_reason` 列（原 `BotTask.Running`/`BotTask.Task` 已移出至 Phase 1 ✅ 结案） |
 
 ---
 
-## 六、判据 a–f 与本文档的关系（防误读）
+## 五、Phase 2 核心模块复刻队列（按高确定性优先）
 
-- `docs/GOAL_VERIFICATION.md` 证明的是：**每一项声明都有 authority、命令、偏差方向**。
-- 它**不证明**：功能已 100% 覆盖。
-- 四条 claim 判 `fail`（节布局 6↔9、导出面 39↔1、导入面 17/438↔18/409、成员形状 91）都属
-  AGENTS §0 明确豁免的「允许内部命名不同、不要求字节级一致」。
-- 因此：**判据达标 ≠ 核心模块逆向完**。两者差的就是第五节的 13 项。
+1. **Wave 2A — 邮箱/验证码服务接线（`Cybersole.Services.Mail` + `AppServices` + `TaskEngine` + `FlowContext`）**：基于 `WaitImapAsync`（`0x14336b99e`）与 `AycdInboxClient` 反编译结果，建立 `IMailCodeService`/`MailCodeService` 并接通运行时与设置校验动作，消除 `MailKit`/`MimeKit` 被 AOT 裁空问题。
+2. **Wave 2B — 支付网关与 3DS 状态机补齐（`Cybersole.Stores/Payments`）**：反编译并落地 `UnzerGateway`（`ContinueUnzerThreeDs` @ `0x143383aa9`）、`CardinalThreeDs`（`CardinalInit` @ `0x14338294f`）及 `CheckoutComGateway`（`api.checkout.com` @ `0x1470530bc`）。
+3. **Wave 2C — 商店流程剩余可证步骤（`Cybersole.Stores/Flows`）**：反编译 `CheckPriceLimitApp`（`0x143373f5f`）、`FindProductCDN`（`0x1433a0f23`）与 `CheckFanRewardState`/`SignUpFanRewards`，仅对获得精确端点与载荷证据的模块落地可执行实现。
+4. **Wave 2D — `Cybersole.Http` 伴生能力（`Cybersole.Http`）**：反编译并对齐 `IBody`/`LegacyJsonBody`/`LegacyJarrayBody`、`HttpAnalytics` 本地队列溢出落盘与 `DrainLocalQueueAsync`、以及 `HttpDebug` 捕获流 / 证书集合。
+5. **严格排除**：一切反爬传感器伪造/绕过（`GetSbsdHash`、`DdMobileTouchEvent`/`SensorPow`）与验证码自动求解执行（`ExecuteClipModelAsync`/`ClickCellsAsync`）及 R702 授权模块，绝不进入 Phase 2 实现清单。

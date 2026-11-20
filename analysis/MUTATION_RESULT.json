@@ -1,10 +1,10 @@
 {
-  "ran_at": "2026-11-20T14:25:51+08:00",
+  "ran_at": "2026-11-20T15:18:54+08:00",
   "total": 59,
   "fired": 59,
   "decorative": 0,
   "skipped": 0,
-  "tree": "GREEN",
+  "tree": "RED",
   "content_manifest": {
     "src/Cybersole.Core/TimeSpans.cs": "af2b978c3532f3196e153731c83a493ca6537dad2c289ee88e3d92612b6d10b2",
     "src/Cybersole.Core/Attributes/CreateInfo.cs": "98f2426729327825ba6f832c208b6b56eb8b962ef7b8ab0b9fae2f937d630169",
@@ -833,7 +833,7 @@
     "tools/locale_text_gap.py": "afa97162e89a89f8a214057718c20419e07e09219a0c193e66c689745eb3abe5",
     "tools/member_owner_map.py": "31431dadbdc6cb01a6c22526a53c4fa1e08149df1e8a6544fd8d3a23f37d0163",
     "tools/method_audit.py": "f2304dbe002a11c917a8a81a2c8d294b580dfded95b3c92b79f21f375fad9792",
-    "tools/metrics_report.py": "6257df9bf3cae20b1ec7109cff219a60e8764be1c3b313d34795d9490c510053",
+    "tools/metrics_report.py": "b75b47f90824b22a1bd4cb1a2639c65defc91dcf3da4074b6e305dc5f605512a",
     "tools/model_audit.py": "8a9fd94b5e5c271198cb965a84a8124cd5350f35dcf23fd31bd6f50d5aaf514e",
     "tools/mutation-audit.py": "4f10fc91bc0a1c01da9e0bf7f1d030dbef75a0562c9abb8b63d2895558b5da6f",
     "tools/mutation-check.py": "13e43d7829193c3e56b0a6ee27338e0910d005d7ffb1438b7da7098fcc805aa3",

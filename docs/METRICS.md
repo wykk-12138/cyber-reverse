@@ -6,15 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 14:33:34 +0800 |
+| 生成时间 | 2026-11-20 15:24:49 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
-| 生成命令 | `python tools/metrics_report.py --skip-tests` |
+| 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | 本次跳过（`--skip-tests`） |
-
-## 时效警告（生成）
-
-> **变异套件那一组数来自上一次运行，而它已经过期**：`1 -- tools/metrics_report.py differs from the run's manifest`。
+| 完整套件 | **2468 通过 / 0 失败 / 0 跳过 / 2468 总计** |
 
 ## 摘要素值
 
@@ -48,7 +44,7 @@
 | 核心覆盖：store 宿主 — core: unknown placeholders | 0 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
 | 核心覆盖：vendor 宿主 — vendor: controls ok | True |
-| 核心覆盖：vendor 宿主 — vendor: named in image | 13 |
+| 核心覆盖：vendor 宿主 — vendor: named in image | 11 |
 | 核心覆盖：vendor 宿主 — vendor: wiring rows | 0 |
 | 核心覆盖：vendor 宿主 — vendor: missing | 0 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
@@ -61,7 +57,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 1 -- tools/metrics_report.py differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 0 -- no exercised file's content differs from the run |
 
 ## 逐条命令与原始输出
 
@@ -130,7 +126,7 @@ type presence: 174 declared in bindings, 159 present in source, 15 absent
 classified: renamed 13, out of scope 2, unimplemented 0, unclassified 0
 
 note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed to rename
-      types (AGENTS.md §0), so each ABSENT must be classified in tools/type_classification.json
+      types (AGENTS.md ��0), so each ABSENT must be classified in tools/type_classification.json
       as RENAMED (with the counterpart), OUT_OF_SCOPE (with the ruling) or UNIMPLEMENTED.
 ```
 
@@ -409,7 +405,7 @@ publish artifact: .publish-aot\Cybersole.Ui.exe
 publish artifact mtime: 2026-11-20 14:15:16
 publish artifact size: 57491456 bytes
 publish artifact sha256: fcff1bcda0a10638f9929544959a1f8dee9381ae987b98093db8c521139e19bf
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-20 14:19:56)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-20 15:13:27)
 source files newer than the artifact: 17
 lines in those files: 14192
 of those, changed against HEAD: 0
@@ -444,7 +440,7 @@ C:\Python312\python.exe tools/vendor_coverage.py
 
 ```text
   wrote docs/VENDOR_COVERAGE.md
-  controls ok=True  vendors named=13  wiring rows=0  missing=0
+  controls ok=True  vendors named=11  wiring rows=0  missing=0
 ```
 
 ### 可执行段体量
@@ -584,16 +580,38 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-fired: 59
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
-  mutation-fit-tree: GREEN
-  mutation-fit-staleness: 1 -- tools/metrics_report.py differs from the run's manifest
+  mutation-fit-tree: RED
+  mutation-fit-staleness: 0 -- no exercised file's content differs from the run
 
-  The counts above are from 2026-11-20T14:25:51+08:00 and the tree has moved since. They are a record of that run, not a
-  statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
+  Every mutation fired, none was decorative and none was skipped at the time of that run.
 ```
 
 ### 完整套件
 
-本次未运行（`--skip-tests`）。**这不等于通过**：判据 e 需要它。
+```
+cd D:\projects\cyber-reverse\replica
+D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
+```
+
+`exit 0` · 2468 通过 / 0 失败 / 0 跳过 / 2468 总计
+
+```text
+  正在确定要还原的项目…
+D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+  所有项目均是最新的，无法还原。
+  Cybersole.Core -> D:\projects\cyber-reverse\replica\src\Cybersole.Core\bin\Debug\net8.0\Cybersole.Core.dll
+  Cybersole.Http -> D:\projects\cyber-reverse\replica\src\Cybersole.Http\bin\Debug\net8.0\Cybersole.Http.dll
+D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr
+  Cybersole.Services -> D:\projects\cyber-reverse\replica\src\Cybersole.Services\bin\Debug\net8.0\Cybersole.Services.dll
+  Cybersole.Stores -> D:\projects\cyber-reverse\replica\src\Cybersole.Stores\bin\Debug\net8.0\Cybersole.Stores.dll
+  Cybersole.Ui -> D:\projects\cyber-reverse\replica\src\Cybersole.Ui\bin\Debug\net8.0\Cybersole.Ui.dll
+  Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
+VSTest 版本 17.11.1 (x64)
+正在启动测试执行，请稍候...
+总共 1 个测试文件与指定模式相匹配。
+已通过! - 失败:     0，通过:  2468，已跳过:     0，总计:  2468，持续时间: 5 m 11 s - Cybersole.Tests.dll (net8.0)
+```
 
 ---
 

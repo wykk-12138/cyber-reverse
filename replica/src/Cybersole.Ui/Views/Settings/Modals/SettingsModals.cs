@@ -37,7 +37,7 @@ public sealed class ImapCreatorView : SettingsModal
                 Password = pass.Text ?? string.Empty,
                 UseSsl = ssl.IsChecked == true,
             };
-            var (ok, count, err) = await services.Mail.VerifyImapAsync(candidate);
+            var (ok, count, err) = await services.Mail.VerifyImapAsync(candidate).ConfigureAwait(true);
             verifyStatus.Text = ok ? $"Connected ({count} messages)." : $"Failed: {err}";
         }));
 
@@ -84,7 +84,7 @@ public sealed class AycdInboxCreatorView : SettingsModal
         Body.Children.Add(UiKit.Button("Test Connection", async () =>
         {
             verifyStatus.Text = "Verifying...";
-            var (ok, err, credits) = await services.Mail.VerifyAycdAsync(key.Text);
+            var (ok, err, credits) = await services.Mail.VerifyAycdAsync(key.Text).ConfigureAwait(true);
             verifyStatus.Text = ok
                 ? (credits.HasValue ? $"Connected ({credits.Value} credits)." : "Connected.")
                 : $"Failed: {err}";

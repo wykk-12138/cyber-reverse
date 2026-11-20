@@ -1105,7 +1105,7 @@ public sealed class ImapView : UserControl
         if (services is null || aycd is null) return "No account document.";
         if (string.IsNullOrWhiteSpace(aycd.ApiKey)) return "Add an AYCD API key first.";
 
-        var (ok, error, credits) = await services.Mail.VerifyAycdAsync(aycd.ApiKey, origin, ct).ConfigureAwait(false);
+        var (ok, error, credits) = await services.Mail.VerifyAycdAsync(aycd.ApiKey, origin, ct).ConfigureAwait(true);
         if (!ok)
         {
             aycd.Enabled = false;
@@ -1124,7 +1124,7 @@ public sealed class ImapView : UserControl
     {
         var services = _imapServices;
         if (services is null) return "No account document.";
-        var (ok, count, error) = await services.Mail.VerifyImapAsync(account, ct).ConfigureAwait(false);
+        var (ok, count, error) = await services.Mail.VerifyImapAsync(account, ct).ConfigureAwait(true);
         if (!ok) return $"IMAP verify failed ({account.User}): {error}";
         account.InboxCount = count;
         services.Config.Save();
@@ -1234,7 +1234,7 @@ public sealed class ImapView : UserControl
             Refresh();
             if (!string.IsNullOrWhiteSpace(aycd.ApiKey))
             {
-                status.Text = await VerifyAycdAsync();
+                status.Text = await VerifyAycdAsync().ConfigureAwait(true);
                 Refresh();
             }
         });
@@ -1247,7 +1247,7 @@ public sealed class ImapView : UserControl
                 return;
             }
             status.Text = "Connecting...";
-            status.Text = await VerifyImapAccountAsync(doc.Imap[rows.SelectedIndex]);
+            status.Text = await VerifyImapAccountAsync(doc.Imap[rows.SelectedIndex]).ConfigureAwait(true);
             Refresh();
         });
 

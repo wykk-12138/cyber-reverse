@@ -8,7 +8,7 @@ namespace Cybersole.Tests;
 /// <summary>
 /// R1022: PerimeterX is the mirror image of Imperva. The vendor is present -- four literals in the inventory -- and not
 /// one of them can be grepped out of a response body, which is why its gap is <see cref="VendorWiring.Gap.NoPageMarker"/>
-/// and not <see cref="VendorWiring.Gap.VendorAbsent"/>.
+/// and not the "vendor absent" kind (docs/VENDOR_WIRING.md §10).
 ///
 /// <para>
 /// That distinction was asserted from one query until now. The inventory entry is the second witness, and it only
@@ -50,7 +50,7 @@ public sealed class PerimeterXMarkerTests
             Assert.DoesNotContain(page, evidence, System.StringComparison.OrdinalIgnoreCase);
     }
 
-    // R1278: the two assertions that used to sit here read VendorWiring.Rows to check the gap kind, the marker
+    // R1278: the two assertions that used to sit here read the audit table's Rows to check the gap kind, the marker
     // source and that both gap kinds have a live example. Those are rows in the audit table, which now lives in
     // docs/VENDOR_WIRING.md; what stays in this file is what the runtime inventory can be asked about.
 }

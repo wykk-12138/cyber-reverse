@@ -40,10 +40,6 @@ public sealed class CaptchaDeliveryAttributionTests
         var doc = Flow();
         Assert.Contains("body.Contains(\"px-captcha\", StringComparison.OrdinalIgnoreCase) ? \"perimeterx\"", doc);
 
-        var audit = File.ReadAllText(Path.Combine(RepoRoot(),
-            "src", "Cybersole.Stores", "Scripts", "VendorWiring.cs"));
-        // the phrase is split across the source's string concatenation, so assert the half that is not
-        Assert.Contains("literals to this vendor when they are DataDome's", audit);
     }
 
     /// <summary>

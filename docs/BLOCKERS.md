@@ -46988,3 +46988,55 @@ Unknown = 后三个文件是否真与 `VendorWiring` 有关（下轮读）。
 
 证据等级：Observation = 5 条红的名称与数值、`git status` 显示 src 与 4 个测试均无改动、2497 收据；
 Inference = 「三处工具联动」；Unknown = 那次移动是怎么进 HEAD 的（未逐一追溯提交）。
+## R1282 —— 台账与孤岛一次性收尾（合并 4 项，不拆轮）
+
+### 一、删掉的类（全部经调用者实测，不是凭印象）
+
+| 类 | 处置 | 依据 |
+|---|---|---|
+| `Stores/Scripts/VendorWiring.cs` | 删 | 台账：7 个测试文件读它，行数据早已在 `docs/VENDOR_WIRING.md` |
+| `Payments/VendorPaymentEndpoints.cs` | 删 | **src 内真实调用者 0**（R1269 换皮常量表） |
+| `Flows/AccountRoutes.cs` | 删 | 真实调用者 0（R1257 常量表） |
+| `Flows/HbxApi.cs` | 删 | 真实调用者 0（R1258 常量表） |
+| `Flows/CheckoutRoutes.cs` | 删 | 真实调用者 0——`MagentoFlow:221-224` 三处**全是注释**，逐行看过 |
+| `WaitwhileQueue.cs` | 删 | 真实调用者 0 |
+
+同时删掉只为它们存在的 6 个测试文件（`VendorWiringTests` / `VendorPaymentEndpointTests` /
+`AccountRoutesTests` / `HbxApiTests` / `CheckoutRoutesTests` / `WaitwhileQueueTests`）。
+
+### 二、解耦的 7 处引用（断言台账/源码散文的一律删，断行为的一律留）
+
+`WallDispatchTests`（2 条台账断言）· `WallSolvingTests`（2 条）· `VendorNegativeClaimsTests`（读
+`VendorWiringTests.cs` 源文件的 2 处）· `CaptchaDeliveryAttributionTests`（读 `VendorWiring.cs` 源文件）·
+`AntiBotProtocolTests` / `PerimeterXMarkerTests` 的散文与 `<see>` · `CasioEndpointTests` 的
+`TheCheckoutRoutesAreWhereTheFlowThinksTheyAre`（随 `CheckoutRoutes` 归档）。
+
+### 三、顺带补上一个**真缺口**（不是掩盖）
+
+删 `VendorWiring` 让 `Cybersole.Models.State` 变成 ABSENT 未分类（此前被 `VendorWiring` 的嵌套 `State` 偶然满足）。
+本轮按镜像实现它，**并接入真实运行时路径**：
+
+镜像证据 `0x143211f9d` 的 descriptor 串逐字给出模型形状：
+`Cybersole.Models.State` 只有 `Name`；`Country` 有 `Name`/`Code`/`States`；`Address` 有
+`FirstName`/`LastName`/`Address1`/`Address2`/`City`/`ZipCode`/`Country`/`State`/`Barangay`。
+
+`src/Cybersole.Core/Models/AddressModels.cs` 落地三个记录；
+`DemandwareFlow.SubmitShippingAsync` 把 `c.Shipping` 投影成 `Address`，
+`states_stateCode` 从 `address.State?.Name` 取——**有真实调用点，不是孤岛**。
+
+### 四、工作区与基线
+
+- 清掉 `.tmp-*.log` **272 个**（根 18 + `replica/` 254）；`.gitignore` 加规则，日志从今写 `%TEMP%`。
+- IDA 三个模态框（未打包库 / `.id0` 修复 / 库不一致）已用 CUA 点掉，`ida.py health` = `ok`、
+  `hexrays_ready: true`。
+- `metrics_report.py`（**不带** `--skip-tests`）：完整套件 **2446 通过 / 0 失败 / 0 跳过**。
+- `mutation-check.py`：**59/59 fired**、decorative 0、skipped 0、`restored tree: GREEN`。
+
+### 五、一个必须写清的**非零退出**
+
+`metrics_report.py` 整体 exit 1：来自 `store` / `vendor` 两个**核心覆盖检查**（exit 1 / exit 2），
+不是套件失败。原因是删掉若干零调用常量类后，那些"端点已登记"的计数下降。
+**下一轮用真实 Flow 端点补回来**，不靠重新引入常量表凑数。
+
+证据等级：Observation = 调用者计数、descriptor 串、2446/0、59/59、272 个日志；
+Inference = 「覆盖检查非零源于删表」；Unknown = 每个站点的真实端点还差几条（下一轮逐站核）。

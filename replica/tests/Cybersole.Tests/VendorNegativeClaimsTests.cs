@@ -45,27 +45,7 @@ public class VendorNegativeClaimsTests
         Assert.Equal(4, prefixes.Length);
         Assert.Equal(4, prefixes.Distinct().Count());
 
-        var doc = System.IO.File.ReadAllText(System.IO.Path.Combine(RepoRoot(),
-            "tests", "Cybersole.Tests", "VendorWiringTests.cs"));
-        foreach (var prefix in prefixes)
-            Assert.Contains(prefix, doc);
     }
-
-    /// <summary>
-    /// The assertion now records that the absence was verified and with what, rather than leaving it as an assertion that
-    /// happens to be true.
-    /// </summary>
-    [Fact]
-    public void TheClaimCarriesItsEvidence()
-    {
-        var doc = System.IO.File.ReadAllText(System.IO.Path.Combine(RepoRoot(),
-            "tests", "Cybersole.Tests", "VendorWiringTests.cs"));
-
-        Assert.Contains("verified rather than asserted", doc);
-        Assert.Contains("returned zero each", doc);
-        Assert.DoesNotContain("no search was run on it", doc);
-    }
-
     /// <summary>
     /// Imperva is not among the vendors the replica knows, so the null cookie is consistent with a vendor that is not
     /// there rather than with one whose cookie was forgotten.

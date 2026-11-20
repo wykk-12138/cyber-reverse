@@ -7952,3 +7952,13 @@ Observation：
 **下次清单**：Python 改文件 · 先补 `Cybersole.Models.State` 分类 · 同步 158/16 · 先定向后全量。
 
 还剩什么：① VendorWiring 第 2 步（5/9 已解耦，剩 4 个文件含 VendorWiringTests）；② 17 条 no-hit；③ connect 通道（需登录）。
+## R1282 —— 一次性收尾：删 6 类 + 6 测试文件、解耦 7 处、实现 State/Country/Address 并接入 Demandware
+
+Observation：
+- 真实调用者计数：5 个孤岛均为 0（`CheckoutRoutes` 的 3 处是注释）。
+- `0x143211f9d` descriptor：`State{Name}` / `Country{Name,Code,States}` / `Address{...State,Country,Barangay}`。
+- 套件 2446/0/0/2446；mutation 59/59 fired、GREEN；272 个日志已清。
+- IDA `health=ok`、`hexrays_ready=true`（三个模态框已点掉）。
+
+下一轮（既定）：把 `StripeChallenge.ConfirmAsync` 接进 `StripeGateway`/`StoreFlow` 主链，补端到端行为测试。
+之后按 ① BstnFlow 4 个 `endpoint unknown` → ② Captcha 协议 → ③ `Cybersole.Http`。

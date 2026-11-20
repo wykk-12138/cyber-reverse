@@ -59,7 +59,7 @@ public sealed class AntiBotProtocolTests
         Assert.Equal(new[] { "kpsdk" }, AntiBotProtocol.CookiesFor("Kasada"));
 
         // R944: these two lines asserted that the image names no cookie for PerimeterX, and it does -- _px3. This was
-        // the third copy of that false absence: the doc comment, VendorWiringTests, and here. Three copies is why it was
+        // the false absence that used to be recorded three times overTests, and here. Three copies is why it was
         // never checked; a claim repeated looks like a fact corroborated.
         Assert.True(AntiBotVendors.Knows("PerimeterX"));
         Assert.NotNull(AntiBotProtocol.CookiesFor("PerimeterX"));

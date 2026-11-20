@@ -444,14 +444,21 @@ public class DemandwareFlow : StoreFlow
         if (ship is null) return StepOutcome.Fail("demandware: no shipping address");
 
         // SFCC posts the whole address as dwfrm_shipping_* fields on Shipping-Show.
+        // R1282: the address is projected through the image's own model (Cybersole.Models.Address) so the state is a
+        // State rather than a bare string — the descriptor run at 0x143211f9d is what says Address.State is a State.
+        var address = new Cybersole.Models.Address(
+            ship.FirstName, ship.LastName, ship.Address1, null, ship.City, ship.ZipCode, null,
+            string.IsNullOrEmpty(ship.State) ? null : new Cybersole.Models.State(ship.State!),
+            null);
+
         var form = new Dictionary<string, string>
         {
-            ["dwfrm_shipping_shippingAddress_addressFields_firstName"] = ship.FirstName ?? string.Empty,
-            ["dwfrm_shipping_shippingAddress_addressFields_lastName"] = ship.LastName ?? string.Empty,
-            ["dwfrm_shipping_shippingAddress_addressFields_address1"] = ship.Address1 ?? string.Empty,
-            ["dwfrm_shipping_shippingAddress_addressFields_city"] = ship.City ?? string.Empty,
-            ["dwfrm_shipping_shippingAddress_addressFields_states_stateCode"] = ship.State ?? string.Empty,
-            ["dwfrm_shipping_shippingAddress_addressFields_postalCode"] = ship.ZipCode ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_firstName"] = address.FirstName ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_lastName"] = address.LastName ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_address1"] = address.Address1 ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_city"] = address.City ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_states_stateCode"] = address.State?.Name ?? string.Empty,
+            ["dwfrm_shipping_shippingAddress_addressFields_postalCode"] = address.ZipCode ?? string.Empty,
             ["dwfrm_shipping_shippingAddress_addressFields_country"] = ship.Country ?? "US",
         };
 

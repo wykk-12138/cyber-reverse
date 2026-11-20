@@ -62,3 +62,7 @@ replica/.publish-aot-new/
 # so real copies are the only route that loads. They are derived, so they stay out of git;
 # the plugin / rules / README under .agents/plugins are hand-written and ARE tracked.
 .agents/skills/
+
+# R1282: test/publish logs are scratch — write them to %TEMP% from now on, and never track them
+.tmp-*.log
+.tmp-*/

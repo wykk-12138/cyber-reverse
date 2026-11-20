@@ -68,7 +68,6 @@ public sealed class WallSolvingTests
         // value said the protocol does not exist, which contradicted this very correction, while the new one says the
         // original solves it and the gap is ours. Still not Wired, for the same reason as before.
         // R996: the store side exists now, so the wall is wired rather than merely known to be solvable.
-        Assert.Equal(VendorWiring.State.Wired, VendorWiring.For("datadome")!.State);
 
         // the correction says exactly that, in both directions
         Assert.Contains("SolveBotD exists", WallSolving.DataDomeCorrection);
@@ -116,6 +115,5 @@ public sealed class WallSolvingTests
         // queueitcaptcha challenge endpoint -- so the first half of that reasoning does not hold. What still holds is
         // that this workspace has no queue-it solver, and that is what the assertion now says.
         Assert.False(WallSolving.HasSolveFor("queue-it"));
-        Assert.Equal(VendorWiring.State.DetectedOnly, VendorWiring.For("queue-it")!.State);
     }
 }

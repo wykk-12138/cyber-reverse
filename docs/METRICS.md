@@ -6,15 +6,17 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-20 06:44:18 +0800 |
+| 生成时间 | 2026-11-20 11:00:20 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
-| 生成命令 | `python tools/metrics_report.py --skip-tests` |
-| 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | 本次跳过（`--skip-tests`） |
+| 生成命令 | `python tools/metrics_report.py` |
+| 度量脚本结果 | **有非零退出，见下** |
+| 完整套件 | **2446 通过 / 0 失败 / 0 跳过 / 2446 总计** |
 
 ## 时效警告（生成）
 
-> **变异套件那一组数来自上一次运行，而它已经过期**：`1 -- src/Cybersole.Stores/Flows/PopMartFlow.cs differs from the run's manifest`。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 3 个源文件比产物新（共 758 行）。它描述的是更旧的一次构建，不是当前源码。
+>
+> **变异套件那一组数来自上一次运行，而它已经过期**：`377 -- src/Cybersole.Core/Models/AddressModels.cs (+376 more) differs from the run's manifest`。
 
 ## 摘要素值
 
@@ -40,17 +42,11 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 179,797 |
 | 函数数量（.pdata） — functions: ratio | 64.88% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
-| 核心覆盖：store 宿主 — core: flows | 18 |
-| 核心覆盖：store 宿主 — core: override steps | 369 |
-| 核心覆盖：store 宿主 — core: unknown placeholders | 11 |
-| 核心覆盖：store 宿主 — core: provenance exit | 0 |
-| 核心覆盖：vendor 宿主 — vendor: controls ok | True |
-| 核心覆盖：vendor 宿主 — vendor: named in image | 13 |
-| 核心覆盖：vendor 宿主 — vendor: wiring rows | 9 |
-| 核心覆盖：vendor 宿主 — vendor: missing | 5 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 3 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 758 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 2 |
+| 核心覆盖：store 宿主 | （未解析，见下方原始输出） |
+| 核心覆盖：vendor 宿主 | （未解析，见下方原始输出） |
 | 可执行段体量 — section-mass: original executable | 51695104 |
 | 可执行段体量 — section-mass: replica executable | 29502976 |
 | 可执行段体量 — section-mass: ratio | 57.07% |
@@ -61,7 +57,7 @@
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
 | 变异套件（上次运行） — mutation-fit: decorative | 0 |
 | 变异套件（上次运行） — mutation-fit: skipped | 0 |
-| 变异套件（上次运行） — mutation-fit: staleness | 1 -- src/Cybersole.Stores/Flows/PopMartFlow.cs differs from the run's manifest |
+| 变异套件（上次运行） — mutation-fit: staleness | 377 -- src/Cybersole.Core/Models/AddressModels.cs (+376 more) differs from the run's manifest |
 
 ## 逐条命令与原始输出
 
@@ -130,7 +126,7 @@ type presence: 174 declared in bindings, 159 present in source, 15 absent
 classified: renamed 13, out of scope 2, unimplemented 0, unclassified 0
 
 note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed to rename
-      types (AGENTS.md §0), so each ABSENT must be classified in tools/type_classification.json
+      types (AGENTS.md ��0), so each ABSENT must be classified in tools/type_classification.json
       as RENAMED (with the counterpart), OUT_OF_SCOPE (with the ruling) or UNIMPLEMENTED.
 ```
 
@@ -406,14 +402,17 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-20 06:44:18
+publish artifact mtime: 2026-11-20 07:00:45
 publish artifact size: 57481728 bytes
-publish artifact sha256: ca217562d9e7d5fe56b5fbce64b06618a2e0ce9c9cc30c945d0d67c5a351b06f
-newest source: src\Cybersole.Stores\Flows\PopMartFlow.cs (2026-11-20 06:38:13)
-source files newer than the artifact: 0
-lines in those files: 0
-of those, changed against HEAD: 0
-publish artifact state: current
+publish artifact sha256: c7ef9802e8b862994d13e7185ac8e6a741684a267712d3efa6a1415bb320aee6
+newest source: src\Cybersole.Stores\Flows\DemandwareFlow.cs (2026-11-20 10:59:16)
+source files newer than the artifact: 3
+lines in those files: 758
+of those, changed against HEAD: 2
+publish artifact state: stale
+
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -423,11 +422,22 @@ cd D:\projects\cyber-reverse\replica
 C:\Python312\python.exe tools/core_coverage.py
 ```
 
-`exit 0`
+`exit 1`
+
+
+stderr:
 
 ```text
-  wrote docs/CORE_COVERAGE.md
-  flows=18 steps=369 placeholders=11 provenance exit=0
+Traceback (most recent call last):
+  File "D:\projects\cyber-reverse\replica\tools\core_coverage.py", line 196, in <module>
+    main()
+  File "D:\projects\cyber-reverse\replica\tools\core_coverage.py", line 80, in main
+    wiring_n = wiring_row_count()
+               ^^^^^^^^^^^^^^^^^^
+  File "D:\projects\cyber-reverse\replica\tools\core_coverage.py", line 73, in wiring_row_count
+    text = io.open(w, encoding="utf-8", errors="replace").read()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'D:\\projects\\cyber-reverse\\replica\\src\\Cybersole.Stores\\Scripts\\VendorWiring.cs'
 ```
 
 ### 核心覆盖：vendor 宿主
@@ -437,16 +447,23 @@ cd D:\projects\cyber-reverse\replica
 C:\Python312\python.exe tools/vendor_coverage.py
 ```
 
-`exit 0`
+`exit 1`
+
+
+stderr:
 
 ```text
-  wrote docs/VENDOR_COVERAGE.md
-  controls ok=True  vendors named=13  wiring rows=9  missing=5
-    missing: Stripe challenge   n=1   0x146e9427c
-    missing: PayPal 3DS         n=9   0x146e93fb4
-    missing: captcha            n=1   0x146e94334
-    missing: proof of work      n=1   0x146e93f74
-    missing: checkpoint         n=1   0x146e94464
+Traceback (most recent call last):
+  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 227, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 132, in main
+    rows = wiring_rows()
+           ^^^^^^^^^^^^^
+  File "D:\projects\cyber-reverse\replica\tools\vendor_coverage.py", line 99, in wiring_rows
+    text = io.open(WIRING, encoding="utf-8", errors="replace").read()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'D:\\projects\\cyber-reverse\\replica\\src\\Cybersole.Stores\\Scripts\\VendorWiring.cs'
 ```
 
 ### 可执行段体量
@@ -481,7 +498,7 @@ C:\Python312\python.exe tools/pe_sections.py
   .pdata     0x44B4000    0x46C2AF4    2157568      R
   _RDATA     0x46C3000    0x46C30F4    512          R
   .rsrc      0x46C4000    0x470F7E7    309248       R
-  .reloc     0x4710000    0x4717FFC    32768        R
+  .reloc     0x4710000    0x4717FF4    32768        R
 
   section-mass-replica-executable: 29502976
   section-mass-ratio: 57.07%
@@ -587,7 +604,7 @@ C:\Python312\python.exe tools/mutation_report.py
   mutation-fit-decorative: 0
   mutation-fit-skipped: 0
   mutation-fit-tree: GREEN
-  mutation-fit-staleness: 1 -- src/Cybersole.Stores/Flows/PopMartFlow.cs differs from the run's manifest
+  mutation-fit-staleness: 377 -- src/Cybersole.Core/Models/AddressModels.cs (+376 more) differs from the run's manifest
 
   The counts above are from 2026-11-20T06:37:55+08:00 and the tree has moved since. They are a record of that run, not a
   statement about this one; re-run `python tools/mutation-check.py` before quoting them as current.
@@ -595,7 +612,30 @@ C:\Python312\python.exe tools/mutation_report.py
 
 ### 完整套件
 
-本次未运行（`--skip-tests`）。**这不等于通过**：判据 e 需要它。
+```
+cd D:\projects\cyber-reverse\replica
+D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
+```
+
+`exit 0` · 2446 通过 / 0 失败 / 0 跳过 / 2446 总计
+
+```text
+  正在确定要还原的项目…
+D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+  所有项目均是最新的，无法还原。
+  Cybersole.Core -> D:\projects\cyber-reverse\replica\src\Cybersole.Core\bin\Debug\net8.0\Cybersole.Core.dll
+  Cybersole.Http -> D:\projects\cyber-reverse\replica\src\Cybersole.Http\bin\Debug\net8.0\Cybersole.Http.dll
+D:\projects\cyber-reverse\replica\src\Cybersole.Services\Cybersole.Services.csproj : warning NU1902: 包 "MailKit" 4.8.0 具有已知的 中 严重性漏洞，https://github.com/advisories/GHSA-9j88-vvj5-vhgr
+  Cybersole.Services -> D:\projects\cyber-reverse\replica\src\Cybersole.Services\bin\Debug\net8.0\Cybersole.Services.dll
+  Cybersole.Stores -> D:\projects\cyber-reverse\replica\src\Cybersole.Stores\bin\Debug\net8.0\Cybersole.Stores.dll
+  Cybersole.Ui -> D:\projects\cyber-reverse\replica\src\Cybersole.Ui\bin\Debug\net8.0\Cybersole.Ui.dll
+  Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
+VSTest 版本 17.11.1 (x64)
+正在启动测试执行，请稍候...
+总共 1 个测试文件与指定模式相匹配。
+已通过! - 失败:     0，通过:  2446，已跳过:     0，总计:  2446，持续时间: 5 m 32 s - Cybersole.Tests.dll (net8.0)
+```
 
 ---
 

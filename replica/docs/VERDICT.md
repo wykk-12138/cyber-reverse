@@ -68848,3 +68848,19 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 |---|---|
 | 净变化 | 0（回滚） |
 | 教训 | 2 条（编码、连带清单） |
+---
+
+## 第 1282 轮：台账 + 5 孤岛一次性收尾，并补上 `Cybersole.Models.State` 真缺口
+
+**删除**：`VendorWiring`（台账）+ 4 个零调用常量类（`VendorPaymentEndpoints`/`AccountRoutes`/`HbxApi`/`WaitwhileQueue`）
++ `CheckoutRoutes`（`MagentoFlow` 三处引用**全是注释**）+ 6 个只为它们存在的测试文件。
+
+**解耦**：7 处引用（删台账/散文断言，留行为断言）。
+
+**补真缺口**：按 `0x143211f9d` 的 descriptor 实现 `State`/`Country`/`Address`，
+并在 `DemandwareFlow.SubmitShippingAsync` 真实使用。
+
+**卫生**：清 272 个 `.tmp-*.log`、`.gitignore` 加规则、日志改写 `%TEMP%`。
+
+**基线**：套件 2446/0/0/2446；mutation 59/59 fired、GREEN。
+`metrics` 整体 exit 1 来自 store/vendor 覆盖检查（删表的真实代价），下一轮用真实端点补。

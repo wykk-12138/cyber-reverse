@@ -194,6 +194,9 @@ public static class StoreModuleCatalog
         // storefront in the alphabetised domain table, and eight steps of its own. The flow is real as far
         // as the home and product fetches go and refuses the rest by name — see SauconyFlow.
         new FlowStoreModule(new SauconyFlow()),
+        // R1313: AO.com, the other store the catalogue never listed. The image separates the shop from the
+        // basket host and names three checkout API endpoints; see AoFlow for which of them this models.
+        new FlowStoreModule(new AoFlow()),
         new FlowStoreModule(new JdSportsFlow()),
         new FlowStoreModule(new FanaticsFlow()),
         new FlowStoreModule(new RiotGamesFlow()),

@@ -47789,3 +47789,15 @@ Inference = 「17 文件 mtime 来自变异改写」；**Unknown** = 并行会�
 - **判读**：不可达代码被裁剪。应用无任何调用点，唯一调用者是测试。
 - **影响**：本轮的数据与 API 是**源码级**的，尚未随产物发布。这不影响测试有效性，但影响"已发布行为"的表述。
 - **解除条件**：出现真实调用链（Square 浏览器流程落地）后重发布，并复核类型名进入产物。
+
+---
+
+## R1313 · Casio `_timestamp`/`_hash` 签名：两次锚点都选错了
+
+- **尝试**：① `productCode`（R1312）→ 通往 **PayPal 3DS JWT 构造器**，与 Casio 无关，且复刻件已有；
+  ② `UgAFUFFACQAEU1BSBAcB`（唯一 New Relic id）→ 通往**通用浏览器头构造器**，与 Casio 无关，且复刻件已有。
+- **共同错因**：两次都是**拿"看起来很独特"的串当锚**，没有先问一句「这个串是不是所有店铺共用的」。
+  New Relic id 唯一，但它是**每个请求都带的头值**；`productCode` 万能，但它是通用字段名。
+- **正确方向（下轮）**：从 **Casio 特有的步骤名**出发——`<SetAdyenPayment>d__6`、`<SubmitAdyenOrder>d__7`、
+  `<GetAdyenPaymentStatus>d__8` 的状态机类型，或 `casio_can_purchase` 这类**只有 Casio 有**的串。
+- **状态**：签名方案**未解**，不当作已知写入任何实现。

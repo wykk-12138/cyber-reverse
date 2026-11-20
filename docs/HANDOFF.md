@@ -8265,3 +8265,13 @@ Observation：
 - 尾部开头 `"]}}` 的 `]` 证明过滤器是**列表**（`sku:{in:[`），不是 `eq:`——第一版写错，测试当场抓到。
 - 顺带证伪：`productCode` 的引用链通向 **PayPal 3DS JWT GraphQL 构造器**，与 Casio 无关，且复刻件已有。
 - **`_timestamp`/`_hash` 签名仍未解**。
+
+---
+
+## 第 1313 轮
+
+- 签名线两次走死（`productCode` → PayPal JWT；`UgAFUFFACQAEU1BSBAcB` → 通用头构造器），共同错因是
+  **拿通用值当锚**。下轮改从 Casio 特有步骤名出发。
+- **AO.com 进目录**（第五家原本缺的店，66 → 67）：`AoFlow` 只实现 `GetHome`/`FindProduct`，
+  三个 `/v2/app/{contact,delivery,payment}` **请求体未知所以不重写**，占位上限停在 16 没动。
+- 产物搜 `AoFlow` 1 次，尺寸 61,293,568。

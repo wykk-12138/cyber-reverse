@@ -582,6 +582,21 @@ public class DemandwareFlow : StoreFlow
                 .ConfigureAwait(false);
             if (!init.Ok) return StepOutcome.Fail(init.Error ?? "cardinal init failed", retryable: true);
 
+            if (c.Session.Vars.TryGetValue("cardinal.orgUnitId", out var orgUnitId) && !string.IsNullOrEmpty(orgUnitId))
+            {
+                var refId = c.Session.Vars.GetValueOrDefault("cardinal.dfReferenceId")
+                            ?? c.Session.Vars.GetValueOrDefault("cardinal.consumerSessionId")
+                            ?? string.Empty;
+                var fp = await cardinal.CollectDeviceFingerprintAsync(
+                    c,
+                    orgUnitId!,
+                    refId,
+                    c.Session.Vars.GetValueOrDefault("cardinal.binSessionId"),
+                    c.Session.Vars.GetValueOrDefault("cardinal.methodUrl"),
+                    ct).ConfigureAwait(false);
+                if (!fp.Ok) return StepOutcome.Fail(fp.Error ?? "cardinal device fingerprint failed", retryable: true);
+            }
+
             var txId = c.Session.Vars.GetValueOrDefault("cardinal.transactionId") ?? c.Session.OrderId;
             if (!string.IsNullOrEmpty(txId))
             {

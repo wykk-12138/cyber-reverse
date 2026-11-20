@@ -247,4 +247,79 @@ public sealed class CardinalThreeDsTests
         Assert.Contains(server.Requests, r => r.PathAndQuery == CardinalThreeDs.CentinelInitPath);
         Assert.Contains(server.Requests, r => r.PathAndQuery == CardinalThreeDs.CentinelContinuePath);
     }
+
+    [Fact]
+    public async Task StoreFlowAndDemandwareProcess3DsWireCollectDeviceFingerprint()
+    {
+        var cardinalJwt = FakeJwt(new JObject { ["ConsumerSessionId"] = "df_wired_456" });
+
+        using var server = new LoopbackServer((req, _) =>
+        {
+            var path = req.Url?.AbsolutePath ?? "/";
+            if (path == CardinalThreeDs.CentinelInitPath || path == CardinalThreeDs.CentinelContinuePath)
+                return (200, "application/json", new JObject { ["CardinalJWT"] = cardinalJwt }.ToString());
+            if (path == "/DeviceFingerprintWeb/V2/Browser/Render")
+                return (200, "text/html", "<html>fp</html>");
+            if (path == "/DeviceFingerprintWeb/V2/Browser/SaveBrowserData" ||
+                path == "/DeviceFingerprintWeb/V2/Browser/Notification")
+                return (200, "application/json", """{"ok":true}""");
+            return (404, "application/json", "{}");
+        });
+
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+
+        // 1. StoreFlow.Process3DSAsync "fingerprint" arm validates missing ids and runs geo collection when present.
+        var sfCtx = new FlowContext { Http = http, Url = server.BaseUrl + "/checkout" };
+        sfCtx.Session.Vars["cardinal.geoHost"] = server.BaseUrl;
+        sfCtx.Session.Vars["cardinal.step"] = "fingerprint";
+
+        var baseFlow = new StubStoreFlow();
+        var missingRes = await baseFlow.Process3DSAsync(sfCtx, default);
+        Assert.False(missingRes.Ok);
+        Assert.Contains("missing orgUnitId", missingRes.Error);
+
+        sfCtx.Session.Vars["cardinal.orgUnitId"] = "org-sf";
+        sfCtx.Session.Vars["cardinal.dfReferenceId"] = "ref-sf";
+        sfCtx.Session.Vars["cardinal.binSessionId"] = "bin-sf";
+        var sfRes = await baseFlow.Process3DSAsync(sfCtx, default);
+        Assert.True(sfRes.Ok, sfRes.Error);
+        Assert.Contains(server.Requests, r => r.PathAndQuery.Contains("orgUnitId=org-sf", StringComparison.Ordinal));
+        Assert.Contains(server.Requests, r => r.PathAndQuery == "/DeviceFingerprintWeb/V2/Browser/SaveBrowserData");
+        Assert.Contains(server.Requests, r => r.PathAndQuery.StartsWith("/DeviceFingerprintWeb/V2/Browser/Notification", StringComparison.Ordinal));
+
+        server.Requests.Clear();
+
+        // Also cover StoreFlow.ProcessPaymentAsync cardinal.step = "fingerprint" dispatch.
+        sfCtx.Session.Vars["paymentStatus"] = "requires_action";
+        var payFpRes = await baseFlow.ProcessPaymentAsync(sfCtx, default);
+        Assert.True(payFpRes.Ok, payFpRes.Error);
+        Assert.Equal(3, server.Requests.Count);
+
+        server.Requests.Clear();
+
+        // 2. DemandwareFlow.Process3DSAsync drives Init -> Geo DeviceFingerprint -> Continue when orgUnitId is set.
+        var dwCtx = new FlowContext { Http = http, Url = server.BaseUrl + "/checkout" };
+        dwCtx.Session.Vars["cardinal.centinelHost"] = server.BaseUrl;
+        dwCtx.Session.Vars["cardinal.geoHost"] = server.BaseUrl;
+        dwCtx.Session.Vars["cardinal.serverJwt"] = "dw.fp.jwt";
+        dwCtx.Session.Vars["cardinal.orgUnitId"] = "org-dw";
+        dwCtx.Session.Vars["cardinal.transactionId"] = "tx-dw-9";
+
+        var dw = new DemandwareFlow("dw", "DW", new[] { "127.0.0.1" }, "Shop-Site", "en_US");
+        var dwRes = await dw.Process3DSAsync(dwCtx, default);
+        Assert.True(dwRes.Ok, dwRes.Error);
+        Assert.Equal(5, server.Requests.Count);
+        Assert.Equal(CardinalThreeDs.CentinelInitPath, server.Requests[0].PathAndQuery);
+        Assert.Contains("orgUnitId=org-dw", server.Requests[1].PathAndQuery);
+        Assert.Equal("/DeviceFingerprintWeb/V2/Browser/SaveBrowserData", server.Requests[2].PathAndQuery);
+        Assert.StartsWith("/DeviceFingerprintWeb/V2/Browser/Notification", server.Requests[3].PathAndQuery);
+        Assert.Equal(CardinalThreeDs.CentinelContinuePath, server.Requests[4].PathAndQuery);
+    }
+
+    private sealed class StubStoreFlow : StoreFlow
+    {
+        public override string Id => "sf";
+        public override string Name => "SF";
+        public override IReadOnlyList<string> Domains { get; } = new[] { "127.0.0.1" };
+    }
 }

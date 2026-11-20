@@ -1530,29 +1530,7 @@ public abstract class StoreFlow
             c.Session.Vars.TryGetValue("cardinal.step", out var cardinalStep) &&
             !string.IsNullOrEmpty(cardinalStep))
         {
-            var cardinal = new Cybersole.Stores.Payments.CardinalThreeDs();
-            var variant = string.Equals(c.Session.Vars.GetValueOrDefault("cardinal.variant"), "trusted",
-                StringComparison.OrdinalIgnoreCase)
-                ? Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.CardinalTrusted
-                : Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.Centinel;
-            var jwt = c.Session.Vars.GetValueOrDefault("cardinal.serverJwt") ?? string.Empty;
-            var txId = c.Session.Vars.GetValueOrDefault("cardinal.transactionId") ?? c.Session.OrderId ?? string.Empty;
-
-            var cardRes = cardinalStep switch
-            {
-                "init" => await cardinal.InitAsync(c, jwt, variant, ct).ConfigureAwait(false),
-                "continue" => await cardinal.ContinueAsync(c, txId, jwt, variant, ct).ConfigureAwait(false),
-                "stepup" => await cardinal.StepUpAsync(c, c.Session.Vars.GetValueOrDefault("cardinal.jwt") ?? jwt,
-                    c.Session.Vars.GetValueOrDefault("cardinal.stepUpUrl"), ct).ConfigureAwait(false),
-                _ => null,
-            };
-
-            if (cardRes is null)
-                return StepOutcome.Fail($"cardinal 3ds step '{cardinalStep}' is unknown");
-
-            return cardRes.Ok
-                ? StepOutcome.Success()
-                : StepOutcome.Fail(cardRes.Error ?? "cardinal 3ds step failed", retryable: true);
+            return await RunCardinalStepAsync(c, cardinalStep, ct).ConfigureAwait(false);
         }
 
         return status.ToLowerInvariant() switch
@@ -1937,8 +1915,61 @@ public abstract class StoreFlow
 
         return StepOutcome.Fail("3DS redirect carried no transStatus", retryable: true);
     }
+    protected static async Task<StepOutcome> RunCardinalStepAsync(FlowContext c, string cardinalStep, CancellationToken ct)
+    {
+        var cardinal = new Cybersole.Stores.Payments.CardinalThreeDs();
+        var variant = string.Equals(c.Session.Vars.GetValueOrDefault("cardinal.variant"), "trusted",
+            StringComparison.OrdinalIgnoreCase)
+            ? Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.CardinalTrusted
+            : Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.Centinel;
+        var jwt = c.Session.Vars.GetValueOrDefault("cardinal.serverJwt") ?? string.Empty;
+        var txId = c.Session.Vars.GetValueOrDefault("cardinal.transactionId") ?? c.Session.OrderId ?? string.Empty;
+
+        Cybersole.Stores.Payments.PaymentResult? cardRes;
+        switch (cardinalStep)
+        {
+            case "init":
+                cardRes = await cardinal.InitAsync(c, jwt, variant, ct).ConfigureAwait(false);
+                break;
+            case "fingerprint":
+                var orgUnitId = c.Session.Vars.GetValueOrDefault("cardinal.orgUnitId") ?? string.Empty;
+                var refId = c.Session.Vars.GetValueOrDefault("cardinal.dfReferenceId")
+                            ?? c.Session.Vars.GetValueOrDefault("cardinal.consumerSessionId")
+                            ?? string.Empty;
+                if (string.IsNullOrEmpty(orgUnitId) || string.IsNullOrEmpty(refId))
+                    return StepOutcome.Fail("cardinal: missing orgUnitId or referenceId for device fingerprint");
+                cardRes = await cardinal.CollectDeviceFingerprintAsync(
+                    c,
+                    orgUnitId,
+                    refId,
+                    c.Session.Vars.GetValueOrDefault("cardinal.binSessionId"),
+                    c.Session.Vars.GetValueOrDefault("cardinal.methodUrl"),
+                    ct).ConfigureAwait(false);
+                break;
+            case "continue":
+                cardRes = await cardinal.ContinueAsync(c, txId, jwt, variant, ct).ConfigureAwait(false);
+                break;
+            case "stepup":
+                cardRes = await cardinal.StepUpAsync(c, c.Session.Vars.GetValueOrDefault("cardinal.jwt") ?? jwt,
+                    c.Session.Vars.GetValueOrDefault("cardinal.stepUpUrl"), ct).ConfigureAwait(false);
+                break;
+            default:
+                return StepOutcome.Fail($"cardinal 3ds step '{cardinalStep}' is unknown");
+        }
+
+        return cardRes.Ok
+            ? StepOutcome.Success()
+            : StepOutcome.Fail(cardRes.Error ?? "cardinal 3ds step failed", retryable: true);
+    }
+
     public virtual async Task<StepOutcome> Process3DSAsync(FlowContext c, CancellationToken ct)
     {
+        if (c.Session.Vars.TryGetValue("cardinal.step", out var cardinalStep) &&
+            !string.IsNullOrEmpty(cardinalStep))
+        {
+            return await RunCardinalStepAsync(c, cardinalStep, ct).ConfigureAwait(false);
+        }
+
         const string requiredKey = "3dsRequired";   // R1266: named rather than inline, purely as the oracle's probe
         var required = c.Session.Vars.TryGetValue(requiredKey, out var r) && r == "true";
         if (!required) return StepOutcome.Success();

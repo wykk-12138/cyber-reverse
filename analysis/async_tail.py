@@ -28,6 +28,7 @@ import re
 DUMP = 'analysis/ida_strings.txt'
 SRC = 'replica/src'
 DOC = 'docs/ASYNC_TAIL.md'
+CLASS_DOC = 'docs/ASYNC_CLASSES.md'
 
 SM = re.compile(r'<([A-Za-z_][A-Za-z0-9_]*)>d__(\d+)')
 
@@ -95,6 +96,81 @@ def spellings_of(name: str):
     return out | extra
 
 
+def state_machine_sites():
+    """(address, name, ordinal) for every `<Name>d__NN` in the string database.
+
+    The address matters because these names are grouped by class in the metadata blob: one store class
+    contributes a contiguous run like `<Start>d__14`, `<GetHome>d__18`, `<FindProduct>d__19`,
+    `<AddToCart>d__26` … which is that class's step list in ordinal order. A flat name list throws that
+    away; keeping the address is what makes the class inventory below possible.
+    """
+    out = []
+    for line in io.open(DUMP, encoding='utf-8', errors='replace'):
+        if '\t' not in line:
+            continue
+        addr, text = line.split('\t', 1)
+        try:
+            value = int(addr, 16)
+        except ValueError:
+            continue
+        for m in SM.finditer(text):
+            out.append((value, m.group(1), int(m.group(2))))
+    out.sort()
+    return out
+
+
+def group_by_blob(sites, gap=0x800):
+    """Split the sorted sites into runs that are close enough to belong to one class's metadata."""
+    groups, current = [], []
+    for site in sites:
+        if current and site[0] - current[-1][0] > gap:
+            groups.append(current)
+            current = []
+        current.append(site)
+    if current:
+        groups.append(current)
+    return [g for g in groups if len(g) >= 3]
+
+
+def render_classes(counts, declared, mentioned, absent):
+    known = set(declared)
+    named = set(mentioned)
+    missing = set(absent)
+
+    groups = group_by_blob(state_machine_sites())
+    lines = [
+        '# 按类的状态机清单（由 `python analysis/async_tail.py --classes-doc` 生成）',
+        '',
+        '> 状态机名 `<名字>d__NN` 在元数据里**按类成组**出现，`NN` 是该类内的方法序号。',
+        '> 所以相邻的一串名字就是**那个类的步骤清单**——这比一张扁平的名字表有用得多：',
+        '> 它让人能看出「这个类有十步，其中三步复刻件没有」。',
+        '',
+        '三态含义同 `docs/ASYNC_TAIL.md`：`declared` 有同名方法 / `mentioned` 源码出现过但非声明 / `absent` 完全没有。',
+        '',
+        '| 组 | 起始地址 | 步骤数 | 有同名 | 仅提及 | 缺 |',
+        '|---|---|---|---|---|---|',
+    ]
+    for idx, group in enumerate(groups):
+        names = {n for _, n, _ in group}
+        lines.append('| %d | `0x%X` | %d | %d | %d | %d |' % (
+            idx, group[0][0], len(group),
+            len(names & known), len(names & named), len(names & missing)))
+    lines.append('')
+
+    for idx, group in enumerate(groups):
+        if not any(n in missing for _, n, _ in group):
+            continue
+        lines.append('## 组 %d · `0x%X`' % (idx, group[0][0]))
+        lines.append('')
+        lines.append('| d__ | 名字 | 状态 |')
+        lines.append('|---|---|---|')
+        for _, name, ordinal in group:
+            state = 'declared' if name in known else ('mentioned' if name in named else '**absent**')
+            lines.append('| %d | `%s` | %s |' % (ordinal, name, state))
+        lines.append('')
+    return '\n'.join(lines) + '\n'
+
+
 def classify(names, source):
     """Three states per image name: declared, only mentioned, absent.
 
@@ -126,6 +202,8 @@ def main(argv):
     ap = argparse.ArgumentParser()
     ap.add_argument('--family', choices=['payment', 'store', 'other', 'all'], default='all')
     ap.add_argument('--write-doc', action='store_true')
+    ap.add_argument('--classes-doc', action='store_true',
+                    help='write docs/ASYNC_CLASSES.md: per-class step inventories instead of a flat list')
     args = ap.parse_args(argv)
 
     counts = image_names()
@@ -187,6 +265,11 @@ def main(argv):
         lines += ['', '> `other` 家族 absent %d 个：`python analysis/async_tail.py --family other`。' % miss_fam.get('other', 0), '']
         io.open(DOC, 'w', encoding='utf-8', newline='').write('\n'.join(lines))
         print('\nwrote %s' % DOC)
+
+    if args.classes_doc:
+        body = render_classes(counts, declared, mentioned, absent)
+        io.open(CLASS_DOC, 'w', encoding='utf-8', newline='').write(body)
+        print('\nwrote %s' % CLASS_DOC)
     return 0
 
 

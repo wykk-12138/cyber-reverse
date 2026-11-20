@@ -42,6 +42,14 @@
      `<GetStripeConfiguration>d__87` … `<SubmitUnzerOrder>d__100` 一张序列表），可据此按类枚举方法。
 ### 2. UI 绑定形状与交互语义收口（`docs/SHAPE_GAPS.md`）
 
+
+  6. **`Saucony` 是一个复刻件完全没有的店**（R1308 从状态机分组里发现）：镜像有
+     `Saucony` / `Saucony CA` / `Saucony EU` / `Saucony UK` 与 `saucony_us|ca|eu|europe` 四个 id、
+     `https://www.saucony.com`，以及一个带 `_merchantId` / `_encodedMerchantId` / `_paymentFormToken` /
+     `_checkoutCaptchaEnabled` 的**托管支付表单**。它的步骤是 d__6..13：
+     `FindProduct` / `AddToCart` / `GetCheckout` / `SubmitShipping` / `SubmitBilling` / `SubmitOrder` /
+     `HandleOrderResult` / `PayerAuthenticate`。`where_is Saucony` 在仓库零命中，`store_catalog.py` 的 65 条也没有它。
+     **下一轮先定它的 `flow type` 再进 `CreateAll()`**，不要凭猜。
 - 名字级与类型级绑定缺口虽已归零（`real gap=0`、`types with scope misses=0`、`unclassified=0`），但成员形状仍存在 **`84` 条差异**（其中 core 差异 `1` 条）：
   - **`39` 条「需要选择模型」**：复刻件实现为带参方法，原版为可绑定属性（如 `AnalyticsView.ChangeChart`、`AnalyticsView.OpenRelease`、`CaptchaProvidersView.Reorder`、`CustomBrowser.Back` 等），需在引入列表“当前选中项”后驱动 `ICommand`；
   - **`22` 条通用名撞名项**（如 `Delete`、`Save`、`Create`）：机械扫描无法消歧，需逐类反编译原版对应视图确认是否真实具备该本地动作；

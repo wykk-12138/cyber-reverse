@@ -8211,3 +8211,14 @@ Observation：
 - 三次修正过程写在 `replica/docs/VERDICT.md`：裸名比对→允许 Async→三态→数字/英文拼法。
   前两版分别报出 723 和 80，都是**命名差异冒充缺口**。
 - 本轮未改 `replica/src`，AOT 未重发布、变异未重跑（R1306 的绿仍描述当前树）。
+
+---
+
+## 第 1308 轮
+
+- 状态机名**按类成组**（`NN` 是类内方法序号），所以 `docs/ASYNC_CLASSES.md` 给出的是**每个类的步骤清单**，
+  比扁平名字表有用。生成器 `analysis/async_tail.py --classes-doc`。
+- 分组是**按 0x800 字节邻近度**切的，会偶尔并组，别当类型边界用。
+- 由此发现：**`Saucony` 是复刻件完全没有的一家店**（4 个 id、独立托管支付表单、8 个步骤），
+  两个支付步骤 `HandleOrderResult` / `PayerAuthenticate` 源码里根本没有。下轮先定 flow type 再加目录。
+- 本轮未改 `replica/src`。

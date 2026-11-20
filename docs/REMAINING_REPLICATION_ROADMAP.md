@@ -34,6 +34,12 @@
   3. **Komoju**：`0x140d98f60` 的「`[1..56]` `formUrl` 后缀」**R1304 已撤回**——该函数只构建 `{authenticity_token, payment_details:{type:konbini, email, store, given_name}}`（与复刻件已有的体一致），URL 取自状态机上下文 `*(*(v3+16)+16)`。同时新解并落码了兄弟机 `0x140D994D0` 的卡面（`KomojuGateway`）。**仍 Unknown**：`formUrl`（konbini 与卡凭证两个请求体的目标）；
   4. **`Topps`**：**R1305 已结案形状面**——`off_1449B8EB0` 是 JSON 类型句柄，不是键名表；类形从镜像的反射元数据读出（`ToppsCommerceProduct`：`PriceAmount` / `ProductImage` / `ProductVariant` / `SelectedOption` / `VariantImage` / `ToppsCommerceProductUrl` / `JToken`，加 `ListToppsCommerceProduct` 等 4 个列表承载名），已落成 `ToppsCdn.Parse` 并接回 `FindProductCdnAsync`。**仍 Unknown**：序列化键的大小写（响应两种写法都能读）。
 
+
+  5. **长尾名单已落成表**（R1307）：`docs/ASYNC_TAIL.md` 是生成的，把镜像 801 个 `<名字>d__NN` 状态机名
+     按 declared / mentioned / absent 三态对上复刻件源码。**支付家族 110 个名里 66 个 absent**，
+     店铺家族 74 个里 34 个 absent。**取件优先从这张表的 absent 列里挑**，不要再用「剩 77」这个没有出处的数字。
+     定位方法已探明：状态机名按类编号且成串出现（如 `0x14338377d` 是
+     `<GetStripeConfiguration>d__87` … `<SubmitUnzerOrder>d__100` 一张序列表），可据此按类枚举方法。
 ### 2. UI 绑定形状与交互语义收口（`docs/SHAPE_GAPS.md`）
 
 - 名字级与类型级绑定缺口虽已归零（`real gap=0`、`types with scope misses=0`、`unclassified=0`），但成员形状仍存在 **`84` 条差异**（其中 core 差异 `1` 条）：

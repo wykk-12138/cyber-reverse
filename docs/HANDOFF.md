@@ -8201,3 +8201,13 @@ Observation：
 - 已落成 `IsUnzerThreeDsUrl` / `TerminalPhrases` / `IsTerminalFailure`，并在 `RunUnzerThreeDsAsync` 起点接入
   （页面说 declined 就结束，不再跟跳）。
 - 见 `replica/docs/VERDICT.md` 第 1306 轮。
+
+---
+
+## 第 1307 轮
+
+- 长尾有了名单：`docs/ASYNC_TAIL.md`（由 `analysis/async_tail.py --write-doc` 生成），三态
+  declared / mentioned / absent，**只有 absent 算覆盖缺口**。支付家族 110 名里 absent 66，店铺 74 里 34。
+- 三次修正过程写在 `replica/docs/VERDICT.md`：裸名比对→允许 Async→三态→数字/英文拼法。
+  前两版分别报出 723 和 80，都是**命名差异冒充缺口**。
+- 本轮未改 `replica/src`，AOT 未重发布、变异未重跑（R1306 的绿仍描述当前树）。

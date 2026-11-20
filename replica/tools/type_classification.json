@@ -33,22 +33,22 @@
     },
     "Cybersole.Ui.Localization.LocalizeEnumExtension": {
       "kind": "renamed",
-      "to": "Cybersole.Ui.Localization.LocalizeHelpers.Enum / LocalizeEnumConverter",
+      "to": "Cybersole.Ui.Localization.LocalizeHelpers.Enum",
       "evidence": "src/Cybersole.Ui/Localization/LocalizeHelpers.cs, src/Cybersole.Services/Localization/LocalizationService.cs"
     },
     "Cybersole.Ui.Localization.LocalizeFallbackExtension": {
       "kind": "renamed",
-      "to": "Cybersole.Ui.Localization.LocalizeHelpers.Fallback / LocalizeFallbackConverter",
+      "to": "Cybersole.Ui.Localization.LocalizeHelpers.Fallback",
       "evidence": "src/Cybersole.Ui/Localization/LocalizeHelpers.cs, src/Cybersole.Services/Localization/LocalizationService.cs"
     },
     "Cybersole.Ui.Localization.LocalizeFormatExtension": {
       "kind": "renamed",
-      "to": "Cybersole.Ui.Localization.LocalizeHelpers.Format / LocalizeFormatConverter",
+      "to": "Cybersole.Ui.Localization.LocalizeHelpers.Format",
       "evidence": "src/Cybersole.Ui/Localization/LocalizeHelpers.cs, src/Cybersole.Services/Localization/LocalizationService.cs"
     },
     "Cybersole.Ui.Localization.LocalizeSwitchExtension": {
       "kind": "renamed",
-      "to": "Cybersole.Ui.Localization.LocalizeHelpers.Switch / LocalizeSwitchConverter",
+      "to": "Cybersole.Ui.Localization.LocalizeHelpers.Switch",
       "evidence": "src/Cybersole.Ui/Localization/LocalizeHelpers.cs, src/Cybersole.Services/Localization/LocalizationService.cs"
     },
     "Cybersole.Ui.Views.Accounts.Modals.AccountsCreatorView": {

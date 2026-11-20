@@ -177,7 +177,7 @@ public sealed class AnalyticsView : UserControl
             Children =
             {
                 Segments2(Segments, i => { _segment = i; LoadAnalyticsCore(); }),
-                Segments2(Periods, SetPeriodIndex),
+                Segments2(Periods.Select(p => PeriodLabel(p)).ToArray(), SetPeriodIndex),
                 NumberRow(),
                 _emptyBlock,
                 ReleasesRow(),

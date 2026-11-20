@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using Avalonia;
 using Avalonia.Data;
 using Cybersole.Core.Settings;
@@ -15,10 +14,13 @@ namespace Cybersole.Tests;
 /// Verifies all five <c>Cybersole.Ui.Localization</c> behaviors (<c>LocalizeEnumExtension.Value</c>,
 /// <c>LocalizeFallbackExtension.Value</c>, <c>LocalizeFormatExtension.{Value,Value2}</c>, and
 /// <c>LocalizeSwitchExtension.Condition</c>) across <see cref="LocalizationService"/> and
-/// <see cref="LocalizeHelpers"/> / its Avalonia multi-value converters.
+/// <see cref="LocalizeHelpers"/>.
 /// </summary>
 public sealed class LocalizationHelpersTests
 {
+    private static BindingNotification ErrorNotification =>
+        new(new InvalidOperationException("x"), BindingErrorType.Error);
+
     [Fact]
     public void LocalizeEnumTranslatesPrefixPlusEnumAcrossLanguages()
     {
@@ -28,10 +30,7 @@ public sealed class LocalizationHelpersTests
             AnalyticsView.PeriodLabel("Week", "ja"));
         Assert.Equal(string.Empty, LocalizeHelpers.Enum("Analytics.TimeSpan.", null));
         Assert.Equal(string.Empty, LocalizeHelpers.Enum("Analytics.TimeSpan.", AvaloniaProperty.UnsetValue));
-
-        var converter = new LocalizeEnumConverter("Analytics.TimeSpan.");
-        Assert.Equal("Month", converter.Convert(new object?[] { "Month" }, typeof(string), null, CultureInfo.InvariantCulture));
-        Assert.Equal(string.Empty, converter.Convert(new object?[] { new BindingNotification(new InvalidOperationException("x"), BindingErrorType.Error) }, typeof(string), null, CultureInfo.InvariantCulture));
+        Assert.Equal(string.Empty, LocalizeHelpers.Enum("Analytics.TimeSpan.", ErrorNotification));
     }
 
     [Fact]
@@ -41,12 +40,8 @@ public sealed class LocalizationHelpersTests
         Assert.Equal("License", LocalizeHelpers.Fallback("", "Auth.License.PlaceholderName"));
         Assert.Equal("License", LocalizeHelpers.Fallback(null, "Auth.License.PlaceholderName"));
         Assert.Equal("License", LocalizeHelpers.Fallback(AvaloniaProperty.UnsetValue, "Auth.License.PlaceholderName"));
-
-        var converter = new LocalizeFallbackConverter();
-        Assert.Equal("4242", converter.Convert(new object?[] { "4242", "Fallback" }, typeof(string), null, CultureInfo.InvariantCulture));
-        Assert.Equal("Fallback", converter.Convert(new object?[] { "", "Fallback" }, typeof(string), null, CultureInfo.InvariantCulture));
-        Assert.Equal("Fallback", converter.Convert(new object?[] { AvaloniaProperty.UnsetValue, "Fallback" }, typeof(string), null, CultureInfo.InvariantCulture));
-        Assert.Equal(string.Empty, converter.Convert(new object?[] { null, AvaloniaProperty.UnsetValue }, typeof(string), null, CultureInfo.InvariantCulture));
+        Assert.Equal("License", LocalizeHelpers.Fallback(ErrorNotification, "Auth.License.PlaceholderName"));
+        Assert.Equal("FallbackLiteral", LocalizeHelpers.Fallback(AvaloniaProperty.UnsetValue, "FallbackLiteral", translateFallbackKey: false));
     }
 
     [Fact]
@@ -55,15 +50,9 @@ public sealed class LocalizationHelpersTests
         Assert.Equal("Ending in 4242", LocalizeHelpers.Format("Auth.License.EndingIn", "4242"));
         Assert.Equal("Triggered today (2)", LocalizeHelpers.Format("SmartActions.LastRun.Format", "today", 2));
         Assert.Equal("Webhook (3 more)", LocalizeHelpers.Format("SmartActions.Actions.MoreFormat", "Webhook", 3));
+        Assert.Equal(string.Empty, LocalizeHelpers.Format("Auth.License.EndingIn", AvaloniaProperty.UnsetValue));
         Assert.Equal(string.Empty, LocalizeHelpers.Format("SmartActions.LastRun.Format", "today", AvaloniaProperty.UnsetValue));
-
-        var converter = new LocalizeFormatConverter();
-        Assert.Equal("Triggered 12:00 (OK)", converter.Convert(
-            new object?[] { "Triggered {0} ({1})", "12:00", "OK" },
-            typeof(string), null, CultureInfo.InvariantCulture));
-        Assert.Equal(string.Empty, converter.Convert(
-            new object?[] { "Triggered {0} ({1})", "12:00", AvaloniaProperty.UnsetValue },
-            typeof(string), null, CultureInfo.InvariantCulture));
+        Assert.Equal(string.Empty, LocalizeHelpers.Format("SmartActions.LastRun.Format", ErrorNotification, 2));
     }
 
     [Fact]
@@ -80,15 +69,10 @@ public sealed class LocalizationHelpersTests
         Assert.Equal(LocalizationService.Translate("ja", "Analytics.TimeSpan.Year"), svc.Enum("Analytics.TimeSpan.", "Year"));
         Assert.Equal(LocalizationService.Translate("ja", "SmartActions.Actions.MoreFormat").Replace("{0}", "A").Replace("{1}", "2"),
             svc.Format("SmartActions.Actions.MoreFormat", "A", 2));
-
-        var converter = new LocalizeSwitchConverter("Common.Active", "Common.Inactive");
-        Assert.Equal("Active", converter.Convert(new object?[] { true }, typeof(string), null, CultureInfo.InvariantCulture));
-        Assert.Equal("Inactive", converter.Convert(new object?[] { false }, typeof(string), null, CultureInfo.InvariantCulture));
-        Assert.Equal("Inactive", converter.Convert(new object?[] { null }, typeof(string), null, CultureInfo.InvariantCulture));
     }
 
     [Fact]
-    public void HistoryWindowUsesFallbackAndFormatForSmartActionTitle()
+    public void HistoryWindowAndAccountViewUseLocalizationHelpers()
     {
         Assert.Equal("All smart actions - Logs", HistoryWindow.FormatLogsTitle(null));
         Assert.Equal("All smart actions - Logs", HistoryWindow.FormatLogsTitle(string.Empty));

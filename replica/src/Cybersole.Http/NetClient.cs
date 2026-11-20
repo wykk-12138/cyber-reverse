@@ -22,24 +22,39 @@ public sealed class NetClient : IDisposable
     private readonly object _poolGate = new();
     private readonly Dictionary<string, HttpClient> _clients = new(StringComparer.OrdinalIgnoreCase);
     private readonly HttpAnalytics _analytics;
+    /// <summary>Default dial/connect timeout matching <c>sub_1412897D0</c> (+160, 30s).</summary>
+    public static readonly TimeSpan DefaultConnectTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>Default idle pooled connection timeout matching <c>sub_1412897D0</c> (+152, 90s).</summary>
+    public static readonly TimeSpan DefaultPooledConnectionIdleTimeout = TimeSpan.FromSeconds(90);
+
     private readonly TimeSpan _connectTimeout;
     private bool _disposed;
 
     public NetClient(HttpAnalytics? analytics = null, TimeSpan? timeout = null)
     {
         _analytics = analytics ?? new HttpAnalytics();
-        _connectTimeout = timeout ?? TimeSpan.FromSeconds(20);
+        _connectTimeout = timeout ?? DefaultConnectTimeout;
     }
+
+    public TimeSpan ConnectTimeout => _connectTimeout;
 
     public HttpAnalytics Analytics => _analytics;
 
     /// <summary>
-    /// Transport selection. <see cref="TransportMode.SChannel"/> is the default and the only
-    /// one safe for production traffic. <see cref="TransportMode.OwnTls"/> is a hand-written
-    /// TLS 1.2 stack kept for fingerprint experiments — against some hosts it is rejected with
-    /// `bad_record_mac` and automatically falls back. See docs/VERDICT.md.
+    /// Transport selection. <see cref="TransportMode.SChannel"/> (<see cref="SocketsHttpHandler"/>) is the default and
+    /// the production path matching the original binary's HTTP stack. <see cref="TransportMode.OwnTls"/> is an
+    /// experimental hand-written TLS 1.2 probe path kept strictly for fingerprint diagnostics — it is NOT a
+    /// production path, offers TLS 1.2 only, and performs an automatic one-shot fallback to
+    /// <see cref="TransportMode.SChannel"/> on handshake/transport failure.
     /// </summary>
     public TransportMode Transport { get; set; } = TransportMode.SChannel;
+
+    /// <summary>True when <see cref="Transport"/> is on the production SChannel/SocketsHttpHandler path.</summary>
+    public bool IsProductionTransport => Transport == TransportMode.SChannel;
+
+    /// <summary>True when <see cref="Transport"/> is opted into a non-production experimental probe stack.</summary>
+    public bool IsExperimentalTransport => Transport != TransportMode.SChannel;
 
     private bool _fellBackFromOwnTls;
     private int _ownTlsFallbackCount;
@@ -81,6 +96,9 @@ public sealed class NetClient : IDisposable
         {
             if (_clients.TryGetValue(profile.Name, out var existing)) return existing;
 
+            // Matches sub_1412897D0 pool/redirect defaults (MaxAutomaticRedirections=10, dial=30s, idle=90s,
+            // gzip/deflate/br decompression, cookies=true). BCL SocketsHttpHandler.Http3Support is explicitly
+            // disabled in the original image (AppContext 0x144b19bd0 = "false"; zero System.Net.Quic/msquic).
             var handler = new SocketsHttpHandler
             {
                 AutomaticDecompression = DecompressionMethods.All,
@@ -88,7 +106,7 @@ public sealed class NetClient : IDisposable
                 MaxAutomaticRedirections = 10,
                 ConnectTimeout = _connectTimeout,
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-                PooledConnectionIdleTimeout = TimeSpan.FromSeconds(60),
+                PooledConnectionIdleTimeout = DefaultPooledConnectionIdleTimeout,
                 UseCookies = true,
                 CookieContainer = new CookieContainer(),
                 SslOptions =
@@ -170,15 +188,14 @@ public sealed class NetClient : IDisposable
                 }
                 catch (Exception ex) when (!ct.IsCancellationRequested)
                 {
-                    // Some hosts reject this stack outright (`bad_record_mac`). The transport is
-                    // an experiment; failing the caller over it would be a worse outcome than
-                    // quietly finishing on the system stack and saying so.
+                    // Some hosts reject this experimental TLS 1.2 stack outright (`bad_record_mac`).
+                    // Never leave the client stuck on OwnTls: record the fallback and switch one-shot to SChannel.
                     _fellBackFromOwnTls = true;
-                    Volatile.Write(ref _ownTlsFallbackCount, _ownTlsFallbackCount + 1);
+                    Interlocked.Increment(ref _ownTlsFallbackCount);
                     Transport = TransportMode.SChannel;
                     _lastOwnTlsError = ex.Message;
 
-                    // fall through to the standard path below
+                    // fall through to the standard SChannel path below
                 }
             }
 

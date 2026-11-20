@@ -81,9 +81,11 @@ public sealed class ProfileTlsClient : DefaultTlsClient
     // All and UseCookies = true — six properties, each the platform's own name for the same thing the image uses, so the
     // default path already matches on TLS version, TLS policy, ALPN, redirect cap, decompression and cookies.
     //
-    // This class is the OwnTls fallback. It is a hand-written stack that offers 1.2 only, reachable solely by opting in,
-    // and its handshake bytes will never equal the platform's. R1291 read a BouncyCastle string beside a suite name and
-    // concluded the image used this library for TLS; the suite names (146EB3A24 / 146EB3A6C) are SslStream's.
+    // This BouncyCastle class backs TransportMode.BouncyH2 / TransportMode.BouncyHttp11 (distinct from
+    // TransportMode.OwnTls / Tls12Client in Tls12.cs). Both non-SChannel stacks offer TLS 1.2 only, are reachable
+    // solely by explicit opt-in for fingerprint diagnostics, and are NOT production paths — their handshake bytes will
+    // never equal the platform's SslStream stack. R1291 read a BouncyCastle string beside a suite name and concluded the
+    // image used this library for TLS; the suite names (146EB3A24 / 146EB3A6C) are SslStream's.
     protected override ProtocolVersion[] GetSupportedVersions()
         => new[] { ProtocolVersion.TLSv12 };
 

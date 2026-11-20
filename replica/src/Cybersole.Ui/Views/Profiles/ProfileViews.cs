@@ -840,9 +840,18 @@ public sealed class ProfileGroupView : UserControl
     }
 
     /// <summary>The group name on screen (bound as <c>GroupName</c>). Updated as the box changes.</summary>
-    public string GroupName => _typedName;
+    public string GroupName
+    {
+        get => _typedName;
+        set
+        {
+            _typedName = value ?? string.Empty;
+            if (_nameBox is not null) _nameBox.Text = _typedName;
+        }
+    }
 
     private string _typedName = string.Empty;
+    private readonly TextBox? _nameBox;
 
     private readonly AppServices _services;
     private readonly ListBox _groups = new() { Height = 200 };
@@ -857,6 +866,7 @@ public sealed class ProfileGroupView : UserControl
 
         _services = services;
         var name = UiKit.Text(watermark: "Group name");
+        _nameBox = name;
         name.TextChanged += (_, _) => _typedName = name.Text ?? string.Empty;
 
         Content = new StackPanel

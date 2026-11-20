@@ -100,4 +100,21 @@ public sealed class SmartActionRowTests
         Assert.True(hit.Matched);
         Assert.False(miss.Matched);
     }
+
+    [Fact]
+    public void FilterRowAndFilterInputEntryBindableMembersAreSettable()
+    {
+        var initial = Filter();
+        var replacement = Filter("Store", "equals", "nike");
+        var row = new FilterRow(initial, passed: true, isFirst: true);
+        var inputs = new[] { new FilterInputEntry("Store", "nike", isFirst: true) };
+
+        row.Filter = replacement;
+        row.Inputs = inputs;
+        inputs[0].Filter = "Product";
+
+        Assert.Same(replacement, row.Filter);
+        Assert.Same(inputs, row.Inputs);
+        Assert.Equal("Product", row.Inputs[0].Filter);
+    }
 }

@@ -813,13 +813,18 @@ public sealed class HistoryWindow : Window
     /// Which smart action's history is on screen, or null for all of them (bound as <c>SmartAction</c>). Setting it filters the
     /// list; the window title follows <c>HistoryWindow.LogsFormat</c> — "{0} - Logs".
     /// </summary>
+    public static string FormatLogsTitle(string? actionName) =>
+        Cybersole.Ui.Localization.LocalizeHelpers.Format(
+            "HistoryWindow.LogsFormat",
+            Cybersole.Ui.Localization.LocalizeHelpers.Fallback(actionName, "All smart actions", translateFallbackKey: false));
+
     public SmartAction? SmartAction
     {
         get => _smartAction;
         set
         {
             _smartAction = value;
-            Title = string.Format(LocaleLogsFormat, value?.Name ?? "All smart actions");
+            Title = FormatLogsTitle(value?.Name);
             Render();
         }
     }

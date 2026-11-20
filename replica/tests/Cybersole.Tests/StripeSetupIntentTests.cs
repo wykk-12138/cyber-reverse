@@ -1,5 +1,10 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Cybersole.Core.Models;
+using Cybersole.Http;
+using Cybersole.Stores.Flows;
 using Cybersole.Stores.Payments;
+using Cybersole.Tests.Support;
 using Xunit;
 
 namespace Cybersole.Tests;
@@ -193,5 +198,68 @@ public sealed class StripeSetupIntentTests
 
         var with = StripeGateway.SetupConfirmForm("si_1", "secret_1", "pk_1", Card, hcaptchaToken: "tok");
         Assert.Equal("tok", with["radar_options[hcaptcha_token]"]);
+    }
+
+    private static FlowContext Context(NetClient http, string baseUrl)
+    {
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = "https://www.casio.com/checkout",
+            Shipping = new Address { Country = "GB" },
+            Card = new Card { Number = Card.Number, Cvv = Card.Cvc, Month = Card.ExpMonth, Year = Card.ExpYear },
+        };
+        ctx.Session.Vars["stripe.apiUrl"] = baseUrl;
+        return ctx;
+    }
+
+    [Fact]
+    public async Task RetrieveAndConfirmRuntimeMethodsHitExpectedStripeEndpoints()
+    {
+        var seenQueries = new List<string>();
+        using var server = new TinyServer((req, body) =>
+        {
+            seenQueries.Add(req.Url?.PathAndQuery ?? "");
+            var path = req.Url?.AbsolutePath ?? "";
+            if (req.HttpMethod == "GET" && path == "/v1/payment_intents/pi_basil")
+                return (200, "{\"id\":\"pi_basil\",\"status\":\"requires_action\",\"client_secret\":\"sec_b\",\"next_action\":{\"source\":\"src_casio\",\"redirect_to_url\":{\"url\":\"https://hooks.stripe.com/3ds\"}}}");
+            if (req.HttpMethod == "GET" && path == "/v1/setup_intents/si_1")
+                return (200, "{\"id\":\"si_1\",\"status\":\"succeeded\"}");
+            if (req.HttpMethod == "POST" && path == "/v1/setup_intents/si_1/confirm")
+                return (200, "{\"id\":\"si_1\",\"status\":\"succeeded\"}");
+            if (req.HttpMethod == "POST" && path == "/v1/payment_intents/pi_pp/confirm")
+                return (200, "{\"id\":\"pi_pp\",\"status\":\"succeeded\"}");
+            return (404, "{}");
+        });
+
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = Context(http, server.BaseUrl);
+        var gw = new StripeGateway();
+
+        // 1. PaymentIntent retrieve with basil pin (Casio sub_14095B6C0)
+        var piRes = await gw.RetrievePaymentIntentAsync(
+            ctx, "pi_basil", "sec_b", "pk_1", "acct_1", StripeGateway.ChallengeVersion);
+        Assert.False(piRes.Ok);
+        Assert.Equal("src_casio", ctx.Session.Vars["stripe.threeDs2Source"]);
+        Assert.Equal("pi_basil", ctx.Session.Vars["stripe.intentId"]);
+        Assert.Contains("_stripe_version=2025-08-27.basil", seenQueries[0]);
+
+        // 2. SetupIntent retrieve (sub_141145DB0)
+        var siGet = await gw.RetrieveSetupIntentAsync(ctx, "si_1", "sec_s", "pk_1", "acct_1");
+        Assert.True(siGet.Ok, siGet.Error);
+        Assert.Contains("is_stripe_sdk=true", seenQueries[1]);
+
+        // 3. SetupIntent confirm (Above The Clouds sub_140BE0F80)
+        var siPost = await gw.ConfirmSetupIntentAsync(ctx, "si_1", "sec_s", "pk_1", Card, hcaptchaToken: "hc_1");
+        Assert.True(siPost.Ok, siPost.Error);
+        Assert.Contains("payment_method_data%5Btype%5D=card", server.Requests[2].Body);
+        Assert.Contains("radar_options%5Bhcaptcha_token%5D=hc_1", server.Requests[2].Body);
+
+        // 4. PayPal-on-Stripe confirm (Highsnobiety sub_140B58D60)
+        var ppPost = await gw.ConfirmPayPalIntentAsync(
+            ctx, "pi_pp", "pm_pp", "sec_p", "pk_1", "https://highsnobiety.com/thanks", "true");
+        Assert.True(ppPost.Ok, ppPost.Error);
+        Assert.Contains("expected_payment_method_type=paypal", server.Requests[3].Body);
+        Assert.Contains("payment_method=pm_pp", server.Requests[3].Body);
     }
 }

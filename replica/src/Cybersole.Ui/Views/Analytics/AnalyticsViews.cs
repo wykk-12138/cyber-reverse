@@ -50,6 +50,10 @@ public sealed class AnalyticsView : UserControl
     /// <summary>The four periods the window offers, in the order it offers them.</summary>
     public static readonly string[] Periods = { "Today", "Week", "Month", "Year" };
 
+    /// <summary>Localized display label for one analytics period via <c>Analytics.TimeSpan.*</c>.</summary>
+    public static string PeriodLabel(string period, string? language = null) =>
+        Cybersole.Ui.Localization.LocalizeHelpers.Enum("Analytics.TimeSpan.", period, language);
+
     /// <summary>The two segments above the number, measured from the window.</summary>
     public static readonly string[] Segments = { "Checkouts", "Spend" };
 

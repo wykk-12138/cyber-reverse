@@ -41,4 +41,14 @@ public sealed class DialogFieldTests
         _out.WriteLine("group: '" + editor.GroupName + "'");
         Assert.NotNull(editor.GroupName);
     }
+
+    [Fact]
+    public void ProfileGroupViewExposesWritableGroupName()
+    {
+        using var services = TestServices.Create();
+        var view = new Cybersole.Ui.Views.Profiles.ProfileGroupView(services);
+
+        view.GroupName = "VIP Profiles";
+        Assert.Equal("VIP Profiles", view.GroupName);
+    }
 }

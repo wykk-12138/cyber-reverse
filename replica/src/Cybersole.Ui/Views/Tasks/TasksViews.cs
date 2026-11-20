@@ -431,11 +431,21 @@ public sealed class TaskGroupView : UserControl
     /// <summary>Bound as <c>Close</c>; closes the hosting window (was a bool method).</summary>
     public ICommand Close { get; }
 
+    /// <summary>
+    /// Toggles linked monitor/retry delays on <see cref="Draft"/> and syncs <see cref="TaskGroup.RetryDelay"/>
+    /// to <see cref="TaskGroup.MonitorDelay"/> (bound as <c>Link</c>; binary 0x1405DA440 -> 0x140F99180 + 0x140F99040).
+    /// </summary>
+    public ICommand Link { get; }
+
+    private CheckBox? _linkedCheck;
+    private TextBox? _retryBox;
+
     public TaskGroupView(AppServices services, TaskGroup? group = null)
     {
         Close = new RelayCommand(() => CloseCore());
 
         Save = new RelayCommand(SaveCore);
+        Link = new RelayCommand(LinkCore);
         _services = services;
         _group = group ?? new TaskGroup();
 
@@ -494,9 +504,19 @@ public sealed class TaskGroupView : UserControl
     {
         var monitor = UiKit.Number(_group.MonitorDelay);
         var retry = UiKit.Number(_group.RetryDelay);
+        _retryBox = retry;
         var error = UiKit.Number(_group.ErrorDelay);
         var timeout = UiKit.Number(_group.Timeout);
-        var linked = UiKit.Check("Link monitor and retry", _group.LinkedDelays);
+        var linkedRow = UiKit.RowCheck("Linked delays", _group.LinkedDelays, v =>
+        {
+            _group.LinkedDelays = v;
+            if (v)
+            {
+                _group.RetryDelay = _group.MonitorDelay;
+                if (_retryBox is not null) _retryBox.Text = _group.RetryDelay?.ToString() ?? string.Empty;
+            }
+        });
+        _linkedCheck = (linkedRow as Grid)?.Children.OfType<CheckBox>().FirstOrDefault();
 
         // R53: "Reset limits after" is a duration choice, not a typed TimeSpan. The original's
         // options are the TaskGroup.TimeSpan.* locale keys.
@@ -524,14 +544,13 @@ public sealed class TaskGroupView : UserControl
         {
             if (UiKit.TryReadInt(timeout.Text, out var v)) _group.Timeout = v;
         };
-        linked.IsCheckedChanged += (_, _) => _group.LinkedDelays = linked.IsChecked == true;
 
         return UiKit.Scroll(UiKit.Form(
             UiKit.Row(MonitorDelayLabel, monitor),
             UiKit.Row(ErrorDelayLabel, retry),
             UiKit.Row("Retry Delay", error),
             UiKit.Row("Timeout (s)", timeout),
-            UiKit.RowCheck("Linked delays", _group.LinkedDelays)));
+            linkedRow));
     }
 
     private Control BuildLimits()
@@ -678,6 +697,15 @@ public sealed class TaskGroupView : UserControl
         {
             _status.Text = ex.Message;
         }
+    }
+
+    private void LinkCore()
+    {
+        var next = !_group.LinkedDelays;
+        _group.LinkedDelays = next;
+        _group.RetryDelay = _group.MonitorDelay;
+        if (_linkedCheck is not null) _linkedCheck.IsChecked = next;
+        if (_retryBox is not null) _retryBox.Text = _group.RetryDelay?.ToString() ?? string.Empty;
     }
 
     private void Reset()

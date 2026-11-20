@@ -7,6 +7,23 @@ namespace Cybersole.Stores.Payments;
 
 internal static class GatewayHttp
 {
+    public static async Task<JObject?> GetAsync(FlowContext c, string url, string tag,
+        CancellationToken ct)
+    {
+        try
+        {
+            var res = await c.Http.GetAsync(url, c.Options(tag), ct).ConfigureAwait(false);
+            c.Session.AbsorbCookies(res.Cookies);
+            if (!res.IsSuccess) return null;
+            try { return JObject.Parse(res.Body); }
+            catch (JsonException) { return null; }
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     public static async Task<JObject?> PostAsync(FlowContext c, string url, JObject body, string tag,
         CancellationToken ct)
     {
@@ -245,7 +262,8 @@ public sealed class StripeGateway : IPaymentGateway
         ApiHost + "/v1/payment_intents/" + Uri.EscapeDataString(intentId ?? string.Empty) + "/confirm";
 
     /// <summary>
-    /// The PayPal-through-Stripe payment-intent confirm built by <c>sub_140B58D60</c> (2,516 bytes, 345 lines).
+    /// The PayPal-through-Stripe payment-intent confirm built by <c>sub_140B58D60</c> (2,516 bytes, 345 lines),
+    /// statically wired to Highsnobiety (<c>sub_140b578c0</c>).
     ///
     /// <para>
     /// <b>Observed</b>: <c>payment_method_data[type]</c> with the value <c>paypal</c> (0x147110A68),
@@ -303,8 +321,8 @@ public sealed class StripeGateway : IPaymentGateway
     }
 
     /// <summary>
-    /// The payment-intent retrieve built by <c>sub_140A40170</c> (1,472 bytes) — the one that is not the John
-    /// Lewis variant.
+    /// The payment-intent retrieve built by <c>sub_140A40170</c> (1,472 bytes) — John Lewis (<c>sub_140a40a30</c>),
+    /// distinct from Casio's basil-pinned retrieve (<c>sub_14095B6C0</c>).
     ///
     /// <para>
     /// <b>Observed</b>: the function loads <c>https://api.stripe.com/v1/payment_intents/</c> (0x147054F08),
@@ -348,8 +366,12 @@ public sealed class StripeGateway : IPaymentGateway
     /// </para>
     ///
     /// <para>
-    /// <b>Unknown</b>: which surfaces call which pin. The version is data here and dispatch is not observable
-    /// (R1219), so both pins exist and neither is claimed for a particular step.
+    /// <b>Observed</b>: static thunk wiring confirms <c>sub_14095B6C0</c> belongs to Casio
+    /// (<c>sub_14095c980</c>, <c>/stripe/payments/get_requires_action?orderId=</c>, paired with Casio's
+    /// <c>PaymentMethodCreate</c> in <c>sub_140959320</c>), whereas <c>sub_140A40170</c> (<c>clover</c> +
+    /// <c>acct_1S0JRiIiwyy5Cf6X</c>) belongs to John Lewis (<c>sub_140a40a30</c>), and the <c>0x147228EF8</c> /
+    /// <c>0x1472279C8</c> pointers are <c>AsyncStateMachineBox</c> <c>ContextCallback</c> boxes rather than an
+    /// indirect dispatch table.
     /// </para>
     /// </summary>
     public static string PaymentIntentRetrieveUrlBasil(string intentId, string clientSecret,
@@ -362,10 +384,10 @@ public sealed class StripeGateway : IPaymentGateway
     /// <c>&amp;key=</c> at 0x146A84588 and <c>&amp;_stripe_account=</c> at 0x146A7AFD8.
     ///
     /// <para>
-    /// <b>Observed</b>: those four literals are the whole constant set of that function, so what it produces is a
-    /// GET of the intent, not a form post. <b>Inference</b>: the payment_intents retrieve in MagentoFlow builds the
-    /// same query — same three fragments — so the shape is shared between the two intents; this method is the
-    /// setup_intents half, which the replica did not have.
+    /// <b>Observed</b>: invoked from the shared Stripe <c>ProcessSetup</c> path (<c>sub_141146ce0</c> &lt;-
+    /// <c>sub_140dd4f20</c> for <c>SHOPIFY-PAYMENT</c> / <c>PAYMENT-PARTNERS</c>), while its payment-intent sibling
+    /// (<c>sub_1411458f0</c> via <c>STRIPE.Process</c> <c>sub_141146510</c>) serves Casio, John Lewis, HBX,
+    /// Sportsshoes and <c>sub_140dd4f20</c>. What it produces is a GET of the intent, not a form post.
     /// </para>
     /// </summary>
     public static string SetupIntentRetrieveUrl(string setupIntentId, string clientSecret, string publishableKey,
@@ -377,7 +399,8 @@ public sealed class StripeGateway : IPaymentGateway
         "&_stripe_account=" + Uri.EscapeDataString(stripeAccount ?? string.Empty);
 
     /// <summary>
-    /// The setup-intent confirm form (sub_140BE0F80, 2,844 bytes).
+    /// The setup-intent confirm form (sub_140BE0F80, 2,844 bytes), statically wired to Above The Clouds
+    /// (<c>sub_140be2a10</c>, <c>abovetheclouds.nodnod.digital/stripe/create-setup-intent</c>).
     ///
     /// <para>
     /// <b>Observed</b>: every key below is a frozen literal loaded by that function — the
@@ -455,6 +478,108 @@ public sealed class StripeGateway : IPaymentGateway
         c.Session.Vars.TryGetValue("stripe.apiUrl", out var v) && !string.IsNullOrEmpty(v)
             ? v.TrimEnd('/')
             : ApiHost;
+
+    private static string ResolveApiHost(FlowContext c, string url) =>
+        url.StartsWith(ApiHost, StringComparison.OrdinalIgnoreCase)
+            ? ApiUrl(c) + url[ApiHost.Length..]
+            : url;
+
+    /// <summary>Execute a PaymentIntent retrieve via GET (<see cref="PaymentIntentRetrieveUrl"/> / <see cref="PaymentIntentRetrieveUrlBasil"/>).</summary>
+    public async Task<PaymentResult> RetrievePaymentIntentAsync(
+        FlowContext c,
+        string intentId,
+        string clientSecret,
+        string publishableKey,
+        string? stripeAccount = null,
+        string? version = null,
+        CancellationToken ct = default)
+    {
+        var url = ResolveApiHost(c, PaymentIntentRetrieveUrl(intentId, clientSecret, publishableKey, stripeAccount, version));
+        var res = await GatewayHttp.GetAsync(c, url, "stripe-pi-retrieve", ct).ConfigureAwait(false);
+        return InterpretIntentResponse(c, res, "stripe-pi-retrieve", "stripe: payment_intent retrieve failed", "stripe.intentId");
+    }
+
+    /// <summary>Execute a SetupIntent retrieve via GET (<see cref="SetupIntentRetrieveUrl"/>).</summary>
+    public async Task<PaymentResult> RetrieveSetupIntentAsync(
+        FlowContext c,
+        string setupIntentId,
+        string clientSecret,
+        string publishableKey,
+        string? stripeAccount = null,
+        CancellationToken ct = default)
+    {
+        var url = ResolveApiHost(c, SetupIntentRetrieveUrl(setupIntentId, clientSecret, publishableKey, stripeAccount));
+        var res = await GatewayHttp.GetAsync(c, url, "stripe-si-retrieve", ct).ConfigureAwait(false);
+        return InterpretIntentResponse(c, res, "stripe-si-retrieve", "stripe: setup_intent retrieve failed", "stripe.setupIntentId");
+    }
+
+    /// <summary>Execute a SetupIntent confirm POST using <see cref="SetupConfirmForm"/> (<c>sub_140BE0F80</c>).</summary>
+    public async Task<PaymentResult> ConfirmSetupIntentAsync(
+        FlowContext c,
+        string setupIntentId,
+        string clientSecret,
+        string publishableKey,
+        CardDetails card,
+        string? hcaptchaToken = null,
+        string expectedPaymentMethodType = "card",
+        string integrationSource = "elements",
+        string integrationVersion = "2017",
+        CancellationToken ct = default)
+    {
+        var form = SetupConfirmForm(setupIntentId, clientSecret, publishableKey, card,
+            hcaptchaToken, expectedPaymentMethodType, integrationSource, integrationVersion);
+        var res = await GatewayHttp.PostFormAsync(c, ResolveApiHost(c, SetupConfirmUrl(setupIntentId)),
+            form, "stripe-si-confirm", ct).ConfigureAwait(false);
+        return InterpretIntentResponse(c, res, "stripe-si-confirm", "stripe: setup_intent confirm failed", "stripe.setupIntentId");
+    }
+
+    /// <summary>Execute a PayPal-on-Stripe PaymentIntent confirm POST using <see cref="PayPalConfirmForm"/> (<c>sub_140B58D60</c>).</summary>
+    public async Task<PaymentResult> ConfirmPayPalIntentAsync(
+        FlowContext c,
+        string intentId,
+        string paypalVaultId,
+        string clientSecret,
+        string publishableKey,
+        string returnUrl,
+        string inferFromClient,
+        string? hcaptchaToken = null,
+        string country = "BE",
+        string postalCode = "1000",
+        CancellationToken ct = default)
+    {
+        var form = PayPalConfirmForm(paypalVaultId, clientSecret, publishableKey, returnUrl,
+            inferFromClient, hcaptchaToken, country, postalCode);
+        var res = await GatewayHttp.PostFormAsync(c, ResolveApiHost(c, PaymentIntentConfirmUrl(intentId)),
+            form, "stripe-paypal-confirm", ct).ConfigureAwait(false);
+        return InterpretIntentResponse(c, res, "stripe-paypal-confirm", "stripe: paypal confirm failed", "stripe.intentId");
+    }
+
+    private static PaymentResult InterpretIntentResponse(
+        FlowContext c, Newtonsoft.Json.Linq.JObject? res, string op, string nullError, string idVarKey)
+    {
+        if (res is null) return PaymentResult.Fail(nullError);
+
+        var id = res["id"]?.ToString();
+        if (!string.IsNullOrEmpty(id)) c.Session.Vars[idVarKey] = id!;
+        var status = res["status"]?.ToString();
+        if (!string.IsNullOrEmpty(status)) c.Session.Vars["stripe.status"] = status!;
+
+        if (string.Equals(status, "succeeded", StringComparison.OrdinalIgnoreCase))
+            return PaymentResult.Success(id);
+
+        if (string.Equals(status, "requires_action", StringComparison.OrdinalIgnoreCase))
+        {
+            var threeDs2Source = res["source"]?.ToString()
+                                 ?? res["next_action"]?["source"]?.ToString();
+            var url3ds = res["next_action"]?["redirect_to_url"]?["url"]?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(threeDs2Source) && threeDs2Source.StartsWith("src_",
+                    StringComparison.OrdinalIgnoreCase))
+                c.Session.Vars["stripe.threeDs2Source"] = threeDs2Source!;
+            return PaymentResult.Action(url3ds, res["client_secret"]?.ToString() ?? string.Empty);
+        }
+
+        return PaymentResult.Fail($"{op}: status {status}");
+    }
 
     /// <summary>The decoded method-create form, in the state machine's own assembly order.</summary>
     public static Dictionary<string, string> MethodCreateForm(

@@ -25,21 +25,31 @@ import io
 import os
 import re
 import subprocess
+import sys
 
-ROOT = r"D:\projects\cyber-reverse"
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 REPLICA = os.path.join(ROOT, "replica")
 SRC = os.path.join(REPLICA, "src")
 OUT = os.path.join(ROOT, "docs", "SHAPE_GAPS.md")
-PY = r"C:\Python312\python.exe"
+PY = sys.executable
 
 ROW = re.compile(r"\s+(\S+)\s+(\S+)\s+evidence=(\S+)\s+replica=(\S+)")
 
 
 def run_audit():
-    res = subprocess.run([PY, "tools/shape_audit.py"], cwd=REPLICA,
+    res = subprocess.run([PY, "tools/shape_audit.py", "--baseline"], cwd=REPLICA,
                          capture_output=True, text=True, encoding="utf-8", errors="replace")
     rows = []
+    in_mismatches = False
     for line in res.stdout.splitlines():
+        if line.startswith("mismatches:"):
+            in_mismatches = True
+            continue
+        if line.startswith("over-permissive:") or line.startswith("total mismatches:"):
+            in_mismatches = False
+            continue
+        if not in_mismatches:
+            continue
         m = ROW.match(line)
         if m:
             rows.append((m.group(1), m.group(2), m.group(3), m.group(4)))
@@ -88,7 +98,56 @@ def where_declared(files, cls, member):
     return hits
 
 
+def prop_get_kind(files, cls, member):
+    """Distinguish computed/delegated read-only properties from stored get-only properties."""
+    class_pat = re.compile(r"\b(?:class|record|interface)\s+" + re.escape(cls) + r"\b[^{]*\{")
+    expr_pat = re.compile(r"\bpublic\s+[\w<>,\[\]\.\?\s]+?\s+" + re.escape(member) + r"\s*=>")
+    getter_pat = re.compile(r"\bpublic\s+[\w<>,\[\]\.\?\s]+?\s+" + re.escape(member) + r"\s*\{")
+    for text in files.values():
+        cm = class_pat.search(text)
+        if not cm:
+            continue
+        start = cm.end() - 1
+        depth = 0
+        end = len(text) - 1
+        for i in range(start, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        body = text[start:end + 1]
+        if expr_pat.search(body):
+            return "computed-expr"
+        gm = getter_pat.search(body)
+        if gm:
+            gstart = gm.end() - 1
+            gdepth = 0
+            gend = len(body) - 1
+            for j in range(gstart, len(body)):
+                if body[j] == "{":
+                    gdepth += 1
+                elif body[j] == "}":
+                    gdepth -= 1
+                    if gdepth == 0:
+                        gend = j
+                        break
+            gblock = body[gstart:gend + 1]
+            if "get =>" in gblock or "return " in gblock:
+                return "computed-body"
+            return "stored"
+    return "unknown"
+
+
 def dispose(cls, member, evidence, kind, files):
+    if (cls, member) == ("BotTask", "Task") and kind == "?":
+        return ("**结构差异，不补**：静态反编译已确认原版 `BotTask.Task`（`0x14080CA20`）CLR 类型为 `TaskBase`"
+                "（`0x144C963C8`，`StoreModuleBase` 的 69 个店铺子类的基类，承载 `Steps` 与 `Account`）；"
+                "复刻件保持 `Cybersole.Core` 纯数据层（不反向引用 `Cybersole.Http` / `Cybersole.Stores`），"
+                "`Steps` 与 `AccountId` 直接落在 `BotTask` 上，运行态由 `TaskEngine.TaskRuntime` 承载，不补跨层句柄属性。")
+
     if member == "Close" and kind == "?":
         return ("**结构差异，不补**：`Window.Close()` 已经存在（继承而来）。原版把它当可绑定属性，"
                 "复刻件的窗口用的是继承来的方法 —— 再加一个 `ICommand Close` 会遮蔽基类成员。")
@@ -99,7 +158,11 @@ def dispose(cls, member, evidence, kind, files):
                 "在没有原版可观察之前，加一个选择模型就是发明。")
 
     if kind == "prop-get":
-        return "**读**：见下方逐条（计算属性 vs 存储属性）"
+        pg = prop_get_kind(files, cls, member)
+        if pg in ("computed-expr", "computed-body"):
+            return ("**计算属性（不加虚设 setter）**：`%s.%s` 是由其它状态派生/投影的只读属性（`%s`），"
+                    "为其增加空 setter 会制造不落地状态。" % (cls, member, pg))
+        return ("**只读存储属性（prop-get）**：`%s.%s` 在复刻件中为只读存储属性，可在确认类型后补 setter。" % (cls, member))
 
     if kind == "?":
         hits = where_declared(files, cls, member)
@@ -133,7 +196,7 @@ def main():
     lines = [
         "# 成员形状差异：%d 条逐条处置" % len(rows),
         "",
-        "> 生成物：`python analysis/shape_gaps_report.py`。数据来自 `python tools/shape_audit.py` 的原始输出，",
+        "> 生成物：`python analysis/shape_gaps_report.py`。数据来自 `python tools/shape_audit.py --baseline` 的原始输出，",
         "> 加上对 `replica/src/**/*.cs` 的**名字**搜索。",
         "> 判据 a 要求把缺口结案（可做 / 结构差异 / 不可得）—— 这份文件就是那一步。",
         "",
@@ -151,8 +214,6 @@ def main():
     for cls, member, evidence, kind in rows:
         d = dispose(cls, member, evidence, kind, files)
         key = d.split("：")[0].strip("*")
-        if kind == "prop-get":
-            key = "prop-get（逐条看）"
         groups[key] = groups.get(key, 0) + 1
         detail.append((cls, member, evidence, kind, d))
 

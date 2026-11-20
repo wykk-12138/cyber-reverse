@@ -1,0 +1,189 @@
+"""Triage every `only in descriptors` entry from descriptor_report.py into docs/DESCRIPTOR_TRIAGE.md.
+
+WHY THIS EXISTS (AGENTS.md §1.2 requires the reason be stated):
+`replica/tools/descriptor_report.py` prints only aggregate counts (`descriptor entries`, `descriptor types`,
+`only in descriptors`, `only in xaml table`) so `metrics_report.py` stays fast and compact. A bare count
+like `only in descriptors : 137` cannot tell whether those 137 entries are missing Cybersole UI/model
+members, third-party framework bindings (`Avalonia.*`, `DotNetBrowser.*`, `AvaloniaEdit.*`, `System.*`),
+or string-scanner boundary artifacts.
+
+This script reproduces the exact `desc - xaml` difference (`analysis/binding_descriptors.tsv` minus
+`replica/docs/xaml_bindings.json`), classifies every entry by declaring namespace/assembly/scanner-boundary
+shape, asserts the partition is complete (no unclassified entries), and writes `docs/DESCRIPTOR_TRIAGE.md`.
+
+Reproduce:
+    python analysis/triage_only_in_descriptors.py
+"""
+
+import collections
+import io
+import json
+import os
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+TSV = os.path.join(ROOT, "analysis", "binding_descriptors.tsv")
+BINDS = os.path.join(ROOT, "replica", "docs", "xaml_bindings.json")
+OUT = os.path.join(ROOT, "docs", "DESCRIPTOR_TRIAGE.md")
+
+BOUNDARY_ARTIFACTS = {
+    "F.Variant": "Length-tag / prefix truncation before `.Variant` adjacent to `MonitorView,Cybersole.Quicktask!Setter` (0x1432118dd)",
+    "OverloadViewerBCollapseIfSingleOverloadConvertervAvaloniaEdit.Document.TextDocument":
+        "Concatenated AvaloniaEdit converter + length-tag `'v'` prefix on `AvaloniaEdit.Document.TextDocument` (0x1432022ca)",
+    "vAvaloniaEdit.Document.TextDocument":
+        "Length-tag `'v'` (0x76) prefix attached to `AvaloniaEdit.Document.TextDocument` (0x1432022ca)",
+    "xDotNetBrowser.Autofill.Suggestion":
+        "Length-tag `'x'` (0x78) prefix attached to `DotNetBrowser.Autofill.Suggestion` (0x1432a92ab)",
+}
+
+
+def classify_entry(decl_type, member, assemblies, accessors):
+    """Classify one `(decl_type, member)` pair from `desc - xaml` into an explicit bucket."""
+    if decl_type in BOUNDARY_ARTIFACTS:
+        return "Parser-boundary noise", BOUNDARY_ARTIFACTS[decl_type]
+    if decl_type.startswith("Cybersole."):
+        return "Cybersole.*", (
+            "Declared in `xaml_bindings.json` with `[]`; runtime behavior belongs in `Cybersole.Ui.Localization`"
+        )
+    if decl_type.startswith("AvaloniaEdit."):
+        return "AvaloniaEdit", "Third-party AvaloniaEdit control/document binding (`%s`)" % ", ".join(assemblies)
+    if decl_type.startswith("Avalonia."):
+        return "Avalonia", "Framework Avalonia binding (`%s`)" % ", ".join(assemblies)
+    if decl_type.startswith("DotNetBrowser."):
+        return "DotNetBrowser", "Commercial DotNetBrowser UI/dialog binding (`%s`)" % ", ".join(assemblies)
+    if decl_type.startswith("System."):
+        return "System", "BCL / AOT generic-instantiation binding (`%s`)" % ", ".join(assemblies)
+    return "Unclassified", "Needs manual triage (`%s`, `%s`)" % (", ".join(assemblies), ", ".join(accessors))
+
+
+def load_only_in_descriptors():
+    if not os.path.exists(TSV):
+        raise FileNotFoundError("Missing descriptor TSV: " + TSV)
+    if not os.path.exists(BINDS):
+        raise FileNotFoundError("Missing XAML bindings JSON: " + BINDS)
+
+    desc = collections.defaultdict(lambda: {"assemblies": set(), "accessors": set()})
+    for line in io.open(TSV, encoding="utf-8").read().splitlines()[1:]:
+        if not line.strip():
+            continue
+        decl, asm, member, acc = line.split("\t")
+        desc[(decl, member)]["assemblies"].add(asm)
+        desc[(decl, member)]["accessors"].add(acc)
+
+    binds = json.load(io.open(BINDS, encoding="utf-8"))
+    xaml = {(typ, member) for typ, members in binds.items() for member in members}
+
+    only_desc = sorted(set(desc) - xaml)
+    rows = []
+    for decl, member in only_desc:
+        info = desc[(decl, member)]
+        asms = sorted(info["assemblies"])
+        accs = sorted(info["accessors"])
+        bucket, rationale = classify_entry(decl, member, asms, accs)
+        rows.append({
+            "type": decl,
+            "member": member,
+            "assemblies": asms,
+            "accessors": accs,
+            "bucket": bucket,
+            "rationale": rationale,
+        })
+    return len(desc), len(xaml), rows
+
+
+def render_markdown(total_desc, total_xaml, rows):
+    counts = collections.Counter(r["bucket"] for r in rows)
+    ordered_buckets = [
+        "Avalonia",
+        "DotNetBrowser",
+        "System",
+        "AvaloniaEdit",
+        "Parser-boundary noise",
+        "Cybersole.*",
+    ]
+    if counts.get("Unclassified", 0) > 0:
+        ordered_buckets.append("Unclassified")
+
+    lines = [
+        "# Only-in-Descriptors Triage (`analysis/binding_descriptors.tsv` - `replica/docs/xaml_bindings.json`)",
+        "",
+        "> Generated by `python analysis/triage_only_in_descriptors.py`.",
+        "> Observation source: `analysis/binding_descriptors.tsv` (%d distinct `(type, member)` pairs)" % total_desc,
+        "> minus `replica/docs/xaml_bindings.json` (%d pairs) = **%d** entries." % (total_xaml, len(rows)),
+        "",
+        "## Summary by Category",
+        "",
+        "| Category | Count | Disposition |",
+        "|---|---:|---|",
+        "| `Avalonia` | %d | Framework UI/data-binding descriptors (out of Cybersole business scope) |" % counts["Avalonia"],
+        "| `DotNetBrowser` | %d | Embedded commercial DotNetBrowser UI/dialog descriptors (external dependency) |" % counts["DotNetBrowser"],
+        "| `System` | %d | BCL & NativeAOT generic-instantiation descriptors (`.Count`, `.Count_NN`, `.Length`, `.Keys`, etc.) |" % counts["System"],
+        "| `AvaloniaEdit` | %d | Third-party AvaloniaEdit completion/search/overload descriptors |" % counts["AvaloniaEdit"],
+        "| Parser-boundary noise | %d | Scanner prefix/concatenation artifacts in `binding_descriptors_raw.txt` |" % counts["Parser-boundary noise"],
+        "| `Cybersole.*` | %d | `Cybersole.Ui.Localization.Localize*Extension` properties (`xaml_bindings.json` has `[]`) |" % counts["Cybersole.*"],
+        "| **Total** | **%d** | Zero unclassified entries (`Unclassified = %d`) |" % (len(rows), counts["Unclassified"]),
+        "",
+        "## `Cybersole.*` Entries (Actionable Localization Surface)",
+        "",
+        "All 5 `Cybersole.*` entries belong to XAML markup extensions in `Cybersole.Ui.Localization` whose",
+        "types are listed in `replica/docs/xaml_bindings.json` with empty member arrays (`[]`). The replica",
+        "constructs Avalonia UI in C# rather than `.axaml`, so their runtime behaviors live in",
+        "`Cybersole.Ui.Localization` / `Cybersole.Services.Localization` helpers.",
+        "",
+        "| Declaring Type | Member | Assembly | Accessors |",
+        "|---|---|---|---|",
+    ]
+    for r in rows:
+        if r["bucket"] == "Cybersole.*":
+            lines.append("| `%s` | `%s` | `%s` | `%s` |" % (
+                r["type"], r["member"], ", ".join(r["assemblies"]), ", ".join(r["accessors"])
+            ))
+
+    lines.extend([
+        "",
+        "## Parser-Boundary Noise (4 Entries)",
+        "",
+        "| Extracted Type | Member | Assembly | Accessors | Evidence Note |",
+        "|---|---|---|---|---|",
+    ])
+    for r in rows:
+        if r["bucket"] == "Parser-boundary noise":
+            lines.append("| `%s` | `%s` | `%s` | `%s` | %s |" % (
+                r["type"], r["member"], ", ".join(r["assemblies"]), ", ".join(r["accessors"]), r["rationale"]
+            ))
+
+    for bucket in ("Avalonia", "DotNetBrowser", "System", "AvaloniaEdit"):
+        lines.extend([
+            "",
+            "## %s (%d Entries)" % (bucket, counts[bucket]),
+            "",
+            "| Declaring Type | Member | Assembly | Accessors |",
+            "|---|---|---|---|",
+        ])
+        for r in rows:
+            if r["bucket"] == bucket:
+                lines.append("| `%s` | `%s` | `%s` | `%s` |" % (
+                    r["type"], r["member"], ", ".join(r["assemblies"]), ", ".join(r["accessors"])
+                ))
+
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    total_desc, total_xaml, rows = load_only_in_descriptors()
+    counts = collections.Counter(r["bucket"] for r in rows)
+    md = render_markdown(total_desc, total_xaml, rows)
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with io.open(OUT, "w", encoding="utf-8", newline="\n") as f:
+        f.write(md)
+
+    print("only in descriptors: %d" % len(rows))
+    for k in ("Avalonia", "DotNetBrowser", "System", "AvaloniaEdit", "Parser-boundary noise", "Cybersole.*", "Unclassified"):
+        if counts.get(k, 0) or k == "Unclassified":
+            print("  %-24s %d" % (k, counts.get(k, 0)))
+    print("wrote %s" % OUT)
+    return 1 if counts.get("Unclassified", 0) > 0 else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

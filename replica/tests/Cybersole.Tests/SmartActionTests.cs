@@ -90,6 +90,22 @@ public class SmartActionTests
         Assert.DoesNotContain(engine.History, h => h.RuleName == "on-decline");
     }
 
+    [Fact]
+    public void SmartAction_Logs_Is_Settable_And_RoundTrips()
+    {
+        var rule = new SmartAction
+        {
+            Name = "with-logs",
+            Logs = new List<string> { "line-1", "line-2" },
+        };
+
+        var json = Cybersole.Core.Store.Json.Serialize(rule);
+        var restored = Cybersole.Core.Store.Json.Deserialize<SmartAction>(json);
+
+        Assert.NotNull(restored);
+        Assert.Equal(new[] { "line-1", "line-2" }, restored!.Logs);
+    }
+
     private static SmartActionEngine CreateEngine(out EventBus bus, Action<ConfigurationStore>? setup = null)
     {
         bus = new EventBus();

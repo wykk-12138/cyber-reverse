@@ -1,7 +1,8 @@
 import io, os, re, sys, json, collections
 
-ROOT = r"D:\projects\cyber-reverse\replica"
-POOL = r"D:\projects\cyber-reverse\analysis\pe_strings.txt"
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_local_pool = os.path.abspath(os.path.join(ROOT, "..", "analysis", "pe_strings.txt"))
+POOL = _local_pool if os.path.exists(_local_pool) else r"D:\projects\cyber-reverse\analysis\pe_strings.txt"
 BINDS = os.path.join(ROOT, "docs", "xaml_bindings.json")
 
 # 1) shapes: two evidence sources, and the choice matters (R885).

@@ -17,6 +17,11 @@ public sealed class TlsProfile
     public bool Ech { get; init; } = true;
     public bool BoringPadding { get; init; } = true;
     public string AcceptLanguage { get; init; } = "en-US,en;q=0.9";
+    /// <summary>
+    /// True only for H3-capable profiles (<c>chrome_144..chrome_152_PSK</c> in the original Go/quic-go transport,
+    /// selected only by ASICS via <c>chrome_150</c>; default <c>chrome_131</c> leaves H3 off).
+    /// </summary>
+    public bool SupportsHttp3 { get; init; }
 
     /// <summary>IANA names of the TLS 1.2 suites this profile advertises.</summary>
     public List<string> CipherSuiteNames { get; init; } = new();
@@ -73,8 +78,24 @@ public sealed class TlsProfile
 
     public static IReadOnlyList<TlsProfile> All { get; } = new[] { Chrome, Firefox, Safari };
 
+    /// <summary>
+    /// The H3-capable profile (<c>chrome_150</c>) used by ASICS in the original store HTTP stack (<c>0x140968840</c>).
+    /// Kept outside <see cref="All"/> so SChannel/Bouncy TLS-over-TCP sweeps continue covering the 3 core profiles.
+    /// </summary>
+    public static TlsProfile Chrome150 { get; } = new()
+    {
+        Name = "chrome_150",
+        Ja3 = Chrome.Ja3,
+        CipherSuiteNames = Chrome.CipherSuiteNames.ToList(),
+        SupportsHttp3 = true,
+    };
+
     public static TlsProfile ByName(string? name) =>
-        All.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)) ?? Chrome;
+        string.Equals(name, Chrome150.Name, StringComparison.OrdinalIgnoreCase)
+            ? Chrome150
+            : string.Equals(name, "chrome_131", StringComparison.OrdinalIgnoreCase)
+                ? Chrome
+                : All.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)) ?? Chrome;
 
     /// <summary>
     /// Build a real <see cref="CipherSuitesPolicy"/> from <see cref="CipherSuiteNames"/>.
@@ -111,7 +132,7 @@ public sealed class TlsProfile
         Name = Name, Ja3 = Ja3, Ja3Hash = Ja3Hash, CipherSuites = CipherSuites,
         CipherSuiteNames = CipherSuiteNames, Alpn = alpn.ToList(), Curves = Curves,
         Grease = Grease, Ech = Ech, BoringPadding = BoringPadding,
-        AcceptLanguage = AcceptLanguage, UserAgent = UserAgent,
+        AcceptLanguage = AcceptLanguage, SupportsHttp3 = SupportsHttp3, UserAgent = UserAgent,
         SecChUa = SecChUa, SecChUaMobile = SecChUaMobile, SecChUaPlatform = SecChUaPlatform,
     };
 

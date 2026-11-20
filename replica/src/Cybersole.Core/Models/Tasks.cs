@@ -91,7 +91,7 @@ public sealed class TaskGroup : ObservableObject
 
     public int Running
     {
-        get => _runningOverride ?? Tasks.Count(t => t.IsRunning);
+        get => _runningOverride ?? Tasks.Count(t => t.Running);
         set => _runningOverride = value;
     }
 
@@ -184,9 +184,9 @@ public sealed class BotTask : ObservableObject
     public bool MonitorMode { get; set; }
     public int CheckoutDelay { get; set; }
 
-    // R364: the binding table names six more members on this model. Five have an inferable type; "Task" does not (its
-    // type could be an engine handle, an interface or a string id, and the name collides with System.Threading.Tasks.Task),
-    // so it stays named in docs/BINDING_BACKLOG.md.
+    // BotTask.Task (0x14080CA20) in the image has CLR type TaskBase (0x144C963C8, the StoreModuleBase runtime base
+    // holding Steps and Account). In the replica, Cybersole.Core remains decoupled below Cybersole.Http (IStoreModule)
+    // and Cybersole.Stores (StoreModuleBase), keeping Steps/AccountId on BotTask and execution state in TaskRuntime.
 
     /// <summary>Every product this task watches (bound as <c>Products</c>) — the same list <see cref="AllProducts"/> returns.</summary>
     // R1190: the original binds Products with BOTH Getter and Setter - observed at 0x1432231eb, where
@@ -248,7 +248,25 @@ public sealed class BotTask : ObservableObject
             ? new[] { Product }
             : new[] { Product }.Concat(ExtraProducts).ToList();
 
+    private bool? _runningOverride;
+
     [JsonIgnore] public bool IsRunning => State is TaskState.Monitoring or TaskState.Waiting or TaskState.CheckingOut;
+
+    /// <summary>
+    /// Whether this task is actively running (bound as <c>BotTask.Running</c>: <c>bool</c>, getter + setter).
+    /// Mirrors <see cref="IsRunning"/> unless explicitly set.
+    /// </summary>
+    [JsonIgnore]
+    public bool Running
+    {
+        get => _runningOverride ?? IsRunning;
+        set
+        {
+            var changed = Running != value;
+            _runningOverride = value;
+            if (changed) OnPropertyChanged();
+        }
+    }
 
     /// <summary>
     /// A copy of this task, ready to run independently.

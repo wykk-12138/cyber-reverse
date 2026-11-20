@@ -159,11 +159,15 @@ public sealed class AccountView : UserControl
 
     /// <summary>The group-pane footer for <paramref name="count"/> groups, with the image's singular/plural split.</summary>
     public static string GroupsLoaded(int count) =>
-        count == 1 ? GroupsLoadedOne : string.Format(GroupsLoadedFormat, count);
+        count == 1
+            ? Cybersole.Ui.Localization.LocalizeHelpers.Switch(true, "Accounts.GroupsLoadedOne", "Accounts.GroupsLoadedFormat")
+            : Cybersole.Ui.Localization.LocalizeHelpers.Format("Accounts.GroupsLoadedFormat", count);
 
     /// <summary>The selection counter for <paramref name="count"/> accounts, singular when it is one.</summary>
     public static string SelectionCaption(int count) =>
-        string.Format(count == 1 ? SelectedOneFormat : SelectedManyFormat, count);
+        Cybersole.Ui.Localization.LocalizeHelpers.Format(
+            count == 1 ? "Accounts.SelectedOne" : "Accounts.SelectedMany",
+            count);
 
     public AccountGroup? SelectedGroup => _selectedGroup;
 

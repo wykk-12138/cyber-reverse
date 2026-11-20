@@ -38,7 +38,7 @@ public sealed class SmartAction : ObservableObject
     public SmartActionKind Kind { get => _kind; set => SetProperty(ref _kind, value); }
 
     /// <summary>Lines this action has logged (bound as <c>Logs</c>, R360). The engine appends; the view reads.</summary>
-    public List<string> Logs { get; } = new();
+    public List<string> Logs { get; set; } = new();
 
     /// <summary>Webhook URL, notification text or task id depending on <see cref="Kind"/>.</summary>
     public string Target { get => _target; set => SetProperty(ref _target, value); }

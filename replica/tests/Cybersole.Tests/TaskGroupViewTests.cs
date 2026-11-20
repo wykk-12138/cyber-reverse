@@ -49,4 +49,19 @@ public sealed class TaskGroupViewTests
         _out.WriteLine(string.Join(", ", view.CloudflareSolvers));
         Assert.NotEmpty(view.CloudflareSolvers);
     }
+
+    [Fact]
+    public void LinkCommandTogglesLinkedDelaysAndSyncsRetryDelay()
+    {
+        using var services = TestServices.Create();
+        var group = new TaskGroup { Name = "G", MonitorDelay = 2500, RetryDelay = 1200, LinkedDelays = false };
+        var view = new TaskGroupView(services, group);
+
+        view.Link.Execute(null);
+        Assert.True(group.LinkedDelays);
+        Assert.Equal(2500, group.RetryDelay);
+
+        view.Link.Execute(null);
+        Assert.False(group.LinkedDelays);
+    }
 }

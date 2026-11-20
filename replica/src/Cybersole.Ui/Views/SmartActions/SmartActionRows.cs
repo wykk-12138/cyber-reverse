@@ -29,10 +29,10 @@ public sealed class FilterRow
     }
 
     /// <summary>The filter itself (bound as <c>Filter</c>).</summary>
-    public SmartActionFilter Filter { get; }
+    public SmartActionFilter Filter { get; set; }
 
     /// <summary>The filter's inputs, each knowing whether it is the first (bound as <c>Inputs</c>).</summary>
-    public IReadOnlyList<FilterInputEntry> Inputs { get; }
+    public IReadOnlyList<FilterInputEntry> Inputs { get; set; }
 
     /// <summary>True for the first row in the list (bound as <c>IsFirst</c>).</summary>
     public bool IsFirst { get; set; }
@@ -60,7 +60,7 @@ public sealed class FilterInputEntry
     }
 
     /// <summary>The filter this input belongs to (bound as <c>Filter</c>).</summary>
-    public string Filter { get; }
+    public string Filter { get; set; }
 
     /// <summary>The input's current value (bound as <c>Input</c>).</summary>
     public string Input { get; set; }

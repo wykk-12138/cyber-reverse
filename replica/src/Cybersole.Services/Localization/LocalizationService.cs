@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
 
@@ -100,6 +101,80 @@ public sealed class LocalizationService
 
         return key;
     }
+
+    /// <summary>
+    /// Format a translated key against one or more values (mirrors <c>LocalizeFormatExtension</c>, 0x1407BCF00).
+    /// Returns empty when any argument is null so partial binding inputs never throw or leak raw <c>{0}</c>.
+    /// </summary>
+    public static string TranslateFormat(string? tag, string key, params object?[] values)
+    {
+        if (string.IsNullOrEmpty(key)) return string.Empty;
+        var template = Translate(tag, key);
+        if (values is null || values.Length == 0) return template;
+
+        foreach (var arg in values)
+            if (arg is null) return string.Empty;
+
+        try
+        {
+            return string.Format(CultureInfo.CurrentCulture, template, values);
+        }
+        catch (FormatException)
+        {
+            return template;
+        }
+    }
+
+    /// <summary>
+    /// Translate an enum/token value using <c>{prefix}{value}</c> (mirrors <c>LocalizeEnumExtension</c>, 0x1407BD1D0).
+    /// Returns empty when <paramref name="value"/> is null.
+    /// </summary>
+    public static string TranslateEnum(string? tag, string prefix, object? value)
+    {
+        if (value is null) return string.Empty;
+        var text = value.ToString();
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        return Translate(tag, (prefix ?? string.Empty) + text);
+    }
+
+    /// <summary>
+    /// Return <paramref name="value"/> when non-null and non-empty; otherwise resolve <paramref name="fallbackKey"/>
+    /// (mirrors <c>LocalizeFallbackExtension</c>, 0x1407BD0C0).
+    /// </summary>
+    public static string TranslateFallback(string? tag, object? value, string? fallbackKey, bool translateFallbackKey = true)
+    {
+        if (value is string s)
+        {
+            if (s.Length > 0) return s;
+        }
+        else if (value is not null)
+        {
+            var rendered = value.ToString();
+            if (!string.IsNullOrEmpty(rendered)) return rendered;
+        }
+
+        if (string.IsNullOrEmpty(fallbackKey)) return string.Empty;
+        return translateFallbackKey ? Translate(tag, fallbackKey) : fallbackKey;
+    }
+
+    /// <summary>
+    /// Choose <paramref name="trueKey"/> or <paramref name="falseKey"/> by <paramref name="condition"/> and translate
+    /// (mirrors <c>LocalizeSwitchExtension</c>, 0x1407BCC30).
+    /// </summary>
+    public static string TranslateSwitch(string? tag, bool condition, string? trueKey, string? falseKey)
+    {
+        var key = condition ? trueKey : falseKey;
+        return string.IsNullOrEmpty(key) ? string.Empty : Translate(tag, key);
+    }
+
+    public string Format(string key, object? value) => TranslateFormat(CurrentTag, key, value);
+    public string Format(string key, object? value, object? value2) => TranslateFormat(CurrentTag, key, value, value2);
+    public string Format(string key, params object?[] values) => TranslateFormat(CurrentTag, key, values);
+    public string Enum(string prefix, object? value) => TranslateEnum(CurrentTag, prefix, value);
+    public string Fallback(object? value, string? fallbackKey, bool translateFallbackKey = true) =>
+        TranslateFallback(CurrentTag, value, fallbackKey, translateFallbackKey);
+    public string Switch(bool condition, string? trueKey, string? falseKey) =>
+        TranslateSwitch(CurrentTag, condition, trueKey, falseKey);
 
     /// <summary>Store a choice by display name or tag. Returns false when it is not one of the four.</summary>
     public bool Select(string? choice)

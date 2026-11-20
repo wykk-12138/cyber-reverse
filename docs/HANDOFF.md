@@ -8130,3 +8130,11 @@ Observation：
 
 下轮第一件事：抽验 `docs/METRIC_CLAIMS.md` 与 `docs/PARITY_CLAIMS.md` 每条是否带 authority + 命令 + gap_reason；
 其次重跑一次 mutation 消掉 `staleness` 那一行。
+
+---
+
+## 进度与差距总表（R1300）
+
+**看整体进度先读 `docs/PROGRESS_AND_GAP.md`**：它按 ①②③④ 四个面逐项列状态（✅ 结案 / 🟡 部分 / ⛔ 阻塞），
+并给出 8 项本机可做 + 5 项外部阻塞的差距清单。判据 a–f 的逐条证据仍在 `docs/GOAL_VERIFICATION.md`，
+但**判据达标不等于核心模块逆向完**——两者差 13 项，明细见该文档第五节。

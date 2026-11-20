@@ -69019,3 +69019,12 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - **判据要看字节不看渲染**：`Get-Content` 显示空白、长度 41 都像正常。
 - IDA 重启完成（2 个模态框），`health ok`，但 `ida.py str` 仍未就绪。
 - 自检：a ✅（`missing 14 = noise 12 + out-of-scope 2 + real gap 0`）· b ✅（copy 缺口 0）· c ✅ · e ✅（59/59/0/0）· f ✅（store 0 占位 / vendor True / captcha 0-5 / payment 9）· **d 待抽验两张 claim 表**。
+
+---
+
+## 第 1300 轮：进度与差距落成文档
+
+- 新增 `docs/PROGRESS_AND_GAP.md`：①②③④ 四面逐项状态 + 13 项差距（8 可做 / 5 阻塞）。
+- 关键澄清：`functions 64.90%` 与 `section-mass 57.09%` **不构成完成度**——.pdata 桶对照显示两侧布局无对应关系
+  （同一桶内复刻件可为原版 35%，也可为 500%）。要得到有意义的对照，须按模块归属而非地址，该分析从未做过。
+- 唯一「有数字但完全没查」的洞：`only in descriptors 137`，列为下一步第 1 项。

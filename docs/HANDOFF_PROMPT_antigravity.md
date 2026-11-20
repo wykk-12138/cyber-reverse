@@ -40,7 +40,7 @@
    - **优先消解 4 处已定位但尚未穷举的静态 `Unknown` 子分支**：
      - **Unzer**：`qword_1472c65a0+8` 终态集合、`0x14094a870` 动作判定谓词；（`0x14094c210` 已在 R1301 证定**不属于 Unzer**——它是 Magento Stripe 配置端点的请求配置委托，R1302 已落成 `StripeGateway.FetchConfigurationAsync`）；
      - **Checkout.com**：`0x1408a34f0` 的**分派层已读完**（R1303：28 个发卡行 ACS 主机名 / 18 个长度分支，已落成 `AcsHosts`），尚未读的是**每个主机处理器的方法体**（逐家挑战表单字段还在那里面）；
-     - Komoju：`0x140d98f60` `[1..56]` 的 `formUrl` 后缀表达式；
+     - **Komoju**：`0x140d98f60` 的「`[1..56]` `formUrl` 后缀」**已撤回**（R1304：它只构建 konbini 请求体，URL 取自状态机上下文）；新已解并落码的是卡支付面（`KomojuGateway`：`https://komoju.com/gpayments_offsite/auth` + `https://degica.as1.gpayments.net/api/v2/brw/info/result?transId=` + 六个冻结 browser 字段）；**仍 Unknown**：konbini 请求体的目标 URL，与卡凭证请求体的目标 URL；
      - `ToppsVariant`：`off_1449B8EB0` 的精确序列化 JSON 键名。
 2. **UI 绑定形状与交互语义收口（优先级④，核心项结案或阻塞后再做）**：
    - `docs/SHAPE_GAPS.md` 共 `84` 条（含 `core=1`）：`39` 条需要选择模型（如 `AnalyticsView.ChangeChart`、`CaptchaProvidersView.Reorder`）、`22` 条通用名撞名项（`Delete`/`Save`/`Create` 需逐类反编译确认）、`17` 条结构差异不补、`4` 条计算属性、`1` 条真缺 `CustomBrowser.Autofill`、`1` 条弱改名；

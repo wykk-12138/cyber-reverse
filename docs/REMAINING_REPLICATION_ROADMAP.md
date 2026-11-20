@@ -30,7 +30,7 @@
      `sub_14094DEB0`、`sub_1409F2A60`、`sub_140ECF2B0`、`sub_14117B6C0`。Unzer 侧仍余
      `qword_1472c65a0+8` 终态集合与 `0x14094a870` 谓词两项；
   2. **Checkout.com**：分派层 **R1303 已完成**——`0x1408a34f0` 是按发卡行 ACS 主机名切分的 switch（**28 个主机名 / 18 个长度分支**），开头打 `"Starting 3DS: <host>"`（类目 `3DS`）、把传输指纹临时换成 `chrome_131`、建对应处理器、再把原指纹写回；已落成 `AcsHosts`（`Known` / `HostOf` / `IsKnown` / `ProfileFor` / `Describe`与 `CheckoutComGateway.ResolveEswThreeDsAsync` 接线）。**仍 Unknown**：每个主机处理器的方法体（逐家挑战表单字段在其中）；
-  3. **Komoju 便利店**：`0x140d98f60` `[1..56]` 的 `formUrl` 后缀表达式；
+  3. **Komoju**：`0x140d98f60` 的「`[1..56]` `formUrl` 后缀」**R1304 已撤回**——该函数只构建 `{authenticity_token, payment_details:{type:konbini, email, store, given_name}}`（与复刻件已有的体一致），URL 取自状态机上下文 `*(*(v3+16)+16)`。同时新解并落码了兄弟机 `0x140D994D0` 的卡面（`KomojuGateway`）。**仍 Unknown**：`formUrl`（konbini 与卡凭证两个请求体的目标）；
   4. **`ToppsVariant`**：在二进制 `off_1449B8EB0` 的精确序列化 JSON 键名。
 
 ### 2. UI 绑定形状与交互语义收口（`docs/SHAPE_GAPS.md`）

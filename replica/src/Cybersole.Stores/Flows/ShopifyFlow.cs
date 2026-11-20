@@ -926,10 +926,19 @@ public class ShopifyFlow : StoreFlow
     /// <c>form[name='webcvsFepChargePaymentInfoEntryActionForm']</c> with <c>shift_jis</c> form fields.
     ///
     /// <para>
-    /// <b>Unknown</b>: No standalone method named <c>CompleteConvenienceStore</c> exists outside Shopify's
-    /// <c>ConvenienceStores</c> / offsite handlers, and the exact Komoju <c>formUrl</c> suffix expression inside
-    /// <c>0x140d98f60</c> <c>[1..56]</c> was not statically recovered (resolved here from <c>komoju.formUrl</c> or
-    /// the page's <c>&lt;form action&gt;</c> attribute).
+    /// <b>R1304 corrected the Unknown here.</b> There is no <c>formUrl</c> suffix expression inside
+    /// <c>0x140d98f60</c>: that function builds exactly the body above and hands it to the sender with a URL
+    /// taken from its state machine's context (<c>*(*(v3+16)+16)</c>), so the target is chosen by its caller
+    /// and not composed there. The claim about a <c>[1..56]</c> slice is retracted.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown</b>: which URL the konbini body goes to. The sibling card machine
+    /// (<c>0x140D994D0</c>) does name one — <c>https://komoju.com/gpayments_offsite/auth</c>, now
+    /// <see cref="Cybersole.Stores.Payments.KomojuGateway.AuthUrl"/> — but it posts a different body
+    /// (<c>browser_info</c>/<c>uuid</c>/<c>token</c>), so reusing it here would be a guess. Until a capture or
+    /// a caller decode supplies it, the value still comes from <c>komoju.formUrl</c> or the page's
+    /// <c>&lt;form action&gt;</c>.
     /// </para>
     /// </summary>
     public async Task<StepOutcome> CompleteConvenienceStoreAsync(FlowContext c, CancellationToken ct)

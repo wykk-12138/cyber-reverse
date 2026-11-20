@@ -6,11 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 00:51:56 +0800 |
+| 生成时间 | 2026-11-21 01:17:45 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2524 通过 / 0 失败 / 0 跳过 / 2524 总计** |
+| 完整套件 | **2530 通过 / 0 失败 / 0 跳过 / 2530 总计** |
+
+## 时效警告（生成）
+
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新，其中 2 个相对 HEAD 真的改过（共 15658 行）。它描述的不是当前源码。
 
 ## 摘要素值
 
@@ -34,11 +38,11 @@
 | 数据文件名对照 — datafiles: original-on-disk not in replica | 0 |
 | 数据文件名对照 — datafiles: replica-only | 1 |
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
-| 函数数量（.pdata） — functions: replica .pdata | 187,904 |
-| 函数数量（.pdata） — functions: ratio | 67.81% |
+| 函数数量（.pdata） — functions: replica .pdata | 187,946 |
+| 函数数量（.pdata） — functions: ratio | 67.82% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 15515 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 15658 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 2 |
 | 核心覆盖：store 宿主 — core: flows | 18 |
 | 核心覆盖：store 宿主 — core: override steps | 378 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 0 |
@@ -48,10 +52,10 @@
 | 核心覆盖：vendor 宿主 — vendor: wiring rows | 0 |
 | 核心覆盖：vendor 宿主 — vendor: missing | 0 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 31558656 |
-| 可执行段体量 — section-mass: ratio | 61.05% |
+| 可执行段体量 — section-mass: replica executable | 31564288 |
+| 可执行段体量 — section-mass: ratio | 61.06% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
-| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 15489 |
+| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 15535 |
 | 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1E00000 |
 | 变异套件（上次运行） — mutation-fit: total | 59 |
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
@@ -381,8 +385,8 @@ C:\Python312\python.exe tools/func_count.py
 ```text
 function count (non-leaf, from .pdata):
   pdata-original: 277,120
-  pdata-replica: 187,904
-  pdata-ratio: 67.81%
+  pdata-replica: 187,946
+  pdata-ratio: 67.82%
   .pdata holds one RUNTIME_FUNCTION per non-leaf function: it excludes inlined and trimmed code, so this
   compares function mass between the two images and does not establish function-level equality.
 ```
@@ -398,17 +402,17 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 00:36:20
-publish artifact size: 61217280 bytes
-publish artifact sha256: 69a316960b80ab4f5ef35c11efdec227e6de1e24200400bfe842c268f350630b
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 00:46:29)
+publish artifact mtime: 2026-11-21 01:07:25
+publish artifact size: 61227008 bytes
+publish artifact sha256: d92ac4dca03090ef7f2cc18306c215496ae0594f9a314eeb70b1ff4dac841237
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 01:11:38)
 source files newer than the artifact: 17
-lines in those files: 15515
-of those, changed against HEAD: 0
-publish artifact state: current
+lines in those files: 15658
+of those, changed against HEAD: 2
+publish artifact state: stale
 
-  17 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
-  targets, which updates mtime without changing a byte. Nothing to rebuild.
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -460,21 +464,21 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 61217280 bytes ===
+=== REPLICA  image base 0x140000000  file 61227008 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
-  .text      0x1000       0x107798     1075200      X
-  .managed   0x108000     0x1E1A268    30483456     X
-  hydrated   0x1E1B000    0x2E3F4E8    0            RW
-  .rdata     0x2E40000    0x47D49A6    26823168     R
-  .data      0x47D5000    0x48D8DF8    235520       RW
-  .pdata     0x48D9000    0x4AFF7B8    2254848      R
-  _RDATA     0x4B00000    0x4B000F4    512          R
-  .rsrc      0x4B01000    0x4B4C7E7    309248       R
-  .reloc     0x4B4D000    0x4B5552C    34304        R
+  .text      0x1000       0x107848     1075712      X
+  .managed   0x108000     0x1E1B748    30488576     X
+  hydrated   0x1E1C000    0x2E40F00    0            RW
+  .rdata     0x2E41000    0x47D6756    26826752     R
+  .data      0x47D7000    0x48DAE48    235520       RW
+  .pdata     0x48DB000    0x4B01968    2255360      R
+  _RDATA     0x4B02000    0x4B020F4    512          R
+  .rsrc      0x4B03000    0x4B4E7E7    309248       R
+  .reloc     0x4B4F000    0x4B57518    34304        R
 
-  section-mass-replica-executable: 31558656
-  section-mass-ratio: 61.05%
+  section-mass-replica-executable: 31564288
+  section-mass-ratio: 61.06%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
   code does: the replica links a different BCL and Avalonia, so part of the difference is not its own.
@@ -492,41 +496,41 @@ C:\Python312\python.exe tools/pdata_sections.py
 ```text
 pdata bucket histogram (bucket = 0x100000 bytes)
   original: 277,120 functions, image base 0x140000000
-  replica : 187,904 functions, image base 0x140000000
+  replica : 187,946 functions, image base 0x140000000
 
   range from     original   replica    replica/original
   ----------------------------------------------------
-  0x0            5,475      1,901        34.7%
+  0x0            5,475      1,907        34.8%
   0x100000       5,089      4,767        93.7%
   0x200000       4,333      5,142       118.7%
   0x300000       2,213      3,930       177.6%
   0x400000       5,791      5,695        98.3%
   0x500000       2,057      3,920       190.6%
-  0x600000       1,074      4,222       393.1%
-  0x700000       3,411      3,353        98.3%
+  0x600000       1,074      4,235       394.3%
+  0x700000       3,411      3,350        98.2%
   0x800000       4,076      2,882        70.7%
-  0x900000       3,556      2,433        68.4%
-  0xA00000       3,178      4,282       134.7%
-  0xB00000       3,227      2,019        62.6%
-  0xC00000       3,982      5,578       140.1%
-  0xD00000       3,921      5,899       150.4%
-  0xE00000       3,371      7,813       231.8%
-  0xF00000       7,792      6,915        88.7%
-  0x1000000      5,626      3,772        67.0%
-  0x1100000      2,020      6,214       307.6%
-  0x1200000      2,046      9,065       443.1%
-  0x1300000      5,065      10,488      207.1%
-  0x1400000      10,107     9,834        97.3%
-  0x1500000      11,107     9,475        85.3%
-  0x1600000      2,864      9,762       340.9%
-  0x1700000      2,242      9,710       433.1%
-  0x1800000      4,058      9,085       223.9%
-  0x1900000      4,506      9,941       220.6%
-  0x1A00000      2,310      8,455       366.0%
-  0x1B00000      6,033      5,863        97.2%
-  0x1C00000      6,218      5,794        93.2%
-  0x1D00000      6,893      8,931       129.6%
-  0x1E00000      5,418      764          14.1%
+  0x900000       3,556      2,429        68.3%
+  0xA00000       3,178      4,280       134.7%
+  0xB00000       3,227      2,007        62.2%
+  0xC00000       3,982      5,585       140.3%
+  0xD00000       3,921      5,883       150.0%
+  0xE00000       3,371      7,831       232.3%
+  0xF00000       7,792      6,911        88.7%
+  0x1000000      5,626      3,790        67.4%
+  0x1100000      2,020      6,172       305.5%
+  0x1200000      2,046      9,089       444.2%
+  0x1300000      5,065      10,486      207.0%
+  0x1400000      10,107     9,828        97.2%
+  0x1500000      11,107     9,474        85.3%
+  0x1600000      2,864      9,774       341.3%
+  0x1700000      2,242      9,701       432.7%
+  0x1800000      4,058      9,087       223.9%
+  0x1900000      4,506      9,951       220.8%
+  0x1A00000      2,310      8,462       366.3%
+  0x1B00000      6,033      5,843        96.9%
+  0x1C00000      6,218      5,798        93.2%
+  0x1D00000      6,893      8,933       129.6%
+  0x1E00000      5,418      804          14.8%
   0x1F00000      4,991      0             0.0%
   0x2000000      7,513      0             0.0%
   0x2100000      10,388     0             0.0%
@@ -555,7 +559,7 @@ pdata bucket histogram (bucket = 0x100000 bytes)
     0x2300000        0.0%   original 9,066    replica 0
 
   pdata-above-0x1C00000-original: 156590
-  pdata-above-0x1C00000-replica: 15489
+  pdata-above-0x1C00000-replica: 15535
   pdata-last-replica-bucket: 0x1E00000
 
   Buckets are compared by density, not by identity: the two images are laid out independently, so equal
@@ -589,7 +593,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2524 通过 / 0 失败 / 0 跳过 / 2524 总计
+`exit 0` · 2530 通过 / 0 失败 / 0 跳过 / 2530 总计
 
 ```text
   正在确定要还原的项目…
@@ -606,7 +610,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2524，已跳过:     0，总计:  2524，持续时间: 5 m 32 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2530，已跳过:     0，总计:  2530，持续时间: 4 m 21 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

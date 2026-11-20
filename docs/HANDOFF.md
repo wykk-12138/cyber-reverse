@@ -8172,3 +8172,13 @@ Observation：
   （emit `Starting 3DS: <host>` + 该跳跑 `chrome_131`）。
 - **仍 Unknown**：每个主机对应处理器的方法体——逐家挑战表单字段还在里面，所以挑战完成仍接受调用方字段。
 - 见 `replica/docs/VERDICT.md` 第 1303 轮。
+
+---
+
+## 第 1304 轮
+
+- 「Komoju `0x140d98f60` `[1..56]` formUrl 后缀」**已撤**：该函数只构 konbini 请求体，URL 取自状态机上下文。
+- 新增 `KomojuGateway`：卡面三步（六个冻结 browser 字段 → `gpayments_offsite/auth` → `brw/info/result?transId=`）
+  全部落成常量与可测构建器；卡凭据体已解但**未落码**（目标 URL 未配对）。
+- 网关注册数 14 → 15（守卫与测试名同步改，理由写在注释里）。
+- 见 `replica/docs/VERDICT.md` 第 1304 轮。

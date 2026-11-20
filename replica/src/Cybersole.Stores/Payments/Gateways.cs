@@ -2380,3 +2380,137 @@ public sealed class MidtransGateway : IPaymentGateway
     /// <summary>Both Snap versions the image names, so a store needing the older one does not have to be re-captured.</summary>
     public static IReadOnlyList<string> SnapPaths => new[] { SnapV1, SnapV2 };
 }
+
+/// <summary>
+/// Komoju — the offsite card surface on <c>komoju.com</c> and its 3-D Secure browser-info result on
+/// <c>degica.as1.gpayments.net</c>, decoded from <c>0x140D994D0</c> (4,240 bytes, five async states) in R1304.
+///
+/// <para>
+/// <b>Observed</b>, in the order the machine runs them:
+/// </para>
+/// <para>
+/// (1) the browser-info block, six keys whose values are frozen in the image and identical for every
+/// run — <c>browserTZ</c> = <c>-60</c> (0x146AA3260), <c>browserScreenWidth</c> = <c>1707</c>
+/// (0x146ADB0C8), <c>browserScreenHeight</c> = <c>1067</c> (0x146AD56C8), <c>browserColorDepth</c> =
+/// <c>24</c> (0x146AE23F8), <c>browserLanguage</c> = <c>en-US</c> (0x14701BE60) and
+/// <c>browserJavaEnabled</c> = <c>false</c> (0x147032068). A disposable profile, not the machine's.
+/// </para>
+/// <para>
+/// (2) the authorisation body <c>{ browser_info, uuid: "", token }</c> posted to the frozen
+/// <c>https://komoju.com/gpayments_offsite/auth</c> (0x14706F8E0) — <c>uuid</c> is the empty string
+/// object (0x146A622F8) rather than omitted, and <c>token</c> is whatever the earlier states produced
+/// (the machine's field at +40).
+/// </para>
+/// <para>
+/// (3) the browser-info result, the same six keys flat, posted to
+/// <c>https://degica.as1.gpayments.net/api/v2/brw/info/result?transId=</c> (0x147062828) with the
+/// transaction id concatenated straight onto the <c>=</c>.
+/// </para>
+///
+/// <para>
+/// <b>Unknown</b>: where the card credentials body goes. The same machine builds
+/// <c>{ type: "credit_card", name, number, month, year, verification_value }</c> with the month
+/// formatted <c>D2</c> and the year cut to its last two characters, but the URL that body is posted to
+/// is not established from the decompile, so this gateway does not send it — a card number is the last
+/// thing to guess a destination for.
+/// </para>
+/// </summary>
+public sealed class KomojuGateway : IPaymentGateway
+{
+    /// <summary>The offsite authorisation endpoint (0x14706F8E0).</summary>
+    public const string AuthUrl = "https://komoju.com/gpayments_offsite/auth";
+
+    /// <summary>The 3-D Secure browser-info result prefix (0x147062828) — the id is appended verbatim.</summary>
+    public const string BrowserInfoResultPrefix = "https://degica.as1.gpayments.net/api/v2/brw/info/result?transId=";
+
+    public static string BrowserInfoResultUrl(string transId) =>
+        BrowserInfoResultPrefix + (transId ?? string.Empty);
+
+    /// <summary>
+    /// The frozen endpoint, with the standard test/config seam every other gateway in this file uses
+    /// (<c>checkoutcom.apiHost</c>, <c>square.paymentsUrl</c>, <c>unzer.apiUrl</c>): a configured value
+    /// fronts the host so a loopback server can answer.
+    /// </summary>
+    private static string AuthUrlFor(FlowContext c) =>
+        c.Session.Vars.TryGetValue("komoju.authUrl", out var v) && !string.IsNullOrEmpty(v)
+            ? v
+            : AuthUrl;
+
+    public string Id => "komoju";
+    public string Name => "Komoju";
+
+    /// <summary>
+    /// The six frozen browser fields, in the key names the machine writes them under. Values are the
+    /// image's constants, not this process's environment.
+    /// </summary>
+    public static Dictionary<string, string> BrowserInfo() => new()
+    {
+        ["browserTZ"] = "-60",
+        ["browserScreenWidth"] = "1707",
+        ["browserScreenHeight"] = "1067",
+        ["browserColorDepth"] = "24",
+        ["browserLanguage"] = "en-US",
+        ["browserJavaEnabled"] = "false",
+    };
+
+    /// <summary>
+    /// The authorisation body: <c>browser_info</c> nested, <c>uuid</c> as an empty string (the image
+    /// writes the empty-string object rather than leaving the key out), and <c>token</c>.
+    /// </summary>
+    public static JObject AuthBody(string token) => new()
+    {
+        ["browser_info"] = JObject.FromObject(BrowserInfo()),
+        ["uuid"] = string.Empty,
+        ["token"] = token ?? string.Empty,
+    };
+
+    public async Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct)
+    {
+        // The card credentials body is built by the same machine but its destination is Unknown, so this
+        // gateway refuses rather than posting a card number somewhere the image does not name.
+        await Task.CompletedTask.ConfigureAwait(false);
+        return PaymentResult.Fail(
+            "komoju: card credentials endpoint not captured — the machine builds the credit_card body " +
+            "but the decompile does not pair it with a URL");
+    }
+
+    public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
+    {
+        var token = c.Session.Vars.GetValueOrDefault("komoju.token") ?? c.Session.PaymentMethodId;
+        if (string.IsNullOrEmpty(token))
+            return PaymentResult.Fail("komoju: no token to authorise with");
+
+        var res = await GatewayHttp.PostAsync(c, AuthUrlFor(c), AuthBody(token!), "komoju-auth", ct)
+            .ConfigureAwait(false);
+        if (res is null) return PaymentResult.Fail("komoju: authorise failed");
+
+        var transId = res["transId"]?.ToString() ?? res["transactionId"]?.ToString();
+        if (!string.IsNullOrEmpty(transId)) c.Session.Vars["komoju.transId"] = transId!;
+
+        var redirect = res["redirectUrl"]?.ToString() ?? res["url"]?.ToString();
+        if (!string.IsNullOrEmpty(redirect)) return PaymentResult.Action(redirect!, transId ?? string.Empty);
+
+        return res["status"] is { } status &&
+               string.Equals(status.ToString(), "succeeded", StringComparison.OrdinalIgnoreCase)
+            ? PaymentResult.Success(transId)
+            : PaymentResult.Fail("komoju: authorise returned no redirect and no success status");
+    }
+
+    /// <summary>
+    /// The browser-info result — the six keys flat, posted to the transId-qualified URL. The machine does
+    /// this after the authorisation, before it reads the issuer's answer.
+    /// </summary>
+    public async Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct)
+    {
+        var transId = c.Session.Vars.GetValueOrDefault("komoju.transId");
+        if (string.IsNullOrEmpty(transId))
+            return PaymentResult.Fail("komoju: no transId for the browser-info result");
+
+        var res = await GatewayHttp.PostFormAsync(c, BrowserInfoResultUrl(transId!), BrowserInfo(),
+            "komoju-brwinfo", ct).ConfigureAwait(false);
+
+        return res is null
+            ? PaymentResult.Fail("komoju: browser-info result failed")
+            : PaymentResult.Success(res["transId"]?.ToString() ?? transId);
+    }
+}

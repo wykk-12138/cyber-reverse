@@ -30,13 +30,18 @@ public sealed class UnmatchedGatewaysTests
             Assert.Contains(id, ids);
     }
 
-    /// <summary>Registration is what puts a gateway in the artifact, so the count matters as much as the names (13 original + Checkout.com in Phase 2).</summary>
+    /// <summary>
+    /// Registration is what puts a gateway in the artifact, so the count matters as much as the names:
+    /// 13 original + Checkout.com in Phase 2 + Komoju in R1304, which the offsite card machine
+    /// (<c>0x140D994D0</c>) needed as soon as its two frozen endpoints were decoded.
+    /// </summary>
     [Fact]
-    public void TheRegistryHasFourteen()
+    public void TheRegistryHasFifteen()
     {
         var registry = PaymentGatewayRegistry.CreateDefault();
-        Assert.Equal(14, registry.All.Count);
+        Assert.Equal(15, registry.All.Count);
         Assert.NotNull(registry.Resolve("checkoutcom"));
+        Assert.NotNull(registry.Resolve("komoju"));
     }
 
     /// <summary>

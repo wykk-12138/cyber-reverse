@@ -416,12 +416,76 @@ public sealed class CasioFlow : StoreFlow
         return StepOutcome.Success();
     }
 
-    public override Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct) =>
-        Task.FromResult(StepOutcome.Fail(
-            "casio: the order path is not /checkout/submit — that route returns 404, and Casio's " +
-            "checkout is an AEM flow under /{region}/, not a single JSON POST. Both SubmitShipping " +
-            "and SubmitPayment are unimplemented for the same reason: the staged controller paths " +
-            "have not been captured"));
+    public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        if (Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve("unzer")
+            is not Cybersole.Stores.Payments.UnzerGateway unzer)
+            return StepOutcome.Fail("casio: unzer gateway unavailable");
+
+        if (c.Session.Vars.ContainsKey("unzer.prepareUrl") &&
+            string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("unzer.publicKey")))
+        {
+            var prep = await unzer.PreparePaymentAsync(c, ct).ConfigureAwait(false);
+            if (!prep.Ok) return StepOutcome.Fail(prep.Error ?? "Error preparing payment", retryable: true);
+        }
+
+        var tok = await unzer.TokenizeAsync(c, ct).ConfigureAwait(false);
+        if (!tok.Ok) return StepOutcome.Fail(tok.Error ?? "casio: unzer tokenize failed", retryable: false);
+
+        var set = await unzer.SetUnzerPaymentAsync(c, ct).ConfigureAwait(false);
+        return set.Ok
+            ? StepOutcome.Success()
+            : StepOutcome.Fail(set.Error ?? "casio: set-payment-information failed", retryable: true);
+    }
+
+    public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(c.Session.CartId) ||
+            (string.IsNullOrEmpty(c.Session.PaymentMethodId) &&
+             string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("unzer.resourceId"))))
+        {
+            return StepOutcome.Fail(
+                "casio: Magento 2 unzer_cards order requires CartId and Unzer card resource");
+        }
+
+        if (Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve("unzer")
+            is not Cybersole.Stores.Payments.UnzerGateway unzer)
+            return StepOutcome.Fail("casio: unzer gateway unavailable");
+
+        var submitted = await unzer.SubmitUnzerOrderAsync(c, ct).ConfigureAwait(false);
+        if (!submitted.Ok && !submitted.RequiresAction)
+            return StepOutcome.Fail(submitted.Error ?? "Error submitting order", retryable: true);
+
+        if (submitted.RequiresAction)
+        {
+            c.Session.Vars["gateway"] = "unzer";
+            c.Session.Vars["paymentStatus"] = "requires_action";
+            if (!string.IsNullOrEmpty(submitted.ThreeDsUrl))
+                c.Session.Vars["threeDsUrl"] = submitted.ThreeDsUrl!;
+
+            if (string.Equals(c.Session.Vars.GetValueOrDefault("casio.autoContinue3ds"), "true",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return await Process3DSAsync(c, ct).ConfigureAwait(false);
+            }
+        }
+
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> Process3DSAsync(FlowContext c, CancellationToken ct)
+    {
+        if (Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve("unzer")
+            is not Cybersole.Stores.Payments.UnzerGateway unzer)
+            return StepOutcome.Fail("casio: unzer gateway unavailable");
+
+        var payload = c.Session.Vars.GetValueOrDefault("threeDsPayload") ?? string.Empty;
+        var res = await unzer.CompleteActionAsync(c, payload, ct).ConfigureAwait(false);
+        return res.Ok
+            ? StepOutcome.Success()
+            : StepOutcome.Fail(res.Error ?? "Error verifying payment", retryable: true);
+    }
+
     public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
         OpenCheckoutAsync(c, "casio-checkout", "/checkout", ct);
 
@@ -804,6 +868,52 @@ public sealed class WarhammerFlow : StoreFlow
     }
     public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
         OpenCheckoutAsync(c, "wh-checkout", "/checkout", ct);
+
+    public override async Task<StepOutcome> Process3DSAsync(FlowContext c, CancellationToken ct)
+    {
+        var serverJwt = c.Session.Vars.GetValueOrDefault("cardinal.serverJwt");
+        var isvJwt = c.Session.Vars.GetValueOrDefault("warhammer.isvResponseJwt");
+        var isvStepUpUrl = c.Session.Vars.GetValueOrDefault("warhammer.isvStepUpUrl")
+                           ?? c.Session.Vars.GetValueOrDefault("cardinal.stepUpUrl");
+
+        if (string.IsNullOrEmpty(serverJwt) && string.IsNullOrEmpty(isvJwt))
+            return await base.Process3DSAsync(c, ct).ConfigureAwait(false);
+
+        var cardinal = new Cybersole.Stores.Payments.CardinalThreeDs();
+        if (!string.IsNullOrEmpty(serverJwt))
+        {
+            var init = await cardinal.InitAsync(
+                c, serverJwt!, Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.CardinalTrusted, ct)
+                .ConfigureAwait(false);
+            if (!init.Ok) return StepOutcome.Fail(init.Error ?? "3DS init failed", retryable: true);
+
+            var txId = c.Session.Vars.GetValueOrDefault("cardinal.transactionId") ?? c.Session.OrderId;
+            if (!string.IsNullOrEmpty(txId))
+            {
+                var cont = await cardinal.ContinueAsync(
+                    c, txId!, serverJwt,
+                    Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.CardinalTrusted, ct)
+                    .ConfigureAwait(false);
+                if (!cont.Ok && !cont.RequiresAction)
+                    return StepOutcome.Fail(cont.Error ?? "3DS continue failed", retryable: true);
+                if (cont.RequiresAction && string.IsNullOrEmpty(isvStepUpUrl))
+                    isvStepUpUrl = cont.ThreeDsUrl;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(isvJwt) || !string.IsNullOrEmpty(isvStepUpUrl))
+        {
+            var stepUp = await cardinal.StepUpAsync(
+                c,
+                isvJwt ?? c.Session.Vars.GetValueOrDefault("cardinal.jwt") ?? serverJwt!,
+                isvStepUpUrl,
+                ct).ConfigureAwait(false);
+            if (!stepUp.Ok && !stepUp.RequiresAction)
+                return StepOutcome.Fail(stepUp.Error ?? "3DS challenge failed", retryable: true);
+        }
+
+        return StepOutcome.Success();
+    }
 
 
 }

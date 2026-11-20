@@ -43,4 +43,25 @@ public sealed class NikeGsFlow : NikeFlow
         c.Session.Vars["sizeLine"] = "gs";
         return outcome;
     }
+
+    public override async Task<StepOutcome> Process3DSAsync(FlowContext c, CancellationToken ct)
+    {
+        var url = c.Session.Vars.GetValueOrDefault("nike.threeDSecureRedirectUrl")
+                  ?? c.Session.ThreeDsUrl
+                  ?? c.Session.Vars.GetValueOrDefault("threeDsUrl");
+        if (!string.IsNullOrEmpty(url) &&
+            (url!.Contains("authentication-devices.checkout.com", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(c.Session.Vars.GetValueOrDefault("checkoutcom.mode"), "esw", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(c.Session.Vars.GetValueOrDefault("checkoutcom.mode"), "nike-gs", StringComparison.OrdinalIgnoreCase)))
+        {
+            var payload = c.Session.Vars.GetValueOrDefault("threeDsPayload") ?? string.Empty;
+            var resolved = await new Cybersole.Stores.Payments.CheckoutComGateway()
+                .ResolveEswThreeDsAsync(c, url!, payload, ct).ConfigureAwait(false);
+            return resolved.Ok
+                ? StepOutcome.Success()
+                : StepOutcome.Fail(resolved.Error ?? "nike-gs: checkout.com 3DS failed", retryable: true);
+        }
+
+        return await base.Process3DSAsync(c, ct).ConfigureAwait(false);
+    }
 }

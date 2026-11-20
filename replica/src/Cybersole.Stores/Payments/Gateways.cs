@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Cybersole.Http;
 using Cybersole.Stores.Flows;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -921,36 +922,269 @@ public sealed class StripeGateway : IPaymentGateway
     }
 }
 
-/// <summary>Unzer — <c>api.unzer.com</c> charge flow with a card resource.</summary>
+/// <summary>
+/// Unzer — <c>api.unzer.com</c> charge flow, Casio Magento 2 <c>unzer_cards</c> checkout, and
+/// <c>ContinueUnzerThreeDs</c> / <c>RunUnzerThreeDs</c> state machine (<c>0x143383aa9</c>, <c>0x140960560</c>).
+///
+/// <para>
+/// <b>Unknown</b>: (1) Exact prepare-payment subpath in <c>0x14094c210</c> (only <c>"Preparing payment"</c>,
+/// <c>X-Requested-With: XMLHttpRequest</c>, and <c>"apiKey"</c> extraction were recovered — only invoked when
+/// <c>unzer.prepareUrl</c> is provided); (2) exact terminal exclusion set in <c>qword_1472c65a0+8</c>;
+/// (3) exact URL predicate inside <c>0x14094a870</c> gating <c>RunUnzerThreeDs</c>.
+/// </para>
+/// </summary>
 public sealed class UnzerGateway : IPaymentGateway
 {
-    private const string ApiHost = "https://api.unzer.com";
+    public const string DefaultApiHost = "https://api.unzer.com";
+    public const string SdkTypeHeader = "unzercorp/connectivity-v2-card-ui";
+    public const string SdkVersionHeader = "0.22.0";
+    public const string StaticOrigin = "https://static-cc.unzer.com";
+    private const int MaxThreeDsHops = 6;
 
     public string Id => "unzer";
     public string Name => "Unzer";
+
+    private static string ApiHost(FlowContext c) =>
+        c.Session.Vars.TryGetValue("unzer.apiUrl", out var u) && !string.IsNullOrEmpty(u)
+            ? u.TrimEnd('/')
+            : DefaultApiHost;
+
+    private static string StoreOrigin(FlowContext c) =>
+        c.Session.Vars.TryGetValue("unzer.storeOrigin", out var o) && !string.IsNullOrEmpty(o)
+            ? o.TrimEnd('/')
+            : (!string.IsNullOrEmpty(c.Url) ? GatewayHttp.OriginOf(c.Url) : "https://www.casio.com");
+
+    private static string StoreBase(FlowContext c)
+    {
+        var origin = StoreOrigin(c);
+        var code = c.Session.Vars.TryGetValue("unzer.storeCode", out var sc) && !string.IsNullOrEmpty(sc)
+            ? sc.Trim('/')
+            : (c.Session.Vars.TryGetValue("CasioRegion", out var cr) && !string.IsNullOrEmpty(cr)
+                ? cr.Trim('/')
+                : string.Empty);
+        return string.IsNullOrEmpty(code) ? origin : $"{origin}/{code}";
+    }
+
+    private static string CartScopeSegment(FlowContext c)
+    {
+        var isGuest = c.Session.Vars.TryGetValue("unzer.guest", out var g)
+            ? string.Equals(g, "true", StringComparison.OrdinalIgnoreCase)
+            : !string.IsNullOrEmpty(c.Session.CartId) &&
+              !string.Equals(c.Session.Vars.GetValueOrDefault("unzer.authenticated"), "true", StringComparison.OrdinalIgnoreCase);
+        return isGuest
+            ? $"guest-carts/{Uri.EscapeDataString(c.Session.CartId ?? string.Empty)}"
+            : "carts/mine";
+    }
+
+    /// <summary>
+    /// Optional prepare-payment step (<c>0x14094c210</c>): fetches <c>unzer.prepareUrl</c> when provided
+    /// (the exact subpath in <c>0x14094c210</c> is Unknown) and extracts <c>"apiKey"</c> into <c>unzer.publicKey</c>.
+    /// </summary>
+    public async Task<PaymentResult> PreparePaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!c.Session.Vars.TryGetValue("unzer.prepareUrl", out var url) || string.IsNullOrEmpty(url))
+            return PaymentResult.Fail("unzer: prepare subpath unknown — supply unzer.prepareUrl or unzer.publicKey");
+
+        c.Emit("Preparing payment", "StatusInfo");
+        var res = await ThreeDsTransportHelpers.GetRawAsync(
+            c, url, new Dictionary<string, string> { ["X-Requested-With"] = "XMLHttpRequest" },
+            "unzer-prepare", ct).ConfigureAwait(false);
+        var apiKey = ThreeDsTransportHelpers.TryParseJson(res?.Body)?["apiKey"]?.ToString();
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            c.Emit("Error preparing payment", "error");
+            return PaymentResult.Fail("Error preparing payment");
+        }
+
+        c.Session.Vars["unzer.publicKey"] = apiKey!;
+        return PaymentResult.Success(apiKey);
+    }
+
+    /// <summary>
+    /// <c>Set unzer payment</c> (<c>0x14094a660 -> 0x14095f480</c>):
+    /// <c>POST /{store}/rest/V1/{carts/mine|guest-carts/{cartId}}/set-payment-information</c>.
+    /// </summary>
+    public async Task<PaymentResult> SetUnzerPaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        c.Emit("Set unzer payment", "StatusInfo");
+        var email = c.ProfileData?.Email ?? c.Account?.Email ?? c.Session.Vars.GetValueOrDefault("email") ?? string.Empty;
+        var body = new JObject
+        {
+            ["cartId"] = c.Session.CartId ?? string.Empty,
+            ["email"] = email,
+            ["paymentMethod"] = new JObject { ["method"] = "unzer_cards" },
+        };
+
+        var url = $"{StoreBase(c)}/rest/V1/{CartScopeSegment(c)}/set-payment-information";
+        var res = await ThreeDsTransportHelpers.PostJsonRawAsync(
+            c, url, body.ToString(Formatting.None),
+            new Dictionary<string, string> { ["X-Requested-With"] = "XMLHttpRequest" },
+            "unzer-set-payment", ct).ConfigureAwait(false);
+
+        return res is not null && res.IsSuccess
+            ? PaymentResult.Success(res.Body)
+            : PaymentResult.Fail($"unzer: set-payment-information failed ({res?.StatusCode ?? 0})");
+    }
 
     public async Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct)
     {
         var card = c.Card;
         if (card?.Number is null) return PaymentResult.Fail("unzer: no card");
 
+        var publicKey = c.Session.Vars.GetValueOrDefault("unzer.publicKey");
+        if (string.IsNullOrEmpty(publicKey))
+        {
+            c.Emit("Missing Unzer public key", "error");
+            return PaymentResult.Fail("Missing Unzer public key");
+        }
+
+        c.Emit("Tokenizing card", "StatusInfo");
+
+        var month = (card.Month ?? string.Empty).PadLeft(2, '0');
+        var rawYear = card.Year ?? string.Empty;
+        var yy = rawYear.Length == 4 ? rawYear[2..] : rawYear;
+        var holder = !string.IsNullOrWhiteSpace(card.Name)
+            ? card.Name!
+            : $"{c.Billing?.FirstName ?? c.Shipping?.FirstName ?? c.ProfileData?.FirstName} {c.Billing?.LastName ?? c.Shipping?.LastName ?? c.ProfileData?.LastName}".Trim();
+
         var body = new JObject
         {
-            ["number"] = card.Number,
-            ["expiryDate"] = $"{card.Month}/{card.Year}",
-            ["cvc"] = card.Cvv,
+            ["number"] = card.Number.Replace(" ", string.Empty),
+            ["cvc"] = card.Cvv ?? string.Empty,
+            ["expiryDate"] = $"{month}/{yy}",
+            ["cardHolder"] = holder,
         };
 
-        var res = await GatewayHttp.PostAsync(c, $"{ApiHost}/v1/types/card", body, "unzer-card", ct)
+        var basicAuth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(publicKey + ":"));
+        var headers = new Dictionary<string, string>
+        {
+            ["authorization"] = "Basic " + basicAuth,
+            ["origin"] = StaticOrigin,
+            ["accept-language"] = "de-DE",
+            ["sdk-type"] = SdkTypeHeader,
+            ["sdk-version"] = SdkVersionHeader,
+            ["sec-fetch-site"] = "same-site",
+        };
+
+        var res = await ThreeDsTransportHelpers.PostJsonRawAsync(
+            c, $"{ApiHost(c)}/v1/types/card", body.ToString(Formatting.None), headers, "unzer-card", ct)
             .ConfigureAwait(false);
 
         if (res is null) return PaymentResult.Fail("unzer: card type failed");
+        if (res.StatusCode == 400)
+        {
+            c.Emit("Unzer tokenize bad request: " + (res.Body ?? string.Empty), "error");
+            return PaymentResult.Fail("Invalid card");
+        }
+        if (res.StatusCode is not (200 or 201) && !res.IsSuccess)
+            return PaymentResult.Fail($"unzer: card type HTTP {res.StatusCode}");
 
-        var id = res["id"]?.ToString();
+        var json = ThreeDsTransportHelpers.TryParseJson(res.Body);
+        var id = json?["id"]?.ToString();
         if (string.IsNullOrEmpty(id)) return PaymentResult.Fail("unzer: no type id");
 
         c.Session.PaymentMethodId = id;
+        c.Session.Vars["unzer.resourceId"] = id!;
         return PaymentResult.Success(id);
+    }
+
+    /// <summary>
+    /// <c>Submit order</c> (<c>0x14094a700 -> 0x140963c40</c>):
+    /// <c>POST /{store}/rest/V1/{carts/mine|guest-carts/{cartId}}/payment-information</c>.
+    /// </summary>
+    public async Task<PaymentResult> SubmitUnzerOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        var cartId = c.Session.CartId;
+        var resourceId = c.Session.Vars.GetValueOrDefault("unzer.resourceId") ?? c.Session.PaymentMethodId;
+        if (string.IsNullOrEmpty(cartId) || string.IsNullOrEmpty(resourceId))
+            return PaymentResult.Fail("unzer: missing cartId or resourceId");
+
+        c.Emit("Submit order", "StatusInfo");
+
+        var bill = c.Billing ?? c.Shipping;
+        var email = c.ProfileData?.Email ?? c.Account?.Email ?? c.Session.Vars.GetValueOrDefault("email") ?? string.Empty;
+        var addr1 = bill?.Address1 ?? c.ProfileData?.Address1 ?? string.Empty;
+        var addr2 = bill?.Address2 ?? c.ProfileData?.Address2 ?? string.Empty;
+        var storeOrigin = StoreOrigin(c);
+
+        var extensionAttributes = new JObject
+        {
+            ["agreement_ids"] = new JArray(c.Session.Vars.GetValueOrDefault("unzer.agreementId") ?? "1"),
+        };
+        if (string.Equals(c.Session.Vars.GetValueOrDefault("unzer.policyAgreed"), "true", StringComparison.OrdinalIgnoreCase))
+            extensionAttributes["is_policy_agreed"] = true;
+
+        var billingAddress = new JObject
+        {
+            ["countryId"] = bill?.Country ?? c.ProfileData?.Country ?? string.Empty,
+            ["email"] = email,
+            ["regionCode"] = bill?.State ?? c.ProfileData?.State ?? string.Empty,
+            ["region"] = bill?.State ?? c.ProfileData?.State ?? string.Empty,
+            ["street"] = new JArray(addr1, addr2),
+            ["company"] = string.Empty,
+            ["telephone"] = c.ProfileData?.Phone ?? string.Empty,
+            ["postcode"] = bill?.ZipCode ?? c.ProfileData?.Zip ?? string.Empty,
+            ["city"] = bill?.City ?? c.ProfileData?.City ?? string.Empty,
+            ["firstname"] = bill?.FirstName ?? c.ProfileData?.FirstName ?? string.Empty,
+            ["lastname"] = bill?.LastName ?? c.ProfileData?.LastName ?? string.Empty,
+            ["saveInAddressBook"] = JValue.CreateNull(),
+        };
+
+        var body = new JObject
+        {
+            ["cartId"] = cartId,
+            ["billingAddress"] = billingAddress,
+            ["email"] = email,
+            ["paymentMethod"] = new JObject
+            {
+                ["method"] = "unzer_cards",
+                ["po_number"] = JValue.CreateNull(),
+                ["additional_data"] = new JObject
+                {
+                    ["customer_id"] = JValue.CreateNull(),
+                    ["resource_id"] = resourceId,
+                    ["birthDate"] = JValue.CreateNull(),
+                    ["customer_type"] = "b2c",
+                },
+                ["extension_attributes"] = extensionAttributes,
+            },
+        };
+
+        var headers = new Dictionary<string, string>
+        {
+            ["x-requested-with"] = "XMLHttpRequest",
+            ["origin"] = storeOrigin,
+            ["sec-fetch-site"] = "same-origin",
+            ["sec-fetch-mode"] = "cors",
+            ["sec-fetch-dest"] = "empty",
+            ["referer"] = c.Session.Vars.GetValueOrDefault("unzer.referer") ?? c.Url,
+            ["accept"] = "*/*",
+            ["accept-language"] = "en-US,en;q=0.9",
+            ["priority"] = "u=1, i",
+        };
+
+        var url = $"{StoreBase(c)}/rest/V1/{CartScopeSegment(c)}/payment-information";
+        var res = await ThreeDsTransportHelpers.PostJsonRawAsync(
+            c, url, body.ToString(Formatting.None), headers, "unzer-order", ct).ConfigureAwait(false);
+
+        if (res is null) return PaymentResult.Fail("Error submitting order");
+        if (res.StatusCode == 400)
+        {
+            c.Emit("Unzer order bad request: " + (res.Body ?? string.Empty), "error");
+            return PaymentResult.Fail("Error submitting order");
+        }
+        if (!res.IsSuccess) return PaymentResult.Fail($"unzer: order HTTP {res.StatusCode}");
+
+        var orderId = (res.Body ?? string.Empty).Trim('"', '\r', '\n', ' ');
+        c.Session.OrderId = orderId;
+        c.Session.OrderNumber = orderId;
+        c.Session.Vars["unzer.orderId"] = orderId;
+        c.Session.Vars["unzer.requiresRedirect"] = "true";
+        c.Session.Vars["unzer.state"] = "Waiting3DS";
+
+        var redirectUrl = $"{StoreBase(c)}/unzer/payment/redirect";
+        c.Session.ThreeDsUrl = redirectUrl;
+        return PaymentResult.Action(redirectUrl, orderId);
     }
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
@@ -959,6 +1193,17 @@ public sealed class UnzerGateway : IPaymentGateway
         {
             var t = await TokenizeAsync(c, ct).ConfigureAwait(false);
             if (!t.Ok) return t;
+        }
+
+        if (string.Equals(c.Session.Vars.GetValueOrDefault("unzer.flow"), "casio", StringComparison.OrdinalIgnoreCase) ||
+            (!string.IsNullOrEmpty(c.Session.CartId) &&
+             (c.Session.Vars.ContainsKey("unzer.storeOrigin") ||
+              c.Session.Vars.ContainsKey("unzer.storeCode") ||
+              c.Url.Contains("casio.com", StringComparison.OrdinalIgnoreCase))))
+        {
+            var set = await SetUnzerPaymentAsync(c, ct).ConfigureAwait(false);
+            if (!set.Ok) return set;
+            return await SubmitUnzerOrderAsync(c, ct).ConfigureAwait(false);
         }
 
         var body = new JObject
@@ -973,22 +1218,238 @@ public sealed class UnzerGateway : IPaymentGateway
             },
         };
 
-        var res = await GatewayHttp.PostAsync(c, $"{ApiHost}/v1/payments/charges", body,
+        var headers = new Dictionary<string, string>();
+        if (c.Session.Vars.TryGetValue("unzer.publicKey", out var pk) && !string.IsNullOrEmpty(pk))
+            headers["authorization"] = "Basic " + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(pk + ":"));
+
+        var res = await ThreeDsTransportHelpers.PostJsonRawAsync(
+            c, $"{ApiHost(c)}/v1/payments/charges", body.ToString(Formatting.None), headers,
             "unzer-charge", ct).ConfigureAwait(false);
 
-        if (res is null) return PaymentResult.Fail("unzer: charge failed");
+        if (res is null || !res.IsSuccess) return PaymentResult.Fail("unzer: charge failed");
 
-        var id = res["id"]?.ToString();
+        var json = ThreeDsTransportHelpers.TryParseJson(res.Body);
+        if (json is null) return PaymentResult.Fail("unzer: charge response invalid");
+
+        var id = json["id"]?.ToString();
         c.Session.Vars["unzer.paymentId"] = id ?? string.Empty;
-        var status = res["status"]?.ToString();
+        var redirectUrl = json["redirectUrl"]?.ToString();
+        var status = json["status"]?.ToString();
+
+        if (!string.IsNullOrEmpty(redirectUrl) &&
+            !string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
+        {
+            c.Session.ThreeDsUrl = redirectUrl;
+            c.Session.Vars["unzer.state"] = "Waiting3DS";
+            return PaymentResult.Action(redirectUrl!, id ?? string.Empty);
+        }
 
         return string.Equals(status, "success", StringComparison.OrdinalIgnoreCase)
             ? PaymentResult.Success(id)
             : PaymentResult.Fail($"unzer: status {status}");
     }
 
-    public Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct) =>
-        Task.FromResult(PaymentResult.Success(payload));
+    /// <summary>
+    /// <c>ContinueUnzerThreeDs</c> (<c>0x143383aa9</c>, <c>0x14094a760 -> 0x14095d270</c>):
+    /// GETs <c>/{store}/unzer/payment/redirect</c>, extracts <c>form[action]</c> + inputs, runs
+    /// <see cref="RunUnzerThreeDsAsync"/> when the action targets Unzer 3DS, follows up to 6 redirect hops,
+    /// and verifies <c>/{store}/unzer/payment/callback/</c> (<c>checkout/onepage/success</c> / <c>/checkout/success</c>).
+    /// </summary>
+    public async Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct)
+    {
+        var redirectUrl = !string.IsNullOrWhiteSpace(payload) &&
+                          (Uri.TryCreate(payload, UriKind.Absolute, out _) || payload.StartsWith('/'))
+            ? ThreeDsTransportHelpers.ResolveUrl(StoreBase(c) + "/", payload)
+            : c.Session.Vars.GetValueOrDefault("threeDsUrl")
+              ?? c.Session.ThreeDsUrl
+              ?? $"{StoreBase(c)}/unzer/payment/redirect";
+
+        var redirectRes = await FollowRedirectsAsync(c, redirectUrl, "unzer-redirect", ct).ConfigureAwait(false);
+        if (redirectRes is null)
+            return PaymentResult.Fail("Error verifying payment");
+
+        var landedUrl = redirectRes.Url.ToString();
+        var (formAction, formInputs) = ThreeDsTransportHelpers.ExtractForm(redirectRes.Body);
+
+        if (!string.IsNullOrEmpty(formAction))
+        {
+            var actionUri = ThreeDsTransportHelpers.ResolveUrl(landedUrl, formAction!);
+            if (IsUnzerThreeDsAction(c, actionUri))
+            {
+                var threeDs = await RunUnzerThreeDsAsync(c, actionUri, formInputs, ct).ConfigureAwait(false);
+                if (!threeDs.Ok) return threeDs;
+                landedUrl = c.Session.Vars.GetValueOrDefault("unzer.landedUrl") ?? landedUrl;
+            }
+            else
+            {
+                var postRes = await ThreeDsTransportHelpers.PostFormRawAsync(
+                    c, actionUri, formInputs, null, "unzer-form-hop", ct, followRedirects: false)
+                    .ConfigureAwait(false);
+                if (postRes is not null)
+                {
+                    var hopped = await FollowResponseHopsAsync(c, postRes, "unzer-form-redirect", ct)
+                        .ConfigureAwait(false);
+                    landedUrl = hopped.Url.ToString();
+                }
+            }
+        }
+        else if (!IsTerminalUrl(landedUrl))
+        {
+            c.Emit("Unzer redirect had no form: " + landedUrl, "StatusInfo");
+        }
+
+        if (!IsTerminalUrl(landedUrl))
+        {
+            var callbackUrl = $"{StoreBase(c)}/unzer/payment/callback/";
+            var cbRes = await FollowRedirectsAsync(c, callbackUrl, "unzer-callback", ct).ConfigureAwait(false);
+            if (cbRes is null)
+                return PaymentResult.Fail("Error verifying payment");
+            landedUrl = cbRes.Url.ToString();
+        }
+
+        c.Session.Vars["unzer.landedUrl"] = landedUrl;
+        if (IsSuccessLanding(landedUrl))
+        {
+            c.Session.Vars["unzer.state"] = "Complete3DS";
+            return PaymentResult.Success(c.Session.OrderId ?? c.Session.Vars.GetValueOrDefault("unzer.paymentId") ?? landedUrl);
+        }
+
+        if (landedUrl.Contains("checkout/cart", StringComparison.OrdinalIgnoreCase))
+        {
+            c.Emit("Unzer returned to cart: " + landedUrl, "error");
+            return PaymentResult.Fail("Unzer returned to cart: " + landedUrl);
+        }
+
+        c.Emit("Unzer callback landed on " + landedUrl, "error");
+        return PaymentResult.Fail("Error verifying payment");
+    }
+
+    /// <summary>
+    /// <c>RunUnzerThreeDs</c> (<c>0x14094a7b0 -> 0x14095e0f0</c>): GETs <paramref name="actionUri"/>,
+    /// parses <c>#threeds-method-data</c> (<c>data-notification-url</c>, <c>data-continue-url</c>,
+    /// <c>data-server-trans-id</c>), POSTs Base64Url <c>threeDSMethodData</c> when notification URL is present,
+    /// rewrites <c>/continue/</c> -> <c>/receiver/</c>, and walks up to 6 hops.
+    /// </summary>
+    public async Task<PaymentResult> RunUnzerThreeDsAsync(
+        FlowContext c,
+        string actionUri,
+        IDictionary<string, string>? formInputs,
+        CancellationToken ct)
+    {
+        var pageRes = await FollowRedirectsAsync(c, actionUri, "unzer-3ds-action", ct).ConfigureAwait(false);
+        if (pageRes is null)
+            return PaymentResult.Fail("Error verifying payment");
+
+        var currentUrl = pageRes.Url.ToString();
+        var methodAttrs = ThreeDsTransportHelpers.ReadElementAttributesById(pageRes.Body, "threeds-method-data");
+        string? continueUrl = null;
+
+        if (!string.IsNullOrEmpty(methodAttrs))
+        {
+            var notifyUrl = ThreeDsTransportHelpers.ReadAttr(methodAttrs!, "data-notification-url");
+            var rawContinue = ThreeDsTransportHelpers.ReadAttr(methodAttrs!, "data-continue-url");
+            var serverTransId = ThreeDsTransportHelpers.ReadAttr(methodAttrs!, "data-server-trans-id") ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(notifyUrl))
+            {
+                var methodJson = new JObject { ["threeDSServerTransID"] = serverTransId }.ToString(Formatting.None);
+                var encoded = ThreeDsTransportHelpers.Base64UrlEncode(methodJson);
+                var resolvedNotify = ThreeDsTransportHelpers.ResolveUrl(currentUrl, notifyUrl!);
+                await ThreeDsTransportHelpers.PostFormRawAsync(
+                    c, resolvedNotify,
+                    new Dictionary<string, string> { ["threeDSMethodData"] = encoded },
+                    null, "unzer-3ds-method-notify", ct).ConfigureAwait(false);
+            }
+
+            if (!string.IsNullOrEmpty(rawContinue))
+                continueUrl = rawContinue!.Replace("/continue/", "/receiver/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (!string.IsNullOrEmpty(continueUrl))
+        {
+            var resolvedContinue = ThreeDsTransportHelpers.ResolveUrl(currentUrl, continueUrl!);
+            NetResponse? contRes;
+            var cres = c.Session.Vars.GetValueOrDefault("unzer.cres");
+            if (!string.IsNullOrEmpty(cres))
+            {
+                contRes = await ThreeDsTransportHelpers.PostFormRawAsync(
+                    c, resolvedContinue,
+                    new Dictionary<string, string> { ["cres"] = cres! },
+                    null, "unzer-3ds-continue-post", ct, followRedirects: false).ConfigureAwait(false);
+            }
+            else
+            {
+                contRes = await ThreeDsTransportHelpers.GetRawAsync(
+                    c, resolvedContinue, null, "unzer-3ds-continue", ct, followRedirects: false)
+                    .ConfigureAwait(false);
+            }
+
+            if (contRes is not null)
+            {
+                var hopped = await FollowResponseHopsAsync(c, contRes, "unzer-3ds-hop", ct).ConfigureAwait(false);
+                currentUrl = hopped.Url.ToString();
+            }
+        }
+        else if (formInputs is not null && formInputs.Count > 0 && !IsTerminalUrl(currentUrl))
+        {
+            var postRes = await ThreeDsTransportHelpers.PostFormRawAsync(
+                c, currentUrl, formInputs, null, "unzer-3ds-form", ct, followRedirects: false)
+                .ConfigureAwait(false);
+            if (postRes is not null)
+            {
+                var hopped = await FollowResponseHopsAsync(c, postRes, "unzer-3ds-form-hop", ct).ConfigureAwait(false);
+                currentUrl = hopped.Url.ToString();
+            }
+        }
+
+        c.Session.Vars["unzer.landedUrl"] = currentUrl;
+        return PaymentResult.Success(currentUrl);
+    }
+
+    private static bool IsUnzerThreeDsAction(FlowContext c, string actionUri)
+    {
+        if (string.Equals(c.Session.Vars.GetValueOrDefault("unzer.forceThreeDs"), "true", StringComparison.OrdinalIgnoreCase))
+            return true;
+        // Unknown: exact URL predicate inside 0x14094a870 was not dumped statically.
+        return actionUri.Contains("unzer", StringComparison.OrdinalIgnoreCase) ||
+               actionUri.Contains("threeds", StringComparison.OrdinalIgnoreCase) ||
+               actionUri.Contains("3ds", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSuccessLanding(string url) =>
+        url.Contains("checkout/onepage/success", StringComparison.OrdinalIgnoreCase) ||
+        url.Contains("/checkout/success", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTerminalUrl(string url) =>
+        IsSuccessLanding(url) || url.Contains("checkout/cart", StringComparison.OrdinalIgnoreCase);
+
+    private static async Task<NetResponse?> FollowRedirectsAsync(
+        FlowContext c, string url, string tag, CancellationToken ct)
+    {
+        var initial = await ThreeDsTransportHelpers.GetRawAsync(c, url, null, tag, ct, followRedirects: false)
+            .ConfigureAwait(false);
+        if (initial is null) return null;
+        return await FollowResponseHopsAsync(c, initial, tag, ct).ConfigureAwait(false);
+    }
+
+    private static async Task<NetResponse> FollowResponseHopsAsync(
+        FlowContext c, NetResponse current, string tag, CancellationToken ct)
+    {
+        for (var hop = 0; hop < MaxThreeDsHops; hop++)
+        {
+            if (current.StatusCode is not (301 or 302 or 303 or 307 or 308))
+                break;
+            if (!current.Headers.TryGetValue("Location", out var loc) || string.IsNullOrEmpty(loc))
+                break;
+
+            var nextUrl = ThreeDsTransportHelpers.ResolveUrl(current.Url.ToString(), loc);
+            var next = await ThreeDsTransportHelpers.GetRawAsync(c, nextUrl, null, tag, ct, followRedirects: false)
+                .ConfigureAwait(false);
+            if (next is null) break;
+            current = next;
+        }
+        return current;
+    }
 }
 
 /// <summary>
@@ -1269,8 +1730,32 @@ public sealed class PaynamicsGateway : IPaymentGateway
             : PaymentResult.Fail($"paynamics: status {res["status"]}");
     }
 
-    public Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct) =>
-        Task.FromResult(PaymentResult.Success(payload));
+    public async Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct)
+    {
+        if (c is not null &&
+            (c.Session.Vars.ContainsKey("cardinal.serverJwt") ||
+             c.Session.Vars.ContainsKey("cardinal.dfReferenceId") ||
+             (!string.IsNullOrEmpty(payload) && payload.Contains('.'))))
+        {
+            var cardinal = new CardinalThreeDs();
+            var serverJwt = c.Session.Vars.GetValueOrDefault("cardinal.serverJwt") ?? payload;
+            var init = await cardinal.InitAsync(c, serverJwt, CardinalThreeDs.CardinalVariant.Centinel, ct)
+                .ConfigureAwait(false);
+            if (!init.Ok) return init;
+
+            var txId = c.Session.Vars.GetValueOrDefault("cardinal.transactionId")
+                       ?? c.Session.OrderId
+                       ?? c.Session.Vars.GetValueOrDefault("paynamics.transactionId")
+                       ?? string.Empty;
+            if (!string.IsNullOrEmpty(txId))
+                return await cardinal.ContinueAsync(c, txId, serverJwt, CardinalThreeDs.CardinalVariant.Centinel, ct)
+                    .ConfigureAwait(false);
+
+            return init;
+        }
+
+        return PaymentResult.Success(payload);
+    }
 }
 
 /// <summary>SIBS — <c>api.sibspayments.com</c>.</summary>
@@ -1502,19 +1987,48 @@ public sealed class MollieGateway : IPaymentGateway
     public string Id => "mollie";
     public string Name => "Mollie";
 
-    public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
-        Task.FromResult(PaymentResult.Fail(
-            "mollie: tokenise endpoint not captured — the image names only /api/v1/public/core/payments/poll"));
+    public async Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct)
+    {
+        if (c is null ||
+            (!c.Session.Vars.ContainsKey("mollie.cardTokensUrl") &&
+             !string.Equals(c.Session.Vars.GetValueOrDefault("mollie.mode"), "checkoutcom", StringComparison.OrdinalIgnoreCase)))
+        {
+            return PaymentResult.Fail(
+                "mollie: tokenise endpoint not captured — the image names only /api/v1/public/core/payments/poll");
+        }
+
+        var card = c.Card;
+        if (card?.Number is null) return PaymentResult.Fail("mollie: no card");
+
+        var url = c.Session.Vars.GetValueOrDefault("mollie.cardTokensUrl") ?? CheckoutComGateway.MollieCardTokensUrl;
+        var body = new JObject
+        {
+            ["cardNumber"] = card.Number.Replace(" ", string.Empty),
+            ["expiryDate"] = $"{card.Month}/{card.Year}",
+            ["cvv"] = card.Cvv ?? string.Empty,
+            ["cardHolder"] = card.Name ?? c.ProfileData?.Display ?? string.Empty,
+        };
+
+        var res = await GatewayHttp.PostAsync(c, url, body, "mollie-card-tokens", ct).ConfigureAwait(false);
+        var token = res?["cardToken"]?.ToString() ?? res?["token"]?.ToString() ?? res?["id"]?.ToString();
+        if (string.IsNullOrEmpty(token)) return PaymentResult.Fail("mollie: card-tokens failed");
+
+        c.Session.PaymentToken = token;
+        return PaymentResult.Success(token);
+    }
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
     {
+        var apiHost = c.Session.Vars.TryGetValue("mollie.apiHost", out var h) && !string.IsNullOrEmpty(h)
+            ? h.TrimEnd('/')
+            : ApiHost;
         var body = new JObject
         {
             ["amount"] = GatewayHttp.MinorUnits(c),
             ["currency"] = c.Session.Vars.TryGetValue("currency", out var cur) ? cur : "EUR",
         };
 
-        var res = await GatewayHttp.PostAsync(c, $"{ApiHost}/api/v1/public/core/payments/poll", body,
+        var res = await GatewayHttp.PostAsync(c, $"{apiHost}/api/v1/public/core/payments/poll", body,
             "mollie-poll", ct).ConfigureAwait(false);
 
         if (res is null) return PaymentResult.Fail("mollie: poll failed");
@@ -1530,8 +2044,30 @@ public sealed class MollieGateway : IPaymentGateway
                 : PaymentResult.Fail($"mollie: status {status}");
     }
 
-    public Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct) =>
-        AuthorizeAsync(c, ct);
+    public async Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct)
+    {
+        if (c is not null &&
+            (c.Session.Vars.ContainsKey("checkoutcom.challengeForm") ||
+             string.Equals(c.Session.Vars.GetValueOrDefault("mollie.mode"), "checkoutcom", StringComparison.OrdinalIgnoreCase)))
+        {
+            var form = new Dictionary<string, string>();
+            var parsed = ThreeDsTransportHelpers.TryParseJson(payload);
+            if (parsed is not null)
+            {
+                foreach (var p in parsed.Properties())
+                    form[p.Name] = p.Value?.ToString() ?? string.Empty;
+            }
+            else if (!string.IsNullOrEmpty(payload))
+            {
+                form["cres"] = payload;
+            }
+
+            var notified = await CheckoutComGateway.NotifyMollieChallengeAsync(c, form, ct).ConfigureAwait(false);
+            if (!notified.Ok) return notified;
+        }
+
+        return await AuthorizeAsync(c, ct).ConfigureAwait(false);
+    }
 }
 
 /// <summary>

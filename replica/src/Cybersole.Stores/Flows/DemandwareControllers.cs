@@ -149,6 +149,9 @@ public static class DemandwareControllers
     /// <summary>The Maison Margiela storefront's preload action (0x146dfcbe0).</summary>
     public const string MargielaPreload = "Margiela-Preload";
 
+    /// <summary>Funko CrowdTwist fan-rewards registration endpoint (<c>0x140a19360</c>).</summary>
+    public const string CrowdTwistRegister = "CrowdTwist-Register";
+
     /// <summary>The controllers, in the order the checkout chain uses them.</summary>
     public static readonly IReadOnlyList<string> CheckoutChain = new[]
     {
@@ -170,7 +173,7 @@ public static class DemandwareControllers
         CartUpdateProduct, CartShowLayer, AdyenPaymentFromComponent,
         AdyenPayPalPatchOrder, AdyenAuthorize3Ds2,
         PaypalGetPurchaseUnit, PaypalGetPaypalOrderId, PaypalGetOrderDetails,
-        JacquemusPreload, MargielaPreload,
+        JacquemusPreload, MargielaPreload, CrowdTwistRegister,
     };
 
     /// <summary>The site ids the image names, e.g. <c>Sites-crocs_-Site</c>.</summary>

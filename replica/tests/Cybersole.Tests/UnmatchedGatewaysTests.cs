@@ -30,11 +30,13 @@ public sealed class UnmatchedGatewaysTests
             Assert.Contains(id, ids);
     }
 
-    /// <summary>Registration is what puts a gateway in the artifact, so the count matters as much as the names.</summary>
+    /// <summary>Registration is what puts a gateway in the artifact, so the count matters as much as the names (13 original + Checkout.com in Phase 2).</summary>
     [Fact]
-    public void TheRegistryHasThirteen()
+    public void TheRegistryHasFourteen()
     {
-        Assert.Equal(13, PaymentGatewayRegistry.CreateDefault().All.Count);
+        var registry = PaymentGatewayRegistry.CreateDefault();
+        Assert.Equal(14, registry.All.Count);
+        Assert.NotNull(registry.Resolve("checkoutcom"));
     }
 
     /// <summary>

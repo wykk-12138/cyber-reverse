@@ -43,8 +43,11 @@ public class DemandwareFlow : StoreFlow
     /// <summary>The SFCC locale segment, e.g. en_US.</summary>
     public string Locale => _locale;
 
-    private string Controller(FlowContext c, string name) =>
-        $"{Origin(c.Url)}/on/demandware.store/Sites-{_site}-Site/{_locale}/{name}";
+    protected string Controller(FlowContext c, string name)
+    {
+        var siteSegment = _site.EndsWith("-Site", StringComparison.Ordinal) ? _site : _site + "-Site";
+        return $"{Origin(c.Url)}/on/demandware.store/Sites-{siteSegment}/{_locale}/{name}";
+    }
 
     /// <summary>
     /// The three PayPal controller actions the image carries (R1162). All three are SFCC storefront
@@ -523,6 +526,16 @@ public class DemandwareFlow : StoreFlow
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
+        if (c.Session.Vars.TryGetValue("cardinal.serverJwt", out var serverJwt) &&
+            !string.IsNullOrEmpty(serverJwt) &&
+            !c.Session.Vars.ContainsKey("cardinal.dfReferenceId"))
+        {
+            var init = await new Cybersole.Stores.Payments.CardinalThreeDs()
+                .InitAsync(c, serverJwt, Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.Centinel, ct)
+                .ConfigureAwait(false);
+            if (!init.Ok) return StepOutcome.Fail(init.Error ?? "demandware: cardinal init failed", retryable: true);
+        }
+
         var form = new Dictionary<string, string>
         {
             ["dwfrm_billing_paymentMethod"] = c.Session.Vars.TryGetValue("paymentMethod", out var pm)
@@ -532,7 +545,15 @@ public class DemandwareFlow : StoreFlow
         if (!string.IsNullOrEmpty(c.Session.CsrfToken))
             form["csrf_token"] = c.Session.CsrfToken!;
 
-        var res = await PostFormAsync(c, Controller(c, DemandwareControllers.PlaceOrder), form,
+        var hasDf = c.Session.Vars.TryGetValue("cardinal.dfReferenceId", out var dfRef);
+        var useDfQuery = hasDf ||
+                         string.Equals(c.Session.Vars.GetValueOrDefault("demandware.useDfQuery"), "true",
+                             StringComparison.OrdinalIgnoreCase);
+        var orderController = useDfQuery
+            ? DemandwareControllers.PlaceOrderPathWith(dfRef).TrimStart('/')
+            : DemandwareControllers.PlaceOrder;
+
+        var res = await PostFormAsync(c, Controller(c, orderController), form,
             Tag() + "-order", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("demandware order failed", retryable: true);
@@ -549,6 +570,31 @@ public class DemandwareFlow : StoreFlow
 
         c.Session.OrderNumber = order;
         return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> Process3DSAsync(FlowContext c, CancellationToken ct)
+    {
+        if (c.Session.Vars.TryGetValue("cardinal.serverJwt", out var jwt) && !string.IsNullOrEmpty(jwt))
+        {
+            var cardinal = new Cybersole.Stores.Payments.CardinalThreeDs();
+            var init = await cardinal.InitAsync(
+                c, jwt, Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.Centinel, ct)
+                .ConfigureAwait(false);
+            if (!init.Ok) return StepOutcome.Fail(init.Error ?? "cardinal init failed", retryable: true);
+
+            var txId = c.Session.Vars.GetValueOrDefault("cardinal.transactionId") ?? c.Session.OrderId;
+            if (!string.IsNullOrEmpty(txId))
+            {
+                var cont = await cardinal.ContinueAsync(
+                    c, txId!, jwt, Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.Centinel, ct)
+                    .ConfigureAwait(false);
+                if (!cont.Ok) return StepOutcome.Fail(cont.Error ?? "cardinal continue failed", retryable: true);
+            }
+
+            return StepOutcome.Success();
+        }
+
+        return await base.Process3DSAsync(c, ct).ConfigureAwait(false);
     }
 
     /// <summary>SFCC product pages end in <c>…-{pid}.html</c> or carry a <c>pid</c> query.</summary>
@@ -580,5 +626,154 @@ public sealed class FunkoFlow : DemandwareFlow
     public FunkoFlow() : base("funko", "Demandware (Funko)", new[] { "funko.com" },
         "FunkoUS-Site", "en_US")
     {
+    }
+
+    private string AccountUrl(FlowContext c)
+    {
+        var prefix = c.Session.Vars.TryGetValue("funko.accountPrefix", out var p) && !string.IsNullOrEmpty(p)
+            ? "/" + p.Trim('/')
+            : string.Empty;
+        return Origin(c.Url) + prefix + "/account";
+    }
+
+    /// <summary>
+    /// <c>CheckFanRewardState</c> (<c>0x140a0fc40</c>): <c>GET {baseUrl}{prefix}/account</c>,
+    /// inspects DOM <c>.crowd-twist-points</c> to report <c>"Already signed up"</c>.
+    /// </summary>
+    public async Task<StepOutcome> CheckFanRewardStateAsync(FlowContext c, CancellationToken ct)
+    {
+        c.Emit("Checking account", "StatusInfo");
+        var res = await GetAsync(c, AccountUrl(c), Tag() + "-fan-state", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("funko: account unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"funko: account HTTP {res.StatusCode}", retryable: true);
+
+        var body = res.Body ?? string.Empty;
+        if (Regex.IsMatch(body, @"class\s*=\s*[""'][^""']*\bcrowd-twist-points\b[^""']*[""']", RegexOptions.IgnoreCase))
+        {
+            c.Session.Vars["fanRewards.state"] = "already_signed_up";
+            c.Emit("Already signed up", "StatusInfo");
+            return StepOutcome.Success();
+        }
+
+        c.Session.Vars["fanRewards.state"] = "not_signed_up";
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Funko <c>CheckBalance</c> (<c>0x140a13670</c>, mode enum <c>2 = "check balance"</c>):
+    /// <c>GET {baseUrl}{prefix}/account</c>, reads <c>[class*='points-value']</c> -> <c>"{pts} pts"</c>.
+    /// </summary>
+    public async Task<StepOutcome> CheckFanRewardBalanceAsync(FlowContext c, CancellationToken ct)
+    {
+        c.Emit("Checking Balance", "StatusInfo");
+        var res = await GetAsync(c, AccountUrl(c), Tag() + "-fan-balance", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("funko: balance unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"funko: balance HTTP {res.StatusCode}", retryable: true);
+
+        var m = Regex.Match(res.Body ?? string.Empty,
+            @"<[^>]*class\s*=\s*[""'][^""']*points-value[^""']*[""'][^>]*>(.*?)</[^>]+>",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        if (m.Success)
+        {
+            var pts = Regex.Replace(m.Groups[1].Value, "<[^>]+>", string.Empty).Trim();
+            if (!string.IsNullOrEmpty(pts))
+            {
+                var formatted = $"{pts} pts";
+                c.Session.Vars["fanRewards.balance"] = formatted;
+                c.Emit(formatted, "StatusInfo");
+                return StepOutcome.Success();
+            }
+        }
+
+        c.Emit("Invalid Account", "error");
+        return StepOutcome.Fail("Invalid Account");
+    }
+
+    /// <summary>
+    /// <c>SignUpFanRewards</c> (<c>0x140a19360</c>, mode enum <c>5 = "fan rewards signup"</c>):
+    /// <c>POST {baseUrl}/on/demandware.store/Sites-FunkoUS-Site/{Locale}/CrowdTwist-Register</c>
+    /// with <c>Referer: {baseUrl}/fanrewards-join/</c>, <c>Origin</c>, <c>X-Requested-With: XMLHttpRequest</c>,
+    /// empty body, checking JSON <c>"success"</c> boolean.
+    /// </summary>
+    public async Task<StepOutcome> SignUpFanRewardsAsync(FlowContext c, CancellationToken ct)
+    {
+        c.Emit("Signing up", "StatusInfo");
+        var origin = Origin(c.Url);
+        var url = Controller(c, DemandwareControllers.CrowdTwistRegister);
+        var headers = new Dictionary<string, string>
+        {
+            ["Referer"] = origin + "/fanrewards-join/",
+            ["Origin"] = origin,
+            ["X-Requested-With"] = "XMLHttpRequest",
+        };
+
+        var options = c.Options(Tag() + "-fan-signup");
+        foreach (var kv in headers) options.Headers[kv.Key] = kv.Value;
+        options.Content = new StringContent(string.Empty, System.Text.Encoding.UTF8, "application/x-www-form-urlencoded");
+
+        NetResponse res;
+        try
+        {
+            res = await c.Http.SendAsync(HttpMethod.Post, url, options, ct).ConfigureAwait(false);
+            c.Session.AbsorbCookies(res.Cookies);
+            c.Session.Vars["lastStatus"] = res.StatusCode.ToString();
+            c.Session.Vars["lastUrl"] = res.Url.ToString();
+        }
+        catch (Exception ex)
+        {
+            c.Emit($"funko signup: {ex.Message}", "error");
+            return StepOutcome.Fail("funko: rewards signup unreachable", retryable: true);
+        }
+
+        if (res.IsSuccess)
+        {
+            try
+            {
+                var ok = Newtonsoft.Json.Linq.JObject.Parse(res.Body)["success"]?.ToObject<bool?>() == true;
+                if (ok)
+                {
+                    c.Session.Vars["fanRewards.signup"] = "registered";
+                    c.Emit("Successfully Registered (Rewards)", "StatusInfo");
+                    return StepOutcome.Success();
+                }
+            }
+            catch { /* fall through to Signup Failed */ }
+        }
+
+        c.Session.Vars["fanRewards.signup"] = "failed";
+        c.Emit("Signup Failed", "error");
+        return StepOutcome.Fail("Signup Failed");
+    }
+
+    public override async Task<StepOutcome> CheckLoginAsync(FlowContext c, CancellationToken ct)
+    {
+        var mode = c.Session.Vars.GetValueOrDefault("funko.mode");
+        if (string.Equals(mode, "check balance", StringComparison.OrdinalIgnoreCase))
+            return await CheckFanRewardBalanceAsync(c, ct).ConfigureAwait(false);
+
+        if (string.Equals(mode, "fan rewards state", StringComparison.OrdinalIgnoreCase))
+            return await CheckFanRewardStateAsync(c, ct).ConfigureAwait(false);
+
+        if (string.Equals(mode, "fan rewards signup", StringComparison.OrdinalIgnoreCase))
+        {
+            var state = await CheckFanRewardStateAsync(c, ct).ConfigureAwait(false);
+            if (!state.Ok) return state;
+            if (string.Equals(c.Session.Vars.GetValueOrDefault("fanRewards.state"), "already_signed_up",
+                    StringComparison.Ordinal))
+                return StepOutcome.Success();
+            return await SignUpFanRewardsAsync(c, ct).ConfigureAwait(false);
+        }
+
+        return await base.CheckLoginAsync(c, ct).ConfigureAwait(false);
+    }
+
+    public override async Task<StepOutcome> SignUpAsync(FlowContext c, CancellationToken ct)
+    {
+        var state = await CheckFanRewardStateAsync(c, ct).ConfigureAwait(false);
+        if (!state.Ok) return state;
+        if (string.Equals(c.Session.Vars.GetValueOrDefault("fanRewards.state"), "already_signed_up",
+                StringComparison.Ordinal))
+            return StepOutcome.Success();
+        return await SignUpFanRewardsAsync(c, ct).ConfigureAwait(false);
     }
 }

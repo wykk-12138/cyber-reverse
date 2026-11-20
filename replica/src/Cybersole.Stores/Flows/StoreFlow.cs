@@ -1496,6 +1496,65 @@ public abstract class StoreFlow
                 : StepOutcome.Fail(adyenResult.Error ?? "adyen 3ds step failed", retryable: true);
         }
 
+        if (status is "requires_action" or "pending" &&
+            (string.Equals(c.Session.Vars.GetValueOrDefault("unzer.state"), "Waiting3DS", StringComparison.Ordinal) ||
+             string.Equals(c.Session.Vars.GetValueOrDefault(PaymentGatewayNameKey), "unzer", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(c.Session.Vars.GetValueOrDefault("gateway"), "unzer", StringComparison.OrdinalIgnoreCase)))
+        {
+            var unzer = Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve("unzer");
+            if (unzer is null) return StepOutcome.Fail("3DS challenge with no unzer gateway to resolve it");
+
+            var answer = c.Session.Vars.GetValueOrDefault("threeDsPayload") ?? string.Empty;
+            var resolved = await unzer.CompleteActionAsync(c, answer, ct).ConfigureAwait(false);
+            return resolved.Ok
+                ? StepOutcome.Success()
+                : StepOutcome.Fail(resolved.Error ?? "unzer 3ds: resolution failed", retryable: true);
+        }
+
+        if (status is "requires_action" or "pending" &&
+            (string.Equals(c.Session.Vars.GetValueOrDefault(PaymentGatewayNameKey), "checkoutcom", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(c.Session.Vars.GetValueOrDefault("gateway"), "checkoutcom", StringComparison.OrdinalIgnoreCase) ||
+             c.Session.Vars.ContainsKey("checkoutcom.actionUrl")))
+        {
+            var cko = Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve("checkoutcom");
+            if (cko is null) return StepOutcome.Fail("3DS challenge with no checkoutcom gateway to resolve it");
+
+            var answer = c.Session.Vars.GetValueOrDefault("threeDsPayload") ?? string.Empty;
+            var resolved = await cko.CompleteActionAsync(c, answer, ct).ConfigureAwait(false);
+            return resolved.Ok
+                ? StepOutcome.Success()
+                : StepOutcome.Fail(resolved.Error ?? "checkoutcom 3ds: resolution failed", retryable: true);
+        }
+
+        if (status is "requires_action" or "pending" &&
+            c.Session.Vars.TryGetValue("cardinal.step", out var cardinalStep) &&
+            !string.IsNullOrEmpty(cardinalStep))
+        {
+            var cardinal = new Cybersole.Stores.Payments.CardinalThreeDs();
+            var variant = string.Equals(c.Session.Vars.GetValueOrDefault("cardinal.variant"), "trusted",
+                StringComparison.OrdinalIgnoreCase)
+                ? Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.CardinalTrusted
+                : Cybersole.Stores.Payments.CardinalThreeDs.CardinalVariant.Centinel;
+            var jwt = c.Session.Vars.GetValueOrDefault("cardinal.serverJwt") ?? string.Empty;
+            var txId = c.Session.Vars.GetValueOrDefault("cardinal.transactionId") ?? c.Session.OrderId ?? string.Empty;
+
+            var cardRes = cardinalStep switch
+            {
+                "init" => await cardinal.InitAsync(c, jwt, variant, ct).ConfigureAwait(false),
+                "continue" => await cardinal.ContinueAsync(c, txId, jwt, variant, ct).ConfigureAwait(false),
+                "stepup" => await cardinal.StepUpAsync(c, c.Session.Vars.GetValueOrDefault("cardinal.jwt") ?? jwt,
+                    c.Session.Vars.GetValueOrDefault("cardinal.stepUpUrl"), ct).ConfigureAwait(false),
+                _ => null,
+            };
+
+            if (cardRes is null)
+                return StepOutcome.Fail($"cardinal 3ds step '{cardinalStep}' is unknown");
+
+            return cardRes.Ok
+                ? StepOutcome.Success()
+                : StepOutcome.Fail(cardRes.Error ?? "cardinal 3ds step failed", retryable: true);
+        }
+
         return status.ToLowerInvariant() switch
         {
             "authorised" or "authorized" or "success" or "captured" => StepOutcome.Success(),

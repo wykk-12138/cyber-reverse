@@ -61,6 +61,112 @@ public class ShopifyFlow : StoreFlow
     }
 
     // 鈹€鈹€ product 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+    public const string ToppsCdnPrefix = "https://cdn.cybersole.io/variants/topps-";
+
+    public static readonly IReadOnlyDictionary<string, string> ConvenienceStores =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Seven-Eleven"] = "seven-eleven",
+            ["Lawson"] = "lawson",
+            ["Family Mart"] = "family-mart",
+            ["Ministop"] = "ministop",
+            ["Daily Yamazaki"] = "daily-yamazaki",
+            ["Seicomart"] = "seicomart",
+        };
+
+    public override async Task<StepOutcome> FindProductFlowAsync(FlowContext c, CancellationToken ct)
+    {
+        if (IsToppsHost(c.Url) ||
+            string.Equals(c.Session.Vars.GetValueOrDefault("shopify.useToppsCdn"), "true",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return await FindProductCdnAsync(c, ct).ConfigureAwait(false);
+        }
+
+        return await base.FindProductFlowAsync(c, ct).ConfigureAwait(false);
+    }
+
+    private static bool IsToppsHost(string? url) =>
+        !string.IsNullOrEmpty(url) &&
+        Uri.TryCreate(url, UriKind.Absolute, out var u) &&
+        (u.Host.EndsWith("topps.com", StringComparison.OrdinalIgnoreCase) ||
+         u.Host.StartsWith("topps-", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// <c>FindProductCDN</c> (<c>0x1433a0f45 &lt;FindProductCDN&gt;d__25</c>, <c>0x140c986f0 -> 0x140c9e420</c>):
+    /// splits task input by <c>' '</c>, lowercases the first token, and fetches
+    /// <c>GET https://cdn.cybersole.io/variants/topps-{firstTokenLower}.json</c>.
+    ///
+    /// <para>
+    /// Note: <c>https://cdn.cybersole.io/data/products.json</c> belongs to the separate Cybersole test/benchmark
+    /// module (<c>0x140d5a380</c>), NOT Topps CDN.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Unknown</b>: Exact serialized JSON property names on the NativeAOT <c>ToppsVariant</c> class
+    /// (<c>off_1449B8EB0</c>, fields <c>v6[1]</c>, <c>v6[3]</c>, <c>v6[5]</c>, <c>v6[6]</c>, <c>v6[7]</c>)
+    /// were not statically recovered, so this method stores the raw JSON payload and marks
+    /// <c>topps.schema = "unknown"</c> rather than inventing proprietary property names.
+    /// </para>
+    /// </summary>
+    public async Task<StepOutcome> FindProductCdnAsync(FlowContext c, CancellationToken ct)
+    {
+        var rawInput = c.Session.Vars.GetValueOrDefault("topps.input");
+        if (string.IsNullOrWhiteSpace(rawInput))
+            rawInput = c.Product?.Name;
+        if (string.IsNullOrWhiteSpace(rawInput))
+            rawInput = ProductHandle(c.Url) ?? c.Url;
+
+        var firstToken = rawInput!
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault() ?? string.Empty;
+        var tokenLower = firstToken.ToLowerInvariant();
+        if (string.IsNullOrEmpty(tokenLower))
+            return StepOutcome.Fail("topps cdn: empty task input");
+
+        var url = c.Session.Vars.TryGetValue("topps.cdnOrigin", out var cdnOrigin) && !string.IsNullOrEmpty(cdnOrigin)
+            ? cdnOrigin.TrimEnd('/') + "/variants/topps-" + Uri.EscapeDataString(tokenLower) + ".json"
+            : ToppsCdnPrefix + Uri.EscapeDataString(tokenLower) + ".json";
+
+        c.Emit("Finding product (Topps CDN)", "StatusInfo");
+        var res = await GetAsync(c, url, "topps-cdn", ct).ConfigureAwait(false);
+        if (res is null)
+            return StepOutcome.Fail("topps cdn unreachable", retryable: true);
+
+        var retryEnabled = !string.Equals(c.Session.Vars.GetValueOrDefault("topps.retry"), "false",
+            StringComparison.OrdinalIgnoreCase);
+
+        if (res.StatusCode == 404)
+            return StepOutcome.Fail("topps cdn: 404 variant list not live", retryable: retryEnabled);
+
+        if (!res.IsSuccess)
+            return StepOutcome.Fail($"topps cdn HTTP {res.StatusCode}", retryable: retryEnabled);
+
+        c.Session.Vars["raw"] = res.Body ?? string.Empty;
+        c.Session.Vars["topps.cdnResponse"] = res.Body ?? string.Empty;
+        c.Session.Vars["topps.schema"] = "unknown";
+
+        try
+        {
+            var token = JToken.Parse(res.Body ?? string.Empty);
+            if (token is JObject obj)
+            {
+                var title = obj["title"]?.ToString();
+                if (!string.IsNullOrEmpty(title)) c.Session.Vars["product"] = title!;
+                var handle = obj["handle"]?.ToString();
+                if (!string.IsNullOrEmpty(handle)) c.Session.Vars["handle"] = handle!;
+                var unitPrice = obj["unitPrice"]?.ToString() ?? obj["price"]?.ToString();
+                if (!string.IsNullOrEmpty(unitPrice)) c.Session.Vars["price"] = unitPrice!;
+            }
+        }
+        catch (Newtonsoft.Json.JsonException ex)
+        {
+            return StepOutcome.Fail("topps cdn invalid json: " + ex.Message, retryable: retryEnabled);
+        }
+
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
     {
         var handle = ProductHandle(c.Url);
@@ -126,6 +232,166 @@ public class ShopifyFlow : StoreFlow
         c.Session.Vars["price"] = chosen["price"]?.ToString() ?? root["price"]?.ToString() ?? string.Empty;
         c.Session.Vars["sizes"] = string.Join('|', sizes);
         c.Session.Vars["availableVariants"] = string.Join('|', availableIds);
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// <c>CheckPriceLimit</c> / <c>CheckPriceLimitApp</c> (<c>0x143373f5f</c>, <c>0x140cf4a20</c>,
+    /// <c>0x140d1c1a0</c>, <c>0x140d17860</c>): validates input mode, queries Storefront GraphQL
+    /// (<c>POST /api/2020-04/graphql.json</c> with <c>Content-Type: application/graphql</c> and iOS Mobile Buy SDK
+    /// headers) when in App/Storefront/ShopApp mode with a token, and checks min/max bounds.
+    /// </summary>
+    public override async Task<StepOutcome> CheckPriceLimitAsync(FlowContext c, CancellationToken ct)
+    {
+        if (c.Product?.PriceCheck != true) return StepOutcome.Success();
+
+        var handle = ProductHandle(c.Url) ?? c.Session.Vars.GetValueOrDefault("handle");
+        if (string.IsNullOrWhiteSpace(c.Url) ||
+            c.Url.Contains("/cart/", StringComparison.OrdinalIgnoreCase) ||
+            (string.IsNullOrWhiteSpace(handle) && string.IsNullOrWhiteSpace(c.Product?.Name)))
+        {
+            c.Emit("Price limit requires keyword or URL input", "error");
+            return StepOutcome.Fail("Price limit requires keyword or URL input", retryable: false);
+        }
+
+        if (IsAppPriceLimitMode(c) &&
+            c.Session.Vars.TryGetValue(GraphQlTokenVar, out var storefrontToken) &&
+            !string.IsNullOrWhiteSpace(storefrontToken) &&
+            !string.IsNullOrWhiteSpace(handle))
+        {
+            return await CheckPriceLimitAppAsync(c, storefrontToken!, handle!, ct).ConfigureAwait(false);
+        }
+
+        if (decimal.TryParse(c.Session.Vars.GetValueOrDefault("price"),
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var actual))
+        {
+            return EvaluatePriceBounds(c, actual);
+        }
+
+        return StepOutcome.Success();
+    }
+
+    private static bool IsAppPriceLimitMode(FlowContext c)
+    {
+        if (string.Equals(c.Session.Vars.GetValueOrDefault("shopify.appPriceCheck"), "true",
+                StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var mode = c.Session.Vars.GetValueOrDefault("shopify.mode");
+        if (string.Equals(mode, "app", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(mode, "app preload", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(mode, "shop app", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(mode, "storefront", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (string.Equals(c.Session.Vars.GetValueOrDefault("shopify.forceApp"), "1",
+                StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(c.Session.Vars.GetValueOrDefault("shopify.paymentMethod"), "Google Pay",
+                StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// <c>CheckPriceLimitApp</c> (<c>0x140d1c1a0 -> 0x140d17860 -> 0x140d17980</c>):
+    /// <c>POST https://{host}/api/2020-04/graphql.json</c> (<c>Content-Type: application/graphql</c>)
+    /// with Mobile Buy SDK iOS <c>3.7.1</c> headers, optional <c>@inContext(country: ...)</c>,
+    /// and min/max price verification against the selected variant.
+    /// </summary>
+    public async Task<StepOutcome> CheckPriceLimitAppAsync(
+        FlowContext c, string storefrontToken, string handle, CancellationToken ct)
+    {
+        var appContext = c.Session.Vars.GetValueOrDefault("shopify.appContext");
+        var contextDirective = string.IsNullOrWhiteSpace(appContext)
+            ? string.Empty
+            : $" @inContext(country: {appContext.Trim()})";
+        var query = $"query{contextDirective} {{ product(handle:\"{handle}\") {{ variants(first: 250) {{ edges {{ node {{ id priceV2 {{ amount currencyCode }} }} }} }} }} }}";
+
+        var url = Origin(c.Url) + "/api/2020-04/graphql.json";
+        var headers = new Dictionary<string, string>
+        {
+            [ShopifyHeaders.StorefrontAccessToken] = storefrontToken,
+            ["X-SDK-Variant"] = "ios",
+            ["X-SDK-Version"] = "3.7.1",
+            ["User-Agent"] = "Mobile Buy SDK iOS/3.7.1/com.tapcart.hoyJaSjQM2",
+        };
+
+        var res = await Cybersole.Stores.Payments.ThreeDsTransportHelpers.PostJsonRawAsync(
+            c, url, query, headers, "shopify-price-limit-app", ct, "application/graphql")
+            .ConfigureAwait(false);
+
+        if (res is null || !res.IsSuccess)
+            return StepOutcome.Fail($"shopify price limit app HTTP {res?.StatusCode ?? 0}", retryable: true);
+
+        JObject root;
+        try { root = JObject.Parse(res.Body ?? string.Empty); }
+        catch (Newtonsoft.Json.JsonException ex)
+        {
+            return StepOutcome.Fail("shopify price limit json: " + ex.Message, retryable: true);
+        }
+
+        var edges = root["data"]?["product"]?["variants"]?["edges"] as JArray;
+        if (edges is null || edges.Count == 0)
+            return StepOutcome.Fail("shopify price limit: no variants", retryable: true);
+
+        JToken? matchedNode = null;
+        var wantedVariant = c.Session.VariantId;
+        foreach (var edge in edges)
+        {
+            var node = edge["node"];
+            if (node is null) continue;
+            var fullId = node["id"]?.ToString() ?? string.Empty;
+            var trailingId = fullId.Contains('/') ? fullId[(fullId.LastIndexOf('/') + 1)..] : fullId;
+            if (!string.IsNullOrEmpty(wantedVariant) &&
+                (string.Equals(trailingId, wantedVariant, StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(fullId, wantedVariant, StringComparison.OrdinalIgnoreCase)))
+            {
+                matchedNode = node;
+                break;
+            }
+            matchedNode ??= node;
+        }
+
+        var amountStr = matchedNode?["priceV2"]?["amount"]?.ToString();
+        var currency = matchedNode?["priceV2"]?["currencyCode"]?.ToString();
+        if (!string.IsNullOrEmpty(amountStr)) c.Session.Vars["price"] = amountStr!;
+        if (!string.IsNullOrEmpty(currency)) c.Session.Vars["currency"] = currency!;
+
+        if (!decimal.TryParse(amountStr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var price))
+            return StepOutcome.Fail("shopify price limit: unparseable amount", retryable: true);
+
+        return EvaluatePriceBounds(c, price);
+    }
+
+    private static StepOutcome EvaluatePriceBounds(FlowContext c, decimal price)
+    {
+        var maxEnabled = !string.IsNullOrWhiteSpace(c.Product?.Price);
+        var minEnabled = string.Equals(c.Session.Vars.GetValueOrDefault("shopify.minPriceEnabled"), "true",
+            StringComparison.OrdinalIgnoreCase);
+
+        if (minEnabled &&
+            decimal.TryParse(c.Session.Vars.GetValueOrDefault("shopify.minPrice"),
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var min) &&
+            price < min)
+        {
+            c.Emit("Price exceeded", "error");
+            return StepOutcome.Fail("Price exceeded", retryable: true);
+        }
+
+        if (maxEnabled &&
+            decimal.TryParse(c.Product?.Price,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var max) &&
+            price > max)
+        {
+            c.Emit("Price exceeded", "error");
+            return StepOutcome.Fail("Price exceeded", retryable: true);
+        }
+
         return StepOutcome.Success();
     }
 
@@ -440,6 +706,47 @@ public class ShopifyFlow : StoreFlow
 
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
+        if (c.Session.Vars.ContainsKey("convenienceStore") ||
+            string.Equals(c.Session.Vars.GetValueOrDefault("shopify.paymentType"), "Convenience Store",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return await CompleteConvenienceStoreAsync(c, ct).ConfigureAwait(false);
+        }
+
+        if (c.Session.Vars.ContainsKey("checkoutcom.offsiteUrl") ||
+            string.Equals(c.Session.Vars.GetValueOrDefault(PaymentGatewayNameKey), "checkoutcom",
+                StringComparison.OrdinalIgnoreCase) ||
+            (c.Session.CheckoutUrl?.Contains("pay.checkout.com", StringComparison.OrdinalIgnoreCase) ?? false))
+        {
+            if (Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve("checkoutcom") is not
+                Cybersole.Stores.Payments.CheckoutComGateway cko)
+                return StepOutcome.Fail("shopify: checkoutcom gateway unavailable");
+
+            var auth = await cko.AuthorizeAsync(c, ct).ConfigureAwait(false);
+            if (auth.RequiresAction)
+            {
+                c.Session.Vars[PaymentGatewayNameKey] = "checkoutcom";
+                c.Session.Vars["paymentStatus"] = "requires_action";
+                if (!string.IsNullOrEmpty(auth.ThreeDsUrl))
+                    c.Session.Vars["threeDsUrl"] = auth.ThreeDsUrl!;
+                if (string.Equals(c.Session.Vars.GetValueOrDefault("shopify.autoContinue3ds"), "true",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    var done = await cko.CompleteActionAsync(
+                        c, c.Session.Vars.GetValueOrDefault("threeDsPayload") ?? string.Empty, ct)
+                        .ConfigureAwait(false);
+                    return done.Ok
+                        ? StepOutcome.Success()
+                        : StepOutcome.Fail(done.Error ?? "Payment failed (3DS)", retryable: true);
+                }
+                return StepOutcome.Success();
+            }
+
+            return auth.Ok
+                ? StepOutcome.Success()
+                : StepOutcome.Fail(auth.Error ?? "checkoutcom payment failed", retryable: false);
+        }
+
         var card = c.Card;
         if (card?.Number is null) return StepOutcome.Fail("shopify: profile has no card");
 
@@ -611,6 +918,148 @@ public class ShopifyFlow : StoreFlow
 
 
     // 鈹€鈹€ helpers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+    /// <summary>
+    /// Completes Shopify Offsite Convenience Store payments recovered in Dossier 2B §4:
+    /// (1) <c>komoju.com</c> (<c>0x140d98f60</c>): GET page -> <c>meta[name='csrf-token']</c> -> POST JSON
+    /// <c>{"authenticity_token", "payment_details":{"type":"konbini","email","store","given_name"}}</c>;
+    /// (2) WebCVS Konbini (<c>0x140dcecf0</c>): <c>form[name='toShopify']</c> or
+    /// <c>form[name='webcvsFepChargePaymentInfoEntryActionForm']</c> with <c>shift_jis</c> form fields.
+    ///
+    /// <para>
+    /// <b>Unknown</b>: No standalone method named <c>CompleteConvenienceStore</c> exists outside Shopify's
+    /// <c>ConvenienceStores</c> / offsite handlers, and the exact Komoju <c>formUrl</c> suffix expression inside
+    /// <c>0x140d98f60</c> <c>[1..56]</c> was not statically recovered (resolved here from <c>komoju.formUrl</c> or
+    /// the page's <c>&lt;form action&gt;</c> attribute).
+    /// </para>
+    /// </summary>
+    public async Task<StepOutcome> CompleteConvenienceStoreAsync(FlowContext c, CancellationToken ct)
+    {
+        var requestedStore = c.Session.Vars.GetValueOrDefault("convenienceStore") ?? "Seven-Eleven";
+        var mappedStore = ConvenienceStores.TryGetValue(requestedStore, out var mapped)
+            ? mapped
+            : requestedStore.ToLowerInvariant().Replace(' ', '-');
+
+        var offsiteUrl = c.Session.Vars.GetValueOrDefault("offsiteUrl") ?? c.Session.CheckoutUrl ?? c.Url;
+        var pageRes = await Cybersole.Stores.Payments.ThreeDsTransportHelpers.GetRawAsync(
+            c, offsiteUrl, null, "shopify-konbini-get", ct).ConfigureAwait(false);
+        if (pageRes is null || !pageRes.IsSuccess)
+            return StepOutcome.Fail("shopify konbini: offsite page unreachable", retryable: true);
+
+        var body = pageRes.Body ?? string.Empty;
+        var currentUrl = pageRes.Url.ToString();
+
+        if (offsiteUrl.Contains("komoju", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(c.Session.Vars.GetValueOrDefault("shopify.offsiteKind"), "komoju",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            var csrf = Cybersole.Stores.Payments.ThreeDsTransportHelpers.ReadMetaContent(body, "csrf-token");
+            if (string.IsNullOrEmpty(csrf))
+                return StepOutcome.Fail("komoju: missing csrf-token meta");
+
+            var (formAction, _) = Cybersole.Stores.Payments.ThreeDsTransportHelpers.ExtractForm(body);
+            var formUrl = c.Session.Vars.GetValueOrDefault("komoju.formUrl")
+                          ?? (string.IsNullOrEmpty(formAction)
+                              ? null
+                              : Cybersole.Stores.Payments.ThreeDsTransportHelpers.ResolveUrl(currentUrl, formAction!));
+            if (string.IsNullOrEmpty(formUrl))
+            {
+                return StepOutcome.Fail(
+                    "komoju: formUrl unknown — exact suffix expression in 0x140d98f60 [1..56] was not statically recovered and page carried no form action");
+            }
+
+            var payload = new JObject
+            {
+                ["authenticity_token"] = csrf,
+                ["payment_details"] = new JObject
+                {
+                    ["type"] = "konbini",
+                    ["email"] = c.ProfileData?.Email ?? c.Account?.Email ?? string.Empty,
+                    ["store"] = mappedStore,
+                    ["given_name"] = c.Billing?.FirstName ?? c.Shipping?.FirstName ?? c.ProfileData?.FirstName ?? string.Empty,
+                },
+            };
+
+            var komojuOrigin = "https://komoju.com";
+            var komojuRes = await Cybersole.Stores.Payments.ThreeDsTransportHelpers.PostJsonRawAsync(
+                c,
+                formUrl!,
+                payload.ToString(Newtonsoft.Json.Formatting.None),
+                new Dictionary<string, string>
+                {
+                    ["Origin"] = komojuOrigin,
+                    ["Referer"] = komojuOrigin,
+                },
+                "shopify-komoju-post",
+                ct).ConfigureAwait(false);
+
+            return komojuRes is not null && komojuRes.IsSuccess
+                ? StepOutcome.Success()
+                : StepOutcome.Fail($"komoju HTTP {komojuRes?.StatusCode ?? 0}", retryable: true);
+        }
+
+        // WebCVS Konbini (0x140dce6b0 -> 0x140dcecf0)
+        var (toShopifyAction, toShopifyInputs) = Cybersole.Stores.Payments.ThreeDsTransportHelpers.ExtractForm(
+            body, "toShopify");
+        if (!string.IsNullOrEmpty(toShopifyAction))
+        {
+            var fwdUrl = Cybersole.Stores.Payments.ThreeDsTransportHelpers.ResolveUrl(currentUrl, toShopifyAction!);
+            var fwdRes = await Cybersole.Stores.Payments.ThreeDsTransportHelpers.PostFormRawAsync(
+                c, fwdUrl, toShopifyInputs, null, "shopify-webcvs-forward", ct).ConfigureAwait(false);
+            return fwdRes is not null && fwdRes.IsSuccess
+                ? StepOutcome.Success()
+                : StepOutcome.Fail($"webcvs forward HTTP {fwdRes?.StatusCode ?? 0}", retryable: true);
+        }
+
+        var (entryAction, entryInputs) = Cybersole.Stores.Payments.ThreeDsTransportHelpers.ExtractForm(
+            body, "webcvsFepChargePaymentInfoEntryActionForm");
+        if (string.IsNullOrEmpty(entryAction))
+            return StepOutcome.Fail("webcvs: entry form not found");
+
+        var webCvsType = mappedStore switch
+        {
+            "seven-eleven" => "001",
+            "lawson" => "002",
+            "family-mart" => "016",
+            "ministop" => "005",
+            "seicomart" => "018",
+            _ => "001",
+        };
+        var isMajorThree = webCvsType is "001" or "002" or "016";
+
+        var emailAddr = c.ProfileData?.Email ?? c.Account?.Email ?? string.Empty;
+        var bill = c.Billing ?? c.Shipping;
+        var webCvsForm = new Dictionary<string, string>
+        {
+            ["org.apache.struts.taglib.html.TOKEN"] =
+                entryInputs.GetValueOrDefault("org.apache.struts.taglib.html.TOKEN") ?? string.Empty,
+            ["webCvsType"] = webCvsType,
+            ["webCvsType1"] = isMajorThree ? webCvsType : "999",
+            ["webCvsType2"] = isMajorThree ? string.Empty : webCvsType,
+            ["lastName"] = bill?.LastName ?? c.ProfileData?.LastName ?? string.Empty,
+            ["firstName"] = bill?.FirstName ?? c.ProfileData?.FirstName ?? string.Empty,
+            ["lastNameKana"] = string.Empty,
+            ["firstNameKana"] = string.Empty,
+            ["telephoneNumber"] = c.ProfileData?.Phone ?? string.Empty,
+            ["emailAddress"] = emailAddr,
+            ["confirmEmailAddress"] = emailAddr,
+            ["zipCode1"] = "000",
+            ["zipCode2"] = "0000",
+            ["address1"] = string.Empty,
+            ["address2"] = string.Empty,
+            ["address3"] = string.Empty,
+        };
+
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        var shiftJis = System.Text.Encoding.GetEncoding("shift_jis");
+        var entryUrl = Cybersole.Stores.Payments.ThreeDsTransportHelpers.ResolveUrl(currentUrl, entryAction!);
+        var entryRes = await Cybersole.Stores.Payments.ThreeDsTransportHelpers.PostFormRawAsync(
+            c, entryUrl, webCvsForm, null, "shopify-webcvs-submit", ct, encoding: shiftJis).ConfigureAwait(false);
+
+        return entryRes is not null && entryRes.IsSuccess
+            ? StepOutcome.Success()
+            : StepOutcome.Fail($"webcvs HTTP {entryRes?.StatusCode ?? 0}", retryable: true);
+    }
+
     private static string CheckoutEndpoint(FlowContext c, string? suffix = null)
     {
         var baseUrl = c.Session.CheckoutUrl;

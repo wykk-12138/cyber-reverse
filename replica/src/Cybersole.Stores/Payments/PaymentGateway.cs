@@ -78,6 +78,7 @@ public sealed class PaymentGatewayRegistry
         r.Register(new GmoGateway());
         r.Register(new TouchtechGateway());
         r.Register(new MidtransGateway());
+        r.Register(new CheckoutComGateway());
         return r;
     }
 }

@@ -47520,3 +47520,61 @@ farfetch: <x> route unrecorded locally — it is a server-delivered connect/app 
 
 **注意**：`core_coverage.py` 与 `payment_challenges.py` 本轮**都没能重跑**——IDA 又报 `kpsdk=0`
 （`strings` 查询返回 Traceback），生成器按设计拒绝写零。计数会在下次 IDA 就绪时反映，这里不代填。
+
+## R1295 —— 判据 e) 的两个真缺口：**4 条 SKIP + 1 条装饰品守卫**，都已修
+
+### 一、起因：我自己的改动让变异锚点失配
+
+重跑 `mutation-check.py` 得到 `fired=55 / decorative=0 / skipped=4`，而 R1282 时是 `59/59/0`。
+4 条 SKIP 全是**我前几轮的编辑**造成的：
+
+| 变异 | 失配原因 |
+|---|---|
+| round 294 / 297 / 298 | R1290 给 41 行 `inferred: no image evidence` 追加了 R1266 后缀，锚点短语不再匹配 |
+| round 1077 | R1294 把 Farfetch 的消息从 `endpoint unknown` 改成 `route unrecorded locally` |
+
+**教训**：改文案就是在改变异锚点。改完必须重跑变异，否则"全部 fired"这条判据**悄悄失效**——
+它报的是 SKIP 而不是红，很容易被当噪音略过。
+
+### 二、修 SKIP 之后，暴露出**更严重的一条：装饰品守卫**
+
+锚点修好后变成 `fired=58 / decorative=1 / skipped=0`。装饰品是 **round 1077**：
+变异把消息缩短，测试**仍然绿**。
+
+原因是我在 R1294 把断言写成了**文件级**：
+
+```csharp
+Assert.Contains("route unrecorded locally", source, ...)   // source = 整个文件
+```
+
+而 Farfetch 有 **7 条**消息，删掉一条，另外 6 条仍满足全部短语 ⇒ 守卫量的是文件，不是步骤。
+
+**修法**：新增 `[Theory] EachStepCarriesTheReasonItself(step)`，**逐条**取步骤那一行并要求四个短语都在。
+
+### 三、验证（单条手动，不靠全量）
+
+`analysis/verify_1077_guard.py`：手动施加变异 → 只跑该守卫 → `finally` 还原。两次结果对照：
+
+| 时机 | 结果 |
+|---|---|
+| 只有文件级断言时 | `VERDICT: STILL DECORATIVE (tests stayed green)` ← **证明第一次的"已修"是假的** |
+| 加上逐条断言后 | `VERDICT: guard fired (tests went red)`，红的是 `EachStepCarriesTheReasonItself(step: "product")` |
+
+### 四、最终数字
+
+- 全量套件：**2485 通过 / 0 失败 / 2 跳过 / 2487**（+7 = 七条逐条守卫）
+- 变异：**`total=59 fired=59 decorative=0 skipped=0`** ← 判据 e) 的变异部分达标
+- 但同一份结果里 **`tree=RED`**，归因见下
+
+### 五、`tree=RED` 的归因（不是我的改动）
+
+`git status` 同时显示**并行会话**在动这些文件：`docs/CORE_COVERAGE.md`（13 行，生成物）、
+`Hook.log`、`IDAHook.log`、`analysis/ARTIFACT_PROBES.json`，并删除了 `tools/read_nativeaot_string.py`。
+变异末尾那次"restored tree"检查跑全量套件时，正好撞上这些并发写入。
+
+**我的改动本身是绿的**：全量 2485/0/2，文档一致性 `DocsConsistency|ParityDoc|CoreCoverage` **21/21**。
+本轮只暂存自己的三处（`mutation-check.py` / `FarfetchIsCoveredByTheOriginalTests.cs` / 记账脚本），
+并行会话的文件一律不碰。
+
+证据等级：Observation = 两轮 mutation 的 JSON 计数、两次 `verify_1077_guard.py` 的输出、21/21 与 2485/0/2 收据；
+Inference = 「tree=RED 由并发写入造成」；**Unknown** = 并行会话那次 `core_coverage.py` 的结论（不属本轮）。

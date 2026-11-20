@@ -309,7 +309,7 @@ MUTATIONS = [
     {
         "name": "round 297 -- an unbacked cookie loses its inferred marker",
         "file": os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "FarfetchFlow.cs"),
-        "find": 'inferred: no image evidence (R297)',
+        "find": 'inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R297)',
         "replace": 'no marker here', "all": True,
         "test": "FullyQualifiedName~CookieEvidenceRatchetTests",
         "guard": "EachOneIsStillUsedAndStillMarked",
@@ -317,7 +317,7 @@ MUTATIONS = [
     {
         "name": "round 298 -- an unbacked query param loses its inferred marker",
         "file": os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "GoatFlow.cs"),
-        "find": 'inferred: no image evidence (R298)',
+        "find": 'inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R298)',
         "replace": 'no marker here', "all": True,
         "test": "FullyQualifiedName~QueryParamEvidenceRatchetTests",
         "guard": "EachOneIsStillUsedAndMarked",
@@ -333,7 +333,7 @@ MUTATIONS = [
     {
         "name": "round 294 -- an unbacked endpoint loses its inferred marker",
         "file": os.path.join(REPO, "src", "Cybersole.Stores", "Flows", "GoatFlow.cs"),
-        "find": 'inferred: no image evidence (R294)',
+        "find": 'inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)',
         "replace": 'not marked',
         "test": "FullyQualifiedName~EndpointEvidenceRatchetTests",
         "guard": "EveryUnbackedEndpointSaysSoInItsFile",
@@ -490,8 +490,8 @@ MUTATIONS = [
         "file": FARFETCH_FLOW,
         # The reclassified message names the server-delivered config and the credential it needs;
         # shortening it back to a bare "unknown" is the retraction the guard exists to catch.
-        "find": '            "farfetch: product endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");',
-        "replace": '            "farfetch: product endpoint unknown");',
+        "find": '            "farfetch: product route unrecorded locally — it is a server-delivered connect/app config entry, schema needs the original login to capture");',
+        "replace": '            "farfetch: product failed");',
         "test": "FullyQualifiedName~FarfetchIsCoveredByTheOriginalTests",
         "guard": "TheStepsNameTheServerDeliveredTransport",
     },

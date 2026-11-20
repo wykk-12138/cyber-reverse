@@ -8084,3 +8084,14 @@ Observation：
 
 下轮：IDA 恢复后重跑 `core_coverage.py` + `payment_challenges.py` 刷新计数；随后 ② 的 Stripe 派发关系
 （文档记为 Unknown：四个构建器经 delegate/虚表间接派发，静态不可得）——或直接进 12 项完成判据自检。
+
+## R1295 —— 判据 e)：4 SKIP + 1 装饰品全修；套件 2485/0/2/2487；变异 59/0/0
+
+Observation：
+- 两轮 mutation：`55/0/4` → 修锚 → `58/1/0` → 修守卫 → **`59/0/0`**。
+- `verify_1077_guard.py` 两次对照：`STILL DECORATIVE` → `guard fired`（红在 `EachStepCarriesTheReasonItself(step:"product")`）。
+- 套件 2485/0/2/2487（+7 逐条守卫）；`DocsConsistency|ParityDoc|CoreCoverage` 21/21。
+- `tree=RED` 归因**并行会话**（改 `CORE_COVERAGE.md`/`Hook.log`/`IDAHook.log`，删 `read_nativeaot_string.py`）。
+
+教训：**改文案=改变异锚**，改完必须重跑变异；`skipped` 不是红，最容易被忽略。
+下轮：`metrics_report.py` 重跑刷新 METRICS（陈旧产物警告仍在），或处理并行会话结束后的 `tree` 复验。

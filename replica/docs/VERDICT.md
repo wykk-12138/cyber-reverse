@@ -68979,3 +68979,13 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - `TheStepsNameTheServerDeliveredTransport` 从"断整句"改为"断事实"（保留三条短语 + `route unrecorded locally`）。
 - 定向 7/7；全量 **2478/0/2/2480**。
 - 生成器（`core_coverage.py` / `payment_challenges.py`）本轮因 IDA `kpsdk=0` **未重跑**，计数待就绪后更新。
+
+---
+
+## 第 1295 轮：判据 e) 收口——4 条 SKIP 修复，并揪出 1 条装饰品守卫
+
+- 起因：R1290/R1294 改文案导致 4 个变异锚失配（`294`/`297`/`298`/`1077`）⇒ `skipped=4`。
+- 修锚后暴露 round 1077 是**装饰品**：R1294 的断言写成**文件级**，删一条消息另外六条仍满足。
+- 加 `[Theory] EachStepCarriesTheReasonItself` 逐条断言；手动单条验证从 `STILL DECORATIVE` 变为 `guard fired`。
+- 最终：套件 **2485/0/2/2487**；变异 **59 fired / 0 decorative / 0 skipped**。
+- 同一结果 `tree=RED`，归因并行会话（`CORE_COVERAGE.md` 等），我的改动全绿（文档测试 21/21）。

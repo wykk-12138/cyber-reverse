@@ -52,6 +52,36 @@ public sealed class FarfetchIsCoveredByTheOriginalTests
     /// pins one message whole: the short phrases appear in every step's message, so only a
     /// full-message assertion can be killed by a single-line mutation.
     /// </summary>
+    /// <summary>
+    /// R1295: the classification has to be on <em>each</em> message, not somewhere in the file.
+    ///
+    /// <para>
+    /// The file-wide assertion below passed even after one message was emptied, because the other six still mention
+    /// server-delivered and the credential. This one reads the line that names the step and requires the four phrases
+    /// there, which is what a regression would actually remove.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("product")]
+    [InlineData("add-to-cart")]
+    [InlineData("basket")]
+    [InlineData("checkout")]
+    [InlineData("shipping")]
+    [InlineData("payment")]
+    [InlineData("place-order")]
+    public void EachStepCarriesTheReasonItself(string step)
+    {
+        var line = Source()
+            .Split('\n')
+            .FirstOrDefault(l => l.Contains("farfetch: " + step + " ", StringComparison.Ordinal));
+
+        Assert.NotNull(line);
+        Assert.Contains("route unrecorded locally", line, StringComparison.Ordinal);
+        Assert.Contains("server-delivered", line, StringComparison.Ordinal);
+        Assert.Contains("connect/app", line, StringComparison.Ordinal);
+        Assert.Contains("schema needs the original login", line, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheStepsNameTheServerDeliveredTransport()
     {

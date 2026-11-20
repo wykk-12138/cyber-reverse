@@ -1,0 +1,5 @@
+{
+  "add_products": "mutation {\r\n  addProductsToCart(cartId: \"%CART_ID%\", cartItems: [{ quantity: %QTY%, sku: \"%SKU%\" }]) {\r\n    cart { id items { id quantity } total_quantity prices { grand_total { value currency } } }\r\n    user_errors { code message }\r\n  }\r\n}",
+  "create_empty": "mutation {\n    createEmptyCart\n}",
+  "customer_cart": "{ customerCart { id total_quantity items { uid quantity } } }"
+}

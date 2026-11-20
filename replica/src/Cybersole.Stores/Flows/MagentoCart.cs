@@ -1,0 +1,143 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Cybersole.Http;
+using Newtonsoft.Json.Linq;
+
+namespace Cybersole.Stores.Flows;
+
+/// <summary>
+/// The Magento cart documents the image carries, and the two calls they make.
+///
+/// <para>
+/// <b>Observed</b>, all three read out byte for byte (UTF-16 in the image, decoded by
+/// <c>analysis/read_magento_cart.py</c>):
+/// <c>mutation { addProductsToCart(cartId: "%CART_ID%", cartItems: [{ quantity: %QTY%, sku: "%SKU%" }])
+/// { cart { id items { id quantity } total_quantity prices { grand_total { value currency } } }
+/// user_errors { code message } } }</c> at 0x1470FD624 (240 characters);
+/// <c>mutation { createEmptyCart }</c> at 0x1470FD4C4 (32); and
+/// <c>{ customerCart { id total_quantity items { uid quantity } } }</c> at 0x14718FB74 (61).
+/// The first one carries <c>%CART_ID%</c>, <c>%QTY%</c> and <c>%SKU%</c> as literal substitution tokens,
+/// which is how the image fills it in rather than using GraphQL variables.
+/// </para>
+///
+/// <para>
+/// <b>Inference</b>: that a store reaches these through the same <c>/graphql</c> endpoint the product query
+/// uses. That is how Magento serves them, and the product query in <see cref="CasioGraphQL"/> is a Magento
+/// document, but no literal in the image pairs the two.
+/// </para>
+/// </summary>
+public static class MagentoCart
+{
+    /// <summary>The add-to-cart mutation, with its three substitution tokens left in place.</summary>
+    public const string AddProductsDocument =
+        "mutation {\r\n  addProductsToCart(cartId: \"%CART_ID%\", cartItems: [{ quantity: %QTY%, sku: \"%SKU%\" }]) {\r\n" +
+        "    cart { id items { id quantity } total_quantity prices { grand_total { value currency } } }\r\n" +
+        "    user_errors { code message }\r\n  }\r\n}";
+
+    /// <summary>The empty-cart mutation.</summary>
+    public const string CreateEmptyCartDocument = "mutation {\n    createEmptyCart\n}";
+
+    /// <summary>The customer-cart query.</summary>
+    public const string CustomerCartDocument = "{ customerCart { id total_quantity items { uid quantity } } }";
+
+    /// <summary>The three tokens the add mutation substitutes.</summary>
+    public static readonly string[] Placeholders = { "%CART_ID%", "%QTY%", "%SKU%" };
+
+    /// <summary>
+    /// The document with its tokens replaced. The tokens are substituted as text, not through GraphQL
+    /// variables, because that is what the image's document is written for.
+    /// </summary>
+    public static string FillAddProducts(string cartId, string sku, int quantity)
+    {
+        if (string.IsNullOrEmpty(cartId)) throw new ArgumentException("cart id is required", nameof(cartId));
+
+        return AddProductsDocument
+            .Replace("%CART_ID%", Escape(cartId), StringComparison.Ordinal)
+            .Replace("%SKU%", Escape(sku ?? string.Empty), StringComparison.Ordinal)
+            .Replace("%QTY%", quantity.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
+    }
+
+    /// <summary>A GraphQL request body: the document under <c>query</c>.</summary>
+    public static JObject Body(string document) => new() { ["query"] = document };
+
+    /// <summary>
+    /// Create a cart and return its id, or null when the reply carries none. Magento answers
+    /// <c>{"data":{"createEmptyCart":"&lt;masked id&gt;"}}</c>.
+    /// </summary>
+    public static async Task<string?> CreateEmptyAsync(FlowContext c, string endpoint, CancellationToken ct)
+    {
+        var reply = await PostAsync(c, endpoint, Body(CreateEmptyCartDocument), ct).ConfigureAwait(false);
+        return reply?["data"]?["createEmptyCart"]?.ToString();
+    }
+
+    /// <summary>
+    /// Add a line and return the cart id the mutation answered with, or null. <c>user_errors</c> is checked
+    /// first: Magento reports a rejected line there while still answering 200, so a caller that only looked
+    /// at the HTTP status would treat a failure as success.
+    /// </summary>
+    public static async Task<MagentoCartResult> AddProductAsync(
+        FlowContext c, string endpoint, string cartId, string sku, int quantity, CancellationToken ct)
+    {
+        var reply = await PostAsync(c, endpoint, Body(FillAddProducts(cartId, sku, quantity)), ct)
+            .ConfigureAwait(false);
+
+        if (reply is null) return MagentoCartResult.Fail("cart: no reply");
+
+        var errors = reply["data"]?["addProductsToCart"]?["user_errors"] as JArray;
+        if (errors is { Count: > 0 })
+        {
+            var first = errors[0];
+            return MagentoCartResult.Fail("cart: " + (first["message"]?.ToString() ?? first["code"]?.ToString() ?? "rejected"));
+        }
+
+        if (reply["errors"] is JArray topLevel && topLevel.Count > 0)
+            return MagentoCartResult.Fail("cart: " + (topLevel[0]?["message"]?.ToString() ?? "graphql error"));
+
+        var cart = reply["data"]?["addProductsToCart"]?["cart"];
+        if (cart is null) return MagentoCartResult.Fail("cart: no cart in reply");
+
+        return new MagentoCartResult
+        {
+            Ok = true,
+            CartId = cart["id"]?.ToString() ?? cartId,
+            TotalQuantity = cart["total_quantity"]?.ToString() ?? string.Empty,
+            GrandTotal = cart["prices"]?["grand_total"]?["value"]?.ToString() ?? string.Empty,
+            Currency = cart["prices"]?["grand_total"]?["currency"]?.ToString() ?? string.Empty,
+        };
+    }
+
+    private static async Task<JObject?> PostAsync(FlowContext c, string endpoint, JObject body, CancellationToken ct)
+    {
+        try
+        {
+            var res = await c.Http
+                .PostJsonAsync(endpoint, body.ToString(Newtonsoft.Json.Formatting.None), c.Options("magento-cart"), ct)
+                .ConfigureAwait(false);
+            c.Session.AbsorbCookies(res.Cookies);
+            if (!res.IsSuccess) return null;
+            return JObject.Parse(res.Body);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static string Escape(string value) =>
+        value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+}
+
+/// <summary>What an add-to-cart mutation produced.</summary>
+public sealed class MagentoCartResult
+{
+    public bool Ok { get; init; }
+    public string CartId { get; init; } = string.Empty;
+    public string TotalQuantity { get; init; } = string.Empty;
+    public string GrandTotal { get; init; } = string.Empty;
+    public string Currency { get; init; } = string.Empty;
+    public string Error { get; init; } = string.Empty;
+
+    public static MagentoCartResult Fail(string error) => new() { Ok = false, Error = error };
+}

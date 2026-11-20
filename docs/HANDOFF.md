@@ -8338,3 +8338,14 @@ Observation：
 - 生成物 `docs/STOREFRONT_SURFACE.md`（226 行，`--write-doc` 重算）。抬头写明**未列名 ≠ 未处理**。
 - 抽样确认真店：`1290sqm.com`、`401games.ca`、`303boards.com`、`5pm.fr`。
 - **下一步是范围决定，不是继续补店**：要么列建模优先级，要么写清通用 flow 的覆盖边界。
+
+---
+
+## 第 1320 轮
+
+- 镜像里三份 **Magento GraphQL 购物车文档**逐字节落地（240/32/61 字符），`addProductsToCart` 用的是
+  **字面替换令牌** `%CART_ID%`/`%QTY%`/`%SKU%` 而非 GraphQL 变量——测试把令牌钉住了。
+- `MagentoCart`（`FillAddProducts` / `CreateEmptyAsync` / `AddProductAsync`），**`user_errors` 优先于 HTTP 200**。
+- `CasioFlow.AddToCartAsync` 原来是 POST `/cart/add`（自带注释承认 404）；现在 **GraphQL 优先 + 旧路径兜底**。
+- 返工一次：我直接写了新的 `AddToCartAsync`，撞 `CS0111`——它早就存在。**该先跑 `where_is`。**
+- 还留着没落地的冻结文档：`approveMemberPayment`、`addBillingAddressToCart`、`addToCart(query)`、`buynow`。

@@ -472,8 +472,67 @@ public sealed class CasioFlow : StoreFlow
         return sawField ? any : null;
     }
 
+    /// <summary>
+    /// Add to cart. R1320: GraphQL first, the old <c>/cart/add</c> POST second.
+    ///
+    /// <para>
+    /// <b>Observed:</b> the image carries Magento's cart documents byte for byte — the
+    /// <c>addProductsToCart</c> mutation with <c>%CART_ID%</c>/<c>%QTY%</c>/<c>%SKU%</c> substitution tokens
+    /// (0x1470FD624, 240 characters), <c>createEmptyCart</c> (0x1470FD4C4) and <c>customerCart</c>
+    /// (0x14718FB74). See <see cref="MagentoCart"/>. This store's product query is a Magento document, so
+    /// the cart is the same API, and unlike <c>/cart/add</c> it is a path the image actually names.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Inference:</b> that the cart shares the product query's <c>/graphql</c> endpoint; no literal pairs
+    /// the two. <c>casio.graphqlPath</c> overrides it. The old attempt is kept as the fallback because a
+    /// store that answers GraphQL with an error should still get the request this flow used to send — and
+    /// because its 404 note below is a finding, not a guess.
+    /// </para>
+    /// </summary>
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
+        var sku = c.Session.Vars.GetValueOrDefault("casio.sku");
+        if (string.IsNullOrEmpty(sku)) sku = c.Session.Vars.GetValueOrDefault("productSku");
+        if (string.IsNullOrEmpty(sku)) sku = c.Session.VariantId;
+
+        var endpoint = c.Session.Vars.GetValueOrDefault("casio.graphqlPath");
+        if (string.IsNullOrEmpty(endpoint))
+            endpoint = Payments.GatewayHttp.OriginOf(c.Url) + CasioGraphQL.Path;
+
+        if (!string.IsNullOrEmpty(sku))
+        {
+            var cartId = c.Session.Vars.GetValueOrDefault("casio.cartId");
+            if (string.IsNullOrEmpty(cartId))
+            {
+                cartId = await MagentoCart.CreateEmptyAsync(c, endpoint!, ct).ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(cartId)) c.Session.Vars["casio.cartId"] = cartId!;
+            }
+
+            if (!string.IsNullOrEmpty(cartId))
+            {
+                var quantity = 1;
+                var declared = c.Session.Vars.GetValueOrDefault("casio.qty");
+                if (!string.IsNullOrEmpty(declared)) int.TryParse(declared, out quantity);
+                if (quantity < 1) quantity = 1;
+
+                var added = await MagentoCart
+                    .AddProductAsync(c, endpoint!, cartId!, sku!, quantity, ct)
+                    .ConfigureAwait(false);
+
+                if (added.Ok)
+                {
+                    c.Session.Vars["cart"] = added.CartId;
+                    c.Session.Vars["casio.cartTotal"] = added.TotalQuantity;
+                    if (!string.IsNullOrEmpty(added.GrandTotal))
+                        c.Session.Vars["casio.cartGrandTotal"] = added.GrandTotal;
+                    return StepOutcome.Success();
+                }
+
+                c.Session.Vars["casio.cartGraphQlError"] = added.Error;
+            }
+        }
+
         var payload = new JObject
         {
             ["sku"] = c.Session.VariantId,

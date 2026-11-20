@@ -8222,3 +8222,14 @@ Observation：
 - 由此发现：**`Saucony` 是复刻件完全没有的一家店**（4 个 id、独立托管支付表单、8 个步骤），
   两个支付步骤 `HandleOrderResult` / `PayerAuthenticate` 源码里根本没有。下轮先定 flow type 再加目录。
 - 本轮未改 `replica/src`。
+
+---
+
+## 第 1309 轮
+
+- **Saucony 落码**：`SauconyFlow` + 目录注册（65 → 66）。`GetHome` / `FindProduct` 实现，
+  六个未解步骤**按镜像自己的 d__ 序号拒绝**（`d__7` / `d__9` / `d__10` / `d__11` / `d__12` / `d__13`）。
+- 测试抓到一个真 bug：`StoreIdFor` 把任何 `.com` 都当美国站，`example.com` 会被认成 Saucony → 已修（先要求主机含 `saucony`）。
+- `ArrowAndBeastTests.TheCatalogueIsSixtyThreeModules` 断言的一直是 65——名字与数字早就不符，
+  已改名 `TheCatalogueSizeIsPinned` 并钉住 66 + `saucony` 存在。
+- Saucony 唯一剩下的硬骨头：**六个步骤的 API 路径**（镜像里没有任何字面量拼出它们）。

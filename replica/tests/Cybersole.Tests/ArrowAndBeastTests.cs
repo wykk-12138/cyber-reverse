@@ -74,13 +74,21 @@ public sealed class ArrowAndBeastTests
         _out.WriteLine($"bstn present: {ids.Contains("bstn")}, arrowandbeast present: {ids.Contains("arrowandbeast")}");
     }
 
-    /// <summary>The catalogue grew by exactly one in R91.</summary>
+    /// <summary>
+    /// The catalogue's size, pinned so a store cannot appear or vanish silently.
+    ///
+    /// It was 65 until R1309: the image has a Saucony store the catalogue never listed, found by grouping
+    /// the async state-machine names by metadata blob (R1308). The name no longer carries a number --
+    /// the last time it did, it said "SixtyThree" while asserting 65, which is how a renamed guard stops
+    /// being read.
+    /// </summary>
     [Fact]
-    public void TheCatalogueIsSixtyThreeModules()
+    public void TheCatalogueSizeIsPinned()
     {
         var count = StoreModuleCatalog.CreateAll().Count;
         _out.WriteLine($"modules: {count}");
 
-        Assert.Equal(65, count);
+        Assert.Equal(66, count);
+        Assert.Contains(StoreModuleCatalog.CreateAll(), m => m.Id == "saucony");
     }
 }

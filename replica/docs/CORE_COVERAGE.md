@@ -7,10 +7,10 @@
 
 | 度量 | 值 | 命令 |
 |---|---|---|
-| flow 文件 | 18 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
-| 覆写步骤总数 | 378 | 本文件生成时统计 |
-| 其中报告「端点为 Unknown」的 | 0 | 同上（匹配 `endpoint unknown` / `not captured`） |
-| 含报告的 flow | 0 | 同上 |
+| flow 文件 | 19 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
+| 覆写步骤总数 | 387 | 本文件生成时统计 |
+| 其中报告「端点为 Unknown」的 | 1 | 同上（匹配 `endpoint unknown` / `not captured`） |
+| 含报告的 flow | 1 | 同上 |
 | 端点常量 / 逐字在池 | 230 / 230 | `python tools/endpoint-provenance.py` |
 | 常量 invented / unresolved | 0 / 1 | 同上 |
 | inline 字面量 / 不在池 | 360 / 33 | 同上 |
@@ -36,6 +36,7 @@
 | `PopMartFlow.cs` | 27 | 0 | 715 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
 | `RetailFlows.cs` | 102 | 0 | 1697 |
+| `SauconyFlow.cs` | 9 | 1 | 152 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
 | `ShopifyFlow.cs` | 25 | 0 | 1142 |
 | `SportsshoesFlow.cs` | 7 | 0 | 130 |
@@ -55,7 +56,7 @@
 | 任意 `*Flow` 类型 | `str "[A-Za-z]+Flow,"` | 1（TPL Dataflow 文档，无关） |
 | 站名 + 步骤的数据行 | `str "^[A-Za-z0-9 .&'-]+ Checkout$"` | 34，其中站名 **4** 条 |
 
-**为什么可能是服务端下发**：复刻件有 18 个 flow 文件，而二进制里没有对应数量的名字；镜像有 `api.cybersole.io` 与 `/connect/app`（R1032）。
+**为什么可能是服务端下发**：复刻件有 19 个 flow 文件，而二进制里没有对应数量的名字；镜像有 `api.cybersole.io` 与 `/connect/app`（R1032）。
 
 **缺什么**：`api.cybersole.io/connect/app` 的响应。取它需要**原版登录凭据** —— 那是本工作允许停下等 YG 的两类事之一。
 

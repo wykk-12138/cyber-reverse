@@ -49,7 +49,9 @@
      `_checkoutCaptchaEnabled` 的**托管支付表单**。它的步骤是 d__6..13：
      `FindProduct` / `AddToCart` / `GetCheckout` / `SubmitShipping` / `SubmitBilling` / `SubmitOrder` /
      `HandleOrderResult` / `PayerAuthenticate`。`where_is Saucony` 在仓库零命中，`store_catalog.py` 的 65 条也没有它。
-     **下一轮先定它的 `flow type` 再进 `CreateAll()`**，不要凭猜。
+     **R1309 已进 `CreateAll()`（目录 65 → 66）**，能做的 `GetHome`/`FindProduct` 已实现，
+     六个未解步骤按镜像自己的 `d__序号`拒绝（`SauconyFlow`）。剩下的硬骨头是
+     **那六个步骤的 API 路径**——镜像里搜 `saucony` 只有域名与四个 id，没有任何字面量拼出路径。
 - 名字级与类型级绑定缺口虽已归零（`real gap=0`、`types with scope misses=0`、`unclassified=0`），但成员形状仍存在 **`84` 条差异**（其中 core 差异 `1` 条）：
   - **`39` 条「需要选择模型」**：复刻件实现为带参方法，原版为可绑定属性（如 `AnalyticsView.ChangeChart`、`AnalyticsView.OpenRelease`、`CaptchaProvidersView.Reorder`、`CustomBrowser.Back` 等），需在引入列表“当前选中项”后驱动 `ICommand`；
   - **`22` 条通用名撞名项**（如 `Delete`、`Save`、`Create`）：机械扫描无法消歧，需逐类反编译原版对应视图确认是否真实具备该本地动作；

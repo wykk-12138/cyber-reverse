@@ -189,6 +189,11 @@ public static class StoreModuleCatalog
         // hosts and six for Dicks Sporting Goods.
         new FlowStoreModule(new SportsshoesFlow()),
         new FlowStoreModule(new DicksSportingGoodsFlow()),
+        // R1309: the image has a Saucony store the catalog never listed. R1308 found its class by grouping
+        // the async state-machine names by metadata blob: four store ids, four display names, the
+        // storefront in the alphabetised domain table, and eight steps of its own. The flow is real as far
+        // as the home and product fetches go and refuses the rest by name — see SauconyFlow.
+        new FlowStoreModule(new SauconyFlow()),
         new FlowStoreModule(new JdSportsFlow()),
         new FlowStoreModule(new FanaticsFlow()),
         new FlowStoreModule(new RiotGamesFlow()),

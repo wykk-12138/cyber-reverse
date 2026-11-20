@@ -18,7 +18,7 @@
 
 | 维度 | 数值 | 命令 |
 |---|---|---|
-| 注册模块 | **65**（35 种 flow） | `verify.ps1` → `store modules` |
+| 注册模块 | **66**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
 | 变异检查 | **59 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1103 各 1 条） | `tools/mutation-check.py` |
@@ -69406,3 +69406,40 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   Unknown —— 该类的方法地址、`flow type`、两个支付步骤的报文。
 - **还剩什么**：Saucony 的目录条目与 flow（需先定 flow type）；66 个 absent 支付名里其余部分的定位；
   分组边界若要做准，得用类型元数据而不是字节邻近度。
+
+---
+
+## 第 1309 轮：Saucony 进目录了——能做的两步做，做不了的八步**按序号拒绝**
+
+- **上一轮只发现、这一轮落码**。新增 `SauconyFlow : StoreFlow`：
+  - `Id/Name/Domains` = `saucony` / `Saucony` / `saucony.com`（域名是镜像里那张按字母排序的域表里的冻结串 `0x147099D1C`）；
+  - `StoreIds` = `saucony_us` / `saucony_ca` / `saucony_eu` / `saucony_europe`（`0x14715229C` / `0x147152204` / `0x147152234` / `0x147152264`）；
+  - `StoreIdFor(url)` 按主机后缀选区域 id，**且要求主机名里含 `saucony`**。
+- **能做的做**：`GetHomeAsync`（纯 GET）、`FindProductAsync`（GET + 通用 name/price 提取 + 原文落 `raw`）。
+- **做不了的不假装**：`AddToCart`(d__7) / `SubmitShipping`(d__9) / `SubmitBilling`(d__10) /
+  `SubmitOrder`(d__11) / `HandleOrderResult`(d__12) / `PayerAuthenticate`(d__13) 全部返回带**镜像自己的序号**的拒绝，
+  理由写清：该类用 `ApiHeaders` + `traceparent` + `BuildAuthToken` 自己拼请求，而**镜像里没有任何字面量拼出 Saucony 的 API 路径**
+  （搜 `saucony` 只有域名和四个 id）。凭猜编 `/api/cart` 或支付提交地址，是这个项目撤回次数最多的一类错误。
+- **测试抓到一个真 bug**：`StoreIdFor("https://example.com/x")` 最初返回 `saucony_us`——因为它把任何 `.com` 都当美国站。
+  改成先要求主机含 `saucony`。**这是"猜"的代价的活标本**，注释里留了原文。
+- **两处守卫按事实移动**：目录 65 → **66**（`ArrowAndBeastTests`、`CoreTests`）。
+  前者原名 `TheCatalogueIsSixtyThreeModules` 却在断言 65——**名字和数字早就对不上了**，
+  这轮一并改成 `TheCatalogueSizeIsPinned` 并加一条 `Assert.Contains(..., m => m.Id == "saucony")`。
+  改名的理由写在注释里：一个改过名却没人再读的守卫，等于没有守卫。
+
+### 五要素
+
+- **改了什么**：新增 `replica/src/Cybersole.Stores/Flows/SauconyFlow.cs`（约 190 行）、
+  新增 `replica/tests/Cybersole.Tests/SauconyFlowTests.cs`（14 条）；`Modules/Registry.cs` 注册；
+  `ArrowAndBeastTests.cs` / `CoreTests.cs` 计数 65 → 66；NativeAOT 重发布；`docs/METRICS.md` 重生成。
+- **验证命令与输出**：`dotnet test --filter SauconyFlowTests` → **14/14**（首轮 13/1，红的正是 `.com` 那个 bug）；
+  连同两处计数守卫 `18/18`；`store_catalog.py` → `entries in CreateAll(): 66`；
+  `artifact_freshness.py` → `state: current`；`metrics_report.py` → 全部 exit 0；
+  `mutation-check.py` → 见本轮 METRICS 变异行。
+- **数字变化**（均引 `docs/METRICS.md`）：目录 65 → **66**；套件 2562 → 见 METRICS 当前值（+14）；
+  产物 `61,248,512` → **`61,259,776`** 字节。
+- **证据等级**：Observation —— 域名串与四个 id 的地址、四行显示名、八个步骤与 d__ 序号、四个字段名、
+  以及"搜 `saucony` 只有域名与 id"这一事实。Inference —— 该类的请求由 `ApiHeaders`/`BuildAuthToken` 自拼
+  （由辅助方法名推定，方法体未反编译）。Unknown —— 六个拒绝步骤的目标路径与报文。
+- **还剩什么**：那六个步骤的 API 路径（这是 Saucony 唯一剩下的硬骨头）；`HandleOrderResult` /
+  `PayerAuthenticate` 的报文；66 个 absent 支付名其余部分。

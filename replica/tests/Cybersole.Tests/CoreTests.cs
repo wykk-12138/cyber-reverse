@@ -1,4 +1,4 @@
-﻿using Cybersole.Core.Models;
+using Cybersole.Core.Models;
 using Cybersole.Core.Settings;
 using Cybersole.Core.Store;
 using Cybersole.Http;
@@ -130,7 +130,8 @@ public class StoreModuleTests
         var registry = new Cybersole.Http.Stores.StoreRegistry();
         Cybersole.Stores.Modules.StoreModuleCatalog.RegisterAll(registry);
 
-        Assert.Equal(65, registry.Modules.Count);
+        // 66 since R1309 added Saucony — a store the image has and the catalogue did not list.
+        Assert.Equal(66, registry.Modules.Count);
         Assert.Contains(registry.Modules, m => m.Id == "shopify");
         Assert.Contains(registry.Modules, m => m.Id == "nike");
         Assert.Contains(registry.Modules, m => m.Id == "demandware");

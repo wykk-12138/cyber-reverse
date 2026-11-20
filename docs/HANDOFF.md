@@ -8162,3 +8162,13 @@ Observation：
   与 `unzer.prepareUrl` 一并删除。
 - 头模板按**键值对**落，不按键数；`Akamai`/`1` 与 `a2+226` 因性质未定**未发送**，注释里留着偏移。
 - 见 `replica/docs/VERDICT.md` 第 1302 轮，与 `docs/METRICS.md` 的当前值。
+
+---
+
+## 第 1303 轮
+
+- `0x1408a34f0` 已从「未 dump 的逐家表单表」改判为**28 个发卡行 ACS 主机名的分发表**（18 个长度 case，
+  与字面量长度交叉验证一致），落成 `AcsHosts` 并接进 `CheckoutComGateway.ResolveEswThreeDsAsync`
+  （emit `Starting 3DS: <host>` + 该跳跑 `chrome_131`）。
+- **仍 Unknown**：每个主机对应处理器的方法体——逐家挑战表单字段还在里面，所以挑战完成仍接受调用方字段。
+- 见 `replica/docs/VERDICT.md` 第 1303 轮。

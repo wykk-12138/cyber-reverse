@@ -93,12 +93,17 @@ internal static class ThreeDsTransportHelpers
         IDictionary<string, string>? headers,
         string tag,
         CancellationToken ct,
-        bool followRedirects = true)
+        bool followRedirects = true,
+        TlsProfile? profile = null)
     {
         try
         {
             var options = c.Options(tag);
             options.FollowRedirects = followRedirects;
+            // R1303: the issuer hop re-fingerprints for its duration. The profile goes on before
+            // ApplyHeaders, which preserves whatever the current profile carries (user agent, language,
+            // client hints) while overriding the ones this call supplies.
+            if (profile is not null) options.Profile = profile;
             ApplyHeaders(options, headers);
 
             var res = await c.Http.GetAsync(url, options, ct).ConfigureAwait(false);

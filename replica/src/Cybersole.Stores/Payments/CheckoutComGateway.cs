@@ -16,10 +16,17 @@ namespace Cybersole.Stores.Payments;
 /// (4) Mollie card-token &amp; challenge notification (<c>api.cc.mollie.com</c> + <c>/sessions-interceptor/challenge-notification</c>).
 ///
 /// <para>
-/// <b>Unknown</b>: Exact ACS-host-specific challenge form field names inside the individual ACS
-/// sub-handlers (<c>0x1408a34f0</c> tail branches for <c>acs.apata.io</c>, <c>acs.revolut.com</c>, etc.)
-/// were not statically dumped, so challenge completion accepts caller-supplied challenge form fields
-/// (<c>checkoutcom.challengeForm</c> / <c>payload</c>) rather than inventing ACS-specific payloads.
+/// <b>R1303: the dispatcher is decoded, the handlers behind it are not.</b> <c>0x1408A34F0</c> is a switch
+/// over the issuer ACS host name — twenty-eight names across eighteen length cases, now in
+/// <see cref="AcsHosts"/> — which logs <c>"Starting 3DS: &lt;host&gt;"</c>, re-fingerprints the transport
+/// to <c>chrome_131</c>, builds a per-host handler and writes the previous profile back.
+/// </para>
+///
+/// <para>
+/// <b>Unknown</b>: what each per-host handler does differently. Every branch builds its handler the same
+/// way (context, owner, flag) and the bodies are where any per-issuer challenge form field names would
+/// live; they have not been decoded. Challenge completion therefore still accepts caller-supplied form
+/// fields (<c>checkoutcom.challengeForm</c> / <c>payload</c>) rather than inventing per-issuer payloads.
 /// </para>
 /// </summary>
 public sealed class CheckoutComGateway : IPaymentGateway
@@ -377,7 +384,18 @@ public sealed class CheckoutComGateway : IPaymentGateway
     public async Task<PaymentResult> ResolveEswThreeDsAsync(
         FlowContext c, string redirectUrl, string payload, CancellationToken ct)
     {
-        var pageRes = await ThreeDsTransportHelpers.GetRawAsync(c, redirectUrl, null, "cko-esw-page", ct)
+        // R1303: 0x1408A34F0 opens every issuer hop by logging "Starting 3DS: <host>" under the "3DS"
+        // category and re-fingerprinting the transport to chrome_131, then restores the profile it saved.
+        // The log is unconditional there -- it happens before the host switch -- so it is unconditional
+        // here too, and acsKnown records whether the switch had a case for it. The profile is per request
+        // rather than saved and written back, which is the same swap without mutating the context.
+        c.Emit(AcsHosts.Describe(redirectUrl), AcsHosts.LogCategory);
+        c.Session.Vars["checkoutcom.acsHost"] = AcsHosts.HostOf(redirectUrl);
+        c.Session.Vars["checkoutcom.acsKnown"] = AcsHosts.IsKnown(redirectUrl) ? "true" : "false";
+        var hopProfile = AcsHosts.ProfileFor(redirectUrl, c.BrowserProfile);
+
+        var pageRes = await ThreeDsTransportHelpers
+            .GetRawAsync(c, redirectUrl, null, "cko-esw-page", ct, profile: hopProfile)
             .ConfigureAwait(false);
         if (pageRes is null || !pageRes.IsSuccess)
             return PaymentResult.Fail("Payment failed (3DS)");

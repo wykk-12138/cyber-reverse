@@ -88,5 +88,5 @@
 2. **Phase 2 核心模块队列 Waves 2A–2D**：**4/4 已落地并通过验证**（Wave 2A 邮件/OTP 接线、Wave 2B Unzer/Cardinal/CheckoutCom 3DS 与便利店支付、Wave 2C Shopify/Topps CDN/Funko 奖励步骤、Wave 2D `Cybersole.Http` 伴生能力）。
 3. **剩余未做项全部属外部阻塞**：
    - **原版有效登录凭据**：Farfetch 7 条与 `/connect/app` payload、`SignalR`/`Remote*` 云端同步；
-   - **live capture（真实请求/响应）**：23 条 0 命中 `inferred` 字面量，以及静态未解子分支（Unzer 终态集、CheckoutCom 各发卡行 ACS 表单表、Komoju `formUrl` 后缀、`ToppsVariant` JSON 键名）；
+   - **live capture（真实请求/响应）**：23 条 0 命中 `inferred` 字面量，以及静态未解子分支（Unzer 终态集、CheckoutCom 各发卡行 ACS 处理器方法体、Komoju `formUrl` 后缀、`ToppsVariant` JSON 键名）；
    - **商业引擎 / 外部运行时**：`DotNetBrowser 4.3.5.8591` + Chromium、`MSAL` Outlook OAuth 交互流、`Velopack` CDN。

@@ -46911,3 +46911,44 @@ Inference = 「两行并排才显出 Gap 的分类力」；Unknown = VendorGapTe
 
 证据等级：Observation = 四条不变量的原文、76/76、2503 收据；
 Inference = 「I-2/I-3 是自洽约束」；Unknown = `VendorSolvingModeTests` 里 `Solver` 那七处是否全为台账。
+## R1280 —— 第 5 个文件：`VendorSolvingModeTests` 整份删，**两张分类表**先落进文档
+
+### 一、六条断言全是台账，但它们记的是"谁去解"
+
+| 厂商 | `Solver` | `Relayed` | 含义 |
+|---|---|---|---|
+| `cloudflare` | `UserThirdParty` | **true** | 用户自带的第三方服务解，经手转发 |
+| `datadome` | `SelfHosted` | **true** | 原版**自己的服务**解，经手转发 |
+| `kasada` · `akamai` | `Unknown` | false | **"断线那批"**：原版没说谁解 |
+| `perimeterx` · `queue-it` · `botdeflector` · `vercel` | `Local` | false | 本地处理，不转发（恰好 4 家） |
+| `imperva` | `None` | — | 无求解器 |
+
+### 二、两条**结构事实**（比各行取值更重要）
+
+1. **`Relayed` 跨越不止一种 `Solver`** ⇒ 转发是一条**独立的轴**，不是 `Solver` 的派生值；
+2. **`Local` 且不转发恰好 4 家** ⇒ 这个数字可以被复核，不是随手写的。
+
+### 三、`Unknown` 的语义要写清（防误读）
+
+`Solver.Unknown` **不是**"没调查"，是**"原版自己没说"**：
+`kasada`/`akamai` 检测与失败文案都在，但镜像没指明由谁去解。
+且它与 `Gap.None` **并存不矛盾**——它们**有**页面标记（`kpsdk`、`AkamaiGhost`），只是**求解方未知**。
+**两列各管一件事。**
+
+### 四、代价照旧写明
+
+与 §11 相同：这六条随表搬走后**没有测试守**。加行/改行要人工核 §11 四条 + §12 两条结构事实。
+
+### 五、验证
+
+`dotnet build` 0 错；`Vendor|Wall|Captcha` **108/108**；全量 2503 → **2497**（6m57s，−6，正是这六条）。
+
+### 六、进度
+
+| 项 | 值 |
+|---|---|
+| 已解耦 | **5 / 9** |
+| 剩下 | `VendorWiringTests`（可整删）· `WallDispatchTests` · `WallSolvingTests` · `CaptchaDeliveryAttributionTests`（后三个疑同名碰撞） |
+
+证据等级：Observation = 六条断言原文、108/108、2497 收据；Inference = 「Relayed 是独立轴」；
+Unknown = 后三个文件是否真与 `VendorWiring` 有关（下轮读）。

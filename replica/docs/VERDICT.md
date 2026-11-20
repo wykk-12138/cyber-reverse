@@ -68804,3 +68804,22 @@ I-3 有缺口⇒标记是推断 · I-4 分组只有两桶。
 |---|---|
 | 已解耦 | **4 / 9** |
 | 下一个 | `VendorSolvingModeTests` |
+---
+
+## 第 1280 轮：`VendorSolvingModeTests` 删除，`Solver`/`Relayed` 分类进文档 §12
+
+六条断言全读 `Rows`，但记的是**谁去解、要不要转发**：
+cloudflare=`UserThirdParty`+relayed · datadome=`SelfHosted`+relayed ·
+kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/vercel=`Local` 不转发（4 家）· imperva=`None`。
+
+两条**结构事实**：`Relayed` 跨多种 `Solver`（是独立轴）；`Local` 不转发恰好 4 家。
+`Unknown` 语义 = **原版没说**，与 `Gap.None` 并存不矛盾（有标记、求解方未知）。
+
+验证：build 0 错；108/108；全量 2503 → **2497**（−6）。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 已解耦 | **5 / 9** |
+| 剩下 | VendorWiringTests（整删）+ 三个疑同名碰撞文件 |

@@ -7933,3 +7933,12 @@ Observation：
 **下轮**：`VendorSolvingModeTests`（Solver 7 · Rows 4）。
 
 还剩什么：① VendorWiring 第 2 步（5/9）；② 三个同名碰撞；③ 17 条 no-hit；④ connect 通道（需登录）。
+## R1280 —— VendorSolvingModeTests 删除；Solver/Relayed 分类进 docs §12（含 Unknown 语义澄清）；5/9 完成
+
+Observation：
+- 六条断言全读 Rows：cloudflare/datadome relayed；kasada+akamai Unknown；Local 四家；imperva None。
+- 全量 2503 → **2497**（−6）。
+
+**下轮**：三个疑同名碰撞文件（WallDispatch/WallSolving/CaptchaDelivery）先确认，再处理 VendorWiringTests。
+
+还剩什么：① VendorWiring 第 2 步（4/9）；② 同名碰撞确认；③ 17 条 no-hit；④ connect 通道（需登录）。

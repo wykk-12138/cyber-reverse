@@ -107,7 +107,7 @@ public sealed class ProfileProxyBindingTests
         // ProxyGroupId must no longer be in this set.
         Assert.DoesNotContain("ProxyGroupId", never);
 
-        // The six address-shape fields remain out of scope; failing here means the set changed.
+        // The six address-shape fields remain uncovered; failing here means the set changed.
             // R511 added "Card": a view over the flat card fields. Nothing in src/ reads it yet —
             // the UI edits CardNumber / CardExpiry / CardCvv directly, exactly as the original dialog does.
         Assert.Equal(

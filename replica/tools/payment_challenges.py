@@ -1,4 +1,4 @@
-"""Generate docs/PAYMENT_CHALLENGES.md -- the two challenges the vendor ledger put out of scope.
+"""Generate docs/PAYMENT_CHALLENGES.md -- the two challenges the vendor ledger moved outside the function set.
 
 R1048 sorted seven reconciliation gaps into vendors, payment challenges and generic challenge types, and ruled that the
 payment ones belong to the payment layer. where_is then showed neither exists in this workspace at all: no PayPal3DS,

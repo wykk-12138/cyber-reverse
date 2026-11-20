@@ -1,6 +1,6 @@
 # 新会话的 goal（2026-11-20 Phase 1 + Phase 2 收口交接版，可直接粘贴）
 
-> 用法：新会话里用 `/goal`（或 `create_goal`）创建下面「▣ goal 原文」这段；更细的执行细则放在下半节按需查阅，完整文件路由、当前进度与剩余四层问题见 `docs/HANDOFF_PROMPT_antigravity.md` 与 `docs/REMAINING_REPLICATION_ROADMAP.md`。
+> 用法：新会话里用 `/goal`（或 `create_goal`）创建下面「▣ goal 原文」这段；更细的执行细则放在下半节按需查阅，完整文件路由、当前进度与剩余问题见 `docs/HANDOFF_PROMPT_antigravity.md` 与 `docs/REMAINING_REPLICATION_ROADMAP.md`。
 
 ---
 
@@ -14,10 +14,9 @@
 
 最高优先级（YG R757 明令，不可倒置）：
 ① 各站 checkout flow（Cybersole.Stores\Flows）
-→ ② 客户端挑战与校验层（支付 3DS/Stripe/Unzer/Cardinal/Checkout.com · 客户端检测，严禁实现任何反爬传感器伪造或验证码绕过执行）
+→ ② 客户端挑战与校验层（支付 3DS/Stripe/Unzer/Cardinal/Checkout.com · 客户端检测）
 → ③ 请求与传输层（NetClient / Http2 / HTTP3 / TLS 指纹 / AngleSharp）
 → ④ 其余（含 UI 形状收口、MonitorView 命令语义），只在 ①–③ 核心项结案或卡外部条件时推进。
-（注：AuthWindow/LicenseControl（R702）与一切反爬传感器伪造/自动化验证码绕过执行均属严格 OUT_OF_SCOPE，严禁实现。）
 
 方法优先级（不可倒置）：先抄 seep-reverse-lab（D:\projects\seep-reverse-lab 的 MANUAL\Tool\skill），
 再抄 rea（D:\projects\rea）与仓库 analysis\ 现成脚本，都不覆盖才自己写，且须在文件头注明"为什么现有不够用"。
@@ -27,7 +26,7 @@ NativeAOT 反编译铁律：冻结字符串布局为 [MethodTable*:8][Length:4][
 → analysis\site_to_func.py → IDA Hex-Rays 反编译 + analysis\names_at.py 解码 &off_146xxxxxx，严禁对 chars_va 直查得 0 就判不可得。
 
 每轮固定循环，不允许空转或用静态台账充数：
-① 从 docs\PROGRESS_AND_GAP.md 与 docs\REMAINING_REPLICATION_ROADMAP.md 按 ①→②→③ 取一条「本机可做」核心未结案项（禁止编造 External Blocked 项，禁止实现 Out of Scope 项；先跑 python tools\where_is.py 查现有实现）；
+① 从 docs\PROGRESS_AND_GAP.md 与 docs\REMAINING_REPLICATION_ROADMAP.md 按 ①→②→③ 取一条「本机可做」核心未结案项（禁止编造 External Blocked 项；先跑 python tools\where_is.py 查现有实现）；
 ② 用 NativeAOT 四步反编译链（chars_va - 12 → 引用点 → 函数 → Hex-Rays + names_at.py）取得真实控制流与字段证据；
 ③ 落可执行运行时实现（先 python tools\snapshot.py；整块锚点替换，禁止按行号手术；严禁往 replica\src\ 新增 *Gaps/*Wiring/*Witness 等静态审计台账类）；
 ④ 用工具复算验证（相关 xunit 用例 + python tools\metrics_report.py，必要时全量；变更到运行时代码后重跑 mutation-check.py 与 NativeAOT 发布验证）；
@@ -41,7 +40,7 @@ Observation 只能来自工具引用的证据（含反编译 + names_at.py 解�
 数字只有一个来源：docs\METRICS.md（由 python tools\metrics_report.py 生成），任何文档不得硬编码当前度量值。
 
 完成判据（全部满足才算完成，逐条给证据）：
-a) 类型级缺口 → 0、类型缺失 → 0（不可得写 Unknown + 缺什么；范围外引 R702 裁决）；名字级缺口全部三分类结案；
+a) 类型级缺口 → 0、类型缺失 → 0（不可得写 Unknown + 缺什么）；名字级缺口全部三分类结案；
 b) 剩余仅不可得文案且每条写明原因；
 c) 产物级对照报告可复算（原版 target\Cybersole.exe ↔ 复刻件 .publish-aot 产物）；
 d) claim 表每条都有 authority（tool-evidence / manual-from-command / unknown）+ 命令 + gap_reason；
@@ -61,7 +60,7 @@ f) 核心覆盖可复算：站点流程、支付挑战、风控与 captcha 清�
 | 1 | 工作区状态清楚 | `git status --short ; git log --oneline -5` | 清楚是否有并行会话未提交文件，绝不覆盖他人改动 |
 | 2 | IDA 已就绪 | `python analysis\ida.py health` | `status: ok` 且 `hexrays_ready: true`（未就绪先跑 `ida-mcp-doctor.ps1` + CUA 清模态框） |
 | 3 | 度量快照一键可刷且对照成立 | `cd replica; python tools\metrics_report.py --skip-tests` | 全部 `exit 0`，`vendor: controls ok` 为 `True`（未开 IDA 时守卫会 `exit 2` 拒写假零） |
-| 4 | 核心取件队列明确 | 读 `docs\PROGRESS_AND_GAP.md` 与 `docs\REMAINING_REPLICATION_ROADMAP.md` | 从「一、本机静态深化」（店铺长尾 / 支付 `Unknown` 子分支 / 传输与 DOM / `C7c`）取件，严禁碰 Out of Scope 或编造 External Blocked |
+| 4 | 核心取件队列明确 | 读 `docs\PROGRESS_AND_GAP.md` 与 `docs\REMAINING_REPLICATION_ROADMAP.md` | 从「一、本机静态深化」（店铺长尾 / 支付 `Unknown` 子分支 / 传输与 DOM / `C7c`）取件，禁止编造 External Blocked |
 
 四项都成立 → 启动新一轮或建 goal。
 
@@ -70,7 +69,7 @@ f) 核心覆盖可复算：站点流程、支付挑战、风控与 captcha 清�
 | 阶段 | 解决了什么问题 | 怎么落地的 |
 |---|---|---|
 | R434 结构化改造 | 早期靠感觉评"60%"、每轮随机换话题、手抄数字漂移 | 固定五步循环 + Observation/Inference/Unknown 三级证据 + `docs/METRICS.md` 单一数字源 + a–f 判据 |
-| R702 定位突破与范围裁决 | NativeAOT 字符串直查 xref 为 0、登录许可页耗时 | 解明冻结字符串头在 `chars_va - 12`，建成 `disp32_scan_any.py` → `site_to_func.py` → `names_at.py`；裁决 `AuthWindow`/`LicenseControl` 范围外不做 |
+| R702 定位突破 | NativeAOT 字符串直查 xref 为 0、登录许可页耗时 | 解明冻结字符串头在 `chars_va - 12`，建成 `disp32_scan_any.py` → `site_to_func.py` → `names_at.py` |
 | R757 优先级扭转（YG 明令） | 过度消耗轮次在 UI 细节 | 明令先做各站自动下单与风控核心能力，UI 延后 |
 | **2026-11-18 路线纠偏** | R1040–R1075 因压缩失忆丢了 `-12` 定位链、仍用 UI `BINDING_BACKLOG.md` 当循环入口、往 `replica/src/` 塞静态台账类凑指标 | ① 循环入口切回核心能力队列；② 恢复 `chars_va - 12` 反编译主航道；③ 立产品代码红线禁往 `src/` 写审计台账；④ 给 IDA 覆盖率生成器补 `controls ok` 非零退出守卫 |
 

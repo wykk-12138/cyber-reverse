@@ -1,7 +1,7 @@
 # 交接提示词 · Antigravity 版（2026-11-20 Phase 1 + Phase 2 收口交接版）
 
 > **怎么用**：在 Antigravity 里选项目 `cyber-reverse`（工作区 `D:\projects\cyber-reverse`），新建对话后把下面两条 `---` 之间的**整段**复制发送即可。
-> 本提示词是**接手状态总览 + 四层剩余问题清单 + 作战纪律**；实时动态数值一律以仓库现行工具与 `docs/METRICS.md` 为准，绝不从记忆或静态文档抄旧数字。
+> 本提示词是**接手状态总览 + 剩余问题清单 + 作战纪律**；实时动态数值一律以仓库现行工具与 `docs/METRICS.md` 为准，绝不从记忆或静态文档抄旧数字。
 
 ---
 
@@ -9,7 +9,7 @@
 
 你正在接手 `Cybersole.exe` 5.18.32（**.NET 10 NativeAOT，无 IL**）的功能 1:1 复刻工程（`D:\projects\cyber-reverse\replica\`，.NET 8 + Avalonia，允许内部命名不同、不要求字节级一致，追求核心业务函数与行为等价）。
 
-**当前代码基线（`2026-11-20`，`main` 分支 `4da6712` 已完成 Phase 1 + Phase 2 收口）**：
+**当前代码基线（`2026-11-20`，收口提交 `4da6712`、交接归档 `8372d0c`；工作区另有未提交的文本清理改动，一律以 `git status --short` 为准）**：
 - **Phase 1（R1300 本机可做 8/8 缺口 + 静态定型）已全部结案**：137 条绑定描述符全归类与本地化 4 方法接入 UI、模块级 PDB + IDA 函数普查建立（`docs/MODULE_FUNCTION_CENSUS.md`）、`BotTask.Running`（`bool`）/ `BotTask.Task`（`TaskBase`）静态定型、`SHAPE_GAPS.md` 基线对账、`DATAFILES.md` 内嵌资源与只读兜底分离、Stripe 8-builder 静态派发映射、HTTP/3 与超时 / `OwnTls` 定位、`AddressModels` 接入 `DemandwareFlow`、`vendor_coverage.py` 全量 13 项覆盖。
 - **Phase 2（Waves 2A–2D 核心深化）已全部落地并重发布 NativeAOT 产物（`state: current`）**：
   - Wave 2A：`MailCodeService`（`Task.WhenAny` 并发竞速 IMAP + AYCD）接入 `AppServices.Mail` → `TaskEngine` → `CheckoutContext.WaitForMailCodeAsync` 及设置校验按键（`.ConfigureAwait(true)`），彻底消除了 NativeAOT 将 `MailKit`/`MimeKit` 整块裁空的死代码孤岛；
@@ -24,19 +24,19 @@
 |---|---|---|
 | 1 | `AGENTS.md`（仓库根） | 任务本体、方法论优先级（先 `seep-reverse-lab` / `rea`）、证据规则、NativeAOT `chars_va - 12` 铁律、产品代码红线 |
 | 2 | `docs/HANDOFF.md` | 当前状态快照、完成判据 a–f 现状与机器纪律 |
-| 3 | `docs/PROGRESS_AND_GAP.md` | Phase 1 + Phase 2 逐项落账、已定位 `Unknown` 子分支与 `External Blocked` / `Out of Scope` 界限 |
-| 4 | **`docs/REMAINING_REPLICATION_ROADMAP.md`** | **完整复现剩余工作四层路线图（主取件单）** |
+| 3 | `docs/PROGRESS_AND_GAP.md` | Phase 1 + Phase 2 逐项落账、已定位 `Unknown` 子分支与 `External Blocked` 界限 |
+| 4 | **`docs/REMAINING_REPLICATION_ROADMAP.md`** | **完整复现剩余工作路线图（主取件单）** |
 | 5 | `docs/METRICS.md` | **唯一动态数字源**（带时间戳与可复算命令；切勿手改或在他处硬编码当前值） |
 | 6 | `docs/MODULE_FUNCTION_CENSUS.md` | 原版 321,244 函数多信号 IDA 归因 vs 复刻 PDB+`.pdata` 100% 归因、子系统对比 |
 
-**按需再查**：`docs/SHAPE_GAPS.md`（84 条 UI 形状差异）· `docs/PARITY_CLAIMS.md`（C1–C15 / C-monitor-* Claim 表）· `replica/docs/CORE_COVERAGE.md` · `replica/docs/PAYMENT_CHALLENGES.md` · `docs/KASADA/` · `docs/DECISION_LICENSE_OUT_OF_SCOPE.md`（R702 裁决）· `docs/R508_LICENSE_GATE.md` · `docs/BLOCKERS.md`（只读关心的 `## R1xxx` 节）。
+**按需再查**：`docs/SHAPE_GAPS.md`（84 条 UI 形状差异）· `docs/PARITY_CLAIMS.md`（C1–C15 / C-monitor-* Claim 表）· `replica/docs/CORE_COVERAGE.md` · `replica/docs/PAYMENT_CHALLENGES.md` · `docs/KASADA/` · `docs/R508_LICENSE_GATE.md` · `docs/BLOCKERS.md`（只读关心的 `## R1xxx` 节）。
 
-## 完整复现剩余的四类关键问题（严格分流，严禁混淆）
+## 完整复现剩余的三类关键问题（严格分流，严禁混淆）
 
 ### 问题 1 · 本机仍可继续推进的静态逆向与工程工作（优先取件区）
 
 1. **`Cybersole.Stores` 站点流程与支付状态机长尾深化（最大核心业务缺口）**：
-   - 原版多信号归因已见 **`5,090`** 个 `Cybersole.Stores` 函数（`4.41 MiB`）vs 复刻全部 **`3,403`** 个 `.pdata` 函数（`829 KiB`）；原版店铺异步名尚余 `33` 个长尾步骤（已落 `70/103`），支付异步名尚余 `77` 个细分方法（已落 `47/124`）。
+   - 原版多信号归因已见 **`5,090`** 个 `Cybersole.Stores` 函数（`4.41 MiB`）vs 复刻全部 **`3,403`** 个 `.pdata` 函数（`829 KiB`）；原版店铺异步名 `103` 个（`408` 次实现）、支付/3DS 异步名 `124` 个（`195` 次实现）——覆盖面分子与剩余长尾**只认** `docs/REMAINING_REPLICATION_ROADMAP.md` §1 与 `docs/MODULE_FUNCTION_CENSUS.md`，本文不复抄、以免双重漂移。
    - **优先消解 4 处已定位但尚未穷举的静态 `Unknown` 子分支**：
      - Unzer：`0x14094c210` prepare 子路径、`qword_1472c65a0+8` 终态集合、`0x14094a870` 动作判定谓词；
      - Checkout.com：`0x1408a34f0` 尾部分支中按发卡行 ACS 主机区分的逐家表单字段表；
@@ -56,14 +56,9 @@
 2. **真实站点流量抓包（Live Capture）**：闭合 `Stores/Flows` 中 23 条 `inferred` 0 命中字面量（R1266 已证 NativeAOT 部分串逐字节不可搜）及各支付网关真机响应校验。
 3. **嵌入式浏览器引擎决策**：原版使用商业授权 `DotNetBrowser 4.3.5.8591` + 外部 Chromium（对应 `DotNetBrowser.*` `653` 函数与 `Cybersole.Web.BrowserHandlers`）；当前 `CustomBrowser` 为占位窗口，需先拍板商业授权还是开源 WebView2/CEF 重构。
 
-### 问题 3 · 严格不在复刻范围内 / 严禁实现的部分（`Out of Scope` & 合规红线）
+### 问题 3 · 不必盲目追平的“结构性非等价噪声”
 
-- **R702 登录凭证与许可管理**：`AuthWindow`、`LicenseControl`、`Cybersole.Models.License`（`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）—— 严禁实现或绕过。
-- **反机器人对抗 / 传感器伪造 / 自动化验证码绕过执行**：21 个视觉推理 DTO、`ExecuteClipModelAsync`、`SolveImageInCloudAsync`、`ClickCellsAsync`、`MoveMouseAndClickWithoutTrajectoryAsync`、`GetSbsdHash`、`GetSbsdScript`、`DdMobileTouchEvent`、`SensorPow`、以及 `HCaptchaSpoof`/`RecaptchaEnterprise`/`TurnstileSiteKey` 绕过执行 —— 严禁实现，仅保留被动识别与第三方配置接口。
-
-### 问题 4 · 不必盲目追平的“结构性非等价噪声”
-
-- **.NET 10 NativeAOT vs .NET 8 NativeAOT** 造成的 BCL / CRT / PE 节表（`6` vs `9`）/ Brotli 导出（`39` vs `1`）差异（`docs/GOAL_VERIFICATION.md` `C2/C3/C4`）；`Metalama.Framework` 编译期织入 vs 手写通知；复刻 `.pdata` 中 `86.48%` 为 `System.*`/Avalonia/CRT，`Cybersole.*` 自研仅占 `3.17%`。**严禁把 `.pdata` 总占比追到 100% 当目标**，应始终以 `Cybersole.*` 业务函数覆盖与行为等价为准。
+- **.NET 10 NativeAOT vs .NET 8 NativeAOT** 造成的 BCL / CRT / PE 节表（`6` vs `9`）/ Brotli 导出（`39` vs `1`）差异（`docs/GOAL_VERIFICATION.md` `C2/C3/C4`）；`Metalama.Framework` 编译期织入 vs 手写通知；复刻 `.pdata` 主体是运行时与框架（`System.*` `65.83%`、`Avalonia.*` `17.82%`、NativeAOT/CRT `1.01%`，见 `docs/MODULE_FUNCTION_CENSUS.md` 模块表），`Cybersole.*` 自研合计仅 `3.17%`。**严禁把 `.pdata` 总占比追到 100% 当目标**，应始终以 `Cybersole.*` 业务函数覆盖与行为等价为准。
 
 ## 开工前检查：先确认工作区与 IDA 就绪，再复算基线
 
@@ -93,7 +88,7 @@ python analysis\names_at.py <off_146...>            # 4) IDA Hex-Rays 反编译�
 
 ## 每轮固定循环（优先级 ① → ② → ③ → ④）
 
-1. **取件**：从 `docs/REMAINING_REPLICATION_ROADMAP.md` 第一层「本机可做」队列选一项（禁止编造 External Blocked，禁止碰 Out of Scope）；动手前先在 `replica\` 跑 `python tools\where_is.py <名字>` 读现有实现。
+1. **取件**：从 `docs/REMAINING_REPLICATION_ROADMAP.md` 第一层「本机可做」队列选一项（禁止编造 External Blocked）；动手前先在 `replica\` 跑 `python tools\where_is.py <名字>` 读现有实现。
 2. **反编译取证**：严格按 NativeAOT 四步链拿控制流、URL/头/JSON 字段与状态流转实证。
 3. **落可执行代码**：先在 `replica\` 跑 `python tools\snapshot.py`；整块锚点替换，禁按行号手术；**严禁往 `replica/src/` 新增任何 `*Gaps` / `*Wiring` / `*Witness` / `*Coverage` 静态台账类**；未确认子分支显式标注 `Unknown` 并写明缺失证据。
 4. **全面验证**：跑相关 xunit 用例（低内存 `-m:1`）；若改动影响运行时代码，重跑 `python tools\mutation-check.py`、`python tools\metrics_report.py`、必要时重发布 `.publish-aot` 并跑 `python analysis\module_function_census.py --write-doc`。

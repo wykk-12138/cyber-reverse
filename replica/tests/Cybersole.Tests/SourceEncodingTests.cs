@@ -55,38 +55,73 @@ public class SourceEncodingTests
         return dir;
     }
 
-    [Fact]
-    public void NoSourceFileContainsMojibake()
+    /// <summary>
+    /// Every directory whose text this project is allowed to be judged on.
+    ///
+    /// Round 1301 widened this after finding two blind spots that a green suite had been sitting on:
+    /// the walk started at the replica root, so the repository-root `docs/` directory -- including
+    /// `docs/METRICS.md`, the file every other document quotes its numbers from -- was never scanned;
+    /// and the extension filter listed `.cs/.md/.json/.ps1`, so no `.py` tool script was either. Both
+    /// defects this round repaired were already committed, which is the whole point: a guard with a
+    /// hole does not announce itself by staying green.
+    /// </summary>
+    private static IEnumerable<string> ScannedFiles()
     {
         var root = RepoRoot();
-        var hits = new List<string>();
-
-        foreach (var top in new[] { "src", "tests", "tools", "docs" })
+        var tops = new[]
         {
-            var start = Path.Combine(root, top);
+            Path.Combine(root, "src"),
+            Path.Combine(root, "tests"),
+            Path.Combine(root, "tools"),
+            Path.Combine(root, "docs"),
+            Path.Combine(root, "..", "docs"),
+        };
+
+        foreach (var start in tops)
+        {
             if (!Directory.Exists(start)) continue;
 
             foreach (var file in Directory.EnumerateFiles(start, "*", SearchOption.AllDirectories))
             {
                 var rel = Path.GetRelativePath(root, file).Replace('\\', '/');
-                if (rel.Contains("/obj/") || rel.Contains("/bin/")) continue;
+                if (rel.Contains("/obj/") || rel.Contains("/bin/") || rel.Contains("/__pycache__/")) continue;
 
                 var ext = Path.GetExtension(file);
-                if (ext is not (".cs" or ".md" or ".json" or ".ps1")) continue;
+                if (ext is not (".cs" or ".md" or ".json" or ".ps1" or ".py")) continue;
 
-                string text;
-                try { text = File.ReadAllText(file); }
-                catch (Exception ex)
-                {
-                    hits.Add($"{rel}: unreadable as UTF-8 — {ex.GetType().Name}");
-                    continue;
-                }
+                yield return rel + "\u0000" + file;
+            }
+        }
+    }
 
-                foreach (Match m in Mojibake.Matches(text))
-                {
-                    var line = text[..m.Index].Count(c => c == '\n') + 1;
-                    hits.Add($"{rel}:{line}  {m.Value}");
-                }
+    [Fact]
+    public void NoSourceFileContainsMojibake()
+    {
+        var hits = new List<string>();
+
+        foreach (var entry in ScannedFiles())
+        {
+            var rel = entry[..entry.IndexOf('\u0000')];
+            var file = entry[(entry.IndexOf('\u0000') + 1)..];
+
+            string text;
+            try { text = File.ReadAllText(file); }
+            catch (Exception ex)
+            {
+                hits.Add($"{rel}: unreadable as UTF-8 — {ex.GetType().Name}");
+                continue;
+            }
+
+            foreach (Match m in Mojibake.Matches(text))
+            {
+                var line = text[..m.Index].Count(c => c == '\n') + 1;
+                // Round 1301: report the match as code points, never as the character itself.
+                // docs/METRICS.md records this test's failure output verbatim, so a message that
+                // echoed the replacement character put one back into a file this test then scans --
+                // a failing run made the next run fail for a new reason and the loop never closed.
+                // Naming the codepoint says exactly as much and cannot feed itself.
+                var points = string.Join(" ", m.Value.Select(ch => $"U+{(int)ch:X4}"));
+                hits.Add($"{rel}:{line}  {points} x{m.Value.Length}");
             }
         }
 

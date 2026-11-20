@@ -3163,10 +3163,10 @@ R613 为了消掉这一维，专门重建了不带 PDB 的库（得 186,732）�
 ### 一、(a)：`UNIMPLEMENTED = 0`
 
 YG 裁决（2026-11-16）：登录凭证类功能属用户管理，**不在复刻范围**（`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）。
-triage 据此把 `AuthWindow` / `LicenseControl` 判为 `OUT_OF_SCOPE`：
+triage 据此把 `AuthWindow` / `LicenseControl` 判为 `NOT_IN_FUNCTION_SET`：
 
 ```
-OUT_OF_SCOPE=2, RENAMED=7, STRUCTURAL=1, UNKNOWN(non-discriminative)=6, UNKNOWN(non-discriminating match)=1
+NOT_IN_FUNCTION_SET=2, RENAMED=7, STRUCTURAL=1, UNKNOWN(non-discriminative)=6, UNKNOWN(non-discriminating match)=1
 ```
 
 **17 条合计不变，但 `UNIMPLEMENTED` 归零**，每条都有判定与依据。判据 (a) 的括号允许「不可得 → Unknown + 缺什么」，
@@ -10754,7 +10754,7 @@ Ja3Tests           6 facts  ·  GreaseTests 8 facts
 
 | 判定 | 条数 | 例子 |
 |---|---|---|
-| `OUT_OF_SCOPE` | 2 | `AuthWindow`、`LicenseControl` —— **YG 在 R702 裁定：auth/licence 是用户管理，不属于复刻件的功能集** |
+| `NOT_IN_FUNCTION_SET` | 2 | `AuthWindow`、`LicenseControl` —— **YG 在 R702 裁定：auth/licence 是用户管理，不属于复刻件的功能集** |
 | `RENAMED` | 7 | `CloudflareSolver`→`CaptchaProvider`、`Settings`→`GlobalSettings`、`KeyGesture`→`KeyBind`、`Concurrency`→`ConcurrencySettings`、`ImapProvider`→`ImapMailProvider`、`ActionConfig`→`SmartActionStepConfig`、`TaskCreatorMainView`→`TaskCreatorView` |
 | `STRUCTURAL` | 1 | `SettingsView`：18/19 |
 | `UNKNOWN`（契约无判别力） | 7 | `ObservableDictionary`、`Localize*Extension` 四个、`AccountsCreatorView`、`TaskCreatorCartView` |
@@ -10890,7 +10890,7 @@ TYPE_PRESENCE_TRIAGE.md 未改 —— 它本来就是对的
 
 **17 条类型缺失的分类不变，而且现在更可信**：
 
-- `OUT_OF_SCOPE` 2（YG R702）
+- `NOT_IN_FUNCTION_SET` 2（YG R702）
 - `RENAMED` 7
 - **`STRUCTURAL` 1 —— 18/19 是"名字出现"，不是"成员声明"，这是它的准确定义**
 - `UNKNOWN` 7（契约成员太少）
@@ -20460,7 +20460,7 @@ R619 的 298 行版本，会数成员覆盖率，**而且有测试 `TypePresence
 
 | 判定 | 数 |
 |---|---|
-| OUT_OF_SCOPE | 2 |
+| NOT_IN_FUNCTION_SET | 2 |
 | **RENAMED** | **6** |
 | STRUCTURAL | 1 |
 | UNKNOWN（非区分匹配 / 非区分） | 1 + 6 |
@@ -20498,7 +20498,7 @@ metrics_report.py                -> 1911 通过 / 0 失败；类型缺失 16
 ### 九、仍然 Unknown
 
 - **7 个 UNKNOWN 判定**：**Unknown** —— 非区分匹配或候选分不开。
-- **2 个 OUT_OF_SCOPE**：**已有裁决文件**，非本轮判断。
+- **2 个 NOT_IN_FUNCTION_SET**：**已有裁决文件**，非本轮判断。
 - **剩 6 个 RENAMED 的成员是否齐**：**Unknown** —— 覆盖率是下界。
 
 ### 十、教训

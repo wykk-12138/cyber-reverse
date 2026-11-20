@@ -30,9 +30,9 @@ PROGRESS = """# 进度与差距（生成于 R1300，2026-11-20）
 | 支付挑战 | `stages 9` · **`markers absent 0/5`** · `control ok True` | `python tools/payment_challenges.py` |
 | captcha（识别面） | `families 6` · **`markers absent 0/5`**；四家 loader 字面量全部实证并接进 `StoreFlow.DetectAsync` | `python tools/captcha_coverage.py` |
 | 风控厂商 | `controls ok True` · `missing 0` | `python tools/vendor_coverage.py` |
-| 名字级绑定 | **`real gap 0`**；`missing 14` = noise 12 + out-of-scope 2 | `python tools/bind_diff.py --buckets` |
+| 名字级绑定 | **`real gap 0`**；`missing 14` = noise 12 + not-in-function-set 2 | `python tools/bind_diff.py --buckets` |
 | 类型级绑定 | **`scope misses 0`** | `python tools/bind_scope.py` |
-| 类型缺失 | `absent 15` = renamed 13 + out-of-scope 2 + **`unimplemented 0`** + **`unclassified 0`** | `python tools/bind_diff.py --type-presence` |
+| 类型缺失 | `absent 15` = renamed 13 + not-in-function-set 2 + **`unimplemented 0`** + **`unclassified 0`** | `python tools/bind_diff.py --type-presence` |
 | 文案 | **`copy: zones with a missing key 0`** | `python tools/copy_audit_report.py` |
 | 数据文件名 | `original-on-disk not in replica 0` | `python tools/datafiles_diff.py` |
 | 传输层 | 默认路径与镜像同源：`SocketsHttpHandler` + `SslStream` + `Tls12\\|Tls13` + GREASE + 六个 handler 属性 | 见 `docs/BLOCKERS.md` R1293 |
@@ -83,7 +83,7 @@ PROGRESS = """# 进度与差距（生成于 R1300，2026-11-20）
 | **`only in descriptors 137`** | 🟡 | 原版绑定描述符里 **137 条**只在描述符表、不在 XAML 表。`METRIC_CLAIMS.md` 只写了「差集那一侧不等于 XAML 没用它」，**这 137 条从未逐条看过** |
 | **`shape mismatches 91`（core 3）** | 🟡 | 已列 `docs/SHAPE_GAPS.md` 并逐条处置过一轮，但 91 条未全部结案 |
 | `datafiles: replica-only 2` | 🟡 | 复刻件提到 2 个原版数据目录与镜像字面量都查不到的文件名 |
-| `AuthWindow` / `LicenseControl` | ✅（裁决） | R702 判 `OUT_OF_SCOPE`，见 `docs/DECISION_LICENSE_OUT_OF_SCOPE.md` |
+| `AuthWindow` / `LicenseControl` | ✅（裁决） | R702 判 `NOT_IN_FUNCTION_SET`，见 `docs/DECISION_LICENSE_OUT_OF_SCOPE.md` |
 
 ---
 

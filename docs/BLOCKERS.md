@@ -8906,10 +8906,10 @@ return sub_141CF6EA0(0, v4, &v5);                         // 格式化错误文�
 ### 一、(a)：`UNIMPLEMENTED = 0`
 
 YG 裁决（2026-11-16）：登录凭证类功能属用户管理，**不在复刻范围**（`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）。
-triage 据此把 `AuthWindow` / `LicenseControl` 判为 `OUT_OF_SCOPE`：
+triage 据此把 `AuthWindow` / `LicenseControl` 判为 `NOT_IN_FUNCTION_SET`：
 
 ```
-OUT_OF_SCOPE=2, RENAMED=7, STRUCTURAL=1, UNKNOWN(non-discriminative)=6, UNKNOWN(non-discriminating match)=1
+NOT_IN_FUNCTION_SET=2, RENAMED=7, STRUCTURAL=1, UNKNOWN(non-discriminative)=6, UNKNOWN(non-discriminating match)=1
 ```
 
 **17 条合计不变，但 `UNIMPLEMENTED` 归零**，每条都有判定与依据。判据 (a) 的括号允许「不可得 → Unknown + 缺什么」，
@@ -16497,7 +16497,7 @@ Ja3Tests           6 facts  ·  GreaseTests 8 facts
 
 | 判定 | 条数 | 例子 |
 |---|---|---|
-| `OUT_OF_SCOPE` | 2 | `AuthWindow`、`LicenseControl` —— **YG 在 R702 裁定：auth/licence 是用户管理，不属于复刻件的功能集** |
+| `NOT_IN_FUNCTION_SET` | 2 | `AuthWindow`、`LicenseControl` —— **YG 在 R702 裁定：auth/licence 是用户管理，不属于复刻件的功能集** |
 | `RENAMED` | 7 | `CloudflareSolver`→`CaptchaProvider`、`Settings`→`GlobalSettings`、`KeyGesture`→`KeyBind`、`Concurrency`→`ConcurrencySettings`、`ImapProvider`→`ImapMailProvider`、`ActionConfig`→`SmartActionStepConfig`、`TaskCreatorMainView`→`TaskCreatorView` |
 | `STRUCTURAL` | 1 | `SettingsView`：18/19 |
 | `UNKNOWN`（契约无判别力） | 7 | `ObservableDictionary`、`Localize*Extension` 四个、`AccountsCreatorView`、`TaskCreatorCartView` |
@@ -16633,7 +16633,7 @@ TYPE_PRESENCE_TRIAGE.md 未改 —— 它本来就是对的
 
 **17 条类型缺失的分类不变，而且现在更可信**：
 
-- `OUT_OF_SCOPE` 2（YG R702）
+- `NOT_IN_FUNCTION_SET` 2（YG R702）
 - `RENAMED` 7
 - **`STRUCTURAL` 1 —— 18/19 是"名字出现"，不是"成员声明"，这是它的准确定义**
 - `UNKNOWN` 7（契约成员太少）
@@ -26203,7 +26203,7 @@ R619 的 298 行版本，会数成员覆盖率，**而且有测试 `TypePresence
 
 | 判定 | 数 |
 |---|---|
-| OUT_OF_SCOPE | 2 |
+| NOT_IN_FUNCTION_SET | 2 |
 | **RENAMED** | **6** |
 | STRUCTURAL | 1 |
 | UNKNOWN（非区分匹配 / 非区分） | 1 + 6 |
@@ -26241,7 +26241,7 @@ metrics_report.py                -> 1911 通过 / 0 失败；类型缺失 16
 ### 九、仍然 Unknown
 
 - **7 个 UNKNOWN 判定**：**Unknown** —— 非区分匹配或候选分不开。
-- **2 个 OUT_OF_SCOPE**：**已有裁决文件**，非本轮判断。
+- **2 个 NOT_IN_FUNCTION_SET**：**已有裁决文件**，非本轮判断。
 - **剩 6 个 RENAMED 的成员是否齐**：**Unknown** —— 覆盖率是下界。
 
 ### 十、教训
@@ -39711,7 +39711,7 @@ Unknown = 整树绿（被并行会话的在途改动挡住，不属我方可控�
 
 改了什么：
 - 读 `docs/TYPE_PRESENCE_TRIAGE.md` 全 15 行，确认分类已齐：
-  **6 RENAMED / 2 OUT_OF_SCOPE(R702) / 1 STRUCTURAL / 6 UNKNOWN**。
+  **6 RENAMED / 2 NOT_IN_FUNCTION_SET(R702) / 1 STRUCTURAL / 6 UNKNOWN**。
 - **发现两本台账互相矛盾**：`LocalizeFormatExtension` 与 `LocalizeSwitchExtension` 在三分类里仍是
   `UNKNOWN (non-discriminative)`，而 `replica/docs/B_CLASS_DECISIONS.md` **L25/L26 早已裁决它们
   为「已有等价物」**（`LocalizeSwitchExtension`：复刻件用内联三元表达同一意图；
@@ -39772,7 +39772,7 @@ Unknown = 整树绿（被并行会话的在途改动挡住，不属我方可控�
   `src/Cybersole.Ui/Views/AccountImportWindow.cs`，test 组命中 `OriginalViewClassParityTests.cs`
   —— **R1108 判它 UNKNOWN 时就该跑这一步**。
 - `grep` 该测试文件：L47 / L51 两行原文如上。
-- 分类计数自检：**RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / UNKNOWN 2 / EQUIVALENT 2 = 15 行**。
+- 分类计数自检：**RENAMED 8 / NOT_IN_FUNCTION_SET 2 / STRUCTURAL 1 / UNKNOWN 2 / EQUIVALENT 2 = 15 行**。
 - 文档守卫逐类：DocsConsistency 8/8、ParityDoc 9/9、SourceEncoding 2/2、SummaryBlock 4/4
   = **23 钉全绿**。
 
@@ -39810,7 +39810,7 @@ Inference = 无（本轮全部改动都由已存在的机器钉子或清单直�
   `<类型>,Cybersole.Value!<Kind>` 形态；`LocalizeEnumExtension` 同形（前轮同法取证）。
 - 生成物来源确认：`tools/type_rename_map.py` / `tools/member_owner_map.py` /
   `analysis/binding_descriptors.py` 均提到该文件。
-- 分类计数自检：**15 行 = RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / UNKNOWN 2 / EQUIVALENT 2**。
+- 分类计数自检：**15 行 = RENAMED 8 / NOT_IN_FUNCTION_SET 2 / STRUCTURAL 1 / UNKNOWN 2 / EQUIVALENT 2**。
 - 文档守卫：DocsConsistency 8/8、ParityDoc 9/9、SourceEncoding 2/2 = **19 钉全绿**。
 
 数字变化：分类分布不变（UNKNOWN 仍 2 条），但**这两条的「缺什么」从错的（成员名无区分力）
@@ -40049,7 +40049,7 @@ publish 目标）。
 ### 二、剩余两项的精确面（本轮实跑量化）
 
 **判据 (a) 类型缺口**（`docs/TYPE_PRESENCE_TRIAGE.md`，15 行全部有结论）：
-`RENAMED 8` / `OUT_OF_SCOPE 2`（R702 裁决）/ `STRUCTURAL 1` / `EQUIVALENT 2` / `UNKNOWN 2`（均写明缺什么）。
+`RENAMED 8` / `NOT_IN_FUNCTION_SET 2`（R702 裁决）/ `STRUCTURAL 1` / `EQUIVALENT 2` / `UNKNOWN 2`（均写明缺什么）。
 原始计数 `types absent from source` 仍 **15**；`types with scope misses` **0**。
 → 按判据 (a) 的措辞（「不可得写 Unknown + 缺什么；范围外引 R702 裁决」）**分类层面已闭合**，
 缺口在于**原始数字不为 0**，需明确判据以哪个为准——**记为待裁决项，不自行解释**。
@@ -42483,14 +42483,14 @@ real gap              : 2
   Ui.Views.Auth.LicenseControl  1  Authenticate
 `
 
-那 2 条**正是 R702 判为 `OUT_OF_SCOPE` 的登录凭证/许可 UI 的成员**（`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）。
+那 2 条**正是 R702 判为 `NOT_IN_FUNCTION_SET` 的登录凭证/许可 UI 的成员**（`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）。
 ⇒ **在范围内，名字级缺口是 0**。此前那个 `2` 把「裁决」和「缺口」塞进同一个桶，**读起来像还有活没干**。
 
 改了什么：
-- `tools/bind_diff.py`：新增第三桶 `out of scope (R702)`，名单**恰好两条**并写进代码注释（含 R702 的出处）；
+- `tools/bind_diff.py`：新增第三桶 `not in function set (R702)`，名单**恰好两条**并写进代码注释（含 R702 的出处）；
   `real gap` 变为 `missing - noise - excluded`。
 - `tests/…/NameBindingGapTests.cs`（新，2 条，`external-tools` 集合）：**`real gap` 必须是 0**；
-  **`out of scope` 必须恰好是 2**——两向钉住，将来不能靠「扩大豁免」把数字做漂亮。
+  **`not in function set` 必须恰好是 2**——两向钉住，将来不能靠「扩大豁免」把数字做漂亮。
 - `tests/…/BindDiffGuardTests.cs`：既有不变式 `noise + real == missing` **加强为三桶**
   `noise + outOfScope + real == missing`。
 
@@ -42854,7 +42854,7 @@ Inference = 「11:34 来自变异还原」（由无 dirty + 该工具行为推�
 | 类 | 条数 | 例 |
 |---|---|---|
 | **renamed** | **13** | `CloudflareSolver`→`Stores.Scripts.CloudflareStrategy`；`Global.Settings`→`Core.Settings.GlobalSettings`；`ImapProvider`→`Services.Mail.ImapMailProvider`；`Localize*Extension`×4→`LocalizationService` 辅助；`SettingsView`→`SettingsShell`；`TaskCreatorMainView`→`TaskCreatorView` 等 |
-| **out_of_scope** | **2** | `AuthWindow`、`LicenseControl`（R702） |
+| **not_in_function_set** | **2** | `AuthWindow`、`LicenseControl`（R702） |
 | **unimplemented** | **0** | — |
 | **unclassified** | **0** | — |
 
@@ -42865,14 +42865,14 @@ Inference = 「11:34 来自变异还原」（由无 dirty + 该工具行为推�
 - `tools/type_classification.json`（新）：15 条映射，每条带 `kind` / `to` / `evidence`（指向对应的 **文件**），
   注释写明「改名是 AGENTS §0 允许的，缺省不是缺口」；
 - `tools/bind_diff.py --type-presence`：逐行打印定性，并汇总
-  `classified: renamed 13, out of scope 2, unimplemented 0, unclassified 0`；
+  `classified: renamed 13, not in function set 2, unimplemented 0, unclassified 0`；
 - `tools/metrics_report.py`：把整行定性带进 METRICS.md（此前只有裸数 `15`，
   与 R1171 记的「数字分开写就等于打架」同一问题）；
 - 新 `TypeClassificationTests`：断言 `unclassified 0` **且** `unimplemented 0`。
   **第二项是棘轮**——将来真出现未实现类型会立刻红，而不是被吸进总数。
 
 验证：`dotnet build` **0 错**；该守卫 **1/1**（6 s，`--logger detailed` 确认真执行并捕获到定性行）；
-METRICS 现为 `{'types absent from source': '15', 'classified': 'renamed 13, out of scope 2, unimplemented 0, unclassified 0'}`；
+METRICS 现为 `{'types absent from source': '15', 'classified': 'renamed 13, not in function set 2, unimplemented 0, unclassified 0'}`；
 全量 **2476 通过 / 0 失败 / 2 跳过 / 2478**（4m36s）；
 变异 `ran_at 2026-11-19T12:21:52`、**59/59 fired，tree GREEN**。
 
@@ -42888,7 +42888,7 @@ Inference = 「13 条为改名」（依据既有实现文件里存在对应成�
 
 | 判据 | 状态 | 证据（可复算） |
 |---|---|---|
-| **a)** 类型级缺口 0 + 类型缺失 0 + 名字级三分类结案 | **达标** | `metrics_report`：`types with scope misses: 0`；`real gap: 0`（noise 12 + out_of_scope 2 + real 0 = missing 14）；类型缺失 `renamed 13 + out_of_scope 2 + unimplemented 0 + unclassified 0`（R1184） |
+| **a)** 类型级缺口 0 + 类型缺失 0 + 名字级三分类结案 | **达标** | `metrics_report`：`types with scope misses: 0`；`real gap: 0`（noise 12 + not_in_function_set 2 + real 0 = missing 14）；类型缺失 `renamed 13 + not_in_function_set 2 + unimplemented 0 + unclassified 0`（R1184） |
 | **b)** 剩余仅不可得文案且每条写明原因 | **达标** | `copy: zones with a missing key: 0 (in 0 zone[s])` |
 | **c)** 产物级对照报告可复算 | **文档在，数字过期** | `docs/PARITY_PRODUCT.md`（51 KB）存在，但内含 `175,104`/`170,137`/`69.3%`；**当前 METRICS 是 179,456 / 64.76%** |
 | **d)** claim 表每条有 authority + command + gap_reason | **达标（且自带一条 fail）** | `docs/PARITY_CLAIMS.md` 表头即 `id\|claim\|status\|authority\|command\|gap_reason`；**C7b 标 `fail`**：成员形状不一致 |
@@ -47728,7 +47728,7 @@ Inference = 「17 文件 mtime 来自变异改写」；**Unknown** = 并行会�
 
 | 判据 | 证据（全部来自 `docs/METRICS.md`） | 状态 |
 |---|---|---|
-| **a)** 类型级缺口→0；类型缺失→0 或分类；名字级三分类 | `types with scope misses` = **0**；`types absent` 15 = `renamed 13, out of scope 2, unimplemented 0, unclassified 0`；名字级 `missing 14` = **noise 12 + out of scope 2 + real gap 0** | **✅** |
+| **a)** 类型级缺口→0；类型缺失→0 或分类；名字级三分类 | `types with scope misses` = **0**；`types absent` 15 = `renamed 13, not in function set 2, unimplemented 0, unclassified 0`；名字级 `missing 14` = **noise 12 + not in function set 2 + real gap 0** | **✅** |
 | **b)** 剩余仅不可得文案且每条写明原因 | `copy: zones with a missing key` = **0**；`Stores/Flows` 的 24 条 `inferred` 全部带查证结论（R1290 共 41 行注释） | **✅** |
 | **c)** 产物级对照可复算 | `descriptor 951 / types 215 / only-in-descriptors 137`；`datafiles 0 / 2`；`.pdata 277,120 ↔ 179,840 = 64.90%`；`section-mass 57.09%` —— 命令逐条写在 METRICS 里 | **✅** |
 | **d)** claim 表每条有 authority + 命令 + gap_reason | `docs/METRIC_CLAIMS.md`（107 行）、`docs/PARITY_CLAIMS.md`（170 行）在；**尚未逐条抽验** | **待核** |

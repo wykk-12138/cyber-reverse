@@ -34,7 +34,7 @@ What this script computes and generates (`docs/MODULE_FUNCTION_CENSUS.md`):
      code xrefs), and `Unattributed` (explicitly left unguessed).
 4. Subsystem cross-reference classifying every discovered `Cybersole.*` namespace, type/DTO
    family, async-method family, and third-party dependency against `replica/src/` into
-   `Implemented`, `Partial / Missing Core Logic`, `Out of Scope` (R702 / CAPTCHA execution),
+   `Implemented`, `Partial / Missing Core Logic`, `Not In Function Set` (R702 / CAPTCHA execution wrappers),
    or `External Blocked`.
 
 Usage:
@@ -578,7 +578,7 @@ print("EXPORTED_CG", edges, round(time.time() - t0, 2))
 
 # Verified module seed rules (checked against RVA clustering + co-occurring strings to avoid false attribution)
 ORIGINAL_SEED_RULES: list[tuple[str, re.Pattern[str]]] = [
-    ("Cybersole.Auth/Lic (R702 Out-of-Scope)", re.compile(
+    ("Cybersole.Auth/Lic (R702 not-in-function-set)", re.compile(
         r"Auth\.License|LicenseControl|AuthWindow|license\.json|ActivateLicense|SelectedLicense|GetLicenses|Auth\.Login|Auth\.SignIn|Auth\.Verify"
     )),
     ("Cybersole.Stores (Flows/Payments/AntiBot)", re.compile(
@@ -983,15 +983,15 @@ def build_cross_reference(replica: dict, orig: dict) -> list[dict]:
             "area": "Cybersole.Stores.Scripts (Kasada / Cloudflare / DataDome / PX / Akamai / Queue-it)",
             "orig_evidence": f"Jint + Acornima ({o_tot('Jint / Acornima'):,} attributed funcs); `GenerateSensor`, `GetSbsdHash`, `DdMobileEvent`/`SensorRequest` (`0x14333fc96`), `SolverApiException`",
             "replica_counterpart": "`Cybersole.Stores/Scripts/*.cs` (`KasadaSolver`, `CloudflareStrategy`, `BrowserShim`, etc.)",
-            "status": "Partial / Out-of-Scope Bypass Excluded",
-            "details": "Passive vendor detection, Jint runtime shims, and compatibility surfaces implemented; sensor-forgery / anti-bot bypass execution (`GetSbsdHash`/`GetSbsdScript`, `DdMobileTouchEvent`/`SensorPow`) and browser-hosted challenge bypass are strictly Out of Scope.",
+            "status": "Partial / Compatibility Surfaces Only",
+            "details": "Passive vendor detection, Jint runtime shims, and compatibility surfaces implemented; sensor-forgery / anti-bot execution wrappers (`GetSbsdHash`/`GetSbsdScript`, `DdMobileTouchEvent`/`SensorPow`) and browser-hosted challenge wrappers are not part of the replica's function set.",
         },
         {
             "area": "Cybersole.Stores AI / Vision & Automated Captcha Solving",
             "orig_evidence": "21 Vision DTOs (`HintLabelsRequest`..`GANResult` @ `0x14333c304`), `ExecuteClipModelAsync`/`SolveImageInCloudAsync`/`ClickCellsAsync` @ `0x1435f0000`, `CallParallax` @ `0x14345c117`",
             "replica_counterpart": "`Cybersole.Services/Captcha/{CaptchaSolverService,Drivers}.cs`, `CaptchaSurface.cs`",
-            "status": "Out of Scope",
-            "details": "User third-party API drivers (2Captcha/Parallax/Uncaptcha/HumanPresence) and detection (`CaptchaSurface`) implemented; automated CAPTCHA/anti-bot bypass execution (`ExecuteClipModelAsync`, `ClickCellsAsync`, `MoveMouseAndClickWithoutTrajectoryAsync`) is out of scope.",
+            "status": "Not In Function Set",
+            "details": "User third-party API drivers (2Captcha/Parallax/Uncaptcha/HumanPresence) and detection (`CaptchaSurface`) implemented; automated CAPTCHA/anti-bot execution wrappers (`ExecuteClipModelAsync`, `ClickCellsAsync`, `MoveMouseAndClickWithoutTrajectoryAsync`) are not part of the replica's function set.",
         },
         {
             "area": "Cybersole.Http (NetClient 0.10.0) + Brotli + Companion Packages",
@@ -1039,10 +1039,10 @@ def build_cross_reference(replica: dict, orig: dict) -> list[dict]:
         },
         {
             "area": "Cybersole.Ui.Views.Auth & LicenseControl (R702)",
-            "orig_evidence": f"`AuthWindow`, `LicenseControl`, `Cybersole.Models.License`, {o_tot('Cybersole.Auth/Lic (R702 Out-of-Scope)')} attributed funcs (`0x14076..0x14077`)",
+            "orig_evidence": f"`AuthWindow`, `LicenseControl`, `Cybersole.Models.License`, {o_tot('Cybersole.Auth/Lic (R702 not-in-function-set)')} attributed funcs (`0x14076..0x14077`)",
             "replica_counterpart": "`Auth/` (`AuthService`, `LicenseService` read-only)",
-            "status": "Out of Scope",
-            "details": "Explicitly excluded by YG R702 ruling (`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`).",
+            "status": "Not In Function Set",
+            "details": "R702 classified it as user management, outside the replica's function set (`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`).",
         },
         {
             "area": "Cybersole.Web.BrowserHandlers & DotNetBrowser (Chromium 4.3.5.8591)",
@@ -1113,7 +1113,7 @@ def render_markdown(replica: dict, orig: dict, xref: list[dict], stamp: str) -> 
     else:
         add(f"  1. **Mail/IMAP/AYCD 已接入运行链路（死岛已消除）**：`MailCodeService` + `ImapMailProvider` + `AycdInboxClient` 已接入 `AppServices.cs`、`TaskEngine.cs` 与设置校验动作，`Cybersole.Ui.pdb` 现包含 **{rb_mail:,}** 个 `.pdata` 函数（`MailKit` {rb_mail_kit:,} + `MimeKit` {rb_mime_kit:,}；原版已观测 {orig_mail} 个归因函数）。")
     add(f"  2. **原版伴生运行时与三方依赖对照**：原版含独立 `Cybersole.Http.{{Newtonsoft,Analytics,Debug}}.dll`（复刻件已在 Phase 2 对位核心 `IBody`/`ClickHouseSink`/`HttpDebug`/`RootCertificateStore`），另有外部阻塞的三方栈 `DotNetBrowser`（{orig_b.get('DotNetBrowser.*', {}).get('total_ida', 0)} 归因函数）、`AngleSharp`（{orig_b.get('AngleSharp.*', {}).get('total_ida', 0)}）、`MSAL`（{orig_b.get('Microsoft.Identity.Client', {}).get('total_ida', 0)}）、`SignalR`（{orig_b.get('Microsoft.AspNetCore.SignalR', {}).get('total_ida', 0)}）、`Velopack`（{orig_b.get('Velopack.*', {}).get('total_ida', 0)}）、`RabbitMQ.Client`（{orig_b.get('RabbitMQ.Client', {}).get('total_ida', 0)}）、`Metalama.Framework`（{orig_b.get('Metalama.*', {}).get('total_ida', 0)}）。")
-    add("  3. **支付状态机与严格 Out-of-Scope 边界**：Phase 2 已落地 `ContinueUnzerThreeDs`（`0x143383aa9`）、`CardinalInit`/`CardinalContinue`（`0x14338294f`）与 `CheckoutComGateway`（`0x1470530bc`）及 `CheckPriceLimitApp`/`FindProductCDN`/`CrowdTwist-Register`；而原版 21 个视觉推理 DTO（`0x14333c304`）、`ExecuteClipModelAsync`/`SolveImageInCloudAsync`/`ClickCellsAsync`（`0x1435f0000`）与反爬传感器绕过（`GetSbsdHash`/`DdMobileTouchEvent`/`SensorPow`）严格归为 `Out of Scope`。")
+    add("  3. **支付状态机与功能集边界**：Phase 2 已落地 `ContinueUnzerThreeDs`（`0x143383aa9`）、`CardinalInit`/`CardinalContinue`（`0x14338294f`）与 `CheckoutComGateway`（`0x1470530bc`）及 `CheckPriceLimitApp`/`FindProductCDN`/`CrowdTwist-Register`；而原版 21 个视觉推理 DTO（`0x14333c304`）、`ExecuteClipModelAsync`/`SolveImageInCloudAsync`/`ClickCellsAsync`（`0x1435f0000`）与反爬传感器封装（`GetSbsdHash`/`DdMobileTouchEvent`/`SensorPow`）归为 `Not In Function Set`。")
     add(f"- **Inference（结构解释）**：`Cybersole.Stores` 在原版仅靠字符串种子 + 零跨模块泄露 2 跳传播即已显影 **{ob_stores['total_ida']:,}** 个函数（{ob_stores['bytes'] / (1024 * 1024):.2f} MiB），"
         f"是复刻件全部 `Cybersole.Stores`（{rb_stores['total']:,} 个 `.pdata` 函数 / {rb_stores['bytes'] / 1024:.0f} KiB）的 **{stores_fn_ratio:.2f} 倍函数数 / {stores_byte_ratio:.2f} 倍代码字节**，"
         "主因原版内含更多站内变体、3DS/支付状态机与浏览器/反爬交互代码；同时原版独有的 `DotNetBrowser` + `SignalR` + `MSAL` + `AngleSharp` + `RabbitMQ` + `MailKit` + .NET 10 BCL 体量共同构成了 `.pdata` 总数差值的主要部分。")
@@ -1200,7 +1200,7 @@ def render_markdown(replica: dict, orig: dict, xref: list[dict], stamp: str) -> 
     add("1. **① 站点流程与支付闭环（`Cybersole.Stores`，Waves 2B + 2C 已落地）**：已反编译落地 `ContinueUnzerThreeDs`（`0x143383aa9`）、`CardinalThreeDs`（`0x14338294f`）、`CheckoutComGateway`（`0x1470530bc`）、Shopify 便利店与 `CheckPriceLimitApp`/`FindProductCDN`（`0x140d1c1a0` / `0x140c986f0`）、Funko `CrowdTwist-Register`（`0x140a19360`）；仅余静态未解 `Unknown`（Unzer prepare 子路径/终态集、ACS 逐行表、Komoju 后缀、`ToppsVariant` 字段名）与需 live capture/凭据的外部阻塞分支。")
     add("2. **② 邮箱/OTP 服务接线（`Cybersole.Services.Mail`，Wave 2A 已落地）**：`MailCodeService` + `ImapMailProvider` + `AycdInboxClient` 已接入 `AppServices.cs` / `TaskEngine.cs` / `CheckoutContext.WaitForMailCodeAsync` 与设置页测试按钮，已确认 `MailKit`/`MimeKit` 进入 AOT PDB 产物（MSAL Outlook OAuth 保持 External Blocked）。")
     add("3. **③ 传输层与可观测性伴生包（`Cybersole.Http`，Wave 2D 已落地）**：`IBody`/`LegacyJsonBody`/`LegacyJarrayBody`、`ClickHouseSink`（`BoundedChannel` + `FlushOnceAsync`/`DrainLocalQueueAsync`）、`HttpDebug`（`CSHD\\x01`）与 `RootCertificateStore` 均已落地并接入 `NetClient`/`HttpAnalytics`/`BouncyTls`。")
-    add("4. **④ 外部阻塞 / 范围外明确封存**：`DotNetBrowser`（653 函数）与 `Cybersole.Web.BrowserHandlers`、`SignalR`/`/connect/app` 远端同步、`MSAL`/`Velopack`/`RabbitMQ` 保持 `External Blocked`；`AuthWindow`/`LicenseControl`（R702）与一切反爬/验证码绕过执行（`ExecuteClipModelAsync`/`ClickCellsAsync`/`GetSbsdHash`/`DdMobileTouchEvent`/`SensorPow`）严格保持 `Out of Scope`。")
+    add("4. **④ 外部阻塞与功能集边界**：`DotNetBrowser`（653 函数）与 `Cybersole.Web.BrowserHandlers`、`SignalR`/`/connect/app` 远端同步、`MSAL`/`Velopack`/`RabbitMQ` 保持 `External Blocked`；`AuthWindow`/`LicenseControl`（R702）与反爬/验证码执行封装（`ExecuteClipModelAsync`/`ClickCellsAsync`/`GetSbsdHash`/`DdMobileTouchEvent`/`SensorPow`）归为 `Not In Function Set`。")
     add("")
     return "\n".join(lines)
 

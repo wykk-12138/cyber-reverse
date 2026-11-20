@@ -42,7 +42,7 @@ B = """
 
 | 判据 | 证据（全部来自 `docs/METRICS.md`） | 状态 |
 |---|---|---|
-| **a)** 类型级缺口→0；类型缺失→0 或分类；名字级三分类 | `types with scope misses` = **0**；`types absent` 15 = `renamed 13, out of scope 2, unimplemented 0, unclassified 0`；名字级 `missing 14` = **noise 12 + out of scope 2 + real gap 0** | **✅** |
+| **a)** 类型级缺口→0；类型缺失→0 或分类；名字级三分类 | `types with scope misses` = **0**；`types absent` 15 = `renamed 13, not in function set 2, unimplemented 0, unclassified 0`；名字级 `missing 14` = **noise 12 + not in function set 2 + real gap 0** | **✅** |
 | **b)** 剩余仅不可得文案且每条写明原因 | `copy: zones with a missing key` = **0**；`Stores/Flows` 的 24 条 `inferred` 全部带查证结论（R1290 共 41 行注释） | **✅** |
 | **c)** 产物级对照可复算 | `descriptor 951 / types 215 / only-in-descriptors 137`；`datafiles 0 / 2`；`.pdata 277,120 ↔ 179,840 = 64.90%`；`section-mass 57.09%` —— 命令逐条写在 METRICS 里 | **✅** |
 | **d)** claim 表每条有 authority + 命令 + gap_reason | `docs/METRIC_CLAIMS.md`（107 行）、`docs/PARITY_CLAIMS.md`（170 行）在；**尚未逐条抽验** | **待核** |
@@ -74,7 +74,7 @@ V = """
 - `.git/refs/heads/main` 被写成 **41 个 NUL**；用 reflog 的 `b2a7c5b1905eb1f79b38bc6d81d0f2b710b1af83` 恢复，`fsck` 只有 dangling blob。
 - **判据要看字节不看渲染**：`Get-Content` 显示空白、长度 41 都像正常。
 - IDA 重启完成（2 个模态框），`health ok`，但 `ida.py str` 仍未就绪。
-- 自检：a ✅（`missing 14 = noise 12 + out-of-scope 2 + real gap 0`）· b ✅（copy 缺口 0）· c ✅ · e ✅（59/59/0/0）· f ✅（store 0 占位 / vendor True / captcha 0-5 / payment 9）· **d 待抽验两张 claim 表**。
+- 自检：a ✅（`missing 14 = noise 12 + not-in-function-set 2 + real gap 0`）· b ✅（copy 缺口 0）· c ✅ · e ✅（59/59/0/0）· f ✅（store 0 占位 / vendor True / captcha 0-5 / payment 9）· **d 待抽验两张 claim 表**。
 """
 
 H = """

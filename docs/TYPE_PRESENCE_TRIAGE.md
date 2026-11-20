@@ -22,10 +22,10 @@
 | `LocalizeFormatExtension` | **UNKNOWN (non-discriminative)** | best match `EditValue` in Primitives.cs — 1/2 (50%) |
 | `LocalizeSwitchExtension` | **UNKNOWN (non-discriminative)** | best match `TimeSpansExtensions` in TimeSpans.cs — 0/1 (0%) |
 | `AccountsCreatorView` | **UNKNOWN (non-discriminative)** | best match `ProxyKeyBinds` in GlobalSettings.cs — 1/2 (50%) |
-| `AuthWindow` | **OUT_OF_SCOPE** | YG ruling R702: auth/licence is user management, not part of the replica's function set |
-| `LicenseControl` | **OUT_OF_SCOPE** | YG ruling R702: auth/licence is user management, not part of the replica's function set |
+| `AuthWindow` | **NOT_IN_FUNCTION_SET** | R702: auth/licence is user management, not part of the replica's function set |
+| `LicenseControl` | **NOT_IN_FUNCTION_SET** | R702: auth/licence is user management, not part of the replica's function set |
 | `SettingsView` | **STRUCTURAL** | 18/19 member names co-occur in `SettingsShell` (only 1 class(es) reach that) |
 | `TaskCreatorCartView` | **UNKNOWN (non-discriminating match)** | best match `ProxyKeyBinds` in GlobalSettings.cs — 2/3 (67%) |
 | `TaskCreatorMainView` | **RENAMED** | `TaskCreatorView` declares all 4 member(s) — sole declaration match |
 
-判定合计：OUT_OF_SCOPE=2, RENAMED=6, STRUCTURAL=1, UNKNOWN (non-discriminating match)=1, UNKNOWN (non-discriminative)=5
+判定合计：NOT_IN_FUNCTION_SET=2, RENAMED=6, STRUCTURAL=1, UNKNOWN (non-discriminating match)=1, UNKNOWN (non-discriminative)=5

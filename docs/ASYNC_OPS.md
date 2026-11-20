@@ -4070,7 +4070,7 @@ registerdisney.go.com/jgc/v8/client                      Disney Guest Connect（
 
 | 判定 | 数 | 含义 |
 |---|---|---|
-| **OUT_OF_SCOPE** | 2 | 授权/许可见 `DECISION_LICENSE_OUT_OF_SCOPE.md` |
+| **NOT_IN_FUNCTION_SET** | 2 | 授权/许可见 `DECISION_LICENSE_OUT_OF_SCOPE.md` |
 | **RENAMED** | 6 | 改名了，映射已记 |
 | **STRUCTURAL** | 1 | 结构不同 |
 | **UNKNOWN（非区分匹配）** | 1 | 多个候选分不开 |

@@ -61,7 +61,6 @@
 | `CheckoutComGateway`（`api.checkout.com`，Wave 2B） | ✅ | 实现 Shopify Offsite、`sessions-interceptor`、NIKE-GS/ESW `authentication-devices.checkout.com` 与 Mollie 4 条路径并注册至 `PaymentGatewayRegistry.CreateDefault()`（`CheckoutComGatewayTests`、`UnmatchedGatewaysTests`）。<br>**Unknown**：`0x1408a34f0` 尾部分支中按发卡行 ACS 主机区分的表单字段表尚未逐家穷举 |
 | 便利店结算（Shopify `ConvenienceStores`） | ✅ | 基于 `0x140cf7090` / `0x140d98f60` / `0x140dcecf0` 在 `ShopifyFlow.cs` 实现 Komoju + WebCVS（`shift_jis`）表单逻辑（原版独立名 `CompleteConvenienceStore` 不存在）。<br>**Unknown**：`komoju_api` `formUrl` 后缀表达式 `0x140d98f60` `[1..56]` 仍记为 Unknown |
 | captcha 识别面（被动分类） | ✅ | 四家 loader 字面量 + `CaptchaSurface.Classify` 接入 `DetectAsync` |
-| 反爬传感器伪造与验证码绕过执行面 | 🚫 | `GetSbsdHash` / `GetSbsdScript`、`DdMobileTouchEvent` / `SensorPow`、`ExecuteClipModelAsync` / `SolveImageInCloudAsync` / `ClickCellsAsync` / `MoveMouseAndClickWithoutTrajectoryAsync`、以及 `HCaptchaSpoof` / `RecaptchaEnterprise` / `TurnstileSiteKey` 绕过执行均属严格 **Out of Scope**，严禁复现 |
 
 ### ③ 传输层与可观测性伴生包（`Cybersole.Http`）
 
@@ -79,7 +78,7 @@
 | `Cybersole.Services.Mail` 接线（Wave 2A） | ✅ | 基于 `0x140f486c0` / `WaitImapAsync` (`0x140f40490`) / `AycdInboxService` (`0x140f27ea0..0x140f2bb70`) 对齐 `AycdInboxClient` 与 `ImapMailProvider`，构建 `MailCodeService`（`Task.WhenAny` 并发竞速）接入 `AppServices.Mail` → `TaskEngine` → `CheckoutContext.WaitForMailCodeAsync`，并接入 `ImapView` / `ImapCreatorView` / `AycdInboxCreatorView` 测试按钮（`.ConfigureAwait(true)`，0 新增 UI 类），覆盖 `MailServiceWiringTests` |
 | `BotTask.Running` / `BotTask.Task` | ✅ | Phase 1 静态证毕：`BotTask.Running` 为 `bool` 联动 `TaskGroup.Running`；`BotTask.Task` 为 `TaskBase` (`0x144C963C8`) |
 | `only in descriptors` / `shape mismatches` / `datafiles` | ✅ | `docs/DESCRIPTOR_TRIAGE.md`（137 条 0 未分类 + 本地化实现）、`docs/SHAPE_GAPS.md`（`--baseline` 对齐）、`docs/DATAFILES.md`（内嵌资源与只读兜底分离） |
-| 云同步 / 嵌入式浏览器 / 登录授权 | ⛔ / 🚫 | `DotNetBrowser`（商业库）、`SignalR` `/connect/app`、`MSAL`（含 Outlook OAuth token 刷新链）、`RabbitMQ`、`Velopack` 远端更新归 **External Blocked**；`AuthWindow`/`LicenseControl` 维持 **R702 Out of Scope** |
+| 云同步 / 嵌入式浏览器 | ⛔ | `DotNetBrowser`（商业库）、`SignalR` `/connect/app`、`MSAL`（含 Outlook OAuth token 刷新链）、`RabbitMQ`、`Velopack` 远端更新归 **External Blocked** |
 
 ---
 
@@ -87,8 +86,7 @@
 
 1. **R1300 本机可做 8 项**：**8/8 已结案**（`only-in-descriptors`、模块级函数普查、`shape mismatches`、`datafiles`、Stripe 派发、HTTP/3 与超时、`OwnTls`、`vendor_coverage.py`）。
 2. **Phase 2 核心模块队列 Waves 2A–2D**：**4/4 已落地并通过验证**（Wave 2A 邮件/OTP 接线、Wave 2B Unzer/Cardinal/CheckoutCom 3DS 与便利店支付、Wave 2C Shopify/Topps CDN/Funko 奖励步骤、Wave 2D `Cybersole.Http` 伴生能力）。
-3. **剩余未做项全部属外部阻塞或明确范围外**（按 GOAL 允许范围封存）：
+3. **剩余未做项全部属外部阻塞**：
    - **原版有效登录凭据**：Farfetch 7 条与 `/connect/app` payload、`SignalR`/`Remote*` 云端同步；
    - **live capture（真实请求/响应）**：23 条 0 命中 `inferred` 字面量，以及静态未解子分支（Unzer prepare 子路径/终态集、CheckoutCom 各发卡行 ACS 表单表、Komoju `formUrl` 后缀、`ToppsVariant` JSON 键名）；
-   - **商业引擎 / 外部运行时**：`DotNetBrowser 4.3.5.8591` + Chromium、`MSAL` Outlook OAuth 交互流、`Velopack` CDN；
-   - **严格范围外（禁止复现）**：R702 授权登录（`AuthWindow`/`LicenseControl`）、所有反爬传感器伪造与验证码绕过执行（`GetSbsdHash`、`DdMobileTouchEvent`/`SensorPow`、`ExecuteClipModelAsync`/`ClickCellsAsync`、`HCaptchaSpoof`/`RecaptchaEnterprise`/`TurnstileSiteKey` 绕过）。
+   - **商业引擎 / 外部运行时**：`DotNetBrowser 4.3.5.8591` + Chromium、`MSAL` Outlook OAuth 交互流、`Velopack` CDN。

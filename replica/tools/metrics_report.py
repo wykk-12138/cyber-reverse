@@ -90,12 +90,34 @@ METRICS = [
 SCOPE_NOTE = "note: base-class inheritance is counted (by design since R343)"
 
 
+# R1301: children were captured with errors="replace". The children are Python scripts, and a child's
+# stdout codec follows the console code page here (cp936), so a note containing one section sign arrived
+# as the two GBK bytes a1 a7; decoding those as UTF-8 replaced both and the regenerated docs/METRICS.md
+# carried two U+FFFD where the committed copy had a single U+00A7. A silent replacement is the wrong
+# default for the file every other document quotes numbers from -- a character the reader cannot trust
+# is not better than a failure they can see. So: force UTF-8 into the children, decode strictly, and
+# record any child that still cannot be decoded as a visible escape plus a failure of this run.
+DECODE_WARNINGS = []
+CHILD_ENV = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+
+
+def decode_child(raw, command, stream):
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        DECODE_WARNINGS.append("%s: %s is not UTF-8 at byte %d (%s)"
+                               % (command, stream, exc.start, exc.reason))
+        return raw.decode("utf-8", "backslashreplace")
+
+
 def run(argv, timeout=1800):
     command = " ".join(argv)
     try:
-        done = subprocess.run(argv, cwd=ROOT, capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=timeout)
-        return done.returncode, command, done.stdout, done.stderr
+        done = subprocess.run(argv, cwd=ROOT, capture_output=True, timeout=timeout,
+                              env=CHILD_ENV)
+        return (done.returncode, command,
+                decode_child(done.stdout, command, "stdout"),
+                decode_child(done.stderr, command, "stderr"))
     except FileNotFoundError as exc:
         return 127, command, "", "missing executable: %s" % exc
     except subprocess.TimeoutExpired:
@@ -444,6 +466,15 @@ def main(argv=None):
     lines.append("`replica/docs/VERDICT.md` **不引用也不修改** —— 它是按轮次的历史记录。")
     lines.append("")
 
+    if DECODE_WARNINGS:
+        lines.append("## 解码告警")
+        lines.append("")
+        lines.append("有子进程的输出不是 UTF-8，本文件按 `\\xNN` 转义记录而不是静默替换：")
+        lines.append("")
+        for w in DECODE_WARNINGS:
+            lines.append("- `%s`" % w)
+        lines.append("")
+
     out_path = os.path.abspath(args.out)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     io.open(out_path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
@@ -453,6 +484,11 @@ def main(argv=None):
     if tests is not None:
         print("  %-22s exit %d  %s 通过 / %s 失败 / %s 跳过"
               % ("完整套件", tests["code"], tests["passed"], tests["failed"], tests["skipped"]))
+    if DECODE_WARNINGS:
+        print("non-UTF-8 child output, recorded above and counted as a failure:")
+        for w in DECODE_WARNINGS:
+            print("  " + w)
+        worst = worst or 2
     return 0 if worst == 0 else 1
 
 

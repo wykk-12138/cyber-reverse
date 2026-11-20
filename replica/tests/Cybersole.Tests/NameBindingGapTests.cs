@@ -7,14 +7,14 @@ using Xunit.Abstractions;
 namespace Cybersole.Tests;
 
 /// <summary>
-/// R1174: the name-level binding gap is zero inside the scope R702 set, and stays that way.
+/// R1174: the name-level binding gap is zero inside the boundary R702 set, and stays that way.
 ///
 /// <para>
 /// <c>tools/bind_diff.py --buckets</c> separates two things that used to share one number: generic
 /// instantiation artefacts (<c>HasMultiple_NN</c>), and the two members that belong to the login-credential
-/// and licence UI R702 ruled out of scope. Before this, the report said "real gap: 2" for those two, which
-/// reads as outstanding work when it is a decision. The ratchet is deliberately two-sided: the real gap must
-/// be zero, and the excluded set must stay exactly two, so a future round cannot widen the exclusion to make
+/// and licence UI R702 placed outside the function set. Before this, the report said "real gap: 2" for those
+/// two, which reads as outstanding work when it is a decision. The ratchet is deliberately two-sided: the real
+/// gap must be zero, and this set must stay exactly two, so a future round cannot widen the exclusion to make
 /// the number look better.
 /// </para>
 /// </summary>
@@ -64,11 +64,11 @@ public sealed class NameBindingGapTests
 
     /// <summary>The exclusion is a decision with a fixed size, not an adjustable one.</summary>
     [Fact]
-    public void ExactlyTwoMembersAreOutOfScope()
+    public void ExactlyTwoMembersAreOutsideTheFunctionSet()
     {
         var (code, stdout) = RunBuckets();
         Assert.Equal(0, code);
 
-        Assert.Contains("out of scope (R702)   : 2", stdout);
+        Assert.Contains("not in function set   : 2", stdout);
     }
 }

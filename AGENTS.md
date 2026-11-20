@@ -207,9 +207,8 @@ python tools\where_is.py <名字>
 3. **定所属函数**：`python analysis\site_to_func.py <site_va>` 精确映射到 `.pdata` 函数起止范围；
 4. **反编译 + 解字面量语义**：用 IDA Hex-Rays 反编译该函数获取控制流，并把伪代码里的 `&off_146xxxxxx` / `off_143xxxxxx` 传给 `python analysis\names_at.py <va...>` 批量解码出冻结字符串与 `MethodTable`——控制流与端点/头名/JSON 键名语义一次还原。
 
-## 2.9 等新 key 的暂停项（R508）与范围外裁决（R702）
+## 2.9 等新 key 的暂停项（R508）
 
-- **R702 范围外裁决（`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）**：YG 明令登录凭证与许可管理类（`LicenseControl` / `AuthWindow` 等）只用于管理用户，**不属于复刻范围（`OUT_OF_SCOPE`）**，不再投入轮次。
 - B 类 31 条 UI 本地动作"行为 Unknown"卡在**有效许可**上：登录能过（bearer 有效到 2027-11-14），但
   License Selector 列表为空 → 进不了主界面 → 本地动作（Add/Delete/Clear/Save）无法观察。
   - 已实测并落账：`C-license-gate`（许可门在登录之后）、`C-license-authority`（服务端权威）。

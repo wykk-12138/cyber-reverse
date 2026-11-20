@@ -288,7 +288,7 @@ print('over-permissive total:', len(over_out))
 # carries none.
 #
 # So the published total has been dominated by work the ordering defers, and several rounds went into
-# improving the accuracy of a figure whose largest term is out of scope. Splitting it puts the number
+# improving the accuracy of a figure whose largest term is deferred. Splitting it puts the number
 # that matters next to the number that does not.
 # ---------------------------------------------------------------------------------------------
 _owner = {}

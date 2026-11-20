@@ -106,18 +106,18 @@ public sealed class BindDiffGuardTests
         _out.WriteLine(stdout);
 
         Assert.Contains("noise (HasMultiple_NN):", stdout);
-        Assert.Contains("out of scope (R702)   :", stdout);
+        Assert.Contains("not in function set   :", stdout);
         Assert.Contains("real gap", stdout);
 
         var noise = ReadInt(stdout, "noise (HasMultiple_NN):");
-        var outOfScope = ReadInt(stdout, "out of scope (R702)");
+        var notInFunctionSet = ReadInt(stdout, "not in function set");
         var real = ReadInt(stdout, "real gap");
 
         Assert.True(noise > 0, "the noise bucket disappeared — HasMultiple_NN members are no longer recognised");
 
-        // R1174 added a third bucket for the two members R702 put out of scope, so this identity now covers
-        // three: every missing member still has to be accounted for, which pins more than it did before.
-        Assert.Equal(noise + outOfScope + real, ReadInt(stdout, "missing:"));
+        // R1174 added a third bucket for the two members R702 placed outside the function set, so this identity
+        // now covers three: every missing member still has to be accounted for, which pins more than before.
+        Assert.Equal(noise + notInFunctionSet + real, ReadInt(stdout, "missing:"));
     }
 
     private static string AbsentLines(string stdout)

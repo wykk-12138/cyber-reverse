@@ -7,7 +7,7 @@ NO parameters can be wrapped in one line (`X = new RelayCommand(XCore)`), which 
 
 So this splits the 78 into:
   * WRAP     — replica method takes no arguments; wrapping is mechanical
-  * REPARAM  — replica method takes arguments; needs a selection concept, out of scope for a batch
+  * REPARAM  — replica method takes arguments; needs a selection concept, deferred for a batch run
   * MISSING  — the method named in the audit is not found in the file at all (audit may name a nested type)
 
 Input: the shape audit's own output, plus a scan of src/ for the class bodies.

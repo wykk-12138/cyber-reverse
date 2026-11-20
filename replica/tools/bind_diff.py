@@ -52,8 +52,9 @@ for typ, members in sorted(bind.items()):
 scope_label = 'per-file' if per_file else 'whole-source'
 
 # R1184: the classification that turns "15 types absent" into a number with a meaning. Renaming is allowed
-# (AGENTS.md §0), and R702 put two of these out of scope, so the table lives beside the tool and every absent
-# type must appear in it; anything missing shows up as "unclassified" rather than quietly counting as a gap.
+# (AGENTS.md §0), and R702 placed two of these outside the function set, so the table lives beside the tool and
+# every absent type must appear in it; anything missing shows up as "unclassified" rather than quietly counting
+# as a gap.
 CLASSIFICATION = {}
 _classification_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'type_classification.json')
 if os.path.exists(_classification_path):
@@ -79,43 +80,43 @@ if '--type-presence' in sys.argv:
             print('  ABSENT  %-42s (members: %s)' % (typ, ', '.join(sorted(members))))
     if absent:
         renamed = sum(1 for typ, _ in absent if CLASSIFICATION.get(typ, {}).get('kind') == 'renamed')
-        out_of_scope = sum(1 for typ, _ in absent if CLASSIFICATION.get(typ, {}).get('kind') == 'out_of_scope')
+        not_in_function_set = sum(1 for typ, _ in absent if CLASSIFICATION.get(typ, {}).get('kind') == 'not_in_function_set')
         unimplemented = sum(1 for typ, _ in absent if CLASSIFICATION.get(typ, {}).get('kind') == 'unimplemented')
-        unclassified = len(absent) - renamed - out_of_scope - unimplemented
+        unclassified = len(absent) - renamed - not_in_function_set - unimplemented
         print()
-        print('classified: renamed %d, out of scope %d, unimplemented %d, unclassified %d'
-              % (renamed, out_of_scope, unimplemented, unclassified))
+        print('classified: renamed %d, not in function set %d, unimplemented %d, unclassified %d'
+              % (renamed, not_in_function_set, unimplemented, unclassified))
         print()
         print('note: ABSENT = no same-name declaration anywhere in src/. The replica is allowed to rename')
         print('      types (AGENTS.md §0), so each ABSENT must be classified in tools/type_classification.json')
-        print('      as RENAMED (with the counterpart), OUT_OF_SCOPE (with the ruling) or UNIMPLEMENTED.')
+        print('      as RENAMED (with the counterpart), NOT_IN_FUNCTION_SET (with the ruling) or UNIMPLEMENTED.')
     sys.exit(0)
 
 print(f'scope: {scope_label}   types: {len(bind)}   members: {sum(len(v) for v in bind.values())}')
 print(f'missing: {missing_total}')
 print()
 NOISE = re.compile(r'^(HasMultiple|Value)_\d+$')      # generic instantiation artefacts, not design members
-# R1174: two members that are a decision, not a gap. R702 ruled the login-credential and licence UI out of
-# scope (docs/DECISION_LICENSE_OUT_OF_SCOPE.md), and these are exactly its two bound members. Counting them
-# under "real gap" made the metric read like outstanding work; a test pins both the zero and the exact size
-# of this set, so it cannot quietly grow.
-OUT_OF_SCOPE = {
+# R1174: two members that are a decision, not a gap. R702 classified the login-credential and licence UI as
+# not part of the replica's function set (docs/DECISION_LICENSE_OUT_OF_SCOPE.md), and these are exactly its two
+# bound members. Counting them under "real gap" made the metric read like outstanding work; a test pins both the
+# zero and the exact size of this set, so it cannot quietly grow.
+NOT_IN_FUNCTION_SET = {
     ('Ui.Views.Auth.AuthWindow', 'Logout'),
     ('Ui.Views.Auth.LicenseControl', 'Authenticate'),
 }
 if '--buckets' in sys.argv:
     noise = sum(1 for r in rows if r[2] for m in r[3] if NOISE.match(m))
     excluded = sum(1 for r in rows for m in r[3]
-                   if not NOISE.match(m) and (r[0].split('Cybersole.')[-1], m) in OUT_OF_SCOPE)
+                   if not NOISE.match(m) and (r[0].split('Cybersole.')[-1], m) in NOT_IN_FUNCTION_SET)
     real = missing_total - noise - excluded
     print(f'noise (HasMultiple_NN): {noise}')
-    print(f'out of scope (R702)   : {excluded}')
+    print(f'not in function set   : {excluded}')
     print(f'real gap              : {real}')
     print()
     for typ, n, miss, missing in sorted([r for r in rows if r[2]], key=lambda r: -r[2]):
         short = typ.split('Cybersole.')[-1]
         real_missing = [m for m in missing
-                        if not NOISE.match(m) and (short, m) not in OUT_OF_SCOPE]
+                        if not NOISE.match(m) and (short, m) not in NOT_IN_FUNCTION_SET]
         if real_missing:
             print('  %-50s %2d  %s' % (short, len(real_missing), ', '.join(real_missing[:8])))
     sys.exit(0)

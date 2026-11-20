@@ -2670,7 +2670,7 @@ POST …/tl             -> 200
 
 `product_feed/threads/v2`（`NikeFlow` 自己在用的商品 feed）三种打法：
 
-| 打��� | 结果 |
+| 打法 | 结果 |
 |---|---|
 | 不带任何 Kasada 凭据 | 200，78 字节 |
 | 只带 `KP_UIDz-ssn` cookie | 200，78 字节 |

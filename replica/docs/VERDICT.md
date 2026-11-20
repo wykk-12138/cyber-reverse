@@ -44367,7 +44367,7 @@ aot_member_coverage 结果不变       ✓  仍 12/819 = 1.5%
 
 ### (a) `UNIMPLEMENTED = 0`
 
-YG 裁决登录凭证功能不在范围 → `AuthWindow`/`LicenseControl` 判 `OUT_OF_SCOPE`，17 条合计不变、真缺归零。
+YG 裁决登录凭证功能不在范围 → `AuthWindow`/`LicenseControl` 判 `NOT_IN_FUNCTION_SET`，17 条合计不变、真缺归零。
 
 ### (b) 文案缺口 **2 → 0**，靠**实现**
 
@@ -49084,7 +49084,7 @@ Ja3Tests 6 facts · GreaseTests 8 facts
 ### 17 条类型缺失都已经分类
 
 ```
-OUT_OF_SCOPE 2（YG R702 裁定：auth/licence 属用户管理）
+NOT_IN_FUNCTION_SET 2（YG R702 裁定：auth/licence 属用户管理）
 RENAMED      7（Settings→GlobalSettings 等）
 STRUCTURAL   1（SettingsView 18/19）
 UNKNOWN      7（契约无判别力）
@@ -55144,7 +55144,7 @@ chargetokens → paymentdetails?ref= → transactions
 
 | 判定 | 数 |
 |---|---|
-| OUT_OF_SCOPE（授权/许可决定） | 2 |
+| NOT_IN_FUNCTION_SET（授权/许可决定） | 2 |
 | **RENAMED（映射已记）** | **6** |
 | STRUCTURAL | 1 |
 | UNKNOWN（非区分匹配 / 非区分） | 1 + 6 |
@@ -63841,7 +63841,7 @@ UNKNOWN 6 → **4**。
 |---|---|---|
 | RENAMED | 6 | **8** |
 | EQUIVALENT | 2 | 2 |
-| OUT_OF_SCOPE | 2 | 2 |
+| NOT_IN_FUNCTION_SET | 2 | 2 |
 | STRUCTURAL | 1 | 1 |
 | UNKNOWN | 4 | **2（并写明缺什么）** |
 | 合计 | 15 | 15 |
@@ -64048,7 +64048,7 @@ criterion (d) by its own stated rule: PASS
 | (c) 产物级对照可复算 | `verify_artifact.py` → locale **1142/1142**、资源 names **20/20** + content **20/20**、资源叶 **12/12**、`result: PASS` | **达成** |
 | (d) claim 台账完备 | `check_claims.py` → 缺 authority **0**、非 unknown 缺命令 **0**、`PASS` | **达成** |
 | (e) 套件绿 + 变异全 fired | 全量 **2396/0/2**；收据 **59/59 fired**，staleness **0** | **达成** |
-| (a) 类型缺口 | 15 行全分类（RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / EQUIVALENT 2 / UNKNOWN 2）；原始计数仍 15 | **口径待裁决** |
+| (a) 类型缺口 | 15 行全分类（RENAMED 8 / NOT_IN_FUNCTION_SET 2 / STRUCTURAL 1 / EQUIVALENT 2 / UNKNOWN 2）；原始计数仍 15 | **口径待裁决** |
 | (f) 核心覆盖 | 18 flows / 359 steps / **11 占位**；captcha **absent 2**；vendor **缺 1**；endpoint **缺 53** | **未达成** |
 
 ### 关于 (a) 的口径
@@ -65934,7 +65934,7 @@ Margiela-Preload    0x146dfcbe0
 修法只有一条路：**把不变式加强成三桶**（`noise + outOfScope + real == missing`），
 而不是把断言放宽。**判据每动一次，守卫要更紧，不是更松。**
 
-新增 `NameBindingGapTests` 两向钉住：`real gap` 必须 **0**，`out of scope` 必须**恰好 2**——
+新增 `NameBindingGapTests` 两向钉住：`real gap` 必须 **0**，`not in function set` 必须**恰好 2**——
 将来不能靠扩大豁免把数字做漂亮。
 
 ### 还有一次自伤
@@ -66209,7 +66209,7 @@ os.path.relpath(path, ROOT)  →  ValueError: path is on mount 'C:', start on mo
 | 类 | 条数 |
 |---|---|
 | renamed（改名，AGENTS §0 允许） | **13** |
-| out_of_scope（R702） | **2** |
+| not_in_function_set（R702） | **2** |
 | unimplemented | **0** |
 | **unclassified** | **0** |
 
@@ -66233,7 +66233,7 @@ os.path.relpath(path, ROOT)  →  ValueError: path is on mount 'C:', start on mo
 |---|---|
 | 全量 | **2476 通过 / 0 失败 / 2 跳过 / 2478**（4m36s） |
 | 变异 | **59/59 fired，tree GREEN**（12:21:52） |
-| 类型缺失 | `15 = renamed 13 + out_of_scope 2`，未实现 0 |
+| 类型缺失 | `15 = renamed 13 + not_in_function_set 2`，未实现 0 |
 ---
 
 ## 第 1185 轮：第一次把 a–f 摆成一张表
@@ -69018,7 +69018,7 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - `.git/refs/heads/main` 被写成 **41 个 NUL**；用 reflog 的 `b2a7c5b1905eb1f79b38bc6d81d0f2b710b1af83` 恢复，`fsck` 只有 dangling blob。
 - **判据要看字节不看渲染**：`Get-Content` 显示空白、长度 41 都像正常。
 - IDA 重启完成（2 个模态框），`health ok`，但 `ida.py str` 仍未就绪。
-- 自检：a ✅（`missing 14 = noise 12 + out-of-scope 2 + real gap 0`）· b ✅（copy 缺口 0）· c ✅ · e ✅（59/59/0/0）· f ✅（store 0 占位 / vendor True / captcha 0-5 / payment 9）· **d 待抽验两张 claim 表**。
+- 自检：a ✅（`missing 14 = noise 12 + not-in-function-set 2 + real gap 0`）· b ✅（copy 缺口 0）· c ✅ · e ✅（59/59/0/0）· f ✅（store 0 占位 / vendor True / captcha 0-5 / payment 9）· **d 待抽验两张 claim 表**。
 
 ---
 
@@ -69028,3 +69028,67 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - 关键澄清：`functions 64.90%` 与 `section-mass 57.09%` **不构成完成度**——.pdata 桶对照显示两侧布局无对应关系
   （同一桶内复刻件可为原版 35%，也可为 500%）。要得到有意义的对照，须按模块归属而非地址，该分析从未做过。
 - 唯一「有数字但完全没查」的洞：`only in descriptors 137`，列为下一步第 1 项。
+
+---
+
+## 第 1301 轮：接手 Phase 1/2 基线；指标管道静默改写非 ASCII，守卫两处盲区补齐
+
+- **先验后接**：`8372d0c` 之上的 Phase 2 不是纸面 —— `MailCodeService`（`ImapMailProvider.cs`）、
+  `UnzerGateway`/`CheckoutComGateway`（`Gateways.cs`）、`CardinalThreeDs`、`ClickHouseSink`、
+  `HttpDebug`、`RootCertificateStore`、`LegacyJarrayBody` 逐个在 `src/` 里找到。
+- **查出一个可信度缺陷**：`metrics_report.py` 收子进程输出用的是
+  `text=True, encoding="utf-8", errors="replace"`；子进程是 Python 脚本，stdout 编码跟随控制台代码页
+  （本机 cp936），于是 `bind_diff.py` 注释里的一个 `§` 以 GBK 字节到达父进程，被替换成 **两个 U+FFFD 写进
+  唯一数字源** `docs/METRICS.md`。一个字符变成两个替换符，就是这条链的指纹（`ef bf bd ef bf bd`
+  对 `c2 a7`，HEAD 版本是干净的）。
+- 修生成器不修生成物：子进程加 `PYTHONIOENCODING=utf-8` + `PYTHONUTF8=1`，父进程按字节收、严格解码；
+  仍解不出就转成 `\xNN` 写进文件并在本次运行里计为失败（`DECODE_WARNINGS`）。静默替换换成看得见的失败。
+- **守卫两处盲区，绿着漏过去**：`SourceEncodingTests` 从 `replica/` 起走 `{src,tests,tools,docs}`，
+  扩展名只认 `.cs/.md/.json/.ps1`。所以 **仓库根 `docs/`（含 `METRICS.md`）从未被扫**，
+  **任何 `.py` 工具脚本也从未被扫**。两处都补；补完立刻红：`mojibake hits: 6` =
+  `../docs/HANDOFF.md:500`、`../docs/METRICS.md:129` ×2、`../docs/KASADA/11-jint-runtime.md:2673` ×3。
+- 修掉两处**已在 HEAD 里**的缺陷（不是本轮回归，这正是盲区的代价）：
+  `HANDOFF.md`「过去一□直在少报」→「一直在少报」；`11-jint-runtime.md` 表头三连替换符 →「打法」
+  （由上方两行的「三种打法：」判定，不靠猜字形）。`METRICS.md` 那处**没有手改** —— 生成物靠修好的管道重生。
+- **失败信息会喂回文件**：`METRICS.md` 逐字记录测试输出，旧消息把替换符抄了一遍，于是失败的一轮让下一轮
+  因为新原因再失败、永不收敛。命中行现在只报码位（`U+FFFD x2`），不报字符本体。
+- **顺带解掉一个 `Unknown` 的归属**：反编译 `0x14094c210`（`UnzerGateway` 注释挂在它上面的 prepare 子路径），
+  它落的 15 条头是全站浏览器模板（`sec-ch-ua-platform`/`x-requested-with`/`user-agent`/`accept`/`sec-ch-ua`/
+  `content-type`/`sec-ch-ua-mobile`/`sec-fetch-site`/`sec-fetch-mode`/`sec-fetch-dest`/`referer`/
+  `accept-encoding: gzip, deflate, br, zstd`/`accept-language: en-US,en;q=0.9`/`cookie`/`priority: u=1, i`），
+  另有 `Akamai: 1`（`a2+112`）、`+226 = 1`、`200`/`400` 两条处理器；URL 在调用方 `sub_14095B4E0` 内：
+  `https://www.casio.com/{storeCode}/rest/V1/stripe/payments/get_stripe_configuration?_=<tick>`，
+  与同页 `sub_14095c980` 的 `/stripe/payments/get_requires_action?orderId=` 同族。⇒ **它不是 Unzer，
+  是 Casio Magento 的 Stripe 配置端点**。复刻件里 `get_stripe_configuration` 与 `webSdkBootstrap`
+  都还不存在，落码下轮做。
+- **同一轮内自我更正一处**：先前把 `0x14094c210` 读成「响应处理器」。`sub_1408B61E0` 的
+  `(*(a3+32))(*(a3+8), v6)` 是在 `sub_1408B5EB0` **发送之前**调用它，`v6` 是刚构造出来的请求对象 ⇒
+  它是**发请求前的配置委托**，不是响应回调。`apiKey` 的读取方也**不在**这条链上：
+  `0x146f7544c` 的 4 个引用者是 `sub_14094DEB0`、`sub_1409F2A60`、`sub_140ECF2B0`、`sub_14117B6C0`，
+  无一在 `0x14095xxxx`。
+
+### 五要素
+
+- **改了什么**：`replica/tools/metrics_report.py`（子进程编码 + 解码告警）、
+  `replica/tests/Cybersole.Tests/SourceEncodingTests.cs`（扫描面加 `.py` 与仓库根 `docs/`；命中改报码位）、
+  `docs/HANDOFF.md` 与 `docs/KASADA/11-jint-runtime.md` 两处既有编码缺陷、
+  `docs/REMAINING_REPLICATION_ROADMAP.md` 的 `Unknown` ① 归属纠正、`docs/METRICS.md` 重生成。
+- **验证命令与输出**：
+  `python analysis/scan_encoding_scope_r1301.py` → 补面前 `hits: 6`；
+  `dotnet test --filter FullyQualifiedName~SourceEncodingTests` → 补面后 **红（6 命中）**、修完 **2/2 通过**；
+  `python analysis/probe_doc_bytes_r1301.py` → 每个站点打印磁盘字节与 HEAD 字节（`ef bf bd` vs `c2 a7`）；
+  `python tools/metrics_report.py` → 全部 exit 0、套件 **2511 通过 / 0 失败 / 0 跳过**。
+- **数字变化**（均引 `docs/METRICS.md`）：套件 `2510/1/0` → **`2511/0/0`**（那 1 条是本轮修面过程中的
+  编码用例，不是既有红）；`vendor named in image 11 → 13`（IDA 字符串缓存就绪后真值）；
+  `datafiles replica-only 2 → 1`；`only in descriptors 137`、`real gap 0`、`missing 14`、`shape 84/1` 不变。
+  `.pdata 187,818 / 67.77%`、`section-mass 61.01%`、`steps 378` 是 Phase 2 提交带来的，**不记在本轮**。
+- **证据等级**：
+  Observation —— `METRICS.md` 的 `ef bf bd ef bf bd` 对照 HEAD 的 `c2 a7`；两处 doc 缺陷的字节位；
+  `0x14094c210` 的 15 条头与 `Akamai: 1`；`/stripe/payments/get_stripe_configuration?_=`（`0x146ab93d0`，
+  全库仅 1 处）与 `https://www.casio.com/`（`0x147090DF0`）、`/rest/V1`（`0x146AB7298`）。
+  Inference —— `0x14094c210` 是发请求前的配置委托（由调用方构造 URL + 委托
+  + 响应键三处同时吻合推出）；`200`/`400` 两个处理器是成功/失败分支（只有两个状态码，未逐条验证语义）。
+  Unknown —— `200`/`400` 两条状态处理器的具体语义；`+226 = 1` 这个标志位的作用；`apiKey` 到底由哪个引用者读取；`webSdkBootstrap` 在何处被调用。
+- **还剩什么**：Stripe 配置端点落成可执行步骤并撤掉 `unzer.prepareUrl` 虚构路径；
+  `qword_1472c65a0+8` 终态集合、`0x14094a870` 谓词、Checkout.com 逐家表单表、Komoju 后缀、
+  `ToppsVariant` JSON 键名 5 项静态 `Unknown`；以及路线图原有 33 条店铺长尾 + 77 条支付长尾。

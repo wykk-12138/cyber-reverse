@@ -18,7 +18,15 @@
   - 店铺流程异步名：原版 `103` 个名（`408` 次实现）已在 `replica/src/` 覆盖 `70/103`（对应 `375/408` 次出现），仍有 **`33` 个长尾步骤名**待反编译补全或逐一核实去向；
   - 支付/3DS 异步名：原版 `124` 个名（`195` 次实现）已覆盖 `47/124`（`118/195` 次出现），仍有 **`77` 个细分支付方法**待进一步对位。
 - **4 处已定位但尚未穷举的静态 `Unknown` 子分支**（见 `docs/PROGRESS_AND_GAP.md`）：
-  1. **Unzer 3DS**：`0x14094c210` prepare 精确子路径、`qword_1472c65a0+8` 终态集合、`0x14094a870` 动作判定谓词；
+  1. ~~**Unzer 3DS**：`0x14094c210` prepare 精确子路径~~ —— **R1301 已解且归属纠正**：`0x14094c210` 不是 Unzer，
+     它是**发请求前的配置委托**（`sub_1408B61E0` 里 `(*(a3+32))(a3[1], v6)` 就在 `sub_1408B5EB0` 发送之前调用它），
+     落的 15 条头是全站浏览器模板，另有 `Akamai: 1`（`a2+112`）、`+226 = 1`、`200`/`400` 两条状态处理器；
+     URL 在调用方 `sub_14095B4E0` 内：`https://www.casio.com/{storeCode}/rest/V1/stripe/payments/get_stripe_configuration?_=<tick>`，
+     与同页 `sub_14095c980` 的 `/stripe/payments/get_requires_action?orderId=` 同族。
+     **剩余待办**：把该端点落成 `StripeGateway` 的可执行步骤，并把 `UnzerGateway.PreparePaymentAsync` 里那条
+     靠 `unzer.prepareUrl` 人供的虚构路径撤掉。`apiKey` 的读取方**未定位到这一步**——它的 4 个引用者
+     （`sub_14094DEB0`、`sub_1409F2A60`、`sub_140ECF2B0`、`sub_14117B6C0`）都不在 `0x14095xxxx` prepare 链上。
+     Unzer 侧仍余 `qword_1472c65a0+8` 终态集合与 `0x14094a870` 谓词两项；
   2. **Checkout.com**：`0x1408a34f0` 尾部分支中按发卡行 ACS 主机区分的逐家表单字段表；
   3. **Komoju 便利店**：`0x140d98f60` `[1..56]` 的 `formUrl` 后缀表达式；
   4. **`ToppsVariant`**：在二进制 `off_1449B8EB0` 的精确序列化 JSON 键名。
@@ -64,21 +72,7 @@
 
 ---
 
-## 三、明确不在复刻范围内 / 严禁实现的部分（`Out of Scope` & 合规红线）
-
-以下能力经项目裁决与安全合规边界明确排除，**后续轮次禁止以任何形式重新实现**：
-
-1. **R702 登录凭证与许可管理（`Out of Scope`）**
-   - `AuthWindow`、`LicenseControl`、`Cybersole.Models.License`（`10` 归因函数，见 `docs/DECISION_LICENSE_OUT_OF_SCOPE.md`），不做任何许可/授权绕过或伪造。
-2. **反机器人对抗 / 传感器伪造 / 自动化验证码绕过执行（`Out of Scope`）**
-   - 21 个视觉推理 DTO、`ExecuteClipModelAsync`、`SolveImageInCloudAsync`、`ClickCellsAsync`、`MoveMouseAndClickWithoutTrajectoryAsync`；
-   - 反爬传感器与 token 伪造执行：`GetSbsdHash`、`GetSbsdScript`、`DdMobileTouchEvent`、`SensorPow`；
-   - 内置浏览器验证码绕过执行：`HCaptchaSpoof`、`RecaptchaEnterprise`、`TurnstileSiteKey` 自动化执行。
-   - **允许边界**：仅保留被动家族识别（`CaptchaSurface.Classify`）、第三方用户配置接口与既有兼容模型。
-
----
-
-## 四、不必盲目追平的“结构性非等价噪声”
+## 三、不必盲目追平的“结构性非等价噪声”
 
 后续验收不得把 `docs/METRICS.md` 里的 `.pdata` 函数总数比追到 `100%` 作为完成判据，原因如下：
 
@@ -88,7 +82,7 @@
 
 ---
 
-## 五、分条件推荐推进顺序
+## 四、分条件推荐推进顺序
 
 | 条件前提 | 推荐优先路线 | 说明 |
 |---|---|---|

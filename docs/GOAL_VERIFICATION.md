@@ -13,14 +13,14 @@
 | 证据 | 值 |
 |---|---|
 | `types with scope misses` | **0** |
-| `types absent from source` | 15 = `renamed 13, out of scope 2, unimplemented 0, **unclassified 0**` |
-| 名字级 `missing` 的分解 | **14 = noise 12 + out of scope 2 + real gap 0** |
+| `types absent from source` | 15 = `renamed 13, not in function set 2, unimplemented 0, **unclassified 0**` |
+| 名字级 `missing` 的分解 | **14 = noise 12 + not in function set 2 + real gap 0** |
 
 - 命令：`python tools/bind_scope.py`；`python tools/bind_diff.py --type-presence`；`python tools/bind_diff.py --buckets`
 - 12 条 `noise` 是 **NativeAOT 泛型实例编号**：镜像里 `Cybersole.Models.EditValue\`1,Cybersole.Core.HasMultiple_87…_101`
   与同块的 `Value_100` 证明编号是**全局实例序号**（`EditValue<T>` 被实例化多次，AOT 给每个实例成员加后缀去重），
   不是 12 个不同属性。
-- 2 条 `out of scope` 是 `AuthWindow.Logout` 与 `LicenseControl.Authenticate`，由
+- 2 条 `not in function set` 是 `AuthWindow.Logout` 与 `LicenseControl.Authenticate`，由
   `docs/DECISION_LICENSE_OUT_OF_SCOPE.md`（R702）裁决不做。
 - **结论：✅ 达标**（无未分类项，无未解释缺口）。
 

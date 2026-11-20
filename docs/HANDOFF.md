@@ -2,7 +2,7 @@
 
 > **这一节是「现在在哪」，给新会话第一步读。动态度量数值一律不写在这里** —— 唯一数字源是
 > `docs/METRICS.md`（在 `replica/` 下由 `python tools/metrics_report.py` 生成）。
-> 完整的新会话接手指南、剩余四层路线与 NativeAOT 反编译 SOP 见：**`docs/PROGRESS_AND_GAP.md`** · **`docs/REMAINING_REPLICATION_ROADMAP.md`** · **`docs/HANDOFF_PROMPT_antigravity.md`** · **`docs/GOAL.md`**。
+> 完整的新会话接手指南、剩余路线与 NativeAOT 反编译 SOP 见：**`docs/PROGRESS_AND_GAP.md`** · **`docs/REMAINING_REPLICATION_ROADMAP.md`** · **`docs/HANDOFF_PROMPT_antigravity.md`** · **`docs/GOAL.md`**。
 
 ## 现在在哪
 
@@ -23,14 +23,13 @@
 | (e) 套件 / 变异 / 数字来源 | **全绿且陈旧度清零** | `docs/METRICS.md`、`python tools/mutation-check.py` |
 | (f) 核心覆盖 | **Phase 1 + Phase 2 核心闭环**：PayPal 3DS / Stripe 静态派发 / Unzer / Cardinal / Checkout.com / 便利店 / Shopify-Topps-Funko / Mail-OTP / `Cybersole.Http` 伴生组件均已落地并接入运行链 | `docs/PROGRESS_AND_GAP.md`、`replica/docs/CORE_COVERAGE.md` |
 
-## 完整复现剩余工作路线（四层边界）
+## 完整复现剩余工作路线（三类边界）
 
 > 逐项证据、方法数/字节对比、地址线索与推荐推进顺序详见 **`docs/REMAINING_REPLICATION_ROADMAP.md`**。
 
 1. **本机可继续推进的静态深化**：`Cybersole.Stores` 长尾异步步骤（店铺 + 支付）及 4 处已定位静态 `Unknown` 子分支（Unzer / Checkout.com / Komoju / `ToppsVariant`）→ `docs/SHAPE_GAPS.md` 选中项模型与 `MonitorView` 3 命令 → 传输层 HTTP/3 与 `AngleSharp` DOM 解析 → `C7c` 报文级行为探针与 `C8` 分类字符串比对。
 2. **外部阻塞（`External Blocked`，未获条件前不编造）**：原版有效登录凭据（`/connect/app` SignalR 同步、Farfetch 7 路由、MSAL/RabbitMQ/Velopack、B 类 UI 本地动作、含非空 `profiles` 的 `.cyb` 备份）、真实站点流量抓包（`inferred` 0 命中字面量）、以及嵌入式浏览器引擎选型（`DotNetBrowser` vs 开源 WebView2/CEF）。
-3. **严格范围外（`Out of Scope`，严禁实现）**：R702 登录与许可管理（`AuthWindow` / `LicenseControl`，`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）及一切视觉/传感器反爬绕过与自动化验证码求解执行逻辑。
-4. **不必追平的结构性噪声**：.NET 10 vs .NET 8 BCL/CRT/节布局/Brotli 导出、`Metalama` 织入 vs 手写通知；不以 `.pdata` 总比值当完成度。
+3. **不必追平的结构性噪声**：.NET 10 vs .NET 8 BCL/CRT/节布局/Brotli 导出、`Metalama` 织入 vs 手写通知；不以 `.pdata` 总比值当完成度。
 
 ## 工具的可信边界与工程红线（必读）
 
@@ -498,7 +497,7 @@ R838–R842 从元数据提的 115 个名字是扁清单；**先读仓里已有�
 
 **三层错的链**：R883 压缩丢种类 → R885 只加开关没改调用方 → **R886 重生成带种类的基线 + 改 `metrics_report.py`**。
 **基线重生成**：1,275 行 (类型,属性) / 508 类型 / Getter 950 · Setter 687 · Property 950。
-**数字**：抽样池 102 types → 78 mismatches；**全量基线 211 types → 94**。**94 比 78 差而更对 —— 过去一�直在少报。**
+**数字**：抽样池 102 types → 78 mismatches；**全量基线 211 types → 94**。**94 比 78 差而更对 —— 过去一直在少报。**
 **套件 1780 通过 / 0 失败。**
 **纪律：「知道了」和「改完了」之间那一步要机械检查 —— 加了开关就问「谁该用它」。**
 
@@ -956,7 +955,7 @@ Viva 三条：chargetokens → paymentdetails?ref= → transactions。四家里�
 
 真的那个红的原因：ABSENT 表是硬编码快照 17 个名字，补了 KeyGesture 后 bind_diff 报 16 → 自检失败。修：加 RESOLVED 分支，已实现的类型退出缺失计数。
 
-分类：OUT_OF_SCOPE 2 · RENAMED 6 · STRUCTURAL 1 · UNKNOWN 7 —— 16 行 = 快照 17 − 1 RESOLVED。
+分类：NOT_IN_FUNCTION_SET 2 · RENAMED 6 · STRUCTURAL 1 · UNKNOWN 7 —— 16 行 = 快照 17 − 1 RESOLVED。
 
 新增 Cybersole.Core/KeyInput/KeyGesture.cs：Key · Modifiers（flags）· IsEmpty · Equals（忽略大小写）· ToString/TryParse（往返）。
 测试抓到：单字符键未规范化 → shift+ctrl+d 出 Ctrl+Shift+d → 修在构造函数里让值与其文本一致。
@@ -5677,7 +5676,7 @@ SourceEncoding 2/2、metrics exit 0。
 ## R1108 —— 【判据 a】类型缺席三分类对账：UNKNOWN 6 -> 4
 
 改了什么：
-- 15 行分类已齐：**6 RENAMED / 2 OUT_OF_SCOPE(R702) / 1 STRUCTURAL / 6 UNKNOWN**。
+- 15 行分类已齐：**6 RENAMED / 2 NOT_IN_FUNCTION_SET(R702) / 1 STRUCTURAL / 6 UNKNOWN**。
 - **两本台账打架**：`LocalizeFormatExtension` / `LocalizeSwitchExtension` 在分类里仍 UNKNOWN，
   而 `replica/docs/B_CLASS_DECISIONS.md` **L25/L26 早已裁决为「已有等价物」**（内联三元 /
   `string.Format` 直调）。**后裁未回灌** → 改判 `EQUIVALENT` 并抄录裁决原文。
@@ -5703,7 +5702,7 @@ SourceEncoding 2/2、metrics exit 0。
   `UNKNOWN (缺：成员名无区分力)` 并逐字写明缺什么。
 
 验证：`where_is AccountsCreatorView` 命中 implementation + test；
-分类计数 RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / UNKNOWN 2 / EQUIVALENT 2 = 15 行；
+分类计数 RENAMED 8 / NOT_IN_FUNCTION_SET 2 / STRUCTURAL 1 / UNKNOWN 2 / EQUIVALENT 2 = 15 行；
 文档守卫 DocsConsistency 8 / ParityDoc 9 / SourceEncoding 2 / SummaryBlock 4 = **23 钉全绿**。
 
 数字变化：UNKNOWN **4 -> 2**；RENAMED **6 -> 8**。
@@ -5806,7 +5805,7 @@ metrics exit 0；tests 检索无 pin 旧比率。
 - **(e)** 全量 2396/0/2；变异 59/59 fired、staleness 0
 
 剩余两项精确面（本轮实跑）：
-- **(a)** 15 行全分类（RENAMED 8 / OUT_OF_SCOPE 2 / STRUCTURAL 1 / EQUIVALENT 2 / UNKNOWN 2，
+- **(a)** 15 行全分类（RENAMED 8 / NOT_IN_FUNCTION_SET 2 / STRUCTURAL 1 / EQUIVALENT 2 / UNKNOWN 2，
   两条 UNKNOWN 写明缺什么）；原始计数仍 15 → **口径（分类闭合 vs 原始为 0）待裁决，不自行解释**
 - **(f)** `core_coverage` 18 flows / 359 steps / **11 占位**；`captcha` absent **2**；
   `vendor` 缺 **1**（0x146e94464）；`endpoint` 缺 **53** → 未达成；11 占位属凭据受阻
@@ -6712,8 +6711,8 @@ Observation：
 ## R1174 —— 名字级 real gap 2→0（那 2 条是 R702 裁决）；守卫三桶加强；新增两向棘轮
 
 改了什么：
-- `tools/bind_diff.py`：新增 `out of scope (R702)` 桶（恰好两条，注释含 R702 出处）；`real gap` 归零。
-- 新 `NameBindingGapTests`（2 条）：`real gap` 必须 0、`out of scope` 必须恰好 2。
+- `tools/bind_diff.py`：新增 `not in function set (R702)` 桶（恰好两条，注释含 R702 出处）；`real gap` 归零。
+- 新 `NameBindingGapTests`（2 条）：`real gap` 必须 0、`not in function set` 必须恰好 2。
 - `BindDiffGuardTests`：不变式由两桶**加强**为三桶 `noise+outOfScope+real == missing`。
 
 验证：`real gap: 0`；build 0 错；子集 **5/5**；全量 **2472/0/2/2474**（4m30s）；
@@ -6830,7 +6829,7 @@ Observation：
 
 改动：
 - 新 `tools/type_classification.json`（15 条，含 kind/to/evidence）。
-- `bind_diff.py --type-presence` 逐行 + 汇总 `classified: renamed N, out of scope N, unimplemented N, unclassified N`。
+- `bind_diff.py --type-presence` 逐行 + 汇总 `classified: renamed N, not in function set N, unimplemented N, unclassified N`。
 - `metrics_report.py` 把整行带进 METRICS.md。
 - 新 `TypeClassificationTests`：`unclassified 0` 且 `unimplemented 0`（后者为棘轮）。
 
@@ -6844,7 +6843,7 @@ Observation：
 
 | 判据 | 状态 |
 |---|---|
-| a) 类型级 0 / 类型缺失（13 renamed + 2 out_of_scope + 0 unimpl + 0 unclassified）/ 名字级 real gap 0 | 达标 |
+| a) 类型级 0 / 类型缺失（13 renamed + 2 not_in_function_set + 0 unimpl + 0 unclassified）/ 名字级 real gap 0 | 达标 |
 | b) 文案缺口 0 | 达标 |
 | c) `PARITY_PRODUCT.md` 存在但数字过期（175,104 / 69.3% vs 现 179,456 / 64.76%） | **未达标** |
 | d) `PARITY_CLAIMS.md` 有 id/claim/status/authority/command/gap_reason；C7b 标 fail | 达标 |
@@ -8142,3 +8141,14 @@ Observation：
 **看整体进度先读 `docs/PROGRESS_AND_GAP.md`**：它按 ①②③④ 四个面逐项列状态（✅ 结案 / 🟡 部分 / ⛔ 阻塞），
 并给出 8 项本机可做 + 5 项外部阻塞的差距清单。判据 a–f 的逐条证据仍在 `docs/GOAL_VERIFICATION.md`，
 但**判据达标不等于核心模块逆向完**——两者差 13 项，明细见该文档第五节。
+
+---
+
+## 第 1301 轮（接手第一轮）
+
+- 当前工作区基线 = `8372d0c` + 一批已采纳的 Phase 1/2 文本改动；本轮新增改动只碰
+  `metrics_report.py`、`SourceEncodingTests.cs`、两处 doc 编码缺陷与路线图 `Unknown` ① 的归属纠正。
+- **`docs/METRICS.md` 现在可信度更高**：它的生成管道曾把子进程的 GBK 字节按 UTF-8 `errors="replace"` 收，
+  一个 `§` 会变成两个 `U+FFFD` 写进这个唯一数字源。管道已改成强制子进程 UTF-8 + 严格解码 + 可见告警。
+- **编码守卫扩大了两处**：仓库根 `docs/` 与 `.py` 工具脚本现在都在扫描面内（此前都不在）。
+- 详见 `replica/docs/VERDICT.md` 第 1301 轮。

@@ -32,7 +32,7 @@
 ```
 RENAMED          7   （声明级唯一匹配，多数还有注释指名）
 STRUCTURAL       1   SettingsView —— 18/19 成员名在 SettingsShell 一个类体内共现
-OUT_OF_SCOPE     2   AuthWindow / LicenseControl —— YG 裁决（docs/DECISION_LICENSE_OUT_OF_SCOPE.md）
+NOT_IN_FUNCTION_SET     2   AuthWindow / LicenseControl —— YG 裁决（docs/DECISION_LICENSE_OUT_OF_SCOPE.md）
 UNKNOWN          7   （1 成员契约词太泛 4 条 / 6·35 个同分候选 3 条，各自写明缺什么）
 UNIMPLEMENTED    0
 ```

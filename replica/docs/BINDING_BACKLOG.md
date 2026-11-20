@@ -1602,7 +1602,7 @@ ScheelsFrontastic: account/* · product/getProduct
 **17 条类型缺失已分类**：
 
 ```
-OUT_OF_SCOPE 2   AuthWindow · LicenseControl        （YG R702：用户管理，不在功能集）
+NOT_IN_FUNCTION_SET 2   AuthWindow · LicenseControl        （YG R702：用户管理，不在功能集）
 RENAMED      7   Settings→GlobalSettings 等
 STRUCTURAL   1   SettingsView 18/19
 UNKNOWN      7   ObservableDictionary · Localize*Extension ×4 · AccountsCreatorView · TaskCreatorCartView
@@ -1638,7 +1638,7 @@ hit   = 声明模式命中 =  1  -> RENAMED / PARTIAL 判定
 
 | 17 条分类 | 状态 |
 |---|---|
-| OUT_OF_SCOPE 2 · RENAMED 7 · STRUCTURAL 1 · UNKNOWN 7 | **不变，且现在更可信** |
+| NOT_IN_FUNCTION_SET 2 · RENAMED 7 · STRUCTURAL 1 · UNKNOWN 7 | **不变，且现在更可信** |
 
 **纪律**：**两个数字不一样，先问它们各自叫什么。**
 **「两边在量不同的东西」是结论，不是起点 —— 而它听起来像起点。**
@@ -5524,7 +5524,7 @@ chargetokens → paymentdetails?ref= → transactions
 
 | 判定 | 数 | 含义 |
 |---|---|---|
-| OUT_OF_SCOPE | 2 | 授权/许可，见 `DECISION_LICENSE_OUT_OF_SCOPE.md` |
+| NOT_IN_FUNCTION_SET | 2 | 授权/许可，见 `DECISION_LICENSE_OUT_OF_SCOPE.md` |
 | **RENAMED** | **6** | 改名，映射已记 |
 | STRUCTURAL | 1 | 结构不同 |
 | UNKNOWN | 7 | 非区分匹配 1 + 非区分 6 |
@@ -5551,7 +5551,7 @@ chargetokens → paymentdetails?ref= → transactions
 | 仍 Unknown | |
 |---|---|
 | 7 个 UNKNOWN 判定 | 非区分匹配 / 候选分不开 |
-| 2 个 OUT_OF_SCOPE | 已有裁决文件 |
+| 2 个 NOT_IN_FUNCTION_SET | 已有裁决文件 |
 | 剩 6 个 RENAMED 的成员是否齐 | 覆盖率是下界 |
 
 **纪律**：**§2.7c 我犯到第六次，唯一不同的是这次有一道防线（一个我没读的测试）把它抓住了。**

@@ -62,8 +62,8 @@
 
 ### 2.2 已实施
 
-1. `analysis/type_presence_triage.py`：新增 `OUT_OF_SCOPE = {"AuthWindow", "LicenseControl"}`，
-   判定优先于文本打分 → 输出 `OUT_OF_SCOPE=2, RENAMED=7, STRUCTURAL=1, UNKNOWN…=7`，17 条计数不变。
+1. `analysis/type_presence_triage.py`：新增 `NOT_IN_FUNCTION_SET = {"AuthWindow", "LicenseControl"}`，
+   判定优先于文本打分 → 输出 `NOT_IN_FUNCTION_SET=2, RENAMED=7, STRUCTURAL=1, UNKNOWN…=7`，17 条计数不变。
 2. 复算：`metrics_report.py --skip-tests` 四项度量与基线一致（4/0/17/80）；
    `TypePresenceTriageTests` + `OriginalViewClassParityTests` **6/6 通过**。
 3. 本轮早些时候一度实现过 `LicenseControl.cs`（走完编译+度量），**已按裁决完整回滚**——
@@ -74,7 +74,7 @@
 
 | 之前（R700） | 现在 |
 |---|---|
-| 17 条 = 7 RENAMED + 1 STRUCTURAL + **1 UNIMPLEMENTED** + 8 UNKNOWN | 17 条 = 7 RENAMED + 1 STRUCTURAL + **2 OUT_OF_SCOPE** + 7 UNKNOWN（AuthWindow 从 UNKNOWN 并入范围外） |
+| 17 条 = 7 RENAMED + 1 STRUCTURAL + **1 UNIMPLEMENTED** + 8 UNKNOWN | 17 条 = 7 RENAMED + 1 STRUCTURAL + **2 NOT_IN_FUNCTION_SET** + 7 UNKNOWN（AuthWindow 从 UNKNOWN 并入范围外） |
 
 **UNIMPLEMENTED = 0。** (a) 的文字判据「类型缺失 → 0（不可得则写明）」现在满足：
 每条都有判定与依据；唯二的范围外条目依据是**裁决本身**（最高级别的 authority）。
@@ -149,7 +149,7 @@ python analysis\disp32_scan_any.py --all license_ctl    # 5 sites
 python analysis\site_to_func.py 0x140F7739E 0x140F7784E # → sub_140F77350 / sub_140F777E0
 
 # triage 新判定
-python analysis\type_presence_triage.py                 # OUT_OF_SCOPE=2, RENAMED=7, ...
+python analysis\type_presence_triage.py                 # NOT_IN_FUNCTION_SET=2, RENAMED=7, ...
 ```
 
 落盘证据：`analysis/csv_validator_host.c`、`csv_guard_helpers.c`、`csv_state_args.c`、

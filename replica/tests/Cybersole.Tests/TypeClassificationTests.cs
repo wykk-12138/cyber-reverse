@@ -10,8 +10,8 @@ namespace Cybersole.Tests;
 /// R1184: "15 types absent from source" is not fifteen gaps until each one is classified.
 ///
 /// <para>
-/// AGENTS.md §0 allows the replica to rename, and R702 put the login-credential and licence UI out of scope,
-/// so an absent type is a rename or a ruling by default. The classification lives in
+/// AGENTS.md §0 allows the replica to rename, and R702 placed the login-credential and licence UI outside the
+/// function set, so an absent type is a rename or a ruling by default. The classification lives in
 /// <c>tools/type_classification.json</c> with the counterpart or the ruling beside each entry, and this guard
 /// pins the two numbers that matter: nothing unclassified, and nothing declared unimplemented. A genuine gap
 /// would trip the second and has to be dealt with rather than absorbed into a total.

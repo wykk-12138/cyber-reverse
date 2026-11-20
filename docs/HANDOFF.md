@@ -8014,3 +8014,13 @@ Observation：
 改：`tools/captcha_coverage.py` 新增 §七 + 措辞（"完全缺失"→"无执行面"）；生成物未重生成（工具未就绪，未绕过保护）。
 
 下轮：IDA 缓存就绪后重生成文档；随后回优先级①——`Stores/Flows` 的 58 处 `inferred` 按站点批量核销。
+
+## R1288 —— captcha 文档重生成完成；GoatFlow 假陈述修正；全量 2478/0/2/2480
+
+Observation：
+- 生成器跑通：`control=17 families=6 absent=2 provider metadata=24`。
+- GOAT 五条 URL 地址：`1470939FC`(csrf) / `147093B44`(login) / `147093BA4`(otp) / `147093A6C`(addresses) / `147093AD4`(billing)。
+- 五条在 GoatFlow 均已有调用；`buy_bar_data`/`/v1/buys`/`productTemplateId` 在 dump 0 命中。
+- 全量 2478/0/2/2480。
+
+下轮：`StoreFlow`(10) 与 `MagentoFlow`(6) 的 inferred 按同法逐条查——先查 dump，能命中就升为实证，不能则写明 0 命中。

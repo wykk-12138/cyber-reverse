@@ -41,13 +41,17 @@ public class GoatFlow : StoreFlow
 
     // ── account surface (R328) ────────────────────────────────────────────────
     //
-    // The image carries four /web-api/v1 paths this flow never used:
-    //   POST /web-api/v1/login                    (path evidenced; body field names inferred)
-    //   POST /web-api/v1/users/send_otp_token     (path evidenced; body field names inferred)
-    //   GET  /web-api/v1/addresses                (path evidenced, no body)
-    //   GET  /web-api/v1/billing_infos            (path evidenced, no body)
-    // Evidence: https://www.goat.com/web-api/... literals in the 5.18.32 image. The paths are the image's; the request
-    // bodies are not, so every body below is marked inferred.
+    // The image carries five /web-api paths, each as a full URL, and this flow calls every one of them:
+    //   GET  /web-api/get-csrf-token             https://www.goat.com/web-api/get-csrf-token             (1470939FC)
+    //   POST /web-api/v1/login                   https://www.goat.com/web-api/v1/login                   (147093B44)
+    //   POST /web-api/v1/users/send_otp_token    https://www.goat.com/web-api/v1/users/send_otp_token    (147093BA4)
+    //   GET  /web-api/v1/addresses               https://www.goat.com/web-api/v1/addresses               (147093A6C)
+    //   GET  /web-api/v1/billing_infos           https://www.goat.com/web-api/v1/billing_infos           (147093AD4)
+    //
+    // The paths are the image's verbatim. The *bodies* are not: no request body for these five appears anywhere in
+    // the artifact, so each body below stays marked inferred until a capture says otherwise. The two product
+    // endpoints are a different case — /v1/product_variants/buy_bar_data and /v1/buys answer 0 hits in the string
+    // dump, so their paths are inferred as well.
 
     /// <summary>Signs in and keeps the session cookie (path evidenced; body inferred).</summary>
     private Task<NetResponse?> LoginAsync(FlowContext c, string email, string password, CancellationToken ct) =>

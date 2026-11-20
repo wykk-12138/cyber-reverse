@@ -47213,3 +47213,49 @@ checkpoint 页按 `Captcha.Type` 分支 —— **`0` = 需要点击的复选框�
 
 证据等级：Observation = 五类字符串与字节数、IDA 的健康字段原文；
 Inference = 「三条执行面需引擎」；Unknown = `HCaptchaSpoof` 的具体行为（无协议证据）。
+
+## R1288 —— 补上生成物欠账 + 修掉 `GoatFlow` 里"从未使用"的假陈述
+
+### 一、上轮欠的生成物已补
+
+IDA 的 `ida.py str` 恢复后跑 `python tools/captcha_coverage.py`：
+`wrote docs/CAPTCHA_COVERAGE.md`，`control=17  families=6  absent=2  provider metadata=24`。
+`docs/CAPTCHA_COVERAGE.md` **未提及"完全缺失"**，`absent=2` 是镜像侧的缺席计数，不是复刻件侧。
+§七（DotNetBrowser 证据 + 三条标记的结构性判定）已随生成一并落进文档。
+
+### 二、`GoatFlow` 的 14 处 `inferred` 逐条查过：**没有可核销的**
+
+镜像里有 **5 条完整 URL**（`ida_strings.txt` 命中，正向判据）：
+
+| 路径 | 地址 |
+|---|---|
+| `/web-api/get-csrf-token` | `1470939FC` |
+| `/web-api/v1/login` | `147093B44` |
+| `/web-api/v1/users/send_otp_token` | `147093BA4` |
+| `/web-api/v1/addresses` | `147093A6C` |
+| `/web-api/v1/billing_infos` | `147093AD4` |
+
+而 `GoatFlow` **五个全部已调用**（`L54` / `L60` / `L65` / `L69` / `L132` 附近）。
+所以剩下的 `inferred` 只有两类，**都不能核销**：
+
+1. **请求体字段名**（`email` / `password`）——镜像里没有 body，属实无证据；
+2. **`/v1/product_variants/buy_bar_data`、`/v1/buys`、`productTemplateId`** —— 在字符串 dump 里 **0 命中**。
+
+### 三、但发现一处**真的假陈述**
+
+原注释（`L44`）写着：
+
+> The image carries four /web-api/v1 paths **this flow never used**
+
+**五个都在用**，而且那句话自己下面三行就写着 `path evidenced`。这是**注释与代码矛盾**——
+`GoatFlow.TotalInferred`（14）里有一部分是这条过时陈述在误导读者。
+
+已改为：五条路径逐条列出**地址**，并明确区分「路径是镜像的、body 不是」；同时点明两个产品端点
+`buy_bar_data` / `/v1/buys` 在 dump 里 0 命中、所以**它们的路径**也属 inferred。
+
+### 四、验证
+
+`Goat*` **5/5**（4 过 + 1 跳）；全量 **2478 通过 / 0 失败 / 2 跳过 / 2480**。
+
+证据等级：Observation = 五条 URL 与地址、四处调用点、dump 里 0 命中的两个产品端点；
+Inference = 「body 无证据」；Unknown = GOAT 加车/下单的真实 body（需 live capture）。

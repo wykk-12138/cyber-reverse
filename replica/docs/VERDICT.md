@@ -68913,3 +68913,12 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   从待办移出并写清所缺条件。
 - 改的是**生成器**（`tools/captcha_coverage.py`，新增 §七）；生成物**未重生成**——IDA `strings_cache_ready: false`，
   `ida.py str` 抛异常，生成器拒绝覆盖（保护正确，未绕过）。
+
+---
+
+## 第 1288 轮：补生成物 + GoatFlow 端点的假陈述修正
+
+- `tools/captcha_coverage.py` 重生成成功（control=17 / families=6 / absent=2 / metadata=24），§七 已进文档。
+- `GoatFlow` 14 处 inferred 逐条查：镜像 5 条完整 URL 全部**已在调用**；剩余 inferred 只有 body 字段与 0 命中的产品端点 ⇒ **无可核销**。
+- 修掉 `L44` 的假陈述「four paths this flow **never used**」→ 五条带地址列出（镜像的路径 / 非镜像的 body 分开说）。
+- 全量 **2478/0/2/2480**。

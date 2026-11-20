@@ -47761,3 +47761,20 @@ Inference = 「17 文件 mtime 来自变异改写」；**Unknown** = 并行会�
    （`0x0` 桶 35.4%、`0x1200000` 桶 499.5%），所以这个比率**不能**读成「实现了 64.9%」。
 
 另：`vendor: named in image 11` 是 IDA 字符串缓存未建完时的**下限**，真值 13；缓存就绪后重跑即证。
+
+---
+
+## R1306 · 已知间歇失败（不是回归，但也不许当成通过）
+
+- **用例**：`Cybersole.Tests.KasadaPresetEchoTests.ATokenThatWasInjectedIsNotReportedAsComputed`
+- **实测**：同一轮变异里出现过 1 次；`--filter FullyQualifiedName~KasadaPresetEchoTests` 单独跑 **3/3 通过**；
+  紧接着整轮重跑 **2579 通过 / 0 失败 / 2 跳过**、`tree: GREEN`。
+- **失败原文**（取自 `analysis/_mutation-restore.trx`）：
+  `Assert.Contains() Failure: Sub-string not found / String: "script threw: Object reference not set to" / Not found: "injected"`
+- **判读**：`KasadaSolver.Solve` 在 `Runtime.TryExecute` 失败时把 Jint 的异常原样拼进 `Error`
+  （`src/Cybersole.Stores/Scripts/KasadaSolver.cs:502`）。所以这是**传感器脚本在 Jint 宿主里抛了 NRE**，
+  不是断言写错，也不是本轮改动（本轮只碰 Unzer）。
+- **Unknown**：那个 null 是 `BrowserShim` 的哪个成员、在什么调用序下返回的。要定因得在 `KasadaSolver`
+  里把 NRE 换成"哪个成员为空"的错误——那是独立一项工作，未做。
+- **纪律**：这一轮不据此声称 criterion (e)「稳定通过」；METRICS 记录的是**本次运行的**结果，
+  本次是绿的，而间歇性写在这里。

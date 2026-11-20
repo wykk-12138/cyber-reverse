@@ -27,8 +27,9 @@
      在 `AuthorizeAsync` 里按 `sub_140F9E790` 的「还没取到才取」条件接入；`UnzerGateway.PreparePaymentAsync`
      与 `unzer.prepareUrl` 那条人供虚构路径已删除。**仍 Unknown**：`a2+112` 那个集合到底是不是 cookie
      （`Akamai`/`1` 因此未发送）；`apiKey` 的读取方不在本条链上——`0x146F7544C` 的 4 个引用者是
-     `sub_14094DEB0`、`sub_1409F2A60`、`sub_140ECF2B0`、`sub_14117B6C0`。Unzer 侧仍余
-     `qword_1472c65a0+8` 终态集合与 `0x14094a870` 谓词两项；
+     `sub_14094DEB0`、`sub_1409F2A60`、`sub_140ECF2B0`、`sub_14117B6C0`。**Unzer 侧两项 R1306 已结案**：`0x14094a870` = 两个 `IndexOf(OrdinalIgnoreCase)`（`unzer.com` / `heidelpay`）→ `IsUnzerThreeDsUrl`；
+     `qword_1472c65a0+8` **不是哈希表**，它的懒初始化器 `sub_14094AB00` 分配一个十元 `string[]` 装十句失败措辞 → `TerminalPhrases` / `IsTerminalFailure`，
+     并已在 `RunUnzerThreeDsAsync` 起点接入（页面说「declined」就此结束，不再跟跳）；
   2. **Checkout.com**：分派层 **R1303 已完成**——`0x1408a34f0` 是按发卡行 ACS 主机名切分的 switch（**28 个主机名 / 18 个长度分支**），开头打 `"Starting 3DS: <host>"`（类目 `3DS`）、把传输指纹临时换成 `chrome_131`、建对应处理器、再把原指纹写回；已落成 `AcsHosts`（`Known` / `HostOf` / `IsKnown` / `ProfileFor` / `Describe`与 `CheckoutComGateway.ResolveEswThreeDsAsync` 接线）。**仍 Unknown**：每个主机处理器的方法体（逐家挑战表单字段在其中）；
   3. **Komoju**：`0x140d98f60` 的「`[1..56]` `formUrl` 后缀」**R1304 已撤回**——该函数只构建 `{authenticity_token, payment_details:{type:konbini, email, store, given_name}}`（与复刻件已有的体一致），URL 取自状态机上下文 `*(*(v3+16)+16)`。同时新解并落码了兄弟机 `0x140D994D0` 的卡面（`KomojuGateway`）。**仍 Unknown**：`formUrl`（konbini 与卡凭证两个请求体的目标）；
   4. **`Topps`**：**R1305 已结案形状面**——`off_1449B8EB0` 是 JSON 类型句柄，不是键名表；类形从镜像的反射元数据读出（`ToppsCommerceProduct`：`PriceAmount` / `ProductImage` / `ProductVariant` / `SelectedOption` / `VariantImage` / `ToppsCommerceProductUrl` / `JToken`，加 `ListToppsCommerceProduct` 等 4 个列表承载名），已落成 `ToppsCdn.Parse` 并接回 `FindProductCdnAsync`。**仍 Unknown**：序列化键的大小写（响应两种写法都能读）。

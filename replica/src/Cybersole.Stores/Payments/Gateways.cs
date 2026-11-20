@@ -1071,8 +1071,12 @@ public sealed class StripeGateway : IPaymentGateway
 /// </para>
 ///
 /// <para>
-/// <b>Unknown</b>: (1) exact terminal exclusion set in <c>qword_1472c65a0+8</c>;
-/// (2) exact URL predicate inside <c>0x14094a870</c> gating <c>RunUnzerThreeDs</c>.
+/// <b>R1306 closed both remaining Unknowns.</b> The URL predicate <c>0x14094A870</c> is eleven lines —
+/// two <c>IndexOf</c> calls with <c>OrdinalIgnoreCase</c> against <c>unzer.com</c> and <c>heidelpay</c>,
+/// now <see cref="IsUnzerThreeDsUrl"/>. The "terminal exclusion set" at <c>qword_1472C65A0 + 8</c> is not
+/// a hash table: <c>sub_14094AB00</c> is its lazy initialiser, allocating a ten-element <c>string[]</c>
+/// and filling it with ten ways of saying the payment failed, now <see cref="TerminalPhrases"/> and
+/// <see cref="IsTerminalFailure"/>.
 /// </para>
 /// </summary>
 public sealed class UnzerGateway : IPaymentGateway
@@ -1458,6 +1462,16 @@ public sealed class UnzerGateway : IPaymentGateway
         if (pageRes is null)
             return PaymentResult.Fail("Error verifying payment");
 
+        // R1306: the terminal set decides whether there is anything left to walk. The image builds that
+        // ten-phrase array lazily (sub_14094AB00) and several of its Unzer state functions read it; a page
+        // that says the card was declined is the end of the flow, not a hop to keep following.
+        if (IsTerminalFailure(pageRes.Body))
+        {
+            c.Session.Vars["unzer.terminal"] = "true";
+            c.Emit("Unzer: terminal failure on the 3DS page", "error");
+            return PaymentResult.Fail("Error verifying payment");
+        }
+
         var currentUrl = pageRes.Url.ToString();
         var methodAttrs = ThreeDsTransportHelpers.ReadElementAttributesById(pageRes.Body, "threeds-method-data");
         string? continueUrl = null;
@@ -1540,6 +1554,64 @@ public sealed class UnzerGateway : IPaymentGateway
 
     private static bool IsTerminalUrl(string url) =>
         IsSuccessLanding(url) || url.Contains("checkout/cart", StringComparison.OrdinalIgnoreCase);
+
+    // ── R1306: the two Unzer decisions the notes called unrecoverable ────────────────────────────────
+
+    /// <summary>
+    /// The action-URI predicate, <c>0x14094A870</c> in full: eleven lines, two <c>IndexOf</c> calls.
+    /// <c>sub_141CFAD70(s, needle, 0, s.Length, 5)</c> is
+    /// <c>string.IndexOf(value, startIndex, count, StringComparison)</c> with <c>5</c> =
+    /// <c>OrdinalIgnoreCase</c>, and the two needles are the frozen <c>unzer.com</c> (0x147178230) and
+    /// <c>heidelpay</c> (0x147046530) — the group's name before the rebrand. So the predicate is a
+    /// case-insensitive "does this belong to Unzer or Heidelpay", and it is what gates
+    /// <c>RunUnzerThreeDs</c>.
+    /// </summary>
+    public static bool IsUnzerThreeDsUrl(string? urlOrHost)
+    {
+        var text = urlOrHost ?? string.Empty;
+        return text.Contains("unzer.com", StringComparison.OrdinalIgnoreCase) ||
+               text.Contains("heidelpay", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// The terminal set behind <c>qword_1472C65A0 + 8</c>: not a hash table after all.
+    /// <c>sub_14094AB00</c> is that static's lazy initialiser — <c>sub_143028DA0(&amp;unk_145DDB978, 10)</c>
+    /// allocates a ten-element <c>string[]</c> and fills elements 0..9 (at <c>v0[2]</c>..<c>v0[11]</c>, past
+    /// the object header) with ten frozen strings, then stores it at <c>+8</c>. All ten are ways of saying
+    /// the payment failed, in both spellings of authorise, which is what that array is for.
+    /// </summary>
+    public static IReadOnlyList<string> TerminalPhrases { get; } = new[]
+    {
+        "declined",                       // 0x147000B58
+        "issue processing your payment",  // 0x1470AB3F0
+        "was declined",                   // 0x147182438
+        "not authorized",                 // 0x147103798
+        "not authorised",                 // 0x147103760
+        "refused",                        // 0x14714A8E0
+        "insufficient",                   // 0x1470A5B30
+        "invalid card",                   // 0x1470A6870
+        "card error",                     // 0x146FBFE10
+        "payment error",                  // 0x14710E6E0
+    };
+
+    /// <summary>
+    /// Whether a page's text carries any of <see cref="TerminalPhrases"/>.
+    ///
+    /// <para>
+    /// <b>Inference</b>: the comparison mode. The predicate above pins <c>OrdinalIgnoreCase</c> for its two
+    /// needles, but the array scan's call was not decoded, so this matches case-insensitively — the phrase
+    /// list is all lower case, and a page that says "Declined" means the same thing as one that says
+    /// "declined".
+    /// </para>
+    /// </summary>
+    public static bool IsTerminalFailure(string? pageText)
+    {
+        if (string.IsNullOrEmpty(pageText)) return false;
+        foreach (var phrase in TerminalPhrases)
+            if (pageText!.Contains(phrase, StringComparison.OrdinalIgnoreCase))
+                return true;
+        return false;
+    }
 
     private static async Task<NetResponse?> FollowRedirectsAsync(
         FlowContext c, string url, string tag, CancellationToken ct)

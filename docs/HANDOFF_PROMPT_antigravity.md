@@ -38,7 +38,7 @@
 1. **`Cybersole.Stores` 站点流程与支付状态机长尾深化（最大核心业务缺口）**：
    - 原版多信号归因已见 **`5,090`** 个 `Cybersole.Stores` 函数（`4.41 MiB`）vs 复刻全部 **`3,403`** 个 `.pdata` 函数（`829 KiB`）；原版店铺异步名 `103` 个（`408` 次实现）、支付/3DS 异步名 `124` 个（`195` 次实现）——覆盖面分子与剩余长尾**只认** `docs/REMAINING_REPLICATION_ROADMAP.md` §1 与 `docs/MODULE_FUNCTION_CENSUS.md`，本文不复抄、以免双重漂移。
    - **优先消解 4 处已定位但尚未穷举的静态 `Unknown` 子分支**：
-     - **Unzer**：`qword_1472c65a0+8` 终态集合、`0x14094a870` 动作判定谓词；（`0x14094c210` 已在 R1301 证定**不属于 Unzer**——它是 Magento Stripe 配置端点的请求配置委托，R1302 已落成 `StripeGateway.FetchConfigurationAsync`）；
+     - **Unzer**：两项均 **R1306 已结案**——`0x14094a870` 是两个 `IndexOf(..., OrdinalIgnoreCase)`（`unzer.com` / `heidelpay`），已落成 `IsUnzerThreeDsUrl`；`qword_1472c65a0+8` **不是哈希表**，它的懒初始化器 `sub_14094AB00` 分配一个十元 `string[]` 装十句「支付失败」，已落成 `TerminalPhrases` / `IsTerminalFailure`；（`0x14094c210` 已在 R1301 证定**不属于 Unzer**——它是 Magento Stripe 配置端点的请求配置委托，R1302 已落成 `StripeGateway.FetchConfigurationAsync`）；
      - **Checkout.com**：`0x1408a34f0` 的**分派层已读完**（R1303：28 个发卡行 ACS 主机名 / 18 个长度分支，已落成 `AcsHosts`），尚未读的是**每个主机处理器的方法体**（逐家挑战表单字段还在那里面）；
      - **Komoju**：`0x140d98f60` 的「`[1..56]` `formUrl` 后缀」**已撤回**（R1304：它只构建 konbini 请求体，URL 取自状态机上下文）；新已解并落码的是卡支付面（`KomojuGateway`：`https://komoju.com/gpayments_offsite/auth` + `https://degica.as1.gpayments.net/api/v2/brw/info/result?transId=` + 六个冻结 browser 字段）；**仍 Unknown**：konbini 请求体的目标 URL，与卡凭证请求体的目标 URL；
      - **Topps**：`off_1449B8EB0` 是 **JSON 类型句柄而非字符串表**，那个地址从来回答不了「键名」。R1305 从镜像仍保留的反射元数据里读出了类形（`ToppsCommerceProduct` 七个属性 + 4 个列表承载名），已落成 `ToppsCdn`；**仍 Unknown** 只剩序列化的大小写（读取器按大小写不敏感匹配绕开）。

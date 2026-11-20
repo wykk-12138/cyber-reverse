@@ -8191,3 +8191,13 @@ Observation：
   读出（`ToppsCommerceProduct` 七个属性 + 四个 `List*` 承载名），落成 `ToppsCdn` 并接回 `FindProductCdnAsync`。
 - **仍 Unknown** 只剩序列化键的大小写；读取器按大小写不敏感匹配绕开，两种拼法都有测试。
 - 见 `replica/docs/VERDICT.md` 第 1305 轮。
+
+---
+
+## 第 1306 轮
+
+- 路线图那 4 处静态 `Unknown` 的最后两项（Unzer）已结案：`0x14094a870` 是两个 `IndexOf(OrdinalIgnoreCase)`
+  （`unzer.com`/`heidelpay`）；`qword_1472c65a0+8` 不是哈希表，是 `sub_14094AB00` 懒建的十元 `string[]` 失败措辞表。
+- 已落成 `IsUnzerThreeDsUrl` / `TerminalPhrases` / `IsTerminalFailure`，并在 `RunUnzerThreeDsAsync` 起点接入
+  （页面说 declined 就结束，不再跟跳）。
+- 见 `replica/docs/VERDICT.md` 第 1306 轮。

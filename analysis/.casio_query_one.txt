@@ -1,0 +1,1 @@
+"]}},sort:{name:ASC},pageSize:40){items{sku name url_key stock_status only_x_left_in_stock casio_sales_type casio_can_purchase casio_sales_start_date casio_sales_end_date casio_image_url image{url label} price_range{minimum_price{final_price{value currency}}}} total_count}}

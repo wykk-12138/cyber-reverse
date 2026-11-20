@@ -1,0 +1,59 @@
+mium";v="126", "Google Chrome";v="126"
+
+"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"
+
+"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"
+
+"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"
+
+"Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"
+
+"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"
+
+"Not=A?Brand";v="99", "Google Chrome";v="151", "Chromium";v="151"
+
+"Not?A_Brand";v="8", "Chromium";v="108", "Google Chrome";v="108"
+
+"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"
+
+"Not_A Brand";v="8.0.0.0", "Chromium";v="120.0.6099.72", "Google Chrome";v="120.0.6099.72"
+
+"Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"
+
+"OperationName must not be null or empty"
+
+"SVRTIME".*?"(.*?)"
+
+"ThreeDSServerTransactionId":"
+
+"TypeError: Cannot read properties of null (reading '0')\n    at mt (https://www.footlocker.ph/
+
+"]}},sort:{name:ASC},pageSize:40){items{sku name url_key stock_status only_x_left_in_stock casio_sales_type casio_can_purchase casio_sales_start_date casio_sales_end_date casio_image_url image{url label} price_range{minimum_price{final_price{value currency}}}} total_count}}
+
+"accountID\":\"
+
+"active"\s*:\s*"([A-Z]{3})"
+
+"authenticityToken":"
+
+"ccjs_version"\s*,\s*"([^"]+)"
+
+"checkoutUrl":"
+
+"cid"\s*:\s*(\d+)
+
+"cookieValue":"
+
+"csrf_token":"
+
+"customerId"\s*:\s*"?(\d+)"?
+
+"facilitatorAccessToken":"
+
+"fraudNetGuid":"
+
+"jsonConfig": 
+
+"jsonSwatchConfig": 
+
+"klaviyo-form-

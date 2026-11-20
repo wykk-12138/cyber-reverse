@@ -8254,3 +8254,14 @@ Observation：
 - 无 capture context 时**拒绝并指名 d__37**：那个签发端点在镜像里是字段不是字面量，没有串拼出它。
 - `TinyServer` 加了并行 `RequestHeaders`（additive），否则"bearer 真的发出去了"没有断言点。
 - 对照：`SquareBrowserData` 仍不在产物里（R1310 记录的裁剪项）。
+
+---
+
+## 第 1312 轮
+
+- **Casio 是 Magento GraphQL 店**：镜像 `0x146A758CC` 是一份 GraphQL 字段选择尾部，含三个**自家属性**
+  `casio_sales_type` / `casio_can_purchase` / `casio_sales_start_date`。已落 `Flows/CasioGraphQL.cs`，
+  并接进 `CasioFlow.FindProductAsync`（GraphQL 优先、HTML 回退）。产物中三个串均命中，尺寸 61,284,864。
+- 尾部开头 `"]}}` 的 `]` 证明过滤器是**列表**（`sku:{in:[`），不是 `eq:`——第一版写错，测试当场抓到。
+- 顺带证伪：`productCode` 的引用链通向 **PayPal 3DS JWT GraphQL 构造器**，与 Casio 无关，且复刻件已有。
+- **`_timestamp`/`_hash` 签名仍未解**。

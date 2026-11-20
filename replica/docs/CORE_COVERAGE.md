@@ -11,9 +11,9 @@
 | 覆写步骤总数 | 388 | 本文件生成时统计 |
 | 其中报告「端点为 Unknown」的 | 1 | 同上（匹配 `endpoint unknown` / `not captured`） |
 | 含报告的 flow | 1 | 同上 |
-| 端点常量 / 逐字在池 | 230 / 230 | `python tools/endpoint-provenance.py` |
+| 端点常量 / 逐字在池 | 231 / 231 | `python tools/endpoint-provenance.py` |
 | 常量 invented / unresolved | 0 / 1 | 同上 |
-| inline 字面量 / 不在池 | 360 / 33 | 同上 |
+| inline 字面量 / 不在池 | 361 / 33 | 同上 |
 | inline 已登记 / 未登记 | 33 / 0 | 同上 |
 | 端点门 exit | **0** | 同上 |
 
@@ -35,7 +35,7 @@
 | `NikeGsFlow.cs` | 5 | 0 | 68 |
 | `PopMartFlow.cs` | 27 | 0 | 715 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
-| `RetailFlows.cs` | 103 | 0 | 1735 |
+| `RetailFlows.cs` | 103 | 0 | 1764 |
 | `SauconyFlow.cs` | 9 | 1 | 152 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
 | `ShopifyFlow.cs` | 25 | 0 | 1142 |

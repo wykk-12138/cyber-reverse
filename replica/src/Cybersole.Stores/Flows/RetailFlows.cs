@@ -248,6 +248,35 @@ public sealed class CasioFlow : StoreFlow
 
     public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
     {
+        // R1312: the store answers a Magento GraphQL document, not a page with a title and a price. The
+        // selection it asks for is frozen in the image (0x146A758CC) and includes three Casio-only sale
+        // attributes, so the structured answer is strictly better than the regex below when the store
+        // gives one. The page read stays as the fallback: it is what this did before, and a store that
+        // answers GraphQL with an error should not stop the flow from looking at the product page.
+        var sku = c.Session.Vars.GetValueOrDefault("casio.sku");
+        if (string.IsNullOrEmpty(sku)) sku = c.Session.Vars.GetValueOrDefault("productSku");
+
+        if (!string.IsNullOrEmpty(sku))
+        {
+            var product = await CasioGraphQL
+                .SearchAsync(c, sku!, ct, c.Session.Vars.GetValueOrDefault("casio.graphqlPath"),
+                    c.Session.Vars.GetValueOrDefault("casio.graphqlDocument"))
+                .ConfigureAwait(false);
+
+            if (product is not null)
+            {
+                c.Session.Vars["casio.product"] = Newtonsoft.Json.JsonConvert.SerializeObject(product);
+                c.Session.Vars["sku"] = product.Sku;
+                if (!string.IsNullOrEmpty(product.Name)) c.Session.Vars["product"] = product.Name;
+                if (!string.IsNullOrEmpty(product.Price)) c.Session.Vars["price"] = product.Price;
+                if (!string.IsNullOrEmpty(product.StockStatus)) c.Session.Vars["stock"] = product.StockStatus;
+                if (!string.IsNullOrEmpty(product.SalesStart)) c.Session.Vars["casio.salesStart"] = product.SalesStart;
+                if (!string.IsNullOrEmpty(product.SalesEnd)) c.Session.Vars["casio.salesEnd"] = product.SalesEnd;
+                c.Session.Vars["casio.canPurchase"] = CasioGraphQL.CanBuy(product) ? "true" : "false";
+                return StepOutcome.Success();
+            }
+        }
+
         var res = await GetAsync(c, c.Url, "casio-product", ct).ConfigureAwait(false);
         if (res is null) return StepOutcome.Fail("casio product unreachable", retryable: true);
         if (!res.IsSuccess) return StepOutcome.Fail($"casio product HTTP {res.StatusCode}", retryable: true);

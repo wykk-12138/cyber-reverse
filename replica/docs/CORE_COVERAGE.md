@@ -8,12 +8,12 @@
 | 度量 | 值 | 命令 |
 |---|---|---|
 | flow 文件 | 18 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
-| 覆写步骤总数 | 369 | 本文件生成时统计 |
+| 覆写步骤总数 | 378 | 本文件生成时统计 |
 | 其中报告「端点为 Unknown」的 | 0 | 同上（匹配 `endpoint unknown` / `not captured`） |
 | 含报告的 flow | 0 | 同上 |
 | 端点常量 / 逐字在池 | 230 / 230 | `python tools/endpoint-provenance.py` |
 | 常量 invented / unresolved | 0 / 1 | 同上 |
-| inline 字面量 / 不在池 | 354 / 33 | 同上 |
+| inline 字面量 / 不在池 | 360 / 33 | 同上 |
 | inline 已登记 / 未登记 | 33 / 0 | 同上 |
 | 端点门 exit | **0** | 同上 |
 
@@ -22,7 +22,7 @@
 | flow | 覆写步骤 | 报告 Unknown | 行数 |
 |---|---|---|---|
 | `BstnFlow.cs` | 12 | 0 | 196 |
-| `DemandwareFlow.cs` | 13 | 0 | 585 |
+| `DemandwareFlow.cs` | 16 | 0 | 795 |
 | `DicksSportingGoodsFlow.cs` | 6 | 0 | 145 |
 | `FarfetchFlow.cs` | 13 | 0 | 223 |
 | `FlowStoreModule.cs` | 4 | 0 | 61 |
@@ -32,12 +32,12 @@
 | `HybrisFlow.cs` | 13 | 0 | 375 |
 | `MagentoFlow.cs` | 57 | 0 | 1626 |
 | `NikeFlow.cs` | 23 | 0 | 980 |
-| `NikeGsFlow.cs` | 4 | 0 | 47 |
+| `NikeGsFlow.cs` | 5 | 0 | 68 |
 | `PopMartFlow.cs` | 27 | 0 | 715 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
-| `RetailFlows.cs` | 99 | 0 | 1588 |
+| `RetailFlows.cs` | 102 | 0 | 1698 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
-| `ShopifyFlow.cs` | 23 | 0 | 664 |
+| `ShopifyFlow.cs` | 25 | 0 | 1113 |
 | `SportsshoesFlow.cs` | 7 | 0 | 130 |
 
 ## 二、原版侧（不可得 —— Unknown + 缺什么）

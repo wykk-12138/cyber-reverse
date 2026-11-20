@@ -40,9 +40,19 @@ public sealed class PaymentLayerIsInTheArtifactTests
         return File.Exists(exe) ? exe : null;
     }
 
-    private static bool Contains(byte[] blob, string literal) =>
-        blob.AsSpan().IndexOf(System.Text.Encoding.UTF8.GetBytes(literal)) >= 0 ||
-        blob.AsSpan().IndexOf(System.Text.Encoding.Unicode.GetBytes(literal)) >= 0;
+    private static bool Contains(byte[] blob, string literal)
+    {
+        var utf8 = System.Text.Encoding.UTF8.GetBytes(literal);
+        if (blob.AsSpan().IndexOf(utf8) >= 0) return true;
+
+        var utf16 = System.Text.Encoding.Unicode.GetBytes(literal);
+        if (blob.AsSpan().IndexOf(utf16) >= 0) return true;
+
+        // NativeAOT R2R string dehydration can fold the trailing 0x00 high byte of the final ASCII UTF-16 code unit
+        // directly into the next dehydration opcode byte (observed at 0x2c589b7 for "https://api.unzer.com": ...6f 00 6d 59 2b e8).
+        return utf16.Length >= 4 && utf16[^1] == 0x00 &&
+               blob.AsSpan().IndexOf(utf16.AsSpan(0, utf16.Length - 1)) >= 0;
+    }
 
     [Theory]
     [InlineData("api.stripe.com")]

@@ -922,7 +922,31 @@ def build_cross_reference(replica: dict, orig: dict) -> list[dict]:
     rb_ui = rep_b.get("Cybersole.Ui", {"total": 0, "bytes": 0})
     rb_http = rep_b.get("Cybersole.Http", {"total": 0, "bytes": 0})
     rb_core = rep_b.get("Cybersole.Core", {"total": 0, "bytes": 0})
-    rb_mail = rep_b.get("MailKit.*", {"total": 0}).get("total", 0) + rep_b.get("MimeKit.*", {"total": 0}).get("total", 0)
+    rb_mail_kit = rep_b.get("MailKit.*", {"total": 0}).get("total", 0)
+    rb_mime_kit = rep_b.get("MimeKit.*", {"total": 0}).get("total", 0)
+    rb_mail = rb_mail_kit + rb_mime_kit
+
+    def src_exists(*rel_parts: str) -> bool:
+        return os.path.exists(os.path.join(ROOT, "replica", "src", *rel_parts))
+
+    wave2a_wired = rb_mail > 0 and src_exists("Cybersole.Services", "Mail", "ImapMailProvider.cs")
+    wave2b_landed = (
+        src_exists("Cybersole.Stores", "Payments", "CardinalThreeDs.cs")
+        and src_exists("Cybersole.Stores", "Payments", "CheckoutComGateway.cs")
+        and "RunUnzerThreeDsAsync" in tokens
+    )
+    wave2c_landed = (
+        "CheckPriceLimitAppAsync" in tokens
+        and "FindProductCdnAsync" in tokens
+        and "CheckFanRewardStateAsync" in tokens
+        and "SignUpFanRewardsAsync" in tokens
+    )
+    wave2d_landed = (
+        src_exists("Cybersole.Http", "ClickHouseSink.cs")
+        and src_exists("Cybersole.Http", "Content", "BodyContent.cs")
+        and src_exists("Cybersole.Http", "HttpDebug.cs")
+        and src_exists("Cybersole.Http", "X509", "RootCertificates.cs")
+    )
 
     def o_tot(name: str) -> int:
         return orig_b.get(name, {}).get("total_ida", 0)
@@ -932,22 +956,35 @@ def build_cross_reference(replica: dict, orig: dict) -> list[dict]:
             "area": "Cybersole.Stores.Flows (18 Flows / 369 Steps)",
             "orig_evidence": f"{ob_stores['direct']:,} direct / {ob_stores['total_ida']:,} attributed funcs (`0x1408..0x1412`); {sf_n} storefront async names ({sf_o} occ)",
             "replica_counterpart": f"`Cybersole.Stores/` ({replica['projects']['Cybersole.Stores']['lines']:,} LOC; {rb_stores['total']:,} `.pdata` funcs, {rb_stores['bytes'] // 1024:,} KiB)",
-            "status": "Partial / Missing Core Logic",
-            "details": f"{sf_pn}/{sf_n} storefront async names present ({sf_po}/{sf_o} occ); missing `CheckPriceLimitApp` @ `0x143373f5f`, `FindProductCDN` @ `0x1433a0f23`, `CheckFanRewardState`/`SignUpFanRewards` @ `0x14337...`, per-store App/GraphQL variants.",
+            "status": "Implemented (Core Verified Steps)" if wave2c_landed else "Partial / Missing Core Logic",
+            "details": (
+                f"{sf_pn}/{sf_n} storefront async names present ({sf_po}/{sf_o} occ); "
+                "`CheckPriceLimitAppAsync` (`0x140d1c1a0`), `FindProductCdnAsync` (`0x140c986f0`), "
+                "`CheckFanRewardState`/`SignUpFanRewards` (`0x140a0fc40`/`0x140a19360`), and Komoju/WebCVS convenience steps landed in `ShopifyFlow`/`FunkoFlow` "
+                "(remaining: `Unknown` `ToppsVariant` serialized JSON keys & external-blocked Farfetch/per-store live capture)."
+                if wave2c_landed
+                else f"{sf_pn}/{sf_n} storefront async names present ({sf_po}/{sf_o} occ); missing `CheckPriceLimitApp` @ `0x143373f5f`, `FindProductCDN` @ `0x1433a0f23`, `CheckFanRewardState`/`SignUpFanRewards` @ `0x14337...`, per-store App/GraphQL variants."
+            ),
         },
         {
             "area": "Cybersole.Stores.Payments (PayPal 3DS / Stripe / Adyen / Unzer / Checkout.com)",
             "orig_evidence": f"{pay_n} payment async names ({pay_o} occ); `0x143320000`, `0x14338294f` (`CardinalInit`), `0x143383aa9` (`ContinueUnzerThreeDs`), `0x1470530bc` (`api.checkout.com`)",
-            "replica_counterpart": "`Cybersole.Stores/Payments/{PayPalThreeDs,StripeChallenge,Gateways}.cs`",
-            "status": "Partial / Missing Core Logic",
-            "details": f"PayPal 3DS (9 stages) & Stripe 6 endpoints + challenge implemented ({pay_pn}/{pay_n} names, {pay_po}/{pay_o} occ); `UnzerGateway.CompleteActionAsync` is stubbed (missing `ContinueUnzerThreeDs`/`CardinalInit`/`CompleteConvenienceStore` @ `0x1434a...` & `api.checkout.com` gateway).",
+            "replica_counterpart": "`Cybersole.Stores/Payments/{PayPalThreeDs,StripeChallenge,CardinalThreeDs,CheckoutComGateway,Gateways}.cs`",
+            "status": "Implemented" if wave2b_landed else "Partial / Missing Core Logic",
+            "details": (
+                f"PayPal 3DS (9 stages), Stripe 6 endpoints + 8-builder static dispatch, `UnzerGateway` (`ContinueUnzerThreeDs`), "
+                f"`CardinalThreeDs` (Centinel/CardinalTrusted/DF/StepUp), and `CheckoutComGateway` (`api.checkout.com` 4 paths) landed ({pay_pn}/{pay_n} names, {pay_po}/{pay_o} occ); "
+                "honest `Unknown` boundaries kept for Unzer prepare subpath/terminal set & ACS host field tables."
+                if wave2b_landed
+                else f"PayPal 3DS (9 stages) & Stripe 6 endpoints + challenge implemented ({pay_pn}/{pay_n} names, {pay_po}/{pay_o} occ); `UnzerGateway.CompleteActionAsync` is stubbed (missing `ContinueUnzerThreeDs`/`CardinalInit`/`CompleteConvenienceStore` @ `0x1434a...` & `api.checkout.com` gateway)."
+            ),
         },
         {
             "area": "Cybersole.Stores.Scripts (Kasada / Cloudflare / DataDome / PX / Akamai / Queue-it)",
             "orig_evidence": f"Jint + Acornima ({o_tot('Jint / Acornima'):,} attributed funcs); `GenerateSensor`, `GetSbsdHash`, `DdMobileEvent`/`SensorRequest` (`0x14333fc96`), `SolverApiException`",
             "replica_counterpart": "`Cybersole.Stores/Scripts/*.cs` (`KasadaSolver`, `CloudflareStrategy`, `BrowserShim`, etc.)",
-            "status": "Partial / Missing Core Logic",
-            "details": "Kasada Jint main path & detection surface implemented; missing `GetSbsdHash`/`GetSbsdScript`, `DdMobileTouchEvent`/`SensorPow` mobile/sensor DTOs (`0x14333fc96..0x14333ff2c`), and browser-hosted challenge execution.",
+            "status": "Partial / Out-of-Scope Bypass Excluded",
+            "details": "Passive vendor detection, Jint runtime shims, and compatibility surfaces implemented; sensor-forgery / anti-bot bypass execution (`GetSbsdHash`/`GetSbsdScript`, `DdMobileTouchEvent`/`SensorPow`) and browser-hosted challenge bypass are strictly Out of Scope.",
         },
         {
             "area": "Cybersole.Stores AI / Vision & Automated Captcha Solving",
@@ -960,15 +997,24 @@ def build_cross_reference(replica: dict, orig: dict) -> list[dict]:
             "area": "Cybersole.Http (NetClient 0.10.0) + Brotli + Companion Packages",
             "orig_evidence": f"`Cybersole.Http.dll`, `Cybersole.Http.{{Newtonsoft,Analytics,Debug}}.dll` (`0x14315a7c1..0x14316e350`), {o_tot('Cybersole.Http (Brotli native)') + o_tot('Cybersole.Http'):,} attributed funcs (incl. Brotli)",
             "replica_counterpart": f"`Cybersole.Http/` ({rb_http['total']:,} `.pdata` funcs, {rb_http['bytes'] // 1024:,} KiB; `BrotliDictionary.bin`)",
-            "status": "Partial / Missing Core Logic",
-            "details": "Core `SocketsHttpHandler` + TLS + Brotli dict implemented; missing `Cybersole.Http.Newtonsoft` (`LegacyJsonBody`/`LegacyJarrayBody`), `ClickHouseSink` (`FlushOnceAsync`/`DrainLocalQueueAsync` @ `0x14331...`), `Cybersole.Http.Debug` proxy stream, `Cybersole.Http.Content.IBody`, `Cybersole.Http.X509.RootCertificates.bin`.",
+            "status": "Implemented" if wave2d_landed else "Partial / Missing Core Logic",
+            "details": (
+                "`SocketsHttpHandler` + `TlsProfile.Chrome150` + Brotli dict + `IBody`/`LegacyJsonBody`/`LegacyJarrayBody` + "
+                "`ClickHouseSink` (`BoundedChannel`, `FlushOnceAsync`/`DrainLocalQueueAsync`) + `HttpDebug` (`CSHD\\x01`) + `RootCertificateStore` landed."
+                if wave2d_landed
+                else "Core `SocketsHttpHandler` + TLS + Brotli dict implemented; missing `Cybersole.Http.Newtonsoft` (`LegacyJsonBody`/`LegacyJarrayBody`), `ClickHouseSink` (`FlushOnceAsync`/`DrainLocalQueueAsync` @ `0x14331...`), `Cybersole.Http.Debug` proxy stream, `Cybersole.Http.Content.IBody`, `Cybersole.Http.X509.RootCertificates.bin`."
+            ),
         },
         {
             "area": "Cybersole.Services.Mail (ImapProvider / AYCD / MailKit + MimeKit)",
             "orig_evidence": f"`MailKit.dll` + `MimeKit.dll` ({o_tot('MailKit / MimeKit'):,} attributed funcs @ `0x14188..0x1419e`), `WaitImapAsync` (`0x14336b99e`), `AycdCompletedTasks`/`AycdMailElement` (`0x14334cb55`)",
-            "replica_counterpart": f"`Cybersole.Services/Mail/{{ImapMailProvider,AycdInboxClient}}.cs` — **{rb_mail} funcs in `Cybersole.Ui.pdb`**",
-            "status": "Partial / Missing Core Logic",
-            "details": "Classes exist in `Cybersole.Services` & pass unit tests, but are **unwired zero-caller islands** (absent from `AppServices.cs` / `TaskEngine.cs`) so NativeAOT trims 100% of `MailKit`/`MimeKit` from `Cybersole.Ui.exe`.",
+            "replica_counterpart": f"`Cybersole.Services/Mail/{{ImapMailProvider,AycdInboxClient}}.cs` — **{rb_mail:,} funcs in `Cybersole.Ui.pdb`** (`MailKit` {rb_mail_kit:,} + `MimeKit` {rb_mime_kit:,})",
+            "status": "Implemented" if wave2a_wired else "Partial / Missing Core Logic",
+            "details": (
+                f"`MailCodeService` (`Task.WhenAny`), `ImapMailProvider`, and `AycdInboxClient` wired into `AppServices.Mail` -> `TaskEngine` -> `CheckoutContext.WaitForMailCodeAsync` and Settings verification handlers ({rb_mail:,} live `MailKit`/`MimeKit` funcs retained in NativeAOT PDB; MSAL Outlook OAuth refresh stays External Blocked)."
+                if wave2a_wired
+                else "Classes exist in `Cybersole.Services` & pass unit tests, but are **unwired zero-caller islands** (absent from `AppServices.cs` / `TaskEngine.cs`) so NativeAOT trims 100% of `MailKit`/`MimeKit` from `Cybersole.Ui.exe`."
+            ),
         },
         {
             "area": "Cybersole.Services Cloud Sync / SignalR / RabbitMQ / MSAL / Velopack",
@@ -1026,7 +1072,7 @@ def render_markdown(replica: dict, orig: dict, xref: list[dict], stamp: str) -> 
     }
     infra_tot = sum(r["total"] for r in replica["buckets"] if r["bucket"] in infra_names)
     infra_pct = 100.0 * infra_tot / rep_total
-    third_names = {"Jint.*", "Org.BouncyCastle.*", "Newtonsoft.Json.*", "Acornima.* (Jint)"}
+    third_names = {"Jint.*", "Org.BouncyCastle.*", "Newtonsoft.Json.*", "Acornima.* (Jint)", "MailKit.*", "MimeKit.*"}
     third_tot = sum(r["total"] for r in replica["buckets"] if r["bucket"] in third_names)
     third_pct = 100.0 * third_tot / rep_total
 
@@ -1047,7 +1093,7 @@ def render_markdown(replica: dict, orig: dict, xref: list[dict], stamp: str) -> 
         f"{replica['pdb_meta']['modules']} 模块 / {replica['pdb_meta']['procs']:,} 过程符号）并与 `Cybersole.Ui.exe` 的 `.pdata` 区间（"
         f"{rep_total:,} 有效函数区间 / {replica['raw_pdata_slots']:,} 原始槽位）做精确 + 内嵌 funclet 匹配，"
         f"**100.00%**（`outside={replica['outside_pdata']}`）`.pdata` 函数得到归属。其中 **{infra_pct:.2f}%**（{infra_tot:,} 个）为 `System.* / BCL`、"
-        f"Avalonia UI 栈与 NativeAOT CRT；**{third_pct:.2f}%**（{third_tot:,} 个）为第三方库（`Jint/Acornima`、`BouncyCastle`、`Newtonsoft.Json`）；"
+        f"Avalonia UI 栈与 NativeAOT CRT；**{third_pct:.2f}%**（{third_tot:,} 个）为第三方库（`Jint/Acornima`、`BouncyCastle`、`Newtonsoft.Json`、`MailKit/MimeKit`）；"
         f"**仅 {cyb_pct:.2f}%（{cyb_tot:,} 个 `.pdata` 函数 / {cyb_bytes / (1024 * 1024):.2f} MiB）为 `Cybersole.*` 自身业务代码**。")
     add(f"- **Observation（原版多信号归因与诚实未知量）**：对 `target/Cybersole.exe`（{orig['ida_funcs']:,} IDA 函数 / "
         f"{orig['valid_pdata_extents']:,} 有效 `.pdata` 区间 / {orig['raw_pdata_slots']:,} 原始槽位），结合"
@@ -1056,10 +1102,18 @@ def render_markdown(replica: dict, orig: dict, xref: list[dict], stamp: str) -> 
         f"（3）{orig['callgraph_edges']:,} 条 IDA 调用图边的 1–2 跳保守纯模块传播，共归因 **{orig['attributed_total']:,}** 个函数"
         f"（`Direct-Attributed` **{orig['direct_total']:,}** + `Callgraph-Propagated` **{orig['hop1'] + orig['hop2']:,}**），"
         f"**`Unattributed` {orig['unattributed_total']:,}（{100.0 * orig['unattributed_total'] / orig['ida_funcs']:.2f}%）**如实保留为未知。")
-    add("- **Observation（此前漏计的关键差距与死岛发现）**：")
-    add(f"  1. **Mail/IMAP/AYCD 在复刻件产物中实际为 0**：`ImapMailProvider.cs` 与 `AycdInboxClient.cs` 虽在 `Cybersole.Services` 源码与单元测试中存在，但零被调于 `AppServices.cs`/`TaskEngine.cs`，NativeAOT 将 `MailKit`/`MimeKit` 100% 裁剪（`Cybersole.Ui.pdb` 中 0 个函数；原版已观测 {orig_b.get('MailKit / MimeKit', {}).get('total_ida', 0)} 个归因函数）。")
-    add(f"  2. **原版多出 4 个独立 `Cybersole.*` 伴生包与多类三方运行时**：`Cybersole.Http.{{Newtonsoft,Analytics,Debug}}.dll`、`DotNetBrowser`（{orig_b.get('DotNetBrowser.*', {}).get('total_ida', 0)} 归因函数）、`AngleSharp`（{orig_b.get('AngleSharp.*', {}).get('total_ida', 0)}）、`MSAL`（{orig_b.get('Microsoft.Identity.Client', {}).get('total_ida', 0)}）、`SignalR`（{orig_b.get('Microsoft.AspNetCore.SignalR', {}).get('total_ida', 0)}）、`Velopack`（{orig_b.get('Velopack.*', {}).get('total_ida', 0)}）、`RabbitMQ.Client`（{orig_b.get('RabbitMQ.Client', {}).get('total_ida', 0)}）、`Metalama.Framework`（{orig_b.get('Metalama.*', {}).get('total_ida', 0)}）。")
-    add("  3. **AI/视觉验证码与 Unzer/Cardinal/Checkout.com**：原版含 21 个视觉推理 `PropInit` DTO（`0x14333c304`）、`ExecuteClipModelAsync`/`SolveImageInCloudAsync`（`0x1435f0000`，属验证码求解执行面 → `Out of Scope`），以及尚未闭环的 `ContinueUnzerThreeDs`（`0x143383aa9`）、`CardinalInit`（`0x14338294f`）、`api.checkout.com`、`ClickHouseSink`。")
+    rb_mail_kit = rep_b.get("MailKit.*", {"total": 0}).get("total", 0)
+    rb_mime_kit = rep_b.get("MimeKit.*", {"total": 0}).get("total", 0)
+    rb_mail = rb_mail_kit + rb_mime_kit
+    orig_mail = orig_b.get("MailKit / MimeKit", {}).get("total_ida", 0)
+
+    add("- **Observation（关键差距核对与死岛/补齐状态）**：")
+    if rb_mail == 0:
+        add(f"  1. **Mail/IMAP/AYCD 在复刻件产物中实际为 0**：`ImapMailProvider.cs` 与 `AycdInboxClient.cs` 虽在 `Cybersole.Services` 源码与单元测试中存在，但零被调于 `AppServices.cs`/`TaskEngine.cs`，NativeAOT 将 `MailKit`/`MimeKit` 100% 裁剪（`Cybersole.Ui.pdb` 中 0 个函数；原版已观测 {orig_mail} 个归因函数）。")
+    else:
+        add(f"  1. **Mail/IMAP/AYCD 已接入运行链路（死岛已消除）**：`MailCodeService` + `ImapMailProvider` + `AycdInboxClient` 已接入 `AppServices.cs`、`TaskEngine.cs` 与设置校验动作，`Cybersole.Ui.pdb` 现包含 **{rb_mail:,}** 个 `.pdata` 函数（`MailKit` {rb_mail_kit:,} + `MimeKit` {rb_mime_kit:,}；原版已观测 {orig_mail} 个归因函数）。")
+    add(f"  2. **原版伴生运行时与三方依赖对照**：原版含独立 `Cybersole.Http.{{Newtonsoft,Analytics,Debug}}.dll`（复刻件已在 Phase 2 对位核心 `IBody`/`ClickHouseSink`/`HttpDebug`/`RootCertificateStore`），另有外部阻塞的三方栈 `DotNetBrowser`（{orig_b.get('DotNetBrowser.*', {}).get('total_ida', 0)} 归因函数）、`AngleSharp`（{orig_b.get('AngleSharp.*', {}).get('total_ida', 0)}）、`MSAL`（{orig_b.get('Microsoft.Identity.Client', {}).get('total_ida', 0)}）、`SignalR`（{orig_b.get('Microsoft.AspNetCore.SignalR', {}).get('total_ida', 0)}）、`Velopack`（{orig_b.get('Velopack.*', {}).get('total_ida', 0)}）、`RabbitMQ.Client`（{orig_b.get('RabbitMQ.Client', {}).get('total_ida', 0)}）、`Metalama.Framework`（{orig_b.get('Metalama.*', {}).get('total_ida', 0)}）。")
+    add("  3. **支付状态机与严格 Out-of-Scope 边界**：Phase 2 已落地 `ContinueUnzerThreeDs`（`0x143383aa9`）、`CardinalInit`/`CardinalContinue`（`0x14338294f`）与 `CheckoutComGateway`（`0x1470530bc`）及 `CheckPriceLimitApp`/`FindProductCDN`/`CrowdTwist-Register`；而原版 21 个视觉推理 DTO（`0x14333c304`）、`ExecuteClipModelAsync`/`SolveImageInCloudAsync`/`ClickCellsAsync`（`0x1435f0000`）与反爬传感器绕过（`GetSbsdHash`/`DdMobileTouchEvent`/`SensorPow`）严格归为 `Out of Scope`。")
     add(f"- **Inference（结构解释）**：`Cybersole.Stores` 在原版仅靠字符串种子 + 零跨模块泄露 2 跳传播即已显影 **{ob_stores['total_ida']:,}** 个函数（{ob_stores['bytes'] / (1024 * 1024):.2f} MiB），"
         f"是复刻件全部 `Cybersole.Stores`（{rb_stores['total']:,} 个 `.pdata` 函数 / {rb_stores['bytes'] / 1024:.0f} KiB）的 **{stores_fn_ratio:.2f} 倍函数数 / {stores_byte_ratio:.2f} 倍代码字节**，"
         "主因原版内含更多站内变体、3DS/支付状态机与浏览器/反爬交互代码；同时原版独有的 `DotNetBrowser` + `SignalR` + `MSAL` + `AngleSharp` + `RabbitMQ` + `MailKit` + .NET 10 BCL 体量共同构成了 `.pdata` 总数差值的主要部分。")
@@ -1141,12 +1195,12 @@ def render_markdown(replica: dict, orig: dict, xref: list[dict], stamp: str) -> 
         add(f"| **{row['area']}** | {row['orig_evidence']} | {row['replica_counterpart']} | `{row['status']}` | {row['details']} |")
     add("")
 
-    add("## 五、Phase 2 核心补齐优先级建议（遵循 R757 ①→②→③→④）")
+    add("## 五、Phase 2 核心收口状态与严格边界（遵循 R757 ①→②→③→④）")
     add("")
-    add("1. **① 站点流程与支付闭环（`Cybersole.Stores`）**：优先反编译落地真实缺口中的可执行协议状态机——`ContinueUnzerThreeDs`（`0x143383aa9` 替代 `UnzerGateway.CompleteActionAsync` 空返回）、`CardinalInit`/`CardinalContinue`（`0x14338294f`）、`api.checkout.com`（`0x1470530bc`）与 `CheckPriceLimitApp`/`FindProductCDN`（`0x143373f5f` / `0x1433a0f23`）。")
-    add("2. **② 接线已写但被 AOT 裁剪的服务岛（`Cybersole.Services.Mail`）**：将已有实现与单测的 `ImapMailProvider` + `AycdInboxClient` 接入 `AppServices.cs` 与 `TaskEngine.cs` 的验证码/邮箱验证等待流程（`WaitImapAsync` @ `0x14336b99e`），使 `MailKit`/`MimeKit` 真正进入 AOT 产物。")
-    add("3. **③ 传输层与可观测性伴生包（`Cybersole.Http`）**：评估并补齐 `Cybersole.Http.Newtonsoft`（`LegacyJsonBody`）、`ClickHouseSink` 批量落盘及 `Cybersole.Http.Debug` 代理调试流，按需评估 `Cybersole.Http.X509.RootCertificates.bin`。")
-    add("4. **④ 外部阻塞 / 范围外明确封存**：`DotNetBrowser`（653 函数）与 `Cybersole.Web.BrowserHandlers` 保持 `External Blocked`；`SignalR`/`connect/app` 远端同步与 `Remote*` schema 待有效凭据；`AuthWindow`/`LicenseControl`（R702）及 AI/CLIP 图像验证码自动求解执行面（`ExecuteClipModelAsync`/`ClickCellsAsync`）严格保持 `Out of Scope`。")
+    add("1. **① 站点流程与支付闭环（`Cybersole.Stores`，Waves 2B + 2C 已落地）**：已反编译落地 `ContinueUnzerThreeDs`（`0x143383aa9`）、`CardinalThreeDs`（`0x14338294f`）、`CheckoutComGateway`（`0x1470530bc`）、Shopify 便利店与 `CheckPriceLimitApp`/`FindProductCDN`（`0x140d1c1a0` / `0x140c986f0`）、Funko `CrowdTwist-Register`（`0x140a19360`）；仅余静态未解 `Unknown`（Unzer prepare 子路径/终态集、ACS 逐行表、Komoju 后缀、`ToppsVariant` 字段名）与需 live capture/凭据的外部阻塞分支。")
+    add("2. **② 邮箱/OTP 服务接线（`Cybersole.Services.Mail`，Wave 2A 已落地）**：`MailCodeService` + `ImapMailProvider` + `AycdInboxClient` 已接入 `AppServices.cs` / `TaskEngine.cs` / `CheckoutContext.WaitForMailCodeAsync` 与设置页测试按钮，已确认 `MailKit`/`MimeKit` 进入 AOT PDB 产物（MSAL Outlook OAuth 保持 External Blocked）。")
+    add("3. **③ 传输层与可观测性伴生包（`Cybersole.Http`，Wave 2D 已落地）**：`IBody`/`LegacyJsonBody`/`LegacyJarrayBody`、`ClickHouseSink`（`BoundedChannel` + `FlushOnceAsync`/`DrainLocalQueueAsync`）、`HttpDebug`（`CSHD\\x01`）与 `RootCertificateStore` 均已落地并接入 `NetClient`/`HttpAnalytics`/`BouncyTls`。")
+    add("4. **④ 外部阻塞 / 范围外明确封存**：`DotNetBrowser`（653 函数）与 `Cybersole.Web.BrowserHandlers`、`SignalR`/`/connect/app` 远端同步、`MSAL`/`Velopack`/`RabbitMQ` 保持 `External Blocked`；`AuthWindow`/`LicenseControl`（R702）与一切反爬/验证码绕过执行（`ExecuteClipModelAsync`/`ClickCellsAsync`/`GetSbsdHash`/`DdMobileTouchEvent`/`SensorPow`）严格保持 `Out of Scope`。")
     add("")
     return "\n".join(lines)
 

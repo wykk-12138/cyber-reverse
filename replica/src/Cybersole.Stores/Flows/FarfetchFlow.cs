@@ -91,7 +91,7 @@ public class FarfetchFlow : StoreFlow
         // for the full evidence. The route is a server-delivered connect/app config entry, and the entry's
         // schema needs the original login to capture.
         return StepOutcome.Fail(
-            "farfetch: product endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
+            "farfetch: product route unrecorded locally — it is a server-delivered connect/app config entry, schema needs the original login to capture");
     }
 
     public override Task<StepOutcome> FindVariantAsync(FlowContext c, CancellationToken ct)
@@ -164,42 +164,42 @@ public class FarfetchFlow : StoreFlow
     {
         // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: add-to-cart endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
+            "farfetch: add-to-cart route unrecorded locally — it is a server-delivered connect/app config entry, schema needs the original login to capture");
     }
 
     public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
     {
         // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: basket endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
+            "farfetch: basket route unrecorded locally — it is a server-delivered connect/app config entry, schema needs the original login to capture");
     }
 
     public override async Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct)
     {
         // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: checkout endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
+            "farfetch: checkout route unrecorded locally — it is a server-delivered connect/app config entry, schema needs the original login to capture");
     }
 
     public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
     {
         // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: shipping endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
+            "farfetch: shipping route unrecorded locally — it is a server-delivered connect/app config entry, schema needs the original login to capture");
     }
 
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
         // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: payment endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
+            "farfetch: payment route unrecorded locally — it is a server-delivered connect/app config entry, schema needs the original login to capture");
     }
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
         // R1077: server-delivered route -- see the class header for the decompiled evidence.
         return StepOutcome.Fail(
-            "farfetch: place-order endpoint unknown -- server-delivered route (connect/app config), schema needs the original login");
+            "farfetch: place-order route unrecorded locally — it is a server-delivered connect/app config entry, schema needs the original login to capture");
     }
 
     /// <summary>

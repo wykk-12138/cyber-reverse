@@ -47475,3 +47475,48 @@ R1291 说"复刻件只 1.2 ⇒ 真差异"。真相是：默认路径 **`Tls12 | 
 证据等级：Observation = 六项属性逐行、三个地址、字典注释原文；
 Inference = 「默认路径同源」；**Unknown** = 原版是否真启用 HTTP/3（只有开关字符串）、
 Brotli 字典压缩体的真实响应样本（需 live capture）。
+
+## R1294 —— ① 最后一块：`FarfetchFlow` 七条占位**从 `unknown` 改成分类**
+
+### 一、R1077 早就把问题问完了，文案还写着"unknown"
+
+类头批注（`FarfetchFlow.cs:90-92`）原文：
+
+> R1077: the decompile closed the question this report used to leave open … The route is a **server-delivered
+> connect/app config entry**, and the entry's schema needs **the original login** to capture.
+
+⇒ 这是**已分类**（服务端下发 + 凭据受阻），不是待查。而 7 条消息仍写着 `endpoint unknown`，
+于是 `core_coverage.py` 把它们计进"端点为 Unknown"，① 的判据一直显示有占位。
+
+### 二、改了什么
+
+7 条（`product` / `add-to-cart` / `basket` / `checkout` / `shipping` / `payment` / `place-order`）统一改为：
+
+```
+farfetch: <x> route unrecorded locally — it is a server-delivered connect/app config entry, schema needs the original login to capture
+```
+
+`FarfetchFlow.cs` 里 `endpoint unknown` 计数 **7 → 0**。
+
+### 三、连带修掉一处**绑整句**的测试
+
+`FarfetchIsCoveredByTheOriginalTests.TheStepsNameTheServerDeliveredTransport` 原来断言**完整那一整句**
+（连 `-- server-delivered route (connect/app config)` 的破折号都在里面），所以改措辞就红。
+
+按 R1284/R1286 的一贯口径改成断**事实**：保留三条短语断言（`server-delivered` / `connect/app` /
+`schema needs the original login`），第四条改为断 `route unrecorded locally`。
+**它防的东西没变**（这条路由的性质与所缺条件），只是不再防措辞。
+
+### 四、验证
+
+`Farfetch|FlowWorkAudit|EndpointEvidenceRatchet` **7/7**；全量 **2478 通过 / 0 失败 / 2 跳过 / 2480**。
+
+### 五、① 的状态
+
+`BstnFlow` 4 条（R1284）与 `FarfetchFlow` 7 条（本轮）都已是**分类结案**；
+`Stores/Flows` 的 `inferred` 24 条已全部查过 dump（R1289/R1290）。
+⇒ ① 里**不再有"未查"的占位**，剩下的是**凭据受阻**（Farfetch 的 connect/app schema）与
+**0 命中 → unknown**（23 条），两者都要 live capture。
+
+**注意**：`core_coverage.py` 与 `payment_challenges.py` 本轮**都没能重跑**——IDA 又报 `kpsdk=0`
+（`strings` 查询返回 Traceback），生成器按设计拒绝写零。计数会在下次 IDA 就绪时反映，这里不代填。

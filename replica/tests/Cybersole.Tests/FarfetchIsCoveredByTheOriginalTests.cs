@@ -59,8 +59,8 @@ public sealed class FarfetchIsCoveredByTheOriginalTests
         Assert.Contains("server-delivered", source, StringComparison.Ordinal);
         Assert.Contains("connect/app", source, StringComparison.Ordinal);
         Assert.Contains("schema needs the original login", source, StringComparison.Ordinal);
-        Assert.Contains(
-            "farfetch: product endpoint unknown -- server-delivered route (connect/app config), schema needs the original login",
-            source, StringComparison.Ordinal);
+        // R1294: the message was reclassified from "endpoint unknown" to "route unrecorded locally" because
+        // R1077 had already closed the question. The assertion follows the fact, not the sentence.
+        Assert.Contains("route unrecorded locally", source, StringComparison.Ordinal);
     }
 }

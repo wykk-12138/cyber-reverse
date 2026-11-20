@@ -68969,3 +68969,13 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - **R1291 的"只 1.2"彻底收回**：那只对 `OwnTls` 成立，默认路径已启 1.3。
 - Brotli 字典已对齐（122,784 B / offset 0x62DD580 / 标准前缀表），限制是 .NET 8 无字典 API。
 - `Tls|Transport|Redirect|Brotli` **92/92**。
+
+---
+
+## 第 1294 轮：FarfetchFlow 七条占位分类结案 + 修掉绑整句的测试
+
+- R1077 早已定性（server-delivered connect/app + 需原版登录），文案却仍写 `endpoint unknown` ⇒ 7 条改判。
+- `FarfetchFlow` 的 `endpoint unknown` 计数 **7 → 0**。
+- `TheStepsNameTheServerDeliveredTransport` 从"断整句"改为"断事实"（保留三条短语 + `route unrecorded locally`）。
+- 定向 7/7；全量 **2478/0/2/2480**。
+- 生成器（`core_coverage.py` / `payment_challenges.py`）本轮因 IDA `kpsdk=0` **未重跑**，计数待就绪后更新。

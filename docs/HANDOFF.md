@@ -8072,3 +8072,15 @@ Observation：
 
 判断：③ 默认路径已同源，剩余只是流量级证据缺口（HTTP/3 是否真启用、Brotli 字典压缩体样本）。
 下轮：**转 ②** —— PayPal 3DS 阶段 2–8（`PAYMENT_CHALLENGES.md`）。
+
+## R1294 —— ① 收口：Bstn 4 + Farfetch 7 全部分类；全量 2478/0/2/2480
+
+Observation：
+- `FarfetchFlow.cs` 七条（product/add-to-cart/basket/checkout/shipping/payment/place-order）由 `endpoint unknown`
+  改为 `route unrecorded locally — server-delivered connect/app …`，文件内计数 7→0。
+- 一处测试原断言整句，已改为断三条短语 + `route unrecorded locally`。
+- 全量 2478/0/2/2480。
+- **IDA `kpsdk=0`**：两个生成器未重跑（拒绝写假零）。
+
+下轮：IDA 恢复后重跑 `core_coverage.py` + `payment_challenges.py` 刷新计数；随后 ② 的 Stripe 派发关系
+（文档记为 Unknown：四个构建器经 delegate/虚表间接派发，静态不可得）——或直接进 12 项完成判据自检。

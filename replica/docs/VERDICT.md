@@ -68922,3 +68922,12 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - `GoatFlow` 14 处 inferred 逐条查：镜像 5 条完整 URL 全部**已在调用**；剩余 inferred 只有 body 字段与 0 命中的产品端点 ⇒ **无可核销**。
 - 修掉 `L44` 的假陈述「four paths this flow **never used**」→ 五条带地址列出（镜像的路径 / 非镜像的 body 分开说）。
 - 全量 **2478/0/2/2480**。
+
+---
+
+## 第 1289 轮：StoreFlow + MagentoFlow 的 inferred 查证（1 命中 / 7 零命中）
+
+- `/rest/V1` 命中 `146AB72A4`（可升实证）；其余 7 条 0 命中。
+- **按 R1266，0 命中读作 unknown，不是"不存在"**——注释里也只写"查过了、0 命中"。
+- 13 处注释追加查证结论，原 `inferred: no image evidence` 短语保留（ratchet 按短语绑行）。
+- 全量 **2478/0/2/2480**。

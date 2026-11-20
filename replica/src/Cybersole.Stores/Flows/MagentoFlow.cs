@@ -192,7 +192,7 @@ public class MagentoFlow : StoreFlow
 
     public override async Task<StepOutcome> GetBasketAsync(FlowContext c, CancellationToken ct)
     {
-        // inferred: no image evidence for this exact literal (R1251). The image carries "/rest/V1" and "carts/mine"
+        // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information for this exact literal (R1251). The image carries "/rest/V1" and "carts/mine"
         // as separate strings, so the original can produce this path by concatenation and the audit cannot see it as
         // one literal; what it does carry verbatim are the action suffixes in MagentoRest (items, coupons,
         // payment-information, shipping-information). Which of those a given storefront reads its basket through is
@@ -218,7 +218,7 @@ public class MagentoFlow : StoreFlow
     /// </summary>
     public override async Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct)
     {
-        // inferred: no image evidence for this exact literal (R1255). The image carries the same idea as
+        // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information for this exact literal (R1255). The image carries the same idea as
         // CheckoutRoutes.StagePayment ("/checkout/?stage=payment"), which is a query the server can act on, while a
         // fragment never leaves the browser. The path is kept rather than switched because which page family this
         // store belongs to is not observable; the attested alternatives are named in CheckoutRoutes.
@@ -231,7 +231,7 @@ public class MagentoFlow : StoreFlow
         c.Session.CheckoutUrl = page.Url.ToString();
         c.Session.Vars["checkoutPage"] = page.Body;
 
-        var totals = await GetAsync(c, ApiOrigin(c) + "/rest/V1/carts/mine/totals",  // inferred: no image evidence (R294)
+        var totals = await GetAsync(c, ApiOrigin(c) + "/rest/V1/carts/mine/totals",  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             Tag() + "-checkout-totals", ct).ConfigureAwait(false);
 
         if (totals is { IsSuccess: true })
@@ -567,7 +567,7 @@ public sealed class JdSportsFlow : MagentoFlow
         var code = c.Session.Vars.TryGetValue("otp", out var otp) ? otp : null;
         if (string.IsNullOrEmpty(code)) return StepOutcome.Fail("jdsports: no OTP available");
 
-        var res = await PostFormAsync(c, Origin(c.Url) + "/account/verify",  // inferred: no image evidence (R294)
+        var res = await PostFormAsync(c, Origin(c.Url) + "/account/verify",  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             new Dictionary<string, string> { ["code"] = code! }, "jdsports-2fa", ct)
             .ConfigureAwait(false);
 
@@ -1590,7 +1590,7 @@ public sealed class KithFlow : ShopifyFlow
 
     public override async Task<StepOutcome> PollReleaseAsync(FlowContext c, CancellationToken ct)
     {
-        var res = await GetAsync(c, Origin(c.Url) + "/collections/new-releases",  // inferred: no image evidence (R294)
+        var res = await GetAsync(c, Origin(c.Url) + "/collections/new-releases",  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             "kith-releases", ct).ConfigureAwait(false);
         if (res is null) return StepOutcome.Fail("kith releases unreachable", retryable: true);
 

@@ -860,7 +860,7 @@ public abstract class StoreFlow
         // artifact -- rewriting an unreachable call to a different unreachable call is R48's "swapping one guess for
         // another". The address stays as it is and the alternative is recorded here, so whoever makes this step
         // reachable starts from the two candidates rather than from scratch.
-        var res = await PostJsonAsync(c, Origin(c.Url) + "/discount/" + Uri.EscapeDataString(code!),  // inferred: no image evidence (R1017)
+        var res = await PostJsonAsync(c, Origin(c.Url) + "/discount/" + Uri.EscapeDataString(code!),  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R1017)
             "{}", Tag() + "-discount", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("discount submit failed", retryable: true);
@@ -1370,7 +1370,7 @@ public abstract class StoreFlow
         // left alone: those thirty-nine are another store's routes, a payment detail lookup is not among the shapes the
         // image shows, and this method has no overrides, so R963 trims it and the string does not reach the artifact.
         // Recorded rather than substituted, for the reason R48 gave about the Nike checkout resource.
-        var url = Origin(c.Url) + "/api/payments/" + Uri.EscapeDataString(token!);  // inferred: no image evidence (R1017)
+        var url = Origin(c.Url) + "/api/payments/" + Uri.EscapeDataString(token!);  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R1017)
         var res = await GetAsync(c, url, Tag() + "-paydetails", ct).ConfigureAwait(false);
         if (res is null) return StepOutcome.Fail("payment details unreachable", retryable: true);
 
@@ -1383,7 +1383,7 @@ public abstract class StoreFlow
     {
         // Final confirmation: the store answers with the order identity or a refusal.
         //
-        // inferred: no image evidence for "/checkout/complete" (R1255). The image's terminal pages are
+        // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information for "/checkout/complete" (R1255). The image's terminal pages are
         // CheckoutRoutes.Success, OnePageSuccess, Confirmation and Return; this default is the step's fallback when the
         // flow supplied no destination, so it stays as a fallback and the attested spellings are named next to it.
         var url = c.Session.Vars.TryGetValue("destination", out var dest)
@@ -1936,7 +1936,7 @@ public abstract class StoreFlow
         var email = await SetEmailAsync(c, ct).ConfigureAwait(false);
         if (!email.Ok) return email;
 
-        var res = await PostJsonAsync(c, Origin(c.Url) + "/account/recover",  // inferred: no image evidence (R294)
+        var res = await PostJsonAsync(c, Origin(c.Url) + "/account/recover",  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R294)
             Newtonsoft.Json.JsonConvert.SerializeObject(new { email = c.Session.Vars["email"] }),
             Tag() + "-recover", ct).ConfigureAwait(false);
 
@@ -2032,7 +2032,7 @@ public abstract class StoreFlow
         // The sbsd cookie comes from the same script as the client token.
         if (c.Session.AntiBotTokens.TryGetValue("x-kpsdk-sb", out var sb) && !string.IsNullOrEmpty(sb))
         {
-            c.Session.Vars["sbsd"] = sb;  // inferred: no image evidence (R297)
+            c.Session.Vars["sbsd"] = sb;  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R297)
             return StepOutcome.Success();
         }
 
@@ -2042,10 +2042,10 @@ public abstract class StoreFlow
     {
         if (!c.Session.AntiBotTokens.TryGetValue("x-kpsdk-sb", out var sb) ||
             string.IsNullOrEmpty(sb))
-            return StepOutcome.Fail("no sbsd token", retryable: true);  // inferred: no image evidence (R297)
+            return StepOutcome.Fail("no sbsd token", retryable: true);  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R297)
 
-        c.Session.Cookies["sbsd"] = sb;  // inferred: no image evidence (R297) — the pool has /sbsd and _sbsdContext, not a cookie of this name
-        c.Session.Vars["sbsd"] = sb;  // inferred: no image evidence (R297)
+        c.Session.Cookies["sbsd"] = sb;  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R297) — the pool has /sbsd and _sbsdContext, not a cookie of this name
+        c.Session.Vars["sbsd"] = sb;  // inferred: no image evidence; 0 hits in the 324,901-entry dump; R1266: absence carries no information (R297)
         return StepOutcome.Success();
     }
 

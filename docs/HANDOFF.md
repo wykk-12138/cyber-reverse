@@ -8024,3 +8024,13 @@ Observation：
 - 全量 2478/0/2/2480。
 
 下轮：`StoreFlow`(10) 与 `MagentoFlow`(6) 的 inferred 按同法逐条查——先查 dump，能命中就升为实证，不能则写明 0 命中。
+
+## R1289 —— inferred 查证：StoreFlow/MagentoFlow（1 命中 / 7 零命中）；全量 2478/0/2/2480
+
+Observation：
+- `/rest/V1` → `146AB72A4`；`/discount/`、`/api/payments/`、`/checkout/complete`、`/account/recover`、
+  `/rest/V1/carts/mine/totals`、`/account/verify`、`/collections/new-releases` → 0 命中。
+- 13 处注释已标注（StoreFlow 8 / MagentoFlow 5），原标记短语保留。
+- 全量 2478/0/2/2480。
+
+下轮：剩 9 个文件共 22 处 inferred，用同一脚本 `check_inferred_literals.py` 扩到全目录再跑一轮。

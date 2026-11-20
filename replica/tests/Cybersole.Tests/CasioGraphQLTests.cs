@@ -219,6 +219,44 @@ public sealed class CasioGraphQLTests
         Assert.False(ctx.Session.Vars.ContainsKey("casio.canPurchase"));
     }
 
+    /// <summary>
+    /// R1317: the structured path needs a sku and nothing in the flow supplies one, so the fall-through is
+    /// announced rather than silent. A run whose GraphQL branch did not execute should be distinguishable
+    /// from one whose branch ran and found nothing — before this, both looked like "product read from page".
+    /// </summary>
+    [Fact]
+    public async Task WithoutASkuTheFallThroughIsAnnounced()
+    {
+        using var server = new TinyServer((_, _) => (200, "<html><title>G-SHOCK</title></html>"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/products/ga-2100" };
+
+        var outcome = await new CasioFlow().FindProductAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Equal("true", ctx.Session.Vars["casio.skuMissing"]);
+        Assert.Contains(ctx.Events, e => e.Name.Contains("no sku in the session"));
+        // One request: the page. The GraphQL endpoint was not asked, because there was nothing to ask with.
+        Assert.Single(server.Requests);
+    }
+
+    [Fact]
+    public async Task WithASkuTheFlagIsNotSet()
+    {
+        var item = "{\"sku\":\"GA-2100-1A\",\"name\":\"G-SHOCK\",\"stock_status\":\"IN_STOCK\"}";
+        using var server = new TinyServer((_, _) =>
+            (200, "{\"data\":{\"products\":{\"total_count\":1,\"items\":[" + item + "]}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/products/ga-2100" };
+        ctx.Session.Vars["casio.sku"] = "GA-2100-1A";
+        ctx.Session.Vars["casio.graphqlPath"] = server.BaseUrl + "/graphql";
+        ctx.Session.Vars["casio.skuMissing"] = "true";   // stale value from an earlier step
+
+        await new CasioFlow().FindProductAsync(ctx, default);
+
+        Assert.False(ctx.Session.Vars.ContainsKey("casio.skuMissing"));
+    }
+
     [Fact]
     public async Task TheFlowUsesTheStructuredAnswerWhenThereIsOne()
     {

@@ -256,8 +256,19 @@ public sealed class CasioFlow : StoreFlow
         var sku = c.Session.Vars.GetValueOrDefault("casio.sku");
         if (string.IsNullOrEmpty(sku)) sku = c.Session.Vars.GetValueOrDefault("productSku");
 
-        if (!string.IsNullOrEmpty(sku))
+        if (string.IsNullOrEmpty(sku))
         {
+            // R1317: the GraphQL branch needs a sku to put in `sku:{in:[...]}` and nothing in this flow
+            // supplies one — a Magento product URL carries the url_key, not the sku. So say so instead of
+            // falling through silently: a reader watching the run should be able to tell that the structured
+            // path did not run, rather than infer it from an absent session variable.
+            var note = "casio: no sku in the session (casio.sku / productSku), reading the page instead";
+            c.Session.Vars["casio.skuMissing"] = "true";
+            c.Emit(note, "StatusInfo");
+        }
+        else
+        {
+            c.Session.Vars.Remove("casio.skuMissing");
             var product = await CasioGraphQL
                 .SearchAsync(c, sku!, ct, c.Session.Vars.GetValueOrDefault("casio.graphqlPath"),
                     c.Session.Vars.GetValueOrDefault("casio.graphqlDocument"))

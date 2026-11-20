@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 05:13:51 +0800 |
+| 生成时间 | 2026-11-21 05:35:40 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2617 通过 / 0 失败 / 0 跳过 / 2617 总计** |
+| 完整套件 | **2624 通过 / 0 失败 / 0 跳过 / 2624 总计** |
 
 ## 摘要素值
 
@@ -398,10 +398,10 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 05:01:49
+publish artifact mtime: 2026-11-21 05:23:04
 publish artifact size: 61294592 bytes
-publish artifact sha256: dab75acb1f4a2649cbc6e7ca1ef0f31abde2bf2c82f162b237c70479456352a6
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 05:07:34)
+publish artifact sha256: bcbee69f45c4b84c3e06d8f52c51a30084b919d174c49d0ae6a197a04d0cdf29
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 05:29:25)
 source files newer than the artifact: 17
 lines in those files: 15750
 of those, changed against HEAD: 0
@@ -589,7 +589,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2617 通过 / 0 失败 / 0 跳过 / 2617 总计
+`exit 0` · 2624 通过 / 0 失败 / 0 跳过 / 2624 总计
 
 ```text
   正在确定要还原的项目…
@@ -606,7 +606,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2617，已跳过:     0，总计:  2617，持续时间: 5 m 39 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2624，已跳过:     0，总计:  2624，持续时间: 5 m 40 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

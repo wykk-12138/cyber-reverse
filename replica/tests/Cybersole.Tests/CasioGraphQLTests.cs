@@ -108,6 +108,55 @@ public sealed class CasioGraphQLTests
         Assert.False(CasioGraphQL.CanBuy(outOfStock));
     }
 
+    /// <summary>
+    /// R1315: the image compares <c>casio_can_purchase</c> against <b>two</b> spellings, the frozen
+    /// <c>"true"</c> (0x147173DE8) and the frozen <c>"1"</c> (0x146AC4CC8), in
+    /// <c>sub_140954410</c> — the GraphQL response reader whose other literals are <c>data</c>,
+    /// <c>products</c>, <c>items</c>, <c>name</c>, <c>stock_status</c>, <c>price_range</c>,
+    /// <c>minimum_price</c>, <c>final_price</c>, <c>value</c>, <c>image</c>, <c>url</c> and
+    /// <c>IN_STOCK</c>. Both spellings are asserted because dropping one looks like a tidy-up and is a
+    /// behaviour change: a store that answers <c>1</c> would silently read as "cannot buy".
+    /// </summary>
+    [Theory]
+    [InlineData("true", true)]
+    [InlineData("TRUE", true)]
+    [InlineData("1", true)]
+    [InlineData("false", false)]
+    [InlineData("0", false)]
+    // An empty attribute means the store did not answer it at all, so stock status decides — and this
+    // product is IN_STOCK. That is a different case from "the attribute says no", which the row above covers.
+    [InlineData("", true)]
+    public void TheCanPurchaseAttributeAcceptsBothSpellingsTheImageCompares(string answer, bool expected)
+    {
+        var product = new CasioProduct { CanPurchase = answer, StockStatus = "IN_STOCK" };
+
+        // With the attribute present it wins over stock status, which is the point of the attribute.
+        Assert.Equal(expected, CasioGraphQL.CanBuy(product));
+    }
+
+    /// <summary>
+    /// The readback path, in the image's own key order: <c>data.products.items[0]</c> then
+    /// <c>price_range.minimum_price.final_price.value</c>. A reader that flattened the path would pass a
+    /// hand-written fixture and fail this one.
+    /// </summary>
+    [Fact]
+    public void ThePriceComesFromTheFourKeyPath()
+    {
+        var reply = JObject.Parse(@"{
+            ""data"": { ""products"": { ""items"": [{
+                ""sku"": ""GA-2100-1A"",
+                ""price_range"": { ""minimum_price"": { ""final_price"": { ""value"": 88.5, ""currency"": ""GBP"" } } },
+                ""price"": ""not-this-one""
+            }] } }
+        }");
+
+        var product = CasioGraphQL.ReadProduct(reply);
+
+        Assert.NotNull(product);
+        Assert.Equal("88.5", product!.Price);
+        Assert.Equal("GBP", product.Currency);
+    }
+
     [Theory]
     [InlineData("{\"data\":{\"products\":{\"items\":[]}}}")]
     [InlineData("{\"errors\":[{\"message\":\"nope\"}]}")]

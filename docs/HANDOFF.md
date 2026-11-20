@@ -8285,3 +8285,14 @@ Observation：
 - 三处纠正：上一轮的 Inference 变 Observation 且**猜对了**；文档无 `query{}` 外壳；**搜索是 GET 不是 POST**。
 - `CasioGraphQL` GET 化 + endpoint 双拼 `/graphql/graphql` 修正 + `document` 参数接上（无效参数即装饰）。
 - `TinyServer` 加 `RequestTargets`（additive）：GET 的载荷在查询串里，不记 target 就没有断言点。
+
+---
+
+## 第 1315 轮
+
+- Casio 商品读取器 `sub_140954410` 的十五个字面量全是 GraphQL 键值，**没有时间戳/哈希/密钥**——
+  `_timestamp`/`_hash` 属于下单/支付步骤，不在读取路径上。
+- 两个像密钥的 blob（`VgmotEs-…`、`/0400F0sae66…`）在 `.text` 里**各 0 引用点**，无法从那里跟进。
+- 确认 R1312 读取器忠实：`casio_can_purchase` 接受 `"true"`/`"1"` 两种拼法，价格走四级路径，均已钉测试。
+- **产物哈希问题**：两次连发逐字节相同（`bcbee69f…`），但与 R1314 记录的 `dab75acb…` 尺寸相同、哈希不同。
+  在查清前，哈希差分只读作「可能变了」，需独立确认。见 BLOCKERS。

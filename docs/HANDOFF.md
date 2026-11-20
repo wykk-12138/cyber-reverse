@@ -8061,3 +8061,14 @@ Observation：
 - `Tls|Transport|Ja3` 58/58。
 
 下轮：`OwnTls` 的定位写清后，继续 ③ 的下一块——Brotli 字典与重定向/Cookie 吸收；或转 ② 的 PayPal 3DS 阶段 2–8。
+
+## R1293 —— ③ 收口：handler 六项同源；R1291 结论彻底收回；转 ②
+
+Observation：
+- `NetClient.cs:84-102`：`EnabledSslProtocols = Tls12|Tls13`、`CipherSuitesPolicy`、`ALPN`、
+  `MaxAutomaticRedirections=10`、`AutomaticDecompression=All`、`UseCookies=true`。
+- `BrotliDictionary` R128 已取证：122,784 B、offset 0x62DD580、标准前缀表；限制已记（.NET 8 无字典参数）。
+- 定向 92/92。
+
+判断：③ 默认路径已同源，剩余只是流量级证据缺口（HTTP/3 是否真启用、Brotli 字典压缩体样本）。
+下轮：**转 ②** —— PayPal 3DS 阶段 2–8（`PAYMENT_CHALLENGES.md`）。

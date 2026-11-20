@@ -68960,3 +68960,12 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - R1291 的"真差异"**撤回**：`TLS_AES_*` 是 SslStream 的套件名，不是 BouncyCastle 的表。
 - 教训：先读入口默认值，再读实现。
 - `Tls|Transport|Ja3` **58/58**。
+
+---
+
+## 第 1293 轮：③ 收口——默认传输六项逐一核对，全部同源
+
+- handler 六项：`Tls12|Tls13` · `CipherSuitesPolicy` · `ALPN` · `MaxAutomaticRedirections=10` · `All` 解压 · `UseCookies`。
+- **R1291 的"只 1.2"彻底收回**：那只对 `OwnTls` 成立，默认路径已启 1.3。
+- Brotli 字典已对齐（122,784 B / offset 0x62DD580 / 标准前缀表），限制是 .NET 8 无字典 API。
+- `Tls|Transport|Redirect|Brotli` **92/92**。

@@ -76,6 +76,11 @@ public sealed class ProfileTlsClient : DefaultTlsClient
     // SocketsHttpHandler.Http2Support). On that path TLS 1.3, GREASE and HTTP/2 all come from the platform, in the
     // replica as in the image, so there is no gap to close there.
     //
+    // R1293 closes the question: NetClient's handler sets EnabledSslProtocols = Tls12 | Tls13, MaxAutomaticRedirections
+    // = 10, CipherSuitesPolicy from the profile, ApplicationProtocols from the profile's ALPN, AutomaticDecompression =
+    // All and UseCookies = true — six properties, each the platform's own name for the same thing the image uses, so the
+    // default path already matches on TLS version, TLS policy, ALPN, redirect cap, decompression and cookies.
+    //
     // This class is the OwnTls fallback. It is a hand-written stack that offers 1.2 only, reachable solely by opting in,
     // and its handshake bytes will never equal the platform's. R1291 read a BouncyCastle string beside a suite name and
     // concluded the image used this library for TLS; the suite names (146EB3A24 / 146EB3A6C) are SslStream's.

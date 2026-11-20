@@ -70,6 +70,12 @@ public sealed class ProfileTlsClient : DefaultTlsClient
         return suites.ToArray();
     }
 
+    // R1291: the image carries TLS 1.3 suite names — TLS_AES_128_GCM_SHA256 (146EB3A24) and
+    // TLS_AES_256_GCM_SHA384 (146EB3A6C) — so the original negotiates 1.3 where the server offers it. This client
+    // offers 1.2 only, which is a measured difference, not a decision: DefaultTlsClient is BouncyCastle's pre-1.3 base
+    // class, and moving to the 1.3 client moves the cipher-suite and extension getters with it. Recorded here so the
+    // gap is visible from the code that has it; the same library (BouncyCastle.Cryptography, 143159CBB) is already in
+    // use, and its GREASE support matches the image's own cap of two extensions (14716EEAC).
     protected override ProtocolVersion[] GetSupportedVersions()
         => new[] { ProtocolVersion.TLSv12 };
 

@@ -8043,3 +8043,12 @@ Observation：
 
 判断：`inferred` 从"待办数量"变成"已查证状态"；继续推进需要 live capture（外部条件）。
 下轮：回优先级②——`PAYMENT_CHALLENGES.md` 里 PayPal 3DS 阶段 2–8 的落地（或 `Cybersole.Http` 首块）。
+
+## R1291 —— HTTP 层首个实测项：TLS 1.3 差异定住；全量待跑（定向 75/75）
+
+Observation：
+- `146EB3A24`/`146EB3A6C` = TLS 1.3 套件；`14716EEAC` = GREASE 上限 2；`143159CBB` = BouncyCastle。
+- 复刻 `BouncyTls.GetSupportedVersions()` 仅 `TLSv12` ⇒ 真差异（结构性）。
+- 已在 `BouncyTls.cs` 写明差异地址与「为什么要连 getter 一起换」。
+
+下轮：换到 BouncyCastle 的 TLS 1.3 客户端基类（连带 getter），或先核 HTTP/2 帧与 HPACK 动态表。

@@ -68940,3 +68940,12 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - 两轮共标注 **41 行**（R1289 的 13 + 本轮 28），每条写「查过、0 命中、R1266 属 unknown」。
 - 没有一条被改写成"镜像里没有"——搜不到不构成证据。
 - 全量 **2478/0/2/2480**。
+
+---
+
+## 第 1291 轮：`Cybersole.Http` 首轮取证——三项对齐、一项真差异
+
+- 镜像：BouncyCastle（`143159CBB`）· `TLS_AES_128/256_GCM`（`146EB3A24`/`6C`）· GREASE 上限 2（`14716EEAC`）。
+- 复刻件：同库 ✅ · GREASE 1+1 ✅ · 1.3 套件名映射 ✅ · **协商只有 TLSv12 ❌**。
+- 该差异属结构性（换 BC 1.3 基类要连 getter 一起换），本轮在代码里写明地址与原因，不顺手改。
+- `Tls|Ja3|Http` **75/75**。

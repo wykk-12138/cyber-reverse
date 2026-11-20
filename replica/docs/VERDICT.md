@@ -68823,3 +68823,28 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 |---|---|
 | 已解耦 | **5 / 9** |
 | 剩下 | VendorWiringTests（整删）+ 三个疑同名碰撞文件 |
+---
+
+## 第 1281 轮：把台账搬进测试工程**失败并回滚**（两处教训）
+
+**做法**：`git mv` `VendorWiring` → `tests/.../VendorAuditTable.cs` + 改命名空间/类名。
+**结果**：5 条红。
+
+| 失败 | 原因 |
+|---|---|
+| mojibake | **PowerShell `Set-Content` 把 4 个测试文件写成非 UTF-8** |
+| 三处计数/清单 | 类型迁出后 `bind_diff` 报 `Cybersole.Models.State`（嵌套 `State` 枚举）ABSENT 未分类；两份清单行数变化 |
+
+⇒ **移动一个类型牵动 5 件事**（编码×4 + 3 工具），与 §3 那张连带清单同族。
+
+**回滚**：src 文件从快照恢复（与 HEAD 逐字一致）、4 测试改回、删重复类、**不碰并行会话文件**。
+验证：build 0 错；全量 **2497/0/2/2499**（与移动前同值）。
+
+**下次清单**：① 用 Python 改文件；② 先补 `Cybersole.Models.State` 分类；③ 同步 158/16 两处 pin 并写原因；④ 先定向后全量。
+
+### 收数
+
+| 项 | 值 |
+|---|---|
+| 净变化 | 0（回滚） |
+| 教训 | 2 条（编码、连带清单） |

@@ -46952,3 +46952,39 @@ Inference = 「I-2/I-3 是自洽约束」；Unknown = `VendorSolvingModeTests` �
 
 证据等级：Observation = 六条断言原文、108/108、2497 收据；Inference = 「Relayed 是独立轴」；
 Unknown = 后三个文件是否真与 `VendorWiring` 有关（下轮读）。
+## R1281 —— 尝试"把台账整体搬进测试工程"**失败并回滚**，两处教训记账
+
+### 一、想做什么
+
+`VendorWiring` 被 4 个测试文件引用（其中 `VendorWiringTests` 整份为它而生）。
+想法：`git mv` 到 `tests/Cybersole.Tests/VendorAuditTable.cs`、改命名空间与类名 —— **`src` 立刻干净、测试照旧能跑**。
+
+### 二、为什么失败（5 条红，两类原因）
+
+| 失败 | 原因 |
+|---|---|
+| `SourceEncodingTests.NoSourceFileContainsMojibake` | **我用 PowerShell `Set-Content` 改 4 个测试文件，把它们写成了非 UTF-8**（即便 PS7 默认 utf8NoBOM，读回仍是非法字节序列） |
+| `BindScopeGuardTests` 158 vs 159 · `TypePresenceTriageTests` 16 vs 15 · `TypeClassificationTests` unclassified 1 | 类型从 `src` 迁出后，**三处工具/清单**同时变化：`bind_diff.py --type-presence` 报 `Cybersole.Models.State`（原来是 `VendorWiring` 里的嵌套 `State` 枚举）变成 ABSENT 且未分类；两份清单的行数跟着变 |
+
+**⇒ 一次"移动一个类型"牵动：编码 × 4 文件 + 3 个工具的计数/清单。** 这正是 §3 那张"改成绑定属性"连带清单的同族问题。
+
+### 三、回滚做了什么
+
+1. 从今晨快照恢复 `src/Cybersole.Stores/Scripts/VendorWiring.cs`（与 HEAD 逐字一致，`git status` 无改动即为证）；
+2. 4 个测试文件改回 `VendorWiring` 引用（同样与 HEAD 一致）；
+3. 删除移动留下的**重复类** `tests/Cybersole.Tests/VendorAuditTable.cs`；
+4. **不碰并行会话的文件**（`Hook.log`、`IDAHook.log`、`ARTIFACT_PROBES.json`、`CORE_COVERAGE.md`、`tools/read_nativeaot_string.py`）。
+
+### 四、验证
+
+`dotnet build` 0 错；全量 **2497 通过 / 0 失败 / 2 跳过 / 2499**（5m47s，与移动前同值）。
+
+### 五、下次要做这件事，清单在这里
+
+1. 用 **Python** 改文件（`io.open(..., encoding='utf-8', newline='\n')`）——**不用 `Set-Content`**；
+2. 先给 `Cybersole.Models.State`（`VendorWiring` 的嵌套 `State`）在 `tools/type_classification.json` 里补分类；
+3. 同步 `BindScopeGuardTests` 的 158 与 `TypePresenceTriageTests` 的 16（**数字随事实走，写清原因**）；
+4. 改完 4 个测试后跑**定向**用例，再跑全量。
+
+证据等级：Observation = 5 条红的名称与数值、`git status` 显示 src 与 4 个测试均无改动、2497 收据；
+Inference = 「三处工具联动」；Unknown = 那次移动是怎么进 HEAD 的（未逐一追溯提交）。

@@ -7942,3 +7942,13 @@ Observation：
 **下轮**：三个疑同名碰撞文件（WallDispatch/WallSolving/CaptchaDelivery）先确认，再处理 VendorWiringTests。
 
 还剩什么：① VendorWiring 第 2 步（4/9）；② 同名碰撞确认；③ 17 条 no-hit；④ connect 通道（需登录）。
+## R1281 —— 搬台账进测试工程失败、已回滚（Set-Content 编码 + 三处工具联动）；全量回到 2497/0/2/2499
+
+Observation：
+- 5 红：mojibake ×1（`Set-Content` 写坏 4 文件）+ 计数/清单 ×3（`Cybersole.Models.State` 由"存在"变 ABSENT）。
+- 回滚后 build 0 错、全量 2497/0/2/2499（与移动前同值）、src 与 4 测试 `git status` 无改动。
+- 未触碰并行会话文件（Hook.log/IDAHook.log/ARTIFACT_PROBES.json/CORE_COVERAGE.md/read_nativeaot_string.py）。
+
+**下次清单**：Python 改文件 · 先补 `Cybersole.Models.State` 分类 · 同步 158/16 · 先定向后全量。
+
+还剩什么：① VendorWiring 第 2 步（5/9 已解耦，剩 4 个文件含 VendorWiringTests）；② 17 条 no-hit；③ connect 通道（需登录）。

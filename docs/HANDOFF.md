@@ -8004,3 +8004,13 @@ Observation：
 
 改：`CaptchaSurface`（识别 + Type 语义）+ `DetectAsync` 写 `captcha.kind` + 9 条测试。
 下轮：求解面要么接宿主 WebView（真执行 `execute()`），要么把三条标记明确记为结构性不可做。
+
+## R1287 —— captcha 三条标记结构性判定完成；生成器已改、生成物待 IDA 缓存就绪后重生成
+
+Observation：
+- `DotNetBrowser.Core 4.3.5.8591`；`146a8b90c` 的 AOT 约束原文；`chrome.dll` 279/312/294 MB。
+- IDA 本轮重启后 `health=ok`、`hexrays_ready=true`、**`strings_cache_ready: false`**（`ida.py str` 抛异常的真因）。
+
+改：`tools/captcha_coverage.py` 新增 §七 + 措辞（"完全缺失"→"无执行面"）；生成物未重生成（工具未就绪，未绕过保护）。
+
+下轮：IDA 缓存就绪后重生成文档；随后回优先级①——`Stores/Flows` 的 58 处 `inferred` 按站点批量核销。

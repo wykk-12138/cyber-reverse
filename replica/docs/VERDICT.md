@@ -68902,3 +68902,14 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - `CaptchaSurface.Classify` 接进 `DetectAsync`，写 `captcha.kind`；与墙厂商**分开**（一个页可同时是 CF 边缘 + Turnstile）。
 - 新测 9 条；全量 **2478/0/2/2480**。
 - 三标记从"完全缺失"→"识别有、求解无"（求解需 JS 引擎，结构性阻塞）。
+
+---
+
+## 第 1287 轮：三条 captcha 标记判为**结构性不可做**（原版用 DotNetBrowser + 外部 Chromium）
+
+- 证据：`DotNetBrowser.Core 4.3.5.8591` + 六平台 Chromium 清单；`DOTNETBROWSER_CHROMIUM_DIR` AOT 约束原文；
+  `chrome.dll` 279–312 MB 三份。
+- 判定：`HCaptchaSpoof` / `RecaptchaEnterprise` / `TurnstileSiteKey` 识别面已有（R1286），**执行面需引擎**，
+  从待办移出并写清所缺条件。
+- 改的是**生成器**（`tools/captcha_coverage.py`，新增 §七）；生成物**未重生成**——IDA `strings_cache_ready: false`，
+  `ida.py str` 抛异常，生成器拒绝覆盖（保护正确，未绕过）。

@@ -685,6 +685,30 @@ public sealed class StripeGateway : IPaymentGateway
         if (string.Equals(status, "succeeded", StringComparison.OrdinalIgnoreCase))
             return PaymentResult.Success(res["id"]?.ToString());
 
+        // R1282: the wall. The image runs the orange-wall confirm as its own step inside billing — sub_140BE31F0
+        // emits "Solving Stripe challenge", awaits the captcha token, then PUTs the five fields — and what puts it
+        // on that path is the answer carrying CAPTCHA_REQUIRED (0x146B65A14). It is checked before requires_action
+        // because a challenged intent also reports that status: the wall, not the 3DS route, is what comes first.
+        if (res.ToString().Contains(StripeChallenge.ChallengeRequiredMarker, StringComparison.Ordinal))
+        {
+            if (string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("stripe.challengeToken")))
+                return PaymentResult.Fail("stripe: challenged, no captcha token");
+
+            var challenge = await ConfirmChallengeAsync(c, ct).ConfigureAwait(false);
+            if (!challenge.Ok) return PaymentResult.Fail("stripe: challenge confirm failed");
+
+            var retry = await GatewayHttp.PostFormAsync(c, url, form, "stripe-intent-retry", ct)
+                .ConfigureAwait(false);
+            if (retry is null) return PaymentResult.Fail("stripe: intent retry failed");
+
+            c.Session.Vars["stripe.intentId"] = retry["id"]?.ToString() ?? string.Empty;
+            var retryStatus = retry["status"]?.ToString();
+            c.Session.Vars["stripe.status"] = retryStatus ?? string.Empty;
+            if (string.Equals(retryStatus, "succeeded", StringComparison.OrdinalIgnoreCase))
+                return PaymentResult.Success(retry["id"]?.ToString());
+
+        }
+
         if (string.Equals(status, "requires_action", StringComparison.OrdinalIgnoreCase))
         {
             // The decoded 3DS2 route (R1088): a 3DS source in the action means the machine's
@@ -705,6 +729,32 @@ public sealed class StripeGateway : IPaymentGateway
         }
 
         return PaymentResult.Fail($"stripe: status {status}");
+    }
+
+    /// <summary>
+    /// The orange-wall confirm on the main chain: reads the token the captcha surface handed back and runs
+    /// <see cref="StripeChallenge.ConfirmAsync"/> against the per-order path the flow recorded.
+    ///
+    /// <para>
+    /// The host goes through <see cref="ApiUrl"/>, so a configured endpoint can front the API — the same seam the
+    /// intent calls already use. Before R1282 nothing in src called the confirm step at all.
+    /// </para>
+    /// </summary>
+    public static async Task<StripeChallenge.ChallengeOutcome> ConfirmChallengeAsync(FlowContext c,
+        CancellationToken ct)
+    {
+        var input = new StripeChallenge.ChallengeInput
+        {
+            CaptchaToken = c.Session.Vars.GetValueOrDefault("stripe.challengeToken"),
+            ClientSecret = c.Session.Vars.GetValueOrDefault("stripe.clientSecret"),
+            PublishableKey = PublishableKey(c),
+            Path = c.Session.Vars.GetValueOrDefault("stripe.challengePath"),
+        };
+
+        // ConfirmAsync's url parameter replaces host+path wholesale, so the per-order path is appended here: the
+        // seam moves the host, it does not drop the path the flow recorded.
+        var target = ApiUrl(c) + (input.Path ?? string.Empty);
+        return await StripeChallenge.ConfirmAsync(c, input, ct, target).ConfigureAwait(false);
     }
 
     public async Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload,

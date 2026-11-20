@@ -68864,3 +68864,13 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 
 **基线**：套件 2446/0/0/2446；mutation 59/59 fired、GREEN。
 `metrics` 整体 exit 1 来自 store/vendor 覆盖检查（删表的真实代价），下一轮用真实端点补。
+
+---
+
+## 第 1283 轮：`StripeChallenge` 接进支付主链（零调用者 → 真实调用）
+
+- 判据 `CAPTCHA_REQUIRED`（0x146B65A14）加进 `StripeChallenge`；`AuthorizeAsync` 命中即跑确认机并**重发 intent**。
+- 分支放在 `requires_action` **之前**（否则墙永远轮不到）。
+- `ConfirmChallengeAsync` host 走 `ApiUrl` 注入缝、path 单独拼（`ConfirmAsync` 的 url 是整体替换）。
+- 端到端两测：有令牌 → `POST intent` → `PUT /challenge/confirm` → `POST intent` 成功；无令牌 → 只发一次、报失败。
+- `StripeChallenge` 6/6；全量 **2465/0/2/2467**。

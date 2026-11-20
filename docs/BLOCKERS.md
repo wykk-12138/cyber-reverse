@@ -47040,3 +47040,28 @@ Inference = 「三处工具联动」；Unknown = 那次移动是怎么进 HEAD �
 
 证据等级：Observation = 调用者计数、descriptor 串、2446/0、59/59、272 个日志；
 Inference = 「覆盖检查非零源于删表」；Unknown = 每个站点的真实端点还差几条（下一轮逐站核）。
+
+## R1283 —— 支付主链接通 `StripeChallenge`（此前 src 内零调用者）
+
+**改了什么**
+
+- `StripeChallenge.ChallengeRequiredMarker = "CAPTCHA_REQUIRED"`（0x146B65A14，镜像大写拼法）——这是"要不要跑确认机"的判据。
+- `StripeGateway.AuthorizeAsync`：intent 应答含该 marker ⇒ 认领验证码令牌 → `ConfirmChallengeAsync` →
+  **重发同一次 intent confirm**，用重试的 status 说话；无令牌则不 PUT、直接报失败（与 `ConfirmAsync` 的失败分支一致）。
+- 挑战分支**放在 `requires_action` 之前**：被挑战的 intent 也会报 `requires_action`，先判 `requires_action`
+  会让墙永远轮不到。
+- `ConfirmChallengeAsync`：host 走 `ApiUrl(c)`（`stripe.apiUrl` 注入缝），**path 单独拼接**——
+  `ConfirmAsync` 的 url 参数是整体替换，直接传 host 会丢掉逐单路径。
+
+**取证**：`dec 0x140BE31F0`（121 行）显示状态机在 emit `Solving Stripe challenge` 后 await 令牌，再
+`sub_14130CC50` 五次（= `Dictionary.Add`）填五字段——即该函数就是确认机本体，`sub_14130CC50` 是字典 Add 而非
+ConfirmAsync。外层由 billing 步骤驱动。
+
+**验证**：`StripeChallenge` **6/6**（4 旧 + 2 新端到端）；全量 **2465 通过 / 0 失败 / 2 跳过 / 2467**。
+
+**踩到的两处契约**（写下来省下一轮）：`Session.PaymentMethodId` 是**属性**不是 Vars，设 Vars 会让
+`TokenizeAsync` 真的跑起来并因无卡早退；`TinyServer` 回调第一参是 `HttpListenerRequest`，路径要读
+`Url.AbsolutePath`。
+
+**Unknown**：挑战的**外层**触发条件（billing 步骤如何判定）镜像里没有状态码比较，判据由外层决定；
+本轮以 `CAPTCHA_REQUIRED` 落地，属 Inference，已在源码注释标明。

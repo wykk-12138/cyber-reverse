@@ -7962,3 +7962,13 @@ Observation：
 
 下一轮（既定）：把 `StripeChallenge.ConfirmAsync` 接进 `StripeGateway`/`StoreFlow` 主链，补端到端行为测试。
 之后按 ① BstnFlow 4 个 `endpoint unknown` → ② Captcha 协议 → ③ `Cybersole.Http`。
+
+## R1283 —— StripeChallenge 接主链：CAPTCHA_REQUIRED 判据 + 确认后重发 intent；全量 2465/0/2/2467
+
+Observation：
+- `dec 0x140BE31F0` 121 行：emit 状态 → await 令牌 → 五次 `sub_14130CC50`（字典 Add）填五字段。
+- 新测 2 条端到端（TinyServer）：请求序列 `POST intent` / `PUT /challenge/confirm` / `POST intent`。
+- 全量 2465/0/2/2467；`StripeChallenge` 6/6。
+
+Inference：外层触发条件由 billing 步骤决定（镜像无状态码比较），以 `CAPTCHA_REQUIRED` 落地。
+下轮：BstnFlow 的 4 个 `endpoint unknown`（`chars_va-12` 链）；随后 Captcha 协议层；再 `Cybersole.Http`。

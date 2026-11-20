@@ -53,6 +53,13 @@ public sealed class StripeChallenge
     /// <summary>The vendor the form swears by (0x147045DF0) — Stripe's challenge is an hCaptcha gate.</summary>
     public const string CaptchaVendor = "hcaptcha";
 
+    /// <summary>
+    /// What the intent's answer carries when the wall is up: the token at 0x146B65A14, spelled in capitals in the
+    /// image. This is the string that decides the confirm runs — the machine at sub_140BE31F0 is entered from the
+    /// billing step, not from a status code of its own.
+    /// </summary>
+    public const string ChallengeRequiredMarker = "CAPTCHA_REQUIRED";
+
     /// <summary>What the confirm step needs — the fields the original reads off its checkout context.</summary>
     public sealed class ChallengeInput
     {

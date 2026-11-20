@@ -1,7 +1,8 @@
 # 进度与差距（Phase 2 收口更新 · 接续 R1300，2026-11-20）
 
 > **动态度量唯一事实源**：`docs/METRICS.md`（在 `replica/` 下由 `python tools/metrics_report.py` 生成；本文活区不硬编码易漂移的全量数值）。
-> **模块普查与差距依据**：`docs/MODULE_FUNCTION_CENSUS.md`、`docs/DESCRIPTOR_TRIAGE.md`、`docs/SHAPE_GAPS.md`、`docs/DATAFILES.md`。
+> **模块普查与差距依据**：`docs/MODULE_FUNCTION_CENSUS.md` · `docs/DESCRIPTOR_TRIAGE.md` · `docs/SHAPE_GAPS.md` · `docs/DATAFILES.md`
+> **剩余路线与新会话交接**：`docs/REMAINING_REPLICATION_ROADMAP.md`（完整复现四层剩余路线图）· `docs/HANDOFF.md` · `docs/HANDOFF_PROMPT_antigravity.md`
 > 判据 a–f 的逐条结构性证明在 `docs/GOAL_VERIFICATION.md`；本文回答：**Phase 1 + Phase 2 已结案面**、**诚实 Unknown 边界**、以及**仅剩外部阻塞 / 范围外项**。
 
 ---

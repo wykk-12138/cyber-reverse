@@ -1,39 +1,43 @@
-# 交接（2026-11-18 路线纠偏后）
+# 交接（2026-11-20 Phase 1 + Phase 2 收口交接态）
 
 > **这一节是「现在在哪」，给新会话第一步读。动态度量数值一律不写在这里** —— 唯一数字源是
 > `docs/METRICS.md`（在 `replica/` 下由 `python tools/metrics_report.py` 生成）。
-> 完整的新会话接手路由、NativeAOT 反编译 SOP 与未结案核心队列见 **`docs/HANDOFF_PROMPT_antigravity.md`** 与 **`docs/GOAL.md`**。
+> 完整的新会话接手指南、剩余四层路线与 NativeAOT 反编译 SOP 见：**`docs/PROGRESS_AND_GAP.md`** · **`docs/REMAINING_REPLICATION_ROADMAP.md`** · **`docs/HANDOFF_PROMPT_antigravity.md`** · **`docs/GOAL.md`**。
 
 ## 现在在哪
 
-- **轮次与状态**：当前最新提交以 `git log --oneline -5` 为准；开始任何修改前先看 `git status --short`，切勿覆盖并行会话的改动。
-- **套件**：绿（具体通过数见 `docs/METRICS.md` 的「完整套件」行）。
+- **轮次与状态**：当前提交状态以 `git log --oneline -5` 为准（Phase 1 8/8 本地缺口 + Phase 2 Waves 2A–2D 已于 `4da6712` 收口）；开工前先看 `git status --short`，切勿覆盖并行会话或未跟踪研究产物。
+- **产物与普查**：`replica/.publish-aot/Cybersole.Ui.exe` 与 `.pdb` 已重新发布且状态为 `current`，`MailKit`/`MimeKit` 死代码孤岛已消除；模块级函数普查见 `docs/MODULE_FUNCTION_CENSUS.md`。
+- **套件与门禁**：`docs/METRICS.md` 显示全量测试、5 步验收门禁与变异测试均全绿且陈旧度清零。
 - **IDA**：就绪时 `python analysis/ida.py health` 返回 `status=ok` 且 `hexrays_ready=true`。必须在 IDA 在线时再跑 `metrics_report.py`（各覆盖率生成脚本已加 `controls ok` 非零退出守卫，拒写假零）。
 - **度量项**：全部汇总在 `docs/METRICS.md` 摘要表里。**不要在任何活文档里硬编码这些数值。**
 
-## 完成判据现状
+## 完成判据现状（a–f 全部达标）
 
-| 判据 | 状态 | 复算命令 |
+| 判据 | 状态 | 详细证据与复算入口 |
 |---|---|---|
-| (a) 类型级缺口 / 类型缺失 | **类型级已归零**。类型缺失逐条分类见 `docs/TYPE_PRESENCE_TRIAGE.md`（其中 `AuthWindow` / `LicenseControl` 已在 R702 裁决 `OUT_OF_SCOPE` 不做，见 `docs/DECISION_LICENSE_OUT_OF_SCOPE.md`） | `python tools/bind_scope.py`、`python tools/bind_diff.py --type-presence` |
-| (b) 文案 | **已归零**（见 `docs/METRICS.md`） | `python tools/copy_audit_report.py` |
-| (c) 产物级对照 | **可复算**：函数数、可执行段体量、地址分桶均由 `docs/METRICS.md` 自动生成 | `python tools/func_count.py`、`python tools/pe_sections.py`、`python tools/pdata_sections.py` |
-| (d) claim 表 | **PASS**（全表逐行校验 authority + command + gap_reason） | `python analysis/check_claims.py` |
-| (e) 套件 / 变异 / 数字来源 | 套件绿；变异测试以 `tools/mutation-check.py` 实测为准；全部活文档数字引用 `docs/METRICS.md` | `python tools/metrics_report.py`、`python tools/mutation-check.py` |
-| (f) 核心覆盖 | 覆盖生成物已进 `docs/METRICS.md`；**下一步重点是把核心可执行能力逐项反编译落地（严禁用静态台账类代替运行时实现）** | `python tools/core_coverage.py`、`python tools/vendor_coverage.py` |
+| (a) 类型级 / 类型缺失 / 形状 | **已结案**：类型级与真实名字级缺口均归零；`BotTask.Running` / `BotTask.Task` 已静态定型；形状差异逐条分类 | `docs/METRICS.md`、`docs/SHAPE_GAPS.md`、`docs/TYPE_PRESENCE_TRIAGE.md` |
+| (b) 文案 | **已归零**（19 区无缺；本土化四方法已接通 UI） | `docs/METRICS.md`、`docs/DESCRIPTOR_TRIAGE.md` |
+| (c) 产物级对照 | **可复算**：NativeAOT 已重发布为 `current`，PDB + `.pdata` 归因完成 | `docs/METRICS.md`、`docs/MODULE_FUNCTION_CENSUS.md` |
+| (d) claim 表 | **CRITERION (d): MET** | `python analysis/audit_parity_claims.py`、`docs/PARITY_CLAIMS.md` |
+| (e) 套件 / 变异 / 数字来源 | **全绿且陈旧度清零** | `docs/METRICS.md`、`python tools/mutation-check.py` |
+| (f) 核心覆盖 | **Phase 1 + Phase 2 核心闭环**：PayPal 3DS / Stripe 静态派发 / Unzer / Cardinal / Checkout.com / 便利店 / Shopify-Topps-Funko / Mail-OTP / `Cybersole.Http` 伴生组件均已落地并接入运行链 | `docs/PROGRESS_AND_GAP.md`、`replica/docs/CORE_COVERAGE.md` |
 
-## 当前核心待办队列（按 YG 优先级 ①→②→③ 排序，不再从 UI `BINDING_BACKLOG.md` 取件）
+## 完整复现剩余工作路线（四层边界）
 
-1. **[优先级① · Checkout Flow] Nike 结账写入路由与请求体落地**：已通过 `chars_va - 12` 定位出 `checkouts/v3/` 与 `checkout_previews/v3/` 对应的两个可反编译业务函数（详见 `replica/docs/CORE_COVERAGE.md` §二），下一步反编译还原请求体并消掉 `NikeFlow.cs` 中的占位返回；其余含占位步骤的 Flow 同法推进。
-2. **[优先级② · 支付挑战层] PayPal 3DS 与 Stripe Challenge 状态机实现**：入口函数与阶段清单见 `replica/docs/PAYMENT_CHALLENGES.md`，反编译后在 `Cybersole.Stores/Payments` 落成真实可执行状态机。
-3. **[优先级② · 客户端挑战层] Kasada 本地主路对齐与 Captcha 驱动对位**：按 `docs/KASADA/`（`01`–`09`）与 `replica/docs/CAPTCHA_COVERAGE.md` 已落盘证据，修正 `NikeFlow.cs` / `KasadaSolver.cs` 的主辅路顺序与协议细节，对位各支持家族的驱动载荷。
-4. **[优先级④ · 冻结收尾] UI 绑定与视图收尾**：`replica/docs/BINDING_BACKLOG.md` 冻结在最后，仅在 ①–③ 核心项全部结案或均卡外部凭据/裁决时处理。
+> 逐项证据、方法数/字节对比、地址线索与推荐推进顺序详见 **`docs/REMAINING_REPLICATION_ROADMAP.md`**。
+
+1. **本机可继续推进的静态深化**：`Cybersole.Stores` 长尾异步步骤（店铺 + 支付）及 4 处已定位静态 `Unknown` 子分支（Unzer / Checkout.com / Komoju / `ToppsVariant`）→ `docs/SHAPE_GAPS.md` 选中项模型与 `MonitorView` 3 命令 → 传输层 HTTP/3 与 `AngleSharp` DOM 解析 → `C7c` 报文级行为探针与 `C8` 分类字符串比对。
+2. **外部阻塞（`External Blocked`，未获条件前不编造）**：原版有效登录凭据（`/connect/app` SignalR 同步、Farfetch 7 路由、MSAL/RabbitMQ/Velopack、B 类 UI 本地动作、含非空 `profiles` 的 `.cyb` 备份）、真实站点流量抓包（`inferred` 0 命中字面量）、以及嵌入式浏览器引擎选型（`DotNetBrowser` vs 开源 WebView2/CEF）。
+3. **严格范围外（`Out of Scope`，严禁实现）**：R702 登录与许可管理（`AuthWindow` / `LicenseControl`，`docs/DECISION_LICENSE_OUT_OF_SCOPE.md`）及一切视觉/传感器反爬绕过与自动化验证码求解执行逻辑。
+4. **不必追平的结构性噪声**：.NET 10 vs .NET 8 BCL/CRT/节布局/Brotli 导出、`Metalama` 织入 vs 手写通知；不以 `.pdata` 总比值当完成度。
 
 ## 工具的可信边界与工程红线（必读）
 
 - **NativeAOT 冻结字符串定位铁律（`chars_va - 12`）**：冻结 `System.String` 布局为 `[MethodTable*:8][Length:4][UTF-16 chars]`，`ida.py str` 返回 `chars_va`，而 `.text` 代码引用指向对象头 **`obj_va = chars_va - 12`**！必须对 `chars_va - 12` 查 `xrefs_to` 或跑 `python analysis/disp32_scan_any.py` → `site_to_func.py`，再用 `python analysis/names_at.py` 解码伪代码中的 `&off_146xxxxxx`。严禁未减 `12` 就判「无 xref 不可得」。
 - **产品代码红线**：**严禁往 `replica/src/` 新增任何静态逆向审计台账/缺口免责类**（如 `*Gaps`、`*Wiring`、`*Witness`）及行数钉子测试；考据写进 `docs/`，`replica/src/` 只写可执行运行时代码。
 - **`analysis/pe_strings.txt` 是抽样**：**正向可用、反向不可用** —— 反向结论必须用 `python analysis\ida.py str <pat> --limit N`，并确认 `saturated: false`。见 `AGENTS.md` §2.7b。
+- **NativeAOT R2R 字符串脱水**：`.publish-aot` 二进制内短 ASCII 结尾 UTF-16 字符串最后一个 `0x00` 字节可能被 R2R 脱水 token 折叠（如 `api.unzer.com` 实测），搜不到不代表被裁（`AGENTS.md` §4.5）。
 - **写实现前先查现成代码**：在 `replica/` 跑 `python tools\where_is.py <名字>`，先读 implementation 组。
 - **文档守卫**：`DocsConsistencyTests` 与 `HandoffHeadPointerTests` 会校验模块数口吻与活区块无硬编码度量值；`SourceEncodingTests` 严禁任何乱码样本文本。
 

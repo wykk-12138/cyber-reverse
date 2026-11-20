@@ -3,6 +3,8 @@
 > 全部数字取自 `docs/METRICS.md`（生成时间 **2026-11-20 15:24:49 +0800**，`python tools/metrics_report.py`，
 > **度量脚本结果：全部 exit 0**、**时效警告：无**）。
 > 每条判据给出：**证据（数字）→ 命令 → 结论**。
+>
+> **Phase 1 + Phase 2 交接注记（2026-11-20，`main` `4da6712`）**：下表保留 R1299 判据首次全达标时的基线证明；Phase 1（8/8 本地缺口）与 Phase 2（Waves 2A–2D）收口后的最新度量、NativeAOT 重发布产物、模块函数普查与后续四层剩余路线图请直接查阅 **`docs/METRICS.md`**、**`docs/PROGRESS_AND_GAP.md`**、**`docs/MODULE_FUNCTION_CENSUS.md`** 与 **`docs/REMAINING_REPLICATION_ROADMAP.md`**。
 
 ---
 

@@ -336,10 +336,16 @@ def main(argv=None):
         for label, value in (r["bits"] or {}).items():
             low = label.lower()
             if low == "source files newer than the artifact" and str(value).strip() not in ("0", ""):
-                warnings.append(
-                    "**函数数量那一行来自一个陈旧的 `.publish-aot`**：有 %s 个源文件比产物新（共 %s 行）。"
-                    "它描述的是更旧的一次构建，不是当前源码。"
-                    % (value, _bit("产物陈旧度（.publish-aot vs src）", "lines in those files")))
+                # R1297: newer is mtime, changed is content, and only the second one means the artifact is behind.
+                # A mutation run rewrites each target and restores it, so it leaves files newer but byte-identical;
+                # warning about that would be a false alarm every single round.
+                changed = _bit("产物陈旧度（.publish-aot vs src）", "of those, changed against HEAD")
+                if str(changed).strip() not in ("0", ""):
+                    warnings.append(
+                        "**函数数量那一行来自一个陈旧的 `.publish-aot`**：有 %s 个源文件比产物新，其中 %s 个相对 HEAD 真的改过（共 %s 行）。"
+                        "它描述的不是当前源码。"
+                        % (value, changed,
+                           _bit("产物陈旧度（.publish-aot vs src）", "lines in those files")))
             if "staleness" in low and not str(value).startswith("0"):
                 warnings.append("**变异套件那一组数来自上一次运行，而它已经过期**：`%s`。" % str(value).strip())
 

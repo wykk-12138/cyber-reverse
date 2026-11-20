@@ -68999,3 +68999,14 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - 三个生成器都还在读 R1282 删除的 `VendorWiring.cs` ⇒ 全部改成"表已删"分支（并区分"删了"与"解析零行"）。
 - `metrics_report.py` **首次全部 exit 0**；`vendor: controls ok=True`。
 - METRICS 仍有两条时效警告：产物陈旧（31 文件/22549 行）、变异组数过期（因本轮改生成器）。
+
+---
+
+## 第 1297 轮：AOT 重发布 + 变异 59/59 GREEN + 两处陈旧误报
+
+- 发布：57,491,456 B / 14:15:16；`.publish-aot` 由 54.8 MB 更新。
+- 变异：**59 fired / 0 decorative / 0 skipped / tree=GREEN**（上轮 RED 确系并行会话）。
+- 「17 文件比产物新」是**误报**：`changed against HEAD: 0`、`state: current`——变异改写后还原，mtime 变、字节不变。
+  警告已改为按**内容**判定（R1297）；`artifact_freshness.py` 自 R1183 就分开统计，是 `metrics_report.py` 只读了 mtime 那格。
+- 剩一条警告准确（本轮改了 `tools/metrics_report.py` 本身），下轮跑一次变异即消。
+- `metrics_report.py` 全部 exit 0。

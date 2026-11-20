@@ -8108,3 +8108,14 @@ Observation：
 下轮（两条长任务，单独做）：
 1. 重新 AOT 发布消除"产物陈旧"（`-p:PublishAot=true -p:UseSharedCompilation=false`，产物 ≈57.4 MB）；
 2. 重跑 `mutation-check.py` 让 manifest 重新对齐（预期仍 59/59/0/0）。
+
+## R1297 —— AOT 57,491,456 B；变异 59/59 GREEN；陈旧误报改为按内容判定
+
+Observation：
+- `publish_exit=0`，产物 57,491,456 B @14:15:16。
+- `MUTATION_RESULT.json`：total=59 fired=59 decorative=0 skipped=0 tree=GREEN ran_at=14:25:51。
+- `artifact_freshness.py`：`newer=17`、`lines=14192`、**`changed against HEAD: 0`**、**`state: current`**。
+- `metrics_report.py` 全部 exit 0。
+
+下轮：跑一次 `mutation-check.py` 消掉最后那条 manifest 警告（本轮改了 `tools/metrics_report.py`），
+随后进入判据 a–f 的逐条自检清单。

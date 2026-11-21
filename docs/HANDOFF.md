@@ -8879,3 +8879,12 @@ Observation：
 - **事故一次**：用 `rfind('}')` 当类收尾 → 方法落到类外（`CS0103` 三个）；
   `git checkout --` 还原后改成**从类声明做括号配对**。
 - 覆盖 59 → **60/65**，缺 6 → **5**；产物双编码各命中 1。
+
+---
+
+## 第 1370 轮
+
+- **两方言选择条件已解**：两份 `approveMemberPayment` 文档**声明集只差 `paycodeEncrypted`**（15 vs 16），
+  其余完全相同 → **方言跟支付方式走**（带加密 paycode 用长文档），跟店铺无关。
+- 落码 `PayPalPartnerApprove.PaycodeDocument` + `DocumentFor(bool)` + `EnvelopeFor(variables)`；**旧 `Document` 不动**。
+- 一次自伤：第一版测试用字符串手术比较文档，被一个逗号打败 → 改成**声明集差集**断言。

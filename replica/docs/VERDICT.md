@@ -71609,3 +71609,33 @@ metrics_report.py 第一次全量跑出 **2757 通过 / 1 失败**，随即原�
 - **证据等级**：Observation —— 文档全文的字段与蛇形地址形状、`where_is` 的既有落位、双编码产物命中。
 - **还剩什么**：5 条 —— `createMyPayment`(493)（Cybersource）、两方言、AO 三个体、Saucony 六步、
   `/cartApi/checkout` 归属、`AddressInput`、浏览器侧结账面。
+
+---
+
+## 第 1370 轮：两方言的**选择条件找到了** —— 差在一个变量名，`paycodeEncrypted`
+
+- **做法**：不再问"哪个处理器在什么条件下被调"，而是**把两份文档的声明集并排比**：
+  ```
+  short(5407) 15 个：…selectedInstallmentOption, setStickyFiRequired, shareAddressWithDonatee, token
+  long (5620) 16 个：同上 + paycodeEncrypted
+  ```
+  **除这一个名字外完全相同。**
+- **结论**：方言跟着**支付方式**走，不跟店铺走 —— **带加密 paycode 的出资选项需要长文档，其余用短文档**。
+  这是调用方**自己能从载荷里看出来**的条件；镜像里没有任何"店铺名单"，编一个是猜。
+- **落码**：`PayPalPartnerApprove` 增 `PaycodeDocument`（5620）+ `PaycodeVariableName` + `DocumentFor(bool)` +
+  `EnvelopeFor(variables)`；**原有 `Document` 常量不动**，所以既有调用点行为不变。
+- **一处自己的失误**：第一版测试用**字符串手术**去"减掉"那个变量再比较两份文档 ——
+  结果 `Expected: ···String, ) {` vs `Actual: ···String) {`，**中间多一个逗号**。
+  改成**比较声明集**（`HashSet` 差集断言 `{paycodeEncrypted}`，15 vs 16）—— **断言要对着"我到底声称什么"写**。
+- **产物**：`paycodeEncrypted` 检出（待本轮构建结果确认编码）；尺寸见下。
+
+### 五要素
+
+- **改了什么**：`PayPalPartnerApprove.cs`（+长文档 + 选择器 + `EnvelopeFor`）；
+  `PayPalPartnerApproveTests.cs`（+3，共 9）；新增 3 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`PayPalPartnerApproveTests` → **9/9**；`PayPal|StoreFlow` → **105/105**；
+  `operation_gap.py` → 覆盖 **60/65**（缺 5，本条属"选择条件"而非新操作）；`orphan_documents.py` → 0。
+- **数字变化**：套件 +3；长文档落地；**这一条从未结案清单里划掉**。
+- **证据等级**：Observation —— 两份文档的声明集差集恰为 `{paycodeEncrypted}`（15 vs 16）。
+- **还剩什么**：5 条 —— `createMyPayment`(493)（Cybersource）、`AddressInput`、AO 三个体、Saucony 六步、
+  `/cartApi/checkout`、浏览器侧结账面。

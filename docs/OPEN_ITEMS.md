@@ -113,3 +113,12 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 
 - 实现：`MagentoCart.GetShippingMethodsAsync`，端点与地址变量由调用方给；
 - **文档引用 12 个变量、声明 0 个** —— 保持原样，`MagentoCartTests` 断言 `$region` 存在而 `$region:` 不存在。
+
+---
+
+## 十、两方言已解（R1370）
+
+`approveMemberPayment` 的 5407 与 5620 两份文档，**声明集只差 `paycodeEncrypted`**（15 vs 16），其余完全相同。
+
+**条件**：带加密 paycode 的出资选项用长文档，其余用短文档 —— **跟支付方式走，不跟店铺走**。
+实现：`PayPalPartnerApprove.DocumentFor(bool)` / `EnvelopeFor(variables)`；旧 `Document` 保持不变。

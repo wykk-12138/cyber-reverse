@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Cybersole.Http;
 using Cybersole.Stores.Flows;
@@ -95,5 +96,59 @@ public sealed class PayPalPartnerApproveTests
         Assert.Equal(PayPalPartnerApprove.Document, sent["query"]!.ToObject<string>());
         Assert.Equal("tok-1", sent["variables"]!["token"]!.ToObject<string>());
         Assert.Equal("IFRAME", sent["variables"]!["fundingMethodType"]!.ToObject<string>());
+    }
+
+    /// <summary>
+    /// R1370: the two dialects differ by exactly one declared variable. A payment carrying an encrypted paycode needs
+    /// the 5620-character document; everything else takes the 5407-character one. That is a condition on the payment,
+    /// which the caller can see, not a per-store list this replica would have had to invent.
+    /// </summary>
+    [Fact]
+    public void TheDialectFollowsThePaycode()
+    {
+        Assert.Equal(5407, PayPalPartnerApprove.Document.Length);
+        Assert.Equal(5620, PayPalPartnerApprove.PaycodeDocument.Length);
+        Assert.Equal("paycodeEncrypted", PayPalPartnerApprove.PaycodeVariableName);
+
+        Assert.Same(PayPalPartnerApprove.Document, PayPalPartnerApprove.DocumentFor(false));
+        Assert.Same(PayPalPartnerApprove.PaycodeDocument, PayPalPartnerApprove.DocumentFor(true));
+    }
+
+    /// <summary>
+    /// The difference between the two documents is that one declared name, and nothing else. Comparing the declared
+    /// sets says that directly; running string surgery on 3000 characters of GraphQL does not.
+    /// </summary>
+    [Fact]
+    public void TheTwoDocumentsDifferByThatOneName()
+    {
+        static System.Collections.Generic.HashSet<string> Declared(string document) =>
+            new(System.Text.RegularExpressions.Regex.Matches(document, @"\$(\w+)\s*:")
+                .Select(m => m.Groups[1].Value));
+
+        var shortSet = Declared(PayPalPartnerApprove.Document);
+        var longSet = Declared(PayPalPartnerApprove.PaycodeDocument);
+
+        var onlyInLong = new System.Collections.Generic.HashSet<string>(longSet);
+        onlyInLong.ExceptWith(shortSet);
+        var onlyInShort = new System.Collections.Generic.HashSet<string>(shortSet);
+        onlyInShort.ExceptWith(longSet);
+
+        Assert.Equal(new[] { "paycodeEncrypted" }, System.Linq.Enumerable.OrderBy(onlyInLong, name => name));
+        Assert.Empty(onlyInShort);
+        Assert.Equal(15, shortSet.Count);
+        Assert.Equal(16, longSet.Count);
+    }
+
+    /// <summary>The envelope picks the document from the variables it is given.</summary>
+    [Fact]
+    public void TheEnvelopePicksTheDocumentFromTheVariables()
+    {
+        var without = PayPalPartnerApprove.EnvelopeFor(new JObject { ["token"] = "t" });
+        var with = PayPalPartnerApprove.EnvelopeFor(
+            new JObject { ["token"] = "t", ["paycodeEncrypted"] = "enc" });
+
+        Assert.Equal(PayPalPartnerApprove.Document, without["query"]!.ToObject<string>());
+        Assert.Equal(PayPalPartnerApprove.PaycodeDocument, with["query"]!.ToObject<string>());
+        Assert.Equal("approveMemberPayment", with["operationName"]!.ToObject<string>());
     }
 }

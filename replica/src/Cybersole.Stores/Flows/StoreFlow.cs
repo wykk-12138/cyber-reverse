@@ -1293,6 +1293,44 @@ public abstract class StoreFlow
     /// </summary>
     public virtual async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
+        // R1360: Braintree tokenisation, when a run supplies a card. The card object is the run's; the image names
+        // the host and the fields but never a card.
+        var cardPayload = c.Session.Vars.GetValueOrDefault("braintree.creditCard");
+        if (!string.IsNullOrWhiteSpace(cardPayload))
+        {
+            Newtonsoft.Json.Linq.JObject braintreeCard;
+            try
+            {
+                braintreeCard = Newtonsoft.Json.Linq.JObject.Parse(cardPayload!);
+            }
+            catch (Newtonsoft.Json.JsonException)
+            {
+                return StepOutcome.Fail("braintree: braintree.creditCard is not valid JSON");
+            }
+
+            var tokenizeVariables = new Newtonsoft.Json.Linq.JObject
+            {
+                ["input"] = new Newtonsoft.Json.Linq.JObject
+                {
+                    ["creditCard"] = braintreeCard,
+                    ["client"] = new Newtonsoft.Json.Linq.JObject
+                    {
+                        ["clientSdkMetadata"] = new Newtonsoft.Json.Linq.JObject
+                        {
+                            ["source"] = Cybersole.Stores.Payments.BraintreeTokenizeCard.ClientSdkName,
+                        },
+                    },
+                },
+            };
+
+            var (tokenized, tokenizeError) = await Cybersole.Stores.Payments.BraintreeTokenizeCard
+                .TokenizeAsync(c, tokenizeVariables, ct).ConfigureAwait(false);
+            if (tokenized is null) return StepOutcome.Fail(tokenizeError);
+
+            c.Session.Vars["tokenizedCard"] = tokenized.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         // R956: the image names this field _paymentGatewayName, and _captchaToken sits beside it. My first version
         // invented "paymentGateway" -- close enough to compile and not what the original calls it.
         // R957: the gateway is chosen from what the shop offers, filtered by the two settings, rather than switched on

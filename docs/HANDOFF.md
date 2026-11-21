@@ -8785,3 +8785,14 @@ Observation：
   处理器**只有信封键没有主机** → `StoreSessionQueries`，**origin 由调用方给**，接进 `VerifySessionAsync`。
 - **声明集按实测**：前三份**无变量**，`getCart` 是 `$key`/`$locale`；`getPaymentdMethods` 保留镜像的错拼。
 - 覆盖 44 → **48/65**，缺 21 → **17**；产物三串各 UTF-16 命中 1。
+
+---
+
+## 第 1360 轮
+
+- **`TokenizeCreditCard`(505) 直接带主机**：`https://payments.braintree-api.com/graphql` + `dropin2`
+  （Braintree Drop-in v2）→ 落成 `Payments/BraintreeTokenizeCard`，接进 `SubmitPaymentAsync`。
+  **卡号不写进源码。**
+- `SignInAsGuest` 处理器只有 `accessToken`/`authPayload` → 继续留在无主机组。
+- **差点犯错**：第一版测试会让步骤真发到 Braintree 公网 —— 与 R1352 的 DNS 同类，**运行前改掉**。
+- 覆盖 48 → **49/65**，缺 17 → **16**；产物 `mutation TokenizeCreditCard` 与主机串各 UTF-16 命中 1。

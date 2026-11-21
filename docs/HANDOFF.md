@@ -8609,3 +8609,15 @@ Observation：
   接到 `PayPalGateway.AuthorizeAsync` 后：三串命中 1/1/2，尺寸 **+41,984**。**同一份源码的正向对照。**
 - **方法论更新**：**可达性规则要覆盖"API 表面"，不只是"常量"。**
 - 覆盖 20 → **22/65**，缺 45 → **43**。
+
+---
+
+## 第 1344 轮
+
+- `analysis/unreachable_types.py`：public 类型在**别的文件**里零引用 → 全仓 **183/643**，绝大多数是模型（JSON/XAML 驱动）。
+  有信息量的是 `Cybersole.Stores` 那片。
+- **它不能做成硬不变量**：`ShopAppProduct` 源码零调用，**产物里却在**（`query ProductDetails`、`server.shop.app` 各 UTF-16 命中 1）。
+  **"源码无调用者" ≠ "会被裁"** —— 与 R1343 的**差分测量**不是一回事。清单是候选不是判决。
+- 决断而非检查：给 `ShopAppProduct` 一个消费者 —— `ShopifyFlow.FindProductAsync` 在有 `shopapp.brokerId` 时走
+  `server.shop.app`（与门店 `/products/<handle>.js` 是两条 API，分支不替换），否则照旧。
+- 产物：`shopapp` 命中 7，尺寸 61,672,960 → 61,676,032；清单里 `ShopAppProduct` 已消失。

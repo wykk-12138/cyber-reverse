@@ -189,6 +189,50 @@ public class ShopifyFlow : StoreFlow
 
     public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
     {
+        // R1344: the Shop app's product query, when the run carries the identifiers it needs. It is a different
+        // API from this store's storefront — server.shop.app, not the store's /products/<handle>.js — so it is a
+        // branch, not a replacement, and the branch only exists when the session supplies its variables.
+        var brokerId = c.Session.Vars.GetValueOrDefault("shopapp.brokerId");
+        if (!string.IsNullOrEmpty(brokerId))
+        {
+            var shopAppVariables = new JObject
+            {
+                ["brokerId"] = brokerId,
+                ["productId"] = c.Session.Vars.GetValueOrDefault("shopapp.productId") ?? c.Session.Vars.GetValueOrDefault("productId"),
+                ["imageWidth"] = int.TryParse(c.Session.Vars.GetValueOrDefault("shopapp.imageWidth"), out var width)
+                    ? width
+                    : 800,
+                ["variantsLimit"] = int.TryParse(c.Session.Vars.GetValueOrDefault("shopapp.variantsLimit"), out var limit)
+                    ? limit
+                    : 250,
+                ["sortReviewsBy"] = ShopAppProduct.SortRecommended,
+            };
+
+            if (c.Session.Vars.TryGetValue("shopapp.productInput", out var productInput) &&
+                !string.IsNullOrWhiteSpace(productInput))
+            {
+                try
+                {
+                    shopAppVariables["productInput"] = JObject.Parse(productInput);
+                }
+                catch (Newtonsoft.Json.JsonException)
+                {
+                    return StepOutcome.Fail("shopify: shopapp.productInput is not valid JSON");
+                }
+            }
+
+            var (product, shopAppError) = await ShopAppProduct
+                .FetchAsync(c, shopAppVariables, ct, c.Session.Vars.GetValueOrDefault("shopapp.url"))
+                .ConfigureAwait(false);
+
+            if (product is null) return StepOutcome.Fail(shopAppError);
+
+            c.Session.Vars["product"] = product.ToString(Newtonsoft.Json.Formatting.None);
+            var productId = product["id"]?.ToString();
+            if (!string.IsNullOrEmpty(productId)) c.Session.Vars["productId"] = productId;
+            return StepOutcome.Success();
+        }
+
         var handle = ProductHandle(c.Url);
         if (handle is null) return StepOutcome.Fail("shopify: cannot resolve product handle from url");
 

@@ -1751,6 +1751,26 @@ fragment InstallmentsFragment on FundingInstrument {
     /// the wrong integration's shape and this helper now follows PayPal's own.
     /// The wall, the budget and the dispatch are the builders' own.
     /// </summary>
+    /// <summary>
+    /// Whether to send the dialect that carries <c>authenticationProvider</c>, read from the session.
+    ///
+    /// <para>
+    /// <b>Unknown:</b> the condition the image uses. What R1325 established is only the shape of the choice —
+    /// the two variants are two async methods of one class (<c>sub_14110FDB0</c> and <c>sub_141113680</c>,
+    /// whose MoveNext stubs sit 0x160 apart), each with its own complete frozen document, so nothing is
+    /// spliced at run time: the image picks a method. Until a capture says which, this reads
+    /// <c>paypal3ds.providerFields</c> and defaults to the longer document, which is what this class sent
+    /// before the pair was known.
+    /// </para>
+    /// </summary>
+    public static bool ProviderFieldsRequested(FlowContext c)
+    {
+        var declared = c.Session.Vars.GetValueOrDefault("paypal3ds.providerFields");
+        if (string.IsNullOrEmpty(declared)) return true;
+
+        return !string.Equals(declared, "false", StringComparison.OrdinalIgnoreCase) && declared != "0";
+    }
+
     public static async Task<StageOutcome> GqlAsync(FlowContext c, StageInput input, string operationName,
         JObject variables, CancellationToken ct, string? url = null, string? document = null)
     {
@@ -1764,7 +1784,7 @@ fragment InstallmentsFragment on FundingInstrument {
         var body = new JObject
         {
             ["variables"] = variables,
-            ["query"] = document ?? DocumentFor(operationName),
+            ["query"] = document ?? DocumentFor(operationName, ProviderFieldsRequested(c)),
         };
         options.Content = new StringContent(body.ToString(Newtonsoft.Json.Formatting.None),
             System.Text.Encoding.UTF8, "application/json");

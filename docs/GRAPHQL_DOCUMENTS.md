@@ -34,3 +34,13 @@
 - **`$version` 的初值**：`CreateInitialCart` 不返回它，`addBillingAddressToCart`/`addPaymentToCart` 要求它并返回它。
   首次调用前的值只能来自抓包。
 - **`cartToken`**：`SubmitOrder` 要它，已解出的文档没有任何一份发放它。
+
+## 方言开关（R1325）
+
+两份文档**各自冻结完整**，镜像在"选方法"而不是"选片段"：`sub_14110FDB0`(14458) 发不带
+`authenticationProvider` 的那份，`sub_141113680`(15615) 发带的那份。两者的 MoveNext 桩
+（`0x14258A4A0` / `0x14258A600`）**相距 0x160**，是同一个类的两个异步方法。
+
+**镜像据什么条件选，仍未解。** 复刻件因此提供运行时可切：
+`paypal3ds.providerFields`（缺省 `true` = 带 `authenticationProvider` 的那份），由
+`PayPalThreeDs.ProviderFieldsRequested` 读取、`GqlAsync` 使用。一次抓包即可定案。

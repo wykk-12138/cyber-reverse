@@ -8817,3 +8817,11 @@ Observation：
   —— **以文档为准**。
 - 脚本失误一处：`StoreSessionQueries` 只有**一张** `Declared` 表，插入逻辑按两张写 → 改成 1/2 都支持。
 - 覆盖 50 → **52/65**，缺 15 → **13**；产物两串各 UTF-16 命中 1。
+
+---
+
+## 第 1363 轮
+
+- `UpdateContactDetails`(244) → `StoreSessionQueries`（处理器 `https://`+host+`/graphql`，变量 email/emailOptIn/phone）。
+  **它还有一个 0x14088 块的孪生处理器，用哈希发同一操作** —— 两者选择条件无证据，**只实现前者并写明**。
+- 覆盖 52 → **53/65**，缺 13 → **12**；产物 `mutation UpdateContactDetails` 命中 1。

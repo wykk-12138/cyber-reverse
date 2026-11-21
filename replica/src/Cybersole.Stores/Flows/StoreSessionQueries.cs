@@ -35,6 +35,12 @@ public static class StoreSessionQueries
     /// <summary>item, 67 characters from 0x147146EF4.</summary>
     public const string ItemDocument = "query item {\n  item(\n    attribute_code: []\n    sku: \"\"\n    name: \"";
 
+    /// <summary>
+    /// UpdateContactDetails, 244 characters from 0x1470E37BC. Its other handler sends the same operation by hash
+    /// from the 0x14088xxxx block (R1357); which one a run picks is not established, so only this one is wired.
+    /// </summary>
+    public const string UpdateContactDetailsDocument = "mutation UpdateContactDetails($phone: String!, $emailOptIn: Boolean!, $email: String) {\n  updateContactDetails(phone: $phone, emailOptIn: $emailOptIn, email: $email) {\n    billingAddress {\n      phone\n      __typename\n    }\n    __typename\n  }\n}";
+
     /// <summary>addToCartByChannel, 2271 characters from 0x1470E8DCC.</summary>
     public const string AddToCartByChannelDocument = "mutation addToCartByChannel($cartId: String!, $productId: String!, $quantity: Long!, $version: Long!, $locale: Locale!) {\n  updateMyCart(\n    id: $cartId\n    actions: {addLineItem: {productId: $productId, quantity: $quantity, custom: {typeKey: \"line-item-custom-fields\"}}}\n    version: $version\n  ) {\n    id\n    isAbleToCheckout\n    isRestricted\n    isHazardous\n    isEmpty\n    isDangerous\n    version\n    isSplit\n    splittableSupplyChannelKeys\n    totalLineItemQuantity\n    discountedPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n    totalPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n    shipping {\n      ...defaultShipping\n    }\n    lineItems {\n      ...defaultLineItem\n    }\n  }\n}\n\nfragment defaultShipping on Shipping {\n  shippingKey\n  shippingInfo {\n    isHazardous\n    deliveries {\n      id\n      items {\n        id\n        quantity\n      }\n    }\n    price {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n    shippingMethodName\n    shippingMethod {\n      localizedName(locale: $locale)\n    }\n  }\n  shippingAddress {\n    ...defaultAddress\n  }\n  isValid\n}\n\nfragment defaultAddress on Address {\n  isDefault\n  id\n  key\n  streetName\n  streetNumber\n  additionalStreetInfo\n  city\n  postalCode\n  region\n  state\n  country\n  firstName\n  lastName\n  email\n  phone\n  externalId\n  custom {\n    customFieldsRaw {\n      name\n      value\n    }\n  }\n}\n\nfragment defaultLineItem on LineItem {\n  id\n  productId\n  productSlug(locale: $locale)\n  name(locale: $locale)\n  productType {\n    id\n    version\n    name\n  }\n  totalPrice {\n    centAmount\n    currencyCode\n    fractionDigits\n  }\n  preDiscountedPrice {\n    centAmount\n    currencyCode\n    fractionDigits\n  }\n  shippingDetails {\n    targets {\n      addressKey\n      shippingMethodKey\n      quantity\n    }\n    valid\n  }\n  productKey\n  quantity\n  variant {\n    sku\n    key\n    images {\n      url\n    }\n    attributesRaw {\n      name\n      value\n    }\n  }\n  discountedPricePerQuantity {\n    discountedPrice {\n      includedDiscounts {\n        discount {\n          id\n          key\n          description(locale: $locale)\n        }\n      }\n    }\n  }\n  custom {\n    customFieldsRaw {\n      name\n      value\n    }\n  }\n  supplyChannel {\n    id\n    key\n  }\n  lineItemMode\n}";
 
@@ -49,6 +55,7 @@ public static class StoreSessionQueries
         ["item"] = Array.Empty<string>(),
         ["getCart"] = new[] { "key", "locale" },
         ["addToCartByChannel"] = new[] { "cartId", "locale", "productId", "quantity", "version" },
+        ["UpdateContactDetails"] = new[] { "email", "emailOptIn", "phone" },
     };
 
     /// <summary>The document for an operation, or null when it is not one of the four.</summary>
@@ -59,6 +66,7 @@ public static class StoreSessionQueries
         "item" => ItemDocument,
         "getCart" => GetCartDocument,
         "addToCartByChannel" => AddToCartByChannelDocument,
+        "UpdateContactDetails" => UpdateContactDetailsDocument,
         _ => null,
     };
 

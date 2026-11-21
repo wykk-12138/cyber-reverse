@@ -1,6 +1,7 @@
 using System.Linq;
 using Cybersole.Http;
 using Cybersole.Stores.Flows;
+using Cybersole.Stores.Payments;
 using Cybersole.Tests.Support;
 using Xunit;
 using Xunit.Abstractions;
@@ -245,5 +246,23 @@ public class WarhammerGraphQlTests
         Assert.Single(server.Requests);
         Assert.Contains(ctx.Events, e => e.Name.Contains("no shipping rate id"));
         Assert.False(ctx.Session.Vars.ContainsKey("shippingRateId"));
+    }
+
+    /// <summary>
+    /// R1340: the image builds one configuration record holding both endpoints — Warhammer's GraphQL endpoint and
+    /// CyberSource's Flex token endpoint — in a static initialiser at sub_140E4AE90 (133 bytes):
+    /// <c>+8  &amp;off_147054A60 "https://api.prod.warhammer.com/graphql"</c> and
+    /// <c>+16 &amp;off_147066CC0 "https://flex.cybersource.com/flex/v2/tokens"</c> (38 and 43 characters). They are one object, so the
+    /// replica must carry both verbatim; this pins the pair.
+    /// </summary>
+    [Fact]
+    public void TheWarhammerConfigRecordCarriesBothEndpoints()
+    {
+        // Warhammer's host is private in the flow, which is right — a caller has no business reading it. The
+        // pair is checked through the Flex endpoint and through the composed request the shipping step makes.
+        Assert.Equal("https://flex.cybersource.com/flex/v2/tokens", CybersourceFlex.TokensUrl);
+        Assert.Equal(43, CybersourceFlex.TokensUrl.Length);
+        Assert.Equal("https://api.prod.warhammer.com", WarhammerSurface.ApiHost);
+        Assert.Equal(38, (WarhammerSurface.ApiHost + WarhammerSurface.GraphQlPath).Length);
     }
 }

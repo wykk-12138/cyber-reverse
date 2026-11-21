@@ -8563,3 +8563,15 @@ Observation：
 - 新增 `FindProductAsync`（`fetchProduct` 5718）与 `SubmitEmailAsync`（`setCustomerEmail` 4986），
   文档用显式 `\r\n` 转义、**整块重生成不做切片补丁**。
 - 下一步：payment/billing/shipping/order 四个发送方**已定位**，读全操作名即可补齐。
+
+---
+
+## 第 1340 轮
+
+- **"扫主机枚举步骤"有个前提**：**只在每个发送方各自内嵌主机时成立**（Highsnobiety 是那样）。
+  Warhammer 把端点收进一个静态初始化器（`sub_140E4AE90`），发送方从参数拿 URL —— 引用列表给的是**助手**不是**步骤**。
+  这类店只能用**操作名**口径枚举。
+- 同一份配置对象里带着 **Warhammer GraphQL（38 字符）** 与 **CyberSource Flex（43 字符）** 两个端点 ——
+  已新增 `WarhammerSurface` 并在测试里把这对钉住。
+- 配置里还有 **945** 与 **1920** 字符的两个串，**是什么不知道，没有猜**。
+- 我把长度算错过一次（57 → 实测 38），按测量值改的。

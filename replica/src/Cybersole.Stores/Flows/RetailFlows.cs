@@ -2267,3 +2267,18 @@ public sealed class HighsnobietyFlow : StoreFlow
             "hs-discount", "discount", ct).ConfigureAwait(false);
     }
 }
+
+/// <summary>
+/// The two endpoints one configuration record in the image holds together — R1340, from the static initialiser at
+/// <c>sub_140E4AE90</c>: <c>+8 &amp;off_147054A60 "https://api.prod.warhammer.com/graphql"</c> and
+/// <c>+16 &amp;off_147066CC0 "https://flex.cybersource.com/flex/v2/tokens"</c>. The record carries a 945- and a
+/// 1,920-character string beside them; what those are is not established, so they are not reproduced here.
+/// </summary>
+public static class WarhammerSurface
+{
+    /// <summary>The GraphQL origin the store's senders take as a parameter, 0x147054A60.</summary>
+    public const string ApiHost = "https://api.prod.warhammer.com";
+
+    /// <summary>The path the senders append; host plus path is the 38-character literal at 0x147054A60.</summary>
+    public const string GraphQlPath = "/graphql";
+}

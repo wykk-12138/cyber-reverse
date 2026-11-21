@@ -71119,3 +71119,9 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   Unknown —— 六份无主机无路径操作的归属（**需要运行期抓包**，已登记）。
 - **还剩什么**：Unknown 六份（已登记，等运行期证据）；B 块其余；`approveMemberPayment` 两方言；浏览器侧结账面；
   `/cartApi/checkout` 归属；`AddressInput`；方言条件（blocker）；AO 三个 checkout 体；Saucony 六步路径。
+
+### 附：一次瞬时红（记录在案，未改断言）
+
+metrics_report.py 第一次全量跑出 **2757 通过 / 1 失败**，随即原样重跑得到 **2758 / 0 / 0**（exit 0）。
+未捕获失败用例名（输出被后续行覆盖）。按 §2.6 记为**负载artefact**，不调整任何断言；
+若下一次再出现，需要先抓到用例名再判断。

@@ -8525,3 +8525,15 @@ Observation：
 - 接进 `PayPalGateway.AuthorizeAsync`：**有 `paypal.conversionType` 先换汇再审批**，顺序被测试钉住。
 - 产物：文档 UTF-16 命中 1；`expeirences` **两编码都搜不到**，按 §4.5 **无结论**，
   行为证据来自测试对请求体的断言。
+
+---
+
+## 第 1337 轮
+
+- **一次查清五份文档发到哪**：`SubmitOrder` → `<host>/graphql`（**R1320/R1321 推断正确，解除存疑**）；
+  `addLineItem`/`addDiscountCode` → **`https://tm-api-eu.highsnobiety.com/`**（一家复刻件里还没有的店）；
+  `cartApiObjectCreate` → **Shopify Storefront** `api/2025-04/graphql.json`；
+  `createEmptyCart` → 无 URL 字面量，端点由调用方传。
+- **撤回 R1334**：`/cartApi/checkout` 的变量是 `cartType`/`lineItems`/`locationId`/`sourceSystem`，
+  **Magento 购物车变更没有一个发这些**。已删 4 成员 + 6 处调用 + 5 条测试。
+  **一条"对别的东西成立"的规则比没有规则更坏 —— 它看起来像证据。**

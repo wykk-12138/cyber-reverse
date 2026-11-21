@@ -68,3 +68,16 @@
 **R1334 补充**：拼接规则已读完 —— `https://` + `host 的 www 换成 themeapis`（无 `www.` 时加前缀）+ `/cartApi/checkout`，
 已落成 `MagentoCart.CartApiEndpointFor` / `ThemeApisHost` / `ResolveEndpoint`，六个方法开头统一归一化。
 **今天所有调用方传完整 URL，行为不变**；仍待定的是**哪家店**用这条路径。
+
+## 五份文档的真实去向（R1337，读发送方所得）
+
+| 文档 | 发送方拼出的目标 | 关键变量 |
+|---|---|---|
+| `SubmitOrder`(141) | `https://` + host + `/graphql` | `cartToken`、`operationName`、`query`、`variables` |
+| `addLineItem`(3847) | `https://tm-api-eu.highsnobiety.com/` | `sku`、`locale`、`country`、`action`（`Add to cart`） |
+| `addDiscountCode`(3811) | `https://tm-api-eu.highsnobiety.com/` | `code`、`locale` |
+| `cartApiObjectCreate`(5876) | Shopify Storefront `api/2025-04/graphql.json` | `gid://shopify/ProductVariant/`、`customerAccessToken`、`include*` |
+| `createEmptyCart`(32) | 无 URL 字面量 —— 端点由调用方传 | — |
+
+**`/cartApi/checkout` 不在这张表里。** 它的发送方用的是 `cartType`/`lineItems`/`locationId`/`sourceSystem`
+（取值 `Retail`/`Shopify`），与上表任何一份都不重合 —— 所以 R1334 把那条路径挂到 `MagentoCart` 上是错的，已撤回。

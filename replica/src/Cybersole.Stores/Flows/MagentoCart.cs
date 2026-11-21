@@ -73,52 +73,6 @@ public static class MagentoCart
         "{setCustomerEmail: {email: $emailAddress}}]\n    version: $version\n    id: $cartId\n  ) {\n" +
         "    id\n    version\n    isAbleToCheckout\n  }\n}";
 
-    /// <summary>
-    /// The cart-API path the observed family posts to — 0x146AB27FC, one code reference in the whole
-    /// <c>.text</c> (<c>sub_140C32160</c>).
-    /// </summary>
-    public const string CartApiPath = "/cartApi/checkout";
-
-    /// <summary>
-    /// The cart-API endpoint for a host. The image composes it as
-    /// <c>"https://" + host-with-www-replaced-by-themeapis + "/cartApi/checkout"</c> — <c>sub_141CF82E0(host,
-    /// "www", "themeapis")</c> at 0x140C32471, and the literal <c>https://themeapis.</c> at 0x14708885C is what
-    /// that produces for a host with no <c>www.</c> prefix.
-    /// </summary>
-    public static string CartApiEndpointFor(string hostOrOrigin)
-    {
-        var host = hostOrOrigin.TrimEnd('/');
-        if (host.Contains("://", StringComparison.Ordinal))
-            host = host[(host.IndexOf("://", StringComparison.Ordinal) + 3)..];
-
-        return "https://" + ThemeApisHost(host) + CartApiPath;
-    }
-
-    /// <summary>
-    /// The host the cart API lives on: the request host with <c>www</c> replaced by <c>themeapis</c>, and — when
-    /// there is no <c>www</c> to replace — the <c>themeapis.</c> label prepended, which is the case the literal
-    /// <c>https://themeapis.</c> at 0x14708885C is for.
-    /// </summary>
-    public static string ThemeApisHost(string host)
-    {
-        var trimmed = host.TrimEnd('/');
-        if (trimmed.Contains("://", StringComparison.Ordinal))
-            trimmed = trimmed[(trimmed.IndexOf("://", StringComparison.Ordinal) + 3)..];
-
-        return trimmed.Replace("www.", "themeapis.", StringComparison.OrdinalIgnoreCase) is var replaced &&
-               !replaced.Contains("themeapis.", StringComparison.OrdinalIgnoreCase)
-            ? "themeapis." + replaced
-            : replaced;
-    }
-
-    /// <summary>
-    /// An endpoint as given, or composed from a bare host. Callers that pass a full URL — every caller today —
-    /// get back exactly what they passed; a bare host would otherwise produce a request to nowhere.
-    /// </summary>
-    public static string ResolveEndpoint(string endpointOrHost) =>
-        endpointOrHost.Contains("://", StringComparison.Ordinal)
-            ? endpointOrHost
-            : CartApiEndpointFor(endpointOrHost);
 
     /// <summary>The three tokens the add mutation substitutes.</summary>
     public static readonly string[] Placeholders = { "%CART_ID%", "%QTY%", "%SKU%" };
@@ -147,7 +101,6 @@ public static class MagentoCart
     /// </summary>
     public static async Task<string?> CreateEmptyAsync(FlowContext c, string endpoint, CancellationToken ct)
     {
-        endpoint = ResolveEndpoint(endpoint);
         var reply = await PostAsync(c, endpoint, Body(CreateEmptyCartDocument), ct).ConfigureAwait(false);
         return reply?["data"]?["createEmptyCart"]?.ToString();
     }
@@ -160,7 +113,6 @@ public static class MagentoCart
     public static async Task<MagentoCartResult> AddProductAsync(
         FlowContext c, string endpoint, string cartId, string sku, int quantity, CancellationToken ct)
     {
-        endpoint = ResolveEndpoint(endpoint);
         var reply = await PostAsync(c, endpoint, Body(FillAddProducts(cartId, sku, quantity)), ct)
             .ConfigureAwait(false);
 
@@ -204,7 +156,6 @@ public static class MagentoCart
         string email,
         CancellationToken ct)
     {
-        endpoint = ResolveEndpoint(endpoint);
         var body = new JObject
         {
             ["query"] = AddBillingAddressDocument,
@@ -251,7 +202,6 @@ public static class MagentoCart
     public static async Task<MagentoBillingResult> AddPaymentAsync(
         FlowContext c, string endpoint, string cartId, long version, string paymentId, CancellationToken ct)
     {
-        endpoint = ResolveEndpoint(endpoint);
         var body = new JObject
         {
             ["query"] = AddPaymentDocument,
@@ -273,7 +223,6 @@ public static class MagentoCart
     public static async Task<MagentoOrderResult> SubmitOrderAsync(
         FlowContext c, string endpoint, string cartToken, CancellationToken ct)
     {
-        endpoint = ResolveEndpoint(endpoint);
         var body = new JObject
         {
             ["query"] = SubmitOrderDocument,
@@ -338,7 +287,6 @@ public static class MagentoCart
     public static async Task<MagentoCartResult> ReadCartAsync(
         FlowContext c, string endpoint, CancellationToken ct)
     {
-        endpoint = ResolveEndpoint(endpoint);
         var reply = await PostAsync(c, endpoint, Body(CustomerCartDocument), ct).ConfigureAwait(false);
         if (reply is null) return MagentoCartResult.Fail("cart: no reply");
 

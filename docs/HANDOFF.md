@@ -8537,3 +8537,17 @@ Observation：
 - **撤回 R1334**：`/cartApi/checkout` 的变量是 `cartType`/`lineItems`/`locationId`/`sourceSystem`，
   **Magento 购物车变更没有一个发这些**。已删 4 成员 + 6 处调用 + 5 条测试。
   **一条"对别的东西成立"的规则比没有规则更坏 —— 它看起来像证据。**
+
+---
+
+## 第 1338 轮
+
+- **Highsnobiety 成为一家店**（67→68 / 37→38），从 R1337 的发送方证据建起：主机 `tm-api-eu.highsnobiety.com`、
+  两个操作名、两份文档（`addLineItem` **3435**、`addDiscountCode` **3399**，均带 CRLF）。
+  **旧文档表里 3847/3811 两个长度是错的。**
+- **镜像纠正**：`addLineItem` 只声明 `$country`/`$action`/`$locale`，**没有 sku 参数** —— 货品在 `$action`
+  （`AddCartLineItem` 输入对象）里。改为调用方提供 JSON、步骤透传。
+- **两个自伤**：`edit` 工具把 verbatim 串里的 CRLF 吃掉 206 个（已改显式转义 + 加钉子测试）；
+  按"文件里第一个 `AddToCartAsync`"切片把 `RetailFlows.cs` 砍到 235 行（从 HEAD 恢复重写）。
+- **一条环境红**：`poq-app` 监控用例依赖 `platform.poq.io` 回 403，实测现在回 **500** → 见 BLOCKERS。
+  **不为了让它变绿而放宽断言。**

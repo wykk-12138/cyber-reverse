@@ -131,7 +131,7 @@ public class StoreModuleTests
         Cybersole.Stores.Modules.StoreModuleCatalog.RegisterAll(registry);
 
         // 66 since R1309 added Saucony — a store the image has and the catalogue did not list.
-        Assert.Equal(67, registry.Modules.Count);
+        Assert.Equal(68, registry.Modules.Count);
         Assert.Contains(registry.Modules, m => m.Id == "shopify");
         Assert.Contains(registry.Modules, m => m.Id == "nike");
         Assert.Contains(registry.Modules, m => m.Id == "demandware");

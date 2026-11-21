@@ -18,7 +18,7 @@
 
 | 维度 | 数值 | 命令 |
 |---|---|---|
-| 注册模块 | **67**（35 种 flow） | `verify.ps1` → `store modules` |
+| 注册模块 | **68**（35 种 flow） | `verify.ps1` → `store modules` |
 | 单元测试（快） | **660 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow"` |
 | 慢测试（`-Full`） | 全绿（含 全部 域名的可达性扫描） | `verify.ps1 -Full` |
 | 变异检查 | **59 条**（R305 全量 27/27 fired；R307 再加 2 条；R578–R580、R605–R606、R621、R623 各补一条守卫；R1079 补 5 条；R1080/R1087–R1103 各 1 条） | `tools/mutation-check.py` |
@@ -70539,3 +70539,39 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   **本轮推翻的是我自己上一轮的 Inference。**
 - **还剩什么**：Highsnobiety 这家店（两份文档的归宿）；`/cartApi/checkout` 究竟属于谁；
   `AddressInput`；方言条件（blocker）；AO 三个 checkout 体；Saucony 六步路径。
+
+---
+
+## 第 1338 轮：Highsnobiety 成为一家店——第一次"从端点建店"，中间捅破一次文件、被镜像纠正一次
+
+- **方法**：R1337 读发送方拿到主机、两个操作名、变量名 → 这轮把两份文档按字节解出来（`addLineItem` **3435**、
+  `addDiscountCode` **3399**，都带 CRLF，与旧表里 3847/3811 的数字不符 —— **旧表那两个长度是错的**）→ 建成 `HighsnobietyFlow` 并注册。
+  店铺数 **67 → 68**，flow 类型 **37 → 38**。
+- **镜像纠正了我一次**：我第一版把 `sku` 当作第四个顶层变量发出去。可**文档只声明并使用三个变量**
+  （`$country`、`$action`、`$locale`），操作是 `addLineItem(country:, action:)` —— **根本没有 sku 参数**。
+  也就是说 `$action` 的类型 `AddCartLineItem!` 是**输入对象**，货品在它里面。改成：调用方以 JSON 提供
+  `highsnobiety.action`，步骤原样透传；缺了就说缺什么，**不猜字段名**。
+- **两个我自己造成的伤口，都记下来**：
+  1. **`edit` 工具把 verbatim 字符串里的 CRLF 改成了 LF**，206 个字符凭空消失 —— 是长度断言先发现的。
+     修法：文档改成**显式 `\r\n` 转义的普通字符串**，并加 `TheDocumentKeepsItsLineEndings` 钉住 206 个 CRLF。
+  2. **我又按"文件里第一个 `AddToCartAsync`"做锚点，把 `RetailFlows.cs` 从 2066 行砍到 235 行** ——
+     这个文件里有几十个 flow 类，同名 override 有六个。从 `git show HEAD:` 恢复后按整块重写。
+     **R1329 立的"按类查重"规矩，这轮在自己的切片脚本里没照做。**
+- **一处环境性红**（与本轮改动无关，见 BLOCKERS）：`ModuleRobustnessTests.Monitor_Survives_An_Unreachable_Host("poq-app")`
+  期望 `platform.poq.io` 对未归属请求回 **403**（Poq 面不看传入 URL，直接打真主机），而实测该主机现在回 **500**，
+  于是流程报 `Error` 而不是 gate。**测试把第三方当前状态码写死了**，这是它的脆弱处，不是复刻件的行为退化。
+
+### 五要素
+
+- **改了什么**：`RetailFlows.cs`（+`HighsnobietyFlow`，两份文档逐字节）；`Modules/Registry.cs`（注册）；
+  新增 `tests/HighsnobietyFlowTests.cs`（7 条）；四处钉子数字 67→68（`ArrowAndBeastTests`、`CoreTests`、
+  `docs/PARITY.md`、`docs/VERDICT.md` 状态行）；新增 5 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`HighsnobietyFlowTests` → **7/7**；`ArrowAndBeastTests|CoreTests|ParityDocTests|DocsConsistencyTests|SummaryBlockTests`
+  → **25/25**（数字跟上之后）；`store_catalog.py` → 68 模块 / 38 flow 类型 / 0 域名冲突；
+  全量 → **3008 通过 / 1 失败 / 2 跳过**（唯一失败即 poq-app 那条环境项）；
+  产物 61,448,192 → **61,480,448** 字节；内嵌 `87b9f1cc4da9`。
+- **数字变化**：店铺 67 → **68**；flow 类型 37 → **38**；套件 +7。
+- **证据等级**：Observation —— 两份文档的字节与 CRLF 数、三个变量名、`AddCartLineItem` 无 sku 参数、产物重发布。
+  Unknown —— `AddCartLineItem` 的字段名（因此要调用方给 JSON）。
+- **还剩什么**：Highsnobiety 的其余步骤（home/product/variant/shipping/payment 均未取证）；
+  `/cartApi/checkout` 归属；`AddressInput`；方言条件（blocker）；AO 三个 checkout 体；Saucony 六步路径。

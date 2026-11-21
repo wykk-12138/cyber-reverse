@@ -180,6 +180,9 @@ public static class StoreModuleCatalog
         new FlowStoreModule(new CasioFlow()),
         new FlowStoreModule(new WarhammerFlow()),
         new FlowStoreModule(new JbHiFiFlow()),
+        // R1338: found by reading the senders of addLineItem and addDiscountCode — the API is on
+        // tm-api-eu.highsnobiety.com, not on the customer-facing domain.
+        new FlowStoreModule(new HighsnobietyFlow()),
         new FlowStoreModule(new SuperswipeFlow()),
         new FlowStoreModule(new PocketGamesFlow()),
         new FlowStoreModule(new SnsFlow()),

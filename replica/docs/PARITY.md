@@ -121,7 +121,7 @@ if (TaskGroups.Count == 0) TaskGroups.Add(new TaskGroup { Name = "Group 1" });
 
 ## 3. 站点模块
 
-**67 个注册模块，37 种不同的 flow 类型。** 数字取自 `CreateAll()` 的返回，
+**68 个注册模块，38 种不同的 flow 类型。** 数字取自 `CreateAll()` 的返回，
 不是文件里 `new FlowStoreModule(` 的出现次数——后者是 62，多出的一个是
 `RegisterShopifyHost()` 工厂里的模板。
 

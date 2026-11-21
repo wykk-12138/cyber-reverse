@@ -47889,3 +47889,20 @@ Inference = 「17 文件 mtime 来自变异改写」；**Unknown** = 并行会�
   3. `python analysis/ida.py health` 应返回 `status: ok` 且 `hexrays_ready: true`；
   4. 重跑 `vendor_coverage.py`（先跑一次让它 warm，可能第一次报 JSON 解析错，第二次正常）。
 - **注意**：DSH 的 `ida` **MCP 代理**报 MISSING 不影响 `analysis/ida.py` —— 后者直连插件 13337。
+
+---
+
+## R1338 · poq-app 监控用例的红是环境性的（第三方状态码变了）
+
+- **用例**：`ModuleRobustnessTests.Monitor_Survives_An_Unreachable_Host("poq-app")`
+- **断言**：期望该模块遇见 gate（`PoqAppFlow.IsBlocked` 把 **403** 视为 blocked）。
+- **实测（本轮复现两次）**：`poq-app` 报 `Error`。
+- **原因（已探查）**：该 flow **不使用传入 URL**，直接 POST `https://platform.poq.io/clients/offspring/account/guest-token`。
+  当前该主机返回 **500**，不是 403，于是走传输错误分支。
+  ```
+  Invoke-WebRequest -Method POST https://platform.poq.io/clients/offspring/account/guest-token
+  -> error: 远程服务器返回错误: (500) 内部服务器错误。
+  ```
+- **判定**：**测试把第三方当前状态码写死了**，红的是这条假设，不是复刻件行为。
+  **不要为了让用例变绿去放宽断言** —— 那会抹掉证据。要修就先记录该主机的状态码分布，再决定断言成"非 200 即 gate"还是别的。
+- `PoqAppFlow.cs` 自 R779 未改动，本轮亦未触及。

@@ -47906,3 +47906,13 @@ Inference = 「17 文件 mtime 来自变异改写」；**Unknown** = 并行会�
 - **判定**：**测试把第三方当前状态码写死了**，红的是这条假设，不是复刻件行为。
   **不要为了让用例变绿去放宽断言** —— 那会抹掉证据。要修就先记录该主机的状态码分布，再决定断言成"非 200 即 gate"还是别的。
 - `PoqAppFlow.cs` 自 R779 未改动，本轮亦未触及。
+
+## IDA 重启的三步（R1355 实测）
+
+进程不在或端口 REFUSED 时，按顺序点掉三个模态框：
+
+1. **「加载现有(L)」** —— 不要选「覆盖」(会重写 .i64)；
+2. **「Proceed with unpacked base」** —— **不要选 "Restore packed base"**（那会退回到打包库，丢掉后续分析）；
+3. **「Repair」** —— 修 `id0`，之后还会弹一次「Database still contains inconsistencies」→ 确定。
+
+之后 `python analysis/ida.py health` 应返回 `status: ok`（含 `hexrays_ready`）。

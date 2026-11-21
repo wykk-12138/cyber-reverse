@@ -535,6 +535,29 @@ public class ShopifyFlow : StoreFlow
     {
         // R1348: the Storefront cart creation, when the run supplies a host, a token and a CartInput. The image's
         // own storefront token is a credential and is deliberately not copied into source.
+        // R1355: the Shop app's own cart, when the run carries a broker id and a variant. Different API from this
+        // store's storefront cart above, so it is a branch with its own refusal messages.
+        var shopBrokerId = c.Session.Vars.GetValueOrDefault("shopapp.brokerId");
+        var shopVariantId = c.Session.Vars.GetValueOrDefault("shopapp.variantId");
+        if (!string.IsNullOrEmpty(shopBrokerId) && !string.IsNullOrEmpty(shopVariantId))
+        {
+            var (shopCart, shopCartError) = await ShopAppCart.AddLineAsync(c, new JObject
+            {
+                ["brokerId"] = shopBrokerId,
+                ["variantId"] = shopVariantId,
+                ["quantity"] = int.TryParse(c.Session.Vars.GetValueOrDefault("shopapp.quantity"), out var qty)
+                    ? qty
+                    : c.Session.Quantity,
+                ["attribution"] = JObject.Parse(
+                    c.Session.Vars.GetValueOrDefault("shopapp.attribution") ?? "{}"),
+            }, ct, c.Session.Vars.GetValueOrDefault("shopapp.url")).ConfigureAwait(false);
+
+            if (shopCart is null) return StepOutcome.Fail(shopCartError);
+
+            c.Session.Vars["cart"] = shopCart.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         var createHost = c.Session.Vars.GetValueOrDefault("shopify.cartCreateHost");
         var createToken = c.Session.Vars.GetValueOrDefault(ShopifyHeaders.StorefrontAccessToken);
         var createInput = c.Session.Vars.GetValueOrDefault("shopify.cartCreateInput");

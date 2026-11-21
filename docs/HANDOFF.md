@@ -8730,3 +8730,15 @@ Observation：
   **长度接近只是旁证，不是判据。**
 - `HighsnobietyFlow.SubmitShippingAsync` 落地 → **该店七步齐全**（cart/email/product/billing/payment/shipping/order）。
 - 覆盖 37 → **38/65**，缺 28 → **27**；产物 `mutation setShippingAddress` 命中 1。
+
+---
+
+## 第 1355 轮
+
+- **新手法：跟着"操作名字符串"走**。文档函数零字面量（异步状态机）时，操作名自己的引用点往往是**真正的处理器**。
+  `cartLineItemSet` → `sub_140D11730`（1049 字节）→ 六条处理消息（`Password page up`、`The product in the cart is out of stock.` …）。
+- **落码** `ShopAppCart`：文档 1255 + 四个变量 + **六条消息 + 按回复映射**（用镜像自己的话）。
+  **只抄文档会丢掉"反应"这一半。**
+- **IDA 重启手册补充**：三个模态框依次为 **加载现有** → **Proceed with unpacked base** → **Repair**。
+  **不可选 "Restore packed base"**（会丢分析）。
+- 覆盖 38 → **39/65**，缺 27 → **26**；产物 `mutation CartLineItemSet` 命中 1。

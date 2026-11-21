@@ -1422,6 +1422,39 @@ public abstract class StoreFlow
         => SubmitPaymentAsync(c, ct);
     public virtual async Task<StepOutcome> GetPaymentTokenAsync(FlowContext c, CancellationToken ct)
     {
+        // R1371: Cybersource's payment creation, when a run names the merchant endpoint. The endpoint and the capture
+        // context are the run's; the image names the fields but never a host.
+        var cybersourceEndpoint = c.Session.Vars.GetValueOrDefault("cybersource.endpoint");
+        if (!string.IsNullOrEmpty(cybersourceEndpoint))
+        {
+            var customFields = Cybersole.Stores.Payments.CybersourcePayment.BuildCustomFields(
+                c.Session.Vars.GetValueOrDefault("cybersource.paymentData"),
+                c.Session.Vars.GetValueOrDefault("cybersource.store"),
+                int.TryParse(c.Session.Vars.GetValueOrDefault("cybersource.screenHeight"), out var height) ? height : 0,
+                int.TryParse(c.Session.Vars.GetValueOrDefault("cybersource.screenWidth"), out var width) ? width : 0,
+                c.Session.Vars.GetValueOrDefault("cybersource.customerIp"));
+
+            var paymentVariables = new Newtonsoft.Json.Linq.JObject
+            {
+                ["amount"] = new Newtonsoft.Json.Linq.JObject
+                {
+                    ["centAmount"] = long.TryParse(c.Session.Vars.GetValueOrDefault("cybersource.centAmount"),
+                        out var cents) ? cents : 0,
+                    ["currencyCode"] = c.Session.Vars.GetValueOrDefault("cybersource.currency") ?? "USD",
+                },
+                ["paymentMethod"] = Cybersole.Stores.Payments.CybersourcePayment.PayerAuthenticationMethod,
+                ["customFields"] = customFields,
+            };
+
+            var (paymentData, paymentError) = await Cybersole.Stores.Payments.CybersourcePayment
+                .CreateAsync(c, cybersourceEndpoint, paymentVariables, ct).ConfigureAwait(false);
+            if (paymentData is null) return StepOutcome.Fail(paymentError);
+
+            c.Session.Vars["cybersourcePayment"] =
+                paymentData.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         // Prefer whatever the platform already minted; every flow that can tokenise fills this in itself.
         if (!string.IsNullOrEmpty(c.Session.PaymentToken)) return StepOutcome.Success();
 

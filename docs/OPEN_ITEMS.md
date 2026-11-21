@@ -122,3 +122,18 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 
 **条件**：带加密 paycode 的出资选项用长文档，其余用短文档 —— **跟支付方式走，不跟店铺走**。
 实现：`PayPalPartnerApprove.DocumentFor(bool)` / `EnvelopeFor(variables)`；旧 `Document` 保持不变。
+
+---
+
+## 十一、`createMyPayment` 已结案（R1371）
+
+不是"缺主机所以做不了"：**请求形状完全可得**，缺的只是商家端点（本就不该由镜像给）。
+
+| 要素 | 值 |
+|---|---|
+| 自定义字段 | `isv_payment_data`、`isv_store`、`isv_screenHeight`、`isv_screenWidth`、`isv_customerIpAddress` |
+| 供应商/方法 | `cybersource`、`creditCardWithPayerAuthentication` |
+| 拒绝语 | `No capture context`、`Error processing payment` |
+| 应答键 | `isv_tokenCaptureContextSignature` |
+
+实现：`Payments/CybersourcePayment`，接进 `StoreFlow.GetPaymentTokenAsync`；端点由调用方给。

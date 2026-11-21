@@ -8888,3 +8888,13 @@ Observation：
   其余完全相同 → **方言跟支付方式走**（带加密 paycode 用长文档），跟店铺无关。
 - 落码 `PayPalPartnerApprove.PaycodeDocument` + `DocumentFor(bool)` + `EnvelopeFor(variables)`；**旧 `Document` 不动**。
 - 一次自伤：第一版测试用字符串手术比较文档，被一个逗号打败 → 改成**声明集差集**断言。
+
+---
+
+## 第 1371 轮
+
+- **`createMyPayment`(493) 落地**：处理器给出完整请求形状（五个 `isv_*` 自定义字段、`cybersource`、
+  `creditCardWithPayerAuthentication`、`No capture context`、`Error processing payment`、
+  `isv_tokenCaptureContextSignature`）→ `Payments/CybersourcePayment`，接进 `GetPaymentTokenAsync`。
+- **主机仍由调用方给** —— 两个处理器都没命名主机，端点属商家自己。
+- 覆盖 60 → **61/65**，缺 5 → **4**；产物 `mutation createMyPayment` 命中 1。

@@ -8551,3 +8551,15 @@ Observation：
   按"文件里第一个 `AddToCartAsync`"切片把 `RetailFlows.cs` 砍到 235 行（从 HEAD 恢复重写）。
 - **一条环境红**：`poq-app` 监控用例依赖 `platform.poq.io` 回 403，实测现在回 **500** → 见 BLOCKERS。
   **不为了让它变绿而放宽断言。**
+
+---
+
+## 第 1339 轮
+
+- **一家店的全部 HTTP 面 = 一个主机字符串的引用列表**：`0x147089690` 有 **8 个引用点**，8 个函数就是整店 API。
+- **地址学反转**：扫 `chars_va - 12` 得 0 site，扫 **`chars_va`** 得 8 site —— **这两种都要试**才能说没有引用。
+- **`action` 是"每操作各自的输入对象"**（`AddCartLineItem` / `SetCartCustomerEmail`），不是共享枚举 ——
+  所以每步一个会话键。
+- 新增 `FindProductAsync`（`fetchProduct` 5718）与 `SubmitEmailAsync`（`setCustomerEmail` 4986），
+  文档用显式 `\r\n` 转义、**整块重生成不做切片补丁**。
+- 下一步：payment/billing/shipping/order 四个发送方**已定位**，读全操作名即可补齐。

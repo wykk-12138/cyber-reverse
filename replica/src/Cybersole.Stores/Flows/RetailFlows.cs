@@ -2069,23 +2069,19 @@ public sealed class RaffleFlow : StoreFlow
 /// Highsnobiety — a store the image supports and the replica had nowhere (R1337 found it by reading senders).
 ///
 /// <para>
-/// <b>Observed:</b> the add-to-cart and discount senders at <c>sub_140B56880</c> and <c>sub_140B585B0</c> post to
-/// <c>https://tm-api-eu.highsnobiety.com/</c> (0x147089690, 35 characters) with <c>operationName</c>
-/// <c>addLineItem</c> (0x146F6E208) and <c>addDiscountCode</c> (0x146F6E168), an <c>application/json</c>
-/// envelope carrying <c>query</c> and <c>variables</c>, and the documents at 0x1470E6CDC (3435 characters) and
-/// 0x1470E5234 (3399), both stored here with their CRLF line endings spelled out.
+/// <b>Observed:</b> the API host <c>https://tm-api-eu.highsnobiety.com/</c> (0x147089690) appears in eight code
+/// sites, and those eight functions are the store's whole HTTP surface. Each posts an
+/// <c>application/json</c> envelope of <c>operationName</c>, <c>query</c> and <c>variables</c>:
+/// <c>addLineItem</c> (0x140B56880), <c>createCheckoutPayment</c> (0x140B56CC0), <c>fetchProduct</c>
+/// (0x140B57020), <c>fetchOrderConfirmation</c> (0x140B574F0), a billing sender (0x140B57EB0),
+/// <c>addDiscountCode</c> (0x140B585B0), <c>setCustomerEmail</c> (0x140B58920) and a shipping sender
+/// (0x140B59790).
 /// </para>
 ///
 /// <para>
-/// <b>Observed:</b> the add-to-cart document declares and uses exactly three variables — <c>$country</c>,
-/// <c>$action</c> and <c>$locale</c> — and its operation is <c>addLineItem(country:, action:)</c>. There is no
-/// sku argument: the line item travels inside <c>$action</c>, whose type <c>AddCartLineItem!</c> is an input
-/// object the image never spells out.
-/// </para>
-///
-/// <para>
-/// <b>Unknown:</b> that input's field names. So the caller supplies <c>highsnobiety.action</c> as JSON and the
-/// step passes it through; without it the step says what to set rather than sending a request built on a guess.
+/// <b>Observed:</b> <c>action</c> is an input object per operation, not one shared enum — the cart line takes
+/// <c>AddCartLineItem</c> and the email takes <c>SetCartCustomerEmail</c>. Each step therefore takes its own
+/// action JSON from the session, and the image never names either object's fields.
 /// </para>
 /// </summary>
 public sealed class HighsnobietyFlow : StoreFlow
@@ -2099,7 +2095,7 @@ public sealed class HighsnobietyFlow : StoreFlow
     /// <summary>The customer-facing domain. The API is on <see cref="ApiHost"/>, a different host.</summary>
     public override IReadOnlyList<string> Domains => new[] { "highsnobiety.com" };
 
-    /// <summary>The API origin both senders compose, 0x147089690.</summary>
+    /// <summary>The API origin every sender composes, 0x147089690.</summary>
     public const string ApiHost = "https://tm-api-eu.highsnobiety.com/";
 
     /// <summary>The add-to-cart operation name, 0x146F6E208.</summary>
@@ -2108,69 +2104,152 @@ public sealed class HighsnobietyFlow : StoreFlow
     /// <summary>The discount operation name, 0x146F6E168.</summary>
     public const string AddDiscountCodeOperation = "addDiscountCode";
 
+    /// <summary>The product query's operation name, 0x147033BA8.</summary>
+    public const string FetchProductOperation = "fetchProduct";
+
+    /// <summary>The email mutation's operation name, 0x147158FF0.</summary>
+    public const string SetCustomerEmailOperation = "setCustomerEmail";
+
     /// <summary>The add-to-cart document, 3435 characters from 0x1470E6CDC, CRLF included.</summary>
     public const string AddLineItemDocument =
         "mutation addLineItem($country: Country!, $action: AddCartLineItem!, $locale: Locale! = \"en\") {\r\n  addLineItem(country: $country, action: $action) {\r\n    ...CartFragment\r\n    __typename\r\n  }\r\n}\r\n\r\nfragment CartFragment on Cart {\r\n  id\r\n  country\r\n  shippingInfo {\r\n    shippingMethod {\r\n      ...ShippingMethodSimplifiedFragment\r\n      __typename\r\n    }\r\n    discountedPrice {\r\n      value {\r\n        ...BaseMoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    price {\r\n      ...BaseMoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  lineItems {\r\n    ...LineItemFragment\r\n    __typename\r\n  }\r\n  totalPrice {\r\n    ...BaseMoneyFragment\r\n    __typename\r\n  }\r\n  taxedPrice {\r\n    totalGross {\r\n      ...BaseMoneyFragment\r\n      __typename\r\n    }\r\n    totalNet {\r\n      ...BaseMoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  discountCodes {\r\n    discountCode {\r\n      ...DiscountCodeFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  discountOnTotalPrice {\r\n    includedDiscounts {\r\n      ...DiscountedLineItemPortionFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment BaseMoneyFragment on Money {\r\n  currencyCode\r\n  centAmount\r\n  fractionDigits\r\n  __typename\r\n}\r\n\r\nfragment LineItemFragment on LineItem {\r\n  id\r\n  productId\r\n  productKey\r\n  name\r\n  productSlug\r\n  quantity\r\n  lineItemMode\r\n  category(locale: $locale)\r\n  displayBrand(locale: $locale)\r\n  discountedPricePerQuantity {\r\n    quantity\r\n    discountedPrice {\r\n      includedDiscounts {\r\n        discount {\r\n          id\r\n          name(locale: $locale)\r\n          __typename\r\n        }\r\n        discountedAmount {\r\n          ...BaseMoneyFragment\r\n          __typename\r\n        }\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  price {\r\n    id\r\n    value {\r\n      ...BaseMoneyFragment\r\n      __typename\r\n    }\r\n    discounted {\r\n      value {\r\n        ...BaseMoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  mainImage {\r\n    ...ImageAssetFragment\r\n    __typename\r\n  }\r\n  variant {\r\n    id\r\n    key\r\n    sku\r\n    attributesRaw {\r\n      ...AttributesRawFragment\r\n      __typename\r\n    }\r\n    availability {\r\n      noChannel {\r\n        availableQuantity\r\n        expectedDelivery\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment AttributesRawFragment on RawProductAttribute {\r\n  name\r\n  value\r\n  __typename\r\n}\r\n\r\nfragment ImageAssetFragment on ImageAsset {\r\n  id\r\n  aspectRatio\r\n  base64\r\n  src\r\n  width\r\n  height\r\n  bgColor\r\n  title\r\n  focalPoint {\r\n    x\r\n    y\r\n    __typename\r\n  }\r\n  credits {\r\n    ...MediaCreditsV2Fragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment MediaCreditsV2Fragment on MediaCreditsV2 {\r\n  id\r\n  collection\r\n  companyName\r\n  licenseHolder\r\n  photographerName\r\n  __typename\r\n}\r\n\r\nfragment DiscountCodeFragment on DiscountCode {\r\n  id\r\n  code\r\n  name(locale: $locale)\r\n  __typename\r\n}\r\n\r\nfragment ShippingMethodSimplifiedFragment on ShippingMethod {\r\n  id\r\n  name\r\n  key\r\n  isDefault\r\n  localizedDescription(locale: $locale)\r\n  __typename\r\n}\r\n\r\nfragment DiscountedLineItemPortionFragment on DiscountedLineItemPortion {\r\n  discount {\r\n    id\r\n    description(locale: $locale)\r\n    name(locale: $locale)\r\n    requiresDiscountCode\r\n    __typename\r\n  }\r\n  discountedAmount {\r\n    ...BaseMoneyFragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n";
 
-    /// <summary>The discount document, 3399 characters from 0x1470E5234, CRLF included.</summary>
+    /// <summary>The discount document, 3399 characters from 0x1470E5234.</summary>
     public const string AddDiscountCodeDocument =
         "mutation addDiscountCode($code: String!, $locale: Locale! = \"en\") {\r\n  addDiscountCode(action: {code: $code}) {\r\n    ...CartFragment\r\n    __typename\r\n  }\r\n}\r\n\r\nfragment CartFragment on Cart {\r\n  id\r\n  country\r\n  shippingInfo {\r\n    shippingMethod {\r\n      ...ShippingMethodSimplifiedFragment\r\n      __typename\r\n    }\r\n    discountedPrice {\r\n      value {\r\n        ...BaseMoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    price {\r\n      ...BaseMoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  lineItems {\r\n    ...LineItemFragment\r\n    __typename\r\n  }\r\n  totalPrice {\r\n    ...BaseMoneyFragment\r\n    __typename\r\n  }\r\n  taxedPrice {\r\n    totalGross {\r\n      ...BaseMoneyFragment\r\n      __typename\r\n    }\r\n    totalNet {\r\n      ...BaseMoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  discountCodes {\r\n    discountCode {\r\n      ...DiscountCodeFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  discountOnTotalPrice {\r\n    includedDiscounts {\r\n      ...DiscountedLineItemPortionFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment BaseMoneyFragment on Money {\r\n  currencyCode\r\n  centAmount\r\n  fractionDigits\r\n  __typename\r\n}\r\n\r\nfragment LineItemFragment on LineItem {\r\n  id\r\n  productId\r\n  productKey\r\n  name\r\n  productSlug\r\n  quantity\r\n  lineItemMode\r\n  category(locale: $locale)\r\n  displayBrand(locale: $locale)\r\n  discountedPricePerQuantity {\r\n    quantity\r\n    discountedPrice {\r\n      includedDiscounts {\r\n        discount {\r\n          id\r\n          name(locale: $locale)\r\n          __typename\r\n        }\r\n        discountedAmount {\r\n          ...BaseMoneyFragment\r\n          __typename\r\n        }\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  price {\r\n    id\r\n    value {\r\n      ...BaseMoneyFragment\r\n      __typename\r\n    }\r\n    discounted {\r\n      value {\r\n        ...BaseMoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  mainImage {\r\n    ...ImageAssetFragment\r\n    __typename\r\n  }\r\n  variant {\r\n    id\r\n    key\r\n    sku\r\n    attributesRaw {\r\n      ...AttributesRawFragment\r\n      __typename\r\n    }\r\n    availability {\r\n      noChannel {\r\n        availableQuantity\r\n        expectedDelivery\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment AttributesRawFragment on RawProductAttribute {\r\n  name\r\n  value\r\n  __typename\r\n}\r\n\r\nfragment ImageAssetFragment on ImageAsset {\r\n  id\r\n  aspectRatio\r\n  base64\r\n  src\r\n  width\r\n  height\r\n  bgColor\r\n  title\r\n  focalPoint {\r\n    x\r\n    y\r\n    __typename\r\n  }\r\n  credits {\r\n    ...MediaCreditsV2Fragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment MediaCreditsV2Fragment on MediaCreditsV2 {\r\n  id\r\n  collection\r\n  companyName\r\n  licenseHolder\r\n  photographerName\r\n  __typename\r\n}\r\n\r\nfragment DiscountCodeFragment on DiscountCode {\r\n  id\r\n  code\r\n  name(locale: $locale)\r\n  __typename\r\n}\r\n\r\nfragment ShippingMethodSimplifiedFragment on ShippingMethod {\r\n  id\r\n  name\r\n  key\r\n  isDefault\r\n  localizedDescription(locale: $locale)\r\n  __typename\r\n}\r\n\r\nfragment DiscountedLineItemPortionFragment on DiscountedLineItemPortion {\r\n  discount {\r\n    id\r\n    description(locale: $locale)\r\n    name(locale: $locale)\r\n    requiresDiscountCode\r\n    __typename\r\n  }\r\n  discountedAmount {\r\n    ...BaseMoneyFragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n";
 
-    /// <summary>
-    /// The three variable keys the document declares and uses. No <c>sku</c>: the operation is
-    /// <c>addLineItem(country: $country, action: $action)</c>, so the line item is inside <c>$action</c>.
-    /// </summary>
+    /// <summary>The product query, 5718 characters from 0x1471407C4.</summary>
+    public const string FetchProductDocument =
+        "query fetchProduct($slug: String!, $locale: Locale!, $country: Country!, $preferredLocale: Locale!, $fallbackLocale: Locale! = \"en\") {\r\n  productProjection(slug: {value: $slug, locale: $locale}) {\r\n    ...ProductProjectionFragment\r\n    __typename\r\n  }\r\n}\r\n\r\nfragment ProductProjectionFragment on ProductProjection {\r\n  id\r\n  isUpcoming\r\n  sizeGuide\r\n  description(locale: $locale)\r\n  descriptionPreferred: description(locale: $preferredLocale)\r\n  descriptionFallback: description(locale: $fallbackLocale)\r\n  name(locale: $locale)\r\n  namePreferred: name(locale: $preferredLocale)\r\n  nameFallback: name(locale: $fallbackLocale)\r\n  displayBrand(locale: $locale)\r\n  displayBrandPreferred: displayBrand(locale: $preferredLocale)\r\n  displayBrandFallback: displayBrand(locale: $fallbackLocale)\r\n  displayName(locale: $locale)\r\n  displayNamePreferred: displayName(locale: $preferredLocale)\r\n  displayNameFallback: displayName(locale: $fallbackLocale)\r\n  slug(locale: $locale)\r\n  slugPreferred: slug(locale: $preferredLocale)\r\n  slugFallback: slug(locale: $fallbackLocale)\r\n  categories {\r\n    id\r\n    name(locale: $locale)\r\n    namePreferred: name(locale: $preferredLocale)\r\n    nameFallback: name(locale: $fallbackLocale)\r\n    __typename\r\n  }\r\n  mainImage {\r\n    ...ImageAssetFragment\r\n    __typename\r\n  }\r\n  variants {\r\n    sku\r\n    id\r\n    availability {\r\n      noChannel {\r\n        availableQuantity\r\n        expectedDelivery\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    attributesRaw {\r\n      ...AttributesRawFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  brands {\r\n    ...ProductBrandFragment\r\n    __typename\r\n  }\r\n  masterVariant {\r\n    ...ProductVariantFragment\r\n    __typename\r\n  }\r\n  editorsNotesText(locale: $locale) {\r\n    ...StructuredTextContentFragment\r\n    __typename\r\n  }\r\n  editorsNotesTextPreferred: editorsNotesText(locale: $preferredLocale) {\r\n    ...StructuredTextContentFragment\r\n    __typename\r\n  }\r\n  editorsNotesTextFallback: editorsNotesText(locale: $fallbackLocale) {\r\n    ...StructuredTextContentFragment\r\n    __typename\r\n  }\r\n  productDetailsText(locale: $locale) {\r\n    ...StructuredTextContentFragment\r\n    __typename\r\n  }\r\n  productDetailsTextPreferred: productDetailsText(locale: $preferredLocale) {\r\n    ...StructuredTextContentFragment\r\n    __typename\r\n  }\r\n  productDetailsTextFallback: productDetailsText(locale: $fallbackLocale) {\r\n    ...StructuredTextContentFragment\r\n    __typename\r\n  }\r\n  sizeAndFitText(locale: $locale) {\r\n    ...StructuredTextContentFragment\r\n    __typename\r\n  }\r\n  sizeAndFitTextTextPreferred: sizeAndFitText(locale: $preferredLocale) {\r\n    ...StructuredTextContentFragment\r\n    __typename\r\n  }\r\n  sizeAndFitTextTextFallback: sizeAndFitText(locale: $fallbackLocale) {\r\n    ...StructuredTextContentFragment\r\n    __typename\r\n  }\r\n  styleProducts {\r\n    ...StyleProductsFragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment AttributesRawFragment on RawProductAttribute {\r\n  name\r\n  value\r\n  __typename\r\n}\r\n\r\nfragment ImageAssetFragment on ImageAsset {\r\n  id\r\n  aspectRatio\r\n  base64\r\n  src\r\n  width\r\n  height\r\n  bgColor\r\n  title\r\n  focalPoint {\r\n    x\r\n    y\r\n    __typename\r\n  }\r\n  credits {\r\n    ...MediaCreditsV2Fragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment MediaCreditsV2Fragment on MediaCreditsV2 {\r\n  id\r\n  collection\r\n  companyName\r\n  licenseHolder\r\n  photographerName\r\n  __typename\r\n}\r\n\r\nfragment ProductBrandFragment on ProductBrand {\r\n  id\r\n  productListingPages {\r\n    id\r\n    fullPath(locale: $locale)\r\n    fullPathPreferred: fullPath(locale: $preferredLocale)\r\n    fullPathFallback: fullPath(locale: $fallbackLocale)\r\n    title(locale: $locale)\r\n    titlePreferred: title(locale: $preferredLocale)\r\n    titleFallback: title(locale: $fallbackLocale)\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment ProductVariantFragment on ProductVariant {\r\n  id\r\n  sku\r\n  color(locale: $locale)\r\n  colorPreferred: color(locale: $preferredLocale)\r\n  colorFallback: color(locale: $fallbackLocale)\r\n  attributesRaw {\r\n    ...AttributesRawFragment\r\n    __typename\r\n  }\r\n  price(country: $country) {\r\n    id\r\n    value {\r\n      ...BaseMoneyFragment\r\n      __typename\r\n    }\r\n    discounted {\r\n      value {\r\n        ...BaseMoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  attributesRaw {\r\n    ...AttributesRawFragment\r\n    __typename\r\n  }\r\n  availability {\r\n    noChannel {\r\n      availableQuantity\r\n      expectedDelivery\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment BaseMoneyFragment on Money {\r\n  currencyCode\r\n  centAmount\r\n  fractionDigits\r\n  __typename\r\n}\r\n\r\nfragment StructuredTextContentFragment on StructuredTextContent {\r\n  links {\r\n    ...LabelledLinkFragment\r\n    __typename\r\n  }\r\n  value\r\n  __typename\r\n}\r\n\r\nfragment LabelledLinkFragment on LabelledLink {\r\n  id\r\n  label(locale: $locale)\r\n  labelPreferred: label(locale: $preferredLocale)\r\n  labelFallback: label(locale: $fallbackLocale)\r\n  link {\r\n    ...ExternalLinkFragment\r\n    ...InternalLinkFragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment ExternalLinkFragment on ExternalLink {\r\n  id\r\n  type\r\n  url\r\n  __typename\r\n}\r\n\r\nfragment InternalLinkFragment on InternalLink {\r\n  id\r\n  type\r\n  slug\r\n  fullPath\r\n  __typename\r\n}\r\n\r\nfragment StyleProductsFragment on ProductProjection {\r\n  id\r\n  inStock\r\n  slug(locale: $locale)\r\n  slugPreferred: slug(locale: $preferredLocale)\r\n  slugFallback: slug(locale: $fallbackLocale)\r\n  mainImage {\r\n    ...ImageAssetFragment\r\n    __typename\r\n  }\r\n  masterVariant {\r\n    sku\r\n    color(locale: $locale)\r\n    colorPreferred: color(locale: $preferredLocale)\r\n    colorFallback: color(locale: $fallbackLocale)\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n";
+
+    /// <summary>The email mutation, 4986 characters from 0x1470F8234.</summary>
+    public const string SetCustomerEmailDocument =
+        "mutation setCustomerEmail($action: SetCartCustomerEmail!, $locale: Locale!, $preferredLocale: Locale) {\r\n  setCustomerEmail(action: $action) {\r\n    ...CartFragment\r\n    __typename\r\n  }\r\n}\r\n\r\nfragment CartFragment on Cart {\r\n  id\r\n  country\r\n  customerId\r\n  customerEmail\r\n  lineItems {\r\n    ...LineItemFragment_Cart\r\n    __typename\r\n  }\r\n  shippingAddress {\r\n    ...AddressFragment\r\n    __typename\r\n  }\r\n  billingAddress {\r\n    ...AddressFragment\r\n    __typename\r\n  }\r\n  shippingInfo {\r\n    shippingMethod {\r\n      id\r\n      key\r\n      name\r\n      __typename\r\n    }\r\n    price {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    taxedPrice {\r\n      totalNet {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      totalGross {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    taxRate {\r\n      includedInPrice\r\n      __typename\r\n    }\r\n    discountedPrice {\r\n      value {\r\n        ... on Money {\r\n          ...MoneyFragment\r\n          __typename\r\n        }\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  totalPrice {\r\n    ...MoneyFragment\r\n    __typename\r\n  }\r\n  taxedPrice {\r\n    totalNet {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    totalGross {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  discountCodes {\r\n    ...DiscountCodeFragment\r\n    __typename\r\n  }\r\n  discountOnTotalPrice {\r\n    includedDiscounts {\r\n      discount {\r\n        id\r\n        description(locale: $locale)\r\n        fallbackDescription: description(locale: en)\r\n        name(locale: $locale)\r\n        fallbackName: name(locale: en)\r\n        requiresDiscountCode\r\n        __typename\r\n      }\r\n      discountedAmount {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment MoneyFragment on Money {\r\n  currencyCode\r\n  centAmount\r\n  fractionDigits\r\n  __typename\r\n}\r\n\r\nfragment LineItemFragment_Cart on LineItem {\r\n  id\r\n  productSlug(locale: $locale)\r\n  fallbackSlug: productSlug(locale: en)\r\n  preferredSlug: productSlug(locale: $preferredLocale)\r\n  lineItemMode\r\n  name(locale: $locale)\r\n  displayBrand\r\n  displayName(locale: $locale)\r\n  quantity\r\n  productId\r\n  productType {\r\n    name\r\n    __typename\r\n  }\r\n  category(locale: $locale)\r\n  price {\r\n    ...ProductPriceFragment\r\n    __typename\r\n  }\r\n  mainImage {\r\n    ...ImageAssetFragment\r\n    __typename\r\n  }\r\n  variant {\r\n    availability {\r\n      noChannel {\r\n        availableQuantity\r\n        expectedDelivery\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    brands {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    campaignId\r\n    campaignSlug\r\n    color(locale: $locale)\r\n    gender {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    masterScale(locale: $locale)\r\n    size\r\n    sku\r\n    key\r\n    __typename\r\n  }\r\n  totalPrice {\r\n    ...MoneyFragment\r\n    __typename\r\n  }\r\n  taxedPrice {\r\n    totalNet {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    totalGross {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  taxRate {\r\n    includedInPrice\r\n    __typename\r\n  }\r\n  discountedPricePerQuantity {\r\n    ...DiscountedLineItemPriceForQuantityFragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment ProductPriceFragment on ProductPrice {\r\n  id\r\n  value {\r\n    ...MoneyFragment\r\n    __typename\r\n  }\r\n  country\r\n  discounted {\r\n    value {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    discount {\r\n      name(locale: $locale)\r\n      description(locale: $locale)\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  custom {\r\n    customFieldsRaw {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment DiscountedLineItemPriceForQuantityFragment on DiscountedLineItemPriceForQuantity {\r\n  quantity\r\n  discountedPrice {\r\n    includedDiscounts {\r\n      discount {\r\n        id\r\n        description(locale: $locale)\r\n        fallbackDescription: description(locale: en)\r\n        name(locale: $locale)\r\n        fallbackName: name(locale: en)\r\n        requiresDiscountCode\r\n        __typename\r\n      }\r\n      discountedAmount {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment ImageAssetFragment on ImageAsset {\r\n  alt\r\n  aspectRatio\r\n  base64\r\n  bgColor\r\n  height\r\n  id\r\n  sizes\r\n  src\r\n  srcSet\r\n  credits {\r\n    collection\r\n    companyName\r\n    licenseHolder\r\n    photographerUrl\r\n    photographerName\r\n    __typename\r\n  }\r\n  title\r\n  width\r\n  focalPoint {\r\n    id\r\n    x\r\n    y\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment AddressFragment on Address {\r\n  firstName\r\n  lastName\r\n  streetName\r\n  postalCode\r\n  city\r\n  region\r\n  country\r\n  phone\r\n  additionalAddressInfo\r\n  __typename\r\n}\r\n\r\nfragment DiscountCodeFragment on DiscountCodeInfo {\r\n  state\r\n  discountCode {\r\n    id\r\n    code\r\n    name(locale: $locale)\r\n    description(locale: $locale)\r\n    __typename\r\n  }\r\n  __typename\r\n}";
+
+    /// <summary>The three variable keys the add-to-cart document declares.</summary>
     public static readonly string[] AddLineItemVariables = { "action", "country", "locale" };
 
-    /// <summary>
-    /// Add the product to the cart. <c>highsnobiety.action</c> must hold the <c>AddCartLineItem</c> input as
-    /// JSON; the image does not name its fields, so there is nothing to default to.
-    /// </summary>
-    public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
-    {
-        var action = c.Session.Vars.GetValueOrDefault("highsnobiety.action");
-        if (string.IsNullOrWhiteSpace(action))
-            return StepOutcome.Fail("highsnobiety: $action is an AddCartLineItem input the image does not spell " +
-                                    "out — set highsnobiety.action to its JSON before adding to cart");
+    /// <summary>The five variable keys the product query declares.</summary>
+    public static readonly string[] FetchProductVariables = { "slug", "locale", "preferredLocale", "fallbackLocale", "country" };
 
-        Newtonsoft.Json.Linq.JToken actionToken;
+    /// <summary>The three variable keys the email mutation declares.</summary>
+    public static readonly string[] SetCustomerEmailVariables = { "action", "locale", "preferredLocale" };
+
+    private JObject? ActionFrom(FlowContext c, string key, string step, out StepOutcome? failure)
+    {
+        failure = null;
+        var raw = c.Session.Vars.GetValueOrDefault(key);
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            failure = StepOutcome.Fail("highsnobiety: " + step + " takes an input object the image does not " +
+                                       "spell out — set " + key + " to its JSON");
+            return null;
+        }
+
         try
         {
-            actionToken = Newtonsoft.Json.Linq.JToken.Parse(action);
+            return Newtonsoft.Json.Linq.JObject.Parse(raw);
         }
         catch (Newtonsoft.Json.JsonException)
         {
-            return StepOutcome.Fail("highsnobiety: highsnobiety.action is not valid JSON");
+            failure = StepOutcome.Fail("highsnobiety: " + key + " is not valid JSON");
+            return null;
         }
+    }
+
+    private string Locale(FlowContext c) => c.Session.Vars.GetValueOrDefault("highsnobiety.locale") ?? "en";
+
+    private string ApiHostFor(FlowContext c) =>
+        c.Session.Vars.GetValueOrDefault("highsnobiety.apiHost") ?? ApiHost;
+
+    private async Task<StepOutcome> PostOperationAsync(
+        FlowContext c, string operation, string document, JObject variables, string label, string sessionKey,
+        CancellationToken ct)
+    {
+        var body = new JObject
+        {
+            ["operationName"] = operation,
+            ["query"] = document,
+            ["variables"] = variables,
+        };
+
+        var res = await PostJsonAsync(c, ApiHostFor(c), body.ToString(Newtonsoft.Json.Formatting.None),
+            label, ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("highsnobiety " + label + " failed", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"highsnobiety {label} HTTP {res.StatusCode}", retryable: true);
+        if (res.Body.Contains("\"errors\"", StringComparison.Ordinal))
+            return StepOutcome.Fail("highsnobiety " + label + ": graphql returned errors");
+
+        c.Session.Vars[sessionKey] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Find the product by its slug. The document declares slug, locale, preferredLocale, fallbackLocale and
+    /// country; the slug comes from the run, the others from the session with "en" as the locale default.
+    /// </summary>
+    public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
+    {
+        var slug = c.Session.Vars.GetValueOrDefault("slug") ?? c.Session.Vars.GetValueOrDefault("productSlug");
+        if (string.IsNullOrEmpty(slug)) return StepOutcome.Fail("highsnobiety: no slug to look up");
 
         var country = c.Session.Vars.GetValueOrDefault("highsnobiety.country")
                       ?? c.ProfileData?.Country
                       ?? c.Session.Vars.GetValueOrDefault("country");
         if (string.IsNullOrEmpty(country)) return StepOutcome.Fail("highsnobiety: no country for $country!");
 
-        var body = new JObject
+        var locale = Locale(c);
+        var variables = new JObject
         {
-            ["operationName"] = AddLineItemOperation,
-            ["query"] = AddLineItemDocument,
-            ["variables"] = new JObject
-            {
-                ["action"] = actionToken,
-                ["country"] = country,
-                ["locale"] = c.Session.Vars.GetValueOrDefault("highsnobiety.locale") ?? "en",
-            },
+            ["slug"] = slug,
+            ["locale"] = locale,
+            ["preferredLocale"] = c.Session.Vars.GetValueOrDefault("highsnobiety.preferredLocale") ?? locale,
+            ["fallbackLocale"] = c.Session.Vars.GetValueOrDefault("highsnobiety.fallbackLocale") ?? locale,
+            ["country"] = country,
         };
 
-        var host = c.Session.Vars.GetValueOrDefault("highsnobiety.apiHost") ?? ApiHost;
-        var res = await PostJsonAsync(c, host, body.ToString(Newtonsoft.Json.Formatting.None),
-            "hs-add-line", ct).ConfigureAwait(false);
+        return await PostOperationAsync(c, FetchProductOperation, FetchProductDocument, variables,
+            "hs-product", "product", ct).ConfigureAwait(false);
+    }
 
-        if (res is null) return StepOutcome.Fail("highsnobiety add failed", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"highsnobiety add HTTP {res.StatusCode}", retryable: true);
-        if (res.Body.Contains("\"errors\"", StringComparison.Ordinal))
-            return StepOutcome.Fail("highsnobiety add: graphql returned errors");
+    /// <summary>Add the product to the cart; the line item is the caller's AddCartLineItem object.</summary>
+    public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
+    {
+        var action = ActionFrom(c, "highsnobiety.action", "add to cart", out var failure);
+        if (action is null) return failure!.Value;
 
-        c.Session.Vars["cart"] = res.Body;
-        return StepOutcome.Success();
+        var country = c.Session.Vars.GetValueOrDefault("highsnobiety.country")
+                      ?? c.ProfileData?.Country
+                      ?? c.Session.Vars.GetValueOrDefault("country");
+        if (string.IsNullOrEmpty(country)) return StepOutcome.Fail("highsnobiety: no country for $country!");
+
+        var variables = new JObject
+        {
+            ["action"] = action,
+            ["country"] = country,
+            ["locale"] = Locale(c),
+        };
+
+        return await PostOperationAsync(c, AddLineItemOperation, AddLineItemDocument, variables,
+            "hs-add-line", "cart", ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Set the cart's customer email; the payload is the caller's SetCartCustomerEmail object.</summary>
+    public override async Task<StepOutcome> SubmitEmailAsync(FlowContext c, CancellationToken ct)
+    {
+        var action = ActionFrom(c, "highsnobiety.emailAction", "submit email", out var failure);
+        if (action is null) return failure!.Value;
+
+        var variables = new JObject
+        {
+            ["action"] = action,
+            ["locale"] = Locale(c),
+            ["preferredLocale"] = c.Session.Vars.GetValueOrDefault("highsnobiety.preferredLocale") ?? Locale(c),
+        };
+
+        return await PostOperationAsync(c, SetCustomerEmailOperation, SetCustomerEmailDocument, variables,
+            "hs-email", "email", ct).ConfigureAwait(false);
     }
 
     /// <summary>Apply a discount code through the observed operation and its two variables.</summary>
@@ -2178,25 +2257,13 @@ public sealed class HighsnobietyFlow : StoreFlow
     {
         if (string.IsNullOrWhiteSpace(code)) return StepOutcome.Fail("highsnobiety: no code");
 
-        var body = new JObject
+        var variables = new JObject
         {
-            ["operationName"] = AddDiscountCodeOperation,
-            ["query"] = AddDiscountCodeDocument,
-            ["variables"] = new JObject
-            {
-                ["code"] = code,
-                ["locale"] = c.Session.Vars.GetValueOrDefault("highsnobiety.locale") ?? "en",
-            },
+            ["code"] = code,
+            ["locale"] = Locale(c),
         };
 
-        var host = c.Session.Vars.GetValueOrDefault("highsnobiety.apiHost") ?? ApiHost;
-        var res = await PostJsonAsync(c, host, body.ToString(Newtonsoft.Json.Formatting.None),
-            "hs-discount", ct).ConfigureAwait(false);
-
-        if (res is null) return StepOutcome.Fail("highsnobiety discount failed", retryable: true);
-        if (!res.IsSuccess) return StepOutcome.Fail($"highsnobiety discount HTTP {res.StatusCode}", retryable: true);
-
-        c.Session.Vars["discount"] = res.Body;
-        return StepOutcome.Success();
+        return await PostOperationAsync(c, AddDiscountCodeOperation, AddDiscountCodeDocument, variables,
+            "hs-discount", "discount", ct).ConfigureAwait(false);
     }
 }

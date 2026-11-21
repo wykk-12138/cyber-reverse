@@ -81,3 +81,22 @@
 
 **`/cartApi/checkout` 不在这张表里。** 它的发送方用的是 `cartType`/`lineItems`/`locationId`/`sourceSystem`
 （取值 `Retail`/`Shopify`），与上表任何一份都不重合 —— 所以 R1334 把那条路径挂到 `MagentoCart` 上是错的，已撤回。
+
+## Highsnobiety 的八个发送方（R1339）
+
+主机 `https://tm-api-eu.highsnobiety.com/` 在 `.text` 里只有 **8 个引用点**，8 个函数即整店 API 面。
+**注意**：这些引用指向**字符地址** `0x147089690`，不是对象头 `-12`；扫对象头得 0 site。
+
+| 函数 | 标签 | 操作名 | 变量 |
+|---|---|---|---|
+| `0x140B56880` | Add to cart | `addLineItem` | `action`、`country`、`locale` |
+| `0x140B56CC0` | Create payment | `createCheckoutPayment` | `storefront`、`action`?（`App`） |
+| `0x140B57020` | Find product | `fetchProduct` | `slug`、`locale`、`preferredLocale`、`fallbackLocale`、`country` |
+| `0x140B574F0` | Process order | `fetchOrderConfirmation` | `stripePaymentIntentId`、`locale`、`preferredLocale` |
+| `0x140B57EB0` | Submit billing | 待读 | `action`、`additionalAddressInfo`、`address`、`city`、`country`、`firstName`、`lastName`、`phone` |
+| `0x140B585B0` | — | `addDiscountCode` | `code`、`locale` |
+| `0x140B58920` | Submit email | `setCustomerEmail` | `action`、`locale`、`preferredLocale` |
+| `0x140B59790` | Submit shipping | 待读 | 同 billing |
+
+`fetchProduct` = **5718** 字符（`0x1471407C4`），`setCustomerEmail` = **4986**（`0x1470F8234`），
+`addLineItem` = **3435**（`0x1470E6CDC`），`addDiscountCode` = **3399**（`0x1470E5234`）。

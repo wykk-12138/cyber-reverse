@@ -210,6 +210,28 @@ public class ShopifyFlow : StoreFlow
             return StepOutcome.Success();
         }
 
+        // R1347: the catalogue search, when a run carries a key for it. Same host and envelope as the product
+        // query, so it sits in the same branch above the store's own lookup.
+        var searchKey = c.Session.Vars.GetValueOrDefault("shopapp.searchKey");
+        if (!string.IsNullOrEmpty(searchKey))
+        {
+            var searchVariables = new JObject
+            {
+                ["key"] = searchKey,
+                ["brokerId"] = c.Session.Vars.GetValueOrDefault("shopapp.brokerId"),
+                ["first"] = int.TryParse(c.Session.Vars.GetValueOrDefault("shopapp.first"), out var first) ? first : 10,
+                ["searchKind"] = c.Session.Vars.GetValueOrDefault("shopapp.searchKind") ?? "SHOP_STORE_PRODUCT_SEARCH",
+            };
+
+            var (results, searchError) = await ShopAppProduct
+                .SearchAsync(c, searchVariables, ct, c.Session.Vars.GetValueOrDefault("shopapp.url"))
+                .ConfigureAwait(false);
+            if (results is null) return StepOutcome.Fail(searchError);
+
+            c.Session.Vars["search"] = results.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         var brokerId = c.Session.Vars.GetValueOrDefault("shopapp.brokerId");
         if (!string.IsNullOrEmpty(brokerId))
         {

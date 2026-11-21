@@ -92,4 +92,50 @@ public sealed class ShopAppProductTests
         Assert.Equal(ShopAppProduct.Document, sent["query"]!.ToObject<string>());
         Assert.Equal("broker-1", sent["variables"]!["brokerId"]!.ToObject<string>());
     }
+
+    /// <summary>
+    /// R1347: the search shares the product query's host and envelope, and its seven variables are the ones its own
+    /// sender fills. The document is 6537 characters at 0x14713AB24.
+    /// </summary>
+    [Fact]
+    public void TheSearchCarriesSevenVariables()
+    {
+        Assert.Equal("ShopProductSearch", ShopAppProduct.SearchOperation);
+        Assert.Equal(6537, ShopAppProduct.SearchDocument.Length);
+        Assert.StartsWith("query ShopProductSearch", ShopAppProduct.SearchDocument);
+        Assert.Equal(new[] { "brokerId", "filter", "first", "inStock", "includeProductFilters", "key", "searchKind" },
+            ShopAppProduct.SearchVariableNames);
+    }
+
+    [Fact]
+    public async Task ASearchWithoutAKeyIsRefused()
+    {
+        using var server = new TinyServer((_, _) => (200, "{}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/" };
+
+        var (results, error) = await ShopAppProduct.SearchAsync(ctx, new JObject(), default);
+
+        Assert.Null(results);
+        Assert.Contains("no search key", error);
+        Assert.Empty(server.Requests);
+    }
+
+    [Fact]
+    public async Task TheSearchPostsTheObservedEnvelope()
+    {
+        using var server = new TinyServer((_, _) => (200, "{\"data\":{\"products\":[]}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/" };
+
+        var (results, error) = await ShopAppProduct.SearchAsync(
+            ctx, new JObject { ["key"] = "tee", ["first"] = 10 }, default, server.BaseUrl + "/graphql");
+
+        Assert.NotNull(results);
+        Assert.Equal(string.Empty, error);
+        var sent = JObject.Parse(server.Requests[0].Body!);
+        Assert.Equal("ShopProductSearch", sent["operationName"]!.ToObject<string>());
+        Assert.Equal(ShopAppProduct.SearchDocument, sent["query"]!.ToObject<string>());
+        Assert.Equal("tee", sent["variables"]!["key"]!.ToObject<string>());
+    }
 }

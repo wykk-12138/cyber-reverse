@@ -8470,3 +8470,13 @@ Observation：
 - **不变量进套件**：`EveryDocumentConstantHasAProductionCaller`（引用数为 1 就红，允许清单为空且必须写理由）。
   这类检查本应在第一份文档落地那轮就有。
 - 现状：`orphan_documents.py` → 0；`audit_document_constants.py` → 15 常量 / 0 问题。
+
+---
+
+## 第 1332 轮
+
+- `unconsumed_session_keys.py` 做了两次口径校准：全仓 224 个"写了没人读"、按类 173 个 —— **都被遥测键淹没**。
+  结论：**`Session.Vars` 同时当状态和日志**，所以这条检查**不能做成硬不变量**（与 R1331 的文档孤儿不同）。
+- **逼出真缺陷**：`ShopifyFlow.SubmitBillingAsync` 八行里**没有任何请求**却返回 Success ——
+  日志说账单完成，结账页没被碰过。已改成**记录地址 + 落 `shopify.billingSubmitted=false` + 发事件明说没发请求**。
+- 端点没抓到，**不造**。这和 Casio sku 缺口、Warhammer 安户跳是同一种"没做就说没做"的处理。

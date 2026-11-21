@@ -70322,3 +70322,36 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - **证据等级**：Observation —— 孤儿清零、产物命中、审计通过、测试拦截点存在（此前 HTTP/TLS 打不通）。
 - **还剩什么**：`AddressInput`；方言条件（blocker）；`CurrencyConversion`(10406) 与 `approveMemberPayment`(5407)
   仍无归宿（已解码待接）；AO 三个 checkout 体；Saucony 六步路径。
+
+---
+
+## 第 1332 轮：想查"写进会话没人读"，结果发现会话本身就是日志——但因此抓到一个"报成功却什么都没发"的步骤
+
+- **本轮的工具**：`analysis/unconsumed_session_keys.py` —— 写完的会话键，有没有人读。
+- **两次校准，两次都被噪音淹没**，都写进脚本头：
+  1. **全仓口径**：350 个键里 **224 个"写了没人读"** —— 太假。会话是共享的，任何键只要被 90 个文件里的某一个读过，
+     全仓口径就看不见问题。
+  2. **按类口径**：98 个"本类写、本类不读但别处读" + **173 个"全仓没人读"** —— 还是太假。
+     因为这些是**遥测键**（`raw`/`product`/`price`/`cart`/`total`/`available`/`lastStatus`/`queue`/`rates`/`stock`/`size`），
+     **写给 UI 与任务日志的**。
+- **结论（要记住的）**：**这个仓库的 `Session.Vars` 同时当状态和事件日志用**。
+  "写了没人读"在多数情况下**不是缺陷**，所以这条检查**不能做成硬性不变量** —— 只能在"名字不像遥测"时提示。
+  这比上一轮那个"文档必须有调用者"要弱，原因是真实的，不是我没做对。
+- **但它逼出一个真缺陷**：`ShopifyFlow.SubmitBillingAsync` 只有八行 —— 取地址、写两个键、**返回 Success**，
+  **中间没有任何请求**。也就是说**运行日志说账单提交完成，而结账页根本没被碰过**，
+  故障要到付款阶段才以"付款失败"的形式冒出来，且没有因由。
+- **修的是报告，不是编端点**：端点没抓到，所以不造。改成：**记录地址 + 落 `shopify.billingSubmitted = "false"
+  + 发一条事件明说"没有发出账单请求，因为端点未捕获"**。这和 Casio 的 sku 缺口、Warhammer 的安户跳是同一种做法：
+  **什么都没做的步骤，必须和成功的步骤可区分。**
+
+### 五要素
+
+- **改了什么**：`ShopifyFlow.cs`（`SubmitBillingAsync` 显性化）；`ShopifyGraphQlTests.cs`（+1 条）；
+  新增 3 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`dotnet test --filter ShopifyGraphQlTests` → **10/10**；
+  产物尺寸 61,401,600 → **61,402,112**，sha256 `7c0da038…` → `6644662e…`；内嵌 `bbe6af423417`。
+- **数字变化**：套件 2681 → 见 METRICS 当前值（+1）；产物 +512 字节。
+- **证据等级**：Observation —— 两次口径的真实计数、遥测键清单、`SubmitBillingAsync` 无请求（八行可读完）。
+  **"写了没人读"整体不是缺陷**这条本身也是 Observation。
+- **还剩什么**：`AddressInput`；方言条件（blocker）；`CurrencyConversion`(10406) 与 `approveMemberPayment`(5407) 无归宿；
+  AO 三个 checkout 体；Saucony 六步路径；Shopify 账单端点。

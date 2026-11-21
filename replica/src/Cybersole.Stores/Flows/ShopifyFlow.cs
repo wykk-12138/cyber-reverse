@@ -772,8 +772,17 @@ public class ShopifyFlow : StoreFlow
     {
         var bill = c.Billing ?? c.Shipping ?? AddressFromProfile(c);
         if (bill is null) return StepOutcome.Fail("shopify: no billing address");
+
         c.Session.Vars["billing1"] = bill.Address1 ?? string.Empty;
         c.Session.Vars["billingZip"] = bill.ZipCode ?? string.Empty;
+
+        // R1332: this step used to return Success here without sending anything, so a run log said billing was
+        // done while the checkout had not been touched — the failure then surfaced as a payment error with no
+        // cause attached. The endpoint is not captured, and inventing one is worse than saying so: the address
+        // is recorded for a consumer that does have it, and the step reports what it did not do.
+        c.Session.Vars["shopify.billingSubmitted"] = "false";
+        c.Emit("shopify: billing address recorded but no billing request was made — the checkout billing " +
+               "endpoint is not captured, so nothing was submitted", "StatusInfo");
         return StepOutcome.Success();
     }
 

@@ -47874,3 +47874,18 @@ Inference = 「17 文件 mtime 来自变异改写」；**Unknown** = 并行会�
 - **解除条件**：一次带 3DS 挑战的抓包，看 `authenticationProvider` 是否出现在请求文档里。**这是唯一剩下的路径。**
 - **复刻件的处置**：`paypal3ds.providerFields` 会话开关（R1325），**默认长那份**（= 改动前行为）。
   **不要**再靠读那两个 15 KB 异步体猜条件。
+
+---
+
+## R1332 · IDA 链路掉线的症状与恢复（操作手册补充）
+
+- **症状**：`tools/vendor_coverage.py` 报 `!! controls failed (kpsdk=0, datadome=0) -- IDA is not ready; refusing
+  to overwrite docs/VENDOR_COVERAGE.md with false zeros`，`metrics_report.py` 里该行 **exit 2**。
+  **这不是指标退化，是环境掉线** —— 而且工具拒绝写假零，这一点是对的。
+- **诊断**：`ida-mcp-doctor.ps1` → `PROXY: MISSING` / `PORT 13337: REFUSED` / `TIMEOUT: no listener after 180s`。
+- **恢复步骤（本轮实测有效）**：
+  1. 用 cua 找 `ida.exe` 窗口，标题是「请确认」/「警告」；
+  2. 依次点掉：**Proceed with unpacked base** → **是(Y)（修复 .id0）** → **确定（inconsistencies）**；
+  3. `python analysis/ida.py health` 应返回 `status: ok` 且 `hexrays_ready: true`；
+  4. 重跑 `vendor_coverage.py`（先跑一次让它 warm，可能第一次报 JSON 解析错，第二次正常）。
+- **注意**：DSH 的 `ida` **MCP 代理**报 MISSING 不影响 `analysis/ida.py` —— 后者直连插件 13337。

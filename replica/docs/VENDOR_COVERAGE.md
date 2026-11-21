@@ -27,10 +27,10 @@
 | **Queue-it** | **1** | `0x146d0d1b4` |
 | **Vercel** | **2** | `0x146d8aa2c` |
 | **Stripe challenge** | **1** | `0x146e9427c` |
-| **PayPal 3DS** | **0** | `—` |
-| **captcha** | **0** | `—` |
-| **proof of work** | **0** | `—` |
-| **checkpoint** | **0** | `—` |
+| **PayPal 3DS** | **9** | `0x146e93fb4` |
+| **captcha** | **1** | `0x146e94334` |
+| **proof of work** | **1** | `0x146e93f74` |
+| **checkpoint** | **1** | `0x146e94464` |
 
 **注意形状差异**（AGENTS §2.7）：Kasada 从不以 `Solving` 出现 —— 它只在 `x-kpsdk-*` 头里；
 Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。

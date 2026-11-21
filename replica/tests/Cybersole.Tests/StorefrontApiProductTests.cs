@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Cybersole.Http;
 using Cybersole.Stores.Flows;
@@ -136,5 +137,28 @@ public sealed class StorefrontApiQueriesTests
         Assert.EndsWith("/api/graphql", server.Requests[0].Path);
         var sent = JObject.Parse(server.Requests[0].Body!);
         Assert.Equal(StorefrontApiQueries.UpdateShippingAddress, sent["query"]!.ToObject<string>());
+    }
+
+    /// <summary>R1362: UpdateCustomerForCart is the sixth member of this family, same relative path.</summary>
+    [Fact]
+    public void TheCustomerUpdateJoinsTheSameFamily()
+    {
+        Assert.Equal(382, StorefrontApiQueries.UpdateCustomerForCart.Length);
+        Assert.StartsWith("mutation UpdateCustomerForCart($input:", StorefrontApiQueries.UpdateCustomerForCart);
+        Assert.Equal(new[] { "input" }, StorefrontApiQueries.Declared["UpdateCustomerForCart"]);
+        Assert.Same(StorefrontApiQueries.UpdateCustomerForCart,
+            StorefrontApiQueries.DocumentFor("UpdateCustomerForCart"));
+    }
+
+    /// <summary>Six operations now answer to the one relative path, and each keeps its own document.</summary>
+    [Fact]
+    public void TheFamilyHasSixDistinctDocuments()
+    {
+        var names = new[] { "AddItemToCart", "CreateInitialCart", "Product", "CheckoutCart", "getSession",
+                            "UpdateShippingAddress", "UpdateCustomerForCart" };
+        foreach (var name in names) Assert.NotNull(StorefrontApiQueries.DocumentFor(name));
+
+        var documents = names.Select(StorefrontApiQueries.DocumentFor).ToArray();
+        Assert.Equal(documents.Length, documents.Distinct().Count());
     }
 }

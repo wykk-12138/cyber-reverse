@@ -213,3 +213,13 @@ x-graphql-query-name    x-header-id    Getting session    StatusInfo
 | `sub_14098C830` | `/scapi/ShopperBaskets/updateShippingAddressForShipment` | **Salesforce Commerce API** |
 
 只实现前者；SCAPI 那条**只记不实现**（复刻件没有其它商业平台面）。
+
+## 归属靠处理器变量（R1362）
+
+| 操作 | 长度 | 处理器特征 | 归入 |
+|---|---|---|---|
+| `UpdateCustomerForCart` | 382 | `api/graphql` + `basketId`/`email`/`input` | `StorefrontApiQueries`（第六份） |
+| `addToCartByChannel` | 2271 | `key`/`locale`/`cartId`/`productId`/`quantity`，无主机 | `StoreSessionQueries` |
+
+`addToCartByChannel` 文档声明 `$cartId`/`$locale`/`$productId`/`$quantity`/`$version` 五个，
+发送方另提 `key`/`country`/`address` —— **以文档为准**。

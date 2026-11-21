@@ -8806,3 +8806,14 @@ Observation：
   **并入 `StorefrontApiQueries`**；SCAPI 那条**只记不实现**。
 - 锚点失误一次：写成 "from 0x147146994"，源码是 "**at**" → 脚本报 0 次。**锚点必须从源码复制。**
 - 覆盖 49 → **50/65**，缺 16 → **15**；产物 `mutation UpdateShippingAddress` 命中 1。
+
+---
+
+## 第 1362 轮
+
+- `UpdateCustomerForCart`(382) → **`StorefrontApiQueries`**（处理器带 `api/graphql`）；
+  `addToCartByChannel`(2271) → **`StoreSessionQueries`**（处理器带 `key`/`locale`、无主机）。
+- **又一次"文档声明 ≠ 发送方字段"**：`addToCartByChannel` 文档五个变量，发送方多提 `key`/`country`/`address`
+  —— **以文档为准**。
+- 脚本失误一处：`StoreSessionQueries` 只有**一张** `Declared` 表，插入逻辑按两张写 → 改成 1/2 都支持。
+- 覆盖 50 → **52/65**，缺 15 → **13**；产物两串各 UTF-16 命中 1。

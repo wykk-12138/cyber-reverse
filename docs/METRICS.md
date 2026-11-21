@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-22 03:34:23 +0800 |
+| 生成时间 | 2026-11-22 03:56:23 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2791 通过 / 0 失败 / 0 跳过 / 2791 总计** |
+| 完整套件 | **2793 通过 / 0 失败 / 0 跳过 / 2793 总计** |
 
 ## 摘要素值
 
@@ -48,7 +48,7 @@
 | 核心覆盖：vendor 宿主 — vendor: wiring rows | 0 |
 | 核心覆盖：vendor 宿主 — vendor: missing | 0 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 31724032 |
+| 可执行段体量 — section-mass: replica executable | 31724544 |
 | 可执行段体量 — section-mass: ratio | 61.37% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 16424 |
@@ -398,11 +398,11 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-22 03:34:22
-publish artifact size: 61970944 bytes
-publish artifact sha256: 0f0faee19360231211cc6a9751ff095aad5c90d3b85b4e1109f98e4903b283d4
-embedded source revision: 35f57085b240 (is HEAD)
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-22 03:26:10)
+publish artifact mtime: 2026-11-22 03:56:23
+publish artifact size: 61979136 bytes
+publish artifact sha256: 770791a78adb4abc1a125f78ac99578654a3db2131be9381ea5332cbba88baa1
+embedded source revision: ca1ab9ad4194 (is HEAD)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-22 03:48:12)
 source files newer than the artifact: 0
 lines in those files: 0
 of those, changed against HEAD: 0
@@ -458,20 +458,20 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 61970944 bytes ===
+=== REPLICA  image base 0x140000000  file 61979136 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
   .text      0x1000       0x108768     1079296      X
-  .managed   0x109000     0x1E42998    30644736     X
-  hydrated   0x1E43000    0x2ECB4E8    0            RW
-  .rdata     0x2ECC000    0x48ED166    27398656     R
-  .data      0x48EE000    0x49F2C48    237056       RW
-  .pdata     0x49F3000    0x4C1C23C    2266112      R
-  _RDATA     0x4C1D000    0x4C1D0F4    512          R
-  .rsrc      0x4C1E000    0x4C697E7    309248       R
-  .reloc     0x4C6A000    0x4C725AC    34304        R
+  .managed   0x109000     0x1E42A18    30645248     X
+  hydrated   0x1E43000    0x2ECC7E8    0            RW
+  .rdata     0x2ECD000    0x48EFE76    27406336     R
+  .data      0x48F0000    0x49F4C48    237056       RW
+  .pdata     0x49F5000    0x4C1E23C    2266112      R
+  _RDATA     0x4C1F000    0x4C1F0F4    512          R
+  .rsrc      0x4C20000    0x4C6B7E7    309248       R
+  .reloc     0x4C6C000    0x4C745A0    34304        R
 
-  section-mass-replica-executable: 31724032
+  section-mass-replica-executable: 31724544
   section-mass-ratio: 61.37%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
@@ -501,30 +501,30 @@ pdata bucket histogram (bucket = 0x100000 bytes)
   0x400000       5,791      5,659        97.7%
   0x500000       2,057      3,918       190.5%
   0x600000       1,074      4,422       411.7%
-  0x700000       3,411      3,373        98.9%
-  0x800000       4,076      2,828        69.4%
+  0x700000       3,411      3,372        98.9%
+  0x800000       4,076      2,829        69.4%
   0x900000       3,556      2,391        67.2%
   0xA00000       3,178      4,055       127.6%
   0xB00000       3,227      2,090        64.8%
   0xC00000       3,982      5,434       136.5%
   0xD00000       3,921      5,837       148.9%
-  0xE00000       3,371      7,831       232.3%
-  0xF00000       7,792      7,127        91.5%
+  0xE00000       3,371      7,830       232.3%
+  0xF00000       7,792      7,128        91.5%
   0x1000000      5,626      3,760        66.8%
   0x1100000      2,020      5,681       281.2%
-  0x1200000      2,046      9,150       447.2%
+  0x1200000      2,046      9,149       447.2%
   0x1300000      5,065      10,606      209.4%
-  0x1400000      10,107     9,671        95.7%
-  0x1500000      11,107     9,480        85.4%
-  0x1600000      2,864      10,089      352.3%
+  0x1400000      10,107     9,670        95.7%
+  0x1500000      11,107     9,482        85.4%
+  0x1600000      2,864      10,088      352.2%
   0x1700000      2,242      9,308       415.2%
   0x1800000      4,058      9,337       230.1%
   0x1900000      4,506      9,702       215.3%
   0x1A00000      2,310      9,188       397.7%
-  0x1B00000      6,033      5,710        94.6%
-  0x1C00000      6,218      5,644        90.8%
+  0x1B00000      6,033      5,711        94.7%
+  0x1C00000      6,218      5,643        90.8%
   0x1D00000      6,893      8,332       120.9%
-  0x1E00000      5,418      2,448        45.2%
+  0x1E00000      5,418      2,449        45.2%
   0x1F00000      4,991      0             0.0%
   0x2000000      7,513      0             0.0%
   0x2100000      10,388     0             0.0%
@@ -587,24 +587,24 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2791 通过 / 0 失败 / 0 跳过 / 2791 总计
+`exit 0` · 2793 通过 / 0 失败 / 0 跳过 / 2793 总计
 
 ```text
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(109,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayPalChallengeNotificationUrlTests.cs(54,9): warning xUnit2000: The literal or constant value PayPalThreeDs.NotifyChallengeCompleteUrl should be passed as the 'expected' argument in the call to 'Assert.NotEqual(expected, actual)' in method 'TheTwoSiblingsDifferInMoreThanTheirMiddleWord' on type 'PayPalChallengeCallbackBaseTests'. Swap the parameter values. (https://xunit.net/xunit.analyzers/rules/xUnit2000) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\MethodPatchTableTests.cs(77,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SauconyFlowTests.cs(27,22): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SizePaletteTests.cs(24,9): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SportsshoesFlowTests.cs(128,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StepActionTests.cs(293,89): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StripeChallengeWiringTests.cs(78,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\UnmatchedGatewaysTests.cs(65,78): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\StepActionTests.cs(293,89): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
   Cybersole.Tests -> D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cybersole.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2791，已跳过:     0，总计:  2791，持续时间: 6 m 2 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2793，已跳过:     0，总计:  2793，持续时间: 6 m 5 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

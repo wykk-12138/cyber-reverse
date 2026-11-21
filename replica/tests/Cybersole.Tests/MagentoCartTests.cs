@@ -213,4 +213,103 @@ public sealed class MagentoCartTests
         Assert.Equal(2, server.Requests.Count);
         Assert.False(ctx.Session.Vars.ContainsKey("casio.cartGraphQlError"));
     }
+
+    /// <summary>
+    /// R1322: the payment and order documents, 236 and 141 characters. addPaymentToCart is the third member
+    /// of the updateMyCart family, and SubmitOrder takes a cart token — not the cart id — which is why the
+    /// order step refuses instead of posting whatever id it has.
+    /// </summary>
+    [Fact]
+    public void ThePaymentAndOrderDocumentsAreTheStringsTheImageHolds()
+    {
+        Assert.Equal(236, MagentoCart.AddPaymentDocument.Length);
+        Assert.Contains("updateMyCart(", MagentoCart.AddPaymentDocument);
+        Assert.Contains("actions: {addPayment: {payment: {id: $paymentId}}}", MagentoCart.AddPaymentDocument);
+
+        Assert.Equal(141, MagentoCart.SubmitOrderDocument.Length);
+        Assert.Contains("submitOrder(cartToken: $cartToken)", MagentoCart.SubmitOrderDocument);
+        Assert.EndsWith("    id\n    customerId\n    orderNumber\n    __typename\n  }\n}", MagentoCart.SubmitOrderDocument);
+    }
+
+    [Fact]
+    public async Task APaymentIsAttachedWithTheVersionTheCartIsAt()
+    {
+        using var server = new TinyServer((_, _) =>
+            (200, "{\"data\":{\"updateMyCart\":{\"id\":\"masked-9\",\"version\":8,\"isAbleToCheckout\":true}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/products/x" };
+
+        var result = await MagentoCart.AddPaymentAsync(ctx, server.BaseUrl + "/graphql", "masked-9", 7, "pay-1", default);
+
+        Assert.True(result.Ok, result.Error);
+        Assert.Equal("8", result.Version);
+        var sent = JObject.Parse(server.Requests[0].Body!);
+        Assert.Equal("pay-1", sent["variables"]!["paymentId"]!.ToString());
+        Assert.Equal(7, sent["variables"]!["version"]!.Value<long>());
+    }
+
+    [Fact]
+    public async Task AnOrderNumberIsReadOutOfTheSubmission()
+    {
+        using var server = new TinyServer((_, _) =>
+            (200, "{\"data\":{\"submitOrder\":{\"id\":\"o-1\",\"customerId\":\"c-1\",\"orderNumber\":\"CS-1000342\"}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/products/x" };
+
+        var result = await MagentoCart.SubmitOrderAsync(ctx, server.BaseUrl + "/graphql", "token-1", default);
+
+        Assert.True(result.Ok, result.Error);
+        Assert.Equal("CS-1000342", result.OrderNumber);
+        Assert.Equal("c-1", result.CustomerId);
+    }
+
+    /// <summary>
+    /// A submission that answers no order number is a failure, not a success with an empty field: the order
+    /// number is the only thing that says an order exists.
+    /// </summary>
+    [Fact]
+    public async Task ASubmissionWithoutAnOrderNumberIsAFailure()
+    {
+        using var server = new TinyServer((_, _) => (200, "{\"data\":{\"submitOrder\":{\"id\":\"o-1\"}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/products/x" };
+
+        var result = await MagentoCart.SubmitOrderAsync(ctx, server.BaseUrl + "/graphql", "token-1", default);
+
+        Assert.False(result.Ok);
+        Assert.Contains("no order number", result.Error);
+    }
+
+    [Fact]
+    public async Task TheOrderStepUsesTheCartTokenWhenThereIsOne()
+    {
+        using var server = new TinyServer((_, _) =>
+            (200, "{\"data\":{\"submitOrder\":{\"id\":\"o-1\",\"customerId\":\"c-1\",\"orderNumber\":\"CS-9\"}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/products/x" };
+        ctx.Session.Vars["casio.cartToken"] = "token-1";
+        ctx.Session.Vars["casio.graphqlPath"] = server.BaseUrl + "/graphql";
+
+        var outcome = await new CasioFlow().SubmitOrderAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Equal("CS-9", ctx.Session.OrderNumber);
+        Assert.Equal("o-1", ctx.Session.Vars["casio.orderId"]);
+    }
+
+    /// <summary>
+    /// Without a token the step keeps the Unzer route's own refusal — and that refusal is unchanged, which is
+    /// the point of putting the token branch beside it rather than replacing it.
+    /// </summary>
+    [Fact]
+    public async Task WithoutATokenTheUnzerRefusalStands()
+    {
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = "https://casio.test/products/x" };
+
+        var outcome = await new CasioFlow().SubmitOrderAsync(ctx, default);
+
+        Assert.False(outcome.Ok);
+        Assert.Contains("unzer_cards", outcome.Error);
+    }
 }

@@ -38,6 +38,25 @@ public static class MagentoCart
     /// <summary>The empty-cart mutation.</summary>
     public const string CreateEmptyCartDocument = "mutation {\n    createEmptyCart\n}";
 
+    /// <summary>
+    /// R1322: attach a payment to the cart, 236 characters from 0x1470E87CC. The same <c>updateMyCart</c>
+    /// family as the billing mutation — one action, <c>addPayment</c> — and the same required
+    /// <c>$version</c>, answering <c>id</c>, <c>version</c> and <c>isAbleToCheckout</c>.
+    /// </summary>
+    public const string AddPaymentDocument =
+        "mutation addPaymentToCart($id: String!, $version: Long!, $paymentId: String!) {\n  updateMyCart(\n" +
+        "    actions: {addPayment: {payment: {id: $paymentId}}}\n    version: $version\n    id: $id\n  ) {\n" +
+        "    id\n    version\n    isAbleToCheckout\n  }\n}";
+
+    /// <summary>
+    /// R1322: submit the order, 141 characters from 0x1470E1E7C. It takes a <b>cart token</b>, not the cart
+    /// id, and answers <c>id</c>, <c>customerId</c> and <c>orderNumber</c> — the order number being the only
+    /// thing a run log should be judged on.
+    /// </summary>
+    public const string SubmitOrderDocument =
+        "mutation SubmitOrder($cartToken: String!) {\n  submitOrder(cartToken: $cartToken) {\n" +
+        "    id\n    customerId\n    orderNumber\n    __typename\n  }\n}";
+
     /// <summary>The customer-cart query.</summary>
     public const string CustomerCartDocument = "{ customerCart { id total_quantity items { uid quantity } } }";
 
@@ -175,6 +194,90 @@ public static class MagentoCart
         };
     }
 
+    /// <summary>
+    /// Attach a payment id to the cart. Same shape as <see cref="SetBillingAsync"/> and the same reason for
+    /// taking the version as an argument rather than working it out.
+    /// </summary>
+    public static async Task<MagentoBillingResult> AddPaymentAsync(
+        FlowContext c, string endpoint, string cartId, long version, string paymentId, CancellationToken ct)
+    {
+        var body = new JObject
+        {
+            ["query"] = AddPaymentDocument,
+            ["variables"] = new JObject
+            {
+                ["id"] = cartId,
+                ["version"] = version,
+                ["paymentId"] = paymentId,
+            },
+        };
+
+        return await UpdateMyCartAsync(c, endpoint, body, cartId, version, "payment", ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Submit the order and return its number. Null when the reply carries none, which is the answer for a
+    /// rejected submission — <c>submitOrder</c> reports refusal in the GraphQL error list.
+    /// </summary>
+    public static async Task<MagentoOrderResult> SubmitOrderAsync(
+        FlowContext c, string endpoint, string cartToken, CancellationToken ct)
+    {
+        var body = new JObject
+        {
+            ["query"] = SubmitOrderDocument,
+            ["variables"] = new JObject { ["cartToken"] = cartToken },
+        };
+
+        var reply = await PostAsync(c, endpoint, body, ct).ConfigureAwait(false);
+        if (reply is null) return MagentoOrderResult.Fail("order: no reply");
+
+        if (reply["errors"] is JArray topLevel && topLevel.Count > 0)
+            return MagentoOrderResult.Fail("order: " + (topLevel[0]?["message"]?.ToString() ?? "graphql error"));
+
+        var order = reply["data"]?["submitOrder"];
+        if (order is null) return MagentoOrderResult.Fail("order: no order in reply");
+
+        var number = order["orderNumber"]?.ToString();
+        if (string.IsNullOrEmpty(number)) return MagentoOrderResult.Fail("order: no order number in reply");
+
+        return new MagentoOrderResult
+        {
+            Ok = true,
+            OrderNumber = number!,
+            OrderId = order["id"]?.ToString() ?? string.Empty,
+            CustomerId = order["customerId"]?.ToString() ?? string.Empty,
+        };
+    }
+
+    /// <summary>The shared tail of the two <c>updateMyCart</c> mutations: read the cart or the GraphQL errors.</summary>
+    private static async Task<MagentoBillingResult> UpdateMyCartAsync(
+        FlowContext c, string endpoint, JObject body, string cartId, long version, string what, CancellationToken ct)
+    {
+        var reply = await PostAsync(c, endpoint, body, ct).ConfigureAwait(false);
+        if (reply is null) return MagentoBillingResult.Fail(what + ": no reply");
+
+        if (reply["errors"] is JArray topLevel && topLevel.Count > 0)
+            return MagentoBillingResult.Fail(what + ": " + (topLevel[0]?["message"]?.ToString() ?? "graphql error"));
+
+        var cart = reply["data"]?["updateMyCart"];
+        if (cart is null) return MagentoBillingResult.Fail(what + ": no cart in reply");
+
+        var canCheckout = cart["isAbleToCheckout"];
+        var canCheckoutText = canCheckout is null
+            ? string.Empty
+            : canCheckout.Type == JTokenType.Boolean
+                ? (canCheckout.Value<bool>() ? "true" : "false")
+                : canCheckout.ToString();
+
+        return new MagentoBillingResult
+        {
+            Ok = true,
+            CartId = cart["id"]?.ToString() ?? cartId,
+            Version = cart["version"]?.ToString() ?? version.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            CanCheckout = canCheckoutText,
+        };
+    }
+
     private static async Task<JObject?> PostAsync(FlowContext c, string endpoint, JObject body, CancellationToken ct)
     {
         try
@@ -194,6 +297,18 @@ public static class MagentoCart
 
     private static string Escape(string value) =>
         value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+}
+
+/// <summary>What an order submission produced.</summary>
+public sealed class MagentoOrderResult
+{
+    public bool Ok { get; init; }
+    public string OrderNumber { get; init; } = string.Empty;
+    public string OrderId { get; init; } = string.Empty;
+    public string CustomerId { get; init; } = string.Empty;
+    public string Error { get; init; } = string.Empty;
+
+    public static MagentoOrderResult Fail(string error) => new() { Ok = false, Error = error };
 }
 
 /// <summary>What the billing mutation produced.</summary>

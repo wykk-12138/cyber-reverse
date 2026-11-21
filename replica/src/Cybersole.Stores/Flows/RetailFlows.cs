@@ -646,6 +646,25 @@ public sealed class CasioFlow : StoreFlow
             (string.IsNullOrEmpty(c.Session.PaymentMethodId) &&
              string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("unzer.resourceId"))))
         {
+            // R1322: the image also carries submitOrder(cartToken), 141 characters at 0x1470E1E7C, which takes
+            // a cart token rather than the cart id and answers an order number. When the run has one, that is
+            // the path the image names; the Unzer route below stays for the runs that do not.
+            var token = c.Session.Vars.GetValueOrDefault("casio.cartToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                var endpoint = c.Session.Vars.GetValueOrDefault("casio.graphqlPath");
+                if (string.IsNullOrEmpty(endpoint))
+                    endpoint = Payments.GatewayHttp.OriginOf(c.Url) + CasioGraphQL.Path;
+
+                var graphQl = await MagentoCart.SubmitOrderAsync(c, endpoint!, token!, ct).ConfigureAwait(false);
+                if (!graphQl.Ok) return StepOutcome.Fail(graphQl.Error);
+
+                c.Session.OrderNumber = graphQl.OrderNumber;
+                c.Session.Vars["casio.orderId"] = graphQl.OrderId;
+                c.Emit("casio: order " + graphQl.OrderNumber, "Success");
+                return StepOutcome.Success();
+            }
+
             return StepOutcome.Fail(
                 "casio: Magento 2 unzer_cards order requires CartId and Unzer card resource");
         }

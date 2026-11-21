@@ -8360,3 +8360,15 @@ Observation：
 - **5407 字那份是 PayPal/Braintree 支付编排**（`approveMemberPayment`/`fundingOption`/`contingencyContext`/`jwtSpecification`）——
   **R1312 那条死路解出的 `jwtIssuer`/`jwtOrgUnitId` 就是这份文档的字段**，答案在这里。
 - 它**没有落地**：没有已证实的端点，硬塞会被 AOT 裁掉。等端点。
+
+---
+
+## 第 1322 轮
+
+- **镜像里有 81 个 GraphQL 操作/片段**（`analysis/graphql_documents.py`），是一整套无头商务 API：
+  cartApi + 3DS + 引导开户 + 卡令牌化。之前四轮"猜字段名再 grep"只挖到四份，是尺度的错。
+- 已落地 `addPaymentToCart`(236) 与 `SubmitOrder`(141)，`submitOrder(cartToken)` 接进 Casio 订单步的分支，
+  **Unzer 原路径的拒绝原样保留**。
+- `$version` 初值与 `cartToken` 来源**仍无出处**，两条都记 Unknown，不猜。
+- **连续第三轮撞 `CS0111`**（加购/账单/订单）：`RetailFlows.cs` 里同名 override 有六份，
+  按字符长度切片检查会漏。**检查重复必须按类体大括号配对切。**

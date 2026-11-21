@@ -69967,3 +69967,48 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   Unknown —— `$version` 的初值从哪来（需抓包）。
 - **还剩什么**：`approveMemberPayment`（需端点）、`addToCart(query)`/`buynow`（另一家店）、
   AO 三个 checkout 体、Saucony 六步路径。
+
+---
+
+## 第 1322 轮：镜像里有 **81** 个 GraphQL 操作/片段——不是四份，是一整套商务 API
+
+- **换了问法就换了尺度**。前四轮都是"猜一个字段名再 grep"，每份文档都是意外。这轮直接列全量：
+  以 `mutation` / `query` / `fragment` 开头的串，**81 条**（`analysis/graphql_documents.py`）。
+  第一版筛子把 `{` 开头的也算进去，得 206 条 —— 其中大半是 locale JSON 和 RNG 模板的假阳性，
+  已在脚本注释里写明为什么改成只认三种操作头。
+- **清单里认得出的链路**（长度即规模）：
+  `CreateInitialCart` 865 · `addLineItem` 3847 · `addToCartByChannel` 524/2421 · `CartLineItemSet` 1301 ·
+  `addBillingAddressToCart` 333 · `addPaymentToCart` 236 · `SubmitOrder` 141 ·
+  `addDiscountCode` 3811 · `UpdateShippingAddress` 2556 · `CurrencyConversion` **10996** ·
+  `ResolveThreeDsContingency` **10846** 与 **10958**（两份）· `ThreeDsLookUpMutation` 877/905 ·
+  `ThreeDsAuthenticateMutation` 837 · `TokenizeCreditCard` 505 · `AddCreditCard` 830 ·
+  `OnboardGuestMutation` 3249 · `ApproveOnboardPaymentMutation` 4267 · `SignInAsGuest` 481 ·
+  `UpdateContactDetails` 252 · `UpdateCustomerForCart` 406 · `cartApiObjectCreate` 5876。
+  **这是一套完整的无头商务 API**（cartApi + 3DS + 引导开户 + 信用卡令牌化），不是某家店的私货。
+- **落码**：`addPaymentToCart`（**236**，`0x1470E87CC`）与 `SubmitOrder`（**141**，`0x1470E1E7C`）逐字节进
+  `MagentoCart`（`AddPaymentAsync` / `SubmitOrderAsync` / `MagentoOrderResult`），
+  并把 `submitOrder(cartToken)` 接进 **`CasioFlow.SubmitOrderAsync` 的分支**——
+  有 `casio.cartToken` 走 GraphQL，否则**保留原来 Unzer 那条路自己的拒绝**（测试两条都钉住）。
+- **`$version` 的谜没解**：`CreateInitialCart` 返回 `id/estimatedTotal/products/customer`，**没有 version**；
+  `addPaymentToCart` 和账单一样**要求** `$version` 并且**返回** version。
+  所以 version 只能来自某次 `updateMyCart` 的回复——**第一次调用之前的那一个，仍然没有出处**。
+  `cartToken` 同理：`submitOrder` 要它，而没有任何已解出的文档发放它。**两条都记成 Unknown，都不猜。**
+- **本节最该记住的一件事**：我在 `CasioFlow` 里为订单**又写了一个 override**，撞 `CS0111` ——
+  这个文件里 `SubmitOrderAsync` 有**六份**（六个不同 flow），我的 `where_is` 式检查用字符切片只看前 20000 字符，
+  漏掉了后面那份。**这是连续第三轮同一个错**（R1320 加购、R1321 账单、R1322 订单）。
+  教训不是"再小心一点"，而是：**检查重复必须按类体大括号配对切，不能按长度截**。
+
+### 五要素
+
+- **改了什么**：新增 `analysis/graphql_documents.py`；`MagentoCart.cs`（两份文档 + `AddPaymentAsync` +
+  `SubmitOrderAsync` + `MagentoOrderResult` + 抽出的 `UpdateMyCartAsync`）；
+  `RetailFlows.cs`（`CasioFlow.SubmitOrderAsync` 加 cartToken 分支）；`MagentoCartTests.cs`（+5 条）；
+  重发布；METRICS 重生成。
+- **验证命令与输出**：`dotnet test --filter "MagentoCartTests|Casio"` → **51/51**；
+  产物搜 `addPaymentToCart` **1**、`submitOrder(cartToken` **1**；
+  尺寸 61,328,896 → **61,347,840**；内嵌 `5c0a9d492821 (is HEAD)`。
+- **数字变化**：套件 2638 → 见 METRICS 当前值（+5）；产物 +18,944 字节；**新度量：GraphQL 操作 81 个**。
+- **证据等级**：Observation —— 81 条清单、五份文档的地址与长度、产物两串命中。
+  Unknown —— `$version` 初值、`cartToken` 来源（两者都要抓包）。
+- **还剩什么**：3DS 那三份（10846/10958/877/905/837）是**第②优先级**的核心；
+  `createCart`/`addLineItem` 链能补出完整的购物车流程；AO 三个 checkout 体；Saucony 六步路径。

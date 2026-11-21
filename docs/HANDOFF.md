@@ -8513,3 +8513,15 @@ Observation：
   七个变量是调用方的，造默认值 = 让合作方接受语义错误但合法的请求。
 - 接进 `PayPalGateway.AuthorizeAsync` 前置分支（有 `paypal.partnerToken` 才走，否则原路径不变）。
 - 产物用**正向证据**确认（UTF-16 四串命中），不靠"搜不到"。
+
+---
+
+## 第 1336 轮
+
+- **`CurrencyConversion`(10406) 落地**（方法同 R1335：文档单引用点 → 读发送方）。
+  端点与审批**共用基址** `https://www.paypal.com/graphql/`，操作名 `CurrencyConversion`。
+- **镜像把变量名拼成 `expeirences`（sic）**，文档里是 `$experiences`。**照抄，不修** ——
+  修了就是伪装成清理的行为变更。已钉测试并在断言旁写明理由。
+- 接进 `PayPalGateway.AuthorizeAsync`：**有 `paypal.conversionType` 先换汇再审批**，顺序被测试钉住。
+- 产物：文档 UTF-16 命中 1；`expeirences` **两编码都搜不到**，按 §4.5 **无结论**，
+  行为证据来自测试对请求体的断言。

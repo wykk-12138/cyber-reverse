@@ -2108,6 +2108,28 @@ public sealed class PayPalGateway : IPaymentGateway
         // eleven variables and this class does not invent the seven it cannot know — the caller puts them in
         // the session, and without the token the step falls through to the paths below unchanged.
         var partnerToken = c.Session.Vars.GetValueOrDefault("paypal.partnerToken");
+
+        // R1336: the conversion goes first when the run asks for one. The image's sender writes the middle
+        // variable key as "expeirences" — the document calls it $experiences — so the request keeps that
+        // spelling: correcting it would be a behaviour change dressed as housekeeping.
+        if (!string.IsNullOrEmpty(partnerToken) &&
+            !string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("paypal.conversionType")))
+        {
+            var conversionVariables = new JObject
+            {
+                ["token"] = partnerToken,
+                ["conversionType"] = c.Session.Vars.GetValueOrDefault("paypal.conversionType"),
+                ["expeirences"] = new JArray(),
+            };
+
+            var (conversion, currencyError) = await PayPalPartnerCurrency
+                .ConvertAsync(c, conversionVariables, ct, c.Session.Vars.GetValueOrDefault("paypal.currencyUrl"))
+                .ConfigureAwait(false);
+
+            if (conversion is null) return PaymentResult.Fail(currencyError);
+            c.Session.Vars["paypal.conversion"] = conversion.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
         if (!string.IsNullOrEmpty(partnerToken))
         {
             var variables = new JObject

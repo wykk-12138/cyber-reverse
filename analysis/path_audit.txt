@@ -1,0 +1,49 @@
+# Path-shaped literals from replica/src/Cybersole.Stores/Payments/*.cs, classified against analysis/ida_strings.txt (full IDA list).
+# exact       literal appears in the image
+# prefix-only literal does not, but its path up to "?" does -- the query is a separate fragment
+# prose       the source line is a comment or the literal contains spaces: not a request
+# no-hit      none of the above -- the only bucket that is a candidate gap
+# Regenerate with: python analysis/path_audit.py "replica/src/Cybersole.Stores/Payments/*.cs" analysis/path_audit.txt
+
+# NO-HIT (1)
+/api/payments                                             	Gateways.cs
+
+# EXTENSION (0)
+
+# PREFIX-ONLY (1)
+/order/?payType=stripe                                    	Gateways.cs
+
+# EXACT (29)
+/3d_secure_2/notify                                       	Gateways.cs
+/api/sessions/                                            	Gateways.cs
+/api/v1/card/token                                        	DisneyPaymentSheet.cs
+/api/v1/checkout                                          	DisneyPaymentSheet.cs
+/api/v1/payment/apm/session/post_pay_status               	EshopWorldPanel.cs
+/api/v1/payment/apm/session/status                        	EshopWorldPanel.cs
+/api/v1/products/preorder-state                           	PurpleDot.cs
+/api/v2/PaymentMethods/url                                	EshopWorldPanel.cs
+/api/v2/PaymentMethods?paymentId=                         	EshopWorldPanel.cs
+/api/v2/WebComponent/state                                	EshopWorldPanel.cs
+/api/v3/process                                           	DisneyPaymentSheet.cs
+/confirm                                                  	Gateways.cs
+/jgc/v8/client                                            	DisneyPaymentSheet.cs
+/shield/v1/verify_otp                                     	Gateways.cs
+/shop/v1/shop/cash/desk/stripe/customerSession            	Gateways.cs
+/shop/v1/shop/cash/desk/stripe/pay                        	Gateways.cs
+/snap/v1/transactions                                     	Gateways.cs
+/snap/v2/transactions                                     	Gateways.cs
+/v1/3ds2/authenticate                                     	Gateways.cs
+/v1/3ds2/challenge_complete                               	Gateways.cs
+/v1/payment_intents/                                      	Gateways.cs
+/v1/setup_intents/                                        	Gateways.cs
+/v2/3ds/callback/                                         	Gateways.cs
+/web2/checkout/v2/chargetokens                            	VivaPayments.cs
+/web2/checkout/v2/paymentdetails?ref=                     	VivaPayments.cs
+/web2/checkout/v2/transactions                            	VivaPayments.cs
+Mozilla/5.0                                               	AdyenGateway.cs
+application/json                                          	PayPalThreeDs.cs
+application/x-www-form-urlencoded                         	StripeChallenge.cs
+
+# PROSE (1)
+jgc/v8/client is recorded and never called: nothing says what it returns or whether a purchase needs it	DisneyPaymentSheet.cs
+

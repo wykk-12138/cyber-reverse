@@ -1,0 +1,58 @@
+{
+  "https://a.klaviyo.com/client/subscriptions/confirm": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://api.nike.com/buy/carts/v2/": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://api.nike.com/product_feed/threads/v2/": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://api.omise.co": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://api.paypal.com": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://api.paypal.com/v1/oauth2/token": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://api.paypal.com/v2/checkout/orders": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://api.sandbox.paypal.com": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://api.pocketgames.nl/v1/public/drop-schedule": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://api.pocketgames.nl/v1/public/raffle-entry": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://p01.mul-pay.jp/payment/SaveCard.idPass": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://search.scheels.com": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://www.bstn.com/": {
+    "bare": -1,
+    "host": -1
+  },
+  "https://yzy-prod.swell.store": {
+    "bare": -1,
+    "host": -1
+  }
+}

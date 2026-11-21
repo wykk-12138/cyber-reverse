@@ -1,0 +1,262 @@
+{
+ "AddCreditCard": {
+  "addr": 5486980508,
+  "length": 798
+ },
+ "AddItemToCart": {
+  "addr": 5486982132,
+  "length": 2108
+ },
+ "AddToCart": {
+  "addr": 5486986372,
+  "length": 536
+ },
+ "ApproveOnboardPaymentMutation": {
+  "addr": 5486987468,
+  "length": 4040
+ },
+ "CartLineItemSet": {
+  "addr": 5486995572,
+  "length": 1255
+ },
+ "CheckoutCart": {
+  "addr": 5487316892,
+  "length": 4102
+ },
+ "CreateInitialCart": {
+  "addr": 5486998108,
+  "length": 865
+ },
+ "CreditCard": {
+  "addr": 5486999860,
+  "length": 2867
+ },
+ "CurrencyConversion": {
+  "addr": 5487005620,
+  "length": 10406
+ },
+ "GetCart": {
+  "addr": 5487325124,
+  "length": 3520
+ },
+ "GetCartCookie": {
+  "addr": 5487332188,
+  "length": 74
+ },
+ "GetProductInventory": {
+  "addr": 5487332364,
+  "length": 490
+ },
+ "GetThreeDsJwtQuery": {
+  "addr": 5487334404,
+  "length": 630
+ },
+ "OnboardGuestMutation": {
+  "addr": 5487026460,
+  "length": 3104
+ },
+ "PayWithQuery": {
+  "addr": 5487335692,
+  "length": 12561
+ },
+ "Product": {
+  "addr": 5487360836,
+  "length": 10620
+ },
+ "ProductDetails": {
+  "addr": 5487382100,
+  "length": 26206
+ },
+ "ResolveThreeDsContingency": {
+  "addr": 5487053244,
+  "length": 10370
+ },
+ "ShipToQuery": {
+  "addr": 5487434540,
+  "length": 2031
+ },
+ "ShopProductSearch": {
+  "addr": 5487438628,
+  "length": 6537
+ },
+ "SignInAsGuest": {
+  "addr": 5487074012,
+  "length": 453
+ },
+ "SubmitOrder": {
+  "addr": 5487074940,
+  "length": 141
+ },
+ "ThreeDsAuthenticateMutation": {
+  "addr": 5487075244,
+  "length": 813
+ },
+ "ThreeDsLookUpMutation": {
+  "addr": 5487078604,
+  "length": 871
+ },
+ "TokenizeCreditCard": {
+  "addr": 5487080372,
+  "length": 505
+ },
+ "UpdateContactDetails": {
+  "addr": 5487081404,
+  "length": 244
+ },
+ "UpdateCustomerForCart": {
+  "addr": 5487081916,
+  "length": 382
+ },
+ "UpdateShippingAddress": {
+  "addr": 5487082708,
+  "length": 2386
+ },
+ "addBillingAddressToCart": {
+  "addr": 5487087508,
+  "length": 323
+ },
+ "addDiscountCode": {
+  "addr": 5487088180,
+  "length": 3399
+ },
+ "addLineItem": {
+  "addr": 5487095004,
+  "length": 3435
+ },
+ "addPaymentToCart": {
+  "addr": 5487101900,
+  "length": 236
+ },
+ "addToCart": {
+  "addr": 5487451724,
+  "length": 232
+ },
+ "addToCartByChannel": {
+  "addr": 5487103436,
+  "length": 2271
+ },
+ "approveMemberPayment": {
+  "addr": 5487118844,
+  "length": 5620
+ },
+ "buynow": {
+  "addr": 5487452212,
+  "length": 216
+ },
+ "cartApiObjectCreate": {
+  "addr": 5487130108,
+  "length": 5876
+ },
+ "cartCreate": {
+  "addr": 5487141884,
+  "length": 91
+ },
+ "checkoutAsGuest": {
+  "addr": 5487142092,
+  "length": 148
+ },
+ "createCart": {
+  "addr": 5487142412,
+  "length": 1622
+ },
+ "createCartByStore": {
+  "addr": 5487145684,
+  "length": 421
+ },
+ "createCheckout": {
+  "addr": 5487146548,
+  "length": 720
+ },
+ "createCheckoutPayment": {
+  "addr": 5487148012,
+  "length": 222
+ },
+ "createMyPayment": {
+  "addr": 5487148484,
+  "length": 493
+ },
+ "customerAccessTokenCreate": {
+  "addr": 5487149492,
+  "length": 250
+ },
+ "fetchOrderConfirmation": {
+  "addr": 5487452668,
+  "length": 4825
+ },
+ "fetchProduct": {
+  "addr": 5487462340,
+  "length": 5718
+ },
+ "generateClientToken": {
+  "addr": 5487473804,
+  "length": 188
+ },
+ "getCart": {
+  "addr": 5487474204,
+  "length": 3234
+ },
+ "getCustomerInformation": {
+  "addr": 5487480700,
+  "length": 197
+ },
+ "getPaymentdMethods": {
+  "addr": 5487481116,
+  "length": 3067
+ },
+ "getProductDetails": {
+  "addr": 5487150020,
+  "length": 499
+ },
+ "getSession": {
+  "addr": 5487487380,
+  "length": 133
+ },
+ "getShippingMethods": {
+  "addr": 5487487668,
+  "length": 531
+ },
+ "initiateCheckout": {
+  "addr": 5487151260,
+  "length": 251
+ },
+ "item": {
+  "addr": 5487488756,
+  "length": 67
+ },
+ "maintainShippingGroups": {
+  "addr": 5487151788,
+  "length": 223
+ },
+ "placeOrderWithPaypal": {
+  "addr": 5487488916,
+  "length": 843
+ },
+ "removeLineItemFromCart": {
+  "addr": 5487152260,
+  "length": 1553
+ },
+ "saveAddress": {
+  "addr": 5487155388,
+  "length": 296
+ },
+ "setBillingAddress": {
+  "addr": 5487156004,
+  "length": 4989
+ },
+ "setCustomerEmail": {
+  "addr": 5487166004,
+  "length": 4986
+ },
+ "setShippingAddress": {
+  "addr": 5487176004,
+  "length": 4992
+ },
+ "updateMyPaymentWithActions": {
+  "addr": 5487186012,
+  "length": 401
+ },
+ "updateShipAddress": {
+  "addr": 5487186836,
+  "length": 140
+ }
+}

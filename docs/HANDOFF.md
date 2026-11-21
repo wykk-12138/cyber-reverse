@@ -8825,3 +8825,13 @@ Observation：
 - `UpdateContactDetails`(244) → `StoreSessionQueries`（处理器 `https://`+host+`/graphql`，变量 email/emailOptIn/phone）。
   **它还有一个 0x14088 块的孪生处理器，用哈希发同一操作** —— 两者选择条件无证据，**只实现前者并写明**。
 - 覆盖 52 → **53/65**，缺 13 → **12**；产物 `mutation UpdateContactDetails` 命中 1。
+
+---
+
+## 第 1364 轮（本轮收口）
+
+- `updateShipAddress`(140) → **哈希族**（处理器带 `x-graphql-hash` + 两个 64 位值）。
+- `updateMyPaymentWithActions`(401) → **Cybersource 供应商集成**（`cybersource`、`isv_*`、`No capture context`），
+  **认出但不实现**，与同块 `createMyPayment` 一起记进未结案。
+- **新增 `docs/OPEN_ITEMS.md`**：11 条未结案项按缺件分四类，每条写明验法与落点；附两个约定与四个复核入口。
+- 覆盖 53 → **54/65**，缺 12 → **11**；**静态能推的到此为止**。

@@ -1,0 +1,52 @@
+{
+  "https://a.klaviyo.com/client/subscriptions/confirm": {
+    "client/subscriptions/confirm": -1,
+    "klaviyo": -1
+  },
+  "https://api.nike.com/buy/carts/v2/": {
+    "buy/carts/v2": -1,
+    "product_feed": -1
+  },
+  "https://api.nike.com/product_feed/threads/v2/": {
+    "product_feed/threads": -1,
+    "product_feed": -1
+  },
+  "https://api.omise.co": {
+    "omise": -1
+  },
+  "https://api.paypal.com": {
+    "paypal": -1
+  },
+  "https://api.paypal.com/v1/oauth2/token": {
+    "v1/oauth2/token": -1,
+    "oauth2/token": -1
+  },
+  "https://api.paypal.com/v2/checkout/orders": {
+    "v2/checkout/orders": -1,
+    "checkout/orders": -1
+  },
+  "https://api.sandbox.paypal.com": {
+    "sandbox": -1
+  },
+  "https://api.pocketgames.nl/v1/public/drop-schedule": {
+    "public/drop-schedule": -1,
+    "pocketgames": -1
+  },
+  "https://api.pocketgames.nl/v1/public/raffle-entry": {
+    "public/raffle-entry": -1,
+    "raffle-entry": -1
+  },
+  "https://p01.mul-pay.jp/payment/SaveCard.idPass": {
+    "SaveCard": -1,
+    "mul-pay": -1
+  },
+  "https://search.scheels.com": {
+    "search": -1
+  },
+  "https://www.bstn.com/": {
+    "bstn": -1
+  },
+  "https://yzy-prod.swell.store": {
+    "swell": -1
+  }
+}

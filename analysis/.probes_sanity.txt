@@ -1,0 +1,3 @@
+﻿paypal: capture failed
+resolved
+paypal 3ds: resolution failed

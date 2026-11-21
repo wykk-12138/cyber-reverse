@@ -8586,3 +8586,15 @@ Observation：
 - **`approveMemberPayment` 有两份**：5407（R1335 已用）与 **5620**（`0x1470EC9FC`）。方言对，**选用条件未定**。
 - **覆盖 18/65 → 19/65**：把 Highsnobiety 的 `fetchOrderConfirmation`(4825) 接成 `SubmitOrderAsync`。
   **缺 46 个**，按长度排序在 `operation_gap.py` 里，逐轮取最大。
+
+---
+
+## 第 1342 轮
+
+- **全清单最大的 `ProductDetails`(26206) 落地** —— 它属于 **`https://server.shop.app/graphql`（Shopify Shop app）**，
+  复刻件此前**零命中**，是全新表面。新增 `ShopAppProduct`（Document 26206 / 八变量 / FetchAsync）。
+- **26 KB 常量能过源码 → 编译器 → AOT**：产物 `query ProductDetails` UTF-16 命中 1，尺寸 +86,016 字节。
+- **覆盖 19 → 20/65，缺 45**。
+- **IDA 又掉了一次并自愈**：进程不在 → 重启 **`ida.exe`**（不是 ida64）→ 三个模态框
+  （Proceed with unpacked base / Yes 修 .id0 / OK inconsistencies）→ health ok。
+- 又一次"先假设形状"：断言文档尾是 `"}\n"`，实测是 `}\r\n` + 24 空格。改成用测量值。

@@ -8675,3 +8675,12 @@ Observation：
 - `ShopifyStorefrontQueries`（3 份文档 + 两表 + `SendAsync`，未声明变量发送前挡掉）；
   `setBillingAddress` 归位到 `HighsnobietyFlow.SubmitBillingAsync`。
 - 覆盖 28 → **31/65**，缺 37 → **34**；产物三串各 UTF-16 命中 1。
+
+---
+
+## 第 1350 轮
+
+- **签名聚类只认得写进词表的族**：A 块 11 份短文档全部 `none`（各有各的签名）。**这不是"不属于任何族"，是检测器的边界。**
+- 认不出时的正确问法：**谁在发它**。`createCheckoutPayment`(222) 的引用点落在 `sub_140B56CC0` ——
+  R1339 已列为 Highsnobiety 的 "Create payment" 发送方 → **归 Highsnobiety**，落成 `SubmitPaymentAsync`。
+- 覆盖 31 → **32/65**，缺 34 → **33**；产物 `mutation createCheckoutPayment` 命中 1。

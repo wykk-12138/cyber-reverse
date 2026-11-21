@@ -2130,6 +2130,13 @@ public sealed class HighsnobietyFlow : StoreFlow
         "mutation setCustomerEmail($action: SetCartCustomerEmail!, $locale: Locale!, $preferredLocale: Locale) {\r\n  setCustomerEmail(action: $action) {\r\n    ...CartFragment\r\n    __typename\r\n  }\r\n}\r\n\r\nfragment CartFragment on Cart {\r\n  id\r\n  country\r\n  customerId\r\n  customerEmail\r\n  lineItems {\r\n    ...LineItemFragment_Cart\r\n    __typename\r\n  }\r\n  shippingAddress {\r\n    ...AddressFragment\r\n    __typename\r\n  }\r\n  billingAddress {\r\n    ...AddressFragment\r\n    __typename\r\n  }\r\n  shippingInfo {\r\n    shippingMethod {\r\n      id\r\n      key\r\n      name\r\n      __typename\r\n    }\r\n    price {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    taxedPrice {\r\n      totalNet {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      totalGross {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    taxRate {\r\n      includedInPrice\r\n      __typename\r\n    }\r\n    discountedPrice {\r\n      value {\r\n        ... on Money {\r\n          ...MoneyFragment\r\n          __typename\r\n        }\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  totalPrice {\r\n    ...MoneyFragment\r\n    __typename\r\n  }\r\n  taxedPrice {\r\n    totalNet {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    totalGross {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  discountCodes {\r\n    ...DiscountCodeFragment\r\n    __typename\r\n  }\r\n  discountOnTotalPrice {\r\n    includedDiscounts {\r\n      discount {\r\n        id\r\n        description(locale: $locale)\r\n        fallbackDescription: description(locale: en)\r\n        name(locale: $locale)\r\n        fallbackName: name(locale: en)\r\n        requiresDiscountCode\r\n        __typename\r\n      }\r\n      discountedAmount {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment MoneyFragment on Money {\r\n  currencyCode\r\n  centAmount\r\n  fractionDigits\r\n  __typename\r\n}\r\n\r\nfragment LineItemFragment_Cart on LineItem {\r\n  id\r\n  productSlug(locale: $locale)\r\n  fallbackSlug: productSlug(locale: en)\r\n  preferredSlug: productSlug(locale: $preferredLocale)\r\n  lineItemMode\r\n  name(locale: $locale)\r\n  displayBrand\r\n  displayName(locale: $locale)\r\n  quantity\r\n  productId\r\n  productType {\r\n    name\r\n    __typename\r\n  }\r\n  category(locale: $locale)\r\n  price {\r\n    ...ProductPriceFragment\r\n    __typename\r\n  }\r\n  mainImage {\r\n    ...ImageAssetFragment\r\n    __typename\r\n  }\r\n  variant {\r\n    availability {\r\n      noChannel {\r\n        availableQuantity\r\n        expectedDelivery\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    brands {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    campaignId\r\n    campaignSlug\r\n    color(locale: $locale)\r\n    gender {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    masterScale(locale: $locale)\r\n    size\r\n    sku\r\n    key\r\n    __typename\r\n  }\r\n  totalPrice {\r\n    ...MoneyFragment\r\n    __typename\r\n  }\r\n  taxedPrice {\r\n    totalNet {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    totalGross {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  taxRate {\r\n    includedInPrice\r\n    __typename\r\n  }\r\n  discountedPricePerQuantity {\r\n    ...DiscountedLineItemPriceForQuantityFragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment ProductPriceFragment on ProductPrice {\r\n  id\r\n  value {\r\n    ...MoneyFragment\r\n    __typename\r\n  }\r\n  country\r\n  discounted {\r\n    value {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    discount {\r\n      name(locale: $locale)\r\n      description(locale: $locale)\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  custom {\r\n    customFieldsRaw {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment DiscountedLineItemPriceForQuantityFragment on DiscountedLineItemPriceForQuantity {\r\n  quantity\r\n  discountedPrice {\r\n    includedDiscounts {\r\n      discount {\r\n        id\r\n        description(locale: $locale)\r\n        fallbackDescription: description(locale: en)\r\n        name(locale: $locale)\r\n        fallbackName: name(locale: en)\r\n        requiresDiscountCode\r\n        __typename\r\n      }\r\n      discountedAmount {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment ImageAssetFragment on ImageAsset {\r\n  alt\r\n  aspectRatio\r\n  base64\r\n  bgColor\r\n  height\r\n  id\r\n  sizes\r\n  src\r\n  srcSet\r\n  credits {\r\n    collection\r\n    companyName\r\n    licenseHolder\r\n    photographerUrl\r\n    photographerName\r\n    __typename\r\n  }\r\n  title\r\n  width\r\n  focalPoint {\r\n    id\r\n    x\r\n    y\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment AddressFragment on Address {\r\n  firstName\r\n  lastName\r\n  streetName\r\n  postalCode\r\n  city\r\n  region\r\n  country\r\n  phone\r\n  additionalAddressInfo\r\n  __typename\r\n}\r\n\r\nfragment DiscountCodeFragment on DiscountCodeInfo {\r\n  state\r\n  discountCode {\r\n    id\r\n    code\r\n    name(locale: $locale)\r\n    description(locale: $locale)\r\n    __typename\r\n  }\r\n  __typename\r\n}";
 
     /// <summary>
+    /// The payment mutation, 222 characters from 0x1470F3BEC. Its one code reference is 0x140B56EA4, inside this
+    /// store's own payment sender (sub_140B56CC0), which is what placed it here (R1350).
+    /// </summary>
+    public const string CreateCheckoutPaymentDocument =
+        "mutation createCheckoutPayment($storefront: Storefront, $withoutShippingAddressSet: Boolean) {\r\n  createCheckoutPaymentIntent(\r\n    storefront: $storefront\r\n    withoutShippingAddressSet: $withoutShippingAddressSet\r\n  )\r\n}";
+
+    /// <summary>
     /// The billing mutation, 4989 characters from 0x1470F5B24. It declares an action object and two locales —
     /// the shape this family uses, not Shopify Storefront's, which is how it was attributed (R1349).
     /// </summary>
@@ -2301,6 +2308,43 @@ public sealed class HighsnobietyFlow : StoreFlow
         if (!res.IsSuccess) return StepOutcome.Fail($"highsnobiety billing HTTP {res.StatusCode}", retryable: true);
 
         c.Session.Vars["billing"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// Start the payment. The document declares two variables — <c>$storefront</c> and
+    /// <c>$withoutShippingAddressSet</c> — and both are the caller's, because the image never shows what fills them.
+    /// </summary>
+    public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
+    {
+        var storefront = c.Session.Vars.GetValueOrDefault("highsnobiety.storefront")
+                         ?? c.Session.Vars.GetValueOrDefault("storeId");
+        if (string.IsNullOrEmpty(storefront))
+            return StepOutcome.Fail("highsnobiety: no $storefront — the payment mutation is keyed by it");
+
+        var variables = new JObject
+        {
+            ["storefront"] = storefront,
+            ["withoutShippingAddressSet"] = string.Equals(
+                c.Session.Vars.GetValueOrDefault("highsnobiety.withoutShipping"),
+                "true", StringComparison.OrdinalIgnoreCase),
+        };
+
+        var body = new JObject
+        {
+            ["operationName"] = "createCheckoutPayment",
+            ["query"] = CreateCheckoutPaymentDocument,
+            ["variables"] = variables,
+        };
+
+        var host = c.Session.Vars.GetValueOrDefault("highsnobiety.apiHost") ?? ApiHost;
+        var res = await PostJsonAsync(c, host, body.ToString(Newtonsoft.Json.Formatting.None),
+            "hs-payment", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("highsnobiety payment failed", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"highsnobiety payment HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["payment"] = res.Body;
         return StepOutcome.Success();
     }
 

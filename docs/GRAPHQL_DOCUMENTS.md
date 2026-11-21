@@ -114,3 +114,17 @@
 **`ProductDetails`(26206) 已落地（R1342）：属于 `https://server.shop.app/graphql`，见 `ShopAppProduct`**、**`PayWithQuery`(12561) 与 `ShipToQuery`(2031) 已落地（R1343）：`PayPalCheckoutQueries`**、**`Product`(10620) 已落地（R1345）：`StorefrontApiProduct`，与 `AddItemToCart`/`CreateInitialCart`/`CheckoutCart` 同族，共用相对路径 `api/graphql`，**都不带主机**（origin 由调用方给）**、`ShopProductSearch`(6537)、
 `cartApiObjectCreate`(5876)、`setShippingAddress`(4992)、`setBillingAddress`(4989)、`CheckoutCart`(4102)、
 `GetCart`(3520)、`getCart`(3234)、`getPaymentdMethods`(3067)、`CreditCard`(2867)、`UpdateShippingAddress`(2386) …
+
+## `api/graphql` 族（R1345–R1346）：五份文档，一个相对路径，无主机
+
+| 操作 | 长度 | 地址 | 文档声明 | 发送方填 |
+|---|---|---|---|---|
+| `AddItemToCart` | 2108 | 0x1470CB3F4 | `$input` | `id`、`input`、`productId` |
+| `CreateInitialCart` | 865 | 0x1470CF25C | 无 | 无 |
+| `Product` | 10620 | 0x147127B44 | `id`、`isDraft`、`variationId`、`src` | `id`、`variationId` |
+| `CheckoutCart` | 4102 | 0x14711CF9C | `$id` | `id` |
+| `getSession` | 133 | 0x147146994 | 无 | 无 |
+
+五个发送方（`0x140E1B1D0` / `0x140E1B700` / `0x140E1BAB0` / `0x140E1BF40` / `0x140E1C390`）**都不带主机**，
+都拼相对路径 `api/graphql`。**origin 必须由调用方给** —— 相对路径配一个编出来的主机就是把真实请求发到真实服务器。
+实现见 `Flows/StorefrontApiQueries.cs`。

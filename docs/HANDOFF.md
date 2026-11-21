@@ -8633,3 +8633,13 @@ Observation：
   文档声明 4 个变量、发送方只填 2 个，**另两个不替它编值**。
 - 接进 `ShopifyFlow.FindProductAsync` 第三分支（`storefrontapi.origin`）。
 - 覆盖 22 → **23/65**，缺 43 → **42**；产物 `query Product(` 命中 1、`storefrontapi` 命中 3。
+
+---
+
+## 第 1346 轮
+
+- **`api/graphql` 族五个操作一次做完**（AddItemToCart 2108 / CreateInitialCart 865 / Product 10620 /
+  CheckoutCart 4102 / getSession 133），一个类 `StorefrontApiQueries`；`StorefrontApiProduct` 已并入删除。
+- **两组变量不一致**：文档声明的 ≠ 发送方填的（见 R1346 表）。**文档赢** —— 未声明的变量**发送前就挡掉**，
+  声明了而没填的是可选。类里同时公开 `Declared` 与 `SenderFills`。
+- 覆盖 23 → **26/65**，缺 42 → **39**；产物五份文档首行 UTF-16 各命中 1。

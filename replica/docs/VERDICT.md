@@ -70846,3 +70846,40 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   Unknown —— 这族属于**哪家店**（发送方都不带主机）。
 - **还剩什么**：该族其余四个操作（发送方已定位）；42 个未覆盖操作；`approveMemberPayment` 两方言；
   浏览器侧结账面；`/cartApi/checkout` 归属；`AddressInput`；方言条件（blocker）；AO 三个 checkout 体；Saucony 六步路径。
+
+---
+
+## 第 1346 轮：`api/graphql` 那一族的**五个操作一次做完**——并且发现"发送方填的变量"与"文档声明的变量"不是同一组
+
+- **一次取四份**：`AddItemToCart`(2108)、`CreateInitialCart`(865)、`CheckoutCart`(4102)、`getSession`(133)，
+  加上 R1345 的 `Product`(10620) —— 五份文档、一个相对路径、一个类（`StorefrontApiQueries`）。
+  `StorefrontApiProduct` **已并入并删除**（一个族一个类，五个类就是五处要维护同一条 origin 规则）。
+- **关键发现：两组变量不一致**：
+
+  | 操作 | 文档声明 | 发送方填 |
+  |---|---|---|
+  | AddItemToCart | `$input` | `id`、`input`、`productId` |
+  | CreateInitialCart | 无 | 无 |
+  | Product | `id`、`isDraft`、`variationId`、`src` | `id`、`variationId` |
+  | CheckoutCart | `$id` | `id` |
+  | getSession | 无 | 无 |
+
+  **文档赢**：文档没声明的变量**不能传**（服务端会拒），文档声明而发送方没填的是**可选**。
+  于是类里**同时公开两组**，并在发送前**挡掉未声明的变量** —— 不等服务端返回一个没人预期的 GraphQL 错误。
+- **一条测试按新规则重写**：原来"缺 id 就拒"的用例**前提已经不成立**（通用 `SendAsync` 不该替每个操作校验 id），
+  换成**"传了未声明的变量就拒"** —— 那是这个族真正强制的规则。
+- **产物正向证据**：五份文档首行在产物里 **UTF-16 各命中 1**；尺寸 61,714,944 → **61,739,520**。
+
+### 五要素
+
+- **改了什么**：新增 `Flows/StorefrontApiQueries.cs`（五份文档 + 声明/填充两组表 + `SendAsync`）；
+  删除 `StorefrontApiProduct.cs`；`ShopifyFlow.cs` 分支改指向族；`StorefrontApiProductTests.cs` 迁移并重写（6 条）；
+  新增 4 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`StorefrontApi*` → **6/6**；`ShopifyGraphQlTests` → **12/12**；
+  `operation_gap.py` → 覆盖 **26/65**（缺 39）；`orphan_documents.py` → 0；`audit_document_constants.py` → **29 常量 / 0 问题**；
+  产物五串各命中 1；尺寸 61,714,944 → 61,739,520。
+- **数字变化**：覆盖 23 → **26**；缺 42 → **39**；产物 +24,576 字节。
+- **证据等级**：Observation —— 五份文档的字节与声明集、五组发送方变量、产物命中。
+  Unknown —— 这族属于哪家店（发送方都不带主机）。
+- **还剩什么**：39 个未覆盖操作；`approveMemberPayment` 两方言；浏览器侧结账面；`/cartApi/checkout` 归属；
+  `AddressInput`；方言条件（blocker）；AO 三个 checkout 体；Saucony 六步路径。

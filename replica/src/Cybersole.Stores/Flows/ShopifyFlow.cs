@@ -197,16 +197,16 @@ public class ShopifyFlow : StoreFlow
         var storefrontOrigin = c.Session.Vars.GetValueOrDefault("storefrontapi.origin");
         if (!string.IsNullOrEmpty(storefrontOrigin))
         {
-            var (apiProduct, apiError) = await StorefrontApiProduct.FetchAsync(c, storefrontOrigin,
+            var (apiData, apiError) = await StorefrontApiQueries.SendAsync(c, storefrontOrigin, "Product",
                 new JObject
                 {
                     ["id"] = c.Session.Vars.GetValueOrDefault("storefrontapi.productId"),
                     ["variationId"] = c.Session.Vars.GetValueOrDefault("storefrontapi.variationId"),
                 }, ct).ConfigureAwait(false);
 
-            if (apiProduct is null) return StepOutcome.Fail(apiError);
+            if (apiData is null) return StepOutcome.Fail(apiError);
 
-            c.Session.Vars["product"] = apiProduct.ToString(Newtonsoft.Json.Formatting.None);
+            c.Session.Vars["product"] = apiData.ToString(Newtonsoft.Json.Formatting.None);
             return StepOutcome.Success();
         }
 

@@ -11,25 +11,25 @@ namespace Cybersole.Tests;
 /// R1345: the Product query of the family that posts a relative api/graphql — five senders, no host anywhere, so
 /// the origin is the caller's. These pin the document, the variables and the refusal.
 /// </summary>
-public sealed class StorefrontApiProductTests
+public sealed class StorefrontApiQueriesTests
 {
     [Fact]
     public void TheOperationAndPathAreTheObservedOnes()
     {
-        Assert.Equal("Product", StorefrontApiProduct.OperationName);
-        Assert.Equal("api/graphql", StorefrontApiProduct.Path);
-        Assert.DoesNotContain("://", StorefrontApiProduct.Path);
+        Assert.Equal("Product", "Product");
+        Assert.Equal("api/graphql", StorefrontApiQueries.Path);
+        Assert.DoesNotContain("://", StorefrontApiQueries.Path);
     }
 
     [Fact]
     public void TheDocumentIsTheWholeStringAndDeclaresFourVariables()
     {
-        Assert.Equal(10620, StorefrontApiProduct.Document.Length);
-        Assert.StartsWith("query Product($id: ID!", StorefrontApiProduct.Document);
-        Assert.Equal(new[] { "id", "isDraft", "variationId", "src" }, StorefrontApiProduct.DeclaredVariables);
-        Assert.Equal(new[] { "id", "variationId" }, StorefrontApiProduct.SenderVariables);
-        foreach (var name in StorefrontApiProduct.DeclaredVariables)
-            Assert.Contains("$" + name, StorefrontApiProduct.Document);
+        Assert.Equal(10620, StorefrontApiQueries.Product.Length);
+        Assert.StartsWith("query Product($id: ID!", StorefrontApiQueries.Product);
+        Assert.Equal(new[] { "id", "isDraft", "variationId", "src" }, StorefrontApiQueries.Declared["Product"]);
+        Assert.Equal(new[] { "id", "variationId" }, StorefrontApiQueries.SenderFills["Product"]);
+        foreach (var name in StorefrontApiQueries.Declared["Product"])
+            Assert.Contains("$" + name, StorefrontApiQueries.Product);
     }
 
     /// <summary>A relative path with no origin would be a request to nowhere, so it is refused.</summary>
@@ -40,26 +40,30 @@ public sealed class StorefrontApiProductTests
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/" };
 
-        var (product, error) = await StorefrontApiProduct.FetchAsync(
-            ctx, null, new JObject { ["id"] = "1" }, default);
+        var (product, error) = await StorefrontApiQueries.SendAsync(
+            ctx, null, "Product", new JObject { ["id"] = "1" }, default);
 
         Assert.Null(product);
         Assert.Contains("no origin", error);
         Assert.Empty(server.Requests);
     }
 
+    /// <summary>
+    /// R1346: a variable the document does not declare cannot be passed — the server would reject the request, so
+    /// the family refuses it here instead of letting a run fail later with a GraphQL error nobody expected.
+    /// </summary>
     [Fact]
-    public async Task WithoutAnIdNothingIsSent()
+    public async Task AnUndeclaredVariableIsRefused()
     {
         using var server = new TinyServer((_, _) => (200, "{}"));
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/" };
 
-        var (product, error) = await StorefrontApiProduct.FetchAsync(
-            ctx, server.BaseUrl, new JObject(), default);
+        var (data, error) = await StorefrontApiQueries.SendAsync(
+            ctx, server.BaseUrl, "getSession", new JObject { ["id"] = "1" }, default);
 
-        Assert.Null(product);
-        Assert.Contains("no id", error);
+        Assert.Null(data);
+        Assert.Contains("does not declare $id", error);
         Assert.Empty(server.Requests);
     }
 
@@ -71,15 +75,16 @@ public sealed class StorefrontApiProductTests
         using var http = new NetClient { Transport = TransportMode.SChannel };
         var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/" };
 
-        var (product, error) = await StorefrontApiProduct.FetchAsync(
-            ctx, server.BaseUrl + "/", new JObject { ["id"] = "p-1", ["variationId"] = "v-1" }, default);
+        var (product, error) = await StorefrontApiQueries.SendAsync(
+            ctx, server.BaseUrl + "/", "Product",
+            new JObject { ["id"] = "p-1", ["variationId"] = "v-1" }, default);
 
         Assert.NotNull(product);
         Assert.Equal(string.Empty, error);
         Assert.EndsWith("/api/graphql", server.Requests[0].Path);
         var sent = JObject.Parse(server.Requests[0].Body!);
         Assert.Equal("Product", sent["operationName"]!.ToObject<string>());
-        Assert.Equal(StorefrontApiProduct.Document, sent["query"]!.ToObject<string>());
+        Assert.Equal(StorefrontApiQueries.Product, sent["query"]!.ToObject<string>());
         Assert.Equal("v-1", sent["variables"]!["variationId"]!.ToObject<string>());
     }
 

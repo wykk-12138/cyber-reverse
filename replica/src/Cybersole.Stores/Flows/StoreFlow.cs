@@ -346,7 +346,24 @@ public abstract class StoreFlow
             ? StepOutcome.Success()
             : StepOutcome.Fail($"refresh HTTP {res.StatusCode}", retryable: true);
     }
-    public virtual Task<StepOutcome> VerifySessionAsync(FlowContext c, CancellationToken ct) => Ok();
+    public virtual async Task<StepOutcome> VerifySessionAsync(FlowContext c, CancellationToken ct)
+    {
+        // R1359: the session-shaped family whose handlers name no host. When a run supplies an origin, the customer
+        // is read through it; otherwise the step does what it always did.
+        var sessionOrigin = c.Session.Vars.GetValueOrDefault("storeSession.origin");
+        if (!string.IsNullOrEmpty(sessionOrigin))
+        {
+            var (data, error) = await StoreSessionQueries
+                .SendAsync(c, sessionOrigin, "getCustomerInformation", new Newtonsoft.Json.Linq.JObject(), ct)
+                .ConfigureAwait(false);
+            if (data is null) return StepOutcome.Fail(error);
+
+            c.Session.Vars["customer"] = data.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
+        return await Ok().ConfigureAwait(false);
+    }
     public virtual async Task<StepOutcome> SetCookiesAsync(FlowContext c, CancellationToken ct)
     {
         // Vars of the form cookie.NAME=VALUE are pushed into the jar.

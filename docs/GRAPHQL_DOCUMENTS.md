@@ -189,3 +189,16 @@ x-graphql-query-name    x-header-id    Getting session    StatusInfo
 | `GetCart` | 3520 | 0x14711EFC4 |
 
 **两个哈希与三个操作的配对未成立** —— 实现里哈希一律由调用方给。见 `Flows/GraphQlHashQueries.cs`。
+
+## 无主机的会话族（R1359）
+
+处理器 `sub_140E5B940` / `sub_140E5B570` 只有 `application/json` 与信封键，与 `getCart` 状态机同块，**主机在上层**。
+
+| 操作 | 长度 | 声明集 |
+|---|---|---|
+| `getCustomerInformation` | 197 | 无 |
+| `getPaymentdMethods` | 3067 | 无（保留镜像错拼） |
+| `item` | 67 | 无 |
+| `getCart` | 3234 | `$key`、`$locale` |
+
+实现在 `Flows/StoreSessionQueries.cs`；origin 由调用方给。

@@ -8776,3 +8776,12 @@ Observation：
   落成 `Payments/BraintreeClientToken`，接进 `StoreStep.GetSessionAsync`。
 - **`getShippingMethods` 无独立操作名字符串**（只有别处的 PascalCase 闭包名）→ 与 `CreditCard` 同组，**不硬凑**。
 - 覆盖 43 → **44/65**，缺 22 → **21**；产物 `query generateClientToken` 命中 1。
+
+---
+
+## 第 1359 轮
+
+- B 块四份（`getCustomerInformation` 197 / `getPaymentdMethods` 3067 / `item` 67 / `getCart` 3234）一次落地：
+  处理器**只有信封键没有主机** → `StoreSessionQueries`，**origin 由调用方给**，接进 `VerifySessionAsync`。
+- **声明集按实测**：前三份**无变量**，`getCart` 是 `$key`/`$locale`；`getPaymentdMethods` 保留镜像的错拼。
+- 覆盖 44 → **48/65**，缺 21 → **17**；产物三串各 UTF-16 命中 1。

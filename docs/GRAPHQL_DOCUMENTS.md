@@ -111,6 +111,6 @@
 **选用条件未定**。
 
 **待取清单**（`python analysis/operation_gap.py` 输出全表，按长度降序）：
-**`ProductDetails`(26206) 已落地（R1342）：属于 `https://server.shop.app/graphql`，见 `ShopAppProduct`**、**`PayWithQuery`(12561) 与 `ShipToQuery`(2031) 已落地（R1343）：`PayPalCheckoutQueries`**、`Product`(10620)、`ShopProductSearch`(6537)、
+**`ProductDetails`(26206) 已落地（R1342）：属于 `https://server.shop.app/graphql`，见 `ShopAppProduct`**、**`PayWithQuery`(12561) 与 `ShipToQuery`(2031) 已落地（R1343）：`PayPalCheckoutQueries`**、**`Product`(10620) 已落地（R1345）：`StorefrontApiProduct`，与 `AddItemToCart`/`CreateInitialCart`/`CheckoutCart` 同族，共用相对路径 `api/graphql`，**都不带主机**（origin 由调用方给）**、`ShopProductSearch`(6537)、
 `cartApiObjectCreate`(5876)、`setShippingAddress`(4992)、`setBillingAddress`(4989)、`CheckoutCart`(4102)、
 `GetCart`(3520)、`getCart`(3234)、`getPaymentdMethods`(3067)、`CreditCard`(2867)、`UpdateShippingAddress`(2386) …

@@ -192,6 +192,24 @@ public class ShopifyFlow : StoreFlow
         // R1344: the Shop app's product query, when the run carries the identifiers it needs. It is a different
         // API from this store's storefront — server.shop.app, not the store's /products/<handle>.js — so it is a
         // branch, not a replacement, and the branch only exists when the session supplies its variables.
+        // R1345: the storefront-API family posts a relative api/graphql, so the origin must come from the run.
+        // Without it the step keeps its own storefront lookup.
+        var storefrontOrigin = c.Session.Vars.GetValueOrDefault("storefrontapi.origin");
+        if (!string.IsNullOrEmpty(storefrontOrigin))
+        {
+            var (apiProduct, apiError) = await StorefrontApiProduct.FetchAsync(c, storefrontOrigin,
+                new JObject
+                {
+                    ["id"] = c.Session.Vars.GetValueOrDefault("storefrontapi.productId"),
+                    ["variationId"] = c.Session.Vars.GetValueOrDefault("storefrontapi.variationId"),
+                }, ct).ConfigureAwait(false);
+
+            if (apiProduct is null) return StepOutcome.Fail(apiError);
+
+            c.Session.Vars["product"] = apiProduct.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         var brokerId = c.Session.Vars.GetValueOrDefault("shopapp.brokerId");
         if (!string.IsNullOrEmpty(brokerId))
         {

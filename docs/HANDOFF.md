@@ -8621,3 +8621,15 @@ Observation：
 - 决断而非检查：给 `ShopAppProduct` 一个消费者 —— `ShopifyFlow.FindProductAsync` 在有 `shopapp.brokerId` 时走
   `server.shop.app`（与门店 `/products/<handle>.js` 是两条 API，分支不替换），否则照旧。
 - 产物：`shopapp` 命中 7，尺寸 61,672,960 → 61,676,032；清单里 `ShopAppProduct` 已消失。
+
+---
+
+## 第 1345 轮
+
+- **`Product`(10620) 落地**，并且发现它属于**一组五发送方、共用相对路径 `api/graphql`、都不带主机**的家族
+  （`AddItemToCart` / `CreateInitialCart` / `Product` / `CheckoutCart` / session）。
+  **内联常量 `0x145E99C50` 读出来是 `api/grap`** —— 是逐字符拼路径的一截，不是主机（差点被它骗）。
+- `StorefrontApiProduct`：**origin 是参数不是常量**（相对路径配编造的主机会打到真实服务器）；
+  文档声明 4 个变量、发送方只填 2 个，**另两个不替它编值**。
+- 接进 `ShopifyFlow.FindProductAsync` 第三分支（`storefrontapi.origin`）。
+- 覆盖 22 → **23/65**，缺 43 → **42**；产物 `query Product(` 命中 1、`storefrontapi` 命中 3。

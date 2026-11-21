@@ -8720,3 +8720,13 @@ Observation：
 - **自伤一条**：`git show HEAD:path > file` 在 PowerShell 里写 **UTF-16**，把 `StoreFlow.cs` 写成乱码；
   正确做法是 `subprocess` 取字节再写 bytes。已还原，只替换一个成员。
 - 覆盖 36 → **37/65**，缺 29 → **28**。
+
+---
+
+## 第 1354 轮
+
+- 重新聚类 28 个 → 8 块。`setShippingAddress`(4992) 落地：**签名**（action 对象 + 两个 locale）与**发送方**
+  （`0x140B59CF7` → `sub_140B59790`，R1339 已标为 shipping）**两条独立证据一致**。
+  **长度接近只是旁证，不是判据。**
+- `HighsnobietyFlow.SubmitShippingAsync` 落地 → **该店七步齐全**（cart/email/product/billing/payment/shipping/order）。
+- 覆盖 37 → **38/65**，缺 28 → **27**；产物 `mutation setShippingAddress` 命中 1。

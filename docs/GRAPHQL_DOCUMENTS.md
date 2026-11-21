@@ -18,7 +18,7 @@
 
 | 地址 | 长度 | 名称 | 为什么还没做 |
 |---|---|---|---|
-| `0x1470E9FA4` | 5407 | `approveMemberPayment` | PayPal/Braintree 支付编排，缺端点 |
+| `0x1470E9FA4` | 5407 | `approveMemberPayment` | **R1335 已落地**：`PayPalPartnerApprove`，端点 `https://www.paypal.com/graphql/approveMemberPayment`（路径式）|
 | `0x1470D7974` | **10262** | `ResolveThreeDsContingency`（无 provider 字段的方言） | **R1323 已落地**：`ResolveDocumentWithoutProviderFields` |
 | `0x1470DC9BC` | **10370** | `ResolveThreeDsContingency`（带 provider 字段） | 早已在 `ResolveDocument`（R1149），R1323 确认逐字节一致 |
 | `0x1470E261C`/`0x1470E2CCC` | **844/871** | `ThreeDsLookUpMutation` 方言对 | **R1324 已落地**：`LookUpDocumentWithoutProviderFields` / `LookUpDocument` |

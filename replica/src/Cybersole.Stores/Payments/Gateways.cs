@@ -2104,6 +2104,43 @@ public sealed class PayPalGateway : IPaymentGateway
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
     {
+        // R1335: the partner approval, when the run carries a buyer token for it. The image's own sender fills
+        // eleven variables and this class does not invent the seven it cannot know — the caller puts them in
+        // the session, and without the token the step falls through to the paths below unchanged.
+        var partnerToken = c.Session.Vars.GetValueOrDefault("paypal.partnerToken");
+        if (!string.IsNullOrEmpty(partnerToken))
+        {
+            var variables = new JObject
+            {
+                ["token"] = partnerToken,
+                ["selectedAddressId"] = c.Session.Vars.GetValueOrDefault("paypal.selectedAddressId"),
+                ["preferredShippingAddressId"] = c.Session.Vars.GetValueOrDefault("paypal.preferredShippingAddressId"),
+                ["selectedFundingOptionId"] = c.Session.Vars.GetValueOrDefault("paypal.selectedFundingOptionId"),
+                ["preferredFundingOptionId"] = c.Session.Vars.GetValueOrDefault("paypal.preferredFundingOptionId"),
+                ["preAuthorizationRequired"] = false,
+                ["fundingMethodType"] = c.Session.Vars.GetValueOrDefault("paypal.fundingMethodType")
+                    ?? PayPalPartnerApprove.FundingMethodIframe,
+                ["setStickyFiRequired"] = false,
+                ["scaCompleted"] = true,
+            };
+
+            var (data, error) = await PayPalPartnerApprove
+                .ApproveAsync(c, variables, ct, c.Session.Vars.GetValueOrDefault("paypal.partnerApproveUrl"))
+                .ConfigureAwait(false);
+
+            if (data is null) return PaymentResult.Fail(error);
+
+            var state = data["approveMemberPayment"]?["state"]?.ToString();
+            c.Session.Vars["paypal.approveState"] = state ?? string.Empty;
+            var paymentId = data["approveMemberPayment"]?["cart"]?["paymentId"]?.ToString();
+            if (!string.IsNullOrEmpty(paymentId)) c.Session.PaymentMethodId = paymentId;
+
+            return string.Equals(state, "COMPLETED", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(state, "APPROVED", StringComparison.OrdinalIgnoreCase)
+                ? PaymentResult.Success(paymentId ?? partnerToken)
+                : PaymentResult.Fail($"paypal: approve state {state}");
+        }
+
         var orderId = c.Session.Vars.TryGetValue("paypal.orderId", out var o) ? o : null;
         if (string.IsNullOrEmpty(orderId)) return await TokenizeAsync(c, ct).ConfigureAwait(false);
 

@@ -6,11 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 12:35:15 +0800 |
+| 生成时间 | 2026-11-21 12:59:46 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2687 通过 / 0 失败 / 0 跳过 / 2687 总计** |
+| 完整套件 | **2694 通过 / 0 失败 / 0 跳过 / 2694 总计** |
+
+## 时效警告（生成）
+
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新，其中 1 个相对 HEAD 真的改过（共 16514 行）。它描述的不是当前源码。
 
 ## 摘要素值
 
@@ -37,8 +41,8 @@
 | 函数数量（.pdata） — functions: replica .pdata | 188,373 |
 | 函数数量（.pdata） — functions: ratio | 67.98% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 16477 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 16514 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
 | 核心覆盖：store 宿主 — core: flows | 20 |
 | 核心覆盖：store 宿主 — core: override steps | 395 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 3 |
@@ -48,10 +52,10 @@
 | 核心覆盖：vendor 宿主 — vendor: wiring rows | 0 |
 | 核心覆盖：vendor 宿主 — vendor: missing | 0 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 31627776 |
-| 可执行段体量 — section-mass: ratio | 61.18% |
+| 可执行段体量 — section-mass: replica executable | 31631872 |
+| 可执行段体量 — section-mass: ratio | 61.19% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
-| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 15967 |
+| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 16004 |
 | 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1E00000 |
 | 变异套件（上次运行） — mutation-fit: total | 59 |
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
@@ -398,18 +402,18 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 12:22:29
-publish artifact size: 61403648 bytes
-publish artifact sha256: db4295d40c4707c65f686511bf9c95be0990cd241889a1c9df4e8fdf2f91fcd7
-embedded source revision: 5c9484120d44 (is HEAD)
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 12:28:44)
+publish artifact mtime: 2026-11-21 12:46:50
+publish artifact size: 61423104 bytes
+publish artifact sha256: 89a12c2d1ecb5304dedc1db978e6fe462824895321ec84a672cec01572e18a0c
+embedded source revision: f0aa7ed3dda2 (is HEAD)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 12:53:16)
 source files newer than the artifact: 17
-lines in those files: 16477
-of those, changed against HEAD: 0
-publish artifact state: current
+lines in those files: 16514
+of those, changed against HEAD: 1
+publish artifact state: stale
 
-  17 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
-  targets, which updates mtime without changing a byte. Nothing to rebuild.
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -461,21 +465,21 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 61403648 bytes ===
+=== REPLICA  image base 0x140000000  file 61423104 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
-  .text      0x1000       0x107E58     1077248      X
-  .managed   0x108000     0x1E2A8C8    30550528     X
-  hydrated   0x1E2B000    0x2E65E98    0            RW
-  .rdata     0x2E66000    0x48158F6    26933760     R
-  .data      0x4816000    0x491A718    236544       RW
-  .pdata     0x491B000    0x4B42C04    2260480      R
-  _RDATA     0x4B43000    0x4B430F4    512          R
-  .rsrc      0x4B44000    0x4B8F7E7    309248       R
-  .reloc     0x4B90000    0x4B98558    34304        R
+  .text      0x1000       0x107EA8     1077248      X
+  .managed   0x108000     0x1E2B988    30554624     X
+  hydrated   0x1E2C000    0x2E6AA58    0            RW
+  .rdata     0x2E6B000    0x481E4B6    26949120     R
+  .data      0x481F000    0x49237A8    236544       RW
+  .pdata     0x4924000    0x4B4BCC4    2260480      R
+  _RDATA     0x4B4C000    0x4B4C0F4    512          R
+  .rsrc      0x4B4D000    0x4B987E7    309248       R
+  .reloc     0x4B99000    0x4BA1564    34304        R
 
-  section-mass-replica-executable: 31627776
-  section-mass-ratio: 61.18%
+  section-mass-replica-executable: 31631872
+  section-mass-ratio: 61.19%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
   code does: the replica links a different BCL and Avalonia, so part of the difference is not its own.
@@ -497,37 +501,37 @@ pdata bucket histogram (bucket = 0x100000 bytes)
 
   range from     original   replica    replica/original
   ----------------------------------------------------
-  0x0            5,475      1,937        35.4%
+  0x0            5,475      1,921        35.1%
   0x100000       5,089      4,767        93.7%
   0x200000       4,333      5,142       118.7%
   0x300000       2,213      3,930       177.6%
   0x400000       5,791      5,695        98.3%
   0x500000       2,057      3,920       190.6%
-  0x600000       1,074      4,372       407.1%
-  0x700000       3,411      3,368        98.7%
-  0x800000       4,076      2,828        69.4%
-  0x900000       3,556      2,359        66.3%
-  0xA00000       3,178      4,230       133.1%
-  0xB00000       3,227      2,028        62.8%
-  0xC00000       3,982      5,562       139.7%
-  0xD00000       3,921      5,841       149.0%
-  0xE00000       3,371      7,783       230.9%
-  0xF00000       7,792      7,042        90.4%
-  0x1000000      5,626      3,755        66.7%
-  0x1100000      2,020      5,909       292.5%
-  0x1200000      2,046      9,234       451.3%
-  0x1300000      5,065      10,577      208.8%
-  0x1400000      10,107     9,709        96.1%
-  0x1500000      11,107     9,537        85.9%
-  0x1600000      2,864      9,840       343.6%
-  0x1700000      2,242      9,585       427.5%
-  0x1800000      4,058      9,170       226.0%
-  0x1900000      4,506      9,833       218.2%
-  0x1A00000      2,310      8,741       378.4%
-  0x1B00000      6,033      5,712        94.7%
-  0x1C00000      6,218      5,805        93.4%
-  0x1D00000      6,893      8,743       126.8%
-  0x1E00000      5,418      1,419        26.2%
+  0x600000       1,074      4,366       406.5%
+  0x700000       3,411      3,380        99.1%
+  0x800000       4,076      2,810        68.9%
+  0x900000       3,556      2,362        66.4%
+  0xA00000       3,178      4,202       132.2%
+  0xB00000       3,227      2,064        64.0%
+  0xC00000       3,982      5,553       139.5%
+  0xD00000       3,921      5,846       149.1%
+  0xE00000       3,371      7,770       230.5%
+  0xF00000       7,792      7,002        89.9%
+  0x1000000      5,626      3,807        67.7%
+  0x1100000      2,020      5,897       291.9%
+  0x1200000      2,046      9,222       450.7%
+  0x1300000      5,065      10,597      209.2%
+  0x1400000      10,107     9,698        96.0%
+  0x1500000      11,107     9,547        86.0%
+  0x1600000      2,864      9,842       343.6%
+  0x1700000      2,242      9,564       426.6%
+  0x1800000      4,058      9,189       226.4%
+  0x1900000      4,506      9,829       218.1%
+  0x1A00000      2,310      8,752       378.9%
+  0x1B00000      6,033      5,695        94.4%
+  0x1C00000      6,218      5,827        93.7%
+  0x1D00000      6,893      8,730       126.7%
+  0x1E00000      5,418      1,447        26.7%
   0x1F00000      4,991      0             0.0%
   0x2000000      7,513      0             0.0%
   0x2100000      10,388     0             0.0%
@@ -556,7 +560,7 @@ pdata bucket histogram (bucket = 0x100000 bytes)
     0x2300000        0.0%   original 9,066    replica 0
 
   pdata-above-0x1C00000-original: 156590
-  pdata-above-0x1C00000-replica: 15967
+  pdata-above-0x1C00000-replica: 16004
   pdata-last-replica-bucket: 0x1E00000
 
   Buckets are compared by density, not by identity: the two images are laid out independently, so equal
@@ -590,7 +594,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2687 通过 / 0 失败 / 0 跳过 / 2687 总计
+`exit 0` · 2694 通过 / 0 失败 / 0 跳过 / 2694 总计
 
 ```text
   正在确定要还原的项目…
@@ -607,7 +611,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2687，已跳过:     0，总计:  2687，持续时间: 5 m 47 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2694，已跳过:     0，总计:  2694，持续时间: 5 m 47 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

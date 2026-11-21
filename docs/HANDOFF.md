@@ -8502,3 +8502,14 @@ Observation：
   **六个方法开头统一归一化**；今天所有调用方传完整 URL，**行为不变**。
 - **测试纠正了我**：第一版只做替换、没做前缀，两条 Theory 当场红。
 - 仍未定：**哪家店用 `themeapis.`**，以及 `MagentoCart` 调用方的默认端点是否该改。
+
+---
+
+## 第 1335 轮
+
+- **`approveMemberPayment`(5407) 落地**：文档单引用点 → `sub_14110C600` 交出基址 `https://www.paypal.com/graphql/`
+  （**路径式**，与另外六个的**查询式**不同）、信封三键、内容类型、**十一个变量名**、两个枚举 `IFRAME`/`INSTANT`。
+- `PayPalPartnerApprove`（Document/Url/VariableNames/Envelope/ApproveAsync）**变量由调用方给，不造默认值** ——
+  七个变量是调用方的，造默认值 = 让合作方接受语义错误但合法的请求。
+- 接进 `PayPalGateway.AuthorizeAsync` 前置分支（有 `paypal.partnerToken` 才走，否则原路径不变）。
+- 产物用**正向证据**确认（UTF-16 四串命中），不靠"搜不到"。

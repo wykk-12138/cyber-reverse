@@ -554,6 +554,31 @@ public sealed class CasioFlow : StoreFlow
     }
 
     /// <summary>
+    /// Read the cart through the image's own 61-character query.
+    ///
+    /// <para>
+    /// <b>Observed:</b> <c>{ customerCart { id total_quantity items { uid quantity } } }</c> at 0x14718FB74.
+    /// <b>Inference:</b> that this store answers it at the same <c>/graphql</c> endpoint its cart mutations
+    /// use; <c>casio.graphqlPath</c> overrides it. A store that keys carts by masked id answers no
+    /// <c>customerCart</c>, and the step says so rather than reporting an empty cart as a success.
+    /// </para>
+    /// </summary>
+    public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
+    {
+        var endpoint = c.Session.Vars.GetValueOrDefault("casio.graphqlPath");
+        if (string.IsNullOrEmpty(endpoint))
+            endpoint = Payments.GatewayHttp.OriginOf(c.Url) + CasioGraphQL.Path;
+
+        var result = await MagentoCart.ReadCartAsync(c, endpoint!, ct).ConfigureAwait(false);
+        if (!result.Ok) return StepOutcome.Fail(result.Error);
+
+        if (!string.IsNullOrEmpty(result.CartId)) c.Session.Vars["cart"] = result.CartId;
+        c.Session.Vars["casio.cartTotal"] = result.TotalQuantity;
+        c.Emit("casio: cart " + result.CartId + " holds " + result.TotalQuantity, "StatusInfo");
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// Set the billing address through Magento's <c>updateMyCart</c> mutation.
     ///
     /// <para>

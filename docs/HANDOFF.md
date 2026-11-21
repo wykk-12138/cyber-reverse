@@ -8436,3 +8436,14 @@ Observation：
   否则**发 StatusInfo 说明跳过原因**再照旧审批。顺序（安户→审批）标为 Inference。
 - 加了 `wh.apiHost` 会话覆盖（默认不变），让这条流可被测试拦截 —— 原先是绝对地址，测试够不着。
 - 审计 15 个常量 0 问题；产物 `onboardGuest` 命中 1。
+
+---
+
+## 第 1329 轮
+
+- `CustomerCartDocument`（61 字符）**此前没有调用者**（源码级事实）。已接进 `MagentoCart.ReadCartAsync` +
+  `CasioFlow.GetCartAsync`，用的是镜像自己的查询。
+- `AddressInput` 形状**没找到**：`line1/line2/line3` 相邻只是字符串池字母序；三个键引用点 18/69/59 是通用 JSON 键。
+  **按单引用点找专用锚的判据在这里不适用**，仍需抓包。
+- **查重复改用按类大括号配对**（`analysis/which_class_has.py`）：按文件查会被别的流里的同名 override 挡住 ——
+  这正是 R1320–R1322 连撞三次 `CS0111` 的根因。

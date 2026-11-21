@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 10:06:56 +0800 |
+| 生成时间 | 2026-11-21 10:29:16 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2674 通过 / 0 失败 / 0 跳过 / 2674 总计** |
+| 完整套件 | **2676 通过 / 0 失败 / 0 跳过 / 2676 总计** |
 
 ## 摘要素值
 
@@ -40,7 +40,7 @@
 | 产物陈旧度（.publish-aot vs src） — lines in those files | 16415 |
 | 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
 | 核心覆盖：store 宿主 — core: flows | 20 |
-| 核心覆盖：store 宿主 — core: override steps | 394 |
+| 核心覆盖：store 宿主 — core: override steps | 395 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 1 |
 | 核心覆盖：store 宿主 — core: provenance exit | 0 |
 | 核心覆盖：vendor 宿主 — vendor: controls ok | True |
@@ -48,10 +48,10 @@
 | 核心覆盖：vendor 宿主 — vendor: wiring rows | 0 |
 | 核心覆盖：vendor 宿主 — vendor: missing | 0 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 31618560 |
-| 可执行段体量 — section-mass: ratio | 61.16% |
+| 可执行段体量 — section-mass: replica executable | 31623168 |
+| 可执行段体量 — section-mass: ratio | 61.17% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
-| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 15893 |
+| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 15928 |
 | 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1E00000 |
 | 变异套件（上次运行） — mutation-fit: total | 59 |
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
@@ -398,11 +398,11 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 09:54:33
-publish artifact size: 61383680 bytes
-publish artifact sha256: 683f682ec2ed5afed3e3c5e70ff351b4e83c301fd094ab18389458ccfb767255
-embedded source revision: a67bc3f33004 (is HEAD)
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 10:00:30)
+publish artifact mtime: 2026-11-21 10:17:05
+publish artifact size: 61390848 bytes
+publish artifact sha256: 043a299e3351fee55d8738695f9708dfda5f226768bad97e01868b78aa4f7518
+embedded source revision: a708cddd9646 (is HEAD)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 10:23:00)
 source files newer than the artifact: 17
 lines in those files: 16415
 of those, changed against HEAD: 0
@@ -423,7 +423,7 @@ C:\Python312\python.exe tools/core_coverage.py
 
 ```text
   wrote docs/CORE_COVERAGE.md
-  flows=20 steps=394 placeholders=1 provenance exit=0
+  flows=20 steps=395 placeholders=1 provenance exit=0
 ```
 
 ### 核心覆盖：vendor 宿主
@@ -461,21 +461,21 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 61383680 bytes ===
+=== REPLICA  image base 0x140000000  file 61390848 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
-  .text      0x1000       0x107DD8     1076736      X
-  .managed   0x108000     0x1E28768    30541824     X
-  hydrated   0x1E29000    0x2E61E20    0            RW
-  .rdata     0x2E62000    0x480F0A6    26923520     R
-  .data      0x4810000    0x49146D8    236544       RW
-  .pdata     0x4915000    0x4B3CA6C    2259968      R
-  _RDATA     0x4B3D000    0x4B3D0F4    512          R
-  .rsrc      0x4B3E000    0x4B897E7    309248       R
-  .reloc     0x4B8A000    0x4B92560    34304        R
+  .text      0x1000       0x107E58     1077248      X
+  .managed   0x108000     0x1E29708    30545920     X
+  hydrated   0x1E2A000    0x2E633D8    0            RW
+  .rdata     0x2E64000    0x4811A56    26926080     R
+  .data      0x4812000    0x4916718    236544       RW
+  .pdata     0x4917000    0x4B3EBB0    2259968      R
+  _RDATA     0x4B3F000    0x4B3F0F4    512          R
+  .rsrc      0x4B40000    0x4B8B7E7    309248       R
+  .reloc     0x4B8C000    0x4B94560    34304        R
 
-  section-mass-replica-executable: 31618560
-  section-mass-ratio: 61.16%
+  section-mass-replica-executable: 31623168
+  section-mass-ratio: 61.17%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
   code does: the replica links a different BCL and Avalonia, so part of the difference is not its own.
@@ -497,37 +497,37 @@ pdata bucket histogram (bucket = 0x100000 bytes)
 
   range from     original   replica    replica/original
   ----------------------------------------------------
-  0x0            5,475      1,928        35.2%
+  0x0            5,475      1,901        34.7%
   0x100000       5,089      4,767        93.7%
   0x200000       4,333      5,142       118.7%
   0x300000       2,213      3,930       177.6%
   0x400000       5,791      5,695        98.3%
   0x500000       2,057      3,920       190.6%
-  0x600000       1,074      4,367       406.6%
-  0x700000       3,411      3,367        98.7%
-  0x800000       4,076      2,847        69.8%
-  0x900000       3,556      2,380        66.9%
-  0xA00000       3,178      4,248       133.7%
+  0x600000       1,074      4,369       406.8%
+  0x700000       3,411      3,368        98.7%
+  0x800000       4,076      2,845        69.8%
+  0x900000       3,556      2,371        66.7%
+  0xA00000       3,178      4,264       134.2%
   0xB00000       3,227      1,967        61.0%
-  0xC00000       3,982      5,601       140.7%
-  0xD00000       3,921      5,851       149.2%
-  0xE00000       3,371      7,750       229.9%
-  0xF00000       7,792      7,068        90.7%
-  0x1000000      5,626      3,749        66.6%
-  0x1100000      2,020      5,926       293.4%
-  0x1200000      2,046      9,220       450.6%
-  0x1300000      5,065      10,572      208.7%
-  0x1400000      10,107     9,759        96.6%
-  0x1500000      11,107     9,511        85.6%
-  0x1600000      2,864      9,850       343.9%
-  0x1700000      2,242      9,591       427.8%
-  0x1800000      4,058      9,137       225.2%
-  0x1900000      4,506      9,821       218.0%
-  0x1A00000      2,310      8,730       377.9%
-  0x1B00000      6,033      5,743        95.2%
-  0x1C00000      6,218      5,758        92.6%
-  0x1D00000      6,893      8,795       127.6%
-  0x1E00000      5,418      1,340        24.7%
+  0xC00000       3,982      5,594       140.5%
+  0xD00000       3,921      5,842       149.0%
+  0xE00000       3,371      7,762       230.3%
+  0xF00000       7,792      7,052        90.5%
+  0x1000000      5,626      3,755        66.7%
+  0x1100000      2,020      5,918       293.0%
+  0x1200000      2,046      9,234       451.3%
+  0x1300000      5,065      10,575      208.8%
+  0x1400000      10,107     9,745        96.4%
+  0x1500000      11,107     9,515        85.7%
+  0x1600000      2,864      9,856       344.1%
+  0x1700000      2,242      9,573       427.0%
+  0x1800000      4,058      9,155       225.6%
+  0x1900000      4,506      9,830       218.2%
+  0x1A00000      2,310      8,732       378.0%
+  0x1B00000      6,033      5,725        94.9%
+  0x1C00000      6,218      5,781        93.0%
+  0x1D00000      6,893      8,772       127.3%
+  0x1E00000      5,418      1,375        25.4%
   0x1F00000      4,991      0             0.0%
   0x2000000      7,513      0             0.0%
   0x2100000      10,388     0             0.0%
@@ -556,7 +556,7 @@ pdata bucket histogram (bucket = 0x100000 bytes)
     0x2300000        0.0%   original 9,066    replica 0
 
   pdata-above-0x1C00000-original: 156590
-  pdata-above-0x1C00000-replica: 15893
+  pdata-above-0x1C00000-replica: 15928
   pdata-last-replica-bucket: 0x1E00000
 
   Buckets are compared by density, not by identity: the two images are laid out independently, so equal
@@ -590,7 +590,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2674 通过 / 0 失败 / 0 跳过 / 2674 总计
+`exit 0` · 2676 通过 / 0 失败 / 0 跳过 / 2676 总计
 
 ```text
   正在确定要还原的项目…
@@ -607,7 +607,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2674，已跳过:     0，总计:  2674，持续时间: 5 m 45 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2676，已跳过:     0，总计:  2676，持续时间: 5 m 42 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

@@ -278,6 +278,32 @@ public static class MagentoCart
         };
     }
 
+    /// <summary>
+    /// Read the customer cart — the 61-character <see cref="CustomerCartDocument"/> the image carries at
+    /// 0x14718FB74. R1329: the constant had no caller from R1320 until this, which made it a document the
+    /// replica could not actually send.
+    /// </summary>
+    public static async Task<MagentoCartResult> ReadCartAsync(
+        FlowContext c, string endpoint, CancellationToken ct)
+    {
+        var reply = await PostAsync(c, endpoint, Body(CustomerCartDocument), ct).ConfigureAwait(false);
+        if (reply is null) return MagentoCartResult.Fail("cart: no reply");
+
+        if (reply["errors"] is JArray topLevel && topLevel.Count > 0)
+            return MagentoCartResult.Fail("cart: " + (topLevel[0]?["message"]?.ToString() ?? "graphql error"));
+
+        var customerCart = reply["data"]?["customerCart"];
+        if (customerCart is null)
+            return MagentoCartResult.Fail("cart: no customerCart in reply — this store may key carts by masked id");
+
+        return new MagentoCartResult
+        {
+            Ok = true,
+            CartId = customerCart["id"]?.ToString() ?? string.Empty,
+            TotalQuantity = customerCart["total_quantity"]?.ToString() ?? string.Empty,
+        };
+    }
+
     private static async Task<JObject?> PostAsync(FlowContext c, string endpoint, JObject body, CancellationToken ct)
     {
         try

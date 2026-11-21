@@ -8796,3 +8796,13 @@ Observation：
 - `SignInAsGuest` 处理器只有 `accessToken`/`authPayload` → 继续留在无主机组。
 - **差点犯错**：第一版测试会让步骤真发到 Braintree 公网 —— 与 R1352 的 DNS 同类，**运行前改掉**。
 - 覆盖 48 → **49/65**，缺 17 → **16**；产物 `mutation TokenizeCreditCard` 与主机串各 UTF-16 命中 1。
+
+---
+
+## 第 1361 轮
+
+- `UpdateShippingAddress`(2386) **有两个处理器、两种传输**：`api/graphql`（相对路径族）与
+  **Salesforce SCAPI**（`/scapi/ShopperBaskets/updateShippingAddressForShipment`）。
+  **并入 `StorefrontApiQueries`**；SCAPI 那条**只记不实现**。
+- 锚点失误一次：写成 "from 0x147146994"，源码是 "**at**" → 脚本报 0 次。**锚点必须从源码复制。**
+- 覆盖 49 → **50/65**，缺 16 → **15**；产物 `mutation UpdateShippingAddress` 命中 1。

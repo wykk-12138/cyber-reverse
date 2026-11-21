@@ -202,3 +202,14 @@ x-graphql-query-name    x-header-id    Getting session    StatusInfo
 | `getCart` | 3234 | `$key`、`$locale` |
 
 实现在 `Flows/StoreSessionQueries.cs`；origin 由调用方给。
+
+## 一条操作、两种传输（R1361）
+
+`UpdateShippingAddress` 的操作名有两个处理器：
+
+| 处理器 | 路径 | 平台 |
+|---|---|---|
+| `sub_140E1DD80` | `api/graphql` | 已实现的相对路径族 |
+| `sub_14098C830` | `/scapi/ShopperBaskets/updateShippingAddressForShipment` | **Salesforce Commerce API** |
+
+只实现前者；SCAPI 那条**只记不实现**（复刻件没有其它商业平台面）。

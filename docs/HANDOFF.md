@@ -8846,3 +8846,14 @@ Observation：
 - `saveAddress`(296) 落地到 `StoreSessionQueries` —— **长尾里的 `SaveAddress` 名字与文档互证**它是店铺步骤。
 - `docs/ASYNC_TAIL.md` 已重生成（34 店铺名 + 64 支付名 + 三条限制）。
 - 覆盖 54 → **55/65**，缺 11 → **10**；产物 `mutation saveAddress` 命中 1。
+
+---
+
+## 第 1367 轮
+
+- **长尾按名彻底不通**：30 个店铺名全查 —— **29 个只有状态机串**，唯一有独立串的 `AddAddress` **零引用**。
+- **OPEN_ITEMS 有两行是陈的**（`getCart` R1359 已落地、`saveAddress` R1366 已落地）→ 已更正。
+- 三条 `createCartByStore`/`initiateCheckout`/`maintainShippingGroups` **按 R1359 先例并入会话族**；
+  `createMyPayment` **按 R1364 属于 Cybersource，不进**。
+- **告诫**：单变量名匹配会给出 `key→shop app`、`locale→tm-api` 的假阳性，**没有据此推主机**。
+- 覆盖 55 → **58/65**，缺 10 → **7**；产物三串各 UTF-16 命中 1。

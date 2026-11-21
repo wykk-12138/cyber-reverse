@@ -9,7 +9,6 @@
 
 | 操作 | 长度 | 文档声明 | 已试过 |
 |---|---|---|---|
-| `getCart` | 3234 | `$key`、`$locale` | 主机 / 路径 / 调用方三探全空 |
 | `createCartByStore` | 421 | `$country`、`$currency`、`$locale`、`$storeKey`、`$taxMode` | 同上 |
 | `createMyPayment` | 493 | `$amount`、`$customFields`、`$key`、`$paymentInterface`、`$paymentMethod` | 同上 |
 | `initiateCheckout` | 251 | 无 | 同上 |

@@ -145,3 +145,12 @@
 | `WaitCaptchaResultAsync` | 1 |
 
 > `other` 家族 absent 384 个：`python analysis/async_tail.py --family other`。
+
+## 按名能否追（R1367 全量核查）
+
+`analysis/classify_tail_names.py` 把 30 个店铺长尾名一次查完：
+
+- **29 个只有 `<Name>d__NN` 状态机串**，没有独立操作名；
+- 唯一有独立串的是 `AddAddress`（`0x1433082B7`），**头地址与字符地址两种形式都是 0 引用**。
+
+**结论：这一队列按名无法推进**，只能按地址逐条反编译（每个名的 `MoveNext` 需要从状态机元数据反推）。

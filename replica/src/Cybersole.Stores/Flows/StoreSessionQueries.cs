@@ -45,6 +45,15 @@ public static class StoreSessionQueries
     public const string AddToCartByChannelDocument = "mutation addToCartByChannel($cartId: String!, $productId: String!, $quantity: Long!, $version: Long!, $locale: Locale!) {\n  updateMyCart(\n    id: $cartId\n    actions: {addLineItem: {productId: $productId, quantity: $quantity, custom: {typeKey: \"line-item-custom-fields\"}}}\n    version: $version\n  ) {\n    id\n    isAbleToCheckout\n    isRestricted\n    isHazardous\n    isEmpty\n    isDangerous\n    version\n    isSplit\n    splittableSupplyChannelKeys\n    totalLineItemQuantity\n    discountedPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n    totalPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n    shipping {\n      ...defaultShipping\n    }\n    lineItems {\n      ...defaultLineItem\n    }\n  }\n}\n\nfragment defaultShipping on Shipping {\n  shippingKey\n  shippingInfo {\n    isHazardous\n    deliveries {\n      id\n      items {\n        id\n        quantity\n      }\n    }\n    price {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n    shippingMethodName\n    shippingMethod {\n      localizedName(locale: $locale)\n    }\n  }\n  shippingAddress {\n    ...defaultAddress\n  }\n  isValid\n}\n\nfragment defaultAddress on Address {\n  isDefault\n  id\n  key\n  streetName\n  streetNumber\n  additionalStreetInfo\n  city\n  postalCode\n  region\n  state\n  country\n  firstName\n  lastName\n  email\n  phone\n  externalId\n  custom {\n    customFieldsRaw {\n      name\n      value\n    }\n  }\n}\n\nfragment defaultLineItem on LineItem {\n  id\n  productId\n  productSlug(locale: $locale)\n  name(locale: $locale)\n  productType {\n    id\n    version\n    name\n  }\n  totalPrice {\n    centAmount\n    currencyCode\n    fractionDigits\n  }\n  preDiscountedPrice {\n    centAmount\n    currencyCode\n    fractionDigits\n  }\n  shippingDetails {\n    targets {\n      addressKey\n      shippingMethodKey\n      quantity\n    }\n    valid\n  }\n  productKey\n  quantity\n  variant {\n    sku\n    key\n    images {\n      url\n    }\n    attributesRaw {\n      name\n      value\n    }\n  }\n  discountedPricePerQuantity {\n    discountedPrice {\n      includedDiscounts {\n        discount {\n          id\n          key\n          description(locale: $locale)\n        }\n      }\n    }\n  }\n  custom {\n    customFieldsRaw {\n      name\n      value\n    }\n  }\n  supplyChannel {\n    id\n    key\n  }\n  lineItemMode\n}";
 
     /// <summary>
+    /// <summary>createCartByStore, 421 characters from 0x1470f32d4.</summary>
+    public const string CreateCartByStoreDocument = "mutation createCartByStore($currency: Currency!, $locale: Locale!, $storeKey: String!, $country: Country!, $taxMode: TaxMode!) {\n  createMyCart(\n    draft: {currency: $currency, locale: $locale, store: {key: $storeKey}, country: $country, inventoryMode: ReserveOnOrder, shippingMode: Multiple, taxMode: $taxMode}\n  ) {\n    id\n    version\n    custom {\n      customFieldsRaw {\n        name\n        value\n      }\n    }\n  }\n}";
+
+    /// <summary>initiateCheckout, 251 characters from 0x1470f489c.</summary>
+    public const string InitiateCheckoutDocument = "mutation initiateCheckout {\n  initiateCheckout {\n    id\n    version\n    paymentInfo {\n      payments {\n        id\n        version\n        custom {\n          customFieldsRaw {\n            name\n            value\n          }\n        }\n      }\n    }\n  }\n}";
+
+    /// <summary>maintainShippingGroups, 223 characters from 0x1470f4aac.</summary>
+    public const string MaintainShippingGroupsDocument = "mutation maintainShippingGroups($cartId: String!) {\n  maintainMyShippingGroups(cartId: $cartId) {\n    id\n    version\n    isAbleToCheckout\n    totalPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n  }\n}";
+
     /// saveAddress, 296 characters from 0x1470F58BC. The image's own async tail names a SaveAddress step, which is
     /// what corroborates it as a store step rather than a helper.
     /// </summary>
@@ -63,6 +72,9 @@ public static class StoreSessionQueries
         ["addToCartByChannel"] = new[] { "cartId", "locale", "productId", "quantity", "version" },
         ["UpdateContactDetails"] = new[] { "email", "emailOptIn", "phone" },
         ["saveAddress"] = new[] { "address", "editAddress", "saveAddress", "setDefault" },
+        ["createCartByStore"] = new[] { "country", "currency", "locale", "storeKey", "taxMode" },
+        ["initiateCheckout"] = Array.Empty<string>(),
+        ["maintainShippingGroups"] = new[] { "cartId" },
     };
 
     /// <summary>The document for an operation, or null when it is not one of the four.</summary>
@@ -75,6 +87,9 @@ public static class StoreSessionQueries
         "addToCartByChannel" => AddToCartByChannelDocument,
         "UpdateContactDetails" => UpdateContactDetailsDocument,
         "saveAddress" => SaveAddressDocument,
+        "createCartByStore" => CreateCartByStoreDocument,
+        "initiateCheckout" => InitiateCheckoutDocument,
+        "maintainShippingGroups" => MaintainShippingGroupsDocument,
         _ => null,
     };
 

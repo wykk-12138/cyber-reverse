@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 14:54:35 +0800 |
+| 生成时间 | 2026-11-21 15:29:18 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2707 通过 / 0 失败 / 0 跳过 / 2707 总计** |
+| 完整套件 | **2708 通过 / 0 失败 / 0 跳过 / 2708 总计** |
 
 ## 摘要素值
 
@@ -36,8 +36,8 @@
 | 函数数量（.pdata） — functions: original .pdata | 277,120 |
 | 函数数量（.pdata） — functions: replica .pdata | 188,458 |
 | 函数数量（.pdata） — functions: ratio | 68.01% |
-| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 16536 |
+| 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 0 |
 | 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
 | 核心覆盖：store 宿主 — core: flows | 20 |
 | 核心覆盖：store 宿主 — core: override steps | 401 |
@@ -398,18 +398,15 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 14:43:27
+publish artifact mtime: 2026-11-21 15:25:52
 publish artifact size: 61526016 bytes
-publish artifact sha256: b952a8086da01820becad91ede41fa5c12e2332da4611a42a99eacaf3d02d093
-embedded source revision: b5e42dfde5cd (is HEAD)
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 14:49:08)
-source files newer than the artifact: 17
-lines in those files: 16536
+publish artifact sha256: 690edd535a59a53ede93de0d90e6688825a1dc0304449a5e26f1ba40ad2139d8
+embedded source revision: 0f8567eb7903 (is HEAD)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 15:19:35)
+source files newer than the artifact: 0
+lines in those files: 0
 of those, changed against HEAD: 0
-publish artifact state: current
-
-  17 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
-  targets, which updates mtime without changing a byte. Nothing to rebuild.
+publish artifact state: current
 ```
 
 ### 核心覆盖：store 宿主
@@ -466,13 +463,13 @@ C:\Python312\python.exe tools/pe_sections.py
   ------------------------------------------------------------------
   .text      0x1000       0x107FD8     1077248      X
   .managed   0x108000     0x1E2F638    30570496     X
-  hydrated   0x1E30000    0x2E7E108    0            RW
-  .rdata     0x2E7F000    0x4847446    27035136     R
-  .data      0x4848000    0x494C878    236544       RW
+  hydrated   0x1E30000    0x2E7E140    0            RW
+  .rdata     0x2E7F000    0x48474C6    27035136     R
+  .data      0x4848000    0x494C888    236544       RW
   .pdata     0x494D000    0x4B750FC    2261504      R
   _RDATA     0x4B76000    0x4B760F4    512          R
   .rsrc      0x4B77000    0x4BC27E7    309248       R
-  .reloc     0x4BC3000    0x4BCB570    34304        R
+  .reloc     0x4BC3000    0x4BCB56C    34304        R
 
   section-mass-replica-executable: 31647744
   section-mass-ratio: 61.22%
@@ -590,7 +587,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2707 通过 / 0 失败 / 0 跳过 / 2707 总计
+`exit 0` · 2708 通过 / 0 失败 / 0 跳过 / 2708 总计
 
 ```text
   正在确定要还原的项目…
@@ -607,7 +604,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2707，已跳过:     0，总计:  2707，持续时间: 4 m 34 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2708，已跳过:     0，总计:  2708，持续时间: 4 m 31 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

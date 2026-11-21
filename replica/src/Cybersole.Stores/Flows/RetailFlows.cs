@@ -946,7 +946,7 @@ public sealed class WarhammerFlow : StoreFlow
             body.ToString(Newtonsoft.Json.Formatting.None), "wh-cart", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("warhammer cart failed", retryable: true);
-        if (res.IsSuccess && res.Body.Contains("\"errors\"", StringComparison.Ordinal))
+        if (res.IsSuccess && HasGraphQlErrors(res.Body))
             return StepOutcome.Fail("warhammer cart: graphql returned errors");
         if (!res.IsSuccess) return StepOutcome.Fail($"warhammer cart HTTP {res.StatusCode}", retryable: true);
 
@@ -988,6 +988,34 @@ public sealed class WarhammerFlow : StoreFlow
     /// the wrong region with no error. Everything unsent is optional in the mutation, so the request stays valid.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// True when a GraphQL reply reports errors. R1330: the steps used to ask whether the body *contains*
+    /// the word "errors", which is true of every successful answer too — the observed mutations return an
+    /// <c>errors</c> field as part of their payload, and an empty array is the good case. This checks for a
+    /// non-empty array, at the top level or inside the operation.
+    /// </summary>
+    private static bool HasGraphQlErrors(string body)
+    {
+        try
+        {
+            var root = Newtonsoft.Json.Linq.JObject.Parse(body);
+            if (root["errors"] is Newtonsoft.Json.Linq.JArray top && top.Count > 0) return true;
+            if (root["data"] is not Newtonsoft.Json.Linq.JObject data) return false;
+
+            foreach (var operation in data.Properties())
+                if (operation.Value is Newtonsoft.Json.Linq.JObject payload &&
+                    payload["errors"] is Newtonsoft.Json.Linq.JArray errors && errors.Count > 0)
+                    return true;
+
+            return false;
+        }
+        catch (Newtonsoft.Json.JsonException)
+        {
+            // An unparseable body cannot be claimed as success.
+            return true;
+        }
+    }
+
     public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
     {
         ApplyWaf(c);
@@ -1017,17 +1045,55 @@ public sealed class WarhammerFlow : StoreFlow
             ["variables"] = variables,
         };
 
-        var res = await PostJsonAsync(c, ApiHost + "/graphql",
+        var res = await PostJsonAsync(c, ApiHostFor(c) + "/graphql",
             body.ToString(Newtonsoft.Json.Formatting.None), "wh-shipping", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("warhammer shipping failed", retryable: true);
-        if (res.IsSuccess && res.Body.Contains("\"errors\"", StringComparison.Ordinal))
+        if (res.IsSuccess && HasGraphQlErrors(res.Body))
             return StepOutcome.Fail("warhammer shipping: graphql returned errors");
         if (!res.IsSuccess) return StepOutcome.Fail($"warhammer shipping HTTP {res.StatusCode}", retryable: true);
 
         c.Session.Vars["shipping"] = res.Body;
         var rate = Regex.Match(res.Body, @"""id""\s*:\s*(\d+)");
-        if (rate.Success) c.Session.Vars["shippingRateId"] = rate.Groups[1].Value;
+        if (!rate.Success || !int.TryParse(rate.Groups[1].Value, out var rateId))
+        {
+            // R1330: the address went out but no rate came back, so there is nothing to select. Say so instead
+            // of returning success with the order still at isShippingValid=false.
+            c.Emit("warhammer: the address reply carries no shipping rate id, so no rate was selected", "StatusInfo");
+            return StepOutcome.Success();
+        }
+
+        c.Session.Vars["shippingRateId"] = rate.Groups[1].Value;
+
+        // R1330: the observed UpdateShippingRate mutation (2248 characters, WarhammerQueries). Its variables are
+        // the rate the address reply just offered and the newsletter flag, which this flow never sets, so false.
+        var rateBody = new JObject
+        {
+            // anonymous in the image, like its sibling: no operationName travels with it
+            ["query"] = WarhammerQueries.UpdateShippingRate,
+            ["variables"] = new JObject
+            {
+                ["selectedShippingRateId"] = rateId,
+                ["isNewsletterSubscribed"] = false,
+            },
+        };
+
+        var rated = await PostJsonAsync(c, ApiHostFor(c) + "/graphql",
+            rateBody.ToString(Newtonsoft.Json.Formatting.None), "wh-shipping-rate", ct).ConfigureAwait(false);
+
+        if (rated is null) return StepOutcome.Fail("warhammer shipping rate failed", retryable: true);
+        if (rated.IsSuccess && HasGraphQlErrors(rated.Body))
+            return StepOutcome.Fail("warhammer shipping rate: graphql returned errors");
+        if (!rated.IsSuccess)
+            return StepOutcome.Fail($"warhammer shipping rate HTTP {rated.StatusCode}", retryable: true);
+
+        c.Session.Vars["shippingRate"] = rated.Body;
+        foreach (var key in new[] { "checkoutVersion", "guestToken" })
+        {
+            var found = Regex.Match(rated.Body, "\"" + key + "\"\\s*:\\s*\"?([A-Za-z0-9_-]+)");
+            if (found.Success) c.Session.Vars["wh." + key] = found.Groups[1].Value;
+        }
+
         return StepOutcome.Success();
     }
 
@@ -1113,7 +1179,7 @@ public sealed class WarhammerFlow : StoreFlow
                 onboardBody.ToString(Newtonsoft.Json.Formatting.None), "wh-onboard", ct).ConfigureAwait(false);
 
             if (onboarded is null) return StepOutcome.Fail("warhammer onboarding failed", retryable: true);
-            if (onboarded.IsSuccess && onboarded.Body.Contains("\"errors\"", StringComparison.Ordinal))
+            if (onboarded.IsSuccess && HasGraphQlErrors(onboarded.Body))
                 return StepOutcome.Fail("warhammer onboarding: graphql returned errors");
             if (!onboarded.IsSuccess)
                 return StepOutcome.Fail($"warhammer onboarding HTTP {onboarded.StatusCode}", retryable: true);
@@ -1139,7 +1205,7 @@ public sealed class WarhammerFlow : StoreFlow
             body.ToString(Newtonsoft.Json.Formatting.None), "wh-payment", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("warhammer payment failed", retryable: true);
-        if (res.IsSuccess && res.Body.Contains("\"errors\"", StringComparison.Ordinal))
+        if (res.IsSuccess && HasGraphQlErrors(res.Body))
             return StepOutcome.Fail("warhammer payment: graphql returned errors");
         if (!res.IsSuccess) return StepOutcome.Fail($"warhammer payment HTTP {res.StatusCode}", retryable: true);
 

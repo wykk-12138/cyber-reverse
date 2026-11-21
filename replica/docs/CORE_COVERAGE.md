@@ -13,7 +13,7 @@
 | 含报告的 flow | 1 | 同上 |
 | 端点常量 / 逐字在池 | 236 / 236 | `python tools/endpoint-provenance.py` |
 | 常量 invented / unresolved | 0 / 1 | 同上 |
-| inline 字面量 / 不在池 | 368 / 33 | 同上 |
+| inline 字面量 / 不在池 | 369 / 33 | 同上 |
 | inline 已登记 / 未登记 | 33 / 0 | 同上 |
 | 端点门 exit | **0** | 同上 |
 
@@ -36,7 +36,7 @@
 | `NikeGsFlow.cs` | 5 | 0 | 68 |
 | `PopMartFlow.cs` | 27 | 0 | 715 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
-| `RetailFlows.cs` | 105 | 0 | 2001 |
+| `RetailFlows.cs` | 105 | 0 | 2067 |
 | `SauconyFlow.cs` | 9 | 1 | 152 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
 | `ShopifyFlow.cs` | 25 | 0 | 1142 |

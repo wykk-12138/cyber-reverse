@@ -8447,3 +8447,15 @@ Observation：
   **按单引用点找专用锚的判据在这里不适用**，仍需抓包。
 - **查重复改用按类大括号配对**（`analysis/which_class_has.py`）：按文件查会被别的流里的同名 override 挡住 ——
   这正是 R1320–R1322 连撞三次 `CS0111` 的根因。
+
+---
+
+## 第 1330 轮
+
+- **孤儿扫描**：`analysis/orphan_documents.py` 只报"文档形且无生产调用者"。它自己先错一次（把下一个常量的字面量
+  算到前一个头上，虚报 3 个），修成"只取声明到分号之间"后 **6 → 1**。
+- **真缺陷一**：`UpdateShippingRate`(2248) 无人调用，而 `SubmitShippingAsync` **读出运价 id 就丢掉**——
+  运价从没选过，订单停在 `isShippingValid=false`。现在补上第二跳。
+- **真缺陷二**：这条流用 `Body.Contains("errors")` 判失败，可**观测到的 mutation 自己就返回 `errors` 字段**，
+  空数组是成功 → **每次成功都被读成失败**。换成结构化的 `HasGraphQlErrors`（文件里 5 处全换）。
+- 两个都是我自己此前留下的。剩下的文档孤儿只有 `ShopifyGraphQl.CartLinesUpdate`。

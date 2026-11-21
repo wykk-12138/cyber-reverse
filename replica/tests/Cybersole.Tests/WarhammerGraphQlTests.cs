@@ -172,4 +172,78 @@ public class WarhammerGraphQlTests
         Assert.Contains("onboardAccount: onboardGuest(", WarhammerQueries.OnboardGuestMutation);
         Assert.EndsWith("__typename\n}\n", WarhammerQueries.OnboardGuestMutation);
     }
+
+    /// <summary>
+    /// R1330: the address reply offers a rate id and this flow used to drop it, leaving the order at
+    /// isShippingValid=false. The second hop sends the observed UpdateShippingRate mutation with that id, and
+    /// keeps the order block it answers.
+    /// </summary>
+    [Fact]
+    public async Task TheShippingRateHopSendsTheIdTheAddressReplyOffered()
+    {
+        using var server = new TinyServer((_, body) =>
+        {
+            if (body.Contains("updateShippingRate", StringComparison.Ordinal))
+                return (200, "{\"data\":{\"updateShippingRate\":{\"errors\":[]," +
+                            "\"order\":{\"number\":\"W-1\",\"checkoutVersion\":9,\"guestToken\":\"gt-9\"," +
+                            "\"isShippingValid\":true}}}}");
+            return (200, "{\"data\":{\"updateShippingAddress\":{\"availableShippingRates\":[" +
+                         "{\"id\":42,\"name\":\"Standard\"}]}}}");
+        });
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = server.BaseUrl + "/",
+            ProfileData = new Cybersole.Core.Models.Profile
+            {
+                FirstName = "Ada", LastName = "Lovelace", Address1 = "1 Main St",
+                City = "Austin", Zip = "78701", Phone = "5550100", Country = "US", Email = "ada@example.test",
+            },
+        };
+        ctx.Session.Vars["wh.apiHost"] = server.BaseUrl;
+
+        var outcome = await new WarhammerFlow().SubmitShippingAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Equal(2, server.Requests.Count);
+        Assert.Equal("42", ctx.Session.Vars["shippingRateId"]);
+
+        var rateRequest = Newtonsoft.Json.Linq.JObject.Parse(server.Requests[1].Body!);
+        Assert.Equal(WarhammerQueries.UpdateShippingRate, rateRequest["query"]!.ToObject<string>());
+        Assert.Equal(42, rateRequest["variables"]!["selectedShippingRateId"]!.ToObject<int>());
+        Assert.False(rateRequest["variables"]!["isNewsletterSubscribed"]!.ToObject<bool>());
+        Assert.Equal("9", ctx.Session.Vars["wh.checkoutVersion"]);
+        Assert.Equal("gt-9", ctx.Session.Vars["wh.guestToken"]);
+    }
+
+    /// <summary>
+    /// No rate id means no rate to select. That is announced rather than passed off as a completed shipping
+    /// step, because the order it leaves behind cannot check out.
+    /// </summary>
+    [Fact]
+    public async Task WithoutARateIdTheStepSaysSoAndSendsNothingElse()
+    {
+        using var server = new TinyServer((_, _) =>
+            (200, "{\"data\":{\"updateShippingAddress\":{\"availableShippingRates\":[]}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = server.BaseUrl + "/",
+            ProfileData = new Cybersole.Core.Models.Profile
+            {
+                FirstName = "Ada", LastName = "Lovelace", Address1 = "1 Main St",
+                City = "Austin", Zip = "78701", Phone = "5550100", Country = "US", Email = "ada@example.test",
+            },
+        };
+        ctx.Session.Vars["wh.apiHost"] = server.BaseUrl;
+
+        var outcome = await new WarhammerFlow().SubmitShippingAsync(ctx, default);
+
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Single(server.Requests);
+        Assert.Contains(ctx.Events, e => e.Name.Contains("no shipping rate id"));
+        Assert.False(ctx.Session.Vars.ContainsKey("shippingRateId"));
+    }
 }

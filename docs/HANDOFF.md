@@ -8491,3 +8491,14 @@ Observation：
   **这一族挂在店铺自己的 `themeapis.` 子域，不是 PayPal 的 `/graphql`。**
 - **R1320/R1321 的"共用 /graphql"因此存疑**（当时标的就是 Inference）。改默认端点要有证据再动。
 - **本轮未改 src** —— 端点有了但"哪家店在用"没有证据。上轮的不变量正在盯着：**它没阻止我记录发现，只阻止我把猜测塞进产品代码。**
+
+---
+
+## 第 1334 轮
+
+- cartApi 的拼接规则读完并落地：`https://<host 的 www 换成 themeapis>/cartApi/checkout`，
+  **没有 `www.` 时加前缀**（`https://themeapis.` 那个字面量就是为此存在）。
+- `MagentoCart` 增 `CartApiPath` / `CartApiEndpointFor` / `ThemeApisHost` / `ResolveEndpoint`，
+  **六个方法开头统一归一化**；今天所有调用方传完整 URL，**行为不变**。
+- **测试纠正了我**：第一版只做替换、没做前缀，两条 Theory 当场红。
+- 仍未定：**哪家店用 `themeapis.`**，以及 `MagentoCart` 调用方的默认端点是否该改。

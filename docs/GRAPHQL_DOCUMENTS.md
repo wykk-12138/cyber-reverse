@@ -65,5 +65,6 @@
   另有 `https://themeapis.`（`0x14708885C`）与 `themeapis`（`0x14716CAE4`）。
 - 同函数的字段名：`cartType`、`couponReferences`、`lineItems`、`locationId`、`sourceSystem`；取值 `Retail`、`Shopify`。
 
-**因此**：`MagentoCart` 里那些方法接收的 `endpoint` 由调用方传入（当前是 `<origin> + /graphql`），
-这条默认值**存疑**，需要用一次抓包或一个明确的店来定，不要凭形状改。
+**R1334 补充**：拼接规则已读完 —— `https://` + `host 的 www 换成 themeapis`（无 `www.` 时加前缀）+ `/cartApi/checkout`，
+已落成 `MagentoCart.CartApiEndpointFor` / `ThemeApisHost` / `ResolveEndpoint`，六个方法开头统一归一化。
+**今天所有调用方传完整 URL，行为不变**；仍待定的是**哪家店**用这条路径。

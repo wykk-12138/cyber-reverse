@@ -70397,3 +70397,36 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   Inference（存疑，已标注）—— R1320/R1321 的"购物车与商品查询共用 `/graphql`"。
 - **还剩什么**：确认哪家店用 `themeapis.`；据此纠正 `MagentoCart` 调用点的默认端点；
   `CurrencyConversion`(10406)、`approveMemberPayment`(5407) 的归宿；`AddressInput`；方言条件（blocker）。
+
+---
+
+## 第 1334 轮：把 cartApi 的端点规则写进代码——中间先被自己的测试纠正了一次
+
+- **上一轮只找到路径和两个主机标签，没找到拼接规则。** 这轮把它读完：
+  ```
+  v42 = sub_141E541B0()                                // 实例属性：请求的主机
+  v43 = sub_141CF82E0(v42, "www", "themeapis")         // 主机里的 www 换成 themeapis
+  v44 = sub_141CF62D0("https://", v43, "/cartApi/checkout")
+  ```
+  配合字面量 `https://themeapis.`（`0x14708885C`）——那正是**没有 `www.` 前缀时**的结果。
+- **落码**：`MagentoCart.CartApiPath`（`/cartApi/checkout`）、`CartApiEndpointFor(host)`、`ThemeApisHost(host)`、
+  以及 `ResolveEndpoint(endpointOrHost)`；**六个方法（`CreateEmptyAsync`/`AddProductAsync`/`SetBillingAsync`/
+  `AddPaymentAsync`/`SubmitOrderAsync`/`ReadCartAsync`）开头统一过一遍 `ResolveEndpoint`**。
+  **今天所有调用方传的都是完整 URL，行为一字未变**；只有传裸主机时才走新规则。
+- **测试当场纠正了我**：我第一版只做了 `www.` → `themeapis.` 的替换，四条 Theory 里
+  `casio.com` 与 `shop.test` 两条**红了** —— 没有 `www` 可替换时应当**加前缀** `themeapis.`。
+  **这正是那个 `https://themeapis.` 字面量存在的理由**，我读了它却没把它读进实现里。
+- **产物**：`/cartApi/checkout` 命中 **1**；尺寸 61,402,112 → **61,403,648**。
+
+### 五要素
+
+- **改了什么**：`MagentoCart.cs`（4 个新成员 + 6 处归一化）；`MagentoCartTests.cs`（+5 条：4 行 Theory + 1 条直通断言）；
+  新增 2 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`dotnet test --filter MagentoCartTests` → **25/25**；
+  `disp32_scan_any.py 0x146AB27F0` → 1 site；`ida.py dec 0x141E541B0` → 主机属性 getter；
+  产物 `/cartApi/checkout` 命中 1；尺寸与哈希见上；内嵌 `5c9484120d44`。
+- **数字变化**：套件 2682 → 见 METRICS 当前值（+5）；产物 +1,536 字节。
+- **证据等级**：Observation —— 两条拼接指令、`https://themeapis.` 字面量、路径单一引用点、产物命中。
+  **Inference（仍未定）** —— 哪家店在用 `themeapis.`；`MagentoCart` 六个方法的调用方默认端点是否该改成它。
+- **还剩什么**：确认使用 `themeapis.` 的店铺；据此决定 `CasioFlow`/Warhammer 传的端点；
+  `CurrencyConversion`(10406)、`approveMemberPayment`(5407) 归宿；`AddressInput`；方言条件（blocker）。

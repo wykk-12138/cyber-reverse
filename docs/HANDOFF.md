@@ -8414,3 +8414,14 @@ Observation：
   从显示输出粘来的截断标记，文档在中间就断了，**这条流一直在发畸形 GraphQL**。已按镜像 4040 字符逐字节重建。
 - 全树扫 `[N chars total]` 只有这一处；新增反射守卫遍历 `WarhammerQueries` 全部常量，**粘贴错误不再靠人眼**。
 - 已解码待落：`OnboardGuestMutation` 3104、`CurrencyConversion` 10406。
+
+---
+
+## 第 1327 轮
+
+- 上轮的粘贴教训**变成机制**：`analysis/audit_document_constants.py` 查四类信号（截断标记/裸省略号/花括号/引号/结尾）。
+- **审计自己错了两次**：先把 `...` 一律当截断（GraphQL 片段展开到处都是），修完又漏了 `... on X` 的空格。
+  最终规则：裸省略号 = `...` 后不跟标识符、`on` 或 `{`。**14 个常量，0 个有问题。**
+- `ShopifyGraphQl.CartSelection` 的不平衡是**对的**：它是池子里的片段，开头就是被剥掉的 header 尾巴。
+  规则因此给"以 `)`/`,`/`"` 开头"的常量豁免。
+- **全仓不变量**：`GeneratedDocumentTests`（13 条，含一条"扫描确实找到东西"的人口断言）。未改 `replica/src`。

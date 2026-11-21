@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-21T09:23:49+08:00",
+  "ran_at": "2026-11-21T09:43:15+08:00",
   "total": 59,
   "fired": 59,
   "decorative": 0,
@@ -493,6 +493,7 @@
     "tests/Cybersole.Tests/FrontendSurfaceTests.cs": "690186145eee7beeeb07a4d6e506565f2abceff2886553767a21472110b07a7e",
     "tests/Cybersole.Tests/GatewaySelectionTests.cs": "a66b47d1f55e1daa8840742086bc8a4ce445a0768d5f3dc8ed09f7463ed4bde0",
     "tests/Cybersole.Tests/GeneralSettingsLayoutTests.cs": "5ebe6f8201c5d99533ccb32fb0058da7d195181af07eac0d46f6fc102ac7d333",
+    "tests/Cybersole.Tests/GeneratedDocumentTests.cs": "adf60ec0824c986053808889f5d0cc5d721dcf665c423e725f72487014079912",
     "tests/Cybersole.Tests/GeometryLedgerTests.cs": "aed0a5b99a9538879ee9474533caa3bf48b6484b192eaade30869f9d867c3a45",
     "tests/Cybersole.Tests/GlobalECheckoutTests.cs": "40a3ce410f191ddd1d49a9d1dcacf5440ff2ee55766c57e25e3c3f3c1e006d59",
     "tests/Cybersole.Tests/GlobalPruneTests.cs": "10753f270d2b0bc3b68164a95f8657901a4b3291182712b014c4d1c98be4b843",

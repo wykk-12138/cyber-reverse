@@ -70153,3 +70153,36 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - **证据等级**：Observation —— 两份文档长度差、截断标记原文、镜像 4040 字符副本、全树唯一一处、产物零命中。
 - **还剩什么**：方言条件（blocker，需抓包）；`OnboardGuestMutation`(3104)、`CurrencyConversion`(10406) 已解码待落；
   AO 三个 checkout 体；Saucony 六步路径。
+
+---
+
+## 第 1327 轮：把"粘贴损坏"做成全仓不变量——审计先自己错了两次，才收敛
+
+- **上轮的教训要变成机制**，不是又一条注意事项。于是写 `analysis/audit_document_constants.py`：
+  扫 `replica/src` 里**所有文档形常量**（≥200 字符且含 `mutation`/`query`/`fragment`/`{`），查四类信号：
+  截断标记、裸省略号、花括号不平衡、引号数为奇、结尾不是 `}`。
+- **审计自己先报了 8 个警报，7 个是假阳性**，两次修正都记在脚本头：
+  1. 把 `...` 一律当截断标记 —— 但 GraphQL 里 `...Frag`、`... on ProductVariant` 是**片段展开**，到处都是；
+  2. 第一次修正后还剩 3 个，因为 `... on X` 中间有空格，被当成裸省略号 —— 规则要允许 `...` 后跟 `on`。
+  **收敛后的规则**：裸省略号 = `...` 后面不跟标识符、`on` 或 `{`。
+- **唯一一个"结构性不平衡"是真的但也是对的**：`ShopifyGraphQl.CartSelection` 花括号 12/13、引号 1 个奇数 ——
+  因为它是**池子里存的片段**，开头就是被剥掉的 operation header 的尾巴（`"){id,checkoutUrl…`）。
+  文档注释里早就写了这件事。所以规则加一条豁免：**以 `)`/`,`/`"` 开头的常量为声明式片段**，不平衡是预期。
+- **最终结果**：14 个文档形常量，**0 个有问题**；其中 1 个是声明式片段。
+- **做成不变量**：新增 `GeneratedDocumentTests` —— 全仓扫描 + 12 条 MemberData 用例 + **一条"扫描确实找到了东西"的用例**
+  （扫描静默返回空会让下面所有断言空转，所以人口数先断言 ≥10）。
+  上轮那条只覆盖 `WarhammerQueries` 一个类的反射守卫保留，两层都在。
+- **本轮未改 `replica/src`** —— 产出是测试与分析工具，故不重发布；产物与 METRICS 的产物数字不变。
+
+### 五要素
+
+- **改了什么**：新增 `analysis/audit_document_constants.py`、`analysis/add_document_guard_test.py`、
+  `replica/tests/Cybersole.Tests/GeneratedDocumentTests.cs`（13 条）；`replica/docs/VERDICT.md` 与 `docs/HANDOFF.md` 记录。
+- **验证命令与输出**：`python analysis/audit_document_constants.py` → `document-shaped constants: 14`、
+  `declared fragments: 1`、`constants with a problem: 0 of 14`；
+  `dotnet test --filter GeneratedDocumentTests` → **13/13**。
+- **数字变化**：套件 2657 → 见 METRICS 当前值（+13）；产物不变。
+- **证据等级**：Observation —— 14 个常量的扫描结果、两次规则修正前后的假阳性数（8 → 3 → 0）、
+  `CartSelection` 的片段性质。**本轮无行为变化**，故无 Inference 级新增结论。
+- **还剩什么**：方言条件（blocker，需抓包）；`OnboardGuestMutation`(3104)、`CurrencyConversion`(10406) 待落；
+  AO 三个 checkout 体；Saucony 六步路径。

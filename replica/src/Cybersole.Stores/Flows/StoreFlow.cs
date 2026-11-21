@@ -305,7 +305,30 @@ public abstract class StoreFlow
 
         return null;
     }
-    public virtual Task<StepOutcome> GetSessionAsync(FlowContext c, CancellationToken ct) => Ok();
+    public virtual async Task<StepOutcome> GetSessionAsync(FlowContext c, CancellationToken ct)
+    {
+        // R1358: Braintree's client token, when a run names an endpoint for it. The authorization fingerprint and
+        // the type are the run's; the image never shows what fills them.
+        var tokenEndpoint = c.Session.Vars.GetValueOrDefault("braintree.endpoint");
+        if (!string.IsNullOrEmpty(tokenEndpoint))
+        {
+            var variables = new Newtonsoft.Json.Linq.JObject
+            {
+                ["type"] = c.Session.Vars.GetValueOrDefault("braintree.tokenType"),
+                ["authorizationFingerprint"] = c.Session.Vars.GetValueOrDefault("braintree.fingerprint"),
+            };
+
+            var (token, tokenError) = await Cybersole.Stores.Payments.BraintreeClientToken
+                .FetchAsync(c, tokenEndpoint, variables, ct).ConfigureAwait(false);
+            if (token is null) return StepOutcome.Fail(tokenError);
+
+            c.Session.Vars["clientToken"] = token;
+            return StepOutcome.Success();
+        }
+
+        // The base session step succeeds by default; only the Braintree branch above can fail.
+        return await Ok().ConfigureAwait(false);
+    }
     public virtual async Task<StepOutcome> RefreshSessionAsync(FlowContext c, CancellationToken ct)
     {
         // A cheap GET on the origin is what keeps the session cookie warm between polls.

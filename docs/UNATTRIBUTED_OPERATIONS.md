@@ -24,3 +24,12 @@
 
 - `approveMemberPayment` 有两份方言（5407 / 5620 字符），**选择条件**不明；
 - `/cartApi/checkout` 有完整变量（cartType / lineItems / locationId / sourceSystem，值 Retail / Shopify）但**没有发送方 URL**。
+
+## 无独立操作名字符串的（R1358）
+
+| 操作 | 长度 | 情况 |
+|---|---|---|
+| `CreditCard` | 2867 | `ida.py str "CreditCard"` 只回元数据（`CreditCard*CreditCardNetworkType`、`ICreditCards`） |
+| `getShippingMethods` | 531 | 只回别处的 PascalCase 闭包名 |
+
+**这两份不能靠"名字 → 处理器"定位**，需要别的入口（调用点或运行期）。

@@ -8766,3 +8766,13 @@ Observation：
 - **OOM 崩溃恢复四步**：清 `obj/.../win-x64/native`（损坏 .obj 会 `LNK1136`）→ 重发 →
   IDA 三模态（加载现有 / Proceed with unpacked base / Repair）→ `health ok`。
 - 覆盖 40 → **43/65**，缺 25 → **22**。
+
+---
+
+## 第 1358 轮
+
+- **`generateClientToken`(188) 是 Braintree**：处理器带 `authorizationFingerprint`/`clientToken`/`Error getting token`；
+  另一个处理带 `onepanini`（与 Shop app 加购、PayPal 下单的 `PANINI` 同源）。
+  落成 `Payments/BraintreeClientToken`，接进 `StoreStep.GetSessionAsync`。
+- **`getShippingMethods` 无独立操作名字符串**（只有别处的 PascalCase 闭包名）→ 与 `CreditCard` 同组，**不硬凑**。
+- 覆盖 43 → **44/65**，缺 22 → **21**；产物 `query generateClientToken` 命中 1。

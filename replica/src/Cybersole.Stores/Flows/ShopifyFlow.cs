@@ -516,6 +516,44 @@ public class ShopifyFlow : StoreFlow
     // 鈹€鈹€ cart 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
+        // R1348: the Storefront cart creation, when the run supplies a host, a token and a CartInput. The image's
+        // own storefront token is a credential and is deliberately not copied into source.
+        var createHost = c.Session.Vars.GetValueOrDefault("shopify.cartCreateHost");
+        var createToken = c.Session.Vars.GetValueOrDefault(ShopifyHeaders.StorefrontAccessToken);
+        var createInput = c.Session.Vars.GetValueOrDefault("shopify.cartCreateInput");
+        if (!string.IsNullOrEmpty(createHost) && !string.IsNullOrEmpty(createToken) &&
+            !string.IsNullOrWhiteSpace(createInput))
+        {
+            Newtonsoft.Json.Linq.JObject input;
+            try
+            {
+                input = Newtonsoft.Json.Linq.JObject.Parse(createInput!);
+            }
+            catch (Newtonsoft.Json.JsonException)
+            {
+                return StepOutcome.Fail("shopify: shopify.cartCreateInput is not valid JSON");
+            }
+
+            var createVariables = new Newtonsoft.Json.Linq.JObject
+            {
+                ["input"] = input,
+                ["includeInventory"] = false,
+                ["includeStoreAvailability"] = true,
+                ["includeSellingPlans"] = true,
+                ["includeProductTags"] = false,
+                ["includeCustomerTags"] = false,
+                ["country"] = c.ProfileData?.Country ?? c.Session.Vars.GetValueOrDefault("country"),
+            };
+
+            var (createdCartId, createError) = await ShopifyCartCreate
+                .CreateAsync(c, createHost, createToken, createVariables, ct)
+                .ConfigureAwait(false);
+            if (createdCartId is null) return StepOutcome.Fail(createError);
+
+            c.Session.Vars[GraphQlCartVar] = createdCartId;
+            return StepOutcome.Success();
+        }
+
         if (string.IsNullOrEmpty(c.Session.VariantId)) return StepOutcome.Fail("shopify: no variant to add");
 
         var payload = new JObject

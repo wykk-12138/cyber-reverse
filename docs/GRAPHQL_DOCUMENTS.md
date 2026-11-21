@@ -128,3 +128,13 @@
 五个发送方（`0x140E1B1D0` / `0x140E1B700` / `0x140E1BAB0` / `0x140E1BF40` / `0x140E1C390`）**都不带主机**，
 都拼相对路径 `api/graphql`。**origin 必须由调用方给** —— 相对路径配一个编出来的主机就是把真实请求发到真实服务器。
 实现见 `Flows/StorefrontApiQueries.cs`。
+
+## A 块 = Shopify Storefront（R1348）
+
+发送方 `sub_140D1B380`（2258 字节）带 `api/2025-04/graphql.json`、`buyerIdentity`、`customerAccessToken`、
+`gid://shopify/ProductVariant/` 与五个 `include*` 标志 —— 与复刻件 `ShopifyGraphQl.Endpoint` 拼的路径相同。
+
+**该发送方里写死了一个 storefront 访问令牌**（`e927ea99…`）。**没有抄进源码**：令牌由调用方提供。
+
+已落地：`cartApiObjectCreate`(5876) → `Flows/ShopifyCartCreate.cs`。
+A 块其余 14 个操作（`createCart`、`setBillingAddress`、`removeLineItemFromCart` …）**同属这一族**，待接。

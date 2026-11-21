@@ -8653,3 +8653,14 @@ Observation：
   同块的 `addToCart`/`buynow` **没有任何主机** → **不并入**。
 - `ShopAppProduct` 增搜索（6537 字符文档 + 七个变量 + `SearchAsync`），`ShopifyFlow` 增搜索分支。
 - 覆盖 26 → **27/65**，缺 39 → **38**；产物 `query ShopProductSearch` UTF-16 命中 1。
+
+---
+
+## 第 1348 轮
+
+- **A 块 = Shopify Storefront API**（`api/2025-04/graphql.json` + `buyerIdentity` + 五个 `include*`），
+  复刻件已有 `ShopifyGraphQl.Endpoint` 拼同一路径 → 该并入现有机制。**B 块仍无主机。**
+- A 块最大那份 `cartApiObjectCreate`(5876) 落地：`ShopifyCartCreate`，接进 `ShopifyFlow.AddToCartAsync`。
+- **镜像里写死了一个 storefront 访问令牌 `e927ea99…`；没有抄进源码**（凭证抄进源码就是会泄漏的凭证）。
+  产物核对：文档命中 1，令牌两编码皆 0。
+- 覆盖 27 → **28/65**，缺 38 → **37**。

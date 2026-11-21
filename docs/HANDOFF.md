@@ -8868,3 +8868,14 @@ Observation：
   → `Flows/CheckoutCreditCard`，接进 `SubmitCardAsync`。**另一处理器是 Nike NL 变体，只记不并。**
 - `getShippingMethods` 两处理器：一个 Magento 费率字段，一个 **PANINI 族**。均无主机 → 仍需抓包。
 - 覆盖 58 → **59/65**，缺 7 → **6**；产物 `api/checkout/v1/orders/` 命中 1。
+
+---
+
+## 第 1369 轮
+
+- **`getShippingMethods`(531) = Magento 2 运费查询**：`carrier_code`/`method_code` + 蛇形地址参数。
+  **并入 `MagentoCart`**（`where_is` 显示该平台文档已在此），接 `GetShippingMethodsAsync`。
+- **文档引用 12 个变量、声明 0 个** —— 测试钉住"不要补声明"，否则发的是另一个请求。
+- **事故一次**：用 `rfind('}')` 当类收尾 → 方法落到类外（`CS0103` 三个）；
+  `git checkout --` 还原后改成**从类声明做括号配对**。
+- 覆盖 59 → **60/65**，缺 6 → **5**；产物双编码各命中 1。

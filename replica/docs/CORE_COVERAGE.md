@@ -11,9 +11,9 @@
 | 覆写步骤总数 | 405 | 本文件生成时统计 |
 | 其中报告「端点为 Unknown」的 | 3 | 同上（匹配 `endpoint unknown` / `not captured`） |
 | 含报告的 flow | 2 | 同上 |
-| 端点常量 / 逐字在池 | 240 / 240 | `python tools/endpoint-provenance.py` |
+| 端点常量 / 逐字在池 | 241 / 241 | `python tools/endpoint-provenance.py` |
 | 常量 invented / unresolved | 0 / 1 | 同上 |
-| inline 字面量 / 不在池 | 375 / 33 | 同上 |
+| inline 字面量 / 不在池 | 376 / 33 | 同上 |
 | inline 已登记 / 未登记 | 33 / 0 | 同上 |
 | 端点门 exit | **0** | 同上 |
 

@@ -104,3 +104,12 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 > **一次被截断的搜索不是"不存在"的证据。** 反向结论必须用不截断的检索，或换地址直查。
 
 `getShippingMethods` 仍未落地：两个处理器**都没有主机**，需要抓包。
+
+---
+
+## 九、`getShippingMethods` 已结案（R1369）
+
+不是"缺主机"，是**它本来就不该有主机**：文档是 Magento 2 的运费查询，端点就是店铺自己的 `/graphql`。
+
+- 实现：`MagentoCart.GetShippingMethodsAsync`，端点与地址变量由调用方给；
+- **文档引用 12 个变量、声明 0 个** —— 保持原样，`MagentoCartTests` 断言 `$region` 存在而 `$region:` 不存在。

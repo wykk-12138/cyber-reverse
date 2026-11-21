@@ -58,6 +58,14 @@ public static class MagentoCart
         "    id\n    customerId\n    orderNumber\n    __typename\n  }\n}";
 
     /// <summary>The customer-cart query.</summary>
+    /// <summary>
+    /// getShippingMethods, 531 characters from 0x147146AB4. Magento 2's shipping-methods query: carrier_code,
+    /// method_code, carrier_title and method_title with prices, and an address argument in Magento's snake_case
+    /// shape. It references 12 variables and declares none — the image carries it that way, and "fixing" the
+    /// declaration would send a different request.
+    /// </summary>
+    public const string ShippingMethodsDocument = "query getShippingMethods {\n  getShippingMethods(\n    address: {region: $region, region_id: $regionId, region_code: $regionCode, country_id: $countryId, street: [$street1, $street2], postcode: $postcode, city: $city, firstname: $firstname, lastname: $lastname, customer_id: 0, email: $email, telephone: $telephone, save_in_address_book: 0}\n  ) {\n    carrier_code\n    method_code\n    carrier_title\n    method_title\n    amount\n    base_amount\n    available\n    error_message\n    price_excl_tax\n    price_incl_tax\n    __typename\n  }\n}\n";
+
     public const string CustomerCartDocument = "{ customerCart { id total_quantity items { uid quantity } } }";
 
     /// <summary>
@@ -324,6 +332,33 @@ public static class MagentoCart
 
     private static string Escape(string value) =>
         value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Ask the store for its shipping methods. The endpoint is a Magento store's own /graphql, so it comes from the
+    /// caller, as do the address variables.
+    /// </summary>
+    public static async Task<(JObject? Data, string Error)> GetShippingMethodsAsync(
+        FlowContext c, string? endpoint, JObject variables, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(endpoint)) return (null, "magento: no endpoint");
+
+        try
+        {
+            var reply = await PostAsync(c, endpoint!.TrimEnd('/'), Body(ShippingMethodsDocument), ct)
+                .ConfigureAwait(false);
+            if (reply is null) return (null, "magento: no reply");
+
+            if (reply["errors"] is JArray topLevel && topLevel.Count > 0)
+                return (null, "magento: " + (topLevel[0]?["message"]?.ToString() ?? "graphql error"));
+
+            var data = reply["data"] as JObject;
+            return data is null ? (null, "magento: no data in reply") : (data, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            return (null, "magento: " + ex.GetType().Name);
+        }
+    }
 }
 
 /// <summary>What an order submission produced.</summary>

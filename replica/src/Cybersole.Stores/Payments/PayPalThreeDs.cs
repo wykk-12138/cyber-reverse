@@ -899,14 +899,611 @@ fragment InstallmentsFragment on FundingInstrument {
     }
 
     /// <summary>The frozen document for an operation name — the four the machine sends.</summary>
-    public static string DocumentFor(string operationName) => operationName switch
-    {
-        JwtQueryOperation => JwtQueryDocument,
-        AuthenticateOperation => AuthenticateDocument,
-        LookUpOperation => LookUpDocument,
-        ResolveOperation => ResolveDocument,
-        _ => string.Empty,
-    };
+    public static string DocumentFor(string operationName, bool providerFields = true) =>
+        operationName switch
+        {
+            JwtQueryOperation => JwtQueryDocument,
+            AuthenticateOperation => AuthenticateDocument,
+            LookUpOperation => LookUpDocument,
+            // R1323: the image sends two variants of the resolve mutation from two functions. The default is
+            // the longer one, which is what this method returned before the variant was known.
+            ResolveOperation => providerFields ? ResolveDocument : ResolveDocumentWithoutProviderFields,
+            _ => string.Empty,
+        };
+
+    /// <summary>
+    /// The other live variant of the same mutation — 10262 characters from 0x1470D7974, sent by
+    /// <c>sub_14110FDB0</c> (14458 bytes). It is <see cref="ResolveDocument"/> with one field block missing:
+    /// the longer document inserts <c>authenticationProvider</c>, <c>cardBrandProcessed</c>,
+    /// <c>dataOnlyIndicator</c> and the device-data collection fields at offset 2890. Both documents are
+    /// referenced exactly once in the image, so both code paths are live and the choice belongs to the
+    /// caller rather than to this class.
+    /// </summary>
+    public const string ResolveDocumentWithoutProviderFields = @"mutation ResolveThreeDsContingency($token: String!, $authId: String!, $referenceId: String!, $creditCardId: String!, $status: ResolveThreeDsContingencyStatus!, $experiences: [ThreeDSPaymentExperience]) {
+  resolveThreeDsContingency(
+    token: $token
+    authId: $authId
+    status: $status
+    referenceId: $referenceId
+    creditCardId: $creditCardId
+  ) {
+    state
+    flags {
+      is3DSecureRequired
+      __typename
+    }
+    paymentContingencies {
+      ...PaymentContingenciesFragment
+      __typename
+    }
+    fundingOptions(returnAllPlans: true, groupSourcesOnType: INCENTIVE) {
+      ...FundingOptionFragment
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment PaymentContingenciesFragment on PaymentContingencies {
+  confirmCreditCardCvvData {
+    ...ConfirmCreditCardCvvFields
+    __typename
+  }
+  sepaMandateAcceptanceNeeded {
+    ...SepaMandateAcceptanceNeededFragment
+    __typename
+  }
+  threeDomainSecure(experiences: $experiences) {
+    ...ThreeDomainSecureFields
+    __typename
+  }
+  threeDSContingencyData {
+    ...ThreeDomainSecureContingencyFragment
+    __typename
+  }
+  needConsentForBankAccountInfoRetrieval {
+    encryptedId
+    __typename
+  }
+  needRealTimeBalanceForBankAccount {
+    encryptedId
+    __typename
+  }
+  strongCustomerAuthenticationRequired {
+    contextId
+    __typename
+  }
+  __typename
+}
+
+fragment ConfirmCreditCardCvvFields on ConfirmCreditCardCvvContingency {
+  encryptedId
+  lastFourDigits
+  type
+  __typename
+}
+
+fragment SepaMandateAcceptanceNeededFragment on BankAccount {
+  id
+  type
+  accountNumber
+  accountNumberShort
+  bankIdentifierCode
+  currencyCode
+  beneficiaries {
+    fullName
+    __typename
+  }
+  billingAddress {
+    city
+    country
+    state
+    fullAddress
+    __typename
+  }
+  issuer {
+    name
+    __typename
+  }
+  creditor {
+    id
+    name
+    address {
+      fullAddress
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment ThreeDomainSecureFields on ThreeDomainSecureContingency {
+  redirectUrl {
+    href
+    __typename
+  }
+  status
+  method
+  parameter
+  encryptedId
+  experience
+  requestParams {
+    key
+    value
+    __typename
+  }
+  __typename
+}
+
+fragment ThreeDomainSecureContingencyFragment on ThreeDomainSecureResolutionContingency {
+  name
+  causeName
+  resolution {
+    type
+    resolutionName
+    paymentCard {
+      id
+      type
+      number
+      encryptedNumber
+      bankIdentificationNumber
+      billingAddress {
+        line1
+        line2
+        state
+        city
+        postalCode
+        country
+        __typename
+      }
+      expireYear
+      expireMonth
+      currencyCode
+      cardProductClass
+      __typename
+    }
+    contingencyContext {
+      source
+      reason
+      referenceId
+      deviceDataCollectionUrl {
+        href
+        __typename
+      }
+      jwtSpecification {
+        jwtIssuer
+        jwtOrgUnitId
+        jwtDuration
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment FundingOptionFragment on FundingOption {
+  id
+  availableAmount {
+    currencyCode
+    currencyValue
+    currencyFormatSymbolISOCurrency
+    currencyFormat
+    __typename
+  }
+  fundingInstrument {
+    id
+    name
+    nameDescription
+    label
+    issuerProductDescription
+    type
+    instrumentSubType
+    lastDigits
+    image {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    placeholderImage: image(size: S) {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    largeImage: image(size: XL) {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    institutionImages(category: BRAND) {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    isPreferred
+    attribution
+    attributionDetails {
+      compactDescription
+      shortDescription
+      __typename
+    }
+    ...RewardsFragment
+    creditFields {
+      creditOffer {
+        presentmentType
+        product
+        offerCategory
+        creditOfferType
+        financingCode
+        crcOfferId
+        crossCurrencyInfo {
+          ...CrossCurrencyInfoFragment
+          __typename
+        }
+        uiElements {
+          ...CreditUIElementsFragment
+          __typename
+        }
+        creditPayLater {
+          ...CreditPayLaterFragment
+          __typename
+        }
+        __typename
+      }
+      repaymentInstrument {
+        id
+        name
+        type
+        instrumentSubType
+        lastDigits
+        __typename
+      }
+      __typename
+    }
+    payerDisclaimer
+    cryptocurrencyHoldingDetails {
+      symbol
+      quantity
+      __typename
+    }
+    __typename
+  }
+  allPlans {
+    id
+    fundingSources {
+      fundingInstrument {
+        id
+        name
+        type
+        instrumentSubType
+        lastDigits
+        ...InstallmentsFragment
+        __typename
+      }
+      fundingMethodType
+      delayedPaymentDate {
+        dateShort
+        d
+        y
+        M
+        __typename
+      }
+      amount {
+        currencyCode
+        currencyFormat
+        currencyFormatSymbolISOCurrency
+        currencySymbol
+        currencyValue
+        __typename
+      }
+      groupedSources {
+        fundingInstrument {
+          id
+          name
+          type
+          label
+          __typename
+        }
+        amount {
+          currencyCode
+          currencyFormat
+          currencySymbol
+          currencyValue
+          __typename
+        }
+        incentives {
+          id
+          balanceType
+          shortTitle
+          maxDiscount {
+            currencyCode
+            currencyValue
+            currencyFormat
+            __typename
+          }
+          type
+          percentOff
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    isSelected
+    backupFundingInstrument {
+      id
+      name
+      lastDigits
+      __typename
+    }
+    currencyConversion {
+      type
+      isReadOnly
+      from {
+        currencyValue
+        currencyFormatSymbolISOCurrency
+        currencyCode
+        __typename
+      }
+      to {
+        currencyValue
+        currencyFormatSymbolISOCurrency
+        currencyCode
+        __typename
+      }
+      convertedAmount {
+        currencyValue
+        currencyFormatSymbolISOCurrency
+        currencyCode
+        currencyFormat
+        __typename
+      }
+      rateFormatted
+      __typename
+    }
+    preAuthorizationData {
+      authType
+      amount {
+        currencyFormat
+        currencyFormatSymbolISOCurrency
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment RewardsFragment on FundingInstrument {
+  rewards {
+    id
+    relatedCardId
+    rewardType
+    availableRewards {
+      value
+      denominationTypeDescription
+      monetaryValue {
+        currencySymbol
+        currencyValue
+        currencyCode
+        currencyFormat
+        __typename
+      }
+      __typename
+    }
+    conversionMetadata {
+      conversionFactor
+      decimalPrecision {
+        toAmount
+        toRewards
+        __typename
+      }
+      roundingMode {
+        toAmount
+        toRewards
+        __typename
+      }
+      __typename
+    }
+    constraints {
+      minimumSpend {
+        currencySymbol
+        currencyValue
+        currencyCode
+        __typename
+      }
+      maximumSpend {
+        currencySymbol
+        currencyValue
+        currencyCode
+        __typename
+      }
+      maximumUsable {
+        currencySymbol
+        currencyValue
+        currencyCode
+        __typename
+      }
+      __typename
+    }
+    balance {
+      targetCurrencyCode
+      isConvertable
+      __typename
+    }
+    issuer {
+      name
+      instrumentType
+      issuerProductDescription
+      __typename
+    }
+    redemptionType
+    termsUrl
+    image(size: S) {
+      url {
+        href
+        __typename
+      }
+      width
+      height
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment CrossCurrencyInfoFragment on CreditCrossCurrency {
+  currencyConversionRate
+  fromCurrencyCode
+  fromFormattedCurrencyConversionValue
+  fxAuditTrailId
+  toCurrencyCode
+  toFormattedCurrencyConversionValue
+  rateDescriptor
+  learnMoreText
+  learnMoreLink
+  currencyConversionDescriptor
+  __typename
+}
+
+fragment CreditUIElementsFragment on CreditUIElements {
+  creditOffer {
+    sectionHeadlineText
+    headlineText
+    descriptorText
+    continueButtonText
+    __typename
+  }
+  creditOnlyFI {
+    descriptorText
+    headlineText
+    paymentFormattedText
+    termFormattedText
+    termsText
+    __typename
+  }
+  creditFI {
+    headlineText
+    descriptorText
+    payButtonText
+    continueButtonText
+    __typename
+  }
+  isMultiOffer
+  fiHighlightText
+  logoAltText
+  logo {
+    href
+    __typename
+  }
+  __typename
+}
+
+fragment CreditPayLaterFragment on CreditPayLater {
+  totalCost {
+    currencyFormat
+    __typename
+  }
+  totalFee {
+    currencyFormat
+    __typename
+  }
+  totalInterest {
+    currencyFormat
+    __typename
+  }
+  installmentsSchedule {
+    principal {
+      currencyFormat
+      __typename
+    }
+    paymentType
+    paymentNumber
+    interest {
+      currencyFormat
+      __typename
+    }
+    consumerFee {
+      currencyFormat
+      __typename
+    }
+    paymentDate
+    totalPayment {
+      currencyCode
+      currencyFormat
+      currencyFormatSymbolISOCurrency
+      currencyValue
+      currencySymbol
+      __typename
+    }
+    __typename
+  }
+  noDownPaymentAmt {
+    currencyCode
+    currencyFormat
+    currencyFormatSymbolISOCurrency
+    currencyValue
+    currencySymbol
+    __typename
+  }
+  __typename
+}
+
+fragment InstallmentsFragment on FundingInstrument {
+  installments {
+    term
+    monthlyPayment {
+      currencyCode
+      currencyFormat
+      currencyFormatSymbolISOCurrency
+      currencySymbol
+      currencyValue
+      __typename
+    }
+    totalCost {
+      currencyCode
+      currencyFormat
+      currencyFormatSymbolISOCurrency
+      currencySymbol
+      currencyValue
+      __typename
+    }
+    discount {
+      amount {
+        currencyCode
+        currencyFormat
+        currencyFormatSymbolISOCurrency
+        currencySymbol
+        currencyValue
+        __typename
+      }
+      percentage
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+";
 
     /// <summary>The four state-machine names the image carries for the 3DS challenge.</summary>
     public enum ThreeDsState { Submit3DS, Process3DS, Waiting3DS, Complete3DS }

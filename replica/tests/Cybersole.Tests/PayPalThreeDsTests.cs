@@ -731,4 +731,50 @@ public sealed class PayPalThreeDsTests
         Assert.Equal(3, server.Requests.Count);   // authenticate, lookup, resolve — the machine ran
         Assert.Equal(nameof(PayPalThreeDs.ThreeDsState.Complete3DS), ctx.Session.Vars["paypal3ds.state"]);
     }
+
+    /// <summary>
+    /// R1323: the image sends two variants of the resolve mutation from two different functions, both
+    /// referenced once — so both paths are live and the replica has to be able to send either.
+    /// <c>sub_141113680</c> (15615 bytes) sends the 10370-character document; <c>sub_14110FDB0</c> (14458
+    /// bytes) sends the 10262-character one at 0x1470D7974, which is the same text minus one field block.
+    /// </summary>
+    [Fact]
+    public void BothResolveVariantsAreTheStringsTheImageHolds()
+    {
+        Assert.Equal(10370, PayPalThreeDs.ResolveDocument.Length);
+        Assert.Equal(10262, PayPalThreeDs.ResolveDocumentWithoutProviderFields.Length);
+        Assert.True(PayPalThreeDs.ResolveDocument.Length - PayPalThreeDs.ResolveDocumentWithoutProviderFields.Length == 108);
+    }
+
+    /// <summary>
+    /// The difference is one insertion, not a rewrite: the longer document is the shorter one with a block of
+    /// provider and device-data fields added at offset 2890. Asserting the insertion point is what stops a
+    /// future edit from "tidying" the two into one text with the fields moved somewhere else.
+    /// </summary>
+    [Fact]
+    public void TheLongerVariantIsTheShorterOnePlusOneBlock()
+    {
+        var shortText = PayPalThreeDs.ResolveDocumentWithoutProviderFields;
+        var longText = PayPalThreeDs.ResolveDocument;
+
+        Assert.Equal(shortText[..2890], longText[..2890]);
+        Assert.Equal(shortText[2890..], longText[2998..]);
+        Assert.Contains("authenticationProvider", longText[2890..2998]);
+        Assert.Contains("cardBrandProcessed", longText[2890..2998]);
+        Assert.DoesNotContain("authenticationProvider", shortText);
+    }
+
+    [Fact]
+    public void TheSelectorDefaultsToTheLongerVariantAndCanAskForTheShorter()
+    {
+        Assert.Equal(PayPalThreeDs.ResolveDocument, PayPalThreeDs.DocumentFor(PayPalThreeDs.ResolveOperation));
+        Assert.Equal(PayPalThreeDs.ResolveDocument,
+            PayPalThreeDs.DocumentFor(PayPalThreeDs.ResolveOperation, providerFields: true));
+        Assert.Equal(PayPalThreeDs.ResolveDocumentWithoutProviderFields,
+            PayPalThreeDs.DocumentFor(PayPalThreeDs.ResolveOperation, providerFields: false));
+
+        // The flag only applies to the resolve operation; the other three are unaffected.
+        Assert.Equal(PayPalThreeDs.LookUpDocument,
+            PayPalThreeDs.DocumentFor(PayPalThreeDs.LookUpOperation, providerFields: false));
+    }
 }

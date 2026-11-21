@@ -6,11 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 07:53:39 +0800 |
+| 生成时间 | 2026-11-21 08:16:34 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2644 通过 / 0 失败 / 0 跳过 / 2644 总计** |
+| 完整套件 | **2647 通过 / 0 失败 / 0 跳过 / 2647 总计** |
+
+## 时效警告（生成）
+
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新，其中 1 个相对 HEAD 真的改过（共 16347 行）。它描述的不是当前源码。
 
 ## 摘要素值
 
@@ -37,8 +41,8 @@
 | 函数数量（.pdata） — functions: replica .pdata | 188,330 |
 | 函数数量（.pdata） — functions: ratio | 67.96% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 15750 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 16347 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
 | 核心覆盖：store 宿主 — core: flows | 20 |
 | 核心覆盖：store 宿主 — core: override steps | 394 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 1 |
@@ -398,18 +402,18 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 07:41:24
-publish artifact size: 61347840 bytes
-publish artifact sha256: b217b4213df5550c2a4b6969ab7b5ef428b267a4bec249c58f6301af6f96bd90
-embedded source revision: 5c0a9d492821 (is HEAD)
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 07:47:16)
+publish artifact mtime: 2026-11-21 08:04:14
+publish artifact size: 61368320 bytes
+publish artifact sha256: f169fdeb979a2b5c2f6cfbb9f9acd2281f9173659a9306caf7dcef1bf8711f54
+embedded source revision: 6e0c829fb8cd (is HEAD)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 08:10:09)
 source files newer than the artifact: 17
-lines in those files: 15750
-of those, changed against HEAD: 0
-publish artifact state: current
+lines in those files: 16347
+of those, changed against HEAD: 1
+publish artifact state: stale
 
-  17 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
-  targets, which updates mtime without changing a byte. Nothing to rebuild.
+  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
+  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
 ```
 
 ### 核心覆盖：store 宿主
@@ -461,18 +465,18 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 61347840 bytes ===
+=== REPLICA  image base 0x140000000  file 61368320 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
   .text      0x1000       0x107DD8     1076736      X
-  .managed   0x108000     0x1E27E88    30539776     X
-  hydrated   0x1E28000    0x2E599D0    0            RW
-  .rdata     0x2E5A000    0x47FED56    26889728     R
-  .data      0x47FF000    0x49036D8    236544       RW
-  .pdata     0x4904000    0x4B2BA54    2259968      R
-  _RDATA     0x4B2C000    0x4B2C0F4    512          R
-  .rsrc      0x4B2D000    0x4B787E7    309248       R
-  .reloc     0x4B79000    0x4B8154C    34304        R
+  .managed   0x108000     0x1E27EA8    30539776     X
+  hydrated   0x1E28000    0x2E5EA20    0            RW
+  .rdata     0x2E5F000    0x4808D56    26910208     R
+  .data      0x4809000    0x490D6D8    236544       RW
+  .pdata     0x490E000    0x4B35A54    2259968      R
+  _RDATA     0x4B36000    0x4B360F4    512          R
+  .rsrc      0x4B37000    0x4B827E7    309248       R
+  .reloc     0x4B83000    0x4B8B550    34304        R
 
   section-mass-replica-executable: 31616512
   section-mass-ratio: 61.16%
@@ -507,23 +511,23 @@ pdata bucket histogram (bucket = 0x100000 bytes)
   0x700000       3,411      3,373        98.9%
   0x800000       4,076      2,851        69.9%
   0x900000       3,556      2,386        67.1%
-  0xA00000       3,178      4,266       134.2%
-  0xB00000       3,227      1,938        60.1%
+  0xA00000       3,178      4,265       134.2%
+  0xB00000       3,227      1,939        60.1%
   0xC00000       3,982      5,611       140.9%
-  0xD00000       3,921      5,851       149.2%
+  0xD00000       3,921      5,850       149.2%
   0xE00000       3,371      7,752       230.0%
-  0xF00000       7,792      7,058        90.6%
+  0xF00000       7,792      7,059        90.6%
   0x1000000      5,626      3,753        66.7%
-  0x1100000      2,020      5,952       294.7%
-  0x1200000      2,046      9,210       450.1%
-  0x1300000      5,065      10,564      208.6%
+  0x1100000      2,020      5,950       294.6%
+  0x1200000      2,046      9,211       450.2%
+  0x1300000      5,065      10,565      208.6%
   0x1400000      10,107     9,747        96.4%
   0x1500000      11,107     9,519        85.7%
   0x1600000      2,864      9,842       343.6%
-  0x1700000      2,242      9,609       428.6%
-  0x1800000      4,058      9,131       225.0%
-  0x1900000      4,506      9,828       218.1%
-  0x1A00000      2,310      8,720       377.5%
+  0x1700000      2,242      9,608       428.5%
+  0x1800000      4,058      9,132       225.0%
+  0x1900000      4,506      9,826       218.1%
+  0x1A00000      2,310      8,722       377.6%
   0x1B00000      6,033      5,746        95.2%
   0x1C00000      6,218      5,741        92.3%
   0x1D00000      6,893      8,812       127.8%
@@ -590,7 +594,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2644 通过 / 0 失败 / 0 跳过 / 2644 总计
+`exit 0` · 2647 通过 / 0 失败 / 0 跳过 / 2647 总计
 
 ```text
   正在确定要还原的项目…
@@ -607,7 +611,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2644，已跳过:     0，总计:  2644，持续时间: 5 m 39 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2647，已跳过:     0，总计:  2647，持续时间: 5 m 41 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

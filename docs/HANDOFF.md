@@ -8372,3 +8372,13 @@ Observation：
 - `$version` 初值与 `cartToken` 来源**仍无出处**，两条都记 Unknown，不猜。
 - **连续第三轮撞 `CS0111`**（加购/账单/订单）：`RetailFlows.cs` 里同名 override 有六份，
   按字符长度切片检查会漏。**检查重复必须按类体大括号配对切。**
+
+---
+
+## 第 1323 轮
+
+- **3DS resolve 有两个变体，两份都在镜像里活着**：A 10262（`sub_14110FDB0`）、B 10370（`sub_141113680`），
+  各一个引用点。复刻件本来就有 B 且逐字节正确，这轮补上 A。
+- 唯一差异：B 在 **offset 2890** 插入 **108 字符**的 provider/device-data 字段块，相似度 0.995 —— 是方言不是两份文档。
+- `DocumentFor(operationName, providerFields = true)`：**默认不变**，要短那份显式传 `false`；测试钉住插入点。
+- 工具坑：`get_bytes` 读 22 KB 时返回形状变化 → **读大字符串要 8 KiB 分块**。

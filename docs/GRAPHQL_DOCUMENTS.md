@@ -19,8 +19,8 @@
 | 地址 | 长度 | 名称 | 为什么还没做 |
 |---|---|---|---|
 | `0x1470E9FA4` | 5407 | `approveMemberPayment` | PayPal/Braintree 支付编排，缺端点 |
-| `0x1470D7974` | 10846 | `ResolveThreeDsContingency` | 3DS 核心，需与 `PayPalThreeDs` 对齐后再落 |
-| `0x1470DC9BC` | 10958 | `ResolveThreeDsContingency`（第二份） | 与上面差 112 字符，先要判定哪份在用 |
+| `0x1470D7974` | **10262** | `ResolveThreeDsContingency`（无 provider 字段的方言） | **R1323 已落地**：`ResolveDocumentWithoutProviderFields` |
+| `0x1470DC9BC` | **10370** | `ResolveThreeDsContingency`（带 provider 字段） | 早已在 `ResolveDocument`（R1149），R1323 确认逐字节一致 |
 | `0x1470E261C`/`0x1470E2CCC` | 877/905 | `ThreeDsLookUpMutation` | 同上 |
 | `0x1470E1FAC` | 837 | `ThreeDsAuthenticateMutation` | 同上 |
 | `0x1470CF25C` | 865 | `CreateInitialCart` | 返回 id 但**不含 version** |

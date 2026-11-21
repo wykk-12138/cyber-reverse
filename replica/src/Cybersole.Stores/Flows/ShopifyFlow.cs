@@ -212,6 +212,23 @@ public class ShopifyFlow : StoreFlow
 
         // R1347: the catalogue search, when a run carries a key for it. Same host and envelope as the product
         // query, so it sits in the same branch above the store's own lookup.
+        // R1351: the product-drops app query. Its path is relative with the operation in the query string, so
+        // the origin comes from the run; the handle is the one this step already resolved from the url.
+        var dropsOrigin = c.Session.Vars.GetValueOrDefault("productdrops.origin");
+        if (!string.IsNullOrEmpty(dropsOrigin))
+        {
+            var dropsHandle = c.Session.Vars.GetValueOrDefault("productdrops.handle") ?? ProductHandle(c.Url);
+            if (string.IsNullOrEmpty(dropsHandle))
+                return StepOutcome.Fail("shopify: product-drops needs a handle and the url has none");
+
+            var (dropsData, dropsError) = await ShopifyProductDrops.FetchAsync(c, dropsOrigin,
+                new JObject { ["handle"] = dropsHandle }, ct).ConfigureAwait(false);
+            if (dropsData is null) return StepOutcome.Fail(dropsError);
+
+            c.Session.Vars["product"] = dropsData.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         var searchKey = c.Session.Vars.GetValueOrDefault("shopapp.searchKey");
         if (!string.IsNullOrEmpty(searchKey))
         {

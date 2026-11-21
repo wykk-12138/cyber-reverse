@@ -8684,3 +8684,14 @@ Observation：
 - 认不出时的正确问法：**谁在发它**。`createCheckoutPayment`(222) 的引用点落在 `sub_140B56CC0` ——
   R1339 已列为 Highsnobiety 的 "Create payment" 发送方 → **归 Highsnobiety**，落成 `SubmitPaymentAsync`。
 - 覆盖 31 → **32/65**，缺 34 → **33**；产物 `mutation createCheckoutPayment` 命中 1。
+
+---
+
+## 第 1351 轮
+
+- 三个发送方一起查：`getProductDetails`(499) 的路径 **`apps/product-drops?kind=mutation&operation=getProductDetails`**
+  → 可归属，落成 `ShopifyProductDrops` 并接进产品步；`saveAddress`/`maintainShippingGroups` **无主机无路径**
+  → 进 `.unattributed_operations.json`（与 `getCart` 同堆），**不硬凑族**。
+- **测试又栽在"假设形状"**：实际是 `mutation getProductDetails($handle: String)`（可空、mutation），
+  不是 `query … String!`；另 `TinyServer` 不保留查询串，断言改到常量上。
+- 覆盖 32 → **33/65**，缺 33 → **32**；产物 `mutation getProductDetails` 命中 1、`product-drops` 命中 7。

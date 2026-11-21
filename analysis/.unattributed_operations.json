@@ -1,0 +1,5 @@
+{
+ "getCart": "no host, no path — only getCart/key/locale",
+ "maintainShippingGroups": "no host, no path — only the envelope keys; same pile as getCart",
+ "saveAddress": "no host, no path — only the envelope keys; same pile as getCart"
+}

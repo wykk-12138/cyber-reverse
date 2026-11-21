@@ -150,3 +150,11 @@ A 块其余 14 个操作（`createCart`、`setBillingAddress`、`removeLineItemF
 | `createCheckout`(720) | `$variantId`/`$location`/`$attributes`/`$recaptchaToken` | 未定（第三种签名） |
 
 **地址聚类只是线索；变量签名才是证据。**
+
+## product-drops（R1351）
+
+`getProductDetails`(499 @0x1470F43C4) 的发送方 `sub_140C81880` 拼
+`apps/product-drops?kind=mutation&operation=getProductDetails` —— **操作名在查询串里**（与 PayPal 合作方族同形），
+文档是 **mutation**、`$handle: String`（**可空**）。实现在 `Flows/ShopifyProductDrops.cs`。
+
+同批的 `saveAddress`、`maintainShippingGroups` **既无主机也无路径**，与 `getCart` 同处不可归属清单。

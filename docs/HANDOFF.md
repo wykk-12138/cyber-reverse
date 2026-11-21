@@ -8459,3 +8459,14 @@ Observation：
 - **真缺陷二**：这条流用 `Body.Contains("errors")` 判失败，可**观测到的 mutation 自己就返回 `errors` 字段**，
   空数组是成功 → **每次成功都被读成失败**。换成结构化的 `HasGraphQlErrors`（文件里 5 处全换）。
 - 两个都是我自己此前留下的。剩下的文档孤儿只有 `ShopifyGraphQl.CartLinesUpdate`。
+
+---
+
+## 第 1331 轮
+
+- **文档孤儿清零**：`CartLinesUpdate` 接进 `ShopifyFlow.EditLineAsync`（有 cart id + line id + token 走 GraphQL，
+  否则照旧 REST）；顺带让购物车读记下 `lines.nodes[].id`。
+- **`ShopifyGraphQl.Endpoint` 硬编码 https**，本地服务器拦不到 → 加 `shopify.graphqlBase` 会话覆盖（默认不变）。
+- **不变量进套件**：`EveryDocumentConstantHasAProductionCaller`（引用数为 1 就红，允许清单为空且必须写理由）。
+  这类检查本应在第一份文档落地那轮就有。
+- 现状：`orphan_documents.py` → 0；`audit_document_constants.py` → 15 常量 / 0 问题。

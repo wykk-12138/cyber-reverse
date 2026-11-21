@@ -516,6 +516,20 @@ public class ShopifyFlow : StoreFlow
         var checkoutUrl = ShopifyGraphQl.ParseCheckoutUrl(res.Body);
         if (checkoutUrl is not null) c.Session.Vars["checkoutUrl"] = checkoutUrl;
 
+        // R1331: cartLinesUpdate is keyed by line id, and the read already receives it (lines.nodes[].id) —
+        // keeping it is what lets the edit take the structured path instead of the REST one.
+        try
+        {
+            var lineId = JObject.Parse(res.Body)?["data"]?["cart"]?["lines"]?["nodes"] is JArray nodes && nodes.Count > 0
+                ? nodes[0]?["id"]?.ToString()
+                : null;
+            if (!string.IsNullOrEmpty(lineId)) c.Session.Vars["shopify.lineId"] = lineId!;
+        }
+        catch (Newtonsoft.Json.JsonException)
+        {
+            // A reply that is not the shape we expect just means no line id; the REST edit still works.
+        }
+
         c.Session.Vars["cart"] = res.Body;
         return StepOutcome.Success();
     }
@@ -523,6 +537,45 @@ public class ShopifyFlow : StoreFlow
     public override async Task<StepOutcome> EditLineAsync(FlowContext c, CancellationToken ct)
     {
         if (c.Session.Quantity <= 1) return StepOutcome.Success();
+
+        // R1331: the observed cartLinesUpdate mutation, when the read has supplied a cart id, a line id and a
+        // storefront token. The REST call below is what this step did before and still does without them.
+        var token = c.Session.Vars.GetValueOrDefault(GraphQlTokenVar);
+        var graphQlCart = c.Session.Vars.GetValueOrDefault(GraphQlCartVar);
+        var lineId = c.Session.Vars.GetValueOrDefault("shopify.lineId");
+        if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(graphQlCart) && !string.IsNullOrEmpty(lineId))
+        {
+            var editPayload = new JObject
+            {
+                ["query"] = ShopifyGraphQl.CartLinesUpdate,
+                ["variables"] = new JObject
+                {
+                    ["cartId"] = graphQlCart,
+                    ["lines"] = new JArray { new JObject { ["id"] = lineId, ["quantity"] = c.Session.Quantity } },
+                },
+            };
+
+            // R1331: the composed endpoint is https, so a capture or a test cannot point it elsewhere. The
+            // session override replaces it outright; the default is unchanged.
+            var editUrl = c.Session.Vars.GetValueOrDefault("shopify.graphqlBase");
+            if (string.IsNullOrEmpty(editUrl))
+                editUrl = ShopifyGraphQl.Endpoint(new Uri(c.Url).Host,
+                    c.Session.Vars.TryGetValue("shopify.apiVersion", out var editVersion) &&
+                    !string.IsNullOrWhiteSpace(editVersion) ? editVersion : "2025-04");
+
+            c.Session.Headers[ShopifyHeaders.StorefrontAccessToken] = token;
+            var edited = await PostJsonAsync(c, editUrl,
+                editPayload.ToString(Newtonsoft.Json.Formatting.None), "shopify-cart-lines", ct)
+                .ConfigureAwait(false);
+
+            if (edited is { IsSuccess: true })
+            {
+                c.Session.Vars["cart"] = edited.Body;
+                return StepOutcome.Success();
+            }
+
+            return StepOutcome.Fail($"shopify cart line update HTTP {edited?.StatusCode}", retryable: true);
+        }
 
         var payload = new JObject { ["line"] = 1, ["quantity"] = c.Session.Quantity };
         // R1253: cart/update.js is likewise an attested token (no leading slash in the image).

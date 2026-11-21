@@ -39,7 +39,7 @@
 | `RetailFlows.cs` | 105 | 0 | 2067 |
 | `SauconyFlow.cs` | 9 | 1 | 152 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
-| `ShopifyFlow.cs` | 25 | 0 | 1142 |
+| `ShopifyFlow.cs` | 25 | 0 | 1195 |
 | `SportsshoesFlow.cs` | 7 | 0 | 130 |
 
 ## 二、原版侧（不可得 —— Unknown + 缺什么）

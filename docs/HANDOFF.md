@@ -8707,3 +8707,16 @@ Observation：
   只记事实，**On Running 在复刻件里不是流程，所以未落码**。
 - 自我纠正两处：测试曾真发 DNS（22 秒）；探针查"拼出来的端点"命中 0（源码里没有那个字面量，改查版本串）。
 - 覆盖 33 → **36/65**，缺 32 → **29**。
+
+---
+
+## 第 1353 轮
+
+- **第三种静态手法（查谁 Start 状态机）也走到底**：getCart 的 MoveNext 有三个调用方，**三个函数字面量全为 0**（是元数据不是代码）。
+  三探全空（主机 / 路径 / 调用方）→ **六份正式登记 `docs/UNATTRIBUTED_OPERATIONS.md`**，写明所需证据 = 一次运行期抓包。
+- **`checkoutAsGuest`(148) 归位**：其发送方带 `https://www.on.com/ko-kr/graphql`，
+  而 `AccountAndAuthFamilies.OnRunning.GraphQl` 早就是这个字符串 —— **那张旧表终于有了用户**。
+  落成 `OnRunningGraphQl` + `StoreFlow.GuestCallbackAsync` 分支。
+- **自伤一条**：`git show HEAD:path > file` 在 PowerShell 里写 **UTF-16**，把 `StoreFlow.cs` 写成乱码；
+  正确做法是 `subprocess` 取字节再写 bytes。已还原，只替换一个成员。
+- 覆盖 36 → **37/65**，缺 29 → **28**。

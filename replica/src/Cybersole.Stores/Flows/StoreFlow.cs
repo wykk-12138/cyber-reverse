@@ -792,8 +792,26 @@ public abstract class StoreFlow
     /// The guest checkout callback (John Lewis ordinal 25): the checkout backend needs to know which
     /// guest the session belongs to before the order form will accept an address.
     /// </summary>
-    public virtual Task<StepOutcome> GuestCallbackAsync(FlowContext c, CancellationToken ct)
-        => NotSupported("GuestCallback");
+    public virtual async Task<StepOutcome> GuestCallbackAsync(FlowContext c, CancellationToken ct)
+    {
+        // R1353: On Running's guest checkout, when the run asks for it. Its endpoint is the one the store table
+        // already held; before this, nothing used that string.
+        var guestEmail = c.Session.Vars.GetValueOrDefault("onRunning.guestEmail") ?? c.ProfileData?.Email;
+        if (!string.IsNullOrEmpty(guestEmail) &&
+            string.Equals(c.Session.Vars.GetValueOrDefault("onRunning.guest"), "true",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            var (guestData, guestError) = await OnRunningGraphQl
+                .CheckoutAsGuestAsync(c, new Newtonsoft.Json.Linq.JObject { ["email"] = guestEmail }, ct)
+                .ConfigureAwait(false);
+            if (guestData is null) return StepOutcome.Fail(guestError);
+
+            c.Session.Vars["guestCheckout"] = guestData.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
+        return await NotSupported("GuestCallback").ConfigureAwait(false);
+    }
     public virtual Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct) => NotSupported("SubmitShipping");
 
     /// <summary>

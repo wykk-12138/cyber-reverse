@@ -8480,3 +8480,14 @@ Observation：
 - **逼出真缺陷**：`ShopifyFlow.SubmitBillingAsync` 八行里**没有任何请求**却返回 Success ——
   日志说账单完成，结账页没被碰过。已改成**记录地址 + 落 `shopify.billingSubmitted=false` + 发事件明说没发请求**。
 - 端点没抓到，**不造**。这和 Casio sku 缺口、Warhammer 安户跳是同一种"没做就说没做"的处理。
+
+---
+
+## 第 1333 轮
+
+- **六份"无归宿"文档的端点找到了**：`/cartApi/checkout`（`0x146AB27FC`，**单引用点** `sub_140C32160`）。
+  反编译显示拼法是 `"https://" + (www|themeapis 主机) + "/cartApi/checkout"`，字段 `cartType`/`lineItems`/
+  `locationId`/`sourceSystem`，取值 `Retail`/`Shopify`；另有 `https://themeapis.` 字面量。
+  **这一族挂在店铺自己的 `themeapis.` 子域，不是 PayPal 的 `/graphql`。**
+- **R1320/R1321 的"共用 /graphql"因此存疑**（当时标的就是 Inference）。改默认端点要有证据再动。
+- **本轮未改 src** —— 端点有了但"哪家店在用"没有证据。上轮的不变量正在盯着：**它没阻止我记录发现，只阻止我把猜测塞进产品代码。**

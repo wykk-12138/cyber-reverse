@@ -54,3 +54,16 @@
 | `0x1470D0FB4` | 10406 | `CurrencyConversion` | 已解码，同上 |
 
 `OnboardGuestMutation` 与 `CurrencyConversion` **故意没有落进 `src`**：没有调用点的类型会被 AOT 裁掉（R1310 的教训）。
+
+## 这一族文档发到哪里（R1333）
+
+`createCart` / `updateMyCart` / `addPaymentToCart` / `SubmitOrder` / `OnboardGuestMutation` /
+`CurrencyConversion` / `approveMemberPayment` 属于**店铺侧的购物车 API**，不是 PayPal 的挑战流。
+
+- 路径字面量：`/cartApi/checkout`（`0x146AB27FC`），**`.text` 里只有一个引用点**（`sub_140C32160`，1072 字节）。
+- 拼法（反编译原样）：`"https://" + (主机标签 www|themeapis) + "/cartApi/checkout"`；
+  另有 `https://themeapis.`（`0x14708885C`）与 `themeapis`（`0x14716CAE4`）。
+- 同函数的字段名：`cartType`、`couponReferences`、`lineItems`、`locationId`、`sourceSystem`；取值 `Retail`、`Shopify`。
+
+**因此**：`MagentoCart` 里那些方法接收的 `endpoint` 由调用方传入（当前是 `<origin> + /graphql`），
+这条默认值**存疑**，需要用一次抓包或一个明确的店来定，不要凭形状改。

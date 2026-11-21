@@ -154,4 +154,41 @@ public sealed class StoreSessionQueriesTests
         Assert.Equal(StoreSessionQueries.UpdateContactDetailsDocument, sent["query"]!.ToObject<string>());
         Assert.Equal("a@b.test", sent["variables"]!["email"]!.ToObject<string>());
     }
+
+    /// <summary>
+    /// R1366: saveAddress belongs here — four declared variables, no host, and the image's own async tail names a
+    /// SaveAddress step, which is what makes it a store step rather than a helper.
+    /// </summary>
+    [Fact]
+    public void TheAddressSaveJoinsTheSameFamily()
+    {
+        Assert.Equal(296, StoreSessionQueries.SaveAddressDocument.Length);
+        Assert.StartsWith("mutation saveAddress(", StoreSessionQueries.SaveAddressDocument);
+        Assert.Equal(new[] { "address", "editAddress", "saveAddress", "setDefault" },
+            StoreSessionQueries.Declared["saveAddress"]);
+        Assert.Same(StoreSessionQueries.SaveAddressDocument, StoreSessionQueries.DocumentFor("saveAddress"));
+    }
+
+    [Fact]
+    public async Task TheAddressSavePostsItsFourVariables()
+    {
+        using var server = new TinyServer((_, _) => (200, "{\"data\":{\"saveAddress\":{}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/" };
+
+        var (data, error) = await StoreSessionQueries.SendAsync(
+            ctx, server.BaseUrl + "/graphql", "saveAddress",
+            new JObject
+            {
+                ["address"] = new JObject { ["city"] = "Seoul" },
+                ["editAddress"] = false,
+                ["saveAddress"] = true,
+                ["setDefault"] = false,
+            }, default);
+
+        Assert.NotNull(data);
+        Assert.Equal(string.Empty, error);
+        var sent = JObject.Parse(server.Requests[0].Body!);
+        Assert.Equal(StoreSessionQueries.SaveAddressDocument, sent["query"]!.ToObject<string>());
+    }
 }

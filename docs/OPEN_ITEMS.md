@@ -14,7 +14,6 @@
 | `createMyPayment` | 493 | `$amount`、`$customFields`、`$key`、`$paymentInterface`、`$paymentMethod` | 同上 |
 | `initiateCheckout` | 251 | 无 | 同上 |
 | `maintainShippingGroups` | 223 | `$cartId` | 同上 |
-| `saveAddress` | 296 | `$address`、`$editAddress`、`$saveAddress`、`$setDefault` | 同上 |
 
 **需要**：一次运行期抓包，看到这些操作打到哪个主机（`getCart` 一份即可推出同族其余）。
 
@@ -77,3 +76,15 @@ python analysis/audit_document_constants.py
 python tools/metrics_report.py           # 全量套件 + 五项度量
 python tools/mutation-check.py           # 变异套件
 ```
+
+---
+
+## 七、异步名长尾（R1366 新增）
+
+`python analysis/async_tail.py --family store` → **34 个**原版有、复刻件没有的店铺异步名；
+`--family payment` → **64 个**。完整名单与三条限制见 `docs/ASYNC_TAIL.md`。
+
+**已证**：这些名字**只以 `<Name>d__NN` 状态机串存在**，没有独立操作名可跟（`GetCartId`/`GetCartCsrf`/`GetCartItemId`
+三个都试过）。**所以这一队列要按地址逐条反编译，不能按名。**
+
+**已落地其一**：`saveAddress`(296) → `StoreSessionQueries`（长尾里的 `SaveAddress` 名字与文档互证）。

@@ -8835,3 +8835,14 @@ Observation：
   **认出但不实现**，与同块 `createMyPayment` 一起记进未结案。
 - **新增 `docs/OPEN_ITEMS.md`**：11 条未结案项按缺件分四类，每条写明验法与落点；附两个约定与四个复核入口。
 - 覆盖 53 → **54/65**，缺 12 → **11**；**静态能推的到此为止**。
+
+---
+
+## 第 1366 轮
+
+- **换队列**：GraphQL 操作 54→55 之后，转向 `REMAINING_REPLICATION_ROADMAP.md` 路线 A 的另一条静态队列 ——
+  **店铺异步名长尾**（`analysis/async_tail.py --family store` → **34 个**）。
+- **按名追不通**：`GetCartId`/`GetCartCsrf`/`GetCartItemId` **只以 `<Name>d__NN` 状态机串存在**（同 R1353 结论）。
+- `saveAddress`(296) 落地到 `StoreSessionQueries` —— **长尾里的 `SaveAddress` 名字与文档互证**它是店铺步骤。
+- `docs/ASYNC_TAIL.md` 已重生成（34 店铺名 + 64 支付名 + 三条限制）。
+- 覆盖 54 → **55/65**，缺 11 → **10**；产物 `mutation saveAddress` 命中 1。

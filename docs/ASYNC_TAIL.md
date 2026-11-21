@@ -7,17 +7,17 @@
 | 项 | 值 |
 |---|---|
 | 镜像异步状态机名 | 801（出现 1291 次） |
-| declared | 219 |
+| declared | 223 |
 | mentioned | 97 |
-| **absent** | **485** |
+| **absent** | **481** |
 
 ## 按家族（镜像 / absent）
 
 | 家族 | 镜像 | absent |
 |---|---|---|
-| payment | 110 | 66 |
-| store | 74 | 34 |
-| other | 617 | 385 |
+| payment | 110 | 64 |
+| store | 74 | 33 |
+| other | 617 | 384 |
 
 ## payment 家族 · absent（真正的缺口）
 
@@ -51,12 +51,10 @@
 | `GetPayPalResult` | 1 |
 | `GetStripeConfiguration` | 1 |
 | `GetSweepStakeCheckout` | 1 |
-| `HandleOrderResult` | 1 |
 | `HandleUnzerRedirect` | 1 |
 | `InitalizePayment` | 1 |
 | `InitialisePayPal` | 1 |
 | `InitializePayPal` | 1 |
-| `PayerAuthenticate` | 1 |
 | `ProcessDeferredPayment` | 1 |
 | `ReadPaymentResponse` | 1 |
 | `RefreshTokenAsync` | 1 |
@@ -132,7 +130,6 @@
 | `LoadProduct` | 1 |
 | `ReplaceProduct` | 1 |
 | `ReserveProduct` | 1 |
-| `SaveAddress` | 1 |
 | `ScrapeCaptchaKey` | 1 |
 | `ScrapeProductData` | 1 |
 | `ScrapeVariantAvailabilityStorefront` | 1 |
@@ -147,4 +144,4 @@
 | `VerifyCart` | 1 |
 | `WaitCaptchaResultAsync` | 1 |
 
-> `other` 家族 absent 385 个：`python analysis/async_tail.py --family other`。
+> `other` 家族 absent 384 个：`python analysis/async_tail.py --family other`。

@@ -27,6 +27,13 @@ public static class ShopifyProductDrops
     /// <summary>The relative path the sender builds, including its query string.</summary>
     public const string Path = "apps/product-drops?kind=mutation&operation=getProductDetails";
 
+    /// <summary>The path the createCheckout sender builds — same app, its own operation.</summary>
+    public const string CheckoutPath = "apps/product-drops?kind=mutation&operation=createCheckout";
+
+    /// <summary>createCheckout, 720 characters from 0x1470F3634.</summary>
+    public const string CreateCheckoutDocument =
+        "mutation createCheckout($variantId: String, $location: String, $attributes: [StorefrontCreateCheckoutAttributesElementTypeInput!], $recaptchaToken: String) {\n  storefront {\n    createCheckout(\n      variantId: $variantId\n      location: $location\n      attributes: $attributes\n      recaptchaToken: $recaptchaToken\n    ) {\n      success\n      errors {\n        message\n        code\n        ... on InvalidRecordError {\n          model {\n            apiIdentifier\n            __typename\n          }\n          validationErrors {\n            message\n            apiIdentifier\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      result\n      __typename\n    }\n    __typename\n  }\n}";
+
     /// <summary>The operation name, which also appears inside <see cref="Path"/>.</summary>
     public const string OperationName = "getProductDetails";
 
@@ -44,6 +51,42 @@ public static class ShopifyProductDrops
         ["query"] = Document,
         ["variables"] = variables,
     };
+
+    /// <summary>
+    /// Start a checkout through the same app. The document declares $variantId, $location, $attributes and
+    /// $recaptchaToken; all four are the caller's, because what fills them is not in the sender.
+    /// </summary>
+    public static async Task<(JObject? Data, string Error)> CreateCheckoutAsync(
+        FlowContext c, string? origin, JObject variables, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(origin)) return (null, "product-drops: no origin");
+
+        var url = origin!.TrimEnd('/') + "/" + CheckoutPath;
+        var body = new JObject
+        {
+            ["operationName"] = "createCheckout",
+            ["query"] = CreateCheckoutDocument,
+            ["variables"] = variables,
+        };
+
+        try
+        {
+            var reply = await GatewayHttp
+                .PostAsync(c, url, body, "product-drops-checkout", ct)
+                .ConfigureAwait(false);
+            if (reply is null) return (null, "product-drops: no reply");
+
+            if (reply["errors"] is JArray topLevel && topLevel.Count > 0)
+                return (null, "product-drops: " + (topLevel[0]?["message"]?.ToString() ?? "graphql error"));
+
+            var data = reply["data"] as JObject;
+            return data is null ? (null, "product-drops: no data in reply") : (data, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            return (null, "product-drops: " + ex.GetType().Name);
+        }
+    }
 
     /// <summary>
     /// Ask for a product by handle. <paramref name="origin"/> is the store's, because the path is relative.

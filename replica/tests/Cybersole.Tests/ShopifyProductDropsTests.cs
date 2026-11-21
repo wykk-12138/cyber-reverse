@@ -96,4 +96,34 @@ public sealed class ShopifyProductDropsTests
         Assert.True(outcome.Ok, outcome.Error);
         Assert.Contains("product-drops", server.Requests[0].Path);
     }
+
+    /// <summary>R1352: createCheckout is the same product-drops app with its own operation in the path.</summary>
+    [Fact]
+    public void TheCheckoutUsesTheSameAppWithItsOwnOperation()
+    {
+        Assert.Equal("apps/product-drops?kind=mutation&operation=createCheckout",
+            ShopifyProductDrops.CheckoutPath);
+        Assert.Equal(720, ShopifyProductDrops.CreateCheckoutDocument.Length);
+        Assert.StartsWith("mutation createCheckout($variantId: String", ShopifyProductDrops.CreateCheckoutDocument);
+        Assert.NotEqual(ShopifyProductDrops.Path, ShopifyProductDrops.CheckoutPath);
+        Assert.Contains("product-drops", ShopifyProductDrops.CheckoutPath);
+    }
+
+    [Fact]
+    public async Task TheCheckoutPostsToItsOwnPath()
+    {
+        using var server = new TinyServer((_, _) => (200, "{\"data\":{\"createCheckout\":{\"id\":\"c-1\"}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/" };
+
+        var (data, error) = await ShopifyProductDrops.CreateCheckoutAsync(
+            ctx, server.BaseUrl, new JObject { ["variantId"] = "gid://shop/1" }, default);
+
+        Assert.NotNull(data);
+        Assert.Equal(string.Empty, error);
+        Assert.Contains("product-drops", server.Requests[0].Path);
+        var sent = JObject.Parse(server.Requests[0].Body!);
+        Assert.Equal("createCheckout", sent["operationName"]!.ToObject<string>());
+        Assert.Equal(ShopifyProductDrops.CreateCheckoutDocument, sent["query"]!.ToObject<string>());
+    }
 }

@@ -8695,3 +8695,15 @@ Observation：
 - **测试又栽在"假设形状"**：实际是 `mutation getProductDetails($handle: String)`（可空、mutation），
   不是 `query … String!`；另 `TinyServer` 不保留查询串，断言改到常量上。
 - 覆盖 32 → **33/65**，缺 33 → **32**；产物 `mutation getProductDetails` 命中 1、`product-drops` 命中 7。
+
+---
+
+## 第 1352 轮
+
+- A 块最后七份一次扫完：**host 3 / path 1 / neither 3**。落地 `cartCreate`(91)、`customerAccessTokenCreate`(250)、
+  `createCheckout`(720)。
+- **Storefront 不是单一版本**：`cartCreate` 钉 **2021-10**、其余 **2025-04** → **版本随操作走**，`SendAsync` 按操作取默认。
+- **`checkoutAsGuest` 写出店铺主机 `https://www.on.com/ko-kr/graphql`**（On Running 韩语店面）——
+  只记事实，**On Running 在复刻件里不是流程，所以未落码**。
+- 自我纠正两处：测试曾真发 DNS（22 秒）；探针查"拼出来的端点"命中 0（源码里没有那个字面量，改查版本串）。
+- 覆盖 33 → **36/65**，缺 32 → **29**。

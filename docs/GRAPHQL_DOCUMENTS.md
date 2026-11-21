@@ -158,3 +158,16 @@ A 块其余 14 个操作（`createCart`、`setBillingAddress`、`removeLineItemF
 文档是 **mutation**、`$handle: String`（**可空**）。实现在 `Flows/ShopifyProductDrops.cs`。
 
 同批的 `saveAddress`、`maintainShippingGroups` **既无主机也无路径**，与 `getCart` 同处不可归属清单。
+
+## storefront 的两个 API 版本（R1352）
+
+| 操作 | 版本 | 地址 |
+|---|---|---|
+| `cartCreate`(91) | **2021-10** | 0x1470F23FC |
+| `customerAccessTokenCreate`(250) | 2025-04 | 0x1470F41B4 |
+| `cartApiObjectCreate` / `createCart` / `removeLineItemFromCart` | 2025-04 | — |
+
+**版本随操作走，不随类走。**
+
+另外：`checkoutAsGuest`(148) 的发送方直接写出 **`https://www.on.com/ko-kr/graphql`**（On Running 韩语店面），
+`createCheckout`(720) 走 `apps/product-drops?kind=mutation&operation=createCheckout`。

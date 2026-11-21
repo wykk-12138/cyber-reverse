@@ -44,6 +44,15 @@ public static class ShopifyStorefrontQueries
     /// <summary>removeLineItemFromCart, 1553 characters from 0x1470F4C84.</summary>
     public const string RemoveLineItemFromCart = "mutation removeLineItemFromCart($cartId: String!, $lineItemId: String!, $version: Long!, $quantity: Long!, $locale: Locale!) {\n  updateMyCart(\n    id: $cartId\n    actions: {removeLineItem: {lineItemId: $lineItemId, quantity: $quantity}}\n    version: $version\n  ) {\n    id\n    version\n    isAbleToCheckout\n    isRestricted\n    isHazardous\n    isEmpty\n    isDangerous\n    splittableSupplyChannelKeys\n    isSplit\n    discountedPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n    customerGroup {\n      key\n    }\n    lineItems {\n      ...defaultLineItem\n    }\n    totalLineItemQuantity\n    totalPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n  }\n}\n\nfragment defaultLineItem on LineItem {\n  id\n  productId\n  productSlug(locale: $locale)\n  name(locale: $locale)\n  productType {\n    id\n    version\n    name\n  }\n  totalPrice {\n    centAmount\n    currencyCode\n    fractionDigits\n  }\n  preDiscountedPrice {\n    centAmount\n    currencyCode\n    fractionDigits\n  }\n  shippingDetails {\n    targets {\n      addressKey\n      shippingMethodKey\n      quantity\n    }\n    valid\n  }\n  productKey\n  quantity\n  variant {\n    sku\n    key\n    images {\n      url\n    }\n    attributesRaw {\n      name\n      value\n    }\n  }\n  discountedPricePerQuantity {\n    discountedPrice {\n      includedDiscounts {\n        discount {\n          id\n          key\n          description(locale: $locale)\n        }\n      }\n    }\n  }\n  custom {\n    customFieldsRaw {\n      name\n      value\n    }\n  }\n  supplyChannel {\n    id\n    key\n  }\n  lineItemMode\n}";
 
+    /// <summary>cartCreate, 91 characters from 0x1470F23FC — its sender pins API version 2021-10.</summary>
+    public const string CartCreate = "mutation cartCreate { cartCreate { cart { checkoutUrl id } userErrors { field message } } }";
+
+    /// <summary>The version cartCreate's sender uses; the other two pin 2025-04, so the version is per call.</summary>
+    public const string CartCreateApiVersion = "2021-10";
+
+    /// <summary>customerAccessTokenCreate, 250 characters from 0x1470F41B4, on API version 2025-04.</summary>
+    public const string CustomerAccessTokenCreate = "mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {  customerAccessTokenCreate(input: $input) {    customerAccessToken {      accessToken      expiresAt    }    customerUserErrors {      code      field      message    }  }}";
+
     /// <summary>The variables each document declares.</summary>
     public static readonly IReadOnlyDictionary<string, string[]> Declared = new Dictionary<string, string[]>
     {
@@ -54,6 +63,8 @@ public static class ShopifyStorefrontQueries
         },
         ["createCart"] = new[] { "lines", "buyerIdentity", "attributes", "country", "language" },
         ["removeLineItemFromCart"] = new[] { "cartId", "lineItemId", "version", "quantity", "locale" },
+        ["cartCreate"] = new[] { "input", "buyerIdentity", "country", "language" },
+        ["customerAccessTokenCreate"] = new[] { "input" },
     };
 
     /// <summary>The variables each sender fills. <c>metafieldsIdentifiers</c> is declared and left out.</summary>
@@ -66,6 +77,8 @@ public static class ShopifyStorefrontQueries
         },
         ["createCart"] = new[] { "lines", "buyerIdentity", "attributes", "country", "language" },
         ["removeLineItemFromCart"] = new[] { "cartId", "lineItemId", "version", "quantity", "locale" },
+        ["cartCreate"] = new[] { "input" },
+        ["customerAccessTokenCreate"] = new[] { "input" },
     };
 
     /// <summary>The document for an operation, or null when it is not one of the three.</summary>
@@ -74,6 +87,8 @@ public static class ShopifyStorefrontQueries
         "cartApiObjectCreate" => CartApiObjectCreate,
         "createCart" => CreateCart,
         "removeLineItemFromCart" => RemoveLineItemFromCart,
+        "cartCreate" => CartCreate,
+        "customerAccessTokenCreate" => CustomerAccessTokenCreate,
         _ => null,
     };
 
@@ -105,7 +120,11 @@ public static class ShopifyStorefrontQueries
             return (null, "shopify-storefront: " + operation + " does not declare $" + property.Name);
         }
 
-        var url = ShopifyGraphQl.Endpoint(host!, version ?? ApiVersion);
+        // R1352: the image does not use one Storefront version everywhere — cartCreate's sender pins 2021-10
+        // while the others pin 2025-04 — so an unspecified version follows the operation, not the class.
+        var effectiveVersion = version
+            ?? (operation == "cartCreate" ? CartCreateApiVersion : ApiVersion);
+        var url = ShopifyGraphQl.Endpoint(host!, effectiveVersion);
         c.Session.Headers[ShopifyHeaders.StorefrontAccessToken] = token!;
 
         try

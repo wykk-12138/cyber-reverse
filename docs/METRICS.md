@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 17:19:55 +0800 |
+| 生成时间 | 2026-11-21 17:44:31 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2724 通过 / 0 失败 / 0 跳过 / 2724 总计** |
+| 完整套件 | **2730 通过 / 0 失败 / 0 跳过 / 2730 总计** |
 
 ## 摘要素值
 
@@ -48,10 +48,10 @@
 | 核心覆盖：vendor 宿主 — vendor: wiring rows | 0 |
 | 核心覆盖：vendor 宿主 — vendor: missing | 0 |
 | 可执行段体量 — section-mass: original executable | 51695104 |
-| 可执行段体量 — section-mass: replica executable | 31662592 |
-| 可执行段体量 — section-mass: ratio | 61.25% |
+| 可执行段体量 — section-mass: replica executable | 31666176 |
+| 可执行段体量 — section-mass: ratio | 61.26% |
 | 函数分布（.pdata 地址分桶） — pdata: above boundary original | 156590 |
-| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 16133 |
+| 函数分布（.pdata 地址分桶） — pdata: above boundary replica | 16148 |
 | 函数分布（.pdata 地址分桶） — pdata: last replica bucket | 0x1E00000 |
 | 变异套件（上次运行） — mutation-fit: total | 59 |
 | 变异套件（上次运行） — mutation-fit: fired | 59 |
@@ -398,11 +398,11 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 17:19:55
-publish artifact size: 61676032 bytes
-publish artifact sha256: bcd10071aaef2c2d0b57b681f47ba5693d1d1470e5e8a82e87eb969af5ed4810
-embedded source revision: d5ca055b9bba (is HEAD)
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 17:13:19)
+publish artifact mtime: 2026-11-21 17:44:29
+publish artifact size: 61714944 bytes
+publish artifact sha256: aec21ead8b8fd5b6c2f4b73d1ff9715104fac4ce4a38d04157835f81ec80050f
+embedded source revision: d6fd175a0b25 (is HEAD)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 17:38:08)
 source files newer than the artifact: 0
 lines in those files: 0
 of those, changed against HEAD: 0
@@ -458,21 +458,21 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 61676032 bytes ===
+=== REPLICA  image base 0x140000000  file 61714944 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
-  .text      0x1000       0x108198     1077760      X
-  .managed   0x109000     0x1E33E18    30584832     X
-  hydrated   0x1E34000    0x2E99D38    0            RW
-  .rdata     0x2E9A000    0x4883126    27169280     R
-  .data      0x4884000    0x4988948    236544       RW
-  .pdata     0x4989000    0x4BB148C    2262528      R
-  _RDATA     0x4BB2000    0x4BB20F4    512          R
-  .rsrc      0x4BB3000    0x4BFE7E7    309248       R
-  .reloc     0x4BFF000    0x4C07578    34304        R
+  .text      0x1000       0x108208     1078272      X
+  .managed   0x109000     0x1E34BD8    30587904     X
+  hydrated   0x1E35000    0x2EA06E8    0            RW
+  .rdata     0x2EA1000    0x4892AC6    27204608     R
+  .data      0x4893000    0x4997988    236544       RW
+  .pdata     0x4998000    0x4BC0558    2262528      R
+  _RDATA     0x4BC1000    0x4BC10F4    512          R
+  .rsrc      0x4BC2000    0x4C0D7E7    309248       R
+  .reloc     0x4C0E000    0x4C16570    34304        R
 
-  section-mass-replica-executable: 31662592
-  section-mass-ratio: 61.25%
+  section-mass-replica-executable: 31666176
+  section-mass-ratio: 61.26%
 
   Executable sections summed by raw size. The ratio is a mass comparison and says nothing about what the
   code does: the replica links a different BCL and Avalonia, so part of the difference is not its own.
@@ -494,37 +494,37 @@ pdata bucket histogram (bucket = 0x100000 bytes)
 
   range from     original   replica    replica/original
   ----------------------------------------------------
-  0x0            5,475      1,926        35.2%
+  0x0            5,475      1,909        34.9%
   0x100000       5,089      4,763        93.6%
   0x200000       4,333      5,114       118.0%
   0x300000       2,213      3,962       179.0%
   0x400000       5,791      5,659        97.7%
   0x500000       2,057      3,918       190.5%
-  0x600000       1,074      4,409       410.5%
-  0x700000       3,411      3,388        99.3%
-  0x800000       4,076      2,786        68.4%
-  0x900000       3,556      2,385        67.1%
-  0xA00000       3,178      4,129       129.9%
-  0xB00000       3,227      2,109        65.4%
-  0xC00000       3,982      5,482       137.7%
-  0xD00000       3,921      5,886       150.1%
-  0xE00000       3,371      7,782       230.9%
-  0xF00000       7,792      7,025        90.2%
-  0x1000000      5,626      3,796        67.5%
-  0x1100000      2,020      5,817       288.0%
-  0x1200000      2,046      9,201       449.7%
-  0x1300000      5,065      10,587      209.0%
-  0x1400000      10,107     9,710        96.1%
-  0x1500000      11,107     9,535        85.8%
-  0x1600000      2,864      9,923       346.5%
-  0x1700000      2,242      9,453       421.6%
-  0x1800000      4,058      9,254       228.0%
-  0x1900000      4,506      9,792       217.3%
-  0x1A00000      2,310      8,891       384.9%
-  0x1B00000      6,033      5,729        95.0%
-  0x1C00000      6,218      5,713        91.9%
-  0x1D00000      6,893      8,575       124.4%
-  0x1E00000      5,418      1,845        34.1%
+  0x600000       1,074      4,411       410.7%
+  0x700000       3,411      3,392        99.4%
+  0x800000       4,076      2,772        68.0%
+  0x900000       3,556      2,397        67.4%
+  0xA00000       3,178      4,113       129.4%
+  0xB00000       3,227      2,111        65.4%
+  0xC00000       3,982      5,497       138.0%
+  0xD00000       3,921      5,874       149.8%
+  0xE00000       3,371      7,785       230.9%
+  0xF00000       7,792      7,032        90.2%
+  0x1000000      5,626      3,788        67.3%
+  0x1100000      2,020      5,818       288.0%
+  0x1200000      2,046      9,198       449.6%
+  0x1300000      5,065      10,583      208.9%
+  0x1400000      10,107     9,707        96.0%
+  0x1500000      11,107     9,533        85.8%
+  0x1600000      2,864      9,932       346.8%
+  0x1700000      2,242      9,447       421.4%
+  0x1800000      4,058      9,251       228.0%
+  0x1900000      4,506      9,771       216.8%
+  0x1A00000      2,310      8,925       386.4%
+  0x1B00000      6,033      5,734        95.0%
+  0x1C00000      6,218      5,722        92.0%
+  0x1D00000      6,893      8,552       124.1%
+  0x1E00000      5,418      1,874        34.6%
   0x1F00000      4,991      0             0.0%
   0x2000000      7,513      0             0.0%
   0x2100000      10,388     0             0.0%
@@ -553,7 +553,7 @@ pdata bucket histogram (bucket = 0x100000 bytes)
     0x2300000        0.0%   original 9,066    replica 0
 
   pdata-above-0x1C00000-original: 156590
-  pdata-above-0x1C00000-replica: 16133
+  pdata-above-0x1C00000-replica: 16148
   pdata-last-replica-bucket: 0x1E00000
 
   Buckets are compared by density, not by identity: the two images are laid out independently, so equal
@@ -587,11 +587,11 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2724 通过 / 0 失败 / 0 跳过 / 2724 总计
+`exit 0` · 2730 通过 / 0 失败 / 0 跳过 / 2730 总计
 
 ```text
-D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\PayPalChallengeNotificationUrlTests.cs(54,9): warning xUnit2000: The literal or constant value PayPalThreeDs.NotifyChallengeCompleteUrl should be passed as the 'expected' argument in the call to 'Assert.NotEqual(expected, actual)' in method 'TheTwoSiblingsDifferInMoreThanTheirMiddleWord' on type 'PayPalChallengeCallbackBaseTests'. Swap the parameter values. (https://xunit.net/xunit.analyzers/rules/xUnit2000) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
+D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(77,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\ObservableDictionaryTests.cs(109,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SauconyFlowTests.cs(27,22): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
 D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\SizePaletteTests.cs(24,9): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\Cybersole.Tests.csproj]
@@ -604,7 +604,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2724，已跳过:     0，总计:  2724，持续时间: 4 m 36 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2730，已跳过:     0，总计:  2730，持续时间: 4 m 36 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

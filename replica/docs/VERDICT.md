@@ -70660,3 +70660,36 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 
 清掉残留 testhost/vstest 后重跑：**2708 通过 / 0 失败 / 0 跳过，全部命令 exit 0**。
 **本轮结论以这次干净重跑为准**，第一次截断那次只作为资源压力的记录保留。
+
+---
+
+## 第 1341 轮：把"镜像里到底有多少 GraphQL 操作"这件事**数清楚**——65 个，复刻件有 18 个
+
+- **先否掉一个会骗人的数法**：`ida.py str "mutation "` 只报 **7** 个操作，而复刻件自己就有 20 个 ——
+  **它扫的不是文档池**（长串不在它所谓的"字符串"里）。用这个数做集合差，会得出一个自信而错误的清单。
+  这正是 §2.7b 的坑：**抽样支撑不了集合差。**
+- **改成走区域**：文档都在 `0x1470C0000..0x147150000`，按 4 字节步长找冻结串头（`MT=0x144DB6A40` + 长度），
+  读出全部以 `mutation `/`query ` 开头的对象 —— **65 个操作**，逐个带地址与长度。
+  **一个 64 KiB 的 `get_bytes` 会被省略号截断，必须 8 KiB 分块**（又一次）。
+- **两个发现**：
+  1. **`approveMemberPayment` 有两份**：`0x1470E9FA4` **5407** 字符（R1335 已落地）与 `0x1470EC9FC` **5620** 字符。
+     又一对**方言**，和 3DS 那对同形。**哪份在哪用还没确定 —— 本轮只记录，不猜。**
+  2. **复刻件覆盖 18/65，缺 47 个**，缺的总量约 10 万字符。清单按长度排序，最长的是
+     `ProductDetails`(26206)、`PayWithQuery`(12561)、`Product`(10620)、`ShopProductSearch`(6537)。
+- **落码**：缺的里面**发送方已经定位**的是 Highsnobiety 的 `fetchOrderConfirmation`（`0x14713E1FC`，4825 字符，
+  发送方 `0x140B574F0`，变量 `stripePaymentIntentId`/`locale`/`preferredLocale`）——
+  接成 `HighsnobietyFlow.SubmitOrderAsync`。覆盖数 **18 → 19**，缺 **47 → 46**。
+
+### 五要素
+
+- **改了什么**：`RetailFlows.cs`（`FetchOrderConfirmationDocument` + `SubmitOrderAsync` + 操作名常量）；
+  `HighsnobietyFlowTests.cs`（+2 条，共 13）；新增 `analysis/document_region_scan.py`、`operation_inventory.py`、
+  `operation_gap.py`、`add_order_step.py`、`add_order_tests.py`；重发布；METRICS 重生成。
+- **验证命令与输出**：`HighsnobietyFlowTests` → **13/13**；`operation_gap.py` → 镜像 65 / 复刻 21 / 覆盖 19 / 缺 46；
+  `orphan_documents.py` → 0；`audit_document_constants.py` → **22 常量 / 0 问题**；
+  产物 `fetchOrderConfirmation` UTF-16 **2**、`stripePaymentIntentId` **4**；尺寸 61,526,016 → **61,544,960**。
+- **数字变化**：覆盖 18 → **19**；缺 47 → **46**；套件 +2；产物 +18,944 字节。
+- **证据等级**：Observation —— 65 个操作的地址与长度、两份 `approveMemberPayment` 的长度、49 个未覆盖名字。
+  Unknown —— 两份方言的选用条件；46 个未覆盖操作各自的发送方。
+- **还剩什么**：46 个未覆盖操作（清单已按长度排好，**逐轮取最大的那个**）；两份方言的选用条件；
+  `/cartApi/checkout` 归属；`AddressInput`；方言条件（blocker）；AO 三个 checkout 体；Saucony 六步路径。

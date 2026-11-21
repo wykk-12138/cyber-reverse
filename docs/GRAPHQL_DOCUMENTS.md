@@ -100,3 +100,17 @@
 
 `fetchProduct` = **5718** 字符（`0x1471407C4`），`setCustomerEmail` = **4986**（`0x1470F8234`），
 `addLineItem` = **3435**（`0x1470E6CDC`），`addDiscountCode` = **3399**（`0x1470E5234`）。
+
+## 操作清单（R1341）：镜像 65 个，复刻件覆盖 19 个
+
+**数法**：走区域 `0x1470C0000..0x147150000`，4 字节步长找冻结串头（`MT=0x144DB6A40` + 长度），
+读出所有以 `mutation `/`query ` 开头的对象。结果存 `analysis/.operations_in_image.json`。
+**不要用 `ida.py str "mutation "`** —— 它只报 7 个，长的文档不在它的"字符串"集合里。
+
+**方言对**：`approveMemberPayment` 在 `0x1470E9FA4`（5407，R1335 已用）与 `0x1470EC9FC`（5620）各有一份，
+**选用条件未定**。
+
+**待取清单**（`python analysis/operation_gap.py` 输出全表，按长度降序）：
+`ProductDetails`(26206)、`PayWithQuery`(12561)、`Product`(10620)、`ShopProductSearch`(6537)、
+`cartApiObjectCreate`(5876)、`setShippingAddress`(4992)、`setBillingAddress`(4989)、`CheckoutCart`(4102)、
+`GetCart`(3520)、`getCart`(3234)、`getPaymentdMethods`(3067)、`CreditCard`(2867)、`UpdateShippingAddress`(2386) …

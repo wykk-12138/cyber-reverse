@@ -8575,3 +8575,14 @@ Observation：
   已新增 `WarhammerSurface` 并在测试里把这对钉住。
 - 配置里还有 **945** 与 **1920** 字符的两个串，**是什么不知道，没有猜**。
 - 我把长度算错过一次（57 → 实测 38），按测量值改的。
+
+---
+
+## 第 1341 轮
+
+- **`ida.py str` 只报 7 个操作，实际 65 个** —— 它扫的不是文档池，**抽样支撑不了集合差**。
+  改为走区域 `0x1470C0000..0x147150000`（4 字节步长找冻结串头），**65 个操作**全列出来了
+  （`analysis/.operations_in_image.json`）。64 KiB 的 `get_bytes` 会被省略号截断，**必须 8 KiB 分块**。
+- **`approveMemberPayment` 有两份**：5407（R1335 已用）与 **5620**（`0x1470EC9FC`）。方言对，**选用条件未定**。
+- **覆盖 18/65 → 19/65**：把 Highsnobiety 的 `fetchOrderConfirmation`(4825) 接成 `SubmitOrderAsync`。
+  **缺 46 个**，按长度排序在 `operation_gap.py` 里，逐轮取最大。

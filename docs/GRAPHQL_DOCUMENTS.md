@@ -171,3 +171,21 @@ A 块其余 14 个操作（`createCart`、`setBillingAddress`、`removeLineItemF
 
 另外：`checkoutAsGuest`(148) 的发送方直接写出 **`https://www.on.com/ko-kr/graphql`**（On Running 韩语店面），
 `createCheckout`(720) 走 `apps/product-drops?kind=mutation&operation=createCheckout`。
+
+## 按哈希投递的一族（R1357）
+
+`sub_14088BB80`（`GetCartCookie` 名字的引用者）带：
+
+```
+x-graphql-hash          83c4b10c99a6f6c89abf7e84f83d5dc6360f8627eb2b70c7eb4b12590c6f1950
+                        b613893783ae3da73f38b5f93a9a59ccbaa7f131a209cac92634a93d06f06866
+x-graphql-query-name    x-header-id    Getting session    StatusInfo
+```
+
+| 操作 | 文档长度 | 地址 |
+|---|---|---|
+| `GetCartCookie` | 74 | 0x147120B5C |
+| `GetProductInventory` | 490 | 0x147120C0C |
+| `GetCart` | 3520 | 0x14711EFC4 |
+
+**两个哈希与三个操作的配对未成立** —— 实现里哈希一律由调用方给。见 `Flows/GraphQlHashQueries.cs`。

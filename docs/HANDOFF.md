@@ -8754,3 +8754,15 @@ Observation：
 - `CreditCard` 暂缓：**没有独立的操作名字符串**可跟（`ida.py str` 只回元数据）。
 - 工具链坑：`SubmitOrderAsync` 同文件出现 **7 次**，锚点必须先在 `class HighsnobietyFlow` 之后定位。
 - 覆盖 39 → **40/65**，缺 26 → **25**。
+
+---
+
+## 第 1357 轮
+
+- **`GetCartCookie` 一族发的是 GraphQL 哈希，不是文档**：处理器 `sub_14088BB80` 里有
+  `x-graphql-hash` / `x-graphql-query-name` / `x-header-id` 与两个 64 位十六进制值。
+  **这解释了它们为什么既无主机也无路径。**
+- 两个哈希、三个操作 → **配对不成立，只实现机制**（`GraphQlHashQueries`，哈希由调用方给；无哈希退回发文档）。
+- **OOM 崩溃恢复四步**：清 `obj/.../win-x64/native`（损坏 .obj 会 `LNK1136`）→ 重发 →
+  IDA 三模态（加载现有 / Proceed with unpacked base / Repair）→ `health ok`。
+- 覆盖 40 → **43/65**，缺 25 → **22**。

@@ -707,7 +707,25 @@ public abstract class StoreFlow
 
     // ── cart ──────────────────────────────────────────────────────────────────
     public virtual Task<StepOutcome> CreateCartAsync(FlowContext c, CancellationToken ct) => Ok();
-    public virtual Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct) => Ok();
+    public virtual async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
+    {
+        // R1357: the family that posts persisted queries by hash. When a run names an origin for it, the cart comes
+        // from there; the hash is the run's because the image holds two and pairs neither with an operation.
+        var hashOrigin = c.Session.Vars.GetValueOrDefault("graphqlHash.origin");
+        if (!string.IsNullOrEmpty(hashOrigin))
+        {
+            var (hashData, hashError) = await GraphQlHashQueries
+                .SendAsync(c, hashOrigin, "GetCart", new Newtonsoft.Json.Linq.JObject(),
+                    c.Session.Vars.GetValueOrDefault("graphqlHash.cartHash"), ct)
+                .ConfigureAwait(false);
+            if (hashData is null) return StepOutcome.Fail(hashError);
+
+            c.Session.Vars["cart"] = hashData.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
+        return await NotSupported("GetCart").ConfigureAwait(false);
+    }
     public virtual async Task<StepOutcome> ClearCartAsync(FlowContext c, CancellationToken ct)
     {
         // POST a zero-line cart; most platforms accept this as "empty my cart".

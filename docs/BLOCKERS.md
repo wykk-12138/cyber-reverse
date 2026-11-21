@@ -47916,3 +47916,13 @@ Inference = 「17 文件 mtime 来自变异改写」；**Unknown** = 并行会�
 3. **「Repair」** —— 修 `id0`，之后还会弹一次「Database still contains inconsistencies」→ 确定。
 
 之后 `python analysis/ida.py health` 应返回 `status: ok`（含 `hexrays_ready`）。
+
+## OOM 崩溃后的发布恢复（R1357 实测）
+
+`ilc` 若以 `0xC0000409` 崩掉，会留下**损坏的 `.obj`**，之后每次链接都报 `LNK1136: 无效或损坏的文件`：
+
+```
+Remove-Item -Recurse -Force replica\src\Cybersole.Ui\obj\Release\net8.0\win-x64\native
+```
+
+再重发即可。**内存必须留足**（实测 4.4 GB 时崩溃，16 GB 时成功）。

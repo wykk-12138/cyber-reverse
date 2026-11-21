@@ -8857,3 +8857,14 @@ Observation：
   `createMyPayment` **按 R1364 属于 Cybersource，不进**。
 - **告诫**：单变量名匹配会给出 `key→shop app`、`locale→tm-api` 的假阳性，**没有据此推主机**。
 - 覆盖 55 → **58/65**，缺 10 → **7**；产物三串各 UTF-16 命中 1。
+
+---
+
+## 第 1368 轮
+
+- **R1358 一条结论被推翻**：`getShippingMethods` **确有**独立操作名串（`0x14703FA94`），
+  `CreditCard` 在 `0x146BA9704` —— 当时 `--limit 8` 被 PascalCase 闭包名占满，**把截断读成了不存在**。
+- **`CreditCard`(2867) 落地**：相对路径 `api/checkout/v1/orders/<订单号>/finalize` + 五个卡字段
+  → `Flows/CheckoutCreditCard`，接进 `SubmitCardAsync`。**另一处理器是 Nike NL 变体，只记不并。**
+- `getShippingMethods` 两处理器：一个 Magento 费率字段，一个 **PANINI 族**。均无主机 → 仍需抓包。
+- 覆盖 58 → **59/65**，缺 7 → **6**；产物 `api/checkout/v1/orders/` 命中 1。

@@ -71549,3 +71549,35 @@ metrics_report.py 第一次全量跑出 **2757 通过 / 1 失败**，随即原�
   Unknown —— 30 个店铺名与 64 个支付名的**行为**（需按地址逐条反编译）。
 - **还剩什么**：7 条 GraphQL（`CreditCard`/`getShippingMethods` 无名字串、`createMyPayment`（Cybersource）、
   `getCart`/`saveAddress` 已落地不计、两方言、AO/Saucony/cartApi）+ 30 店铺名 + 64 支付名。
+
+---
+
+## 第 1368 轮：`CreditCard` 落地；**同时推翻 R1358 的一条错误结论**
+
+- **先纠错**：R1358 说 `getShippingMethods` "没有独立操作名字符串" —— **错了**。
+  它就在 **`0x14703FA94`**，`CreditCard` 在 **`0x146BA9704`**。
+  **当时 `ida.py str --limit 8` 先返回八个 PascalCase 闭包名就停了** ——
+  **一次被截断的搜索不是"不存在"的证据**。这条写进 VERDICT，也写进 ASYNC_TAIL 的告诫段落。
+- **`CreditCard`(2867) 两个处理器**：
+  - `sub_140AAE300`：**`api/checkout/v1/orders/` + 订单号 + `/finalize`**
+    （`cardNumber`/`cardCvv`/`cardExpiryMonth`/`cardExpiryYear`/`cardName`、标签 `Submit order`）
+    —— **相对路径，所以 origin 由调用方给，订单号是路径段而不是变量**；
+  - `sub_140B29DA7`：**`https://www.nike.com/nl/checkout/confirmation?cid=`** + `Submit payment` + `SHIP`/`ASTLA`
+    —— **Nike 变体**，归 Nike 自己那些步骤，**只记不并**。
+- **`getShippingMethods`(531) 两个处理器**：一个只读 `carrier_code`/`carrier_title`/`method_code`/`method_title`
+  （Magento 费率形状），另一个带 **`onepanini`/`Panini`** 与 `city`/`countryId`/`postcode` —— **又是 PANINI 族**。
+- **落码**：`Flows/CheckoutCreditCard`（文档 + 路径前后缀 + 五个卡字段 + `UrlFor` + `SubmitAsync`），
+  接进 `StoreFlow.SubmitCardAsync`（`checkout.origin` + `checkout.orderId` 触发，**卡字段全部取自会话**）。
+- **产物**：`api/checkout/v1/orders/` UTF-16 命中 **1**；尺寸 61,993,984 → **61,997,568**。
+
+### 五要素
+
+- **改了什么**：新增 `Flows/CheckoutCreditCard.cs`、`tests/CheckoutCreditCardTests.cs`（3 条）；
+  `StoreFlow.SubmitCardAsync` 加分支；新增 3 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`CheckoutCreditCardTests` → **3/3**；`StoreFlow|Shortage` → **25/25**；
+  `operation_gap.py` → 覆盖 **59/65**（缺 6）；`orphan_documents.py` → 0；产物 ASCII 命中 1；尺寸见上。
+- **数字变化**：覆盖 58 → **59**；缺 7 → **6**；套件 +3；产物 +16,896 字节。
+- **证据等级**：Observation —— 两个处理器各自的路径与字段、Nike 变体、`getShippingMethods` 的两个处理器、产物命中。
+  Correction —— **R1358 的"无操作名字符串"是被截断的搜索造成的误判**。
+- **还剩什么**：6 条 —— `getShippingMethods`(531)（两处理器都无主机）、`createMyPayment`(493)（Cybersource）、
+  两方言、AO 三个体、Saucony 六步、`/cartApi/checkout`、`AddressInput`、浏览器侧结账面。

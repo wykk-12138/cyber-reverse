@@ -1677,6 +1677,32 @@ public abstract class StoreFlow
     }
     public virtual async Task<StepOutcome> SubmitCardAsync(FlowContext c, CancellationToken ct)
     {
+        // R1368: the generic card finalisation, when a run names the checkout origin and the order id. Both are the
+        // run's; the path shape (api/checkout/v1/orders/<id>/finalize) is the image's.
+        var checkoutOrigin = c.Session.Vars.GetValueOrDefault("checkout.origin");
+        var checkoutOrder = c.Session.Vars.GetValueOrDefault("checkout.orderId");
+        if (!string.IsNullOrEmpty(checkoutOrigin) && !string.IsNullOrEmpty(checkoutOrder))
+        {
+            var checkoutCard = new Newtonsoft.Json.Linq.JObject();
+            foreach (var field in CheckoutCreditCard.CardFields)
+            {
+                var value = c.Session.Vars.GetValueOrDefault("checkout." + field);
+                if (!string.IsNullOrEmpty(value)) checkoutCard[field] = value;
+            }
+
+            if (checkoutCard.Count == 0)
+                return StepOutcome.Fail("checkout-card: no card fields in the session");
+
+            var (cardData, cardError) = await CheckoutCreditCard
+                .SubmitAsync(c, checkoutOrigin, checkoutOrder,
+                    new Newtonsoft.Json.Linq.JObject { ["input"] = checkoutCard }, ct)
+                .ConfigureAwait(false);
+            if (cardData is null) return StepOutcome.Fail(cardError);
+
+            c.Session.Vars["checkoutResult"] = cardData.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         var card = c.Card;
         if (card?.Number is null) return StepOutcome.Fail("no card");
 

@@ -87,3 +87,20 @@ python tools/mutation-check.py           # 变异套件
 三个都试过）。**所以这一队列要按地址逐条反编译，不能按名。**
 
 **已落地其一**：`saveAddress`(296) → `StoreSessionQueries`（长尾里的 `SaveAddress` 名字与文档互证）。
+
+---
+
+## 八、一条方法论纠正（R1368）
+
+R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名字符串"。**两者都有**：
+
+| 操作 | 独立串地址 | 两个处理器 |
+|---|---|---|
+| `CreditCard` | `0x146BA9704` | `api/checkout/v1/orders/<id>/finalize`（已落地）/ Nike NL 变体 |
+| `getShippingMethods` | `0x14703FA94` | Magento 费率字段 / PANINI 族 |
+
+**错因**：`ida.py str <名> --limit 8` 先返回八个 PascalCase 闭包名就截断了。
+
+> **一次被截断的搜索不是"不存在"的证据。** 反向结论必须用不截断的检索，或换地址直查。
+
+`getShippingMethods` 仍未落地：两个处理器**都没有主机**，需要抓包。

@@ -6,15 +6,15 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 08:16:34 +0800 |
+| 生成时间 | 2026-11-21 08:37:45 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2647 通过 / 0 失败 / 0 跳过 / 2647 总计** |
+| 完整套件 | **2648 通过 / 0 失败 / 0 跳过 / 2648 总计** |
 
 ## 时效警告（生成）
 
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新，其中 1 个相对 HEAD 真的改过（共 16347 行）。它描述的不是当前源码。
+> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新，其中 1 个相对 HEAD 真的改过（共 16395 行）。它描述的不是当前源码。
 
 ## 摘要素值
 
@@ -41,7 +41,7 @@
 | 函数数量（.pdata） — functions: replica .pdata | 188,330 |
 | 函数数量（.pdata） — functions: ratio | 67.96% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
-| 产物陈旧度（.publish-aot vs src） — lines in those files | 16347 |
+| 产物陈旧度（.publish-aot vs src） — lines in those files | 16395 |
 | 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
 | 核心覆盖：store 宿主 — core: flows | 20 |
 | 核心覆盖：store 宿主 — core: override steps | 394 |
@@ -402,13 +402,13 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 08:04:14
-publish artifact size: 61368320 bytes
-publish artifact sha256: f169fdeb979a2b5c2f6cfbb9f9acd2281f9173659a9306caf7dcef1bf8711f54
-embedded source revision: 6e0c829fb8cd (is HEAD)
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 08:10:09)
+publish artifact mtime: 2026-11-21 08:25:29
+publish artifact size: 61370368 bytes
+publish artifact sha256: 16791e4daa74d1cdf9dfb5250f56cf2b1a1bfb056cf533618facff35db633fe4
+embedded source revision: 685fce352c1c (is HEAD)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 08:31:22)
 source files newer than the artifact: 17
-lines in those files: 16347
+lines in those files: 16395
 of those, changed against HEAD: 1
 publish artifact state: stale
 
@@ -465,18 +465,18 @@ C:\Python312\python.exe tools/pe_sections.py
   .reloc     0x78BB000    0x7C7BC10    3935744      R
 
   section-mass-original-executable: 51695104
-=== REPLICA  image base 0x140000000  file 61368320 bytes ===
+=== REPLICA  image base 0x140000000  file 61370368 bytes ===
   name       rva start    rva end      raw size     flags
   ------------------------------------------------------------------
   .text      0x1000       0x107DD8     1076736      X
   .managed   0x108000     0x1E27EA8    30539776     X
-  hydrated   0x1E28000    0x2E5EA20    0            RW
-  .rdata     0x2E5F000    0x4808D56    26910208     R
-  .data      0x4809000    0x490D6D8    236544       RW
-  .pdata     0x490E000    0x4B35A54    2259968      R
-  _RDATA     0x4B36000    0x4B360F4    512          R
-  .rsrc      0x4B37000    0x4B827E7    309248       R
-  .reloc     0x4B83000    0x4B8B550    34304        R
+  hydrated   0x1E28000    0x2E5F0D0    0            RW
+  .rdata     0x2E60000    0x480A456    26912256     R
+  .data      0x480B000    0x490F6D8    236544       RW
+  .pdata     0x4910000    0x4B37A54    2259968      R
+  _RDATA     0x4B38000    0x4B380F4    512          R
+  .rsrc      0x4B39000    0x4B847E7    309248       R
+  .reloc     0x4B85000    0x4B8D568    34304        R
 
   section-mass-replica-executable: 31616512
   section-mass-ratio: 61.16%
@@ -594,7 +594,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2647 通过 / 0 失败 / 0 跳过 / 2647 总计
+`exit 0` · 2648 通过 / 0 失败 / 0 跳过 / 2648 总计
 
 ```text
   正在确定要还原的项目…
@@ -611,7 +611,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2647，已跳过:     0，总计:  2647，持续时间: 5 m 41 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2648，已跳过:     0，总计:  2648，持续时间: 5 m 43 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

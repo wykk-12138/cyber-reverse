@@ -773,8 +773,34 @@ public sealed class PayPalThreeDsTests
         Assert.Equal(PayPalThreeDs.ResolveDocumentWithoutProviderFields,
             PayPalThreeDs.DocumentFor(PayPalThreeDs.ResolveOperation, providerFields: false));
 
-        // The flag only applies to the resolve operation; the other three are unaffected.
-        Assert.Equal(PayPalThreeDs.LookUpDocument,
+        // R1324: this assertion used to say the flag did not affect the look-up. It does: the image sends
+        // two look-up dialects too, differing by the same authenticationProvider block as the resolve pair.
+        Assert.Equal(PayPalThreeDs.LookUpDocumentWithoutProviderFields,
             PayPalThreeDs.DocumentFor(PayPalThreeDs.LookUpOperation, providerFields: false));
+        // The two operations without a pair are still unaffected.
+        Assert.Equal(PayPalThreeDs.AuthenticateDocument,
+            PayPalThreeDs.DocumentFor(PayPalThreeDs.AuthenticateOperation, providerFields: false));
+    }
+
+    /// <summary>
+    /// R1324: the look-up pair differs by the same field as the resolve pair — 27 characters at offset 827 —
+    /// which is what turns two coincidences into one dialect question. Both operations are live in the image,
+    /// so both texts have to be present and selectable.
+    /// </summary>
+    [Fact]
+    public void TheLookUpPairDiffersByTheSameProviderField()
+    {
+        Assert.Equal(871, PayPalThreeDs.LookUpDocument.Length);
+        Assert.Equal(844, PayPalThreeDs.LookUpDocumentWithoutProviderFields.Length);
+
+        var shortText = PayPalThreeDs.LookUpDocumentWithoutProviderFields;
+        var longText = PayPalThreeDs.LookUpDocument;
+
+        Assert.Equal(shortText[..827], longText[..827]);
+        Assert.Equal(shortText[827..], longText[854..]);
+        Assert.Equal("authenticationProvider", longText[827..854].Trim());
+        Assert.DoesNotContain("authenticationProvider", shortText);
+        Assert.Equal(813, PayPalThreeDs.AuthenticateDocument.Length);
+        Assert.DoesNotContain("authenticationProvider", PayPalThreeDs.AuthenticateDocument);
     }
 }

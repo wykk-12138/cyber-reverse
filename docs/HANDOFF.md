@@ -8382,3 +8382,14 @@ Observation：
 - 唯一差异：B 在 **offset 2890** 插入 **108 字符**的 provider/device-data 字段块，相似度 0.995 —— 是方言不是两份文档。
 - `DocumentFor(operationName, providerFields = true)`：**默认不变**，要短那份显式传 `false`；测试钉住插入点。
 - 工具坑：`get_bytes` 读 22 KB 时返回形状变化 → **读大字符串要 8 KiB 分块**。
+
+---
+
+## 第 1324 轮
+
+- **look-up 也是方言对**：844（`0x1470E261C`）与 871（`0x1470E2CCC`），差 **27 字符 `authenticationProvider`**（offset 827）——
+  和 resolve 那一对差的是同一个字段。**一个方言问题，不是两次巧合。**
+- authenticate 813 只有一份，本来不含该字段；复刻件里它一直是对的。
+- **改正了上一轮的错误断言**：`providerFields` 现在对 resolve 与 look-up **同时**生效，默认仍为长那份。
+- 五个 3DS 文档常量全部与镜像逐字节一致（`verify_three_ds_docs.py`）。
+- 下一步是**"会选"**：读那两个 14–15 KB 的函数，定出选方言的条件。

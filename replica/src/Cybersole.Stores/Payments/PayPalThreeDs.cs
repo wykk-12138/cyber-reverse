@@ -899,12 +899,19 @@ fragment InstallmentsFragment on FundingInstrument {
     }
 
     /// <summary>The frozen document for an operation name — the four the machine sends.</summary>
+    /// <summary>
+    /// The document for an operation. <paramref name="providerFields"/> selects the dialect: the image
+    /// sends both a resolve and a look-up that include <c>authenticationProvider</c> and one of each that
+    /// does not. The default is the longer text, which is what this method returned before the pairs were
+    /// known.
+    /// </summary>
     public static string DocumentFor(string operationName, bool providerFields = true) =>
         operationName switch
         {
             JwtQueryOperation => JwtQueryDocument,
             AuthenticateOperation => AuthenticateDocument,
-            LookUpOperation => LookUpDocument,
+            // R1324: the look-up has the same pair, so the flag means the same thing here.
+            LookUpOperation => providerFields ? LookUpDocument : LookUpDocumentWithoutProviderFields,
             // R1323: the image sends two variants of the resolve mutation from two functions. The default is
             // the longer one, which is what this method returned before the variant was known.
             ResolveOperation => providerFields ? ResolveDocument : ResolveDocumentWithoutProviderFields,
@@ -1502,6 +1509,47 @@ fragment InstallmentsFragment on FundingInstrument {
     __typename
   }
   __typename
+}
+";
+
+    /// <summary>
+    /// The other live variant of the look-up mutation — 844 characters from 0x1470E261C. It is
+    /// <see cref="LookUpDocument"/> minus the same <c>authenticationProvider</c> field block the resolve pair
+    /// differs by (27 characters at offset 827), which is what makes the two pairs one dialect question
+    /// rather than two coincidences.
+    /// </summary>
+    public const string LookUpDocumentWithoutProviderFields = @"mutation ThreeDsLookUpMutation($token: String!, $amount: AmountInput!, $productDetails: ProductDetails, $browserInfo: ThreedsBrowserDetailsInput, $threedsLookUpPayload: threedsLookUpPayload!) {
+  threeDSLookUp(
+    token: $token
+    amount: $amount
+    productDetails: $productDetails
+    browserInfo: $browserInfo
+    threedsLookUpPayload: $threedsLookUpPayload
+  ) {
+    acsURL {
+      href
+      __typename
+    }
+    redirectURL {
+      href
+      __typename
+    }
+    cavv
+    threeDSStatus
+    transactionId
+    liabilityShift
+    enrollmentStatus
+    cardBrandProcessed
+    threeDSUcafIndicator
+    threeDSEcommerceIndicator
+    threeDsServerTransactionId
+    threeDsProcessorTraceNumber
+    authenticationThreeDSStatus
+    signatureVerificationStatus
+    threeDsAuthenticationReason
+    paymentAuthenticationRequest
+    __typename
+  }
 }
 ";
 

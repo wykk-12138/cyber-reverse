@@ -1030,6 +1030,13 @@ public sealed class WarhammerFlow : StoreFlow
     /// placeholder, because a rejected approval looks the same as a declined card from the caller's side.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// The store's API host, with a session override — the same seam other flows in this file use so a
+    /// capture or a test can point the flow somewhere else without a rebuild. The default is unchanged.
+    /// </summary>
+    private static string ApiHostFor(FlowContext c) =>
+        c.Session.Vars.TryGetValue("wh.apiHost", out var host) && !string.IsNullOrEmpty(host) ? host : ApiHost;
+
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
         ApplyWaf(c);
@@ -1046,6 +1053,56 @@ public sealed class WarhammerFlow : StoreFlow
         if (c.Session.Vars.TryGetValue("paymentInstrumentId", out var instrument) && instrument.Length > 0)
             variables["instrumentId"] = instrument;
 
+        // R1328: the image's guest-checkout chain has a hop before approval — OnboardGuestMutation, which takes
+        // the same token plus the addresses and the profile names, and produces the buyer that approval's reply
+        // refers to. It runs only when the run carries the two address inputs, because their shape is
+        // AddressInput and nothing in this flow builds one: guessing Magento's field names for a different API
+        // would send the store a document it rejects, which is worse than skipping. When they are absent the
+        // skip is announced, so a reader can tell "onboarding did not run" from "onboarding ran and found
+        // nothing" — and the session keys named here are what a capture has to fill.
+        if (c.Session.Vars.TryGetValue("wh.onboard.billing", out var billingJson) &&
+            c.Session.Vars.TryGetValue("wh.onboard.shipping", out var shippingJson) &&
+            billingJson.Length > 0 && shippingJson.Length > 0)
+        {
+            var onboardVariables = new JObject
+            {
+                ["token"] = token,
+                ["firstName"] = c.ProfileData?.FirstName ?? string.Empty,
+                ["lastName"] = c.ProfileData?.LastName ?? string.Empty,
+                ["email"] = c.ProfileData?.Email,
+                ["phone"] = c.ProfileData?.Phone,
+                ["shareAddressWithDonatee"] = false,
+                ["billingAddress"] = JObject.Parse(billingJson),
+                ["shippingAddress"] = JObject.Parse(shippingJson),
+            };
+            if (!string.IsNullOrEmpty(c.ProfileData?.Country)) onboardVariables["country"] = c.ProfileData!.Country;
+
+            var onboardBody = new JObject
+            {
+                ["operationName"] = "OnboardGuestMutation",
+                ["query"] = WarhammerQueries.OnboardGuestMutation,
+                ["variables"] = onboardVariables,
+            };
+
+            var onboarded = await PostJsonAsync(c, ApiHostFor(c) + "/graphql",
+                onboardBody.ToString(Newtonsoft.Json.Formatting.None), "wh-onboard", ct).ConfigureAwait(false);
+
+            if (onboarded is null) return StepOutcome.Fail("warhammer onboarding failed", retryable: true);
+            if (onboarded.IsSuccess && onboarded.Body.Contains("\"errors\"", StringComparison.Ordinal))
+                return StepOutcome.Fail("warhammer onboarding: graphql returned errors");
+            if (!onboarded.IsSuccess)
+                return StepOutcome.Fail($"warhammer onboarding HTTP {onboarded.StatusCode}", retryable: true);
+
+            c.Session.Vars["wh.onboarded"] = "1";
+            c.Session.Vars["wh.onboard.reply"] = onboarded.Body;
+        }
+        else
+        {
+            c.Session.Vars["wh.onboardSkipped"] = "1";
+            c.Emit("warhammer: no wh.onboard.billing / wh.onboard.shipping, so OnboardGuestMutation did not run " +
+                   "— approval goes out on its own", "StatusInfo");
+        }
+
         var body = new JObject
         {
             ["operationName"] = "ApproveOnboardPaymentMutation",
@@ -1053,7 +1110,7 @@ public sealed class WarhammerFlow : StoreFlow
             ["variables"] = variables,
         };
 
-        var res = await PostJsonAsync(c, ApiHost + "/graphql",
+        var res = await PostJsonAsync(c, ApiHostFor(c) + "/graphql",
             body.ToString(Newtonsoft.Json.Formatting.None), "wh-payment", ct).ConfigureAwait(false);
 
         if (res is null) return StepOutcome.Fail("warhammer payment failed", retryable: true);

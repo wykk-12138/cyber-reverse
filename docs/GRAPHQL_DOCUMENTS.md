@@ -49,7 +49,7 @@
 
 | 地址 | 长度 | 名称 | 状态 |
 |---|---|---|---|
-| `0x1470D611C` | 3104 | `OnboardGuestMutation` | 已解码，`analysis/.paypal_onboard.json`；没有已证实的步骤接它 |
+| `0x1470D611C` | 3104 | `OnboardGuestMutation` | **R1328 已落地**：`WarhammerQueries.OnboardGuestMutation`，接在审批之前 |
 | `0x1470CC8CC` | 4040 | `ApproveOnboardPaymentMutation` | **已修复**：`WarhammerQueries` 里那份曾被截断标记污染 |
 | `0x1470D0FB4` | 10406 | `CurrencyConversion` | 已解码，同上 |
 

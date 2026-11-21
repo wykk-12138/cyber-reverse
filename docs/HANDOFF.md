@@ -8425,3 +8425,14 @@ Observation：
 - `ShopifyGraphQl.CartSelection` 的不平衡是**对的**：它是池子里的片段，开头就是被剥掉的 header 尾巴。
   规则因此给"以 `)`/`,`/`"` 开头"的常量豁免。
 - **全仓不变量**：`GeneratedDocumentTests`（13 条，含一条"扫描确实找到东西"的人口断言）。未改 `replica/src`。
+
+---
+
+## 第 1328 轮
+
+- `OnboardGuestMutation`(3104) **接在 Warhammer 流**：它的变量正是那条流已收集的地址+资料+token，
+  兄弟 `ApproveOnboardPaymentMutation` 就在同一步里发，URL 在镜像里相邻。**不造新家。**
+- **不发猜的形状**：`AddressInput` 字段形状镜像里没有 → 只有会话带 `wh.onboard.billing/shipping` 才发安户跳，
+  否则**发 StatusInfo 说明跳过原因**再照旧审批。顺序（安户→审批）标为 Inference。
+- 加了 `wh.apiHost` 会话覆盖（默认不变），让这条流可被测试拦截 —— 原先是绝对地址，测试够不着。
+- 审计 15 个常量 0 问题；产物 `onboardGuest` 命中 1。

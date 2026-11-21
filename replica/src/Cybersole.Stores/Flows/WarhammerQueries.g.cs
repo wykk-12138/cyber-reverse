@@ -462,6 +462,158 @@ fragment giftWithPurchaseFields on GiftWithPurchasePromo {
   }
 }";
 
+    /// <summary>
+    /// R1328: the guest-onboarding mutation, 3104 characters from 0x1470D611C. It is the step before
+    /// <see cref="ApproveOnboardPaymentMutation"/> — it takes the same addresses, the card and the
+    /// provider token the approval takes, and produces the buyer the approval refers to.
+    /// </summary>
+    public const string OnboardGuestMutation = @"mutation OnboardGuestMutation($bank: BankAccountInput, $billingAddress: AddressInput, $card: CardInput, $country: CountryCodes, $currencyConversionType: CheckoutCurrencyConversionType, $dateOfBirth: DateOfBirth, $email: String, $firstName: String!, $lastName: String!, $phone: PhoneInput, $shareAddressWithDonatee: Boolean, $shippingAddress: AddressInput, $supportedThreeDsExperiences: [ThreeDSPaymentExperience], $token: String!) {
+  onboardAccount: onboardGuest(
+    bank: $bank
+    billingAddress: $billingAddress
+    card: $card
+    country: $country
+    currencyConversionType: $currencyConversionType
+    dateOfBirth: $dateOfBirth
+    email: $email
+    firstName: $firstName
+    lastName: $lastName
+    phone: $phone
+    shareAddressWithDonatee: $shareAddressWithDonatee
+    shippingAddress: $shippingAddress
+    token: $token
+  ) {
+    buyer {
+      auth {
+        accessToken
+        __typename
+      }
+      userId
+      __typename
+    }
+    flags {
+      is3DSecureRequired
+      __typename
+    }
+    ...fundingOptions
+    paymentContingencies {
+      threeDomainSecure(experiences: $supportedThreeDsExperiences) {
+        status
+        redirectUrl {
+          href
+          __typename
+        }
+        method
+        parameter
+        experience
+        requestParams {
+          key
+          value
+          __typename
+        }
+        __typename
+      }
+      ...threeDSContingencyData
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment fundingOptions on CheckoutSession {
+  fundingOptions {
+    allPlans {
+      fundingSources {
+        fundingInstrument {
+          id
+          __typename
+        }
+        amount {
+          currencyCode
+          currencyValue
+          __typename
+        }
+        __typename
+      }
+      fundingContingencies {
+        ... on OpenBankingContingency {
+          encryptedId
+          contingencyReasons
+          contingencyType
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    fundingInstrument {
+      id
+      lastDigits
+      name
+      nameDescription
+      type
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+
+fragment threeDSContingencyData on PaymentContingencies {
+  threeDSContingencyData {
+    name
+    causeName
+    resolution {
+      type
+      resolutionName
+      paymentCard {
+        billingAddress {
+          line1
+          line2
+          city
+          state
+          country
+          postalCode
+          __typename
+        }
+        expireYear
+        expireMonth
+        currencyCode
+        cardProductClass
+        id
+        encryptedNumber
+        type
+        number
+        bankIdentificationNumber
+        __typename
+      }
+      contingencyContext {
+        deviceDataCollectionUrl {
+          href
+          __typename
+        }
+        jwtSpecification {
+          jwtDuration
+          jwtIssuer
+          jwtOrgUnitId
+          type
+          __typename
+        }
+        authenticationProvider
+        cardBrandProcessed
+        reason
+        referenceId
+        source
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  __typename
+}
+";
+
     /// <summary>4022 characters, name from declared.</summary>
     /// <summary>
     /// R1326: rebuilt from the image (0x1470CC8CC, 4040 characters). The copy that was here ended with a

@@ -2109,6 +2109,32 @@ public sealed class PayPalGateway : IPaymentGateway
         // the session, and without the token the step falls through to the paths below unchanged.
         var partnerToken = c.Session.Vars.GetValueOrDefault("paypal.partnerToken");
 
+        // R1343: the checkout pair, when a run asks for it. PayWithQuery says what the buyer can pay with and
+        // ShipToQuery where it ships; both are keyed by the buyer token and both go to the partner base, so they
+        // run before the approval that uses their answers. Same reasoning as the conversion above: a session key
+        // a capture supplies, no invented defaults.
+        if (!string.IsNullOrEmpty(partnerToken) &&
+            string.Equals(c.Session.Vars.GetValueOrDefault("paypal.checkout"), "true", StringComparison.OrdinalIgnoreCase))
+        {
+            var token = new JObject { ["token"] = partnerToken };
+
+            var (payWith, payWithError) = await PayPalCheckoutQueries
+                .PayWithAsync(c, new JObject
+                {
+                    ["token"] = partnerToken,
+                    ["withSplitTender"] = false,
+                    ["expeirences"] = new JArray(),
+                }, ct, c.Session.Vars.GetValueOrDefault("paypal.payWithUrl")).ConfigureAwait(false);
+            if (payWith is null) return PaymentResult.Fail(payWithError);
+            c.Session.Vars["paypal.payWith"] = payWith.ToString(Newtonsoft.Json.Formatting.None);
+
+            var (shipTo, shipToError) = await PayPalCheckoutQueries
+                .ShipToAsync(c, token, ct, c.Session.Vars.GetValueOrDefault("paypal.shipToUrl"))
+                .ConfigureAwait(false);
+            if (shipTo is null) return PaymentResult.Fail(shipToError);
+            c.Session.Vars["paypal.shipTo"] = shipTo.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
         // R1336: the conversion goes first when the run asks for one. The image's sender writes the middle
         // variable key as "expeirences" — the document calls it $experiences — so the request keeps that
         // spelling: correcting it would be a behaviour change dressed as housekeeping.

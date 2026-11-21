@@ -8598,3 +8598,14 @@ Observation：
 - **IDA 又掉了一次并自愈**：进程不在 → 重启 **`ida.exe`**（不是 ida64）→ 三个模态框
   （Proceed with unpacked base / Yes 修 .id0 / OK inconsistencies）→ health ok。
 - 又一次"先假设形状"：断言文档尾是 `"}\n"`，实测是 `}\r\n` + 24 空格。改成用测量值。
+
+---
+
+## 第 1343 轮
+
+- **`PayWithQuery`(12561) + `ShipToQuery`(2031) 一起落地**（同一个发送方 `0x14110D030` 发两份）。
+  `expeirences` 错拼照抄。另有浏览器侧结账面（`checkoutuinodeweb_hermione` 等）**未实现**，无选用证据。
+- **抓到"整类被裁"**：加完类后**产物尺寸一字未动、两份文档两编码都搜不到** → 文档有调用者，但**方法没有调用者**。
+  接到 `PayPalGateway.AuthorizeAsync` 后：三串命中 1/1/2，尺寸 **+41,984**。**同一份源码的正向对照。**
+- **方法论更新**：**可达性规则要覆盖"API 表面"，不只是"常量"。**
+- 覆盖 20 → **22/65**，缺 45 → **43**。

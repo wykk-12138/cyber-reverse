@@ -47858,3 +47858,19 @@ Inference = 「17 文件 mtime 来自变异改写」；**Unknown** = 并行会�
   ① 找到一条**只有 Casio 用**的下单/支付端点字面量（当作锚）；
   ② 一次实机抓包，直接看报文里 `_timestamp`/`_hash` 怎么算。
 - **在此之前**：不再重复上面三次尝试，也不把任何"看起来像签名"的 blob 写进实现。
+
+---
+
+## R1326 · PayPal 3DS 方言的选择条件：四轮未解，转为 blocked
+
+- **要回答的问题**：镜像据什么条件在两份 `ResolveThreeDsContingency`/`ThreeDsLookUpMutation` 方言之间选。
+- **四轮积累的否定证据**（都可复算）：
+  1. **R1323**：两份文档**各自冻结完整**、**各一个引用点**（`sub_14110FDB0` 14458B 发短的，`sub_141113680` 15615B 发长的），
+     差异是一整块字段（resolve 108 字符 @2890；look-up 27 字符 @827），**运行时不拼片段**。
+  2. **R1324**：resolve 与 look-up **都是方言对**，差的是**同一个字段** `authenticationProvider`；authenticate 只有一份。
+  3. **R1325**：两个变体的 MoveNext 桩 `0x14258A4A0`/`0x14258A600` **相距 0x160** → 同一个类的两个异步方法。
+  4. **R1326**：六个操作**共用同一端点族** `https://www.paypal.com/graphql?<Operation>`（无 `graphql/partner`）；
+     从桩往上走**进数据表**（`0x14777a93c`/`0x14777a96c`，相距 0x30）→ **方法表分发，无 if 可读**。
+- **解除条件**：一次带 3DS 挑战的抓包，看 `authenticationProvider` 是否出现在请求文档里。**这是唯一剩下的路径。**
+- **复刻件的处置**：`paypal3ds.providerFields` 会话开关（R1325），**默认长那份**（= 改动前行为）。
+  **不要**再靠读那两个 15 KB 异步体猜条件。

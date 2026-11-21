@@ -44,3 +44,13 @@
 **镜像据什么条件选，仍未解。** 复刻件因此提供运行时可切：
 `paypal3ds.providerFields`（缺省 `true` = 带 `authenticationProvider` 的那份），由
 `PayPalThreeDs.ProviderFieldsRequested` 读取、`GqlAsync` 使用。一次抓包即可定案。
+
+## 已解码、尚无归宿（R1326）
+
+| 地址 | 长度 | 名称 | 状态 |
+|---|---|---|---|
+| `0x1470D611C` | 3104 | `OnboardGuestMutation` | 已解码，`analysis/.paypal_onboard.json`；没有已证实的步骤接它 |
+| `0x1470CC8CC` | 4040 | `ApproveOnboardPaymentMutation` | **已修复**：`WarhammerQueries` 里那份曾被截断标记污染 |
+| `0x1470D0FB4` | 10406 | `CurrencyConversion` | 已解码，同上 |
+
+`OnboardGuestMutation` 与 `CurrencyConversion` **故意没有落进 `src`**：没有调用点的类型会被 AOT 裁掉（R1310 的教训）。

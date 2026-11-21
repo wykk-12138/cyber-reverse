@@ -8404,3 +8404,13 @@ Observation：
   **一次抓包即可定案，无需改码。**
 - 可达性按 §4.5 走哈希：上轮 `16791e4d…` → 本轮 `50a245c0…`，**同尺寸**，两轮之间只有本轮三处改动 ⇒ 新代码进产物。
   附带：`paypal3ds.providerFields` 两种编码都搜不到，而 `casio.cartVersion` 搜得到 —— **有对照的缺席仍不是证据**。
+
+---
+
+## 第 1326 轮
+
+- 方言条件**记 blocker**：四轮否定证据（各引用点/整块字段差/MoveNext 桩相距 0x160/共用端点+方法表分发）。**解除条件=抓包。**
+- **撞出真 bug**：`WarhammerQueries.ApproveOnboardPaymentMutation` 结尾是字面量 `[4040 chars total]` ——
+  从显示输出粘来的截断标记，文档在中间就断了，**这条流一直在发畸形 GraphQL**。已按镜像 4040 字符逐字节重建。
+- 全树扫 `[N chars total]` 只有这一处；新增反射守卫遍历 `WarhammerQueries` 全部常量，**粘贴错误不再靠人眼**。
+- 已解码待落：`OnboardGuestMutation` 3104、`CurrencyConversion` 10406。

@@ -463,6 +463,10 @@ fragment giftWithPurchaseFields on GiftWithPurchasePromo {
 }";
 
     /// <summary>4022 characters, name from declared.</summary>
+    /// <summary>
+    /// R1326: rebuilt from the image (0x1470CC8CC, 4040 characters). The copy that was here ended with a
+    /// truncation marker pasted out of a display, so it stopped mid-document.
+    /// </summary>
     public const string ApproveOnboardPaymentMutation = @"mutation ApproveOnboardPaymentMutation($token: String!, $instrumentId: String, $isBillingAgreement: Boolean!, $supportedThreeDsExperiences: [ThreeDSPaymentExperience]) {
   attemptSetStickyFi(token: $token, instrumentId: $instrumentId) @include(if: $isBillingAgreement) {
     buyer {
@@ -685,6 +689,11 @@ fragment threeDSContingencyData on PaymentContingencies {
         __typename
       }
       __typename
-... [4040 chars total]";
+    }
+    __typename
+  }
+  __typename
+}
+";
 
 }

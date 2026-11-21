@@ -6,15 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-11-21 09:00:16 +0800 |
+| 生成时间 | 2026-11-21 09:24:17 +0800 |
 | 工作目录 | `D:\projects\cyber-reverse\replica` |
 | 生成命令 | `python tools/metrics_report.py` |
 | 度量脚本结果 | 全部 exit 0 |
-| 完整套件 | **2656 通过 / 0 失败 / 0 跳过 / 2656 总计** |
-
-## 时效警告（生成）
-
-> **函数数量那一行来自一个陈旧的 `.publish-aot`**：有 17 个源文件比产物新，其中 1 个相对 HEAD 真的改过（共 16415 行）。它描述的不是当前源码。
+| 完整套件 | **2657 通过 / 0 失败 / 0 跳过 / 2657 总计** |
 
 ## 摘要素值
 
@@ -42,7 +38,7 @@
 | 函数数量（.pdata） — functions: ratio | 67.96% |
 | 产物陈旧度（.publish-aot vs src） — source files newer than the artifact | 17 |
 | 产物陈旧度（.publish-aot vs src） — lines in those files | 16415 |
-| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 1 |
+| 产物陈旧度（.publish-aot vs src） — of those, changed against HEAD | 0 |
 | 核心覆盖：store 宿主 — core: flows | 20 |
 | 核心覆盖：store 宿主 — core: override steps | 394 |
 | 核心覆盖：store 宿主 — core: unknown placeholders | 1 |
@@ -402,18 +398,18 @@ C:\Python312\python.exe tools/artifact_freshness.py
 
 ```text
 publish artifact: .publish-aot\Cybersole.Ui.exe
-publish artifact mtime: 2026-11-21 08:47:36
+publish artifact mtime: 2026-11-21 09:11:54
 publish artifact size: 61370368 bytes
-publish artifact sha256: 50a245c0a6615c080b77087624a403b821132f77dce5dfdc1b553d47ec30c206
-embedded source revision: 6b83b9c4e678 (is HEAD)
-newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 08:53:53)
+publish artifact sha256: 14d1a85e5b77b0e051ee43e94f0db65ef6c15eee4e5f90b6ffbe9d4c8b28ad23
+embedded source revision: 75e4b50eb7a6 (is HEAD)
+newest source: src\Cybersole.Stores\Payments\PayPalThreeDs.cs (2026-11-21 09:17:49)
 source files newer than the artifact: 17
 lines in those files: 16415
-of those, changed against HEAD: 1
-publish artifact state: stale
+of those, changed against HEAD: 0
+publish artifact state: current
 
-  The function ratio in METRICS.md comes from this artifact. While it is stale that ratio describes an
-  older build, so it must be labelled as such wherever it is quoted rather than presented as current.
+  17 files are newer but unchanged against HEAD: mutation-check rewrites and restores its
+  targets, which updates mtime without changing a byte. Nothing to rebuild.
 ```
 
 ### 核心覆盖：store 宿主
@@ -470,13 +466,13 @@ C:\Python312\python.exe tools/pe_sections.py
   ------------------------------------------------------------------
   .text      0x1000       0x107DD8     1076736      X
   .managed   0x108000     0x1E27F88    30539776     X
-  hydrated   0x1E28000    0x2E5F120    0            RW
-  .rdata     0x2E60000    0x480A466    26912256     R
+  hydrated   0x1E28000    0x2E5F140    0            RW
+  .rdata     0x2E60000    0x480A4E6    26912256     R
   .data      0x480B000    0x490F6D8    236544       RW
   .pdata     0x4910000    0x4B37A60    2259968      R
   _RDATA     0x4B38000    0x4B380F4    512          R
   .rsrc      0x4B39000    0x4B847E7    309248       R
-  .reloc     0x4B85000    0x4B8D56C    34304        R
+  .reloc     0x4B85000    0x4B8D550    34304        R
 
   section-mass-replica-executable: 31616512
   section-mass-ratio: 61.16%
@@ -594,7 +590,7 @@ cd D:\projects\cyber-reverse\replica
 D:\tools\dotnet8\dotnet.exe test tests/Cybersole.Tests/Cybersole.Tests.csproj -c Debug --filter Speed!=Slow&FullyQualifiedName!~VoiceListTests&FullyQualifiedName!~GlobalSurfaceTests&FullyQualifiedName!~KeyOrderDispatchTests&FullyQualifiedName!~PatchJournalTests&FullyQualifiedName!~PruneWhitelistTests&FullyQualifiedName!~NetworkRecorderLiveTests&FullyQualifiedName!~ChromiumStealthTests -m:1
 ```
 
-`exit 0` · 2656 通过 / 0 失败 / 0 跳过 / 2656 总计
+`exit 0` · 2657 通过 / 0 失败 / 0 跳过 / 2657 总计
 
 ```text
   正在确定要还原的项目…
@@ -611,7 +607,7 @@ D:\projects\cyber-reverse\replica\tests\Cybersole.Tests\bin\Debug\net8.0\Cyberso
 VSTest 版本 17.11.1 (x64)
 正在启动测试执行，请稍候...
 总共 1 个测试文件与指定模式相匹配。
-已通过! - 失败:     0，通过:  2656，已跳过:     0，总计:  2656，持续时间: 5 m 42 s - Cybersole.Tests.dll (net8.0)
+已通过! - 失败:     0，通过:  2657，已跳过:     0，总计:  2657，持续时间: 5 m 42 s - Cybersole.Tests.dll (net8.0)
 ```
 
 ---

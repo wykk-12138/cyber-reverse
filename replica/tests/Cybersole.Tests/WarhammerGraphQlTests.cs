@@ -80,4 +80,29 @@ public class WarhammerGraphQlTests
             Assert.Contains(name + ": $" + name, Mutation);
         }
     }
+
+    /// <summary>
+    /// R1326: the onboarding document shipped for months ending with "[4040 chars total]" — a truncation
+    /// marker pasted out of a display, which left the document stopping mid-way. The image's copy is 4040
+    /// characters; this pins the repaired text and the absence of the marker in every generated document, so
+    /// the same paste cannot ship again.
+    /// </summary>
+    [Fact]
+    public void TheOnboardDocumentIsWholeAndCarriesNoTruncationMarker()
+    {
+        var document = WarhammerQueries.ApproveOnboardPaymentMutation;
+
+        Assert.Equal(4040, document.Length);
+        Assert.DoesNotContain("chars total", document);
+        Assert.EndsWith("__typename\n}\n", document);
+        Assert.Contains("approveGuestSignUpPayment", document);
+
+        foreach (var field in typeof(WarhammerQueries).GetFields(
+                     System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+        {
+            var value = field.GetValue(null) as string;
+            if (value is null) continue;
+            Assert.DoesNotContain("chars total", value);
+        }
+    }
 }

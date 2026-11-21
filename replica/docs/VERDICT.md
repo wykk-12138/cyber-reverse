@@ -70116,3 +70116,40 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
   **Unknown（未解）** —— 镜像据什么条件选方言。
 - **还剩什么**：方言选择条件（**唯一路径是抓包**，或读懂那两个 15 KB 函数的分叉）；
   `CurrencyConversion`(10996)、`cartApiObjectCreate`(5876) 未落地；AO 三个 checkout 体；Saucony 六步路径。
+
+---
+
+## 第 1326 轮：查方言没查出来，却查出一条**已经在发布的坏文档**
+
+- **方言方向收尾（记录在 BLOCKERS）**：三条否定把这条路堵死——
+  ① 六个 PayPal GraphQL 操作**共用同一个端点族** `https://www.paypal.com/graphql?<Operation>`
+     （`0x147097edc`..`0x14709817c` 一整块字典序，无 `graphql/partner` 形态），所以方言split**不是 URL 权限差**；
+  ② 从两个 MoveNext 桩往上走**进的是数据而非调用**（`0x14777a93c` / `0x14777a96c`，相距 0x30）——**方法表分发，不是 if**；
+  ③ 每个 `GqlAsync` 调用点都显式传了 url，所以"补一个默认端点"会是死代码。
+  剩下的唯一路径是读 15 KB 异步体找字段名判断，本轮不做。**R1323–R1326 四轮同一条件未解 → 记 blocker。**
+- **转向时撞到真问题**：把 `ApproveOnboardPaymentMutation` 与镜像逐字节一比（`analysis/compare_onboard.py`）：
+  ```
+  image:   4040 chars
+  replica: 4022 chars   ← 结尾是字面量 "[4040 chars total]"
+  ```
+  **`WarhammerQueries.g.cs` 里那份文档是被人从某个显示输出里粘过来的，粘到了截断标记，文档在中间就断了。**
+  这条流一直在往审批端点发一份**畸形 GraphQL 文档**。
+- **全树扫同类**（`analysis/find_pasted_truncation.py`，正则 `\[\d+\s*chars? total\]`）：**只有这一处**。
+- **修复**：用镜像 `0x1470CC8CC` 的 4040 字符逐字节写回（脚本生成，非手抄）；复核 `identical: True`；
+  产物里 `chars total` 命中 **0**。
+- **加了守卫**：`TheOnboardDocumentIsWholeAndCarriesNoTruncationMarker` —— 钉住 4040 长度、结尾形状，
+  并**用反射遍历 `WarhammerQueries` 的每个公开常量**，任何一个含 `chars total` 就红。
+  **这类粘贴错误不该靠人眼复查。**
+
+### 五要素
+
+- **改了什么**：`WarhammerQueries.g.cs`（文档重建，+240 字符内容）；`WarhammerGraphQlTests.cs`（+1 条守卫）；
+  新增 `analysis/{save_paypal_onboard,compare_onboard,find_pasted_truncation,fix_onboard_document,add_onboard_guard}.py`；
+  重发布；METRICS 重生成。
+- **验证命令与输出**：`dotnet test --filter Warhammer` → **15/15**；
+  `compare_onboard.py` → `identical: True`（4040 = 4040）；`find_pasted_truncation.py` → `markers found: 0`；
+  产物 `chars total` 命中 **0**，尺寸 61,370,368（不变），sha256 `50a245c0…` → `14d1a85e…`；内嵌 `75e4b50eb7a6`。
+- **数字变化**：套件 2656 → 见 METRICS 当前值（+1）；产物尺寸不变、哈希变。
+- **证据等级**：Observation —— 两份文档长度差、截断标记原文、镜像 4040 字符副本、全树唯一一处、产物零命中。
+- **还剩什么**：方言条件（blocker，需抓包）；`OnboardGuestMutation`(3104)、`CurrencyConversion`(10406) 已解码待落；
+  AO 三个 checkout 体；Saucony 六步路径。

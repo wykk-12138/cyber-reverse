@@ -545,12 +545,13 @@ public class ShopifyFlow : StoreFlow
                 ["country"] = c.ProfileData?.Country ?? c.Session.Vars.GetValueOrDefault("country"),
             };
 
-            var (createdCartId, createError) = await ShopifyCartCreate
-                .CreateAsync(c, createHost, createToken, createVariables, ct)
+            var (createdCart, createError) = await ShopifyStorefrontQueries
+                .SendAsync(c, createHost, createToken, "cartApiObjectCreate", createVariables, ct)
                 .ConfigureAwait(false);
-            if (createdCartId is null) return StepOutcome.Fail(createError);
+            if (createdCart is null) return StepOutcome.Fail(createError);
 
-            c.Session.Vars[GraphQlCartVar] = createdCartId;
+            var createdCartId = createdCart["cartCreate"]?["cart"]?["id"]?.ToString();
+            if (!string.IsNullOrEmpty(createdCartId)) c.Session.Vars[GraphQlCartVar] = createdCartId!;
             return StepOutcome.Success();
         }
 

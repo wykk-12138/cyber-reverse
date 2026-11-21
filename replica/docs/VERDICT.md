@@ -70947,3 +70947,37 @@ kasada/akamai=`Unknown`（原版没说）· perimeterx/queue-it/botdeflector/ver
 - **证据等级**：Observation —— A/B 两个发送方的主机差异、文档 5876 字符与八个变量、产物命中与令牌缺席。
 - **还剩什么**：A 块其余 14 个（现已知道并入 storefront）；B 块 7 个（无主机）；`approveMemberPayment` 两方言；
   浏览器侧结账面；`/cartApi/checkout` 归属；`AddressInput`；方言条件（blocker）；AO 三个 checkout 体；Saucony 六步路径。
+
+---
+
+## 第 1349 轮：A 块**不是一个族**——变量签名把它劈成三份，其中一份根本不是 Shopify
+
+- **上一轮把 A 块当成"一家人"，这轮读完五份文档就碎了**：
+  ```
+  cartApiObjectCreate      $input + 六个 include + country + metafieldsIdentifiers   Shopify Storefront
+  createCart               $lines / $buyerIdentity / $attributes / $country / $language   Shopify Storefront
+  removeLineItemFromCart   $cartId / $lineItemId / $version / $quantity / $locale    Shopify Storefront
+  setBillingAddress        $action: SetCartBillingAddress! / $locale / $preferredLocale    Highsnobiety 那一族
+  createCheckout           $variantId / $location / $attributes / $recaptchaToken    又是另一家
+  ```
+  **`setBillingAddress` 的签名和 Highsnobiety 的 `setCustomerEmail` 一模一样**（action 对象 + 两个 locale），
+  而 `createCheckout` 带 recaptcha 令牌。**地址聚类只是把人带到块里，变量签名才是证据。**
+- **落码**：`ShopifyStorefrontQueries`（三份 Storefront 文档 + `Declared`/`SenderFills` 两表 + `SendAsync`，
+  未声明变量在发送前挡掉）；**`setBillingAddress` 归位到 `HighsnobietyFlow.SubmitBillingAsync`**（action 对象由调用方给）。
+- **产物正向证据**：`mutation createCart`、`mutation removeLineItemFromCart`、`mutation setBillingAddress`
+  **UTF-16 各命中 1**；尺寸 61,793,280 → **62,024,512**。
+
+### 五要素
+
+- **改了什么**：新增 `Flows/ShopifyStorefrontQueries.cs`、`tests/ShopifyStorefrontQueriesTests.cs`（6 条）；
+  删除 `ShopifyCartCreate.cs` 与其测试；`ShopifyFlow.cs` 分支改指向；`RetailFlows.cs`（Highsnobiety 计费步）；
+  新增 3 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`ShopifyStorefrontQueriesTests|HighsnobietyFlowTests|ShopifyGraphQlTests` → **31/31**；
+  `operation_gap.py` → 覆盖 **31/65**（缺 34）；`orphan_documents.py` → 0；`audit_document_constants.py` → **34 常量 / 0 问题**；
+  产物三串各命中 1；尺寸见上。
+- **数字变化**：覆盖 28 → **31**；缺 37 → **34**；套件 +2（净）；产物 +231,232 字节。
+- **证据等级**：Observation —— 五份文档的声明集、两类签名的差异、产物三串命中。
+  Unknown —— `createCheckout` 属于哪家（带 recaptcha，第三种签名）。
+- **还剩什么**：A 块剩余（`getProductDetails`/`saveAddress`/… 归属待定）；B 块 7 个（无主机）；
+  `approveMemberPayment` 两方言；浏览器侧结账面；`/cartApi/checkout` 归属；`AddressInput`；方言条件（blocker）；
+  AO 三个 checkout 体；Saucony 六步路径。

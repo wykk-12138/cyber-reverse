@@ -8664,3 +8664,14 @@ Observation：
 - **镜像里写死了一个 storefront 访问令牌 `e927ea99…`；没有抄进源码**（凭证抄进源码就是会泄漏的凭证）。
   产物核对：文档命中 1，令牌两编码皆 0。
 - 覆盖 27 → **28/65**，缺 38 → **37**。
+
+---
+
+## 第 1349 轮
+
+- **A 块不是一个族**：变量签名三分 —— Shopify Storefront（`cartApiObjectCreate`/`createCart`/`removeLineItemFromCart`）、
+  **Highsnobiety 那一族（`setBillingAddress`，签名与 `setCustomerEmail` 同形）**、第三种（`createCheckout` 带 recaptcha）。
+  **地址聚类只带路，变量签名才是证据。**
+- `ShopifyStorefrontQueries`（3 份文档 + 两表 + `SendAsync`，未声明变量发送前挡掉）；
+  `setBillingAddress` 归位到 `HighsnobietyFlow.SubmitBillingAsync`。
+- 覆盖 28 → **31/65**，缺 37 → **34**；产物三串各 UTF-16 命中 1。

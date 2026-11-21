@@ -138,3 +138,15 @@
 
 已落地：`cartApiObjectCreate`(5876) → `Flows/ShopifyCartCreate.cs`。
 A 块其余 14 个操作（`createCart`、`setBillingAddress`、`removeLineItemFromCart` …）**同属这一族**，待接。
+
+## A 块的三分（R1349）
+
+| 文档 | 声明集 | 归属 |
+|---|---|---|
+| `cartApiObjectCreate`(5876) | `$input` + 六个 include + `country` + `metafieldsIdentifiers` | **Shopify Storefront** |
+| `createCart`(1622) | `$lines`/`$buyerIdentity`/`$attributes`/`$country`/`$language` | **Shopify Storefront** |
+| `removeLineItemFromCart`(1553) | `$cartId`/`$lineItemId`/`$version`/`$quantity`/`$locale` | **Shopify Storefront** |
+| `setBillingAddress`(4989) | `$action: SetCartBillingAddress!`/`$locale`/`$preferredLocale` | **Highsnobiety 那一族** |
+| `createCheckout`(720) | `$variantId`/`$location`/`$attributes`/`$recaptchaToken` | 未定（第三种签名） |
+
+**地址聚类只是线索；变量签名才是证据。**

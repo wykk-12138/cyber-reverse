@@ -8742,3 +8742,15 @@ Observation：
 - **IDA 重启手册补充**：三个模态框依次为 **加载现有** → **Proceed with unpacked base** → **Repair**。
   **不可选 "Restore packed base"**（会丢分析）。
 - 覆盖 38 → **39/65**，缺 27 → **26**；产物 `mutation CartLineItemSet` 命中 1。
+
+---
+
+## 第 1356 轮
+
+- `placeOrderWithPaypal`(843) 落地：操作名 `0x147113B8C` 的**两个引用点同在一个函数** `sub_140B5F250` 内，
+  该函数带三条结局消息（`Error submitting order` / `Payment Declined` / `Your payment could not be processed`）
+  与 `StatusInfo`、**`PANINI`**（第二次出现，内部标记词）。
+- `HighsnobietyFlow.SubmitPayPalOrderAsync` + `SubmitOrderAsync` 分支 → **该店两条下单路径**。
+- `CreditCard` 暂缓：**没有独立的操作名字符串**可跟（`ida.py str` 只回元数据）。
+- 工具链坑：`SubmitOrderAsync` 同文件出现 **7 次**，锚点必须先在 `class HighsnobietyFlow` 之后定位。
+- 覆盖 39 → **40/65**，缺 26 → **25**。

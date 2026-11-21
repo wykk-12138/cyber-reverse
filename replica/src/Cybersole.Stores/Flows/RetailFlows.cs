@@ -2130,6 +2130,22 @@ public sealed class HighsnobietyFlow : StoreFlow
         "mutation setCustomerEmail($action: SetCartCustomerEmail!, $locale: Locale!, $preferredLocale: Locale) {\r\n  setCustomerEmail(action: $action) {\r\n    ...CartFragment\r\n    __typename\r\n  }\r\n}\r\n\r\nfragment CartFragment on Cart {\r\n  id\r\n  country\r\n  customerId\r\n  customerEmail\r\n  lineItems {\r\n    ...LineItemFragment_Cart\r\n    __typename\r\n  }\r\n  shippingAddress {\r\n    ...AddressFragment\r\n    __typename\r\n  }\r\n  billingAddress {\r\n    ...AddressFragment\r\n    __typename\r\n  }\r\n  shippingInfo {\r\n    shippingMethod {\r\n      id\r\n      key\r\n      name\r\n      __typename\r\n    }\r\n    price {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    taxedPrice {\r\n      totalNet {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      totalGross {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    taxRate {\r\n      includedInPrice\r\n      __typename\r\n    }\r\n    discountedPrice {\r\n      value {\r\n        ... on Money {\r\n          ...MoneyFragment\r\n          __typename\r\n        }\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  totalPrice {\r\n    ...MoneyFragment\r\n    __typename\r\n  }\r\n  taxedPrice {\r\n    totalNet {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    totalGross {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  discountCodes {\r\n    ...DiscountCodeFragment\r\n    __typename\r\n  }\r\n  discountOnTotalPrice {\r\n    includedDiscounts {\r\n      discount {\r\n        id\r\n        description(locale: $locale)\r\n        fallbackDescription: description(locale: en)\r\n        name(locale: $locale)\r\n        fallbackName: name(locale: en)\r\n        requiresDiscountCode\r\n        __typename\r\n      }\r\n      discountedAmount {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment MoneyFragment on Money {\r\n  currencyCode\r\n  centAmount\r\n  fractionDigits\r\n  __typename\r\n}\r\n\r\nfragment LineItemFragment_Cart on LineItem {\r\n  id\r\n  productSlug(locale: $locale)\r\n  fallbackSlug: productSlug(locale: en)\r\n  preferredSlug: productSlug(locale: $preferredLocale)\r\n  lineItemMode\r\n  name(locale: $locale)\r\n  displayBrand\r\n  displayName(locale: $locale)\r\n  quantity\r\n  productId\r\n  productType {\r\n    name\r\n    __typename\r\n  }\r\n  category(locale: $locale)\r\n  price {\r\n    ...ProductPriceFragment\r\n    __typename\r\n  }\r\n  mainImage {\r\n    ...ImageAssetFragment\r\n    __typename\r\n  }\r\n  variant {\r\n    availability {\r\n      noChannel {\r\n        availableQuantity\r\n        expectedDelivery\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    brands {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    campaignId\r\n    campaignSlug\r\n    color(locale: $locale)\r\n    gender {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    masterScale(locale: $locale)\r\n    size\r\n    sku\r\n    key\r\n    __typename\r\n  }\r\n  totalPrice {\r\n    ...MoneyFragment\r\n    __typename\r\n  }\r\n  taxedPrice {\r\n    totalNet {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    totalGross {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  taxRate {\r\n    includedInPrice\r\n    __typename\r\n  }\r\n  discountedPricePerQuantity {\r\n    ...DiscountedLineItemPriceForQuantityFragment\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment ProductPriceFragment on ProductPrice {\r\n  id\r\n  value {\r\n    ...MoneyFragment\r\n    __typename\r\n  }\r\n  country\r\n  discounted {\r\n    value {\r\n      ...MoneyFragment\r\n      __typename\r\n    }\r\n    discount {\r\n      name(locale: $locale)\r\n      description(locale: $locale)\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  custom {\r\n    customFieldsRaw {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment DiscountedLineItemPriceForQuantityFragment on DiscountedLineItemPriceForQuantity {\r\n  quantity\r\n  discountedPrice {\r\n    includedDiscounts {\r\n      discount {\r\n        id\r\n        description(locale: $locale)\r\n        fallbackDescription: description(locale: en)\r\n        name(locale: $locale)\r\n        fallbackName: name(locale: en)\r\n        requiresDiscountCode\r\n        __typename\r\n      }\r\n      discountedAmount {\r\n        ...MoneyFragment\r\n        __typename\r\n      }\r\n      __typename\r\n    }\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment ImageAssetFragment on ImageAsset {\r\n  alt\r\n  aspectRatio\r\n  base64\r\n  bgColor\r\n  height\r\n  id\r\n  sizes\r\n  src\r\n  srcSet\r\n  credits {\r\n    collection\r\n    companyName\r\n    licenseHolder\r\n    photographerUrl\r\n    photographerName\r\n    __typename\r\n  }\r\n  title\r\n  width\r\n  focalPoint {\r\n    id\r\n    x\r\n    y\r\n    __typename\r\n  }\r\n  __typename\r\n}\r\n\r\nfragment AddressFragment on Address {\r\n  firstName\r\n  lastName\r\n  streetName\r\n  postalCode\r\n  city\r\n  region\r\n  country\r\n  phone\r\n  additionalAddressInfo\r\n  __typename\r\n}\r\n\r\nfragment DiscountCodeFragment on DiscountCodeInfo {\r\n  state\r\n  discountCode {\r\n    id\r\n    code\r\n    name(locale: $locale)\r\n    description(locale: $locale)\r\n    __typename\r\n  }\r\n  __typename\r\n}";
 
     /// <summary>
+    /// The PayPal order mutation, 843 characters from 0x147146F94. Its handler (sub_140B5F250) distinguishes three
+    /// outcomes, and they are the messages this class reports (R1356).
+    /// </summary>
+    public const string PlaceOrderWithPaypalDocument =
+        "query placeOrderWithPaypal($ddc: String!, $ss: String) {\n  placeOrderWithPaypal(\n    bundle_configuration_name: 0\n    bundle_configuration_price: 0\n    cartId: $cartId\n    billingAddress: {countryId: $countryId, regionId: $regionId, regionCode: $regionCode, region: $region, street: [$street1, $street2], telephone: $telephone, postcode: $postcode, city: $city, firstname: $firstname, lastname: $lastname, saveInAddressBook: 0}\n    paymentMethod: {method: \"braintree\", additional_data: {paypal_pay_id: \"null\", authorization_id: \"null\", invoice_number: \"null\", platform: \"Desktop web\", version: \"1.0\", appVersion: \"1.0\", userId: $userId}}\n    email: $email\n    captchaToken: \"\"\n    paymentNonce: $paymentNonce\n    deviceDataFromTheClient: $ddc\n    ks: $ks\n    ss: $ss\n  ) {\n    message\n    status\n    data\n    rewardPoints\n    __typename\n  }\n}\n";
+
+    /// <summary>The handler's words for a rejected order.</summary>
+    public const string ErrorSubmittingOrderMessage = "Error submitting order";
+
+    /// <summary>The handler's words for a declined payment.</summary>
+    public const string PaymentDeclinedMessage = "Payment Declined";
+
+    /// <summary>The handler's words when the payment could not be processed at all.</summary>
+    public const string PaymentNotProcessedMessage = "Your payment could not be processed";
+
+    /// <summary>
     /// The shipping mutation, 4992 characters from 0x1470FA944. Declares an action object and two locales — this
     /// family's shape — and its one reference sits in the sender R1339's host sweep listed as shipping (R1354).
     /// </summary>
@@ -2319,6 +2335,38 @@ public sealed class HighsnobietyFlow : StoreFlow
     }
 
     /// <summary>
+    /// Place the order through PayPal. The mutation's variable is the caller's; the three outcomes the handler
+    /// distinguishes become the failure messages, in its own words.
+    /// </summary>
+    public async Task<StepOutcome> SubmitPayPalOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        var action = ActionFrom(c, "highsnobiety.paypalOrder", "place the paypal order", out var failure);
+        if (action is null) return failure!.Value;
+
+        var body = new JObject
+        {
+            ["operationName"] = "placeOrderWithPaypal",
+            ["query"] = PlaceOrderWithPaypalDocument,
+            ["variables"] = new JObject { ["input"] = action },
+        };
+
+        var host = c.Session.Vars.GetValueOrDefault("highsnobiety.apiHost") ?? ApiHost;
+        var res = await PostJsonAsync(c, host, body.ToString(Newtonsoft.Json.Formatting.None),
+            "hs-paypal-order", ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail(ErrorSubmittingOrderMessage, retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail(ErrorSubmittingOrderMessage, retryable: true);
+
+        if (res.Body is not null && res.Body.Contains("PAYMENT_DECLINED", StringComparison.OrdinalIgnoreCase))
+            return StepOutcome.Fail(PaymentDeclinedMessage);
+        if (res.Body is not null && res.Body.Contains("\"errors\"", StringComparison.Ordinal))
+            return StepOutcome.Fail(PaymentNotProcessedMessage);
+
+        c.Session.Vars["order"] = res.Body ?? string.Empty;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
     /// Submit shipping through the observed mutation. The payload is the caller's SetCartShippingAddress object,
     /// which the image never spells out — the same arrangement billing uses.
     /// </summary>
@@ -2396,6 +2444,11 @@ public sealed class HighsnobietyFlow : StoreFlow
     /// </summary>
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
+        // R1356: PayPal's order path. Its mutation is its own document and its handler distinguishes three
+        // outcomes, so it is a branch rather than a value threaded through the GraphQL order below.
+        if (!string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("highsnobiety.paypalOrder")))
+            return await SubmitPayPalOrderAsync(c, ct).ConfigureAwait(false);
+
         var intent = c.Session.Vars.GetValueOrDefault("stripePaymentIntentId")
                      ?? c.Session.Vars.GetValueOrDefault("paymentIntentId");
         if (string.IsNullOrEmpty(intent))

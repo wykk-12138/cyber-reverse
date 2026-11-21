@@ -344,4 +344,48 @@ public sealed class HighsnobietyFlowTests
         Assert.Equal("Seoul",
             sent["variables"]!["action"]!["address"]!["city"]!.ToObject<string>());
     }
+
+    /// <summary>
+    /// R1356: placeOrderWithPaypal is the store's other order path. Its handler distinguishes three outcomes, and
+    /// those are the messages the step reports rather than raw GraphQL text.
+    /// </summary>
+    [Fact]
+    public void ThePayPalOrderPathIsItsOwnStep()
+    {
+        Assert.Equal(843, HighsnobietyFlow.PlaceOrderWithPaypalDocument.Length);
+        Assert.StartsWith("query placeOrderWithPaypal($ddc: String!", HighsnobietyFlow.PlaceOrderWithPaypalDocument);
+        Assert.Equal("Error submitting order", HighsnobietyFlow.ErrorSubmittingOrderMessage);
+        Assert.Equal("Payment Declined", HighsnobietyFlow.PaymentDeclinedMessage);
+        Assert.Equal("Your payment could not be processed", HighsnobietyFlow.PaymentNotProcessedMessage);
+    }
+
+    [Fact]
+    public async Task WithoutAPayPalPayloadTheOrderStepSendsNothing()
+    {
+        using var server = new TinyServer((_, _) => (200, "{}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/" };
+
+        var outcome = await new HighsnobietyFlow().SubmitPayPalOrderAsync(ctx, default);
+
+        Assert.False(outcome.Ok);
+        Assert.Empty(server.Requests);
+    }
+
+    /// <summary>A declined payment becomes the handler's own words, not the server's.</summary>
+    [Fact]
+    public async Task ADeclinedPaymentBecomesTheHandlersMessage()
+    {
+        using var server = new TinyServer((_, _) =>
+            (200, "{\"data\":{\"placeOrderWithPaypal\":{\"errors\":[{\"code\":\"PAYMENT_DECLINED\"}]}}}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/" };
+        ctx.Session.Vars["highsnobiety.apiHost"] = server.BaseUrl + "/";
+        ctx.Session.Vars["highsnobiety.paypalOrder"] = "{\"ddc\":\"x\"}";
+
+        var outcome = await new HighsnobietyFlow().SubmitPayPalOrderAsync(ctx, default);
+
+        Assert.False(outcome.Ok);
+        Assert.Equal(HighsnobietyFlow.PaymentDeclinedMessage, outcome.Error);
+    }
 }

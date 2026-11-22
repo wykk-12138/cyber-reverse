@@ -71985,3 +71985,18 @@ Cybersole.Tests.ShapeAuditGuardTests.NullableReturningPublicMethodsAreNotReporte
 - **证据等级**：Observation —— 两类池的计数与分类、三次分类器演进的数字。
   **Correction ×3** —— 分类器的三条规则错在"把点分标识符当资源键""把库描述当文案""把拼接串当真实条目"。
 - **还剩什么**：C7c（行为探针）已有 15 条，属持续增补而非一次性；其余见 `OPEN_ITEMS`（无静态项）。
+
+#### 补记：C8 那一行把 claims 审计弄挂了（R1380）
+
+我把 `PARITY_CLAIMS.md` 的 C8 行改成了 **四格**，而表头是六列 —— `analysis/check_claims.py` 只收 `>= 6` 格的行，
+于是它报 **claim rows: 21**，而独立计数是 22，`ClaimsCoverageTests` 立刻红：
+
+```
+Assert.Contains() Failure: Sub-string not found
+```
+
+**修法**：把该行恢复成**六格**（status / authority / command / gap_reason 各自归位），现在
+`claim tables: 5、claim rows: 22`，两个守卫全绿。
+
+**教训**：`PARITY_CLAIMS.md` 的表格是**机器读的**，不是散文 —— 改它等于改一个接口。
+这和"锚点必须从源码复制"是同一族：**先看消费者怎么读，再改生产者怎么写。**

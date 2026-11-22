@@ -159,3 +159,13 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 
 体字段：`CartType`（`Retail`/`Shopify`）、`LineItems`、`LocationId`、`SourceSystem`、`CouponReferences`。
 实现：`Flows/ThemeApisCheckout`，接进 `StoreFlow.GetCartAsync`。
+
+---
+
+## 十四、AO 三端点（R1374）
+
+三个**完整 URL**（不是路径）：`https://checkout.ao.com/v2/app/{contact,delivery,payment}`。
+发送方的字面量表确认引用（R1373 判据）。
+
+**已落地**：URL、`Origin`、`Submitting info`、`Getting checkout`、`application/x-www-form-urlencoded`。
+**未落地**：体的字段名 —— **发送方带的是请求头名，JSON 在其调用方**，故体由调用方给。

@@ -71731,3 +71731,36 @@ metrics_report.py 第一次全量跑出 **2757 通过 / 1 失败**，随即原�
 - **数字变化**：套件 +3；`/cartApi/checkout` 从"发送方未定位"变成**已实现**。
 - **证据等级**：Observation —— 精确串地址、唯一真引用函数、11 个字面量清单、产物双编码命中。
 - **还剩什么**：3 类 —— AO 三个体、Saucony 六步、浏览器侧结账面。
+
+---
+
+## 第 1374 轮：AO 三个端点落地 —— **但"三个体"要拆成两件事说**
+
+- **先纠一个查法**：R 前几轮搜的是路径 `/v2/app/contact`，**镜像里存的是完整 URL**
+  `https://checkout.ao.com/v2/app/contact`（`0x14705D114` / `0x14705D17C` / `0x14705D1E4`）。
+  **又是"先假设形状"**（§2.7 的老毛病）：搜的是路径，存的是整串。
+- **按 R1373 判据查引用，三个都命中真发送方**（URL 出现在函数的字面量表里）：
+  ```
+  contact   0x14093B650   35 字面量   标签 "Submitting info"、contenttype、cookie、newrelic、origin
+  delivery  0x14093AB80 / 0x14093AE60   各 32   referer、priority、cookie、newrelic
+  payment   0x14093B930（浏览器侧：sec-ch-ua / iframe / navigate / "Getting checkout"）
+            0x14093BBF0（表单编码：application/x-www-form-urlencoded / newrelic / origin）
+  ```
+- **能落地的是**：三个 URL、`Origin = https://checkout.ao.com`、两个步骤标签、表单 content type。
+- **不能落地的是"体的字段名"**：这些函数**带的是请求头名字**（accept/cookie/origin/newrelic/priority），
+  JSON 由**它们的调用方**拼。**所以体仍由调用方给**，注释里明写 —— **不编字段名。**
+- **一处自我克制**：`GatewayHttp.PostAsync` 只有五个参数（无 origin 重载），
+  我没有为此改签名，而是**把 origin 记为观测事实**（常量 + 注释），不伪造注入路径。
+- **产物**：`checkout.ao.com/v2/app/contact` 与 `Submitting info` 检出（见下）；尺寸见下。
+
+### 五要素
+
+- **改了什么**：新增 `Flows/AoCheckout.cs`、`tests/AoCheckoutTests.cs`（2 条）；
+  `StoreFlow.SubmitCustomerAsync` 加分支；新增 3 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`AoCheckoutTests` → **2/2**；`StoreFlow|AoCheckout` → 见下；
+  `orphan_documents.py` → 0；产物命中见下。
+- **数字变化**：套件 +2；AO 从"三个体未知"变成**端点/标签/content-type 已知，体仍由调用方给**。
+- **证据等级**：Observation —— 三个 URL 地址、三个真发送方的字面量表（含头名与标签）。
+  **Correction** —— 此前按路径搜索得到"镜像里没有"，实际是完整 URL。
+- **还剩什么**：Saucony 六步（本轮只确认 `SAUCONY-3DS` 一条：`0x140A76F60`，`MD`/`jwt`/`redirectUrl`/`stepUpUrl`/
+  `Unexpected 3DS response`）、浏览器侧结账面。

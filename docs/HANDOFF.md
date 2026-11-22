@@ -8920,3 +8920,14 @@ Observation：
   `SourceSystem`/`CouponReferences`，`CartType` 两值 `Retail`/`Shopify`。
 - **顶级域不在镜像里** ⇒ 由调用方给，**不写 `.com`**。实现 `Flows/ThemeApisCheckout`，接进 `GetCartAsync`。
 - 产物 `/cartApi/checkout` ASCII 命中 1、`themeapis` UTF-16 命中 10。
+
+---
+
+## 第 1374 轮
+
+- **AO 三端点落地**：`https://checkout.ao.com/v2/app/{contact,delivery,payment}`，
+  `Origin`、`Submitting info`、`Getting checkout`、表单 content type 一并入码。
+- **"三个体"要拆开说**：这些发送方带的是**请求头名**，JSON 在它们的调用方 → **体仍由调用方给**，不编字段名。
+- **查法纠错**：之前搜 `/v2/app/contact`（路径）得"没有"，镜像存的是**完整 URL** —— §2.7 的老毛病再犯一次。
+- **Saucony**：`SAUCONY-3DS`（`0x140A76F60`）带 `MD`/`jwt`/`redirectUrl`/`stepUpUrl`/`Unexpected 3DS response`，
+  下轮落地。

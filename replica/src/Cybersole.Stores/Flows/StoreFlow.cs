@@ -2254,6 +2254,29 @@ public abstract class StoreFlow
     }
     public virtual async Task<StepOutcome> SubmitCustomerAsync(FlowContext c, CancellationToken ct)
     {
+        // R1374: AO's contact step, when a run names it. The url and the origin are the image's; the body is the
+        // caller's, because those senders carry header names rather than JSON keys.
+        var aoBody = c.Session.Vars.GetValueOrDefault("ao.contactBody");
+        if (!string.IsNullOrWhiteSpace(aoBody))
+        {
+            Newtonsoft.Json.Linq.JObject aoJson;
+            try
+            {
+                aoJson = Newtonsoft.Json.Linq.JObject.Parse(aoBody!);
+            }
+            catch (Newtonsoft.Json.JsonException)
+            {
+                return StepOutcome.Fail("ao: ao.contactBody is not valid JSON");
+            }
+
+            var (aoData, aoError) = await AoCheckout
+                .SendAsync(c, "contact", aoJson, ct).ConfigureAwait(false);
+            if (aoData is null) return StepOutcome.Fail(aoError);
+
+            c.Session.Vars["aoContact"] = aoData.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         var profile = c.ProfileData;
         if (profile is null) return StepOutcome.Fail("no profile");
 

@@ -8898,3 +8898,15 @@ Observation：
   `isv_tokenCaptureContextSignature`）→ `Payments/CybersourcePayment`，接进 `GetPaymentTokenAsync`。
 - **主机仍由调用方给** —— 两个处理器都没命名主机，端点属商家自己。
 - 覆盖 60 → **61/65**，缺 5 → **4**；产物 `mutation createMyPayment` 命中 1。
+
+---
+
+## 第 1372 轮
+
+- **IDA 又挂**：用 `ida-mcp-doctor.ps1 -Path` 重拉 + 依次点掉**加载现有 / Proceed with unpacked base / Repair / 确定**。
+  **两次 UIA Invoke 报成功但无效**，改像素点击与 `foreground_fallback` 才生效（已记 BLOCKERS）。
+- **`AddressInput` 四个字段名落地**（`recipientName`/`addressLine1`/`addressLine2`/`locality`），
+  类型名在镜像里不是字符串。
+- **撤回一条自写结论**：`disp32` 命中 ≠ 引用。`CreditCard` 发送方 20 个字面量里**没有**地址字段。
+  **只有函数字面量表里出现该名字，才算引用。**
+- 覆盖仍 63/65；`AddressInput` 从"形状未知"变成"名字已知、构造点未知"。

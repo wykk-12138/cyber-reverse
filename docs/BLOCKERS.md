@@ -47926,3 +47926,14 @@ Remove-Item -Recurse -Force replica\src\Cybersole.Ui\obj\Release\net8.0\win-x64\
 ```
 
 再重发即可。**内存必须留足**（实测 4.4 GB 时崩溃，16 GB 时成功）。
+
+## IDEA 模态框：UIA Invoke 可能"报成功但无效"（R1372）
+
+重拉 IDA 时，`click(element_token=...)` 对 `请确认` 对话框**返回 ok 但窗口内容不变**（截图逐像素相同）。
+有效做法按顺序试：
+
+1. **像素点击**（`x, y` 取自 `get_window_state` 的截图）；
+2. **`foreground_fallback: true`** 的 `run_steps`；
+3. 每次动作后**重新 `list_windows`** —— 对话框 id 会变（本轮 3017454 → 1969868 → 3148526 → 2297548）。
+
+**判据**：`ida.py health` 返回 `{"status":"ok", ... "hexrays_ready":true}`；`strings_cache_ready` 会晚几十秒才为真。

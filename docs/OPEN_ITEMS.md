@@ -137,3 +137,15 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 | 应答键 | `isv_tokenCaptureContextSignature` |
 
 实现：`Payments/CybersourcePayment`，接进 `StoreFlow.GetPaymentTokenAsync`；端点由调用方给。
+
+---
+
+## 十二、`AddressInput`：名字已知，构造点未知（R1372）
+
+类型名**不是字符串**，但四个字段名是：`recipientName`(0x147149A94)、`addressLine1`(0x146F6EC6C)、
+`addressLine2`(0x146F6EC9C)、`locality`(0x146FC9852)。
+
+**已撤回的说法**：曾据 `disp32` 命中称"三个有代码引用"；`CreditCard` 发送方（0x140AAE300）的 20 个字面量里
+**没有地址字段**。**`disp32` 命中只是字节图案，函数字面量表中出现才算引用。**
+
+**边界**：`api/checkout/v1/orders/<id>/finalize` 不吃 `AddressInput`。模型在 `Flows/AddressInput.cs`。

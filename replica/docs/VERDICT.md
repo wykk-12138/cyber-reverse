@@ -71668,3 +71668,37 @@ metrics_report.py 第一次全量跑出 **2757 通过 / 1 失败**，随即原�
 - **证据等级**：Observation —— 两处理器的字段词表与两条拒绝语、应答键、文档 493 字符、产物命中、尺寸增长。
 - **还剩什么**：4 条 —— `AddressInput` 形状、AO 三个体、Saucony 六步、`/cartApi/checkout` 发送方、
   浏览器侧结账面（均需外部证据）。
+
+---
+
+## 第 1372 轮：`AddressInput` 的四个字段名落成模型 —— **同时撤回我自己刚写下的引用结论**
+
+- **IDA 又挂了**（`URLError` + 无进程无端口）。按配方用 `ida-mcp-doctor.ps1 -Path` 重拉，
+  三个模态框依次点掉：**加载现有** → **Proceed with unpacked base** → **Repair** → **确定**（inconsistencies），
+  `health` 回到 `status: ok`。**其中两次 UIA Invoke 报成功但窗口未变，改用像素点击 / `foreground_fallback` 才真正生效** ——
+  这条要记进 BLOCKERS。
+- **`AddressInput` 的类型名在镜像里不是字符串**，这就是它一直"形状未知"的原因。但**字段名是**：
+  ```
+  recipientName  0x147149A94    addressLine1  0x146F6EC6C
+  addressLine2   0x146F6EC9C    locality      0x146FC9852
+  ```
+- **撤回一条结论**：我先是据 `disp32_scan_any` 的命中写下"前三个有代码引用"。随后把命中函数
+  `0x140AAE300`（`CreditCard` 的发送方）的**全部 20 个字面量**解码出来 —— **里面一个地址字段都没有**。
+  **`disp32` 命中是字节图案，不是引用；只有当那个函数的字面量表里出现这个名字，才算引用。**
+  已把模型注释改写并把这条写进测试（`TheNamesSurviveButTheReferenceClaimDoesNot`）。
+- **顺带确认一条边界**：`api/checkout/v1/orders/<id>/finalize` 这个发送方**不吃 AddressInput**
+  （它吃 `cardNumber`/`cardCvv`/…/`paymentMethodId`/`paymentMethodType`/`savePaymentMethodAsToken`）——
+  **这缩小了 `AddressInput` 可能出现的位置**。
+- **落码**：`Flows/AddressInput.cs`（四个镜像拼写的字段名 + 八个文档拼写名 + `ToJson()` 空值不写 + `EmittedFieldNames`）。
+
+### 五要素
+
+- **改了什么**：新增 `Flows/AddressInput.cs`、`tests/AddressInputTests.cs`（4 条）；新增 3 个 analysis 脚本；
+  重发布；METRICS 重生成；BLOCKERS 补模态框处置。
+- **验证命令与输出**：`AddressInputTests` → **4/4**；`operation_gap.py` → 覆盖 63/65 不变（本条是模型不是操作）；
+  `orphan_documents.py` → 0；产物见下。
+- **数字变化**：套件 +4。
+- **证据等级**：Observation —— 四个名字的字符串地址、CreditCard 发送方的 20 个字面量清单。
+  **Correction** —— 先前"三个有代码引用"的说法被同一轮的解码推翻。
+- **还剩什么**：4 类 —— AO 三个体、Saucony 六步、`/cartApi/checkout` 发送方、浏览器侧结账面；`AddressInput` 现为
+  "名字已知、构造点未知"。

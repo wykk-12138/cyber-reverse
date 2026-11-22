@@ -8965,3 +8965,16 @@ Observation：
 - **过滤器注意**：`ShapeAuditGuardTests` 与 `BindScopeGuardTests` 是 external-tool 类，
   **单独拼过滤会假红**；以全量 `Speed!=Slow` 为准（本轮 2860/0/2）。
 - 只剩浏览器侧结账面。
+
+---
+
+## 第 1378 轮
+
+- **新工具 `analysis/pe_read_direct.py`**：不依赖 IDA 读冻结字符串 + 扫 disp32 + `.pdata` 函数映射
+  （IDA 本会话已死 4 次，且都死在发布/变异之后）。
+- **`AddressInput` 构造点 = `0x140AD5B10`**（29 字面量）：字段是
+  `recipientName/firstName/lastName/line1/line2/city/postalCode/countryCode/phone/email`，
+  周围是 **`/cart/paypal`** 与 `checkoutType`(`EXPRESS`/`OTHER`)、`payerId`、`nonce`、`billingAddress`、`Submit info`。
+- **纠正 R1372**：`addressLine1/addressLine2/locality` 在镜像里存在，**但不是这个对象用的**。
+  **字符串表说"存在什么"，构造点说"用了什么"。**
+- 新增 `Flows/PayPalExpressCart`；`AddressInput` 按构造点重写。

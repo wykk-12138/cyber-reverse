@@ -31,7 +31,7 @@
 | `GoatFlow.cs` | 11 | 0 | 329 |
 | `HbxFlow.cs` | 13 | 0 | 330 |
 | `HybrisFlow.cs` | 13 | 0 | 375 |
-| `MagentoFlow.cs` | 57 | 0 | 1626 |
+| `MagentoFlow.cs` | 57 | 0 | 1657 |
 | `NikeFlow.cs` | 23 | 0 | 980 |
 | `NikeGsFlow.cs` | 5 | 0 | 68 |
 | `PopMartFlow.cs` | 27 | 0 | 715 |

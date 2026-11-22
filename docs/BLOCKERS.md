@@ -47943,3 +47943,18 @@ Remove-Item -Recurse -Force replica\src\Cybersole.Ui\obj\Release\net8.0\win-x64\
 若前台被别的窗口占着，`delivery_mode:"foreground"` 的像素点击会直接拒绝。
 **改用 `element_token` + UIA Invoke**（同一个 `run_steps` 里 `foreground_fallback: true`）即可生效。
 顺序：**先试 `element_token` 的 UIA Invoke，再试像素点击，最后才试 foreground 像素点击。**
+
+## IDA 反复死亡时的降级路径（R1378）
+
+本会话 IDA 死了 **4 次**，**每次都发生在 `dotnet publish` 或 `mutation-check` 之后**（内存最紧张的时刻）。
+
+**先用不依赖 IDA 的读法**：
+
+```
+python analysis/pe_read_direct.py str  <chars_va>   # 读冻结字符串
+python analysis/pe_read_direct.py refs <chars_va>   # 扫 disp32（头形与字符形都试）
+python analysis/pe_read_direct.py func <site_va>    # .pdata 映射到函数起点
+```
+
+**它不反汇编** —— 需要伪代码时仍要 IDA。**但"这个字符串在不在、谁引用它、属于哪个函数"三问已不需要 IDA**，
+因此把 IDA 重启安排在**每轮开头**，发布与变异留在后面，可显著减少中断。

@@ -8989,3 +8989,15 @@ Observation：
 - **只有两个值是会话的**（euat、client-metadata-id）→ 由调用方给，缺了拒绝并说明缺哪个。
 - **又一次"只写类被裁"**：尺寸一字未变、字面量 0 命中；接线后 +6,656，消息串 `browser surface: no ` 命中 3。
 - **OPEN_ITEMS 已无静态可推进项。**
+
+---
+
+## 第 1380 轮（C8 补齐）
+
+- **`analysis/c8_string_class_compare.py`** 按三类（locale 键 / URL / 错误消息）+ `dependency` 分类对照两侧字符串池，
+  生成 `docs/C8_STRING_CLASSES.md`：镜像 213,338 条 / 产物 117,322 条；
+  `locale-key` 971 vs 935、`url` 3507 vs 283、`error-message` 4192 vs 139、`dependency` 2277 vs 692。
+- **首跑暴露并修掉分类器三个缺陷**（程序集名当资源键、库描述当文案、IDA 拼接串当条目），
+  `locale-key` 2851 → 971、`dependency` 0 → 2277。
+- **四条限制随报告输出**：缺席只能读作 unknown（§4.5）、计数是上界、IDA 会拼接相邻串、**这是仪器不是判决**。
+- 无源码改动 → 产物不需重发。

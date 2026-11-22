@@ -1,0 +1,991 @@
+{
+ "names": 243,
+ "followable": [
+  {
+   "name": "GetPaymentIntent",
+   "address": "0x146d9f814",
+   "site": "0x1411439b9",
+   "function": "0x1411438b0"
+  },
+  {
+   "name": "GetSetupIntent",
+   "address": "0x146da0324",
+   "site": "0x141144119",
+   "function": "0x141144010"
+  },
+  {
+   "name": "GetThreeDsJwtQuery",
+   "address": "0x146da0cfc",
+   "site": "0x141104157",
+   "function": "0x141103fa0"
+  },
+  {
+   "name": "PlaceOrder",
+   "address": "0x146e43414",
+   "site": "0x140a0c394",
+   "function": "0x140a0ba90"
+  },
+  {
+   "name": "RefreshToken",
+   "address": "0x146e64e4c",
+   "site": "0x14196bf1b",
+   "function": "0x14196bc60"
+  },
+  {
+   "name": "SendTokenRequestAsync",
+   "address": "0x146e7f37c",
+   "site": "0x1419b1888",
+   "function": "0x1419b17f0"
+  }
+ ],
+ "metadata_only": [
+  {
+   "name": "AddPaymentMethod",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "AddPaymentToCart",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "AdyenPayPalPatchOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "AdyenSaveExpressShopperDetails",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "AdyenSession",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ApplyPayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ApplyPaymentMethod",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ApproveMemberPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "AuditCheckoutBehaviour",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "AuthenticatePayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "Authorize",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "AuthorizePayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "BeginCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CacheTokenResponseAndCreateAuthenticationResultAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CallVoidFuncWhenFinishCoreAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CanPlaceOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CaptureCard",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CardinalContinue",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CardinalInit",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ChallengeAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ChallengePotentiallyFailed",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CheckGiftCard",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CheckInteractionChallenge",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CheckPreOrderState",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "Complete3DSOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CompleteForwardPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CompleteOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CompletePayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CompletePayPalGuestPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CompletePayPalPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CompletePayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ConfirmPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ConfirmStripeSetup",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ContinueUnzerThreeDs",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateCheckoutApp",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateCustomCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateGmoToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateIntent",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreatePayPalToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreatePayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreatePaymentToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateRaffleCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateSetupIntent",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateStripePaymentMethod",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "CreateUnzerResource",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "DetectByteOrderMarkAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "DoChallengeAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "DragBorderPressed",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "EarlyTokenization",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "EncryptCard",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ExecuteLoadCheckouts",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ExistMoreChallenges",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "FetchTokensAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "FetchTokensFromBrokerAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "FilterTokensByEnvironmentAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "FinalizeCheckout",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "FindAccessTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "FindFamilyRefreshTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "FindRefreshTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "FindRefreshTokenOrFailAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "FollowGmoRedirects",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GenTokenAsync",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "GenerateCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GenerateJavascriptToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetAccessToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetAccountAssociatedWithAccessTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetAdyenPaymentStatus",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetAppCartToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetAtlasSessionToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetAuthToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCaptureContext",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCardNonce",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetChallengeFrameRectAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetChallengeRectanglesAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCheckoutApp",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCheckoutCaptcha",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCheckoutHtml",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCheckoutLogin",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCheckoutPage",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCommercehubCredentials",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCustomerAccountToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetCustomerToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetDigestTokenForCredential",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetIdTokenCacheItemAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetInstoreOrders",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetMetadataEntryTryAvoidNetworkAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetOrders",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPayPalAccessToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPayPalDetails",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPayPalNonce",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPayPalOrderId",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPayPalPaymentOptions",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPayPalResult",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPayPalToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPaymentDetails",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPaymentMethod",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPaymentMethods",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPaymentPage",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPaymentSession",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPaymentToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPaymentUrl",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPaypalBearer",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetPaypalId",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetSessionToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetStorefrontToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetStripeConfiguration",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetStripePaymentIntent",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetStructureToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetSweepStakeCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetTokenEndpointAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetTokenResponseAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetUnzerCallback",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "GetVerificationToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "Handle3DS",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "HandleAdyenAction",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "HandleAdyenResult",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "HandleOrderResult",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "HandleUnzerRedirect",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "InitalizePayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "InitialisePayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "InitialisePayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "InitializePayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "InitiateCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "IsChallengeSolved",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "LoadCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "LoadCheckoutPage",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "PayerAuthenticate",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "PeekTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "PreloadCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "Process3DS",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "ProcessDeferredPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ProcessExternalPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ProcessMulPay",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ProcessOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ProcessOrderCommerce",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ProcessOrderPaypalCreditCard",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ProcessOrderStripe",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ProcessPayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ProcessPayment",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "ProcessPaymentPaypalCreditCard",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ProcessThreeDs",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RaffleOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ReadChallengeVersion",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ReadDateTimeOffsetTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ReadLiteralTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ReadNStringTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ReadPayloadAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ReadPaymentResponse",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ReadQuotedStringTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ReadStringTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ReadTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RefreshAccessTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RefreshTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RequestSessionToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RequestToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RpcCapturePayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RpcCreateOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RpcGetPaymentMethods",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RpcInitiatePayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RpcSolveThreeDS",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RpcSubmitAdyenDetails",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RpcSubmitCard",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RunCardinal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "RunUnzerThreeDs",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SaveTokenResponseAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SendTokenRequestToBrokerAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SetAdyenPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SetPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SetPaymentFee",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "SetStripePayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SetUnzerPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ShowConfirmationPaymentFromComponent",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "Solve3DS",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "Solve3DSRedirect",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "Solve3DSToken",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "SolveCptChallenge",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SolveHintChallengeAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SolvePayPal3DS",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SolvePayPalHosted3DS",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SquareCardNonce",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SquareHydrate",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StartCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StartCheckoutAstro",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StartInvoiceCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StartPayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StartPayPalExpress",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StartPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StartPaymentGCash",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StartPaymentSG",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StepByteOrderMarkAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "StorePaymentMethod",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitAdyenOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitAdyenPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitBotDeflectorChallenge",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitBotDetectChallenge",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitCard",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitChallenges",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitCheckoutPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitCreditCard",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitExternalPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitHpsPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitKakaoPay",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitOrder",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "SubmitOrderApp",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitOrderCommerce",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitOrderStripe",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitPayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitPayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitPaymentDetails",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitPaymentPayPal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitPaypal",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitPowChallenge",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitRecaptchaChallenge",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitStripeOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitThreeDSAuthentication",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "SubmitUnzerOrder",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ThreeDS",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "Tokenize",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "TokenizeCard",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "TokenizeDate",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "TokenizeText",
+   "reason": "standalone string, no reference"
+  },
+  {
+   "name": "TryGetTokenUsingFociAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "TrySetDigestAuthToken",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "UpdatePayment",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ValidateCachedAccessTokenAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "ValidateCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "VerifyCheckout",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "VerifyStripeChallenge",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "WaitForUntouchedChallengeAsync",
+   "reason": "no standalone string"
+  },
+  {
+   "name": "WalkUnzerReturn",
+   "reason": "no standalone string"
+  }
+ ]
+}

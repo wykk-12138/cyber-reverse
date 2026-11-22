@@ -72000,3 +72000,31 @@ Assert.Contains() Failure: Sub-string not found
 
 **教训**：`PARITY_CLAIMS.md` 的表格是**机器读的**，不是散文 —— 改它等于改一个接口。
 这和"锚点必须从源码复制"是同一族：**先看消费者怎么读，再改生产者怎么写。**
+
+---
+
+## 第 1381 轮：把**支付侧长尾**也量了一遍 —— 两条长尾用同一把尺，结论一致
+
+- **不继承结论**：R1367 量的是 30 个**店铺**异步名（29 个只有 `<Name>d__NN`、唯一有独立串的 `AddAddress` 零引用）。
+  支付侧 243 个名字**从没这样量过**，直接用"大概一样"就是本项目反复付代价的那种继承。
+- **新工具 `analysis/classify_payment_tail.py`**（用 R1378 的 `pe_read_direct`，不依赖 IDA）：
+  ```
+  支付族异步名：243
+    可按名追到处理器：   6      GetPaymentIntent / GetSetupIntent / GetThreeDsJwtQuery
+                                PlaceOrder / RefreshToken / SendTokenRequestAsync
+    只有元数据：        237      无独立串
+  ```
+- **结论**：**两条长尾用同一把尺量出同一个答案** —— 按名可追的比例极低（店铺 1/30、支付 6/243），
+  因为 NativeAOT 只保留状态机类型名，**方法名本身不是可引用的字符串**。
+- **仍然开的**：**按地址逐条反编译**（267 个名字）。**这是 267 个独立工作单元，不是"一轮能做几件"的量**，
+  且它不在 handoff 的取件判据里（那是"每轮取一条核心能力待办"，而 65/65 操作与全端点族已结案）。
+- **因此把静态议程标记为完成**，并把残余**命名 + 量化**留在文档里，而不是含糊地说"还有一点"。
+
+### 五要素
+
+- **改了什么**：新增 `analysis/classify_payment_tail.py`、数据 `analysis/.payment_tail.json`；
+  本文件（VERDICT）与 HANDOFF、OPEN_ITEMS 各一节；**无源码改动**。
+- **验证命令与输出**：`python analysis/classify_payment_tail.py` → 243 / 6 可追 / 237 仅元数据，落盘 json。
+- **数字变化**：长尾结论从"店铺 30 个已量"扩到"**店铺 30 + 支付 243 都量过**"。
+- **证据等级**：Observation —— 243 个名字的分类结果与 6 个可追名字的地址/函数映射。
+- **还剩什么**：267 个名字的按地址反编译（**已量化，非模糊待办**）；会话值类输入（euat/metadata id/storefront token）。

@@ -205,3 +205,16 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 **只有两个值是页面会话的**（euat、client-metadata-id）→ 调用方给，缺则拒绝并说明。
 
 **至此 OPEN_ITEMS 里已无"静态可推进"项。**
+
+---
+
+## 十八、两条长尾都已量化（R1381）
+
+| 族 | 名字数 | 可按名追 | 只有元数据 | 量于 |
+|---|---|---|---|---|
+| 店铺 | 30 | 1（且零引用） | 29 | R1367 |
+| 支付 | 243 | 6 | 237 | R1381 |
+
+**剩余静态工作 = 267 个名字的按地址逐条反编译**，已量化成账，**不在 handoff 取件判据内**。
+
+工具：`python analysis/classify_payment_tail.py`（不依赖 IDA，产出 `analysis/.payment_tail.json`）。

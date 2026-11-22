@@ -235,4 +235,26 @@ public sealed class StoreSessionQueriesTests
         var sent = JObject.Parse(server.Requests[0].Body!);
         Assert.Equal(StoreSessionQueries.InitiateCheckoutDocument, sent["query"]!.ToObject<string>());
     }
+
+    /// <summary>
+    /// R1377: SignInAsGuest was the last absent operation shaped like this family. addToCart and buynow turned
+    /// out to be Magento's and live in MagentoCart.
+    /// </summary>
+    [Fact]
+    public void TheGuestSignInLanded()
+    {
+        Assert.Equal(453, StoreSessionQueries.SignInAsGuestDocument.Length);
+
+        Assert.Equal(new[] { "medium" }, StoreSessionQueries.Declared["SignInAsGuest"]);
+
+        Assert.NotNull(StoreSessionQueries.DocumentFor("SignInAsGuest"));
+    }
+
+    /// <summary>The sign-in mutation names its medium, which is the only variable it takes.</summary>
+    [Fact]
+    public void TheGuestSignInCarriesItsMedium()
+    {
+        Assert.StartsWith("mutation SignInAsGuest($medium:", StoreSessionQueries.SignInAsGuestDocument);
+        Assert.Contains("SignInMediumTypeEnum", StoreSessionQueries.SignInAsGuestDocument);
+    }
 }

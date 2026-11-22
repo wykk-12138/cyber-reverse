@@ -181,3 +181,14 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 `SauconyFlow.PayerAuthenticate` 改为分类。
 
 **仍未解**：Saucony 六条 API 路径（镜像里没有拼出 Saucony API 路径的字面量）。
+
+---
+
+## 十六、GraphQL 操作覆盖结案（R1377）
+
+**`carried: 65 of 65 image operations (absent 0)`** —— 以 `analysis/operation_gap.py` 的比率行为准
+（此前三轮我误读了该工具的两个数字，已改工具）。
+
+最后三条：`SignInAsGuest`(453) → 会话族；`addToCart`(232)、`buynow`(216) → **`MagentoCart`**，并有真实调用者。
+
+**仍开放**：浏览器侧结账面；`AddressInput` 的构造点。

@@ -66,6 +66,40 @@ public static class MagentoCart
     /// </summary>
     public const string ShippingMethodsDocument = "query getShippingMethods {\n  getShippingMethods(\n    address: {region: $region, region_id: $regionId, region_code: $regionCode, country_id: $countryId, street: [$street1, $street2], postcode: $postcode, city: $city, firstname: $firstname, lastname: $lastname, customer_id: 0, email: $email, telephone: $telephone, save_in_address_book: 0}\n  ) {\n    carrier_code\n    method_code\n    carrier_title\n    method_title\n    amount\n    base_amount\n    available\n    error_message\n    price_excl_tax\n    price_incl_tax\n    __typename\n  }\n}\n";
 
+    /// <summary>
+    /// addToCart, 232 characters. Declares $sku, $qty, $type and $info.
+    /// </summary>
+    public const string AddToCartDocument = @"query addToCart($sku: String!, $qty: Int!, $type: String, $info: String) {
+  addToCart(item: {sku: $sku, qty: $qty, quote_id: ""1"", type: $type, info: $info}) {
+    sku
+    message
+    status
+    cart_id
+    qty
+    __typename
+  }
+}
+";
+
+    /// <summary>
+    /// buynow, 216 characters, a query with no variables: the item travels in the document itself and answers with
+    /// cart_id and session_id.
+    /// </summary>
+    public const string BuyNowDocument = @"query buynow {
+  buynow(
+    item: {sku: """", qty: 1, quote_id: ""1"", type: ""Simple"", bundleOptions: null}
+    isNormalBuyFlow: true
+  ) {
+    status
+    cart_id
+    session_id
+    qty
+    message
+    __typename
+  }
+}
+";
+
     public const string CustomerCartDocument = "{ customerCart { id total_quantity items { uid quantity } } }";
 
     /// <summary>
@@ -346,6 +380,52 @@ public static class MagentoCart
         {
             var reply = await PostAsync(c, endpoint!.TrimEnd('/'), Body(ShippingMethodsDocument), ct)
                 .ConfigureAwait(false);
+            if (reply is null) return (null, "magento: no reply");
+
+            if (reply["errors"] is JArray topLevel && topLevel.Count > 0)
+                return (null, "magento: " + (topLevel[0]?["message"]?.ToString() ?? "graphql error"));
+
+            var data = reply["data"] as JObject;
+            return data is null ? (null, "magento: no data in reply") : (data, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            return (null, "magento: " + ex.GetType().Name);
+        }
+    }
+
+    /// <summary>Add a line through the image's own addToCart document.</summary>
+    public static Task<(JObject? Data, string Error)> AddToCartAsync(
+        FlowContext c, string endpoint, string sku, int qty, string type, JObject? info, CancellationToken ct) =>
+        SendDocumentAsync(c, endpoint, new JObject
+        {
+            ["query"] = AddToCartDocument,
+            ["variables"] = new JObject
+            {
+                ["sku"] = sku,
+                ["qty"] = qty,
+                ["type"] = type,
+                ["info"] = info ?? new JObject(),
+            },
+        }, ct);
+
+    /// <summary>Buy now through the image's own document, substituting only the quote id.</summary>
+    public static Task<(JObject? Data, string Error)> BuyNowAsync(
+        FlowContext c, string endpoint, string quoteId, CancellationToken ct) =>
+        SendDocumentAsync(c, endpoint, new JObject
+        {
+            ["query"] = BuyNowDocument.Replace("quote_id: \"1\"", "quote_id: \"" + quoteId + "\""),
+        }, ct);
+
+    /// <summary>Post a body the caller already built and unwrap the usual envelope.</summary>
+    private static async Task<(JObject? Data, string Error)> SendDocumentAsync(
+        FlowContext c, string? endpoint, JObject body, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(endpoint)) return (null, "magento: no endpoint");
+
+        try
+        {
+            var reply = await PostAsync(c, endpoint!.TrimEnd('/'), body, ct).ConfigureAwait(false);
             if (reply is null) return (null, "magento: no reply");
 
             if (reply["errors"] is JArray topLevel && topLevel.Count > 0)

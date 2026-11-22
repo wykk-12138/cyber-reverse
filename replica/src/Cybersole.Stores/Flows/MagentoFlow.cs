@@ -148,6 +148,37 @@ public class MagentoFlow : StoreFlow
 
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
+        // R1377: callers for the two documents the guards asked about. The endpoint is the store's own /graphql; the
+        // sku, quantity and quote id come from the run.
+        var magentoEndpoint = c.Session.Vars.GetValueOrDefault("magento.endpoint");
+        if (!string.IsNullOrEmpty(magentoEndpoint))
+        {
+            var magentoSku = c.Session.Vars.GetValueOrDefault("magento.sku");
+            if (!string.IsNullOrEmpty(magentoSku))
+            {
+                var quantity = int.TryParse(c.Session.Vars.GetValueOrDefault("magento.qty"), out var parsed) ? parsed : 1;
+                var (addData, addError) = await MagentoCart
+                    .AddToCartAsync(c, magentoEndpoint!, magentoSku!, quantity,
+                        c.Session.Vars.GetValueOrDefault("magento.type") ?? "Simple", null, ct)
+                    .ConfigureAwait(false);
+                if (addData is null) return StepOutcome.Fail(addError);
+
+                c.Session.Vars["magentoCart"] = addData.ToString(Newtonsoft.Json.Formatting.None);
+                return StepOutcome.Success();
+            }
+
+            var magentoQuote = c.Session.Vars.GetValueOrDefault("magento.quoteId");
+            if (!string.IsNullOrEmpty(magentoQuote))
+            {
+                var (buyData, buyError) = await MagentoCart
+                    .BuyNowAsync(c, magentoEndpoint!, magentoQuote!, ct).ConfigureAwait(false);
+                if (buyData is null) return StepOutcome.Fail(buyError);
+
+                c.Session.Vars["magentoBuyNow"] = buyData.ToString(Newtonsoft.Json.Formatting.None);
+                return StepOutcome.Success();
+            }
+        }
+
         if (string.IsNullOrEmpty(c.Session.VariantId)) return StepOutcome.Fail("magento: no sku");
         if (string.IsNullOrEmpty(c.Session.CartId)) c.Session.CartId = Guid.NewGuid().ToString("N");
 

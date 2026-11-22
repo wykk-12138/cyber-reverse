@@ -51,6 +51,11 @@ public static class StoreSessionQueries
     /// <summary>initiateCheckout, 251 characters from 0x1470f489c.</summary>
     public const string InitiateCheckoutDocument = "mutation initiateCheckout {\n  initiateCheckout {\n    id\n    version\n    paymentInfo {\n      payments {\n        id\n        version\n        custom {\n          customFieldsRaw {\n            name\n            value\n          }\n        }\n      }\n    }\n  }\n}";
 
+    /// <summary>SignInAsGuest, 453 characters from 0x1470e1adc.</summary>
+    public const string SignInAsGuestDocument = "mutation SignInAsGuest($medium: SignInMediumTypeEnum) {\r\n                signInAsGuest(medium: $medium) {\r\n                authPayload {\r\n                    accessToken\r\n                    refreshToken\r\n                    __typename\r\n                }\r\n                userErrors {\r\n                    field\r\n                    message\r\n                    __typename\r\n                }\r\n                __typename\r\n                }\r\n            }";
+
+
+
     /// <summary>maintainShippingGroups, 223 characters from 0x1470f4aac.</summary>
     public const string MaintainShippingGroupsDocument = "mutation maintainShippingGroups($cartId: String!) {\n  maintainMyShippingGroups(cartId: $cartId) {\n    id\n    version\n    isAbleToCheckout\n    totalPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n  }\n}";
 
@@ -73,6 +78,7 @@ public static class StoreSessionQueries
         ["UpdateContactDetails"] = new[] { "email", "emailOptIn", "phone" },
         ["saveAddress"] = new[] { "address", "editAddress", "saveAddress", "setDefault" },
         ["createCartByStore"] = new[] { "country", "currency", "locale", "storeKey", "taxMode" },
+        ["SignInAsGuest"] = new[] { "medium" },
         ["initiateCheckout"] = Array.Empty<string>(),
         ["maintainShippingGroups"] = new[] { "cartId" },
     };
@@ -88,6 +94,7 @@ public static class StoreSessionQueries
         "UpdateContactDetails" => UpdateContactDetailsDocument,
         "saveAddress" => SaveAddressDocument,
         "createCartByStore" => CreateCartByStoreDocument,
+        "SignInAsGuest" => SignInAsGuestDocument,
         "initiateCheckout" => InitiateCheckoutDocument,
         "maintainShippingGroups" => MaintainShippingGroupsDocument,
         _ => null,

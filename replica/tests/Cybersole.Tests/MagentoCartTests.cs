@@ -405,4 +405,21 @@ public sealed class MagentoCartTests
         var sent = JObject.Parse(server.Requests[0].Body!);
         Assert.Equal(MagentoCart.ShippingMethodsDocument, sent["query"]!.ToObject<string>());
     }
+
+    /// <summary>
+    /// R1377: addToCart and buynow carry Magento's vocabulary — sku/qty/quote_id/"Simple" — so they belong with this
+    /// platform's documents rather than with the session family they were first filed under.
+    /// </summary>
+    [Fact]
+    public void TheCartAndBuyNowDocumentsAreMagentos()
+    {
+        Assert.Contains("$sku", MagentoCart.AddToCartDocument);
+        Assert.Contains("$qty", MagentoCart.AddToCartDocument);
+        Assert.Contains("$type", MagentoCart.AddToCartDocument);
+
+        Assert.StartsWith("query buynow", MagentoCart.BuyNowDocument);
+        Assert.Contains("quote_id", MagentoCart.BuyNowDocument);
+        Assert.Contains("isNormalBuyFlow", MagentoCart.BuyNowDocument);
+        Assert.Contains("cart_id", MagentoCart.BuyNowDocument);
+    }
 }

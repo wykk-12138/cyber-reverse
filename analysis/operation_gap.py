@@ -29,6 +29,10 @@ for base, dirs, files in os.walk(ROOT):
 
 print('image:   %d operations' % len(image))
 print('replica: %d operations' % len(replica))
+# R1377: these two numbers answer different questions and I read one as the other for three rounds. Say the ratio.
+covered_now = len(set(image) & set(replica))
+print('carried: %d of %d image operations (absent %d)' % (
+    covered_now, len(image), len(set(image) - set(replica))))
 print()
 
 covered = sorted(set(image) & set(replica))

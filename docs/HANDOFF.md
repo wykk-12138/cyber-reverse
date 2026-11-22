@@ -8953,3 +8953,15 @@ Observation：
 - **IDA 第 3 次死亡**：`foreground_fallback` 像素点击会报 `foreground_unavailable`，
   **改用 `element_token` UIA Invoke** 才生效（配方已合并进 BLOCKERS）。
 - 一处自伤：插入分支缩进坏（编译过但读起来坏）→ 单独修掉，不留"能跑就行"。
+
+---
+
+## 第 1377 轮（覆盖结案 65/65）
+
+- **65/65，absent 0。** 最后三条按词表归位：`SignInAsGuest` → 会话族；`addToCart`/`buynow` → **`MagentoCart`**
+  （`quote_id`/`Simple`/`isNormalBuyFlow` 是 Magento 词汇），并补上 `AddToCartAsync`/`BuyNowAsync` 真实调用者。
+- **我连着三轮报错覆盖率**：`operation_gap.py` 打两个数，我读了错的那个。**工具已改为打印比率行。**
+- **`rfind('}')` 第三次坑我** → 抽出可复用 `analysis/insert_into_class.py`（括号配对 + 跳过字符串/注释）。
+- **过滤器注意**：`ShapeAuditGuardTests` 与 `BindScopeGuardTests` 是 external-tool 类，
+  **单独拼过滤会假红**；以全量 `Speed!=Slow` 为准（本轮 2860/0/2）。
+- 只剩浏览器侧结账面。

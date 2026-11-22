@@ -8931,3 +8931,13 @@ Observation：
 - **查法纠错**：之前搜 `/v2/app/contact`（路径）得"没有"，镜像存的是**完整 URL** —— §2.7 的老毛病再犯一次。
 - **Saucony**：`SAUCONY-3DS`（`0x140A76F60`）带 `MD`/`jwt`/`redirectUrl`/`stepUpUrl`/`Unexpected 3DS response`，
   下轮落地。
+
+---
+
+## 第 1375 轮
+
+- **Saucony `PayerAuthenticate` 不再是"整步拒绝"**：处理器 `0x140A76F60` 的九个字面量给出完整规则
+  （`redirectUrl` / `stepUpUrl` / `jwt` / `MD` / `Unexpected 3DS response`）→ 新增 `Flows/SauconyThreeDs` 分类器。
+  **请求路径仍然没有**，注释与拒绝语照旧。
+- 测试脚手架三处失误（`FlowContext` 必填项、`Success` 是方法组、每测试各自要 `NetClient`）——
+  **照抄同文件既有写法后通过**。

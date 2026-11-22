@@ -169,3 +169,15 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 
 **已落地**：URL、`Origin`、`Submitting info`、`Getting checkout`、`application/x-www-form-urlencoded`。
 **未落地**：体的字段名 —— **发送方带的是请求头名，JSON 在其调用方**，故体由调用方给。
+
+---
+
+## 十五、Saucony 的 3DS 应答已可读（R1375）
+
+处理器 `0x140A76F60`（`SAUCONY-3DS`）九个字面量：`MD`、`StatusInfo`、`Unexpected 3DS response`、`error`、
+`jwt`、`red`、`redirectUrl`、`stepUpUrl`。
+
+⇒ 应答两形状（redirect / step-up）+ jwt；其它用处理器原话拒绝。实现 `Flows/SauconyThreeDs`，
+`SauconyFlow.PayerAuthenticate` 改为分类。
+
+**仍未解**：Saucony 六条 API 路径（镜像里没有拼出 Saucony API 路径的字面量）。

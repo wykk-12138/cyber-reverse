@@ -112,7 +112,32 @@ public sealed class SauconyFlow : StoreFlow
     /// <c>_paymentFormToken</c> and <c>_encodedMerchantId</c> and its helper is <c>BuildAuthToken</c>.
     /// The form's submit target is Unknown, and a card number is the last thing to aim at a guess.
     /// </summary>
-    public StepOutcome PayerAuthenticate(FlowContext c) => NotCaptured("PayerAuthenticate", "d__13");
+    public StepOutcome PayerAuthenticate(FlowContext c)
+    {
+        // R1375: the reply can be read even though the request cannot be built. A run supplies what came back; this
+        // classifies it the way sub_140A76F60 does and keeps the handler's own sentence for anything else.
+        var replyText = c.Session.Vars.GetValueOrDefault("saucony.threeDsReply");
+        if (string.IsNullOrWhiteSpace(replyText)) return NotCaptured("PayerAuthenticate", "d__13");
+
+        Newtonsoft.Json.Linq.JObject reply;
+        try
+        {
+            reply = Newtonsoft.Json.Linq.JObject.Parse(replyText!);
+        }
+        catch (Newtonsoft.Json.JsonException)
+        {
+            return StepOutcome.Fail("saucony: saucony.threeDsReply is not valid JSON", retryable: false);
+        }
+
+        var (shape, url, jwt) = SauconyThreeDs.Classify(reply);
+        c.Session.Vars["saucony.threeDsShape"] = shape.ToString();
+        if (!string.IsNullOrEmpty(url)) c.Session.Vars["saucony.threeDsUrl"] = url;
+        if (!string.IsNullOrEmpty(jwt)) c.Session.Vars["saucony.threeDsJwt"] = jwt;
+
+        return shape == SauconyThreeDs.Shape.Unexpected
+            ? StepOutcome.Fail(SauconyThreeDs.UnexpectedResponseMessage, retryable: false)
+            : StepOutcome.Success();
+    }
 
     /// <summary>
     /// Which store id applies to a host, out of the four the image names. Returns null when the host is

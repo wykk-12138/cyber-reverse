@@ -71758,9 +71758,38 @@ metrics_report.py 第一次全量跑出 **2757 通过 / 1 失败**，随即原�
 - **改了什么**：新增 `Flows/AoCheckout.cs`、`tests/AoCheckoutTests.cs`（2 条）；
   `StoreFlow.SubmitCustomerAsync` 加分支；新增 3 个 analysis 脚本；重发布；METRICS 重生成。
 - **验证命令与输出**：`AoCheckoutTests` → **2/2**；`StoreFlow|AoCheckout` → 见下；
-  `orphan_documents.py` → 0；产物命中见下。
+  `orphan_documents.py` → 0；产物三串各 ASCII 命中 1；尺寸 +9,216 字节。
 - **数字变化**：套件 +2；AO 从"三个体未知"变成**端点/标签/content-type 已知，体仍由调用方给**。
 - **证据等级**：Observation —— 三个 URL 地址、三个真发送方的字面量表（含头名与标签）。
   **Correction** —— 此前按路径搜索得到"镜像里没有"，实际是完整 URL。
 - **还剩什么**：Saucony 六步（本轮只确认 `SAUCONY-3DS` 一条：`0x140A76F60`，`MD`/`jwt`/`redirectUrl`/`stepUpUrl`/
   `Unexpected 3DS response`）、浏览器侧结账面。
+
+---
+
+## 第 1375 轮：Saucony 的 `PayerAuthenticate` 从"整步拒绝"变成"能读应答"
+
+- **`SAUCONY-3DS` 的处理器 `0x140A76F60` 只有九个字面量**，但这一组恰好是一条完整规则：
+  ```
+  MD   SAUCONY-3DS   StatusInfo   Unexpected 3DS response   error   jwt   red   redirectUrl   stepUpUrl
+  ```
+  ⇒ 应答只有两种形状（**redirect** 或 **step-up**），旁边带 `jwt`，MD 是 3DS 的字段；**其它一律用处理器自己的话拒绝**。
+- **改的是什么**：`SauconyFlow.PayerAuthenticate` 原本对**每一次调用**都返回
+  `"… endpoint unknown …"`。**这句话对"建请求"仍然成立，对"读应答"已经不成立** ——
+  所以它现在：给了 `saucony.threeDsReply` 就分类（并写回 `threeDsShape`/`threeDsUrl`/`threeDsJwt`），
+  没给才退回原来的拒绝。**两个 url 同时出现时 redirect 优先**（浏览器会跟着走的那一个）。
+- **不做的**：**不编请求路径** —— 那个类的注释本来就写着"没有字面量拼出 Saucony 的 API 路径"，这句仍然有效。
+- **三处测试脚手架失误**（都是我没先看现有写法）：
+  `FlowContext` 的 `Http`/`Url` 是**必填**（`CS9035`）；`StepOutcome.Success` 是**方法组**不是属性（`CS0019`）；
+  两个测试各自需要自己的 `NetClient`（`CS0103`）。**照抄同文件既有写法**后一次通过。
+- **产物**：`SAUCONY-3DS`、`Unexpected 3DS response`、`stepUpUrl` **三个都 ASCII 命中 1**（UTF-16 各 0）；
+  尺寸 62,054,400 → **62,063,616**。
+
+### 五要素
+
+- **改了什么**：新增 `Flows/SauconyThreeDs.cs`、`tests/SauconyThreeDsTests.cs`（5 条）；
+  `SauconyFlow.PayerAuthenticate` 重写为分类器；`SauconyFlowTests.cs`（+2，共 21）；重发布；METRICS 重生成。
+- **验证命令与输出**：`Saucony*` → **21/21**；`orphan_documents.py` → 0；产物命中见下。
+- **数字变化**：套件 +7；Saucony 从"整步 Unknown"变成"**应答可分类，请求仍未建**"。
+- **证据等级**：Observation —— 九字面量清单、两条 url 字段、拒绝语、产物命中。
+- **还剩什么**：Saucony 的六条 API 路径（仍未拼出）、浏览器侧结账面。

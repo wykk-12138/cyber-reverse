@@ -112,4 +112,43 @@ public sealed class SauconyFlowTests
         Assert.False(payer.Ok);
         Assert.Contains("d__13", payer.Error);
     }
+
+    /// <summary>
+    /// R1375: PayerAuthenticate used to refuse every call. It still cannot build the request, but it can read the
+    /// reply — a redirect, a step-up, or the handler's own sentence.
+    /// </summary>
+    [Fact]
+    public void ThePayerStepClassifiesInsteadOfRefusing()
+    {
+        var flow = new SauconyFlow();
+
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var bare = new FlowContext { Http = http, Url = "https://www.saucony.com/" };
+        var withoutReply = flow.PayerAuthenticate(bare);
+        Assert.False(withoutReply.Ok);
+        Assert.Contains("d__13", withoutReply.Error);
+
+        var context = new FlowContext { Http = http, Url = "https://www.saucony.com/" };
+        context.Session.Vars["saucony.threeDsReply"] = "{\"redirectUrl\":\"https://acs.example/r\"}";
+        var withRedirect = flow.PayerAuthenticate(context);
+
+        Assert.True(withRedirect.Ok);
+        Assert.Equal("Redirect", context.Session.Vars["saucony.threeDsShape"]);
+        Assert.Equal("https://acs.example/r", context.Session.Vars["saucony.threeDsUrl"]);
+    }
+
+    /// <summary>A reply with neither url gets the handler's own words, not a generic failure.</summary>
+    [Fact]
+    public void AnUnexpectedReplyUsesTheHandlersSentence()
+    {
+        var flow = new SauconyFlow();
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var context = new FlowContext { Http = http, Url = "https://www.saucony.com/" };
+        context.Session.Vars["saucony.threeDsReply"] = "{\"error\":\"declined\"}";
+
+        var outcome = flow.PayerAuthenticate(context);
+
+        Assert.False(outcome.Ok);
+        Assert.Equal("Unexpected 3DS response", outcome.Error);
+    }
 }

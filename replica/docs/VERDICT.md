@@ -71909,3 +71909,38 @@ Cybersole.Tests.ShapeAuditGuardTests.NullableReturningPublicMethodsAreNotReporte
 - **证据等级**：Observation —— 两个函数的字面量表（含十个地址字段与 `/cart/paypal` 全套词汇）、产物命中。
   **Correction** —— R1372 用字符串表推断字段，构造点否决了三个名字中的两个。
 - **还剩什么**：浏览器侧结账面（需界面上下文）。
+
+---
+
+## 第 1379 轮：**浏览器侧 PayPal 不在"需要抓包"那一栏** —— 它就在镜像里，一个函数写全了
+
+- **我把它归错了两轮。** 一直写"需要界面上下文"。用 R1378 的新工具查三个头的引用：
+  `x-paypal-internal-euat` 有 16 个站点，其中一个映射到 **`0x140F4C550`，38 个字面量** —— **整套都在里面**：
+  ```
+  x-app-name = checkoutuinodeweb_hermione     x-paypal-internal-euat      paypal-client-metadata-id
+  accept / content-type / cookie / origin / referer / user-agent
+  sec-ch-ua / sec-ch-ua-mobile / sec-ch-ua-platform / sec-fetch-dest / sec-fetch-mode / sec-fetch-site
+  accept-language = en-GB          PayWithQuery / operationName / query / variables
+  token / withSplitTender / expeirences(!)      https://www.paypal.com / mep/dashboard
+  application/json / IFRAME / login / signin
+  ```
+- **能落地的**：`x-app-name` 的**值**、十五个请求头名、`en-GB`、`sec-fetch-*` 三个固定值、
+  体里的 `PayWithQuery` + `token`/`withSplitTender`/**`expeirences`**（镜像自己的错拼，第四次）。
+- **不能落地的**：`x-paypal-internal-euat` 与 `paypal-client-metadata-id` 的**值** —— 那是页面会话的，
+  与 storefront 令牌同一条规矩：**由调用方给，缺了就拒绝并说明缺哪个**。
+- **一次被裁掉**：第一版只加了类，产物尺寸**一字未变**、三个字面量 0 命中 —— **没有生产调用者，AOT 把它整个裁了**
+  （R1370 的教训第二次应验）。接进 `StoreFlow.SubmitPayPalAsync` 后尺寸 +6,656，
+  且新增消息串 `browser surface: no ` **UTF-16 命中 3** 作为正向证据。
+- **产物**：三个头名本身 0 命中（§4.5：无结论），**以尺寸增长 + 消息串命中为准**；尺寸 62,085,632 → **62,092,288**。
+
+### 五要素
+
+- **改了什么**：新增 `Payments/PayPalBrowserSurface.cs`（常量 + `Headers` + `Body` + `CanSend` + `SendAsync`）、
+  `tests/PayPalBrowserSurfaceTests.cs`（4 条）；`StoreFlow.SubmitPayPalAsync` 加分支；新增 3 个 analysis 脚本；
+  重发布；METRICS 重生成。
+- **验证命令与输出**：`PayPal*` → **91/91**；`orphan_documents.py` → 0；`operation_gap.py` → **65 of 65 (absent 0)**；
+  产物 `browser surface: no ` UTF-16 命中 3；尺寸见上。
+- **数字变化**：套件 +4；**OPEN_ITEMS 的最后一条关闭**。
+- **证据等级**：Observation —— 38 个字面量清单、产物尺寸增长与消息串命中。
+  **Correction** —— 「浏览器结账面需要界面上下文」是我的归类错误；只有两个**值**需要会话，形状全在镜像里。
+- **还剩什么**：`OPEN_ITEMS` 里已无"静态可推进"项。

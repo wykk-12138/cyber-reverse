@@ -8978,3 +8978,14 @@ Observation：
 - **纠正 R1372**：`addressLine1/addressLine2/locality` 在镜像里存在，**但不是这个对象用的**。
   **字符串表说"存在什么"，构造点说"用了什么"。**
 - 新增 `Flows/PayPalExpressCart`；`AddressInput` 按构造点重写。
+
+---
+
+## 第 1379 轮（清单关闭）
+
+- **浏览器侧 PayPal 不是外部依赖**：`0x140F4C550` 的 38 个字面量给出 `x-app-name = checkoutuinodeweb_hermione`、
+  十五个头名、`en-GB`、`sec-fetch-*`、`PayWithQuery` + `token`/`withSplitTender`/`expeirences`、
+  `https://www.paypal.com`。落成 `Payments/PayPalBrowserSurface`，接进 `SubmitPayPalAsync`。
+- **只有两个值是会话的**（euat、client-metadata-id）→ 由调用方给，缺了拒绝并说明缺哪个。
+- **又一次"只写类被裁"**：尺寸一字未变、字面量 0 命中；接线后 +6,656，消息串 `browser surface: no ` 命中 3。
+- **OPEN_ITEMS 已无静态可推进项。**

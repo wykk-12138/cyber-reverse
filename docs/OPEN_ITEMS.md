@@ -192,3 +192,16 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 最后三条：`SignInAsGuest`(453) → 会话族；`addToCart`(232)、`buynow`(216) → **`MagentoCart`**，并有真实调用者。
 
 **仍开放**：浏览器侧结账面；`AddressInput` 的构造点。
+
+---
+
+## 十七、浏览器侧 PayPal 已结案（R1379）
+
+它**不**需要抓包：`0x140F4C550` 的 38 个字面量给出完整形状 ——
+`x-app-name = checkoutuinodeweb_hermione`、`x-paypal-internal-euat`、`paypal-client-metadata-id`、
+浏览器头集、`en-GB`、`PayWithQuery` + `token`/`withSplitTender`/`expeirences`（镜像错拼）、`https://www.paypal.com`。
+
+实现：`Payments/PayPalBrowserSurface`，接进 `StoreFlow.SubmitPayPalAsync`。
+**只有两个值是页面会话的**（euat、client-metadata-id）→ 调用方给，缺则拒绝并说明。
+
+**至此 OPEN_ITEMS 里已无"静态可推进"项。**

@@ -1825,6 +1825,23 @@ public abstract class StoreFlow
     // ── PayPal ────────────────────────────────────────────────────────────────
     public virtual async Task<StepOutcome> SubmitPayPalAsync(FlowContext c, CancellationToken ct)
     {
+        // R1379: the browser-side PayPal path, when a run holds the two page values it needs. Those two are the
+        // session's; the app name, the headers and the body shape are the image's.
+        var browserEuat = c.Session.Vars.GetValueOrDefault("paypal.browserEuat");
+        var browserMetadata = c.Session.Vars.GetValueOrDefault("paypal.clientMetadataId");
+        if (!string.IsNullOrEmpty(browserEuat) && !string.IsNullOrEmpty(browserMetadata))
+        {
+            var (browserData, browserError) = await Cybersole.Stores.Payments.PayPalBrowserSurface
+                .SendAsync(c, Cybersole.Stores.Payments.PayPalPartnerApprove.Document,
+                    c.Session.Vars.GetValueOrDefault("paypal.token"), true,
+                    browserEuat, browserMetadata, c.Session.Vars.GetValueOrDefault("paypal.cookie"), ct)
+                .ConfigureAwait(false);
+            if (browserData is null) return StepOutcome.Fail(browserError);
+
+            c.Session.Vars["paypalBrowser"] = browserData.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         var orderId = c.Session.Vars.TryGetValue("paypalOrderId", out var id) ? id : null;
         if (string.IsNullOrEmpty(orderId))
         {

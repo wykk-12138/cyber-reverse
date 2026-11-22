@@ -9019,7 +9019,7 @@ Observation：
 
 - **状态**：GraphQL 操作 **65/65（absent 0）**；端点族全部落地；两条异步名长尾**都已量化**
   （店铺 30：1 可追 / 29 仅元数据；支付 243：6 可追 / 237 仅元数据）。
-- **残��**：①267 个异步名需按地址逐条反编译（独立队列，不在取件判据内）；②会话值类输入（euat / metadata id / token）。
+- **残余**：① 267 个异步名需按地址逐条反编译（独立队列，不在取件判据内）；②会话值类输入（euat / metadata id / token）。
 - **可以取件的新队列**：④ UI 绑定（
 eplica/docs/BINDING_BACKLOG.md）—— ①–③ 静态已结案，解冻条件满足。
 - **自检三连**（接手先跑）：nalysis/operation_gap.py → carried: 65 of 65 (absent 0)；

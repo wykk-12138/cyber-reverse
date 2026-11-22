@@ -8910,3 +8910,13 @@ Observation：
 - **撤回一条自写结论**：`disp32` 命中 ≠ 引用。`CreditCard` 发送方 20 个字面量里**没有**地址字段。
   **只有函数字面量表里出现该名字，才算引用。**
 - 覆盖仍 63/65；`AddressInput` 从"形状未知"变成"名字已知、构造点未知"。
+
+---
+
+## 第 1373 轮
+
+- **`/cartApi/checkout` 发送方 = `0x140C32160`**（字面量表确认，非 disp32 噪声）：11 个字面量给出
+  `https://` + `www` + `themeapis` + <顶级域> + `/cartApi/checkout`，体字段 `CartType`/`LineItems`/`LocationId`/
+  `SourceSystem`/`CouponReferences`，`CartType` 两值 `Retail`/`Shopify`。
+- **顶级域不在镜像里** ⇒ 由调用方给，**不写 `.com`**。实现 `Flows/ThemeApisCheckout`，接进 `GetCartAsync`。
+- 产物 `/cartApi/checkout` ASCII 命中 1、`themeapis` UTF-16 命中 10。

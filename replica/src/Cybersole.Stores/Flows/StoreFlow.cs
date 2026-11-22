@@ -749,6 +749,29 @@ public abstract class StoreFlow
     public virtual Task<StepOutcome> CreateCartAsync(FlowContext c, CancellationToken ct) => Ok();
     public virtual async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
     {
+        // R1373: the theme APIs cart checkout, when a run names its top-level domain. The path, the body fields and
+        // the two cart types are the image's; the domain is not, so it comes from the run.
+        var themeApisDomain = c.Session.Vars.GetValueOrDefault("themeapis.domain");
+        if (!string.IsNullOrEmpty(themeApisDomain))
+        {
+            var cartType = c.Session.Vars.GetValueOrDefault("themeapis.cartType")
+                           ?? ThemeApisCheckout.CartTypeShopify;
+            var body = ThemeApisCheckout.Body(
+                cartType,
+                null,
+                c.Session.Vars.GetValueOrDefault("themeapis.locationId"),
+                c.Session.Vars.GetValueOrDefault("themeapis.sourceSystem"),
+                null);
+
+            var (checkoutData, checkoutError) = await ThemeApisCheckout
+                .SendAsync(c, themeApisDomain, body, ct).ConfigureAwait(false);
+            if (checkoutData is null) return StepOutcome.Fail(checkoutError);
+
+            c.Session.Vars["themeapisCheckout"] =
+                checkoutData.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         // R1357: the family that posts persisted queries by hash. When a run names an origin for it, the cart comes
         // from there; the hash is the run's because the image holds two and pairs neither with an operation.
         var hashOrigin = c.Session.Vars.GetValueOrDefault("graphqlHash.origin");

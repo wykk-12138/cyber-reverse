@@ -71702,3 +71702,32 @@ metrics_report.py 第一次全量跑出 **2757 通过 / 1 失败**，随即原�
   **Correction** —— 先前"三个有代码引用"的说法被同一轮的解码推翻。
 - **还剩什么**：4 类 —— AO 三个体、Saucony 六步、`/cartApi/checkout` 发送方、浏览器侧结账面；`AddressInput` 现为
   "名字已知、构造点未知"。
+
+---
+
+## 第 1373 轮：`/cartApi/checkout` 的发送方找到了 —— **R1372 那条判据第一次派上用场**
+
+- **按 R1372 的规矩查**（`disp32` 命中必须由函数字面量表确认）：路径只有一条精确串 `0x146AB27FC`，
+  命中三个站点中**只有一个映射到真函数** `0x140C32160`，而它的字面量表**确实带着这条路径** ⇒ **真引用**。
+- **那个函数的 11 个字面量**：
+  ```
+  /cartApi/checkout   CartType   CouponReferences   LineItems   LocationId
+  Retail   Shopify    SourceSystem   https://   themeapis   www
+  ```
+  → 端点 = `https://` + `www` + `themeapis` + **<顶级域>** + `/cartApi/checkout`；
+  体里有 `CartType`（两个值 `Retail`/`Shopify`）、`LineItems`、`LocationId`、`SourceSystem`、`CouponReferences`。
+- **顶级域不在这 11 个字面量里** ⇒ **由调用方给**，**不替镜像写 `.com`**。
+  `HostFor(tld)` / `UrlFor(tld)` 明确表达这一点；`Body(...)` 只接受那两个值，其它值抛 `ArgumentOutOfRangeException`。
+- **接线进 `GetCartAsync`**（`themeapis.domain` 触发），确保不被裁。
+- **产物**：`/cartApi/checkout` **ASCII 命中 1**、`themeapis` **UTF-16 命中 10 / ASCII 1**；
+  尺寸 62,041,088 → **62,047,744**。
+
+### 五要素
+
+- **改了什么**：新增 `Flows/ThemeApisCheckout.cs`、`tests/ThemeApisCheckoutTests.cs`（3 条）；
+  `StoreFlow.GetCartAsync` 加分支；新增 3 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`ThemeApisCheckoutTests` → **3/3**；`StoreFlow|ThemeApis` → **24/24**；
+  `orphan_documents.py` → 0；产物命中见上；尺寸 +6,656 字节。
+- **数字变化**：套件 +3；`/cartApi/checkout` 从"发送方未定位"变成**已实现**。
+- **证据等级**：Observation —— 精确串地址、唯一真引用函数、11 个字面量清单、产物双编码命中。
+- **还剩什么**：3 类 —— AO 三个体、Saucony 六步、浏览器侧结账面。

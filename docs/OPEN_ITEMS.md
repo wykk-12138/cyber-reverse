@@ -149,3 +149,13 @@ R1358 曾把 `CreditCard` 与 `getShippingMethods` 判为"没有独立操作名�
 **没有地址字段**。**`disp32` 命中只是字节图案，函数字面量表中出现才算引用。**
 
 **边界**：`api/checkout/v1/orders/<id>/finalize` 不吃 `AddressInput`。模型在 `Flows/AddressInput.cs`。
+
+---
+
+## 十三、`/cartApi/checkout` 已结案（R1373）
+
+**发送方 `0x140C32160`**，字面量表确认（R1372 判据）。端点 `https://www.themeapis.<tld>/cartApi/checkout`，
+**顶级域镜像未给 → 调用方给**。
+
+体字段：`CartType`（`Retail`/`Shopify`）、`LineItems`、`LocationId`、`SourceSystem`、`CouponReferences`。
+实现：`Flows/ThemeApisCheckout`，接进 `StoreFlow.GetCartAsync`。

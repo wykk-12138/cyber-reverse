@@ -1475,6 +1475,16 @@ public abstract class StoreFlow
 
             c.Session.Vars["cybersourcePayment"] =
                 paymentData.ToString(Newtonsoft.Json.Formatting.None);
+            if (c.Session.Vars.GetValueOrDefault("cybersource.updateMode") == "true")
+            {
+                var (updateData, updateError) = await Cybersole.Stores.Payments.CybersourcePayment
+                    .UpdateAsync(c, cybersourceEndpoint, paymentVariables, ct).ConfigureAwait(false);
+                if (updateData is null) return StepOutcome.Fail(updateError);
+
+                c.Session.Vars["cybersourceUpdate"] =
+                    updateData.ToString(Newtonsoft.Json.Formatting.None);
+            }
+
             return StepOutcome.Success();
         }
 

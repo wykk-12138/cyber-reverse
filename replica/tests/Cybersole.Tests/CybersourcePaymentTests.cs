@@ -44,4 +44,38 @@ public sealed class CybersourcePaymentTests
         Assert.Equal("createMyPayment", body["operationName"]!.ToObject<string>());
         Assert.Equal(CybersourcePayment.Document, body["query"]!.ToObject<string>());
     }
+
+    /// <summary>
+    /// R1376: updateMyPaymentWithActions is the same family's update — same handler, same refusal, three declared
+    /// variables of its own.
+    /// </summary>
+    [Fact]
+    public void TheUpdateIsTheSameFamilys()
+    {
+        Assert.Equal(401, CybersourcePayment.UpdatePaymentDocument.Length);
+        Assert.StartsWith("mutation updateMyPaymentWithActions", CybersourcePayment.UpdatePaymentDocument);
+        Assert.Contains("$actions", CybersourcePayment.UpdatePaymentDocument);
+        Assert.Contains("$id", CybersourcePayment.UpdatePaymentDocument);
+        Assert.Contains("$version", CybersourcePayment.UpdatePaymentDocument);
+    }
+
+    /// <summary>Without a capture context the update refuses before sending, like the create.</summary>
+    [Fact]
+    public async Task TheUpdateRefusesWithoutACaptureContext()
+    {
+        using var http = new Cybersole.Http.NetClient();
+        var (data, error) = await CybersourcePayment.UpdateAsync(
+            new Cybersole.Stores.Flows.FlowContext { Http = http, Url = "https://x.test/" },
+            null, new JObject(), default);
+
+        Assert.Null(data);
+        Assert.Contains("no endpoint", error);
+
+        var (second, secondError) = await CybersourcePayment.UpdateAsync(
+            new Cybersole.Stores.Flows.FlowContext { Http = http, Url = "https://x.test/" },
+            "https://x.test", new JObject(), default);
+
+        Assert.Null(second);
+        Assert.Equal(CybersourcePayment.NoCaptureContextMessage, secondError);
+    }
 }

@@ -37,7 +37,7 @@
 | `PopMartFlow.cs` | 27 | 0 | 715 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
 | `RetailFlows.cs` | 115 | 0 | 2499 |
-| `SauconyFlow.cs` | 9 | 1 | 152 |
+| `SauconyFlow.cs` | 9 | 1 | 177 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
 | `ShopifyFlow.cs` | 25 | 2 | 1367 |
 | `SportsshoesFlow.cs` | 7 | 0 | 130 |

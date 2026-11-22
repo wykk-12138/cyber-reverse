@@ -47937,3 +47937,9 @@ Remove-Item -Recurse -Force replica\src\Cybersole.Ui\obj\Release\net8.0\win-x64\
 3. 每次动作后**重新 `list_windows`** —— 对话框 id 会变（本轮 3017454 → 1969868 → 3148526 → 2297548）。
 
 **判据**：`ida.py health` 返回 `{"status":"ok", ... "hexrays_ready":true}`；`strings_cache_ready` 会晚几十秒才为真。
+
+### 补充：`foreground_fallback` 的像素点击可能报 `foreground_unavailable`（R1376）
+
+若前台被别的窗口占着，`delivery_mode:"foreground"` 的像素点击会直接拒绝。
+**改用 `element_token` + UIA Invoke**（同一个 `run_steps` 里 `foreground_fallback: true`）即可生效。
+顺序：**先试 `element_token` 的 UIA Invoke，再试像素点击，最后才试 foreground 像素点击。**

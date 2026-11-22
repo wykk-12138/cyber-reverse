@@ -33,6 +33,31 @@ public static class CybersourcePayment
     public const string Document =
         "mutation createMyPayment($amount: MoneyInput!, $paymentMethod: String!, $paymentInterface: String!, $key: String!, $customFields: [CustomFieldInput!]) {\n  createMyPayment(\n    draft: {amountPlanned: $amount, paymentMethodInfo: {method: $paymentMethod, paymentInterface: $paymentInterface}, custom: {type: {key: $key}, fields: $customFields}}\n  ) {\n    id\n    version\n    paymentMethodInfo {\n      method\n    }\n    custom {\n      customFieldsRaw {\n        name\n        value\n      }\n    }\n  }\n}";
 
+    /// <summary>
+    /// updateMyPaymentWithActions, 401 characters from 0x1470FD05C — the same family's update, sent by the handler
+    /// at 0x140E55A00 that R1364 read. Declares $actions, $id, $version.
+    /// </summary>
+    public const string UpdatePaymentDocument = @"mutation updateMyPaymentWithActions($version: Long!, $id: String!, $actions: [MyPaymentUpdateAction!]!) {
+  updateMyPayment(version: $version, actions: $actions, id: $id) {
+    id
+    version
+    amountPlanned {
+      currencyCode
+      centAmount
+      fractionDigits
+    }
+    paymentMethodInfo {
+      method
+    }
+    custom {
+      customFieldsRaw {
+        name
+        value
+      }
+    }
+  }
+}";
+
     /// <summary>The provider name the handler carries.</summary>
     public const string ProviderName = "cybersource";
 
@@ -97,6 +122,45 @@ public static class CybersourcePayment
         {
             var reply = await GatewayHttp
                 .PostAsync(c, endpoint!.TrimEnd('/'), Envelope(variables!), "cybersource", ct)
+                .ConfigureAwait(false);
+            if (reply is null) return (null, ErrorProcessingPaymentMessage);
+
+            if (reply["errors"] is JArray topLevel && topLevel.Count > 0)
+                return (null, ErrorProcessingPaymentMessage);
+
+            var data = reply["data"] as JObject;
+            return data is null ? (null, ErrorProcessingPaymentMessage) : (data, string.Empty);
+        }
+        catch (Exception)
+        {
+            return (null, ErrorProcessingPaymentMessage);
+        }
+    }
+
+    /// <summary>
+    /// Send the update. Same endpoint rule as the create: the merchant host is the caller's, and a payment without a
+    /// capture context is refused before it leaves.
+    /// </summary>
+    public static async Task<(JObject? Data, string Error)> UpdateAsync(
+        FlowContext c, string? endpoint, JObject variables, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(endpoint))
+            return (null, "cybersource: no endpoint — the merchant host is the caller's");
+
+        if (variables?["customFields"]?["isv_payment_data"] is null)
+            return (null, NoCaptureContextMessage);
+
+        try
+        {
+            var body = new JObject
+            {
+                ["operationName"] = "updateMyPaymentWithActions",
+                ["query"] = UpdatePaymentDocument,
+                ["variables"] = variables,
+            };
+
+            var reply = await GatewayHttp
+                .PostAsync(c, endpoint!.TrimEnd('/'), body, "cybersource-update", ct)
                 .ConfigureAwait(false);
             if (reply is null) return (null, ErrorProcessingPaymentMessage);
 

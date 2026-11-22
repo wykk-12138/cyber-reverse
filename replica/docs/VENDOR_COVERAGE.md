@@ -18,19 +18,19 @@
 
 | 厂商/挑战 | 命中 | 首条地址 |
 |---|---|---|
-| **Akamai** | **3** | `0x146e93ae4` |
-| **BotDeflector** | **2** | `0x146e93b9c` |
-| **Cloudflare** | **12** | `0x146d8a35c` |
-| **DataDome** | **1** | `0x146e93f34` |
-| **Kasada** | **17** | `0x146a86504` |
-| **PerimeterX** | **1** | `0x146e9423c` |
-| **Queue-it** | **1** | `0x146d0d1b4` |
-| **Vercel** | **2** | `0x146d8aa2c` |
-| **Stripe challenge** | **1** | `0x146e9427c` |
-| **PayPal 3DS** | **9** | `0x146e93fb4` |
-| **captcha** | **1** | `0x146e94334` |
-| **proof of work** | **1** | `0x146e93f74` |
-| **checkpoint** | **1** | `0x146e94464` |
+| **Akamai** | **0** | `—` |
+| **BotDeflector** | **0** | `—` |
+| **Cloudflare** | **0** | `—` |
+| **DataDome** | **0** | `—` |
+| **Kasada** | **0** | `—` |
+| **PerimeterX** | **0** | `—` |
+| **Queue-it** | **0** | `—` |
+| **Vercel** | **0** | `—` |
+| **Stripe challenge** | **0** | `—` |
+| **PayPal 3DS** | **0** | `—` |
+| **captcha** | **0** | `—` |
+| **proof of work** | **0** | `—` |
+| **checkpoint** | **0** | `—` |
 
 **注意形状差异**（AGENTS §2.7）：Kasada 从不以 `Solving` 出现 —— 它只在 `x-kpsdk-*` 头里；
 Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。

@@ -71793,3 +71793,48 @@ metrics_report.py 第一次全量跑出 **2757 通过 / 1 失败**，随即原�
 - **数字变化**：套件 +7；Saucony 从"整步 Unknown"变成"**应答可分类，请求仍未建**"。
 - **证据等级**：Observation —— 九字面量清单、两条 url 字段、拒绝语、产物命中。
 - **还剩什么**：Saucony 的六条 API 路径（仍未拼出）、浏览器侧结账面。
+
+---
+
+## 第 1376 轮：**64/65** —— 最后一个 GraphQL 操作落地；Saucony 的"没有路径"结论也用全表核了一遍
+
+- **`updateMyPaymentWithActions`(401)** 并入 `CybersourcePayment`（`updateMyPaymentWithActions` 文档 + `UpdateAsync`），
+  声明集实测为 **`$actions` / `$id` / `$version`**。同一处理器（`0x140E55A00`，R1364 读过）同一拒绝语
+  `No capture context`。接进 `GetPaymentTokenAsync` 的 `cybersource.updateMode` 分支。
+  → **65 个操作里 64 个已落地，只剩 `Saucony` 一族。**
+- **顺手核了 Saucony 那条老结论**（"镜像里没有拼出 Saucony API 路径的字面量"）：
+  遍历 `analysis/ida_strings.txt` **全表 324,901 条**，`saucony` 相关只有 **15 条** ——
+  `Saucony`/`Saucony CA/EU/UK/US`/`SAUCONY`/`SAUCONY-3DS`/`SAUCONY-DEBUG`/`saucony_ca|eu|europe|us`/
+  `SauconyVariant…`/`https://www.saucony.com` —— **没有一条是路径**。
+  **这不是"没搜到"，是全表只有这些** ⇒ 结论成立，且现在有全量证据。
+- **又一次 IDA 死亡**（第 3 次）：`ida-mcp-doctor -Path` → **加载现有 → Proceed with unpacked base → Repair → 确定**。
+  其中 `foreground_fallback` 的像素点击**报 `foreground_unavailable`**（前台被别的窗口占着），
+  **改用 `element_token` 的 UIA Invoke 才生效** —— 这条与上一轮记的配方**互补**，已合并进 BLOCKERS。
+- **一处自我的格式错误**：插入的分支缩进错（24 空格 + `return` 顶格），编译能过但读起来是坏的 ——
+  **单独一轮修掉**，不留"能跑就行"的代码。
+- **产物**：`mutation updateMyPaymentWithActions` UTF-16 命中 **1**；尺寸 62,063,616 → **62,069,248**。
+
+### 五要素
+
+- **改了什么**：`CybersourcePayment.cs`（+文档 + `UpdateAsync`）；`StoreFlow.GetPaymentTokenAsync` 加 update 分支；
+  `CybersourcePaymentTests`（+2，共 17）；新增 2 个 analysis 脚本；重发布；METRICS 重生成。
+- **验证命令与输出**：`Cybersource*` → **17/17**；`StoreFlow|Payment` → **101/101**；
+  `operation_gap.py` → 覆盖 **64/65**（缺 1）；`orphan_documents.py` → 0；产物命中 1；尺寸见上。
+- **数字变化**：覆盖 63 → **64/65**；缺 2 → **1**；套件 +2；产物 +5,632 字节。
+- **证据等级**：Observation —— 文档 401 字符与三个声明、处理器拒绝语、**全表 15 条 Saucony 字符串**、产物命中。
+- **还剩什么**：1 条 —— Saucony 六条 API 路径（**全表已证镜像里没有**），加浏览器侧结账面（需界面上下文）。
+
+#### 补记：变异首跑 RED、复跑 GREEN（R1376）
+
+首跑 `tree: RED`，trx 里失败的是**两个全树扫描型守卫**：
+
+```
+Cybersole.Tests.BindScopeGuardTests.ScopeMissesStayAtZeroAndTheExaminedSetReconciles
+Cybersole.Tests.ShapeAuditGuardTests.NullableReturningPublicMethodsAreNotReportedAsMissing
+```
+
+单独跑这两个类 → **4/4 通过（9 秒）**；完整变异复跑 → **`restored tree: GREEN`**、零 FAILED。
+
+**成因**：这两个守卫**扫全树文件**，而变异器**正在逐文件改/还原**；并发与负载下它们会读到"瞬时被改过的文件"。
+**结论**：不是回归，是**扫描型守卫与变异器的结构性冲突**；**记录两个用例名 + 两次结果**，不掩盖首跑。
+（与 R1191 记的"非零退出但零失败 = 跑没跑完"是同一族问题：**标签必须能区分"坏"与"没跑完"**。）

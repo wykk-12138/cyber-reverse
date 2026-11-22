@@ -8941,3 +8941,15 @@ Observation：
   **请求路径仍然没有**，注释与拒绝语照旧。
 - 测试脚手架三处失误（`FlowContext` 必填项、`Success` 是方法组、每测试各自要 `NetClient`）——
   **照抄同文件既有写法后通过**。
+
+---
+
+## 第 1376 轮
+
+- **`updateMyPaymentWithActions`(401) 并入 `CybersourcePayment`**（声明 `$actions`/`$id`/`$version`，同一处理器与拒绝语），
+  接进 `GetPaymentTokenAsync`。**覆盖 63 → 64/65**，只剩 Saucony 一族。
+- **Saucony 结论全表核实**：324,901 条字符串里 `saucony` 相关**仅 15 条**（名字/区域/标识/一个 host），
+  **无一条路径** ⇒ "镜像里没有 Saucony API 路径"成立，且这次是**全量证据**。
+- **IDA 第 3 次死亡**：`foreground_fallback` 像素点击会报 `foreground_unavailable`，
+  **改用 `element_token` UIA Invoke** 才生效（配方已合并进 BLOCKERS）。
+- 一处自伤：插入分支缩进坏（编译过但读起来坏）→ 单独修掉，不留"能跑就行"。

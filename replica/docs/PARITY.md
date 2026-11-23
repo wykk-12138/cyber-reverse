@@ -81,7 +81,7 @@ if (TaskGroups.Count == 0) TaskGroups.Add(new TaskGroup { Name = "Group 1" });
 | SChannel 默认栈 | `TransportMode.SChannel` | ✅ TLS 1.2 + 1.3（BCL 提供） |
 | 自定义 ClientHello（指纹伪装） | `TransportMode.BouncyH2` / `BouncyHttp11` | 🟡 cipher/SNI/GREASE 可控，扩展序被 BC 重排 |
 | 完全自控的 ClientHello | `TransportMode.OwnTls` → `Tls12Client` | ✅ cipher 序 / 扩展序 / GREASE / SNI 全由字节数组决定 |
-| **TLS 1.3 自研** | — | ❌ `OwnTls` 只到 1.2；1.3 只能走 `SChannel`，因此指纹不可控 |
+| **纯 C# QUIC/HTTP3/TLS 1.3 全栈** | `TransportMode.PureNetClient` → `TlsClientCache` / `ProtocolRacer` / `QuicConnection` / `Http3Connection` / `TlsStream` | ✅ 纯托管安全 C# 完整实现：`Cybersole.Http 0.10.0` TLS 1.2+1.3（含 ML-KEM-768、0xCA34、82 Profile / 68 ClientHelloSpec）、QUIC v1 + HTTP/3 + QPACK、HTTP/2 + HPACK 与 HTTP/1.1 |
 | JA3 字符串生成 | `Cybersole.Http.Ja3.FromProfile` | ✅ |
 | HTTP/2 + HPACK | `Http2.cs` + `Tls12Client.SendH2Async` | ✅ 含 Huffman 解码（`HpackHuffman.cs`） |
 | HTTP/2 连接复用与 SETTINGS | `BouncyH2Client` / `Http2.cs` | ✅ |
@@ -89,8 +89,7 @@ if (TaskGroups.Count == 0) TaskGroups.Add(new TaskGroup { Name = "Group 1" });
 | 代理测速 | `ProxyTester` + `TestProxiesAsync` | ✅ |
 | 请求/连接分析（写 ClickHouse） | `HttpAnalytics.Flush` | ✅ 批量 `JSONEachRow`，失败不阻塞调用方 |
 
-**TLS 1.3 那条是这一节的真实边界**：`OwnTls` 的每一字节都可控，但它只实现到 1.2。
-一个只需要「像 Chrome 的 TLS 1.2」的场景够用；**一个要求 TLS 1.3 指纹的场景，这个项目答不了。**
+**TLS 1.3 与 QUIC/HTTP3 已在 `full-QUIC/HTTP3/TLS` 支线由 `TransportMode.PureNetClient` 完整补齐**：`OwnTls` 仍保留作为轻量 TLS 1.2 探针路径；新业务路径通过 `TransportMode.PureNetClient`（或直接 `TlsClientCache`）走纯 C# TLS 1.2/1.3、ML-KEM-768、QUIC v1/HTTP/3 与浏览器级 H2/H3 指纹。
 
 ### 压缩与内容
 
@@ -511,8 +510,8 @@ JS 对话框接口（`InitializeDefaultJsDialogs` / `DeinitializeDefaultJsDialog
 | 慢测试（`-Full`） | 895 个通过（含 61 域名的可达性扫描、浏览器探测） |
 | 变异检查 | **17 条**，全部 `guard fired`；自检 **5/5** |
 | 站点模块 | **62 个**注册 |
-| 传输模式 | **4 种**：`SChannel` / `BouncyH2` / `OwnTls` / `BouncyHttp11` |
-| 内嵌资源 | **20 个**（`Core` 19：4 语言字典 + 14 引擎资产 + 1 份 CSV 校验名单；`Http` 1：Brotli 字典） |
+| 传输模式 | **5 种**：`SChannel` / `BouncyH2` / `OwnTls` / `BouncyHttp11` / `PureNetClient` |
+| 内嵌资源 | **21 个**（`Core` 19：4 语言字典 + 14 引擎资产 + 1 份 CSV 校验名单；`Http` 2：Brotli 字典 + `RootCertificates.bin` 121 条根证书库） |
 
 R704 加了第 20 个：`Data\ProfileValidation.en.json`（244 国 / 50 州）—— `ProfileCsvEditorView` 的 Country/State 校验要用它；规则由 R702 反编译解出、R703 复验。
 

@@ -15,5 +15,7 @@
          (Cybersole.Http.Compression.BrotliDictionary.bin). -->
     <EmbeddedResource Include="Compression\BrotliDictionary.bin"
                       LogicalName="Cybersole.Http.Compression.BrotliDictionary.bin" />
+    <EmbeddedResource Include="X509\RootCertificates.bin"
+                      LogicalName="Cybersole.Http.X509.RootCertificates.bin" />
   </ItemGroup>
 </Project>

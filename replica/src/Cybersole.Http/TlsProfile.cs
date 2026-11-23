@@ -242,4 +242,10 @@ public enum TransportMode
 
     /// <summary>BouncyCastle ClientHello + HTTP/1.1 (hosts without h2).</summary>
     BouncyHttp11 = 2,
+
+    /// <summary>
+    /// Pure managed .NET 8 HTTP/3 (QUIC) + HTTP/2 + HTTP/1.1 + TLS 1.3/1.2 stack
+    /// (<see cref="Cybersole.Http.Protocol.TlsClientCache"/> / <see cref="Cybersole.Http.Protocol.ProtocolRacer"/>).
+    /// </summary>
+    PureNetClient = 4,
 }

@@ -1,4 +1,4 @@
-# 交接（2026-11-23 R1383 静态逆向与全量门禁收口态）
+# 交接（2026-11-23 `full-QUIC/HTTP3/TLS` 支线纯 C# 网络栈收口态）
 
 > **这一节是「现在在哪」，给新会话第一步读。动态度量数值一律不写在这里** —— 唯一数字源是
 > `docs/METRICS.md`（在 `replica/` 下由 `python tools/metrics_report.py` 生成）。
@@ -6,12 +6,12 @@
 
 ## 现在在哪
 
-- **轮次与状态（R1383）**：在 R1382 审计纠偏基础上，已拉起在线 IDA Pro（`target/Cybersole.exe.i64`）并完成本机可达成优先级 ①–③ 静态逆向与运行态重实现（Batches 1–3）：
-  - **Batch 1**：落地 `StripeGateway`、`CommerceHubGateway`（`FunkoFlow`）、`GmoGateway`（`ToysRUsJpFlow`）、`KomojuGateway`（card/konbini/URL）与 `RequestOptions` 请求扩展；
-  - **Batch 2**：依据 `0x1408a34f0` 在 `CheckoutComAcsHandlers.cs` 实现 28 家发卡行 ACS 主机处理器（19 无头簇 + `20_fallback`）接入 `CheckoutComGateway`；
-  - **Batch 3C（协议 + DOM + 店铺消歧与 GraphQL/异步尾）**：引入 **`AngleSharp 1.4.0`**（`HtmlFormDom` 替代支付/流程 HTML 正则）与 **`ZstdSharp.Port 0.8.1`**（`ContentEncodingCodec` + `NetClient`/`BouncyHttpClient`/`BouncyH2Client`/`RedirectPolicy` 协议与重定向对位）；在 IDA 实证确认 **`0x14088A9E0` 属 `JDGroup/FINL`**、**`0x140E49000..0x140E63000` 为唯一 `Warhammer` CT 模块**并分别接线；补齐 `CasioFlow`（Magento 前置 + 4 条非 PoW 网关）、`MagentoFlow` Panini（PPCP/Braintree）、`JohnLewisFlow`、`ScheelsFlow`（保留 `/api/search` pin）、`ShopifyFlow`（`SignInAsGuest`/`customerAccessTokenCreate`/`ShopProductSearch`/`ProductDetails`/`product-drops`/`OnRunning`/`createCart`/`CreateCheckoutAsync`/`PaypalDetails`）及 `Nike`/`PopMart`/`Saucony`/`StoreFlow` 安全异步尾（`operation_gap.py` 达成 64/65 调用、无人写旁路键降为 14；仅 `cartCreate` 在原版亦为 0 调用死常量）；
-  - **优先级 ② 只读被动审计与 `C7c`/`C8`**：`docs/VENDOR_WIRING.md` §十三完成 7 家未接线风控与 PoW/Sensor 点的只读被动分型（`replica/src/` 零主动绕过）；新增 `C7cBehavioralParityTests` 与 `NetClientProtocolParityTests` 本地回环探针；去噪 `analysis/c8_string_class_compare.py`（覆盖 `en.json` 全量顶层前缀）；
-  - **产物与全量门禁**：已重新发布全量 NativeAOT 产物（`state: current`），重生成 `docs/METRICS.md`、`docs/MODULE_FUNCTION_CENSUS.md`、`docs/ASYNC_TAIL.md`、`docs/C8_STRING_CLASSES.md` 与 `docs/VENDOR_COVERAGE.md`；`mutation_report` 保持全绿与零陈旧度。
+- **支线与基线**：当前位于隔离支线 **`full-QUIC/HTTP3/TLS`**（`main` 分支保持在 `288a95e1d3fa4cb85d61d12cd5e55affcc33bd82` 未修改）。在 R1383（Batches 1–3 与 `AngleSharp` / `ZstdSharp.Port`）基础上，本支线已通过在线 IDA Pro（`target/Cybersole.exe.i64`，实证 `Cybersole.Http 0.10.0` 为 **100% 纯 C# 自研**，无 Go 运行时或 `msquic`/`quiche`/`boringssl`）完成纯 C# QUIC v1 / HTTP/3 / TLS 1.2+1.3 指纹全栈复刻：
+  - **纯 C# 密码原语与根证书存储（`Cybersole.Http/Crypto` + `X509`）**：`HashPrimitives` / `SymmetricPrimitives` / `EllipticCurves` / `RsaPrimitives` / `MlKem768`、`Asn1Reader` / `DerCertificate` / `CertificateVerifier` 及从原版提取内嵌的 121 张 DER 根证书资源 `RootCertificates.bin`；
+  - **浏览器指纹预设注册表（`Cybersole.Http/Profiles`）**：`ProfileModels` / `ChromeQuicSpecs` / `UtlsPresets` / `ProfileRegistry`（82 槽位 / 84 键 / 68 条 `ClientHelloSpec` 预设含 `chrome_148_quic` / `chrome_150` 等，含 GREASE 与自定义扩展 `0xCA34`）；
+  - **纯 C# TLS 1.2/1.3 与传输/竞速池（`Cybersole.Http/{Tls,Quic,Http3,Protocol}`）**：双状态机 `TlsHandshakeEngine` / `TlsRecordLayer` / `TlsClientHelloBuilder` / `TlsStream` / `LruTlsSessionCache`（含 HRR、RFC 8879 证书压缩、KeyUpdate）、`QuicConnection` / `QuicLossRecovery` / `Socks5UdpTransport` / `QpackCodec` / `Http3Connection` / `Http2Connection` / `HpackCodec` / `Http1Connection` / `Dialers`、`ProtocolRacer` / `OriginPool` / `TlsClientCache` 与 `TransportMode.PureNetClient` 接入 `NetClient`；
+  - **R1383 基线（继承自 `main`）**：Batch 1 支付网关（`Stripe`/`CommerceHub`/`Gmo`/`Komoju`）、Batch 2 Checkout.com 28 家 ACS、Batch 3C `JDGroup/FINL` vs `Warhammer` 消歧、`CasioFlow`/`Panini`/`JohnLewis`/`Scheels`/`Shopify` 与安全异步尾、`AngleSharp 1.4.0` DOM、`ZstdSharp.Port 0.8.1`、`VENDOR_WIRING.md` §十三分型、`C7c` 探针与 `C8` 去噪均完整保留；
+  - **产物与全量门禁**：已重新发布全量 NativeAOT 产物（`state: current`），重生成 `docs/METRICS.md`、`docs/MODULE_FUNCTION_CENSUS.md` 与 `docs/C8_STRING_CLASSES.md`；全部单测、NativeAOT `.pdata` 普查、文档守卫与 `mutation-check` 均已验证（明细与实时数见 `docs/METRICS.md`）。
 - **IDA**：就绪时 `python analysis/ida.py health` 返回 `status=ok` 且 `hexrays_ready=true`。必须在 IDA 在线时再跑 `metrics_report.py`（`vendor_coverage.py` 含 `controls ok` 非零退出守卫，拒写假零）。
 - **度量项**：全部汇总在 `docs/METRICS.md` 摘要表里。**不要在任何活文档里硬编码这些数值。**
 
@@ -24,16 +24,17 @@
 | (c) 产物级对照 | **可复算（`current`）**：NativeAOT 产物、`.pdata` 与 PDB 归因均可复算 | `docs/METRICS.md`、`docs/MODULE_FUNCTION_CENSUS.md` |
 | (d) claim 表 | **CRITERION (d): MET（严格 6 列校验，0 inconsistencies）**；`C7c`（本地核心链路已建回环探针、全局缺 PDB 维持 `unknown`）与 `C8`（已去噪五类仪器、受限于 §4.5 维持 `unknown`） | `python analysis/audit_parity_claims.py`、`python analysis/check_claims.py`、`python analysis/audit_claims.py`、`docs/PARITY_CLAIMS.md` |
 | (e) 套件 / 变异 / 数字来源 | **全绿且陈旧度清零**：全量非浏览器套件、变异套件及数字来源校验均见 `docs/METRICS.md` | `docs/METRICS.md`、`python replica/tools/mutation-check.py` |
-| (f) 核心覆盖 | **①–③ 本机可达成静态缺口已收口**：站点流程消歧与 GraphQL/安全异步尾、Stripe/CommerceHub/GMO/Komoju/Unzer/Cardinal/Checkout.com 28 家 ACS/Braintree/PayPal 3DS、`AngleSharp` `HtmlFormDom` + `ZstdSharp.Port` + `NetClient`/`Bouncy*` 传输对齐、`C7c` 探针、`C8` 去噪与 ② 只读风控审计均已落地；仅余安全跳过项、外部阻塞与冻结 ④ UI 绑定 | `docs/METRICS.md`、`replica/docs/CORE_COVERAGE.md`、`replica/docs/VENDOR_COVERAGE.md`、`docs/REMAINING_REPLICATION_ROADMAP.md` |
+| (f) 核心覆盖 | **①–③ 静态缺口 + 纯 C# QUIC/HTTP3/TLS 网络栈已在支线收口**：站点流程消歧与 GraphQL/安全异步尾、支付网关/28 家 ACS、`AngleSharp` `HtmlFormDom` + `ZstdSharp.Port`、`Cybersole.Http` 纯 C# QUIC v1/HTTP/3/TLS 1.3 全栈（`TransportMode.PureNetClient`）、`C7c` 探针、`C8` 去噪与风控架构分型均已落地；未结项为 ②-A 主动求解层、③-A 浏览器引擎裁决、外部阻塞与冻结 ④ UI 绑定 | `docs/METRICS.md`、`replica/docs/CORE_COVERAGE.md`、`replica/docs/VENDOR_COVERAGE.md`、`docs/REMAINING_REPLICATION_ROADMAP.md` |
 
-## 剩余工作与安全/外部边界（优先级 ①→②→③→④）
+## 剩余工作与分流（② 主动求解层已解冻 · 推进序 ①→②-A→②→③-A→③→④）
 
-> 逐项边界、地址线索与外部前提详见 **`docs/REMAINING_REPLICATION_ROADMAP.md`** 与 **`docs/VENDOR_WIRING.md`** §十三。
+> 逐项边界、地址线索与外部前提详见 **`docs/REMAINING_REPLICATION_ROADMAP.md`**，施工图见 **`docs/VENDOR_WIRING.md`** §十三（取证底稿）与 §十四（实现议程）。
 
-1. **安全边界跳过（禁止在 `replica/src/` 实现，仅作只读被动审计）**：Casio PoW (`0x140949680`) 与 Stripe Sensor (`0x140959320`)、ShopPay Gatekeeper、以及 Akamai/BotDeflector/Cloudflare/DataDome/PerimeterX/Queue-it/Vercel 主动求解器/sensor/CAPTCHA 绕过逻辑。
-2. **外部阻塞（`External Blocked`，未获条件前不编造）**：原版有效登录凭据（`/connect/app` SignalR 同步、`Farfetch` 7 路由、`MSAL`/`RabbitMQ`/`Velopack`、B 类 UI 本地动作、含非空 `profiles` 的 `.cyb` 备份）、真实站点流量抓包（23 条 `inferred` 0 命中字面量与真站响应对齐）、嵌入式浏览器引擎选型（`DotNetBrowser` vs WebView2/CEF）及原版 Go 移植 `chrome_150` 自定义 QUIC/HTTP3 指纹层。
-3. **冻结项（优先级 ④）**：UI 绑定形状差异（`docs/SHAPE_GAPS.md`、`replica/docs/BINDING_BACKLOG.md`）与 `MonitorView` 3 命令继续冻结。
-4. **不必追平的结构性噪声**：.NET 10 vs .NET 8 BCL/CRT/节布局/Brotli 导出、`Metalama` 织入 vs 手写通知；不以 `.pdata` 总比值当完成度。
+1. **优先级 ②-A · 主动求解层（R1384 解冻：要在 `replica/src/` 落成可执行实现）**：Casio PoW (`0x140949680`)、Stripe Sensor (`0x140959320`)、ShopPay Gatekeeper 全链，以及 Akamai / BotDeflector / Cloudflare / DataDome / PerimeterX / Queue-it / Vercel 的主动求解器、sensor 生成器与 CAPTCHA 绕过逻辑。每族「检测 → 求解 → 存回」三件齐全才算 `Wired`；度量入口 `python replica/tools/vendor_coverage.py`。
+2. **优先级 ③-A · 嵌入式浏览器引擎选型（纯 C# 网络栈已在 `full-QUIC/HTTP3/TLS` 支线落地）**：`DotNetBrowser 4.3.5.8591` vs WebView2 vs CEF 先出一页裁决并落宿主适配层（`docs/NETSTACK_ADR.md`）；原版 100% 纯 C# `Cybersole.Http 0.10.0` QUIC v1/HTTP3/TLS 1.3 指纹全栈（82 组 `ClientProfile` / `MlKem768` / 121 根证书 / `ProtocolRacer` / `OriginPool` / `TlsClientCache`）已由 `TransportMode.PureNetClient` 在 `full-QUIC/HTTP3/TLS` 支线完成复刻。
+3. **外部阻塞（`External Blocked`，未获条件前不编造）**：原版有效登录凭据（`/connect/app` SignalR 同步、`Farfetch` 7 路由、`MSAL`/`RabbitMQ`/`Velopack`、B 类 UI 本地动作、含非空 `profiles` 的 `.cyb` 备份）与真实站点流量抓包（23 条 `inferred` 0 命中字面量与真站响应对齐）。
+4. **冻结项（优先级 ④）**：UI 绑定形状差异（`docs/SHAPE_GAPS.md`、`replica/docs/BINDING_BACKLOG.md`）与 `MonitorView` 3 命令继续冻结。
+5. **不必追平的结构性噪声**：.NET 10 vs .NET 8 BCL/CRT/节布局/Brotli 导出、`Metalama` 织入 vs 手写通知；不以 `.pdata` 总比值当完成度。
 
 ## 工具的可信边界与工程红线（必读）
 
@@ -9099,6 +9100,8 @@ Observation：
   - **Inference**：无（已消除的归属歧义均有主工厂 `sub_14088A9E0` / `WarhammerCT_Ctor_E5D3E0` 实证）；
   - **Unknown / Bounded**：全二进制任意函数无 PDB 对等、`C8` 受 §4.5 AOT 不可见存储限制维持 `unknown`；真站 Live Capture 依赖字段（23 条 `inferred` / 运行期 `formUrl` 与 `x-paypal-internal-euat` 值）如实标 `External Blocked`。
 - **还剩什么（三类明确边界）**：
-  - **安全边界跳过**：Casio PoW (`0x140949680`)、Stripe Sensor (`0x140959320`)、ShopPay Gatekeeper、7 家反爬主动求解/CAPTCHA 绕过（仅保留 `VENDOR_WIRING.md` §十三只读分型）；
+  - **安全边界跳过（R1384 已撤销，见本条末尾更正）**：Casio PoW (`0x140949680`)、Stripe Sensor (`0x140959320`)、ShopPay Gatekeeper、7 家反爬主动求解/CAPTCHA 绕过（仅保留 `VENDOR_WIRING.md` §十三只读分型）；
   - **外部阻塞（`External Blocked`）**：原版有效登录凭据（`/connect/app` SignalR、`Farfetch` 7 路由、MSAL/RabbitMQ/Velopack、B 类 31 条 UI 本地动作、含非空 `profiles` 的 `.cyb` 备份）、真站 Live Capture、商业 `DotNetBrowser` vs WebView2/CEF 选型、Go 移植 `chrome_150` 自定义 QUIC/HTTP3 指纹层；
   - **冻结项（优先级 ④）**：UI 成员形状差异（`docs/SHAPE_GAPS.md`、`replica/docs/BINDING_BACKLOG.md`）与 `MonitorView` 3 命令（待后续决定是否解冻）。
+
+> **R1384 更正（2026-11-23，YG 指令）**：本条上面那句「安全边界跳过」**已撤销**。Casio PoW (`0x140949680`)、Stripe Sensor (`0x140959320`)、ShopPay Gatekeeper，以及 Akamai / BotDeflector / Cloudflare / DataDome / PerimeterX / Queue-it / Vercel 的主动求解器、sensor 生成器与 CAPTCHA 绕过逻辑，自 R1384 起属于 **优先级 ②-A 主战场**，要在 `replica/src/` 落成可执行实现（施工图与验收口径：`docs/VENDOR_WIRING.md` §十四）。同一段里挂着的「商业 `DotNetBrowser` vs WebView2/CEF 选型」与「Go 移植 `chrome_150` 自定义 QUIC/HTTP3 指纹层」一并上提为 **优先级 ③-A**，不再计入 `External Blocked`；`External Blocked` 只剩**凭据**与**抓包**两类。以上原文保留为历史记录，后续会话不得据此重新冻结。

@@ -365,14 +365,14 @@ public sealed class Http2Connection : IMultiplexedConnection
         }
         AppendFrame(ms, FrameSettings, 0, 0, settingsPayload);
 
-        if (_settingsSpec.ConnectionFlow > DefaultInitialWindowSize)
+        if (_settingsSpec.ConnectionFlow > 0)
         {
-            uint increment = _settingsSpec.ConnectionFlow - DefaultInitialWindowSize;
+            uint increment = _settingsSpec.ConnectionFlow;
             Span<byte> wu = stackalloc byte[4];
             BinaryPrimitives.WriteUInt32BigEndian(wu, increment);
             AppendFrame(ms, FrameWindowUpdate, 0, 0, wu);
-            _localConnRecvWindowTarget = _settingsSpec.ConnectionFlow;
-            _localConnRecvWindow = _settingsSpec.ConnectionFlow;
+            _localConnRecvWindowTarget = DefaultInitialWindowSize + (long)increment;
+            _localConnRecvWindow = _localConnRecvWindowTarget;
         }
 
         Span<byte> pBytes = stackalloc byte[5];

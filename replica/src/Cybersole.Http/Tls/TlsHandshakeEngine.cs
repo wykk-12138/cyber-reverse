@@ -161,6 +161,8 @@ public sealed class TlsHandshakeEngine : IDisposable
     private bool _tls13ClientCertRequested;
     private bool _earlyDataAccepted;
     private byte[]? _clientEarlyTrafficSecret;
+    private ushort _peerAlpsCodepoint;
+    private byte[]? _peerAlpsSettings;
 
     // TLS 1.2 handshake state
     private byte[]? _tls12PreMasterSecret;
@@ -185,6 +187,7 @@ public sealed class TlsHandshakeEngine : IDisposable
     public ushort NegotiatedCipherSuite => _suite?.Id ?? 0;
     public string? NegotiatedAlpn => _negotiatedAlpn;
     public byte[]? PeerTransportParameters => _peerTransportParameters;
+    public byte[]? PeerApplicationSettings => _peerAlpsSettings is null ? null : (byte[])_peerAlpsSettings.Clone();
     public IReadOnlyList<DerCertificate>? PeerCertificates => _peerCertificates;
     public DerCertificate? LeafCertificate => _peerCertificates is { Count: > 0 } ? _peerCertificates[0] : null;
     public bool UsedSessionResumption => _usedSessionResumption;
@@ -774,6 +777,8 @@ public sealed class TlsHandshakeEngine : IDisposable
         if (_sentHelloRetry)
             throw new TlsAlertException(TlsAlertDescription.UnexpectedMessage, "Received a second HelloRetryRequest.");
         _sentHelloRetry = true;
+        _negotiatedVersion = TlsVersion.Tls13;
+        _suite = suite;
 
         ushort? selectedGroup = null;
         if (extensions.TryGetValue(TlsExtensionType.KeyShare, out byte[]? ksData))
@@ -822,7 +827,7 @@ public sealed class TlsHandshakeEngine : IDisposable
         ClientHelloBuildResult ch2 = TlsClientHelloBuilder.Build(new ClientHelloBuildOptions
         {
             Profile = _options.Profile,
-            SpecOverride = _options.SpecOverride,
+            SpecOverride = _clientHello.MaterializedSpec,
             ServerName = _options.ServerName,
             SessionTicket = reofferTicket,
             IsQuicMode = isQuic,
@@ -859,7 +864,7 @@ public sealed class TlsHandshakeEngine : IDisposable
                 TcpStepOperationKind.SendPlaintextRecord,
                 TlsContentType.Handshake,
                 ch2.HandshakeMessage,
-                RecordVersion: TlsVersion.Tls10));
+                RecordVersion: TlsVersion.Tls12));
         }
 
         State = TlsHandshakeState.AwaitServerHello;
@@ -1017,6 +1022,21 @@ public sealed class TlsHandshakeEngine : IDisposable
             _earlyDataAccepted = true;
         }
 
+        if (extensions.TryGetValue(TlsExtensionType.ApplicationSettingsNew, out byte[]? alpsNewData))
+        {
+            if (string.IsNullOrEmpty(_negotiatedAlpn))
+                throw new TlsAlertException(TlsAlertDescription.IllegalParameter, "Server sent application_settings without ALPN.");
+            _peerAlpsCodepoint = TlsExtensionType.ApplicationSettingsNew;
+            _peerAlpsSettings = alpsNewData;
+        }
+        else if (extensions.TryGetValue(TlsExtensionType.ApplicationSettings, out byte[]? alpsOldData))
+        {
+            if (string.IsNullOrEmpty(_negotiatedAlpn))
+                throw new TlsAlertException(TlsAlertDescription.IllegalParameter, "Server sent legacy application_settings without ALPN.");
+            _peerAlpsCodepoint = TlsExtensionType.ApplicationSettings;
+            _peerAlpsSettings = alpsOldData;
+        }
+
         AppendTranscript(fullMsg);
         State = _usedSessionResumption
             ? TlsHandshakeState.AwaitServerFinished
@@ -1170,6 +1190,33 @@ public sealed class TlsHandshakeEngine : IDisposable
                     tcpOps.Add(new TcpStepOperation(TcpStepOperationKind.InstallWriteKeys, Keys: hsWriteKeys, IsTls13: true));
                 }
                 AppendTranscript(eoed);
+            }
+
+            // Send ALPS client EncryptedExtensions if server confirmed ApplicationSettings (draft-vv-tls-alps).
+            if (_peerAlpsCodepoint != 0)
+            {
+                var clientEe = new byte[10];
+                clientEe[0] = 0x08;
+                clientEe[1] = 0x00;
+                clientEe[2] = 0x00;
+                clientEe[3] = 0x06;
+                clientEe[4] = 0x00;
+                clientEe[5] = 0x04;
+                BinaryPrimitives.WriteUInt16BigEndian(clientEe.AsSpan(6, 2), _peerAlpsCodepoint);
+                clientEe[8] = 0x00;
+                clientEe[9] = 0x00;
+                AppendTranscript(clientEe);
+
+                if (isQuic)
+                {
+                    quicOut!.HandshakeOutbound.AddRange(clientEe);
+                    HandshakeBytesSent += clientEe.Length;
+                }
+                else
+                {
+                    tcpOps!.Add(new TcpStepOperation(TcpStepOperationKind.SendProtectedRecord, TlsContentType.Handshake, clientEe));
+                    HandshakeBytesSent += clientEe.Length;
+                }
             }
 
             // If server requested a client certificate in TLS 1.3, send empty Certificate before client Finished.

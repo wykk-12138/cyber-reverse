@@ -469,6 +469,47 @@ public sealed class TlsStackTests
         Assert.True(parsedCh2.KeyShares.ContainsKey(NamedGroupId.Secp256r1));
     }
 
+    [Fact]
+    public void Tls13HrrWithChrome150_AcceptsMiddleboxCcs_UsesTls12RecordVersion_AndPreservesGreaseAndOrder()
+    {
+        using var engine = new TlsHandshakeEngine(new TlsHandshakeOptions
+        {
+            ServerName = TestHost,
+            Profile = ProfileRegistry.GetRequired("chrome_150"),
+        });
+
+        byte[] ch1Record = engine.StartTcpHandshake();
+        Assert.Equal(0x16, ch1Record[0]);
+        TlsWireFingerprintResult fp1 = WireFingerprint.AnalyzeClientHello(ch1Record.AsSpan(5), isQuic: false);
+        ParsedClientHello parsed1 = SyntheticTls13Server.ParseClientHello(ch1Record.AsSpan(5));
+
+        byte[] hrrMsg = SyntheticTls13Server.BuildServerHelloMessage(
+            random: SyntheticTls13Server.HrrMagicRandom,
+            sessionId: parsed1.SessionId,
+            cipherSuite: CipherSuiteId.TLS_AES_128_GCM_SHA256,
+            extensions: new List<(ushort, byte[])>
+            {
+                (TlsExtensionType.SupportedVersions, new byte[] { 0x03, 0x04 }),
+                (TlsExtensionType.KeyShare, new byte[] { 0x00, 0x17 }),
+            });
+
+        List<TcpStepOperation> ops = engine.ProcessTcpRecord(TlsContentType.Handshake, hrrMsg);
+        TcpStepOperation ch2Op = Assert.Single(ops, o => o.Kind == TcpStepOperationKind.SendPlaintextRecord);
+        Assert.Equal(TlsContentType.Handshake, ch2Op.ContentType);
+        Assert.Equal(TlsVersion.Tls12, ch2Op.RecordVersion);
+
+        // Server middlebox compatibility ChangeCipherSpec sent immediately after HRR must be accepted cleanly.
+        List<TcpStepOperation> ccsOps = engine.ProcessTcpRecord(TlsContentType.ChangeCipherSpec, new byte[] { 0x01 });
+        Assert.Empty(ccsOps);
+
+        TlsWireFingerprintResult fp2 = WireFingerprint.AnalyzeClientHello(ch2Op.Payload, isQuic: false);
+        Assert.Equal(fp1.CipherSuites, fp2.CipherSuites);
+        Assert.Equal(fp1.SupportedGroups, fp2.SupportedGroups);
+        Assert.Equal(fp1.ExtensionTypes, fp2.ExtensionTypes);
+        Assert.Equal(fp1.Ja4, fp2.Ja4);
+        Assert.Equal(fp1.Ja3Hash, fp2.Ja3Hash);
+    }
+
     [Theory]
     [InlineData(CertCompressionAlgorithm.Zlib)]
     [InlineData(CertCompressionAlgorithm.Brotli)]
@@ -935,6 +976,204 @@ public sealed class TlsStackTests
         Assert.Equal(0, cache.Count);
     }
 
+    [Theory]
+    [InlineData("chrome_150", (ushort)0x44CD)]
+    [InlineData("chrome_133", (ushort)0x4469)]
+    public async Task Tls13Alps_TcpAndQuic_SendsClientEncryptedExtensionsBeforeFinishedAndVerifiesTranscript(
+        string profileName,
+        ushort alpsCodepoint)
+    {
+        using var caKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using X509Certificate2 caCert = CreateTestCa(caKey, "CN=Cybersole Test Root CA");
+        using X509Certificate2 serverCert = CreateTestLeaf(leafKey, caCert, TestHost);
+
+        var roots = new RootCertificateDatabase();
+        roots.AddDer(caCert.RawData);
+        byte[] serverAlpsData = { 0xDE, 0xAD, 0xBE, 0xEF };
+        byte[] expectedClientEe =
+        {
+            0x08, 0x00, 0x00, 0x06,
+            0x00, 0x04,
+            (byte)(alpsCodepoint >> 8), (byte)alpsCodepoint,
+            0x00, 0x00,
+        };
+
+        // Part A: TCP path (SyntheticTls13Server asserts exact 10-byte client EE, Finished transcript including client EE, and bidirectional AppData using serverFinHash traffic keys)
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+
+        Exception? serverError = null;
+        Task serverTask = Task.Run(async () =>
+        {
+            try
+            {
+                using TcpClient accepted = await listener.AcceptTcpClientAsync(cts.Token);
+                using NetworkStream ns = accepted.GetStream();
+                var srv = new SyntheticTls13Server(ns, leafKey, new[] { serverCert.RawData, caCert.RawData });
+                await srv.AcceptFullHandshakeAsync(
+                    alpn: "h2",
+                    alpsCodepoint: alpsCodepoint,
+                    serverAlpsData: serverAlpsData,
+                    ct: cts.Token);
+
+                byte[] rx = await srv.ReadAppDataAsync(cts.Token);
+                await srv.SendAppDataAsync(rx, cts.Token);
+                await srv.SendCloseNotifyAsync(cts.Token);
+            }
+            catch (Exception ex)
+            {
+                serverError = ex;
+            }
+        }, cts.Token);
+
+        using (var tcp = new TcpClient())
+        {
+            await tcp.ConnectAsync(IPAddress.Loopback, port, cts.Token);
+            var tcpOptions = new TlsConnectionOptions
+            {
+                ServerName = TestHost,
+                Port = port,
+                Profile = ProfileRegistry.GetRequired(profileName),
+                VerifyOptions = new CertificateVerifyOptions { CustomRoots = roots, UseEmbeddedDefaultRoots = false },
+            };
+            await using var tls = new TlsStream(tcp.GetStream(), tcpOptions);
+            await tls.HandshakeAsync(cts.Token);
+            Assert.True(tls.HandshakeCompleted);
+            Assert.Equal("h2", tls.NegotiatedAlpn);
+
+            byte[] ping = Encoding.ASCII.GetBytes("alps-ping-payload");
+            await tls.WriteAsync(ping, cts.Token);
+            await tls.FlushAsync(cts.Token);
+            var pong = new byte[ping.Length];
+            await ReadExactlyAsync(tls, pong, cts.Token);
+            Assert.Equal(ping, pong);
+
+            var eof = new byte[8];
+            Assert.Equal(0, await tls.ReadAsync(eof, cts.Token));
+            await tls.ShutdownAsync(cts.Token);
+        }
+
+        await serverTask;
+        Assert.Null(serverError);
+
+        // Part B: QUIC path (TlsHandshakeEngine emits 10-byte client EE + 36-byte Finished with updated transcript and stores PeerApplicationSettings)
+        var clientTp = new byte[] { 0x01, 0x02, 0x03 };
+        var serverTp = new byte[] { 0x0A, 0x0B, 0x0C, 0x0D };
+        var engine = new TlsHandshakeEngine(new TlsHandshakeOptions
+        {
+            ServerName = TestHost,
+            Profile = ProfileRegistry.GetRequired(profileName),
+            SpecOverride = ChromeQuicSpecs.CreateClientHelloSpec(),
+            VerifyOptions = new CertificateVerifyOptions { CustomRoots = roots, UseEmbeddedDefaultRoots = false },
+        });
+
+        byte[] ch = engine.StartQuicHandshake(clientTp);
+        ParsedClientHello parsedCh = SyntheticTls13Server.ParseClientHello(ch);
+        byte[] clientXPub = parsedCh.KeyShares[NamedGroupId.X25519];
+        X25519.GenerateKeyPair(out byte[] sPriv, out byte[] sPub);
+        byte[] sharedSecret = X25519.ScalarMult(sPriv, clientXPub);
+
+        byte[] sh = SyntheticTls13Server.BuildServerHelloMessage(
+            RandomNumberGenerator.GetBytes(32),
+            parsedCh.SessionId,
+            CipherSuiteId.TLS_AES_128_GCM_SHA256,
+            new List<(ushort, byte[])>
+            {
+                (TlsExtensionType.SupportedVersions, new byte[] { 0x03, 0x04 }),
+                (TlsExtensionType.KeyShare, SyntheticTls13Server.BuildServerKeyShare(NamedGroupId.X25519, sPub)),
+            });
+
+        QuicHandshakeStepResult shRes = engine.ProcessQuicCryptoData(QuicEncryptionLevel.Initial, sh);
+        Assert.NotNull(shRes.HandshakeReadKeys);
+
+        var transcript = new MemoryStream();
+        transcript.Write(ch);
+        transcript.Write(sh);
+
+        byte[] ee = SyntheticTls13Server.BuildEncryptedExtensions("h3", serverTp, alpsCodepoint, serverAlpsData);
+        transcript.Write(ee);
+        byte[] certMsg = SyntheticTls13Server.BuildCertificateMessage(new[] { serverCert.RawData, caCert.RawData });
+        transcript.Write(certMsg);
+        byte[] cvMsg = SyntheticTls13Server.BuildCertificateVerifyMessage(leafKey, HashPrimitives.Sha256(transcript.ToArray()));
+        transcript.Write(cvMsg);
+
+        byte[] earlySecret = HashPrimitives.HkdfExtract(HashAlgorithmKind.Sha256, ReadOnlySpan<byte>.Empty, new byte[32]);
+        byte[] emptyHash = HashPrimitives.Sha256(ReadOnlySpan<byte>.Empty);
+        byte[] derived = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, earlySecret, "derived", emptyHash, 32);
+        byte[] hsSecret = HashPrimitives.HkdfExtract(HashAlgorithmKind.Sha256, derived, sharedSecret);
+        byte[] shHash = HashPrimitives.Sha256(ch.Concat(sh).ToArray());
+        byte[] sHsSecret = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, hsSecret, "s hs traffic", shHash, 32);
+        byte[] cHsSecret = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, hsSecret, "c hs traffic", shHash, 32);
+        byte[] sFinKey = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, sHsSecret, "finished", ReadOnlySpan<byte>.Empty, 32);
+        byte[] sFinMsg = SyntheticTls13Server.WrapHandshakeMessage(0x14, HashPrimitives.Hmac(HashAlgorithmKind.Sha256, sFinKey, HashPrimitives.Sha256(transcript.ToArray())));
+        transcript.Write(sFinMsg);
+
+        byte[] flight = ee.Concat(certMsg).Concat(cvMsg).Concat(sFinMsg).ToArray();
+        QuicHandshakeStepResult finalRes = engine.ProcessQuicCryptoData(QuicEncryptionLevel.Handshake, flight);
+        Assert.True(finalRes.HandshakeCompleted);
+        Assert.Equal("h3", finalRes.NegotiatedAlpn);
+        Assert.Equal(serverAlpsData, engine.PeerApplicationSettings);
+
+        byte[] clientFlight = finalRes.OutboundHandshakeData;
+        Assert.Equal(10 + 36, clientFlight.Length);
+        Assert.Equal(expectedClientEe, clientFlight.AsSpan(0, 10).ToArray());
+        transcript.Write(clientFlight, 0, 10);
+
+        byte[] cFinMsg = clientFlight.AsSpan(10).ToArray();
+        Assert.Equal(0x14, cFinMsg[0]);
+        byte[] cFinKey = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, cHsSecret, "finished", ReadOnlySpan<byte>.Empty, 32);
+        byte[] expectedCFin = HashPrimitives.Hmac(HashAlgorithmKind.Sha256, cFinKey, HashPrimitives.Sha256(transcript.ToArray()));
+        Assert.Equal(expectedCFin, cFinMsg.AsSpan(4).ToArray());
+    }
+
+    [Fact]
+    public void Tls13Alps_WithoutAlpn_ThrowsIllegalParameter()
+    {
+        using var caKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using X509Certificate2 caCert = CreateTestCa(caKey, "CN=Cybersole Test Root CA");
+        using X509Certificate2 serverCert = CreateTestLeaf(leafKey, caCert, TestHost);
+
+        var roots = new RootCertificateDatabase();
+        roots.AddDer(caCert.RawData);
+
+        var engine = new TlsHandshakeEngine(new TlsHandshakeOptions
+        {
+            ServerName = TestHost,
+            Profile = ProfileRegistry.GetRequired("chrome_150"),
+            SpecOverride = ChromeQuicSpecs.CreateClientHelloSpec(),
+            VerifyOptions = new CertificateVerifyOptions { CustomRoots = roots, UseEmbeddedDefaultRoots = false },
+        });
+
+        byte[] ch = engine.StartQuicHandshake(new byte[] { 0x01, 0x02 });
+        ParsedClientHello parsedCh = SyntheticTls13Server.ParseClientHello(ch);
+        X25519.GenerateKeyPair(out byte[] sPriv, out byte[] sPub);
+
+        byte[] sh = SyntheticTls13Server.BuildServerHelloMessage(
+            RandomNumberGenerator.GetBytes(32),
+            parsedCh.SessionId,
+            CipherSuiteId.TLS_AES_128_GCM_SHA256,
+            new List<(ushort, byte[])>
+            {
+                (TlsExtensionType.SupportedVersions, new byte[] { 0x03, 0x04 }),
+                (TlsExtensionType.KeyShare, SyntheticTls13Server.BuildServerKeyShare(NamedGroupId.X25519, sPub)),
+            });
+
+        engine.ProcessQuicCryptoData(QuicEncryptionLevel.Initial, sh);
+        byte[] eeWithoutAlpn = SyntheticTls13Server.BuildEncryptedExtensions(
+            alpn: null,
+            quicTp: new byte[] { 0x0A, 0x0B },
+            alpsCodepoint: TlsExtensionType.ApplicationSettingsNew,
+            alpsData: Array.Empty<byte>());
+
+        TlsAlertException ex = Assert.Throws<TlsAlertException>(() =>
+            engine.ProcessQuicCryptoData(QuicEncryptionLevel.Handshake, eeWithoutAlpn));
+        Assert.Equal(TlsAlertDescription.IllegalParameter, ex.Description);
+    }
+
     // ---- Test Helpers & Compliant Synthetic TLS 1.3 Server ----
 
     private static (TlsHandshakeEngine Engine, byte[] PeerTransportParams) CompleteSyntheticQuicHandshake(
@@ -1147,7 +1386,9 @@ public sealed class TlsStackTests
             string? alpn = "h2",
             CertCompressionAlgorithm? certCompression = null,
             bool corruptCertVerify = false,
-            CancellationToken ct = default)
+            CancellationToken ct = default,
+            ushort? alpsCodepoint = null,
+            byte[]? serverAlpsData = null)
         {
             byte[] ch1 = await ReadPlainHandshakeRecordAsync(ct);
             ParsedClientHello parsed = ParseClientHello(ch1);
@@ -1169,7 +1410,9 @@ public sealed class TlsStackTests
                 alpn,
                 certCompression,
                 corruptCertVerify,
-                ct);
+                ct,
+                alpsCodepoint,
+                serverAlpsData);
         }
 
         public async Task AcceptFullHandshakeWithHrrAsync(
@@ -1332,7 +1575,9 @@ public sealed class TlsStackTests
             string? alpn,
             CertCompressionAlgorithm? certCompression,
             bool corruptCertVerify,
-            CancellationToken ct)
+            CancellationToken ct,
+            ushort? alpsCodepoint = null,
+            byte[]? serverAlpsData = null)
         {
             var shExts = new List<(ushort, byte[])>
             {
@@ -1362,7 +1607,7 @@ public sealed class TlsStackTests
             byte[] sHsIv = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, sHsSecret, "iv", ReadOnlySpan<byte>.Empty, 12);
 
             ulong sHsSeq = 0;
-            byte[] ee = BuildEncryptedExtensions(alpn, null);
+            byte[] ee = BuildEncryptedExtensions(alpn, null, alpsCodepoint, serverAlpsData);
             transcript.Write(ee);
             await WriteTls13RecordAsync(sHsKey, sHsIv, sHsSeq++, TlsContentType.Handshake, ee, ct);
 
@@ -1409,8 +1654,30 @@ public sealed class TlsStackTests
             _cReadSeq = 0;
 
             ulong cHsSeq = 0;
-            (TlsContentType cType, byte[] cFinMsg) = await ReadTls13RecordAsync(cHsKey, cHsIv, cHsSeq++, ct);
+            (TlsContentType cType, byte[] cFlight) = await ReadTls13RecordAsync(cHsKey, cHsIv, cHsSeq++, ct);
             Assert.Equal(TlsContentType.Handshake, cType);
+            int cOff = 0;
+            if (alpsCodepoint is { } expectedAlps)
+            {
+                Assert.True(cFlight.Length >= 10, $"Expected 10-byte client EncryptedExtensions for ALPS 0x{expectedAlps:X4}, got {cFlight.Length} bytes");
+                byte[] clientEe = cFlight.AsSpan(0, 10).ToArray();
+                Assert.Equal(new byte[]
+                {
+                    0x08, 0x00, 0x00, 0x06,
+                    0x00, 0x04,
+                    (byte)(expectedAlps >> 8), (byte)expectedAlps,
+                    0x00, 0x00,
+                }, clientEe);
+                transcript.Write(clientEe);
+                cOff = 10;
+                if (cOff == cFlight.Length)
+                {
+                    (cType, cFlight) = await ReadTls13RecordAsync(cHsKey, cHsIv, cHsSeq++, ct);
+                    Assert.Equal(TlsContentType.Handshake, cType);
+                    cOff = 0;
+                }
+            }
+            byte[] cFinMsg = cOff == 0 ? cFlight : cFlight.AsSpan(cOff).ToArray();
             Assert.Equal(0x14, cFinMsg[0]);
 
             byte[] cFinKey = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, cHsSecret, "finished", ReadOnlySpan<byte>.Empty, 32);
@@ -1702,7 +1969,7 @@ public sealed class TlsStackTests
             return buf;
         }
 
-        public static byte[] BuildEncryptedExtensions(string? alpn, byte[]? quicTp)
+        public static byte[] BuildEncryptedExtensions(string? alpn, byte[]? quicTp, ushort? alpsCodepoint = null, byte[]? alpsData = null)
         {
             using var extMs = new MemoryStream();
             Span<byte> u16 = stackalloc byte[2];
@@ -1725,6 +1992,15 @@ public sealed class TlsStackTests
                 BinaryPrimitives.WriteUInt16BigEndian(u16, (ushort)quicTp.Length);
                 extMs.Write(u16);
                 extMs.Write(quicTp);
+            }
+            if (alpsCodepoint is { } alpsCp)
+            {
+                byte[] payload = alpsData ?? Array.Empty<byte>();
+                BinaryPrimitives.WriteUInt16BigEndian(u16, alpsCp);
+                extMs.Write(u16);
+                BinaryPrimitives.WriteUInt16BigEndian(u16, (ushort)payload.Length);
+                extMs.Write(u16);
+                extMs.Write(payload);
             }
             byte[] extBytes = extMs.ToArray();
             var body = new byte[2 + extBytes.Length];

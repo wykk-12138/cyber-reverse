@@ -29,6 +29,7 @@ public sealed class QuicConnectionOptions
     public bool RandomExtensionOrder { get; init; }
     public bool DisableSessionTickets { get; init; }
     public Action<string>? KeyLogSink { get; init; }
+    public Func<string, CancellationToken, ValueTask<IPAddress[]>>? DnsResolver { get; init; }
     public IQuicDatagramTransport? TransportOverride { get; init; }
     public ulong? InitialRttUs { get; init; }
     public Random? Random { get; init; }
@@ -850,6 +851,7 @@ public sealed class QuicConnection : IAsyncDisposable
     private Exception? _terminalError;
     private TimeSpan _lastActivity;
     private int _closed;
+    private int _disposed;
 
     private QuicConnection(
         QuicConnectionOptions options,
@@ -930,15 +932,17 @@ public sealed class QuicConnection : IAsyncDisposable
         }
         else
         {
-            transport = await DirectUdpTransport.ConnectAsync(options.Host, options.Port, cancellationToken: cancellationToken).ConfigureAwait(false);
+            QuicDnsCache? dnsCache = options.DnsResolver is null ? null : new QuicDnsCache(resolver: options.DnsResolver);
+            transport = await DirectUdpTransport.ConnectAsync(options.Host, options.Port, dnsCache, cancellationToken).ConfigureAwait(false);
             ownsTransport = true;
         }
 
-        int scidLen = spec.ScidLength > 0 ? Math.Min(spec.ScidLength, 20) : 8;
+        int scidLen = Math.Clamp(spec.ScidLength, 0, 20);
         int dcidLen = spec.DcidLength > 0 ? Math.Min(spec.DcidLength, 20) : 8;
-        var localScid = new byte[scidLen];
+        var localScid = scidLen == 0 ? Array.Empty<byte>() : new byte[scidLen];
         var originalDcid = new byte[dcidLen];
-        RandomNumberGenerator.Fill(localScid);
+        if (localScid.Length > 0)
+            RandomNumberGenerator.Fill(localScid);
         RandomNumberGenerator.Fill(originalDcid);
 
         var tls = new TlsHandshakeEngine(new TlsHandshakeOptions
@@ -1256,23 +1260,46 @@ public sealed class QuicConnection : IAsyncDisposable
         }
     }
 
+    private bool IsDeferredPacketReadyLocked(byte[] packet)
+    {
+        if (packet.Length == 0)
+            return true;
+
+        if ((packet[0] & 0x80) != 0)
+        {
+            var type = (QuicLongPacketType)((packet[0] >> 4) & 0x03);
+            if (type == QuicLongPacketType.Handshake)
+                return _handshakeDiscarded || _handshakeReadKeys is not null;
+            return true;
+        }
+
+        return _appReadKeys is not null;
+    }
+
     private void RetryDeferredPackets()
     {
-        while (true)
+        while (Volatile.Read(ref _closed) == 0)
         {
-            byte[]? next = null;
+            List<byte[]>? ready = null;
             lock (_stateLock)
             {
-                if (_deferredPackets.Count > 0)
+                for (int i = _deferredPackets.Count - 1; i >= 0; i--)
                 {
-                    next = _deferredPackets[0];
-                    _deferredPackets.RemoveAt(0);
+                    if (IsDeferredPacketReadyLocked(_deferredPackets[i]))
+                    {
+                        ready ??= new List<byte[]>();
+                        ready.Add(_deferredPackets[i]);
+                        _deferredPackets.RemoveAt(i);
+                    }
                 }
             }
-            if (next is null)
+
+            if (ready is null || ready.Count == 0)
                 break;
 
-            ProcessDatagram(next, allowDefer: false);
+            ready.Reverse();
+            for (int i = 0; i < ready.Count; i++)
+                ProcessDatagram(ready[i], allowDefer: false);
         }
     }
 
@@ -1384,7 +1411,7 @@ public sealed class QuicConnection : IAsyncDisposable
 
                 if (readKeys is null)
                 {
-                    if (allowDefer)
+                    if (allowDefer || offset > 0)
                         BufferDeferredPacket(span);
                     return;
                 }
@@ -1530,22 +1557,29 @@ public sealed class QuicConnection : IAsyncDisposable
         }
         else
         {
-            nextRead ??= curRead.UpdateKeys();
-            if (!nextRead.TryPacketUnprotect(fullPn, copy.Slice(0, headerLen), copy.Slice(headerLen), out plaintext))
-                return;
-
-            // Commit peer-initiated 1-RTT key phase rotation (RFC 9001 §6.2).
-            lock (_stateLock)
+            if (prevRead is not null && prevRead.TryPacketUnprotect(fullPn, copy.Slice(0, headerLen), copy.Slice(headerLen), out plaintext))
             {
-                _appPrevReadKeys?.Clear();
-                _appPrevReadKeys = _appReadKeys;
-                _appReadKeys = nextRead;
-                _appNextReadKeys = nextRead.UpdateKeys();
-                _appReadKeyPhase = rxKeyPhase;
-                if (_appWriteKeys is not null && _appWriteKeyPhase != rxKeyPhase)
+                // Delayed/reordered packet encrypted under previous 1-RTT key phase: accept without rotating keys.
+            }
+            else
+            {
+                nextRead ??= curRead.UpdateKeys();
+                if (!nextRead.TryPacketUnprotect(fullPn, copy.Slice(0, headerLen), copy.Slice(headerLen), out plaintext))
+                    return;
+
+                // Commit peer-initiated 1-RTT key phase rotation (RFC 9001 §6.2).
+                lock (_stateLock)
                 {
-                    _appWriteKeys = _appWriteKeys.UpdateKeys();
-                    _appWriteKeyPhase = rxKeyPhase;
+                    _appPrevReadKeys?.Clear();
+                    _appPrevReadKeys = _appReadKeys;
+                    _appReadKeys = nextRead;
+                    _appNextReadKeys = nextRead.UpdateKeys();
+                    _appReadKeyPhase = rxKeyPhase;
+                    if (_appWriteKeys is not null && _appWriteKeyPhase != rxKeyPhase)
+                    {
+                        _appWriteKeys = _appWriteKeys.UpdateKeys();
+                        _appWriteKeyPhase = rxKeyPhase;
+                    }
                 }
             }
         }
@@ -2119,7 +2153,7 @@ public sealed class QuicConnection : IAsyncDisposable
         {
             TimeSpan delay = rx.FirstAckElicitingRxTime.HasValue ? _clock.Elapsed - rx.FirstAckElicitingRxTime.Value : TimeSpan.Zero;
             ulong us = (ulong)Math.Max(0, delay.Ticks / 10L);
-            ulong encodedDelay = us >> Math.Clamp(_lossRecovery.AckDelayExponent, 0, 20);
+            ulong encodedDelay = us >> Math.Clamp((int)_spec.AckDelayExponent, 0, 20);
             var ackFrame = QuicAckFrame.FromPacketNumbers(rx.AckPending, encodedDelay);
             int ackLen = ackFrame.GetEncodedLength();
             if (usedBytes + ackLen <= maxFramesBytes)
@@ -2315,10 +2349,13 @@ public sealed class QuicConnection : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+
         if (Volatile.Read(ref _closed) == 0)
             await CloseAsync(QuicErrorCode.NoError, isApplicationError: true, reason: "disposed").ConfigureAwait(false);
 
-        _connCts.Cancel();
+        try { _connCts.Cancel(); } catch (ObjectDisposedException) { }
         SignalTx();
 
         if (_recvTask is not null)

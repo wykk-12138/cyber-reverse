@@ -234,7 +234,17 @@ public sealed class QuicKeySet
 
         int secretLen = HashPrimitives.DigestLength(HashAlg);
         byte[] nextSecret = HashPrimitives.HkdfExpandLabel(HashAlg, TrafficSecret, "quic ku", ReadOnlySpan<byte>.Empty, secretLen);
-        return QuicCrypto.DerivePacketKeys(CipherSuite, nextSecret);
+        QuicKeySet updated = QuicCrypto.DerivePacketKeys(CipherSuite, nextSecret);
+        // RFC 9001 §6.1: header protection keys are NOT updated on 1-RTT key rotation.
+        ConstantTime.ZeroMemory(updated.HpKey);
+        return new QuicKeySet(
+            updated.TrafficSecret,
+            updated.Key,
+            updated.Iv,
+            (byte[])HpKey.Clone(),
+            CipherSuite,
+            HashAlg,
+            IsChaCha);
     }
 
     public void Clear()

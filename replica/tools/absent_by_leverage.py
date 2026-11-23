@@ -49,12 +49,14 @@ _cs = _ilu.module_from_spec(_spec)
 _spec.loader.exec_module(_cs)
 text = _cs.strip_comments(text)
 
+tokens = set(re.findall(r"\w+", text))
+
 absent = []
 for name, count in pairs:
     # R911: the image's names come from state-machine types, so they carry no Async suffix while a C# method
     # does. A strict whole-word test reports ScrapeProductAsync as missing ScrapeProduct; fifty-four names were
     # miscounted that way and every ordering this tool produced before now was inflated.
-    if not re.search(r"\b" + re.escape(name) + r"(?:Async)?\b", text):
+    if name not in tokens and (name + "Async") not in tokens:
         absent.append((count, name))
 
 absent.sort(reverse=True)

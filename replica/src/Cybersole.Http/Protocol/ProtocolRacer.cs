@@ -465,6 +465,7 @@ public sealed class ProtocolRacer
             RandomExtensionOrder = (key.OptionsFlagsMask & ConnectionKey.FlagRandomExtensionOrder) != 0,
             DisableSessionTickets = (key.OptionsFlagsMask & ConnectionKey.FlagDisableSessionTickets) != 0,
             KeyLogSink = _keyLogSink,
+            DnsResolver = (host, ct) => new ValueTask<System.Net.IPAddress[]>(_dialer.DnsCache.ResolveAsync(host, ct)),
             InitialRttUs = cachedRttUs,
         };
 

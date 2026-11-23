@@ -78,6 +78,9 @@ public sealed class QuicHttp3Tests
         QuicKeySet nextGen = keys.UpdateKeys();
         Assert.NotEqual(keys.Key, nextGen.Key);
         Assert.NotEqual(keys.Iv, nextGen.Iv);
+        Assert.Equal(keys.HpKey, nextGen.HpKey);
+        QuicKeySet gen2 = nextGen.UpdateKeys();
+        Assert.Equal(keys.HpKey, gen2.HpKey);
         byte[] gen1Pkt = QuicPacketCodec.BuildShortHeaderPacket(
             dcid: new byte[] { 1, 2, 3, 4 },
             packetNumber: 654360565UL,

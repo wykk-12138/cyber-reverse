@@ -1,6 +1,6 @@
 # ADR · 嵌入式浏览器引擎选型（③-A 议程 · 网络栈已在 `full-QUIC/HTTP3/TLS` 支线落地，浏览器宿主待裁决）
 
-> **这份文档的用途**：③-A 的浏览器宿主裁决单。R1384 将「商业 `DotNetBrowser` vs 开源 WebView2/CEF」与原版自定义 QUIC/HTTP3/TLS 指纹传输栈移出 `External Blocked`；**`full-QUIC/HTTP3/TLS` 支线现已按 IDA 实证完成纯 C# `Cybersole.Http 0.10.0` 全栈复刻**（`main` 保持在 `288a95e` 未改），本 ADR 目前唯一待裁决项为**嵌入式浏览器引擎选型**（第 3 节）。
+> **这份文档的用途**：③-A 的浏览器宿主裁决单。R1384 将「商业 `DotNetBrowser` vs 开源 WebView2/CEF」与原版自定义 QUIC/HTTP3/TLS 指纹传输栈移出 `External Blocked`；**`full-QUIC/HTTP3/TLS` 支线现已按 IDA 实证完成纯 C# `Cybersole.Http 0.10.0` 全栈复刻，并通过 Go 1.26.2 / `quic-go@v0.61.0` 第三方互操作与公网真实边缘/指纹 Oracle 实测验证**（实测档案见 `docs/LIVE_NETSTACK_INTEROP.md`；`main` 保持在 `288a95e` 未改），本 ADR 目前唯一待裁决项为**嵌入式浏览器引擎选型**（第 3 节）。
 
 ---
 
@@ -36,7 +36,7 @@
 
 | 维度 | 结论 | 证据 |
 |---|---|---|
-| 纯 C# QUIC/HTTP3/TLS 传输栈 | **已在 `full-QUIC/HTTP3/TLS` 支线落地** | `Cybersole.Http`（`TransportMode.PureNetClient`：`Crypto` + `MlKem768` + `X509` 121 根证书 + `Profiles` 82/68 预设 + `Tls` 1.2/1.3 + `Quic` v1 + `Http3`/QPACK + `ProtocolRacer`/`OriginPool`/`TlsClientCache`），全量套件与 `PublishAot` 绿 |
+| 纯 C# QUIC/HTTP3/TLS 传输栈 | **已在 `full-QUIC/HTTP3/TLS` 支线落地并完成第三方/公网实测** | `Cybersole.Http`（`TransportMode.PureNetClient`：`Crypto` + `MlKem768` + `X509` 121 根证书 + `Profiles` 82/68 预设 + `Tls` 1.2/1.3 含 HRR/ALPS/KeyUpdate + `Quic` v1 含 Retry/`"quic ku"` `HpKey` 不变性 + `Http3`/QPACK + `ProtocolRacer`/`OriginPool`/`TlsClientCache`），全量套件、Go 1.26.2 + `quic-go@v0.61.0`（7/7）、公网边缘/指纹 Oracle（16/16，`InsecureSkipVerify = false`）与 `PublishAot` 绿；详见 `docs/LIVE_NETSTACK_INTEROP.md` |
 | 浏览器宿主采用候选 | _待裁决_ | — |
 | 否决理由（其余浏览器候选） | _待填_ | — |
 | 生效轮次 | _待填_ | — |
@@ -45,10 +45,10 @@
 
 ## 4. 工程落位清单
 
-1. **离线指纹基准与 Pure C# 预设**：已完成 —— `ProfileRegistry`（82 槽位 / 84 键 / 68 条 `ClientHelloSpec` / `ChromeQuicSpecs` `chrome_148_quic` / `chrome_150` 等）已落地；
+1. **离线指纹基准与 Pure C# 预设**：已完成 —— `ProfileRegistry`（82 槽位 / 84 键 / 68 条 `ClientHelloSpec` / `ChromeQuicSpecs` `chrome_148_quic` / `chrome_150` 等）已落地，`WireFingerprintTests` 全绿；
 2. **`Cybersole.Http/TlsProfile.cs` 扩展**：已完成 —— 新增 `TransportMode.PureNetClient = 4`，保留 `SChannel` 默认路径与 `OwnTls` 兼容性；
-3. **纯 C# TLS 1.2/1.3 + H2/H1.1 + Dialers 对位**：已完成 —— `TlsHandshakeEngine` / `TlsStream` / `Http2Connection` / `Http1Connection` / `ProtocolRacer` / `OriginPool` / `TlsClientCache` 接入 `NetClient` 并通过本地真实回环与第三方 BouncyCastle TLS 1.3 互通测试；
-4. **纯 C# QUIC v1 / QPACK / HTTP/3 真实握手栈**：已完成 —— `QuicConnection` / `QuicLossRecovery` / `Socks5UdpTransport` / `QpackCodec` / `Http3Connection` 通过 RFC 9000/9001/9002/9204/9114 回环全双工并发压测；
+3. **纯 C# TLS 1.2/1.3 + H2/H1.1 + Dialers 对位**：已完成 —— `TlsHandshakeEngine` / `TlsStream` / `Http2Connection`（修正 `ConnectionFlow` 原值发射）/ `Http1Connection` / `ProtocolRacer` / `OriginPool` / `TlsClientCache` 接入 `NetClient`，通过本地回环、BouncyCastle TLS 1.3、Go 1.26.2 H2/HRR/PSK 及 `tls.peet.ws` / `tls.browserleaks.com` / Google ALPS / `one.one.one.one` / `nike.com` / `akamai.com` 严格证书校验实测（`docs/LIVE_NETSTACK_INTEROP.md`）；
+4. **纯 C# QUIC v1 / QPACK / HTTP/3 真实握手栈**：已完成 —— `QuicConnection` / `QuicLossRecovery` / `Socks5UdpTransport` / `QpackCodec` / `Http3Connection`（含 Retry、1-RTT Key Update `"quic ku"` `HpKey` 不变性、`ack_delay_exponent` 与 `DnsCache` IPv4 优先）通过 RFC 9000/9001/9002/9204/9114 回环、`quic-go@v0.61.0` 及公网 UDP-443 边缘（`taobao.com` / `tmall.com` / `dns.alidns.com`）实测；海外边缘（Cloudflare / Google / Nike / nginx）因本机 TUN 代理静默丢弃海外 UDP-443 在本机环境下标 `Unknown`，`ProtocolRacer` 对拒绝/阻断边缘的 HTTP/2 平滑回退已实测通过；
 5. **浏览器引擎适配层（待裁决后实施）**：`Kasada` 浏览器求解、`CustomBrowser.Autofill` 与 ②-A 的 JS 执行分支统一走选定浏览器宿主。
 
 ## 5. 与 ②-A 的接口

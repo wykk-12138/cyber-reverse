@@ -138,11 +138,14 @@ def main():
         if line.strip() and re.match(r"^[A-Za-z_]\w*$", line.strip().split()[0])
     })
 
+    code_tokens = set(re.findall(r"\w+", code))
+    raw_tokens = set(re.findall(r"\w+", raw))
+
     both, only_comment = [], []
     for n in names:
-        pattern = r"\b" + re.escape(n) + r"(?:Async)?\b"
-        in_code = re.search(pattern, code) is not None
-        in_raw = re.search(pattern, raw) is not None
+        async_n = n + "Async"
+        in_code = n in code_tokens or async_n in code_tokens
+        in_raw = n in raw_tokens or async_n in raw_tokens
         if in_code:
             both.append(n)
         elif in_raw:

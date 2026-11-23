@@ -1,14 +1,14 @@
 # C8 字符串池分类比对（生成物）
 
 ```
-image strings: 213338   artifact strings: 126238
+image strings: 213338   artifact strings: 126160
 
 class               image  artifact exact-in-artifact
 locale-key           1003        24         0
 url                  3451       286        15
 error-message        4116       110        34
-dependency           2502      2425       761
-other              202266    123393     25879
+dependency           2502      2428       760
+other              202266    123312     25929
 
 unknown (in the image, not found in the artifact — §4.5 says this means nothing yet):
   locale-key: 1003 unknown; samples: Accounts.Action.Add | Accounts.Action.Clear | Accounts.Column.Added | Accounts.Column.Email | Accounts.Column.Password | Accounts.Context.CopyMany

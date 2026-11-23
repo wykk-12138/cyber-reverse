@@ -713,7 +713,6 @@ public sealed class Http3Connection : IMultiplexedConnection
         string authority = request.Uri.Authority;
 
         var regular = new List<PureHttpHeader>(request.Headers.Count + 2);
-        bool hasUserAgent = false;
         for (int i = 0; i < request.Headers.Count; i++)
         {
             PureHttpHeader h = request.Headers[i];
@@ -729,8 +728,6 @@ public sealed class Http3Connection : IMultiplexedConnection
                 continue;
 
             string lower = h.Name.ToLowerInvariant();
-            if (lower == "user-agent")
-                hasUserAgent = true;
 
             if (lower == "cookie" && h.Value.Contains("; ", StringComparison.Ordinal))
             {
@@ -746,9 +743,6 @@ public sealed class Http3Connection : IMultiplexedConnection
 
         if (!request.Body.IsEmpty || method is "POST" or "PUT" or "PATCH")
             regular.Add(new PureHttpHeader("content-length", request.Body.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-
-        if (!hasUserAgent)
-            regular.Add(new PureHttpHeader("user-agent", "Go-http-client/2.0"));
 
         IReadOnlyList<string>? headerOrder = _profile.Http3Settings?.HeaderOrder ?? _profile.Http2Settings.HeaderOrder;
         if (headerOrder is { Count: > 0 })

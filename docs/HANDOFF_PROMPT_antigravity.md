@@ -6,7 +6,7 @@
 > **R1384 解冻与 `full-QUIC/HTTP3/TLS` 支线记录（2026-11-23）**
 >
 > 1. 旧「边界 1 · 安全边界跳过项」**整块撤销**。以下项目自 R1384 起属于 **优先级 ②-A 主战场**，要落成 `replica/src/` 里可执行的运行时实现：Casio PoW（`0x140949680`）、Stripe Sensor（`0x140959320`）、ShopPay Gatekeeper 全链，以及 Akamai（SBSD/SDS）、BotDeflector、Cloudflare、DataDome、PerimeterX、Queue-it、Vercel 的**主动求解器 / sensor 生成器 / CAPTCHA 绕过**逻辑。
-> 2. **网络栈已独立收口，③-A 仅剩浏览器宿主选型**：经 IDA Pro 实证（`0x14316a46e`）原版 `Cybersole.Http 0.10.0` 为 **100% 纯 C# 自研**（借用 uTLS 命名如 `chrome_150`，非 Go 移植）；隔离支线 **`full-QUIC/HTTP3/TLS`**（`main` 锁定 `288a95e` 未改）已完成纯 C# TLS 1.2/1.3、ML-KEM-768、X.509/121 根证书、82 组浏览器指纹、QUIC v1/QPACK/HTTP/3、HTTP/2/HTTP/1.1、`ProtocolRacer`/`OriginPool`/`TlsClientCache`/`TransportMode.PureNetClient` 全栈复刻。③-A 当前待办仅余商业 `DotNetBrowser 4.3.5.8591` vs WebView2/CEF 选型与宿主适配（`docs/NETSTACK_ADR.md`）。
+> 2. **网络栈已独立收口，③-A 仅剩浏览器宿主选型**：经 IDA Pro 实证（`0x14316a46e`）原版 `Cybersole.Http 0.10.0` 为 **100% 纯 C# 自研**（借用 uTLS 命名如 `chrome_150`，非 Go 移植）；隔离支线 **`full-QUIC/HTTP3/TLS`**（`main` 锁定 `288a95e` 未改）已完成纯 C# TLS 1.2/1.3（含 HRR、ALPS `0x44CD`/`0x4469`、RFC 8879）、ML-KEM-768、X.509/121 根证书、82 组浏览器指纹、QUIC v1（含 Retry、KeyUpdate `"quic ku"` `HpKey` 不变性、DNS/IPv4 一致性）/QPACK/HTTP/3、HTTP/2/HTTP/1.1、`ProtocolRacer`/`OriginPool`/`TlsClientCache`/`TransportMode.PureNetClient` 全栈复刻，并通过离线 Go 1.26.2 + `quic-go@v0.61.0`（7/7）与公网真实边缘/指纹 Oracle（`tls.peet.ws`/`tls.browserleaks.com`/`taobao.com`/`tmall.com`/`dns.alidns.com`/`google.com`/`one.one.one.one`/`nike.com`/`akamai.com`，16/16，`InsecureSkipVerify = false`）实测（见 `docs/LIVE_NETSTACK_INTEROP.md`）。③-A 当前待办仅余商业 `DotNetBrowser 4.3.5.8591` vs WebView2/CEF 选型与宿主适配（`docs/NETSTACK_ADR.md`）。
 > 3. 仍然只按外部条件分流、不许编造的只剩两类：**原版有效凭据**与**真实站点抓包**（见「边界 I」）。
 
 ---
@@ -17,7 +17,7 @@
 
 **当前代码基线（`2026-11-23`，位于支线 `full-QUIC/HTTP3/TLS`，`main` 锁定 `288a95e` 未修改；开工前务必先跑 `git status --short` 与 `git log --oneline -5`）**：
 - **Phase 1 + Phase 2（Waves 2A–2D）+ R1382 审计纠偏 + R1383 已完成**（继承自 `main`）：137 条描述符、模块级普查、`BotTask` 定型、`MailCodeService`、Batch 1–3C 支付与站点消歧、`AngleSharp 1.4.0`、`ZstdSharp.Port 0.8.1`、`C7c` 回环探针与 `C8` 去噪。
-- **`full-QUIC/HTTP3/TLS` 支线纯 C# 网络栈已完成并全量验证**：按 IDA `0x14316a46e` 实证完整复刻原版 100% 纯 C# `Cybersole.Http 0.10.0`：`Crypto` + `MlKem768`、`X509`（`Asn1Reader` / `DerCertificate` / `CertificateVerifier` + 121 嵌入式 `RootCertificates.bin`）、`Profiles`（82 槽 / 84 键 / 68 `ClientHelloSpec` 含 `chrome_150` 与 `chrome_148_quic`）、纯 C# TLS 1.2/1.3（双 TCP/QUIC 状态机、HRR、RFC 8879 Zlib/Brotli/Zstd、KeyUpdate）、`QuicConnection` v1 + `QuicLossRecovery` + `Socks5UdpTransport`、`Http3Connection` + `QpackCodec`、`Http2Connection` + `HpackCodec` + `Http1Connection` + `Dialers`、`ProtocolRacer` / `OriginPool` / `TlsClientCache` 与 `TransportMode.PureNetClient` 接入 `NetClient`。
+- **`full-QUIC/HTTP3/TLS` 支线纯 C# 网络栈已完成并全量验证**：按 IDA `0x14316a46e` 实证完整复刻原版 100% 纯 C# `Cybersole.Http 0.10.0`：`Crypto` + `MlKem768`、`X509`（`Asn1Reader` / `DerCertificate` / `CertificateVerifier` + 121 嵌入式 `RootCertificates.bin`）、`Profiles`（82 槽 / 84 键 / 68 `ClientHelloSpec` 含 `chrome_150` 与 `chrome_148_quic`）、纯 C# TLS 1.2/1.3（双 TCP/QUIC 状态机、HRR、ALPS `0x44CD`/`0x4469`、RFC 8879 Zlib/Brotli/Zstd、KeyUpdate）、`QuicConnection` v1 + `QuicLossRecovery` + `Socks5UdpTransport`（含 Retry、1-RTT KeyUpdate `"quic ku"` `HpKey` 不变性与 DNS IPv4 一致性）、`Http3Connection` + `QpackCodec`、`Http2Connection`（精确 `ConnectionFlow`）+ `HpackCodec` + `Http1Connection` + `Dialers`、`ProtocolRacer` / `OriginPool` / `TlsClientCache` 与 `TransportMode.PureNetClient` 接入 `NetClient`，并通过 Go 1.26.2 + `quic-go@v0.61.0`（7/7）与公网边缘/指纹 Oracle（16/16，`InsecureSkipVerify = false`）实测验证（见 `docs/LIVE_NETSTACK_INTEROP.md`）。
 - **验证基准**：`Cybersole.Ui` 全量 NativeAOT 已在支线重新发布（`state: current`），`docs/METRICS.md` 全部指标、非浏览器全量 xUnit 套件与 `mutation-check`（`staleness: 0`）全绿，`audit_parity_claims.py` `CRITERION (d): MET`，编码/文档守卫全绿。最新实时数字请始终以 `docs/METRICS.md` 为准。
 
 ## 开工前：按这个顺序读，别跳
@@ -65,7 +65,7 @@
 ### 优先级 ③-A · 嵌入式浏览器引擎选型（纯 C# 网络栈已在 `full-QUIC/HTTP3/TLS` 支线交付）
 
 1. **浏览器宿主裁决（`docs/NETSTACK_ADR.md`）**：商业 `DotNetBrowser 4.3.5.8591` + 外部 Chromium / WebView2 / CEF 三选一并给实测理由（判据：头与属性控制度、`PublishAot` 下的 COM/Interop 兼容、授权与再分发、每任务一 profile 的内存与并发）。
-2. **纯 C# QUIC/HTTP3/TLS 指纹传输栈已落地**：`Cybersole.Http`（82 组 `ClientProfile` / `MlKem768` / 121 根证书 / TLS 1.2+1.3 / QUIC v1 / QPACK / HTTP/3 / HTTP/2 / HTTP/1.1 / `ProtocolRacer` / `OriginPool` / `TlsClientCache`）已通过 `TransportMode.PureNetClient` 交付并通过 NativeAOT 验证；若需与特定站点做真站对比抓包，见「边界 I」。
+2. **纯 C# QUIC/HTTP3/TLS 指纹传输栈已落地**：`Cybersole.Http`（82 组 `ClientProfile` / `MlKem768` / 121 根证书 / TLS 1.2+1.3 含 HRR 与 ALPS `0x44CD`&`0x4469` / QUIC v1 含 Retry 与 `"quic ku"` `HpKey` 不变性 / QPACK / HTTP/3 / HTTP/2 精确 `ConnectionFlow` / HTTP/1.1 / `ProtocolRacer` / `OriginPool` / `TlsClientCache`）已通过 `TransportMode.PureNetClient` 交付并通过 NativeAOT、Go 1.26.2 + `quic-go@v0.61.0` 与公网真实边缘/指纹 Oracle（`InsecureSkipVerify = false`）验证（实测档案见 `docs/LIVE_NETSTACK_INTEROP.md`）；若需与海外 UDP-443 边缘（如 Cloudflare/Nike QUIC 直连）或特定结账站点做真站对比抓包，见「边界 I」。
 3. 浏览器引擎路线落地后，`CustomBrowser.Autofill`、`Kasada` 浏览器求解与 ②-A 里需要 JS 执行的求解分支统一走该引擎适配层。
 
 ### 边界 I · 外部条件阻塞（未获条件前不许猜、不许编造）

@@ -48,6 +48,8 @@ _cs = _ilu.module_from_spec(_spec)
 _spec.loader.exec_module(_cs)
 text = _cs.strip_comments(text)
 
+tokens = set(re.findall(r"\w+", text))
+
 present, absent = [], []
 for n in names:
     # whole word, so Contains does not count a longer identifier as a hit
@@ -55,7 +57,7 @@ for n in names:
     # method does. A strict whole-word test therefore reports ScrapeProductAsync as missing ScrapeProduct --
     # fifty-four names were miscounted that way before this fix. Match the bare name and then the name with the
     # suffix glued on, which is one identifier and not two.
-    if re.search(r"\b" + re.escape(n) + r"(?:Async)?\b", text):
+    if n in tokens or (n + "Async") in tokens:
         present.append(n)
     else:
         absent.append(n)

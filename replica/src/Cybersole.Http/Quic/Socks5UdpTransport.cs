@@ -109,7 +109,7 @@ public sealed class DirectUdpTransport : IQuicDatagramTransport
         IPAddress[] addrs = await cache.ResolveAsync(host, cancellationToken).ConfigureAwait(false);
 
         SocketException? lastError = null;
-        foreach (IPAddress ip in addrs)
+        foreach (IPAddress ip in OrderAddressesPreferIPv4(addrs))
         {
             var sock = new Socket(ip.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
@@ -127,6 +127,20 @@ public sealed class DirectUdpTransport : IQuicDatagramTransport
         }
 
         throw lastError ?? new SocketException((int)SocketError.HostNotFound);
+    }
+
+    private static IEnumerable<IPAddress> OrderAddressesPreferIPv4(IPAddress[] addrs)
+    {
+        for (int i = 0; i < addrs.Length; i++)
+        {
+            if (addrs[i].AddressFamily == AddressFamily.InterNetwork)
+                yield return addrs[i];
+        }
+        for (int i = 0; i < addrs.Length; i++)
+        {
+            if (addrs[i].AddressFamily != AddressFamily.InterNetwork)
+                yield return addrs[i];
+        }
     }
 
     public async ValueTask SendDatagramAsync(ReadOnlyMemory<byte> datagram, CancellationToken cancellationToken = default)

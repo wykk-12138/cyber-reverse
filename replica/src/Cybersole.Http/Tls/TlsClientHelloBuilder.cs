@@ -238,8 +238,11 @@ public static class TlsClientHelloBuilder
                 ? profile.CreateQuicClientHelloSpec()
                 : profile.CreateClientHelloSpec());
 
-        bool shuffle = options.RandomExtensionOrderOverride ?? baseSpec.ShuffleExtensions;
-        ClientHelloSpec greaselessSpec = GreaseHelper.ResolveGrease(baseSpec, rng);
+        bool isHrrRetry = options.HelloRetrySelectedGroup.HasValue || options.HelloRetryCookie is not null;
+        bool shuffle = !isHrrRetry && (options.RandomExtensionOrderOverride ?? baseSpec.ShuffleExtensions);
+        ClientHelloSpec greaselessSpec = isHrrRetry && options.SpecOverride is not null
+            ? baseSpec
+            : GreaseHelper.ResolveGrease(baseSpec, rng);
         IReadOnlyList<TlsExtensionSpec> orderedExtensions = shuffle
             ? ExtensionShuffler.Shuffle(greaselessSpec.Extensions, rng)
             : greaselessSpec.Extensions;

@@ -576,7 +576,7 @@ public sealed class ProtocolLayerTests
         Assert.Null(serverError);
         Assert.True(prefaceMatched);
         Assert.Equal(chrome131.Http2Settings.Settings, observedSettings);
-        Assert.Equal(15_663_105u - 65_535u, observedConnWindowUpdate);
+        Assert.Equal(15_663_105u, observedConnWindowUpdate);
         Assert.True(observedPingAck);
         Assert.True(sawHeadersContinuationFromClient);
         Assert.True(sawFirstRequestPriority);
@@ -746,7 +746,7 @@ public sealed class ProtocolLayerTests
                 }
                 var wuFrame = await h2Server.ReadFrameAsync(cts.Token);
                 Assert.Equal(0x08, wuFrame.Type);
-                Assert.Equal(12_517_377u - 65_535u, BinaryPrimitives.ReadUInt32BigEndian(wuFrame.Payload));
+                Assert.Equal(12_517_377u, BinaryPrimitives.ReadUInt32BigEndian(wuFrame.Payload));
 
                 // 6 startup PRIORITY frames for Firefox_117
                 for (int i = 0; i < 6; i++)

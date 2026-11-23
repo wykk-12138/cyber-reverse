@@ -695,6 +695,101 @@ public sealed class QuicHttp3Tests
         }
     }
 
+    [Fact]
+    public async Task Http3StartAsync_PeerAllowsOnly3UniStreams_OpensCriticalStreamsWithoutDeadlockingOnGrease()
+    {
+        using var caKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using X509Certificate2 caCert = CreateTestCa(caKey, "CN=Cybersole H3 UniLimit Root");
+        using X509Certificate2 leafCert = CreateTestLeaf(leafKey, caCert, TestHost);
+        var roots = new RootCertificateDatabase();
+        roots.AddDer(caCert.RawData);
+
+        ClientProfile chrome152 = ProfileRegistry.GetRequired("chrome_152");
+        Assert.True(chrome152.Http3Settings?.SendGreaseFrame);
+
+        // Case 1: Peer advertises RFC 9114 §6.2 minimum initial_max_streams_uni = 3 (e.g. Cloudflare edges).
+        // StartAsync must open the 3 critical streams (Control, QPACK Encoder, QPACK Decoder) and skip GREASE
+        // rather than blocking forever waiting for a 4th uni stream.
+        await using (var pair = new LoopbackQuicTransportPair())
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var server = new SyntheticQuicHttp3Server(
+                pair.Server,
+                leafKey,
+                new[] { leafCert.RawData, caCert.RawData },
+                initialMaxStreamsUni: 3UL);
+            Task serverTask = server.RunAsync(cts.Token);
+
+            await using Http3Connection h3 = await Http3Connection.ConnectAsync(
+                new QuicConnectionOptions
+                {
+                    Host = TestHost,
+                    Port = 443,
+                    Profile = chrome152,
+                    VerifyOptions = new CertificateVerifyOptions { CustomRoots = roots, UseEmbeddedDefaultRoots = false },
+                    TransportOverride = pair.Client,
+                },
+                ConnectionKey.Create("https", TestHost, 443, chrome152.Name),
+                cts.Token);
+
+            PureHttpResponse resp = await h3.SendAsync(new PureHttpRequest
+            {
+                Method = "GET",
+                Uri = new Uri("https://localhost/hello"),
+            }, cts.Token);
+
+            Assert.Equal(200, resp.StatusCode);
+            Assert.Equal("HTTP/3", resp.HttpVersion);
+            Assert.Equal("hello-h3", Encoding.UTF8.GetString(resp.Body));
+            Assert.Equal(3, server.ClientUniStreamCount);
+
+            cts.Cancel();
+            await server.DisposeAsync();
+            try { await serverTask; } catch (OperationCanceledException) { }
+        }
+
+        // Case 2: Peer grants initial_max_streams_uni = 4 -> opens 3 critical streams + 1 GREASE uni stream.
+        await using (var pair = new LoopbackQuicTransportPair())
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var server = new SyntheticQuicHttp3Server(
+                pair.Server,
+                leafKey,
+                new[] { leafCert.RawData, caCert.RawData },
+                initialMaxStreamsUni: 4UL);
+            Task serverTask = server.RunAsync(cts.Token);
+
+            await using Http3Connection h3 = await Http3Connection.ConnectAsync(
+                new QuicConnectionOptions
+                {
+                    Host = TestHost,
+                    Port = 443,
+                    Profile = chrome152,
+                    VerifyOptions = new CertificateVerifyOptions { CustomRoots = roots, UseEmbeddedDefaultRoots = false },
+                    TransportOverride = pair.Client,
+                },
+                ConnectionKey.Create("https", TestHost, 443, chrome152.Name),
+                cts.Token);
+
+            PureHttpResponse resp = await h3.SendAsync(new PureHttpRequest
+            {
+                Method = "GET",
+                Uri = new Uri("https://localhost/hello"),
+            }, cts.Token);
+
+            Assert.Equal(200, resp.StatusCode);
+            Assert.Equal("HTTP/3", resp.HttpVersion);
+            Assert.Equal("hello-h3", Encoding.UTF8.GetString(resp.Body));
+            await WaitUntilAsync(() => server.ClientUniStreamCount == 4, cts.Token);
+            Assert.Equal(4, server.ClientUniStreamCount);
+
+            cts.Cancel();
+            await server.DisposeAsync();
+            try { await serverTask; } catch (OperationCanceledException) { }
+        }
+    }
+
     // ---- Test Utilities & Pure C# QUIC+HTTP/3 Server Harness ----
 
     private static byte[] BuildSocks5EchoReply(byte[] udpBuf, int receivedBytes, out string dstIp, out int dstPort)
@@ -816,6 +911,7 @@ public sealed class QuicHttp3Tests
         private readonly byte[][] _derChain;
         private readonly bool _requireRetry;
         private readonly bool _sendInvalidSetting;
+        private readonly ulong _initialMaxStreamsUni;
         private readonly byte[] _serverScid = RandomNumberGenerator.GetBytes(8);
         private readonly byte[] _retryScid = RandomNumberGenerator.GetBytes(8);
         private readonly byte[] _retryToken = Encoding.ASCII.GetBytes("cybersole-retry-token");
@@ -859,18 +955,22 @@ public sealed class QuicHttp3Tests
         private readonly QpackDecoder _reqDecoder = new();
         private bool _dynamicTableInitialized;
 
+        public int ClientUniStreamCount => _clientUniStreams.Count;
+
         public SyntheticQuicHttp3Server(
             IQuicDatagramTransport transport,
             ECDsa leafKey,
             byte[][] derChain,
             bool requireRetry = false,
-            bool sendInvalidSetting = false)
+            bool sendInvalidSetting = false,
+            ulong initialMaxStreamsUni = 100UL)
         {
             _transport = transport;
             _leafKey = leafKey;
             _derChain = derChain;
             _requireRetry = requireRetry;
             _sendInvalidSetting = sendInvalidSetting;
+            _initialMaxStreamsUni = initialMaxStreamsUni;
         }
 
         public async Task RunAsync(CancellationToken ct)
@@ -1067,7 +1167,7 @@ public sealed class QuicHttp3Tests
                 InitialMaxStreamDataBidiRemote = 4_194_304,
                 InitialMaxStreamDataUni = 4_194_304,
                 InitialMaxStreamsBidi = 100,
-                InitialMaxStreamsUni = 100,
+                InitialMaxStreamsUni = _initialMaxStreamsUni,
                 MaxDatagramFrameSize = 65_536,
             };
             byte[] ee = BuildEncryptedExtensions("h3", QuicTransportParametersCodec.Encode(srvTp));

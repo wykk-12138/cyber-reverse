@@ -1177,18 +1177,16 @@ public sealed class TlsHandshakeEngine : IDisposable
             EmitKeyLog("SERVER_TRAFFIC_SECRET_0", _serverAppTrafficSecret);
             EmitKeyLog("EXPORTER_SECRET", _exporterMasterSecret);
 
-            // Optional EndOfEarlyData if early_data was accepted (RFC 8446 §4.5)
-            if (_earlyDataAccepted && _clientEarlyTrafficSecret is not null)
+            // Optional EndOfEarlyData if early_data was accepted on TCP TLS 1.3 (RFC 8446 §4.5).
+            // Per RFC 9001 §8.3, QUIC does NOT use EndOfEarlyData and MUST NOT include it in the handshake transcript.
+            if (!isQuic && _earlyDataAccepted && _clientEarlyTrafficSecret is not null)
             {
                 var eoed = new byte[] { 0x05, 0x00, 0x00, 0x00 };
-                if (!isQuic)
-                {
-                    TlsTrafficKeys earlyKeys = DeriveTls13TrafficKeys(_clientEarlyTrafficSecret, _suite);
-                    tcpOps!.Add(new TcpStepOperation(TcpStepOperationKind.InstallWriteKeys, Keys: earlyKeys, IsTls13: true));
-                    tcpOps.Add(new TcpStepOperation(TcpStepOperationKind.SendProtectedRecord, TlsContentType.Handshake, eoed));
-                    TlsTrafficKeys hsWriteKeys = DeriveTls13TrafficKeys(_clientHandshakeTrafficSecret!, _suite);
-                    tcpOps.Add(new TcpStepOperation(TcpStepOperationKind.InstallWriteKeys, Keys: hsWriteKeys, IsTls13: true));
-                }
+                TlsTrafficKeys earlyKeys = DeriveTls13TrafficKeys(_clientEarlyTrafficSecret, _suite);
+                tcpOps!.Add(new TcpStepOperation(TcpStepOperationKind.InstallWriteKeys, Keys: earlyKeys, IsTls13: true));
+                tcpOps.Add(new TcpStepOperation(TcpStepOperationKind.SendProtectedRecord, TlsContentType.Handshake, eoed));
+                TlsTrafficKeys hsWriteKeys = DeriveTls13TrafficKeys(_clientHandshakeTrafficSecret!, _suite);
+                tcpOps.Add(new TcpStepOperation(TcpStepOperationKind.InstallWriteKeys, Keys: hsWriteKeys, IsTls13: true));
                 AppendTranscript(eoed);
             }
 

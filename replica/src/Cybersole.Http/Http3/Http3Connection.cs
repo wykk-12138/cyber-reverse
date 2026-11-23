@@ -257,7 +257,8 @@ public sealed class Http3Connection : IMultiplexedConnection
         if (Interlocked.Exchange(ref _started, 1) != 0)
             throw new InvalidOperationException("Http3Connection.StartAsync can only be called once.");
 
-        // 1. Open Control Stream (0x00) and send SETTINGS frame
+        // 1. Open mandatory critical unidirectional streams FIRST (RFC 9114 §6.2 requires peers to allow >= 3):
+        //    Control Stream (0x00), QPACK Encoder Stream (0x02), and QPACK Decoder Stream (0x03).
         _clientControlStream = await _quic.OpenUniDirectionalStreamAsync(cancellationToken).ConfigureAwait(false);
         IReadOnlyList<(ulong Id, ulong Value)> wireSettings = Http3SettingsSpec.BuildWireSettings(_profile.Http3Settings, _rng);
         byte[] settingsPayload = Http3FrameCodec.BuildSettingsPayload(wireSettings);
@@ -268,8 +269,15 @@ public sealed class Http3Connection : IMultiplexedConnection
         settingsFrame.CopyTo(ctrlInit, ctrlHead.Length);
         await _clientControlStream.WriteAsync(ctrlInit, fin: false, cancellationToken).ConfigureAwait(false);
 
-        // 2. Optional Chrome GREASE unidirectional stream (31 * N + 33)
-        if (_profile.Http3Settings?.SendGreaseFrame == true)
+        _clientEncoderStream = await _quic.OpenUniDirectionalStreamAsync(cancellationToken).ConfigureAwait(false);
+        await _clientEncoderStream.WriteAsync(QuicVarInt.Encode(Http3StreamType.QpackEncoder), fin: false, cancellationToken).ConfigureAwait(false);
+
+        _clientDecoderStream = await _quic.OpenUniDirectionalStreamAsync(cancellationToken).ConfigureAwait(false);
+        await _clientDecoderStream.WriteAsync(QuicVarInt.Encode(Http3StreamType.QpackDecoder), fin: false, cancellationToken).ConfigureAwait(false);
+
+        // 2. Optional Chrome GREASE unidirectional stream (31 * N + 33) only when the peer grants > 3 uni streams;
+        //    peers advertising initial_max_streams_uni == 3 (e.g. Cloudflare edges) only budget the 3 critical streams.
+        if (_profile.Http3Settings?.SendGreaseFrame == true && _quic.PeerMaxStreamsUni > 3UL)
         {
             QuicStream greaseStream = await _quic.OpenUniDirectionalStreamAsync(cancellationToken).ConfigureAwait(false);
             ulong greaseType = 31UL * (ulong)_rng.Next(1, 0x10_0000) + 33UL;
@@ -281,14 +289,7 @@ public sealed class Http3Connection : IMultiplexedConnection
             await greaseStream.WriteAsync(payload, fin: true, cancellationToken).ConfigureAwait(false);
         }
 
-        // 3. Open QPACK Encoder Stream (0x02) & Decoder Stream (0x03)
-        _clientEncoderStream = await _quic.OpenUniDirectionalStreamAsync(cancellationToken).ConfigureAwait(false);
-        await _clientEncoderStream.WriteAsync(QuicVarInt.Encode(Http3StreamType.QpackEncoder), fin: false, cancellationToken).ConfigureAwait(false);
-
-        _clientDecoderStream = await _quic.OpenUniDirectionalStreamAsync(cancellationToken).ConfigureAwait(false);
-        await _clientDecoderStream.WriteAsync(QuicVarInt.Encode(Http3StreamType.QpackDecoder), fin: false, cancellationToken).ConfigureAwait(false);
-
-        // 4. Launch server unidirectional stream accept loop
+        // 3. Launch server unidirectional stream accept loop
         _uniAcceptTask = Task.Run(AcceptServerUniStreamsLoopAsync);
     }
 

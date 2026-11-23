@@ -1130,6 +1130,120 @@ public sealed class TlsStackTests
     }
 
     [Fact]
+    public void Tls13EarlyDataAccepted_InQuicMode_OmitsEndOfEarlyDataFromTranscriptPerRfc9001Section83()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        ClientProfile profile = ProfileRegistry.GetRequired("chrome_150_PSK");
+        byte[] psk = RandomNumberGenerator.GetBytes(32);
+        byte[] ticketBytes = RandomNumberGenerator.GetBytes(24);
+        var ticket = new TlsSessionTicket(
+            ticket: ticketBytes,
+            ticketAgeAdd: 0x01020304,
+            lifetimeSeconds: 3600,
+            issuedAtUtc: now.AddSeconds(-2),
+            resumptionMasterSecret: RandomNumberGenerator.GetBytes(32),
+            ticketNonce: new byte[] { 0x01 },
+            cipherSuite: CipherSuiteId.TLS_AES_128_GCM_SHA256,
+            hashAlg: HashAlgorithmKind.Sha256,
+            negotiatedAlpn: "h3",
+            maxEarlyDataSize: 16384,
+            psk: psk);
+
+        var sessionCache = new LruTlsSessionCache();
+        sessionCache.Put(TestHost, 443, profile.Name, ticket);
+
+        var engine = new TlsHandshakeEngine(new TlsHandshakeOptions
+        {
+            ServerName = TestHost,
+            Port = 443,
+            Profile = profile,
+            SpecOverride = ChromeQuicSpecs.CreateClientHelloSpec(),
+            SessionCache = sessionCache,
+            NowUtc = now,
+        });
+
+        byte[] ch = engine.StartQuicHandshake(new byte[] { 0x01, 0x02, 0x03 });
+        ParsedClientHello parsedCh = SyntheticTls13Server.ParseClientHello(ch);
+        Assert.True(parsedCh.Extensions.ContainsKey(TlsExtensionType.PreSharedKey));
+        Assert.True(parsedCh.Extensions.ContainsKey(TlsExtensionType.EarlyData));
+
+        byte[] clientXPub = parsedCh.KeyShares[NamedGroupId.X25519];
+        X25519.GenerateKeyPair(out byte[] sPriv, out byte[] sPub);
+        byte[] sharedSecret = X25519.ScalarMult(sPriv, clientXPub);
+
+        byte[] sh = SyntheticTls13Server.BuildServerHelloMessage(
+            RandomNumberGenerator.GetBytes(32),
+            parsedCh.SessionId,
+            CipherSuiteId.TLS_AES_128_GCM_SHA256,
+            new List<(ushort, byte[])>
+            {
+                (TlsExtensionType.SupportedVersions, new byte[] { 0x03, 0x04 }),
+                (TlsExtensionType.KeyShare, SyntheticTls13Server.BuildServerKeyShare(NamedGroupId.X25519, sPub)),
+                (TlsExtensionType.PreSharedKey, new byte[] { 0x00, 0x00 }),
+            });
+
+        QuicHandshakeStepResult shRes = engine.ProcessQuicCryptoData(QuicEncryptionLevel.Initial, sh);
+        Assert.NotNull(shRes.HandshakeReadKeys);
+        Assert.True(shRes.UsedSessionResumption);
+
+        var transcript = new MemoryStream();
+        transcript.Write(ch);
+        transcript.Write(sh);
+
+        // Build EncryptedExtensions with ALPN "h3", QUIC transport parameters, and early_data (0x002A) accepted
+        var eeExtBuf = new List<byte>();
+        byte[] alpnVal = { 0x00, 0x03, 0x02, (byte)'h', (byte)'3' };
+        eeExtBuf.Add((byte)(TlsExtensionType.ApplicationLayerProtocolNegotiation >> 8));
+        eeExtBuf.Add((byte)TlsExtensionType.ApplicationLayerProtocolNegotiation);
+        eeExtBuf.Add((byte)(alpnVal.Length >> 8));
+        eeExtBuf.Add((byte)alpnVal.Length);
+        eeExtBuf.AddRange(alpnVal);
+
+        byte[] serverTp = { 0x0A, 0x0B, 0x0C, 0x0D };
+        eeExtBuf.Add((byte)(TlsExtensionType.QuicTransportParameters >> 8));
+        eeExtBuf.Add((byte)TlsExtensionType.QuicTransportParameters);
+        eeExtBuf.Add((byte)(serverTp.Length >> 8));
+        eeExtBuf.Add((byte)serverTp.Length);
+        eeExtBuf.AddRange(serverTp);
+
+        eeExtBuf.Add((byte)(TlsExtensionType.EarlyData >> 8));
+        eeExtBuf.Add((byte)TlsExtensionType.EarlyData);
+        eeExtBuf.Add(0x00);
+        eeExtBuf.Add(0x00);
+
+        var eeBody = new byte[2 + eeExtBuf.Count];
+        BinaryPrimitives.WriteUInt16BigEndian(eeBody.AsSpan(0, 2), (ushort)eeExtBuf.Count);
+        eeExtBuf.CopyTo(eeBody, 2);
+        byte[] ee = SyntheticTls13Server.WrapHandshakeMessage(0x08, eeBody);
+        transcript.Write(ee);
+
+        byte[] earlySecret = HashPrimitives.HkdfExtract(HashAlgorithmKind.Sha256, ReadOnlySpan<byte>.Empty, psk);
+        byte[] emptyHash = HashPrimitives.Sha256(ReadOnlySpan<byte>.Empty);
+        byte[] derived = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, earlySecret, "derived", emptyHash, 32);
+        byte[] hsSecret = HashPrimitives.HkdfExtract(HashAlgorithmKind.Sha256, derived, sharedSecret);
+        byte[] shHash = HashPrimitives.Sha256(ch.Concat(sh).ToArray());
+        byte[] sHsSecret = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, hsSecret, "s hs traffic", shHash, 32);
+        byte[] cHsSecret = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, hsSecret, "c hs traffic", shHash, 32);
+        byte[] sFinKey = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, sHsSecret, "finished", ReadOnlySpan<byte>.Empty, 32);
+        byte[] sFinMsg = SyntheticTls13Server.WrapHandshakeMessage(0x14, HashPrimitives.Hmac(HashAlgorithmKind.Sha256, sFinKey, HashPrimitives.Sha256(transcript.ToArray())));
+        transcript.Write(sFinMsg);
+
+        byte[] flight = ee.Concat(sFinMsg).ToArray();
+        QuicHandshakeStepResult finalRes = engine.ProcessQuicCryptoData(QuicEncryptionLevel.Handshake, flight);
+        Assert.True(finalRes.HandshakeCompleted);
+        Assert.True(finalRes.UsedSessionResumption);
+        Assert.Equal("h3", finalRes.NegotiatedAlpn);
+
+        // RFC 9001 §8.3: QUIC does NOT send EndOfEarlyData and MUST NOT include it in Finished transcript.
+        byte[] cFinMsg = finalRes.OutboundHandshakeData;
+        Assert.Equal(36, cFinMsg.Length);
+        Assert.Equal(0x14, cFinMsg[0]);
+        byte[] cFinKey = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, cHsSecret, "finished", ReadOnlySpan<byte>.Empty, 32);
+        byte[] expectedCFin = HashPrimitives.Hmac(HashAlgorithmKind.Sha256, cFinKey, HashPrimitives.Sha256(transcript.ToArray()));
+        Assert.Equal(expectedCFin, cFinMsg.AsSpan(4).ToArray());
+    }
+
+    [Fact]
     public void Tls13Alps_WithoutAlpn_ThrowsIllegalParameter()
     {
         using var caKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);

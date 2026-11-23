@@ -13,11 +13,14 @@
 $env:PATH="D:\tools\dotnet8;$env:PATH"
 $env:DOTNET_ROOT="D:\tools\dotnet8"
 
-# 1) 离线指纹 + 单元 + Go 1.26.2 / quic-go v0.61.0 第三方互操作测试（66/66）
+# 1) 离线指纹 + 单元 + Go 1.26.2 / quic-go v0.61.0 第三方互操作测试（69/69）
 dotnet test replica/tests/Cybersole.Tests/Cybersole.Tests.csproj -m:1 --filter "FullyQualifiedName~WireFingerprintTests|FullyQualifiedName~QuicHttp3Tests|FullyQualifiedName~TlsStackTests|FullyQualifiedName~ProtocolLayerTests|FullyQualifiedName~PureNetClientIntegrationTests|FullyQualifiedName~NetClientProtocolParityTests|FullyQualifiedName~ThirdPartyQuicTlsInteropTests" --logger "console;verbosity=normal"
 
-# 2) 公网真实边缘与指纹 Oracle 互操作测试（[Trait("Speed", "Slow")]，16/16，严格 TLS 验证）
+# 2) 公网真实边缘与指纹 Oracle 互操作测试（[Trait("Speed", "Slow")]，16/16，兼容海外 H3 胜出与境内 TUN 回退）
 dotnet test replica/tests/Cybersole.Tests/Cybersole.Tests.csproj -m:1 --filter "FullyQualifiedName~LivePublicEdgeInteropTests" --logger "console;verbosity=detailed"
+
+# 3) 海外直连 UDP-443 专项 HTTP/3、ALPS 0x44CD、PSK 复用与 HTTP/3 指纹 Oracle 测试（8/8，须在海外无 UDP-443 拦截节点执行）
+dotnet test replica/tests/Cybersole.Tests/Cybersole.Tests.csproj -m:1 --filter "FullyQualifiedName~LiveOverseasHttp3InteropTests" --logger "console;verbosity=detailed"
 ```
 
 ---
@@ -34,6 +37,9 @@ dotnet test replica/tests/Cybersole.Tests/Cybersole.Tests.csproj -m:1 --filter "
 | 4 | **TLS 1.3 HRR（HelloRetryRequest）违背 RFC 8446 §4.1.2 / §5.1**：收到 HRR 后未设置 `_negotiatedVersion`/`_suite`，`ClientHello2` 外层记录版本用了 `Tls10`（应为 `0x0303` `Tls12`），且重建时重排了扩展序 / 重新抽取了 GREASE 值 | `TlsHandshakeEngine.cs` (`HandleHelloRetryRequest`)、`TlsClientHelloBuilder.cs` (`SpecOverride` 在 HRR 下保留 `MaterializedSpec`) | `Tls13HrrWithChrome150_AcceptsMiddleboxCcs_UsesTls12RecordVersion_AndPreservesGreaseAndOrder`、`GoTls13_Chrome150_P256OnlyServer_ForcesHelloRetryRequestAndSucceeds` |
 | 5 | **QUIC 1-RTT Key Update `"quic ku"` 误轮换 `HpKey` 及 `ack_delay` 编码指数**：Go `quic-go` 在 ~PN 100 触发 `KeyPhase 0 -> 1` 时，`QuicKeySet.UpdateKeys()` 改写了原本不随密钥更新变化的 header protection 密钥 `HpKey`（RFC 9001 §6.1），导致后续双向 1-RTT 包解密全部失败；出站 `ACK` 的 `ack_delay` 亦需使用 `(int)_spec.AckDelayExponent` | `QuicCrypto.cs` (`QuicKeySet.UpdateKeys` 保持 `HpKey` 不变)、`QuicConnection.cs` (`_appPrevReadKeys` 先行尝试解密 + `_spec.AckDelayExponent`) | `QuicGoV061_Http3_ZeroScid_NoSyntheticUa_FlowControl512KB_And_ConcurrentStreams`、`QuicHttp3Tests` (`HpKey` gen0→gen1→gen2 不变性) |
 | 6 | **TLS 1.3 ALPS（`0x44CD` / `0x4469`）握手失败**：Google 等 BoringSSL 服务端在 `EncryptedExtensions` 回显 `application_settings` 时要求客户端在 `Finished` 前发送 10 字节空 `EncryptedExtensions`（`08 00 00 06 00 04 <codepoint> 00 00`）并纳入 `Client Finished` transcript；缺少该消息导致对端返回 `UnexpectedMessage (10)`，同时无 ALPN 携带 ALPS 须抛 `IllegalParameter` | `TlsHandshakeEngine.cs` (`_peerAlpsCodepoint` / `_peerAlpsSettings` / `PeerApplicationSettings`、TCP & QUIC 发送客户端 `EncryptedExtensions` 并入 transcript) | `Tls13Alps_TcpAndQuic_SendsClientEncryptedExtensionsBeforeFinishedAndVerifiesTranscript` (`chrome_150` `0x44CD` & `chrome_133` `0x4469`)、`Tls13Alps_WithoutAlpn_ThrowsIllegalParameter`、`LiveGoogle_And_NginxQuic_SucceedWithPureCSharpTls13` |
+| 7 | **HTTP/3 3 条单向流限额边缘 GREASE 死锁（`6f223b21`，海外 IAD VPS 实测发现）**：Cloudflare（`one.one.one.one`、`cloudflare-quic.com`）与 NGINX（`quic.nginx.org`）按 RFC 9114 §6.2 最小值通告 `initial_max_streams_uni = 3`；此前发送 GREASE 的预设先开 Control → GREASE → QPACK Encoder，导致第 4 条必需的 QPACK Decoder 流永久阻塞超时（30s） | `Http3Connection.cs` (`StartAsync` 先开 3 条关键流 Control `0x00` / QPACK Encoder `0x02` / QPACK Decoder `0x03`，仅 `_quic.PeerMaxStreamsUni > 3UL` 时开 GREASE 流) | `Http3StartAsync_PeerAllowsOnly3UniStreams_OpensCriticalStreamsWithoutDeadlockingOnGrease` |
+| 8 | **RFC 9001 §8.3 QUIC `EndOfEarlyData` 摘要污染（`6f223b21`，海外 IAD VPS 实测发现）**：`HandleTls13ServerFinished` 此前在 `if (!isQuic)` 外无条件调用 `AppendTranscript(eoed)`，在 QUIC 复用且服务端接受 `early_data` 时污染握手 transcript | `TlsHandshakeEngine.cs` (`HandleTls13ServerFinished` 收紧为 `if (!isQuic && _earlyDataAccepted && _clientEarlyTrafficSecret is not null)`) | `Tls13EarlyDataAccepted_InQuicMode_OmitsEndOfEarlyDataFromTranscriptPerRfc9001Section83` |
+| 9 | **`EarlyData`（`0x002A`）严格对齐原版与 HRR ClientHello2 剥离（RFC 8446 §4.1.2）**：IDA 实证原版 `sub_141298620` / `sub_141298FA0`（`0x141299381`）仅在 `canOfferPsk`（`a3`）为真且预设含 `EarlyDataExtension`（仅 `ChromeQuicSpecs`）时发射 `0x002A`（不检查 `MaxEarlyDataSize > 0`），且 `sub_141298420`（`0x141298589..0x1412985DC`，谓词 `0x141337520`）在 HRR `ClientHello2` 中移除 `EarlyDataExtension`；同时 `sub_14129F560` 与 `sub_1412A0820` 在 QUIC 下不派生 `"c e traffic"`、不发 `EndOfEarlyData` | `TlsClientHelloBuilder.cs` (`OfferedEarlyData` 与 `offerEarlyData = canOfferPsk && !isHrrRetry`)、`TlsHandshakeEngine.cs` (`!isQuic && _clientHello!.OfferedEarlyData`、`HandleEncryptedExtensions` 校验 `OfferedEarlyData`) | `TlsClientHello_EarlyData_MatchesOriginalCybersolePskAndStripsOnHelloRetryRequest` |
 
 ---
 
@@ -84,9 +90,34 @@ dotnet test replica/tests/Cybersole.Tests/Cybersole.Tests.csproj -m:1 --filter "
 
 > **对照组实证（排除 `Cybersole.Http` 假阴性）**：使用官方参考实现 Go `quic-go@v0.61.0` 对同一组境内边缘直连 UDP-443 探测，结果与 `Cybersole.Http` 一致：`www.taobao.com` / `www.tmall.com` / `dns.alidns.com` 均成功返回 `HTTP/3 200`，而 `www.apple.com.cn`（`context deadline exceeded` / QUIC `28: Reject connection`）、`www.aliyun.com`（`CRYPTO_ERROR 0x150: handshake failed`）与 `www.douyin.com`（`CRYPTO_ERROR 0x128`）在官方 `quic-go@v0.61.0` 下同样由服务端拒连或超时，属服务端策略所致而非 `Cybersole.Http` 实现缺陷；`ProtocolRacer` 对 `apple.com.cn` 与 `aliyun.com` 均已实测验证平滑回退 `HTTP/2.0` 返回 `200`。
 
+### 4.3 海外直连公网 VPS 实测矩阵（美国东岸 IAD，无代理拦截）
+
+测试环境：美国东岸 IAD 公网 VPS（Windows Server 2022，`.NET 8.0.428`，`Go 1.27.4`，UDP-443 直连无代理拦截），提交 `6f223b21`，全部连接严格校验证书（`InsecureSkipVerify = false` + `UseEmbeddedDefaultRoots = true`）：
+
+- **阶段 1（离线 + Go/`quic-go@v0.61.0`）**：`68/68` 全部通过（`12.13s`）。
+- **阶段 2（`LivePublicEdgeInteropTests`）**：`14/16` 通过，仅 2 项旧境内断言（写死 `Expected: "HTTP/2.0"`）因海外 `ProtocolRacer` 竞速胜出 **`HTTP/3`** 而失败（`cloudflare-quic.com`: `200 HTTP/3`, `125,959 B`, `70 ms`；`www.aliyun.com`: `200 HTTP/3`, `157,055 B`, `381 ms`，同节点 `quic-go` 对照组报 `CRYPTO_ERROR 0x150`；现已在 `LivePublicEdgeInteropTests` 改为兼容 `HTTP/3` 与 `HTTP/2.0` 回退）；`tls.peet.ws`（5 预设）与 `tls.browserleaks.com`（2 预设）的 `JA4` / `JA4_r` / `Akamai H2` 与本地 `WireFingerprint` **100% 一致**。
+- **阶段 3（`LiveOverseasHttp3InteropTests`）**：**`8/8` 全部通过（`5.37s`）**：
+
+| 目标 / 用例场景 | 通道与预设 | 实测结果与线级观测 |
+|---|---|---|
+| `https://one.one.one.one/cdn-cgi/trace` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `200 HTTP/3`，返回体含 `http=http/3`、`tls=TLSv1.3`、`kex=X25519MLKEM768`（`scidLen=0`, `cipher=0x1301`, `peerUni=3`）；单连接 8 并发流 `38 ms` ✅ |
+| `https://cloudflare-quic.com/` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `200 HTTP/3` 完整 `125,959 B`；单连接 8 并发流满额 `1,007,672 B`（`363 ms`） ✅ |
+| `https://www.google.com/generate_204` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `204 HTTP/3`；首次在公网真实 QUIC 路径实测确认 Google 下发 ALPS `0x44CD`（`len=182`）且客户端完成 ALPS `EncryptedExtensions` 握手（`hs=26.3 ms`） ✅ |
+| `https://quic.nginx.org/` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `200 HTTP/3`（`2,523 B`, `peerUni=3`） ✅ |
+| `https://www.nike.com/` | 直连 H3 vs `PureNetClient` / `ProtocolRacer` | 直连 UDP-443 报 `QuicException: 200:internal error`（与同节点 `quic-go@v0.61.0` 对照组 `CRYPTO_ERROR 0x150 (remote): 200:internal error` 一致，属服务端策略）；`NetClient(PureNetClient)` 与 `ProtocolRacer` 均干净回退 `HTTP/2.0` 返回 `200`（`~964 KB`） ✅ |
+| `https://www.akamai.com/` | 直连 H3 / `ProtocolRacer` / `NetClient` | 裸 UA 同 `quic-go` 对照组均获 `403`（`368 B` WAF）；携带完整 Chrome 导航头后三路均稳定 `200 HTTP/3`（`225,510 B`） ✅ |
+| QUIC PSK 会话复用 | `chrome_150_PSK` + `ChromeQuicSpecs` | 修复缺陷 #7/#8 后，`one.one.one.one`（`200 HTTP/3, resumed=True, hs=23.5 ms`）与 `www.google.com/generate_204`（`204 HTTP/3, resumed=True, hs=22.2 ms`）均成功复用 ✅ |
+| HTTP/3 指纹 Oracle（`https://fp.impersonate.pro/api/http3`） | `chrome_150` & `chrome_152` | 均 `200 HTTP/3`，`initPn=0`, `scidLen=0`, `dcidLen=8`, `ja3n=36b3da67265214a919829c5e959f7425`，15 项 QUIC Transport Parameters、伪头顺序 `m,a,s,p` 与 `ChromeQuicSpecs`/本地 `WireFingerprint` 完全一致；`chrome_152` 发送完整 SETTINGS（`1:65536;6:262144;7:100;51:1;GREASE`），`chrome_150` 按 `sub_1412B05A0` 仅发 `51:1` ✅ |
+
 ---
 
 ## 5. 诚实的 `Unknown` 与环境边界
 
-1. **海外边缘（Cloudflare / Google / Nike / `quic.nginx.org`）直接 UDP-443 HTTP/3**：当前执行主机经本地 TUN 代理转发海外流量且静默丢弃海外 UDP-443，因此海外公网 HTTP/3 真实链路**无法在该网络环境下直接观测（标 `Unknown`）**；`ProtocolRacer` 从被阻断 UDP-443 回退 `HTTP/2.0` 已在公网实测通过，真实 QUIC v1 / HTTP/3 互操作已在境内 UDP-443 边缘（`taobao.com` / `tmall.com` / `dns.alidns.com`）与离线 `quic-go@v0.61.0` 服务端实测通过。
-2. **③-A 嵌入式浏览器宿主选型**：仍为 `docs/NETSTACK_ADR.md` 唯一待裁决议程（`DotNetBrowser 4.3.5.8591` vs WebView2 vs CEF），不随本网络栈支线越权替代裁决。
+> **已由海外 IAD VPS 实测结案的原 Unknown**：Cloudflare（`one.one.one.one`/`cloudflare-quic.com`）、Google QUIC + ALPS `0x44CD`、NGINX（`quic.nginx.org`）、Akamai HTTP/3、QUIC PSK 会话复用、以及第三方 HTTP/3 线级指纹 Oracle（`fp.impersonate.pro/api/http3`）均已在海外直连公网 UDP-443 环境下实测通过（国内当前工作主机因本地 TUN 代理丢弃海外 UDP-443，境内仅直接跑 `LivePublicEdgeInteropTests`）。
+
+剩余 **3 项公网真实边缘协议 `Unknown` 边界** 与 **1 项 ③-A 宿主选型待办**：
+
+1. **公网真实 CDN 边缘触发 QUIC `Retry` 包（`Unknown`）**：海外与境内实测公共边缘在首包阶段均未返回真实 QUIC `Retry` 令牌包；该路径已在离线 `quic-go@v0.61.0` `VerifySourceAddress: true` 互操作与纯 C# 回环（含 `a4` Retry Integrity Tag）下验证通过，真站公开边缘行为标 `Unknown`。
+2. **公网真实边缘 QPACK 动态表高频插入（`Unknown`）**：观测到的 Cloudflare / Google / NGINX / Akamai / 阿里云 / 淘宝边缘响应头均走静态表与字面量编码；动态表指令插入/同步已通过离线 RFC 9204 回环及动态表测试，真站高频动态表互操作标 `Unknown`。
+3. **公网真实边缘 0-RTT 应用数据包与 1-RTT 主动 KeyUpdate（`Unknown`）**：IDA 实证原版 `Cybersole.exe`（`sub_1412A0820`）从不派生 `"c e traffic"` 或发送 0-RTT 应用包（本栈已按原版行为收敛）；服务端发起的 1-RTT `KeyPhase 0 -> 1` 已通过 `quic-go@v0.61.0` 512 KB 传输验证，但短体公网 GET 与客户端主动发起 KeyUpdate 在真实公网边缘尚未触发，标 `Unknown`。
+4. **③-A 嵌入式浏览器宿主选型**：仍为 `docs/NETSTACK_ADR.md` 唯一待裁决议程（`DotNetBrowser 4.3.5.8591` vs WebView2 vs CEF），不随本网络栈支线越权替代裁决。

@@ -946,7 +946,9 @@ public sealed class TlsHandshakeEngine : IDisposable
             _clientHandshakeTrafficSecret = HashPrimitives.HkdfExpandLabel(hashAlg, _handshakeSecret, "c hs traffic", chToShHash, hashLen);
             _serverHandshakeTrafficSecret = HashPrimitives.HkdfExpandLabel(hashAlg, _handshakeSecret, "s hs traffic", chToShHash, hashLen);
 
-            if (_clientHello!.OfferedPsk && _clientHello.OfferedTicket is { MaxEarlyDataSize: > 0 })
+            // Match original sub_1412A0820 and RFC 9001 §8.3: QUIC never derives "c e traffic" or sends EndOfEarlyData.
+            // Retain RFC 8446 §4.5 EndOfEarlyData key derivation only when a custom non-QUIC TCP spec emitted EarlyData.
+            if (!isQuic && _clientHello!.OfferedEarlyData)
             {
                 byte[] ch1Hash = HashPrimitives.Hash(hashAlg, _clientHello.HandshakeMessage);
                 _clientEarlyTrafficSecret = HashPrimitives.HkdfExpandLabel(hashAlg, earlySecret, "c e traffic", ch1Hash, hashLen);
@@ -1017,7 +1019,7 @@ public sealed class TlsHandshakeEngine : IDisposable
 
         if (extensions.ContainsKey(TlsExtensionType.EarlyData))
         {
-            if (!_clientHello!.OfferedPsk || _clientHello.OfferedTicket?.MaxEarlyDataSize is not > 0)
+            if (!_clientHello!.OfferedEarlyData)
                 throw new TlsAlertException(TlsAlertDescription.UnsupportedExtension, "Server sent early_data when not offered.");
             _earlyDataAccepted = true;
         }

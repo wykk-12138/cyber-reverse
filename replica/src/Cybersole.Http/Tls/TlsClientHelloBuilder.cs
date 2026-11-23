@@ -152,6 +152,7 @@ public sealed class ClientHelloBuildResult : IDisposable
         ushort minOfferedVersion,
         ushort maxOfferedVersion,
         bool offeredPsk,
+        bool offeredEarlyData,
         TlsSessionTicket? offeredTicket,
         byte[]? offeredEarlySecret,
         int paddingPayloadBytes)
@@ -168,6 +169,7 @@ public sealed class ClientHelloBuildResult : IDisposable
         MinOfferedVersion = minOfferedVersion;
         MaxOfferedVersion = maxOfferedVersion;
         OfferedPsk = offeredPsk;
+        OfferedEarlyData = offeredEarlyData;
         OfferedTicket = offeredTicket;
         OfferedEarlySecret = offeredEarlySecret;
         PaddingPayloadBytes = paddingPayloadBytes;
@@ -186,6 +188,7 @@ public sealed class ClientHelloBuildResult : IDisposable
     public ushort MinOfferedVersion { get; }
     public ushort MaxOfferedVersion { get; }
     public bool OfferedPsk { get; }
+    public bool OfferedEarlyData { get; }
     public TlsSessionTicket? OfferedTicket { get; }
     public byte[]? OfferedEarlySecret { get; }
     public int PaddingPayloadBytes { get; }
@@ -290,7 +293,12 @@ public static class TlsClientHelloBuilder
             && materialized.HasExtension(TlsExtensionType.PreSharedKey)
             && ResolvePskHash(ticket, ciphers, out pskHashAlg);
 
-        bool offerEarlyData = canOfferPsk && ticket!.MaxEarlyDataSize > 0;
+        // Match original Cybersole.exe:
+        // - sub_141298620 / sub_141298FA0 (0x141299381): emits EarlyDataExtension (0x002A) whenever
+        //   canOfferPsk (a3) is true and the spec includes EarlyDataExtension (ChromeQuicSpecs only).
+        // - sub_141298420 (0x141298589..0x1412985DC, predicate 0x141337520): strips EarlyDataExtension
+        //   from ClientHello2 after HelloRetryRequest per RFC 8446 §4.1.2.
+        bool offerEarlyData = canOfferPsk && !isHrrRetry;
 
         // Client random & legacy session id
         var clientRandom = new byte[32];
@@ -324,6 +332,7 @@ public static class TlsClientHelloBuilder
         PaddingExtension? paddingSpec = null;
         bool emittedAlpn = false;
         bool emittedQuicTp = false;
+        bool offeredEarlyData = false;
 
         for (int i = 0; i < materialized.Extensions.Count; i++)
         {
@@ -340,7 +349,10 @@ public static class TlsClientHelloBuilder
 
                 case EarlyDataExtension:
                     if (offerEarlyData)
+                    {
                         serializedExtensions.Add((TlsExtensionType.EarlyData, Array.Empty<byte>()));
+                        offeredEarlyData = true;
+                    }
                     break;
 
                 case SniExtension sni:
@@ -570,6 +582,7 @@ public static class TlsClientHelloBuilder
             minOfferedVersion: minVer,
             maxOfferedVersion: maxVer,
             offeredPsk: canOfferPsk,
+            offeredEarlyData: offeredEarlyData,
             offeredTicket: canOfferPsk ? ticket : null,
             offeredEarlySecret: offeredEarlySecret,
             paddingPayloadBytes: paddingPayloadBytes);

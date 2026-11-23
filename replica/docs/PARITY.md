@@ -81,7 +81,7 @@ if (TaskGroups.Count == 0) TaskGroups.Add(new TaskGroup { Name = "Group 1" });
 | SChannel 默认栈 | `TransportMode.SChannel` | ✅ TLS 1.2 + 1.3（BCL 提供） |
 | 自定义 ClientHello（指纹伪装） | `TransportMode.BouncyH2` / `BouncyHttp11` | 🟡 cipher/SNI/GREASE 可控，扩展序被 BC 重排 |
 | 完全自控的 ClientHello | `TransportMode.OwnTls` → `Tls12Client` | ✅ cipher 序 / 扩展序 / GREASE / SNI 全由字节数组决定 |
-| **纯 C# QUIC/HTTP3/TLS 1.3 全栈** | `TransportMode.PureNetClient` → `TlsClientCache` / `ProtocolRacer` / `QuicConnection` / `Http3Connection` / `TlsStream` | ✅ 纯托管安全 C# 完整实现：`Cybersole.Http 0.10.0` TLS 1.2+1.3（含 ML-KEM-768、HRR、ALPS `0x44CD`/`0x4469`、`0xCA34`、82 Profile / 68 `ClientHelloSpec`）、QUIC v1（含 `Retry`/KeyUpdate `"quic ku"` `HpKey` 不变性）+ HTTP/3 + QPACK、HTTP/2（精确 `ConnectionFlow`）+ HPACK 与 HTTP/1.1，已通过 Go 1.26.2 + `quic-go@v0.61.0` 及公网真实边缘/指纹 Oracle 互操作验证（见 `docs/LIVE_NETSTACK_INTEROP.md`） |
+| **纯 C# QUIC/HTTP3/TLS 1.3 全栈** | `TransportMode.PureNetClient` → `TlsClientCache` / `ProtocolRacer` / `QuicConnection` / `Http3Connection` / `TlsStream` | ✅ 纯托管安全 C# 完整实现：`Cybersole.Http 0.10.0` TLS 1.2+1.3（含 ML-KEM-768、HRR、ALPS `0x44CD`/`0x4469`、`0xCA34`、`EarlyData` `0x002A` 原版对齐与 RFC 9001 §8.3、82 Profile / 68 `ClientHelloSpec`）、QUIC v1（含 `Retry`/KeyUpdate `"quic ku"` `HpKey` 不变性）+ HTTP/3（3 条关键流优先）+ QPACK、HTTP/2（精确 `ConnectionFlow`）+ HPACK 与 HTTP/1.1，已通过 Go 1.26.2 + `quic-go@v0.61.0`、境内/Oracle 与美国东岸 IAD 海外直连公网 UDP-443 互操作验证（仅余 3 项公网 `Unknown` 边界，见 `docs/LIVE_NETSTACK_INTEROP.md`） |
 | JA3 字符串生成 | `Cybersole.Http.Ja3.FromProfile` | ✅ |
 | HTTP/2 + HPACK | `Http2.cs` + `Tls12Client.SendH2Async` | ✅ 含 Huffman 解码（`HpackHuffman.cs`） |
 | HTTP/2 连接复用与 SETTINGS | `BouncyH2Client` / `Http2.cs` | ✅ |
@@ -89,7 +89,7 @@ if (TaskGroups.Count == 0) TaskGroups.Add(new TaskGroup { Name = "Group 1" });
 | 代理测速 | `ProxyTester` + `TestProxiesAsync` | ✅ |
 | 请求/连接分析（写 ClickHouse） | `HttpAnalytics.Flush` | ✅ 批量 `JSONEachRow`，失败不阻塞调用方 |
 
-**TLS 1.3 与 QUIC/HTTP3 已在 `full-QUIC/HTTP3/TLS` 支线由 `TransportMode.PureNetClient` 完整补齐并完成第三方/公网实测（`docs/LIVE_NETSTACK_INTEROP.md`）**：`OwnTls` 仍保留作为轻量 TLS 1.2 探针路径；新业务路径通过 `TransportMode.PureNetClient`（或直接 `TlsClientCache`）走纯 C# TLS 1.2/1.3、ML-KEM-768、QUIC v1/HTTP/3 与浏览器级 H2/H3 指纹。
+**TLS 1.3 与 QUIC/HTTP3 已在 `full-QUIC/HTTP3/TLS` 支线由 `TransportMode.PureNetClient` 完整补齐并完成第三方及境内/海外直连公网实测（`docs/LIVE_NETSTACK_INTEROP.md`）**：`OwnTls` 仍保留作为轻量 TLS 1.2 探针路径；新业务路径通过 `TransportMode.PureNetClient`（或直接 `TlsClientCache`）走纯 C# TLS 1.2/1.3、ML-KEM-768、QUIC v1/HTTP/3 与浏览器级 H2/H3 指纹。
 
 ### 压缩与内容
 

@@ -1244,6 +1244,179 @@ public sealed class TlsStackTests
     }
 
     [Fact]
+    public void TlsClientHello_EarlyData_MatchesOriginalCybersolePskAndStripsOnHelloRetryRequest()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        ClientProfile quicPskProfile = ProfileRegistry.GetRequired("chrome_150_PSK");
+        ClientProfile tcp150PskProfile = ProfileRegistry.GetRequired("chrome_150_PSK");
+        ClientProfile tcp152PskProfile = ProfileRegistry.GetRequired("chrome_152_PSK");
+        byte[] psk = RandomNumberGenerator.GetBytes(32);
+        var zeroMaxEarlyDataTicket = new TlsSessionTicket(
+            ticket: RandomNumberGenerator.GetBytes(24),
+            ticketAgeAdd: 0x11223344,
+            lifetimeSeconds: 3600,
+            issuedAtUtc: now.AddSeconds(-2),
+            resumptionMasterSecret: RandomNumberGenerator.GetBytes(32),
+            ticketNonce: new byte[] { 0x01 },
+            cipherSuite: CipherSuiteId.TLS_AES_128_GCM_SHA256,
+            hashAlg: HashAlgorithmKind.Sha256,
+            negotiatedAlpn: "h3",
+            maxEarlyDataSize: 0,
+            psk: psk);
+
+        // (1) QUIC + valid PSK ticket emits 0x002A even when maxEarlyDataSize == 0 (matches sub_141298FA0 a3 gate), empty payload, before PSK
+        using (ClientHelloBuildResult withTicket = TlsClientHelloBuilder.Build(new ClientHelloBuildOptions
+        {
+            Profile = quicPskProfile,
+            SpecOverride = ChromeQuicSpecs.CreateClientHelloSpec(),
+            ServerName = TestHost,
+            IsQuicMode = true,
+            QuicTransportParameters = new byte[] { 0x01, 0x02, 0x03 },
+            SessionTicket = zeroMaxEarlyDataTicket,
+            NowUtc = now,
+        }))
+        {
+            Assert.True(withTicket.OfferedPsk);
+            Assert.True(withTicket.OfferedEarlyData);
+            ParsedClientHello parsed = SyntheticTls13Server.ParseClientHello(withTicket.HandshakeMessage);
+            Assert.True(parsed.Extensions.TryGetValue(TlsExtensionType.EarlyData, out byte[]? edPayload));
+            Assert.Empty(edPayload!);
+            int edIdx = parsed.ExtensionOrder.IndexOf(TlsExtensionType.EarlyData);
+            int pskIdx = parsed.ExtensionOrder.IndexOf(TlsExtensionType.PreSharedKey);
+            Assert.True(edIdx >= 0 && pskIdx > edIdx);
+            Assert.Equal(parsed.ExtensionOrder.Count - 1, pskIdx);
+        }
+
+        // (2) QUIC without PSK ticket omits 0x002A
+        using (ClientHelloBuildResult withoutTicket = TlsClientHelloBuilder.Build(new ClientHelloBuildOptions
+        {
+            Profile = quicPskProfile,
+            SpecOverride = ChromeQuicSpecs.CreateClientHelloSpec(),
+            ServerName = TestHost,
+            IsQuicMode = true,
+            QuicTransportParameters = new byte[] { 0x01, 0x02, 0x03 },
+            SessionTicket = null,
+            NowUtc = now,
+        }))
+        {
+            Assert.False(withoutTicket.OfferedPsk);
+            Assert.False(withoutTicket.OfferedEarlyData);
+            ParsedClientHello parsed = SyntheticTls13Server.ParseClientHello(withoutTicket.HandshakeMessage);
+            Assert.False(parsed.Extensions.ContainsKey(TlsExtensionType.EarlyData));
+            Assert.False(parsed.Extensions.ContainsKey(TlsExtensionType.PreSharedKey));
+        }
+
+        // (3) QUIC ClientHello2 after HRR strips 0x002A while retaining PSK last (matches sub_141298420 predicate 0x141337520 & RFC 8446 §4.1.2)
+        using (ClientHelloBuildResult ch2 = TlsClientHelloBuilder.Build(new ClientHelloBuildOptions
+        {
+            Profile = quicPskProfile,
+            SpecOverride = ChromeQuicSpecs.CreateClientHelloSpec(),
+            ServerName = TestHost,
+            IsQuicMode = true,
+            QuicTransportParameters = new byte[] { 0x01, 0x02, 0x03 },
+            SessionTicket = zeroMaxEarlyDataTicket,
+            HelloRetrySelectedGroup = NamedGroupId.Secp256r1,
+            NowUtc = now,
+        }))
+        {
+            Assert.True(ch2.OfferedPsk);
+            Assert.False(ch2.OfferedEarlyData);
+            ParsedClientHello parsed = SyntheticTls13Server.ParseClientHello(ch2.HandshakeMessage);
+            Assert.False(parsed.Extensions.ContainsKey(TlsExtensionType.EarlyData));
+            Assert.True(parsed.Extensions.ContainsKey(TlsExtensionType.PreSharedKey));
+            Assert.Equal(TlsExtensionType.PreSharedKey, parsed.ExtensionOrder[^1]);
+        }
+
+        // (4) TCP chrome_150_PSK & chrome_152_PSK with ticket NEVER emit 0x002A
+        foreach (ClientProfile tcpProfile in new[] { tcp150PskProfile, tcp152PskProfile })
+        {
+            using ClientHelloBuildResult tcpCh = TlsClientHelloBuilder.Build(new ClientHelloBuildOptions
+            {
+                Profile = tcpProfile,
+                ServerName = TestHost,
+                IsQuicMode = false,
+                SessionTicket = zeroMaxEarlyDataTicket,
+                NowUtc = now,
+            });
+            Assert.False(tcpCh.OfferedEarlyData);
+            ParsedClientHello parsed = SyntheticTls13Server.ParseClientHello(tcpCh.HandshakeMessage);
+            Assert.False(parsed.Extensions.ContainsKey(TlsExtensionType.EarlyData));
+        }
+
+        // (5) TlsHandshakeEngine QUIC HRR: server echoing 0x002A in EncryptedExtensions after ClientHello2 must throw UnsupportedExtension
+        var sessionCache = new LruTlsSessionCache();
+        sessionCache.Put(TestHost, 443, quicPskProfile.Name, zeroMaxEarlyDataTicket);
+        using var engine = new TlsHandshakeEngine(new TlsHandshakeOptions
+        {
+            ServerName = TestHost,
+            Port = 443,
+            Profile = quicPskProfile,
+            SpecOverride = ChromeQuicSpecs.CreateClientHelloSpec(),
+            SessionCache = sessionCache,
+            NowUtc = now,
+        });
+
+        byte[] ch1 = engine.StartQuicHandshake(new byte[] { 0x01, 0x02, 0x03 });
+        ParsedClientHello parsedCh1 = SyntheticTls13Server.ParseClientHello(ch1);
+        Assert.True(parsedCh1.Extensions.ContainsKey(TlsExtensionType.EarlyData));
+
+        byte[] hrrMsg = SyntheticTls13Server.BuildServerHelloMessage(
+            random: SyntheticTls13Server.HrrMagicRandom,
+            sessionId: parsedCh1.SessionId,
+            cipherSuite: CipherSuiteId.TLS_AES_128_GCM_SHA256,
+            extensions: new List<(ushort, byte[])>
+            {
+                (TlsExtensionType.SupportedVersions, new byte[] { 0x03, 0x04 }),
+                (0x002C, new byte[] { 0x00, 0x02, 0xCA, 0xFE }),
+            });
+        QuicHandshakeStepResult hrrStep = engine.ProcessQuicCryptoData(QuicEncryptionLevel.Initial, hrrMsg);
+        ParsedClientHello parsedCh2 = SyntheticTls13Server.ParseClientHello(hrrStep.OutboundInitialData);
+        Assert.False(parsedCh2.Extensions.ContainsKey(TlsExtensionType.EarlyData));
+        Assert.True(parsedCh2.Extensions.ContainsKey(TlsExtensionType.PreSharedKey));
+
+        X25519.GenerateKeyPair(out _, out byte[] sPub);
+        byte[] sh2 = SyntheticTls13Server.BuildServerHelloMessage(
+            random: RandomNumberGenerator.GetBytes(32),
+            sessionId: parsedCh2.SessionId,
+            cipherSuite: CipherSuiteId.TLS_AES_128_GCM_SHA256,
+            extensions: new List<(ushort, byte[])>
+            {
+                (TlsExtensionType.SupportedVersions, new byte[] { 0x03, 0x04 }),
+                (TlsExtensionType.KeyShare, SyntheticTls13Server.BuildServerKeyShare(NamedGroupId.X25519, sPub)),
+                (TlsExtensionType.PreSharedKey, new byte[] { 0x00, 0x00 }),
+            });
+        engine.ProcessQuicCryptoData(QuicEncryptionLevel.Initial, sh2);
+
+        var badEeExtBuf = new List<byte>();
+        byte[] alpnVal = { 0x00, 0x03, 0x02, (byte)'h', (byte)'3' };
+        badEeExtBuf.Add((byte)(TlsExtensionType.ApplicationLayerProtocolNegotiation >> 8));
+        badEeExtBuf.Add((byte)TlsExtensionType.ApplicationLayerProtocolNegotiation);
+        badEeExtBuf.Add((byte)(alpnVal.Length >> 8));
+        badEeExtBuf.Add((byte)alpnVal.Length);
+        badEeExtBuf.AddRange(alpnVal);
+
+        byte[] serverTp = { 0x0A, 0x0B, 0x0C, 0x0D };
+        badEeExtBuf.Add((byte)(TlsExtensionType.QuicTransportParameters >> 8));
+        badEeExtBuf.Add((byte)TlsExtensionType.QuicTransportParameters);
+        badEeExtBuf.Add((byte)(serverTp.Length >> 8));
+        badEeExtBuf.Add((byte)serverTp.Length);
+        badEeExtBuf.AddRange(serverTp);
+
+        badEeExtBuf.Add((byte)(TlsExtensionType.EarlyData >> 8));
+        badEeExtBuf.Add((byte)TlsExtensionType.EarlyData);
+        badEeExtBuf.Add(0x00);
+        badEeExtBuf.Add(0x00);
+
+        var badEeBody = new byte[2 + badEeExtBuf.Count];
+        BinaryPrimitives.WriteUInt16BigEndian(badEeBody.AsSpan(0, 2), (ushort)badEeExtBuf.Count);
+        badEeExtBuf.CopyTo(badEeBody, 2);
+        byte[] badEe = SyntheticTls13Server.WrapHandshakeMessage(0x08, badEeBody);
+
+        TlsAlertException alert = Assert.Throws<TlsAlertException>(() => engine.ProcessQuicCryptoData(QuicEncryptionLevel.Handshake, badEe));
+        Assert.Equal(TlsAlertDescription.UnsupportedExtension, alert.Description);
+    }
+
+    [Fact]
     public void Tls13Alps_WithoutAlpn_ThrowsIllegalParameter()
     {
         using var caKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);

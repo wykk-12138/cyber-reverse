@@ -1,6 +1,6 @@
 # 模块级函数分布与 Cybersole.* 类型/方法普查报告（Gap #2）
 
-> 生成时间：2026-11-24 00:33:28 +0800  |  生成脚本：`python analysis/module_function_census.py --write-doc`
+> 生成时间：2026-11-24 02:14:18 +0800  |  生成脚本：`python analysis/module_function_census.py --write-doc`
 > 全局动态套件/绑定指标唯一源：`docs/METRICS.md`（本文只陈述源码/PDB/二进制与 IDA 普查观测值）。
 
 ## 一、结论摘要（Observation / Inference / Unknown 严格分离）
@@ -16,7 +16,7 @@
 
 ## 二、复刻件模块函数分布（`Cybersole.Ui.pdb` + `.pdata` 100% 实测）
 
-- 产物：`D:\projects\cyber-reverse\replica\.publish-aot\Cybersole.Ui.exe`（67,587,072 B，修改时间 2026-11-24 00:32:59）
+- 产物：`D:\projects\cyber-reverse\replica\.publish-aot\Cybersole.Ui.exe`（67,587,072 B，修改时间 2026-11-24 02:13:46）
 - PDB：`D:\projects\cyber-reverse\replica\.publish-aot\Cybersole.Ui.pdb`（325,242,880 B，233 模块，202,061 过程符号）
 - `.pdata` 覆盖：206,699 有效函数区间（原始 206,720 槽含 42 字节对齐空槽），**0 个未归因区间**。
 
@@ -27,7 +27,7 @@
 | `Jint.*` | 8,463 | 7,908 | 555 | 2,743,321 | 4.09% |
 | `Org.BouncyCastle.*` | 5,672 | 5,508 | 164 | 1,337,912 | 2.74% |
 | `Cybersole.Stores` | 4,333 | 3,480 | 853 | 1,230,291 | 2.10% |
-| `Cybersole.Http` | 2,698 | 2,124 | 574 | 878,238 | 1.31% |
+| `Cybersole.Http` | 2,698 | 2,124 | 574 | 878,297 | 1.31% |
 | `Other` | 2,613 | 2,510 | 103 | 922,971 | 1.26% |
 | `NativeAOT / CRT Runtime` | 1,895 | 1,085 | 810 | 702,435 | 0.92% |
 | `Newtonsoft.Json.*` | 1,864 | 1,740 | 124 | 357,007 | 0.90% |
@@ -48,7 +48,7 @@
 | 工程 | `.cs` 文件数 | 总行数 | 声明类型数 |
 |---|---:|---:|---:|
 | `Cybersole.Core` | 62 | 5,453 | 149 |
-| `Cybersole.Http` | 62 | 36,777 | 323 |
+| `Cybersole.Http` | 62 | 36,791 | 323 |
 | `Cybersole.Services` | 22 | 4,409 | 61 |
 | `Cybersole.Stores` | 189 | 54,229 | 353 |
 | `Cybersole.Ui` | 65 | 21,090 | 133 |
@@ -63,7 +63,7 @@
 1. **Signal 1（可信 IDA 符号）**：仅采信 `>= 0x143025000`（`main` 及 CRT/Win32 启动段）与 23 个 `Brotli*` 导出函数；显式剔除 `< 0x143025000` 托管代码区内的 **9,496** 个 `nullsub_*` 与 5–28 B IDA FLIRT 误匹配（实证样本：`0x14032aeb0` 被 IDA 标为 `__acrt_update_thread_multibyte_data_90`，实测加载 Avalonia 冻结串 `SystemControlDisabledBaseMediumLowBrush`）。
 2. **Signal 2（字符串 Xref 归属）**：对 `idautils.Strings()` 中 67,692 个冻结 UTF-16 对象算头 `chars_va - 12`，连同 C/UTF-8 串在 `.text` 全字节滑动 `disp32` 扫描得 **204,638** 处指令引用（命中 **36,685** 个函数），按无歧义库/命名空间/URL/文案种子归因（`127` 个非 BCL 多模块冲突函数故意保留为未归因，不强行归类）。
 3. **Signal 3（1–2 跳保守纯模块传播）**：在 IDA 937,233 条调用边上执行 2 轮传播：`System.* / BCL` 与 `NativeAOT / CRT` 在已归因邻居中唯一一致时传播；非 BCL 应用/三方模块仅当**全部邻居（caller ∪ callee）均已归因且同属该模块**时才传播。
-   - **在有 PDB 真值的复刻件上校准（362,925 条 `E8` 边，模拟不均衡种子 8,818 个）**：传播 39,065 个函数，**总体准确率 86.0%**，`Cybersole.Stores` 精确率 **72.2%**（36 个），`Avalonia.*` 精确率 **96.1%**（231 个）。（对比实验表明：若对 `Cybersole.Stores` 放开向未归因 callee 传播，`Stores` 精确率会跌至 42.1%，因大量 BCL 泛型特化仅被上层业务调用。）
+   - **在有 PDB 真值的复刻件上校准（362,922 条 `E8` 边，模拟不均衡种子 8,818 个）**：传播 39,065 个函数，**总体准确率 86.0%**，`Cybersole.Stores` 精确率 **72.2%**（36 个），`Avalonia.*` 精确率 **96.1%**（231 个）。（对比实验表明：若对 `Cybersole.Stores` 放开向未归因 callee 传播，`Stores` 精确率会跌至 42.1%，因大量 BCL 泛型特化仅被上层业务调用。）
 
 | 汇总档位 | IDA 函数数 | 占比 | 对应 `.pdata` 起始 | 代码字节 |
 |---|---:|---:|---:|---:|
@@ -90,11 +90,11 @@
 | `Microsoft.AspNetCore.SignalR` | 51 | 34 | 17 | 51 | 26,274 | `0x14190158b` |
 | `Cybersole.Http (Brotli native)` | 43 | 35 | 8 | 17 | 13,358 | `0x1430f2970` |
 | `Metalama.*` | 33 | 30 | 3 | 33 | 2,204 | `0x141274500` |
-| `Newtonsoft.Json.*` | 23 | 20 | 3 | 23 | 7,786 | `0x141adaf20` |
 | `Velopack.*` | 23 | 17 | 6 | 21 | 22,510 | `0x1420120c0` |
+| `Newtonsoft.Json.*` | 23 | 20 | 3 | 23 | 7,786 | `0x141adaf20` |
 | `MailKit / MimeKit` | 22 | 21 | 1 | 22 | 6,542 | `0x14189d4e0` |
-| `Cybersole.Core` | 16 | 11 | 5 | 15 | 8,944 | `0x1426128a0` |
 | `Org.BouncyCastle.*` | 16 | 15 | 1 | 16 | 4,978 | `0x140530690` |
+| `Cybersole.Core` | 16 | 11 | 5 | 15 | 8,944 | `0x1426128a0` |
 | `SkiaSharp / HarfBuzzSharp` | 13 | 13 | 0 | 13 | 5,232 | `0x141b1c2b0` |
 | `RabbitMQ.Client` | 12 | 12 | 0 | 12 | 2,986 | `0x141b08b20` |
 | `Cybersole.Auth/Lic (R702 not-in-function-set)` | 10 | 8 | 2 | 10 | 2,322 | `0x140773371` |

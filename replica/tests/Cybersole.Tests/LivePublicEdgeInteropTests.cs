@@ -216,7 +216,7 @@ public sealed class LivePublicEdgeInteropTests
     }
 
     [Fact]
-    public async Task LiveCloudflare_QuicEdge_ProtocolRacerFallsBackFromBlockedUdp443ToHttp2()
+    public async Task LiveCloudflare_QuicEdge_ProtocolRacerSucceedsOverHttp3OrFallsBackToHttp2()
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
         await using var client = new TlsHttpClient(new TlsHttpClientOptions
@@ -238,9 +238,12 @@ public sealed class LivePublicEdgeInteropTests
 
         _output.WriteLine($"cloudflare-quic status={resp.StatusCode} version={resp.HttpVersion} alt-svc={resp.AltSvcHeader} bodyLen={resp.Body.Length}");
         Assert.Equal(200, resp.StatusCode);
-        Assert.Equal("HTTP/2.0", resp.HttpVersion);
-        Assert.False(string.IsNullOrWhiteSpace(resp.AltSvcHeader));
-        Assert.Contains("h3", resp.AltSvcHeader!, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(resp.HttpVersion, new[] { "HTTP/3", "HTTP/2.0" });
+        if (resp.HttpVersion == "HTTP/2.0")
+        {
+            Assert.False(string.IsNullOrWhiteSpace(resp.AltSvcHeader));
+            Assert.Contains("h3", resp.AltSvcHeader!, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     [Fact]
@@ -367,7 +370,7 @@ public sealed class LivePublicEdgeInteropTests
     [Theory]
     [InlineData("https://www.apple.com.cn/")]
     [InlineData("https://www.aliyun.com/")]
-    public async Task LivePublicInternet_ProtocolRacer_FallsBackToHttp2_WhenQuicEdgeRejectsHandshake(string url)
+    public async Task LivePublicInternet_ProtocolRacer_CompletesOverHttp3OrHttp2Fallback(string url)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         await using var client = new TlsHttpClient(new TlsHttpClientOptions
@@ -395,8 +398,8 @@ public sealed class LivePublicEdgeInteropTests
             },
         }, cts.Token);
 
-        _output.WriteLine($"RACER FALLBACK {url}: status={resp.StatusCode} version={resp.HttpVersion} bodyLen={resp.Body.Length}");
-        Assert.Equal("HTTP/2.0", resp.HttpVersion);
+        _output.WriteLine($"RACER {url}: status={resp.StatusCode} version={resp.HttpVersion} bodyLen={resp.Body.Length}");
+        Assert.Contains(resp.HttpVersion, new[] { "HTTP/3", "HTTP/2.0" });
         Assert.InRange(resp.StatusCode, 200, 399);
     }
 }

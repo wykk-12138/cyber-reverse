@@ -222,19 +222,85 @@ R1279 之后没有测试守它了（表本身已不在代码里），所以**加
 
 ---
 
-## 十三、R1383 补全：未接线 7 家站点风控的只读被动架构分型（Priority ② 只读审计）
+## 十三、7 家站点风控与 PoW/Sensor/Gatekeeper 的架构分型（R1383 取证底稿）
 
-> **边界声明**：本节为静态反编译只读架构记录（基于 `target/Cybersole.exe` / `.i64` 既有字符串与调用链定位），**只记录架构分层（远端转发 / 本地状态机 / 代理轮转）与被动检测标记**；**严禁**在 `replica/src/` 实现任何主动反爬绕过、传感器生成器、PoW/CAPTCHA 求解器。`replica/docs/VENDOR_COVERAGE.md` 中未接线状态保持原样揭示（`missing=7`）。
+> **本节定位**：静态反编译记录的**架构分层**（远端转发 / 本地状态机 / 代理轮转）与**检测标记**，是 ②-A 实现的取证底稿（基于 `target/Cybersole.exe` / `.i64` 既有字符串与调用链定位）。
+> **R1384 解冻**：本节记录的项目不再受"只读"限制 —— 具体实现目标、令牌落点与验收口径见 **§十四**。`replica/docs/VENDOR_COVERAGE.md` 中 `missing` 一项按 §十四 逐族归零推进。
 
 | 厂商 | 状态 | 架构分类（Observation） | 被动检测 / 触发标记（Observation） | 边界 / Unknown |
 |---|---|---|---|---|
 | **Akamai** | `NotDispatched` | 远端求解/转发（`https://akm.hypersolutions.co/v2/{sensor,sbsd,pixel}`、`https://forward.cybersole.io`、`https://new.jevi.dev/Solver/solve`）+ 重试计数与代理轮转（`0x1408C4180`） | Cookie: `_abck`, `bm_sz`, `bm_so`, `bm_lso`, `sbsd_o`；Header: `AkamaiGHost`；请求控制键: `Akamai`, `SkipAkamai`, `AkamaiReferer` | 调用 `0x1408C4180` 之前在各上层 thunk 的精确 HTTP 响应谓词尚未逐一反编译（Unknown） |
-| **BotDeflector** | `NotDispatched` | 本地协议状态机 + 代理轮转（目标站点 `/icon/{get,verify}`, `/pow/{get,verify}`, `/verify-flow`；未见 `*.cybersole.io` 或外部求解端点） | 页面/脚本标记: `botdeflector`, `challengeType`, `challengeToken`, `challengeFlowToken`, `botDeflectorJwtToken`, `botDeflectorVerifyEndpoint`；状态文案: icon 与 proof of work 两分支 | 仅文档化两类挑战分型；不实现图标/PoW 本地求解逻辑 |
-| **Cloudflare** | `StubDefaultNull` | 混合：**远端转发**（`https://cf-solver.cybersole.io/v1/{warm,sessions/start}`、`cybersole-remote-solve-v1:`）+ **外部/第三方提供方**（`uncaptcha.io` `api.uncaptcha.io/v1`）+ **回退本地与限流轮转**（`0x1408CDC20`, `0x1408CF700`, `0x1408EDA60`） | 响应头 `server: cloudflare`, `cf-mitigated`（13 处 xref）, `refresh`；Cookie `__cf_bm`, `cf_bm`, `cf_clearance`, `cf_rt`, `__cf_chl_tk=`；页面标记 `_cf_chl_opt`, `window.__CF$cv$params` | `CloudflareStrategyRunner.Default()` 在复刻件保持空回调占位 |
+| **BotDeflector** | `NotDispatched` | 本地协议状态机 + 代理轮转（目标站点 `/icon/{get,verify}`, `/pow/{get,verify}`, `/verify-flow`；未见 `*.cybersole.io` 或外部求解端点） | 页面/脚本标记: `botdeflector`, `challengeType`, `challengeToken`, `challengeFlowToken`, `botDeflectorJwtToken`, `botDeflectorVerifyEndpoint`；状态文案: icon 与 proof of work 两分支 | 两类挑战分型已定；图标点选与 PoW 的本地求解为 §十四 ⑤ 的实现目标 |
+| **Cloudflare** | `StubDefaultNull` | 混合：**远端转发**（`https://cf-solver.cybersole.io/v1/{warm,sessions/start}`、`cybersole-remote-solve-v1:`）+ **外部/第三方提供方**（`uncaptcha.io` `api.uncaptcha.io/v1`）+ **回退本地与限流轮转**（`0x1408CDC20`, `0x1408CF700`, `0x1408EDA60`） | 响应头 `server: cloudflare`, `cf-mitigated`（13 处 xref）, `refresh`；Cookie `__cf_bm`, `cf_bm`, `cf_clearance`, `cf_rt`, `__cf_chl_tk=`；页面标记 `_cf_chl_opt`, `window.__CF$cv$params` | 复刻件当前为 `CloudflareStrategyRunner.Default()` 空回调占位；§十四 ⑥ 接通 warm/solve/回退三路回调 |
 | **DataDome** | `StubDefaultNull` | 远端传感器转发（`https://datadome.cybersole.io/sensor`, `x-api-key` 头）+ `https://geo.captcha-delivery.com` 交互；遇 `(DD block)` 清空 `datadome` cookie（`0x1408ECEB0`） | Cookie: `datadome`；宿主 `https://geo.captcha-delivery.com`；参数 `cid`, `ddk`, `jsData`, `jsType`, `ch` | 上游触发 `0x1408ECEB0` 前的状态码/响应头谓词（如 403 与 `x-dd-*`）属 Unknown |
-| **PerimeterX** | `NotDispatched` | 外部求解 API（`https://api.parallaxsystems.io/{gen,holdcaptcha}`）+ 本地回环桥接（`http://127.0.0.1:<port>`）+ 连续命中 `>3` 次后清 cookie 并轮转代理（`0x1408FACE0`, `0x1408FB420`） | HTTP **`403`** + 响应体 **`"appId"`** 与 **`"blockScript"`**；头 `PerimeterX-Token`；Cookie `_px2`, `_px3`, `_pxvid`, `__pxvid`, `pxcts`；标记 `flaggedPOW` | 本地回环求解桥与 Parallax API 属外部求解能力，复刻件不接 |
-| **Queue-it** | `NotDispatched` | 本地队列协议状态机（`/spa-api/queue/.../enqueue`, `/status`, `/softblock`, `/afterevent`, `/javascriptqueue/`）+ 遇封禁（`452`/重定向）轮转代理（`0x14090A170`）；内嵌挑战分发至 BotDeflector/PoW/CAPTCHA | HTTP **`452`** 或重定向；字符串 `THROTTLED`；头 `queue-it-set-cookie`, `x-queueit-redirect`；Cookie `QueueITAccepted-SDFrts345E-V3_`；参数 `queueittoken`, `enqueuetoken` | 主动 challenge 求解子分支不实现 |
-| **Vercel** | `NotDispatched` | 本地进程内挑战校验与提交（解析版次 `'2'` token，调用进程内求解委托后 POST `/.well-known/vercel/security/request-challenge`，`0x14091D990`, `0x14091D270`） | 响应头 `x-vercel-challenge-token`（版次 `'2'`）；Cookie `_vcrcs`；提交头 `x-vercel-challenge-{token,version,solution}` | 进程内求解委托函数本身未实现（也不得实现主动绕过）；邻近 `BotID`（`forward.cybersole.io` + `zstd` / `kasada.hypersolutions.co/botid`）另归 Kasada/BotID 支线 |
+| **PerimeterX** | `NotDispatched` | 外部求解 API（`https://api.parallaxsystems.io/{gen,holdcaptcha}`）+ 本地回环桥接（`http://127.0.0.1:<port>`）+ 连续命中 `>3` 次后清 cookie 并轮转代理（`0x1408FACE0`, `0x1408FB420`） | HTTP **`403`** + 响应体 **`"appId"`** 与 **`"blockScript"`**；头 `PerimeterX-Token`；Cookie `_px2`, `_px3`, `_pxvid`, `__pxvid`, `pxcts`；标记 `flaggedPOW` | §十四 ⑧ 接本地回环求解桥与 Parallax 客户端（`gen`/`holdcaptcha` 两段式） |
+| **Queue-it** | `NotDispatched` | 本地队列协议状态机（`/spa-api/queue/.../enqueue`, `/status`, `/softblock`, `/afterevent`, `/javascriptqueue/`）+ 遇封禁（`452`/重定向）轮转代理（`0x14090A170`）；内嵌挑战分发至 BotDeflector/PoW/CAPTCHA | HTTP **`452`** 或重定向；字符串 `THROTTLED`；头 `queue-it-set-cookie`, `x-queueit-redirect`；Cookie `QueueITAccepted-SDFrts345E-V3_`；参数 `queueittoken`, `enqueuetoken` | 排队状态机为主体；内嵌 challenge 分发到 BotDeflector/PoW/CAPTCHA 的分支为 §十四 ⑧ 目标 |
+| **Vercel** | `NotDispatched` | 本地进程内挑战校验与提交（解析版次 `'2'` token，调用进程内求解委托后 POST `/.well-known/vercel/security/request-challenge`，`0x14091D990`, `0x14091D270`） | 响应头 `x-vercel-challenge-token`（版次 `'2'`）；Cookie `_vcrcs`；提交头 `x-vercel-challenge-{token,version,solution}` | 进程内求解委托为 §十四 ⑧ 的实现目标（版次 `2` 令牌 → 解法 → `x-vercel-challenge-solution`）；邻近 `BotID`（`forward.cybersole.io` + `zstd` / `kasada.hypersolutions.co/botid`）另归 Kasada/BotID 支线 |
+
+---
+
+## 十四、R1384 解冻：②-A 主动求解层实现议程（每族一张实现卡）
+
+> **定位**：§十三 是取证底稿，本节是**施工图**。八条主线全部要在 `replica/src/` 落成可执行实现，并按 §十四.9 的口径验收。
+> **地址纪律**：卡里的地址来自 §十三 的既有取证；动手前用 NativeAOT 四步链（`ida.py str` → `disp32_scan_any.py` → `site_to_func.py` → `names_at.py` + Hex-Rays）复核一次，**地址变了先改卡再写码**。
+> **令牌纪律**：一切令牌只走 `AntiBotTokens`、`RequestOptions.OverrideHeaders`、`Session.Vars` 三条既有通道；新造旁路键会让 `analysis/operation_gap.py` 的旁路计数回涨。
+
+### 14.1 Casio PoW（`0x140949680`）
+
+- **落位**：`CasioFlow`（Magento 前置之后、下单之前），走 `StoreFlow.SolveDetectedWallAsync` 的 PoW 分支。
+- **令牌落点**：PoW 结果的表单字段与请求头名从 `0x140949680` 伪代码解码后写入卡内（当前 `Unknown`，需一次 Hex-Rays 复核补全）。
+- **验收**：已知答案向量用例（challenge → nonce → score 确定性）+ `casio.sku` 链路串联用例；`CasioFlow` 四条既有网关路径不得回归。
+
+### 14.2 Stripe Sensor（`0x140959320`）
+
+- **落位**：`StripeGateway` / `Cybersole.Stores/Scripts` 传感器生成器；`StripeChallenge` 的 `CAPTCHA_REQUIRED` 判据（`0x146B65A14`）已有，本条补"生成并提交"。
+- **令牌落点**：`radar_options[hcaptcha_token]`、`challenge_response_ekey`、`client_secret`、`captcha_vendor_name`=`hcaptcha`。
+- **验收**：22 键表单装配序不回退；生成器输出对同一输入确定；hCaptcha 令牌槽位缺失时按既有失败文案走。
+
+### 14.3 ShopPay Gatekeeper（`/apps/gatekeeper/api/*`）
+
+- **落位**：Shopify 支线（`ShopifyFlow`）新增 gatekeeper 状态机。
+- **链路**：`bootstrap → interaction-challenge/create → render-token → gatekeeper-token → validate-gatekeeper-token → release-details`（顺序由 §十三/端点族取证固定，`render-token` 在 `gatekeeper-token` **之前**）。
+- **验收**：六步顺序 pin + 每步请求体字段 pin；挑战体为空/过期/回环 5xx 三条负例。
+
+### 14.4 Akamai SBSD/SDS（`0x1408C4180`）
+
+- **落位**：`AntiBotProtocol` + 新 `AkamaiSbsdSolver`（远端三路：`akm.hypersolutions.co/v2/{sensor,sbsd,pixel}`、`forward.cybersole.io`、`new.jevi.dev/Solver/solve`）。
+- **令牌落点**：`_abck` / `bm_sz` / `bm_so` / `bm_lso` / `sbsd_o` 回写；请求控制键 `Akamai` / `SkipAkamai` / `AkamaiReferer` 语义对齐。
+- **验收**：三路端点各一条回环用例 + 重试计数与代理轮转各一条；触发前的精确响应谓词仍 `Unknown`，补全后写回 §十三 表。
+
+### 14.5 BotDeflector（本地协议状态机）
+
+- **落位**：新 `BotDeflectorSolver`；挑战类型来自 `challengeType`，两分支（图标点选 / PoW）。
+- **链路**：`/icon/get → /icon/verify` 与 `/pow/get → /pow/verify`，跨分支统一 `/verify-flow`；字段 `challengeToken` / `challengeFlowToken` / `botDeflectorJwtToken` / `botDeflectorVerifyEndpoint`。
+- **验收**：两分支各一条回环用例 + `/verify-flow` 令牌回写一条；图标点选的坐标解析需离线样本（缺样本时标 `Unknown`，不许猜）。
+
+### 14.6 Cloudflare（`0x1408CDC20` / `0x1408CF700` / `0x1408EDA60`）
+
+- **落位**：接通 `CloudflareStrategyRunner`（现为空回调 `Default()`）；三路策略：远端 `cf-solver.cybersole.io/v1/{warm,sessions/start}`（`cybersole-remote-solve-v1:` 前缀封装）、第三方 `uncaptcha.io`、本地回退 + 限流轮转。
+- **令牌落点**：`cf_clearance` / `__cf_bm` / `__cf_chl_tk` 回写；`cf-mitigated` / `refresh` 触发判定。
+- **验收**：`warm` 与 `sessions/start` 各一条回环用例；无 clearance 的失败文案（`Solving Cloudflare (no clearance)`）保持原样。
+
+### 14.7 DataDome（`0x1408ECEB0`）
+
+- **落位**：接通 `InjectedDataDomeSensor`（现为 `Default()` 空回调）；`datadome.cybersole.io/sensor` + `x-api-key`，交互页 `geo.captcha-delivery.com`。
+- **会话**：`cid` / `ddk` / `jsData` / `jsType` / `ch` 五参数装配；`(DD block)` 时清 `datadome` cookie 并轮转（`0x1408ECEB0` 语义）。
+- **验收**：sensor 提交一条 + block 清 cookie 一条 + 交互页回环一条；上游 403 / `x-dd-*` 谓词仍 `Unknown`。
+
+### 14.8 PerimeterX / Queue-it / Vercel
+
+- **PerimeterX**（`0x1408FACE0` / `0x1408FB420`）：本地回环求解桥（`http://127.0.0.1:<port>`）+ Parallax 两段式（`/holdcaptcha` 占位 → `/gen` 取解）；`PerimeterX-Token` 回写；连续 `>3` 次命中后清 `_px*` 并轮转。
+- **Queue-it**（`0x14090A170`）：排队状态机为主体，`452`/重定向/`THROTTLED` 触发轮转；内嵌 challenge 分发到 BotDeflector/PoW/CAPTCHA 三条子分支。
+- **Vercel**（`0x14091D990` / `0x14091D270`）：解析版次 `2` 令牌 → 进程内求解委托 → POST `/.well-known/vercel/security/request-challenge`，提交头 `x-vercel-challenge-{token,version,solution}`，`_vcrcs` 回写。
+- **验收**：每家至少「识别 → 求解 → 令牌回写」三条回环用例；PX 的 `403` + `appId`/`blockScript` 判据必须与 §十三 一致。
+
+### 14.9 统一验收口径
+
+1. `python replica/tools/vendor_coverage.py`：`controls ok=True`，`missing` 逐族递减至 0；每一族落地当轮必须有对应 pin 用例。
+2. 每族「检测 → 求解 → 存回」三件齐全才算 `Wired`；缺任一件保持 `NotDispatched`/`StubDefaultNull` 并在本节标注缺哪一件。
+3. PoW 类必须有确定性答案向量；非 PoW 类必须有回环请求/响应形状 pin。
+4. 真站流量只作离线回放样本；复刻件自造数据只算自证，不算原版证据（`AGENTS.md` §2 证据规则）。
+5. 每轮收口把地址与字段补回 §十三/§十四，并重算 `docs/METRICS.md`。
 
 
 

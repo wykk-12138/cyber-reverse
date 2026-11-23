@@ -9,10 +9,10 @@
 |---|---|---|
 | flow 文件 | 20 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
 | 覆写步骤总数 | 405 | 本文件生成时统计 |
-| 其中报告「端点为 Unknown」的 | 3 | 同上（匹配 `endpoint unknown` / `not captured`） |
-| 含报告的 flow | 2 | 同上 |
+| 其中拒绝/占位覆写步骤 | 12 | 同上（按 `Task<StepOutcome>` 覆写体统计 `NotCaptured`/`route unrecorded locally`/`endpoint unknown`/`not captured`/`no billing request was made`） |
+| 含报告的 flow | 3 | 同上 |
 | 端点常量 / 逐字在池 | 250 / 250 | `python tools/endpoint-provenance.py` |
-| 常量 invented / unresolved | 0 / 1 | 同上 |
+| 常量 invented / unresolved | 0 / 2 | 同上 |
 | inline 字面量 / 不在池 | 382 / 33 | 同上 |
 | inline 已登记 / 未登记 | 33 / 0 | 同上 |
 | 端点门 exit | **0** | 同上 |
@@ -25,7 +25,7 @@
 | `BstnFlow.cs` | 12 | 0 | 196 |
 | `DemandwareFlow.cs` | 16 | 0 | 795 |
 | `DicksSportingGoodsFlow.cs` | 6 | 0 | 145 |
-| `FarfetchFlow.cs` | 13 | 0 | 223 |
+| `FarfetchFlow.cs` | 13 | 7 | 223 |
 | `FlowStoreModule.cs` | 4 | 0 | 61 |
 | `FootsitesFlow.cs` | 21 | 0 | 468 |
 | `GoatFlow.cs` | 11 | 0 | 329 |
@@ -37,9 +37,9 @@
 | `PopMartFlow.cs` | 27 | 0 | 715 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
 | `RetailFlows.cs` | 115 | 0 | 2499 |
-| `SauconyFlow.cs` | 9 | 1 | 177 |
+| `SauconyFlow.cs` | 9 | 4 | 177 |
 | `ScheelsFlow.cs` | 15 | 0 | 353 |
-| `ShopifyFlow.cs` | 25 | 2 | 1367 |
+| `ShopifyFlow.cs` | 25 | 1 | 1367 |
 | `SportsshoesFlow.cs` | 7 | 0 | 130 |
 
 ## 二、原版侧（不可得 —— Unknown + 缺什么）

@@ -24,7 +24,38 @@ FLOWS = os.path.join(ROOT, "src", "Cybersole.Stores", "Flows")
 OUT = os.path.join(ROOT, "docs", "CORE_COVERAGE.md")
 
 OVERRIDE = re.compile(r"public override (?:async )?(?:Task<StepOutcome>|string|IReadOnlyList<string>|bool)\s+(\w+)")
-PLACEHOLDER = re.compile(r"endpoint unknown|not captured")
+STEP_OVERRIDE = re.compile(r"public override\s+(?:async\s+)?Task<StepOutcome>\s+(\w+)")
+# R1382: count actual step-override bodies that refuse or skip without issuing a real request, rather than
+# matching two raw phrases across the whole file. The old regex missed Farfetch's 7 reworded "route unrecorded
+# locally" refusals, undercounted Saucony's 4 override refusals behind NotCaptured() as 1, and ignored
+# ShopifyFlow.SubmitBillingAsync ("no billing request was made").
+PLACEHOLDER_SIGNALS = (
+    "NotCaptured(",
+    "endpoint unknown",
+    "not captured",
+    "route unrecorded locally",
+    "no billing request was made",
+    "is not implemented",
+)
+
+
+def strip_comments(text):
+    text = re.sub(r"//[^\n]*", "", text)
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return text
+
+
+def count_refusal_step_overrides(text):
+    clean = strip_comments(text)
+    matches = list(STEP_OVERRIDE.finditer(clean))
+    refusals = []
+    for i, m in enumerate(matches):
+        start = m.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(clean)
+        body = clean[start:end]
+        if any(sig in body for sig in PLACEHOLDER_SIGNALS):
+            refusals.append(m.group(1))
+    return refusals
 
 
 def flows():
@@ -37,11 +68,12 @@ def flows():
         overrides = OVERRIDE.findall(text)
         if not overrides:
             continue
-        placeholders = len(PLACEHOLDER.findall(text))
+        refusals = count_refusal_step_overrides(text)
         rows.append({
             "file": name,
             "steps": len(overrides),
-            "placeholders": placeholders,
+            "placeholders": len(refusals),
+            "refusal_names": refusals,
             "lines": text.count("\n") + 1,
         })
     return rows
@@ -103,7 +135,7 @@ def main():
     add("|---|---|---|")
     add("| flow 文件 | %d | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |" % len(rows))
     add("| 覆写步骤总数 | %d | 本文件生成时统计 |" % total_steps)
-    add("| 其中报告「端点为 Unknown」的 | %d | 同上（匹配 `endpoint unknown` / `not captured`） |" % total_placeholders)
+    add("| 其中拒绝/占位覆写步骤 | %d | 同上（按 `Task<StepOutcome>` 覆写体统计 `NotCaptured`/`route unrecorded locally`/`endpoint unknown`/`not captured`/`no billing request was made`） |" % total_placeholders)
     add("| 含报告的 flow | %d | 同上 |" % len(with_placeholders))
     add("| 端点常量 / 逐字在池 | %s / %s | `python tools/endpoint-provenance.py` |" % (prov["constants"], prov["verbatim"]))
     add("| 常量 invented / unresolved | %s / %s | 同上 |" % (prov["invented"], prov["unresolved"]))

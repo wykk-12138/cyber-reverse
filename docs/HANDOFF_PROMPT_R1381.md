@@ -1,33 +1,24 @@
-# 接手提示词 · R1381 快照（静态议程已结案）
+# 接手提示词 · R1381 快照（经 R1382 审计纠偏：静态议程未结案）
 
-> 这份文件是**给下一位 agent 的指令**，不是进度散文。读完它，你应该能在 15 分钟内知道
-> **现在到哪、哪些已结案、下一步只有哪几条路、以及怎么证明你说的每个数字**。
-> 一切以**当前仓库与工具输出**为准；本文的数字都标了出处命令，出现分歧时以命令输出为准。
+> **R1382 重要纠偏（2026-11-23）**：本文原稿在 R1381 宣布「65/65 落地、①–③ 静态议程已结案、④ UI 绑定解冻」，经 R1382 逐项源码与工具审计后**已撤回该收口判词**：
+> 1. `operation_gap.py` 原统计的是“源码文本里出现同名 GraphQL 文档常量”（65/65 仅代表文本声明），并非生产流程全部可达（大量操作仅在同文件 `DocumentFor` `switch` 中，或挂在全仓无人写入的 `Session.Vars` 旁路键后）；
+> 2. `classify_payment_tail.py` 原稿误把含 80 个已实现项的 243 全量支付名当成缺失长尾并拼出“267 残余”，已修正为基于 `ASYNC_TAIL.md` 真实 `absent` 集复算；
+> 3. `core_coverage.py`（漏计 Farfetch 7 步与 Saucony 拒绝步）、`vendor_coverage.py`（删表后强行 `missing=0`，而运行时仅 Kasada 接通）、`audit_document_constants.py`（`<200` 盲区放过截断的 `ItemDocument`）、`orphan_documents.py`（自撞/同文件盲区）、`PARITY_CLAIMS.md` C8 八列损坏、以及 `.snapshots` 污染（“65,773 文件”中 98.3% 是历史快照）均已在 R1382 修复；
+> 4. **①–③ 仍有明确可做的本机静态任务**（Checkout.com 28 个 ACS 处理器体、Unzer 4 个 `apiKey` 读点、将旁路 GraphQL 族接入真实店铺流程、反爬求解层、DOM/HTTP3、C7c/C8），**④ UI 绑定继续冻结，请勿提前转做 UI**。
+>
+> **最新实时状态与权威路线请优先以 `docs/HANDOFF.md` 顶部、`docs/METRICS.md` 与 `docs/REMAINING_REPLICATION_ROADMAP.md` 为准。**
+
+> 这份文件保留 R1381 的操作经验与排坑记录（§4–§6、§8 仍具参考价值）；一切数字以**当前仓库与工具输出**为准，出现分歧时以命令输出为准。
 
 ---
 
-## 0. 一句话现状
+## 0. 一句话现状（R1382 纠偏版）
 
-- **GraphQL 操作覆盖 65 / 65（absent 0）** —— `python analysis/operation_gap.py` 打印
-  `carried: 65 of 65 image operations (absent 0)`。
-- **静态议程已结案**：端点族（会话 / `api/graphql` / 哈希 / Magento / Cybersource / Braintree /
-  themeapis / AO / Saucony 3DS / PayPal 两方言 + 浏览器面）全部落地；
-  **两条异步名长尾都已量化**（店铺 30、支付 243），结论一致：**按名不可追**。
-- 剩余工作只有两类：**①267 个异步名需按地址逐条反编译**（独立队列，不在 handoff 取件判据内）；
-  **②会话值类输入**（`x-paypal-internal-euat`、`paypal-client-metadata-id`、storefront token 等，属运行期）。
+- **GraphQL 文本声明 65 / 65，但真实流程接线未收口** —— 跑 `python analysis/operation_gap.py` 查看**三层拆解**（文本声明 / 生产文件调用 / 非旁路可达），不得把“文本声明 65/65”读成“结账流程已完整复刻”。
+- **①–③ 静态议程尚未结案**：Phase 1–2 的核心组件与部分店铺/支付能力已真实落地，但站点占位（Farfetch/Saucony/Shopify Billing）、反爬求解（除 Kasada 外均未真接通）、Checkout.com 28 个 ACS 处理器体、Unzer `apiKey` 读取点与长尾异步状态机均待继续推进。
+- **④ UI 绑定（`replica/docs/BINDING_BACKLOG.md`）保持冻结**，须严格遵守 `AGENTS.md §2.5`（YG R757 优先级铁律）。
 
-**基线数字（2026-11-22 / R1381，全部可复算）**
-
-| 项 | 值 | 出处 |
-|---|---|---|
-| 操作覆盖 | **65 / 65（absent 0）** | `python analysis/operation_gap.py` |
-| 全量套件 | **2866 通过 / 0 失败 / 2 跳过** | `dotnet test --filter "Speed!=Slow" -m:1` |
-| 度量套件 | **2849 / 0 / 0，exit 0** | `python tools/metrics_report.py` |
-| 变异套件 | **59 fired / 0 decorative / 0 skipped / GREEN** | `python tools/mutation-check.py` |
-| 产物 | **62,092,288 字节**，`embedded source revision` = HEAD | `python tools/artifact_freshness.py` |
-| 文档常量孤儿 | **0** | `python analysis/orphan_documents.py` |
-| 编码扫描 | 65,773 文件 **0 命中** | `python analysis/scan_encoding_scope_r1301.py` |
-| claims 审计 | **5 tables / 22 rows** | `python analysis/check_claims.py` |
+**基线数字**：请直接查看唯一事实源 `docs/METRICS.md`（R1382 刷新版），本文不再硬编码旧快照数字。
 
 ---
 
@@ -125,23 +116,22 @@
 
 ---
 
-## 7. 残余队列（只有这些，别自己发明）
+## 7. 残余队列（R1382 纠偏：按 ①→②→③ 推进，④ 保持冻结）
 
-### ① 267 个异步名：按地址逐条反编译（独立队列）
-- 店铺 30 个（R1367 量）：**1 可追（`AddAddress`，且零引用）/ 29 只有 `<Name>d__NN`**。
-- 支付 243 个（R1381 量，`python analysis/classify_payment_tail.py`）：
-  **6 可追**（`GetPaymentIntent`/`GetSetupIntent`/`GetThreeDsJwtQuery`/`PlaceOrder`/`RefreshToken`/`SendTokenRequestAsync`）
-  **/ 237 只有元数据**。数据落 `analysis/.payment_tail.json`。
-- **判据**：这一队列**不在 handoff 的取件判据内**（取件是"每轮一条核心能力待办"，而操作与端点族已结案）。
-  要做就**单独立账**，且**每个名字是一个独立工作单元**，不要按"一轮几个"估。
+### ① 站点流程与支付深化（优先级 ①②，本机可做）
+- Checkout.com `0x1408a34f0` 下 28 个发卡行 ACS 处理器方法体、Unzer 4 个 `apiKey` 读取点（`sub_14094DEB0` 等）、Komoju `formUrl`；
+- 将已落地的 GraphQL 操作家族真正接入对应店铺流程（消除 `operation_gap.py` 检出的零外部调用与无人写入 `Session.Vars` 旁路）；
+- 异步名缺失长尾：以 `docs/ASYNC_TAIL.md` 与修正后的 `python analysis/classify_payment_tail.py`（基于缺失集而非全量 243）为准。
 
-### ② 会话值（运行期才能拿到）
-`x-paypal-internal-euat`、`paypal-client-metadata-id`、storefront access token、Cybersource/AO/themeapis 的商家端点。
-**形状全部已在码里**，缺的只是值 —— **不要编，缺则拒绝并说明缺哪个**。
+### ② 反爬求解与传输/DOM 层（优先级 ②③，本机可做）
+- 当前运行时仅 Kasada 接通求解；Cloudflare/DataDome 默认回调为空，Akamai/PerimeterX/Queue-it/BotDeflector/Vercel 未接入 `SolveDetectedWallAsync`（见 `replica/docs/VENDOR_COVERAGE.md`）；
+- `AngleSharp` DOM 解析对位与 HTTP/3（`chrome_150`）、`C7c` 报文探针与 `C8` 分类去噪。
 
-### ③ ④ UI 绑定（解冻条件已满足）
-handoff 规定 ①–③ 结案后才做 ④；**静态 ①–③ 已结案**，所以 `replica/docs/BINDING_BACKLOG.md` 现在可以取件。
-`push`/`pull` 走真实数据，不写死。
+### ③ 会话值与外部阻塞（运行期才能拿到，未获条件不编造）
+`x-paypal-internal-euat`、`paypal-client-metadata-id`、storefront access token、Cybersource/AO/themeapis 商家端点、`/connect/app`（Farfetch 7 路由）与 `DotNetBrowser` 选型。
+
+### ④ UI 绑定（继续冻结）
+`AGENTS.md §2.5`（YG R757）要求 ①–③ 核心项结案或全卡外部条件后才做 ④；**当前未满足解冻条件**，`replica/docs/BINDING_BACKLOG.md` 继续延后。
 
 ---
 

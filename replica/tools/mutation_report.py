@@ -45,8 +45,9 @@ def newest_input():
     newest, which = 0.0, None
     me = os.path.abspath(__file__)
     for base in (os.path.join(ROOT, "src"), os.path.join(ROOT, "tests"), os.path.join(ROOT, "tools")):
-        for dp, _d, fns in os.walk(base):
-            if f"{os.sep}obj{os.sep}" in dp or f"{os.sep}bin{os.sep}" in dp or ".mutation-backup" in dp:
+        for dp, dns, fns in os.walk(base):
+            dns[:] = [d for d in dns if d not in ("obj", "bin", ".mutation-backup", ".snapshots", "__pycache__")]
+            if f"{os.sep}obj{os.sep}" in dp or f"{os.sep}bin{os.sep}" in dp or ".mutation-backup" in dp or ".snapshots" in dp:
                 continue
             for fn in fns:
                 if not (fn.endswith(".cs") or fn.endswith(".py")):
@@ -69,8 +70,9 @@ def exercised_files():
     me = os.path.abspath(__file__)
     current = {}
     for base in (os.path.join(ROOT, "src"), os.path.join(ROOT, "tests"), os.path.join(ROOT, "tools")):
-        for dp, _d, fns in os.walk(base):
-            if f"{os.sep}obj{os.sep}" in dp or f"{os.sep}bin{os.sep}" in dp or ".mutation-backup" in dp:
+        for dp, dns, fns in os.walk(base):
+            dns[:] = [d for d in dns if d not in ("obj", "bin", ".mutation-backup", ".snapshots", "__pycache__")]
+            if f"{os.sep}obj{os.sep}" in dp or f"{os.sep}bin{os.sep}" in dp or ".mutation-backup" in dp or ".snapshots" in dp:
                 continue
             for fn in fns:
                 if not (fn.endswith(".cs") or fn.endswith(".py")):
@@ -91,10 +93,13 @@ def content_diff(record):
 
     A file that is new since the run counts too: the run never exercised it, which is what
     staleness exists to say. Byte-identical restores (git rewriting line endings) do NOT count.
+    R1382: legacy manifests polluted with tools/.snapshots/ backup entries are filtered out here
+    symmetrically with exercised_files().
     """
     manifest = record.get("content_manifest")
     if manifest is None:
         return None
+    manifest = {k: v for k, v in manifest.items() if "/.snapshots/" not in ("/" + k)}
     current = exercised_files()
     changed = [rel for rel, digest in current.items() if manifest.get(rel) != digest]
     changed += [rel + " (deleted since)" for rel in manifest if rel not in current]

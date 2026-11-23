@@ -25,28 +25,35 @@ HEADER = re.compile(r"^\|\s*id\s*\|\s*claim\s*\|\s*status\s*\|\s*authority\s*\|\
 
 
 def tables(lines):
-    """Yield each claim table as a list of six-cell rows, one table per header found."""
+    """Yield (rows, malformed) per claim table, requiring exact six-cell rows."""
     i = 0
     while i < len(lines):
         if HEADER.match(lines[i].strip()):
             i += 2                      # skip the header and the |---| separator
-            rows = []
+            rows, malformed = [], []
             while i < len(lines) and lines[i].strip().startswith("|"):
                 cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
-                if len(cells) >= 6:
-                    rows.append(cells[:6])
+                if len(cells) == 6:
+                    rows.append(cells)
+                else:
+                    malformed.append((i + 1, len(cells), cells[0] if cells else "?"))
                 i += 1
-            yield rows
+            yield rows, malformed
             continue
         i += 1
 
 
 def main():
     t = io.open(PATH, encoding="utf-8", errors="replace").read()
-    all_rows = [r for table in tables(t.splitlines()) for r in table]
+    parsed = list(tables(t.splitlines()))
+    all_rows = [r for rows, _ in parsed for r in rows]
+    all_malformed = [m for _, mal in parsed for m in mal]
 
-    print("  claim tables: %d" % sum(1 for _ in tables(t.splitlines())))
+    print("  claim tables: %d" % len(parsed))
     print("  claim rows: %d" % len(all_rows))
+    print("  malformed rows (cell count != 6): %d" % len(all_malformed))
+    for lineno, ncells, cid in all_malformed:
+        print("    L%d %-8s got %d cells (expected 6)" % (lineno, cid, ncells))
 
     no_auth, no_cmd, statuses = [], [], {}
     for rid, claim, status, authority, command, gap in all_rows:
@@ -73,7 +80,7 @@ def main():
     for rid, claim, status, authority in no_cmd:
         print("    %-8s %-10s auth=%-12s %s" % (rid, status, authority, claim))
 
-    verdict = "PASS" if not no_auth and not no_cmd else "FAIL"
+    verdict = "PASS" if not all_malformed and not no_auth and not no_cmd else "FAIL"
     print()
     print("  criterion (d) by its own stated rule: %s" % verdict)
     return 0 if verdict == "PASS" else 1

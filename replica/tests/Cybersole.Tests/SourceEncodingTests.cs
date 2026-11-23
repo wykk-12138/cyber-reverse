@@ -84,7 +84,8 @@ public class SourceEncodingTests
             foreach (var file in Directory.EnumerateFiles(start, "*", SearchOption.AllDirectories))
             {
                 var rel = Path.GetRelativePath(root, file).Replace('\\', '/');
-                if (rel.Contains("/obj/") || rel.Contains("/bin/") || rel.Contains("/__pycache__/")) continue;
+                if (rel.Contains("/obj/") || rel.Contains("/bin/") || rel.Contains("/__pycache__/")
+                    || rel.Contains("/.snapshots/") || rel.Contains("/.mutation-backup/")) continue;
 
                 var ext = Path.GetExtension(file);
                 if (ext is not (".cs" or ".md" or ".json" or ".ps1" or ".py")) continue;
@@ -152,7 +153,8 @@ public class SourceEncodingTests
             foreach (var file in Directory.EnumerateFiles(start, "*.cs", SearchOption.AllDirectories))
             {
                 var rel = Path.GetRelativePath(root, file).Replace('\\', '/');
-                if (rel.Contains("/obj/") || rel.Contains("/bin/")) continue;
+                if (rel.Contains("/obj/") || rel.Contains("/bin/")
+                    || rel.Contains("/.snapshots/") || rel.Contains("/.mutation-backup/")) continue;
 
                 var lines = File.ReadAllLines(file);
                 for (var i = 0; i < lines.Length; i++)

@@ -1,5 +1,7 @@
 # 进度与差距（Phase 2 收口更新 · 接续 R1300，2026-11-20）
 
+> **R1382 审计纠偏（2026-11-23）**：本文原为 2026-11-20 Phase 2 收口快照。R1382 复核确认 Phase 1 + Phase 2 已落地的核心组件属实，但同步修正了原 `core_coverage.py` / `vendor_coverage.py` 口径遮蔽问题（详见 `docs/METRICS.md`、`replica/docs/CORE_COVERAGE.md` 与 `replica/docs/VENDOR_COVERAGE.md`）。**本机仍存在多项 ①–③ 静态缺口未结案**（见 `docs/REMAINING_REPLICATION_ROADMAP.md` 与 `docs/HANDOFF.md` 顶部），第 ④ 优先级 UI 绑定保持冻结。
+>
 > **动态度量唯一事实源**：`docs/METRICS.md`（在 `replica/` 下由 `python tools/metrics_report.py` 生成；本文活区不硬编码易漂移的全量数值）。
 > **模块普查与差距依据**：`docs/MODULE_FUNCTION_CENSUS.md` · `docs/DESCRIPTOR_TRIAGE.md` · `docs/SHAPE_GAPS.md` · `docs/DATAFILES.md`
 > **剩余路线与新会话交接**：`docs/REMAINING_REPLICATION_ROADMAP.md`（完整复现四层剩余路线图）· `docs/HANDOFF.md` · `docs/HANDOFF_PROMPT_antigravity.md`
@@ -24,7 +26,7 @@
 
 | 面 | 口径与来源 | 复算命令 |
 |---|---|---|
-| 站点流程 | 见 `docs/METRICS.md`（`CORE_COVERAGE.md`：`unknown placeholders 0`、`provenance exit 0`） | `python tools/core_coverage.py` |
+| 站点流程 | 见 `docs/METRICS.md` 与 `replica/docs/CORE_COVERAGE.md`（占位与 `provenance exit` 均以当次生成值为准，不在此硬编码为 0） | `python tools/core_coverage.py` |
 | 支付挑战与网关 | PayPal 3DS 九阶段 + Stripe 6 端点与挑战 + 静态派发映射 + Unzer/Cardinal/Checkout.com 状态机 | `python tools/payment_challenges.py`、相关单测 |
 | captcha（识别面） | 四家 loader 字面量实证并接入 `StoreFlow.DetectAsync` | `python tools/captcha_coverage.py` |
 | 风控厂商 | `controls ok True`、IDA 字符串缓存完整后 13 项全部命中（含 `Solving POW challange` / `Solving checkpoint`） | `python tools/vendor_coverage.py` |

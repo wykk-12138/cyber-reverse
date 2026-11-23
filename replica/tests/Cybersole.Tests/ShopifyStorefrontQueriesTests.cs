@@ -14,18 +14,16 @@ namespace Cybersole.Tests;
 public sealed class ShopifyStorefrontQueriesTests
 {
     [Fact]
-    public void TheThreeDocumentsAreTheOnesWithAStorefrontSignature()
+    public void TheTwoDocumentsAreTheOnesWithAStorefrontSignature()
     {
         Assert.Equal(5876, ShopifyStorefrontQueries.CartApiObjectCreate.Length);
         Assert.Equal(1622, ShopifyStorefrontQueries.CreateCart.Length);
-        Assert.Equal(1553, ShopifyStorefrontQueries.RemoveLineItemFromCart.Length);
 
         Assert.StartsWith("mutation cartApiObjectCreate($input: CartInput!",
             ShopifyStorefrontQueries.CartApiObjectCreate);
         Assert.StartsWith("mutation createCart($lines: [CartLineInput!]!",
             ShopifyStorefrontQueries.CreateCart);
-        Assert.StartsWith("mutation removeLineItemFromCart($cartId: String!",
-            ShopifyStorefrontQueries.RemoveLineItemFromCart);
+        Assert.Null(ShopifyStorefrontQueries.DocumentFor("removeLineItemFromCart"));
     }
 
     [Fact]
@@ -37,8 +35,8 @@ public sealed class ShopifyStorefrontQueriesTests
 
         Assert.Equal(new[] { "lines", "buyerIdentity", "attributes", "country", "language" },
             ShopifyStorefrontQueries.Declared["createCart"]);
-        Assert.Equal(new[] { "cartId", "lineItemId", "version", "quantity", "locale" },
-            ShopifyStorefrontQueries.Declared["removeLineItemFromCart"]);
+        Assert.Empty(ShopifyStorefrontQueries.Declared["cartCreate"]);
+        Assert.Empty(ShopifyStorefrontQueries.SenderFills["cartCreate"]);
     }
 
     [Fact]
@@ -116,8 +114,7 @@ public sealed class ShopifyStorefrontQueriesTests
         Assert.StartsWith("mutation customerAccessTokenCreate($input: CustomerAccessTok",
             ShopifyStorefrontQueries.CustomerAccessTokenCreate);
 
-        Assert.Equal(new[] { "input", "buyerIdentity", "country", "language" },
-            ShopifyStorefrontQueries.Declared["cartCreate"]);
+        Assert.Empty(ShopifyStorefrontQueries.Declared["cartCreate"]);
         Assert.Equal(new[] { "input" }, ShopifyStorefrontQueries.Declared["customerAccessTokenCreate"]);
     }
 

@@ -19,9 +19,35 @@ public sealed class StoreSessionQueriesTests
         Assert.Equal(197, StoreSessionQueries.GetCustomerInformationDocument.Length);
         Assert.StartsWith("query getCustomerInformation {", StoreSessionQueries.GetCustomerInformationDocument);
         Assert.Equal(3067, StoreSessionQueries.GetPaymentdMethodsDocument.Length);
-        Assert.Equal(67, StoreSessionQueries.ItemDocument.Length);
+        Assert.Equal(67, StoreSessionQueries.ItemPrefix.Length);
+        Assert.Equal(5775, StoreSessionQueries.ItemSuffix.Length);
+        Assert.Equal(5842, StoreSessionQueries.ItemDocument.Length);
+        Assert.EndsWith("}", StoreSessionQueries.ItemDocument.TrimEnd());
         Assert.Equal(3234, StoreSessionQueries.GetCartDocument.Length);
         Assert.StartsWith("query getCart", StoreSessionQueries.GetCartDocument);
+    }
+
+    /// <summary>R1382: sub_140B60C90 interpolates name between ItemPrefix (0x147146EF4) and ItemSuffix (0x146A6E6EC).</summary>
+    [Fact]
+    public void BuildItemDocumentInterpolatesAndBalances()
+    {
+        var query = StoreSessionQueries.BuildItemDocument("Prizm \"Gold\"");
+        Assert.Contains("name: \"Prizm \\\"Gold\\\"\"", query);
+        Assert.Equal(query.Count(c => c == '{'), query.Count(c => c == '}'));
+        Assert.EndsWith("}", query.TrimEnd());
+    }
+
+    /// <summary>R1382: removeLineItemFromCart (0x1470F4C84, sub_140E59240) belongs to the Commercetools session block.</summary>
+    [Fact]
+    public void RemoveLineItemFromCartBelongsToSessionFamily()
+    {
+        Assert.Equal(1553, StoreSessionQueries.RemoveLineItemFromCartDocument.Length);
+        Assert.StartsWith("mutation removeLineItemFromCart($cartId: String!",
+            StoreSessionQueries.RemoveLineItemFromCartDocument);
+        Assert.Equal(new[] { "cartId", "lineItemId", "version", "quantity", "locale" },
+            StoreSessionQueries.Declared["removeLineItemFromCart"]);
+        Assert.Same(StoreSessionQueries.RemoveLineItemFromCartDocument,
+            StoreSessionQueries.DocumentFor("removeLineItemFromCart"));
     }
 
     /// <summary>getPaymentdMethods keeps the image's own spelling of "methods".</summary>

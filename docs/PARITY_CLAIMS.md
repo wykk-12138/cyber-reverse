@@ -56,7 +56,7 @@ Ghidra 留作后手，只有当某条 claim 必须伪代码级证据时才装，
 | C7a | 绑定成员能否在原版定位到**绑定声明** | **pass** | tool-evidence | `python analysis\binding_descriptors.py` → 原版描述符表 951 条 / 215 类型；**51 个 ABSENT 类型全部在表里、成员全覆盖**（R464） | — |
 | C7b | 成员**形状**（getter / setter）两侧一致 | **fail**（当前条数见 `METRICS.md` 的"成员形状差异"） | tool-evidence | `python tools\shape_audit.py`；**用描述符表交叉验证：报出的每一条在原版描述符表里都有 Setter（0 反例）**（R467） | 构成（**R468 当时的实测，非当前值**；当前条数见 `METRICS.md`）：175 条是"原版要可写属性、复刻件实现成 `method`"；61 条是"复刻件根本找不到该成员"；29 条是"数据属性缺 setter"。运行时不受影响（复刻件代码构造 UI，不走 XAML 绑定），但**结构偏离明确**。R468 同时修掉 10 条误报（`ICommand Foo { get; }` 本来就该只读，不算缺 setter） |
 | C7c | 任意两函数的**伪代码等价** | **unknown**（**R718 起有 15 条行为探针**） | unknown | — | 缺原版符号（PDB / 调试信息）。**Ghidra 不能提供**（它只会把 `sub_` 改名成 `FUN_`），故不再作为选项。若将来要证行为等价，优先做**行为探针**（同输入 → 两侧输出/副作用对照），而不是伪代码 diff |
-| C8 | 字符串池对等 | **instrument** | **R1380 仪器** | `python analysis/c8_string_class_compare.py --write-doc` | 四类对照（locale 键/URL/错误消息/dependency）已可复算；四条限制随报告输出，**不是对等判决** | — | 缺**分类比对**：`analysis\pe_strings.txt`（原版）↔ AOT 字符串清单，按 locale 键 / URL / 错误消息分三类逐类比。现有工具无此能力 |
+| C8 | 字符串池对等 | **unknown**（R1380 初版分类仪器） | tool-evidence | `python analysis/c8_string_class_compare.py --write-doc` | 已有初版四类切分仪器（见 `docs/C8_STRING_CLASSES.md`），但 `locale-key` 仍含大量 IDA 拼接的 DLL 碎片噪声（`exact-in-artifact` 仅 19/971）、AOT 侧存在 §4.5 不可见存储，尚不能作为对等判决 |
 | C9 | `.pdata` 覆盖的展开函数数量级相当 | **unknown** | unknown | — | 该口径只覆盖"需要展开信息的函数"，与 `idautils.Functions()` 不等价；要判对等必须先证明两套口径的换算关系。**时点值**（`pe_triage` 的 `.pdata` vsize ÷ 12）：277,094 ↔ 170,137；**当前值见 `docs/METRICS.md`（`.pdata` 直接计数，口径不同，不可相减）** |
 
 > **C6 只判到 Observation 层**：数量差 −41.7% 是事实，但"差在哪"需要 C7；不许用 C6 的 pass 去暗示 C7。

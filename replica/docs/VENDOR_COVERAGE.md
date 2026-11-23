@@ -1,7 +1,7 @@
 # 风控厂商覆盖表（生成物 —— 不要手改）
 
 由 `python tools/vendor_coverage.py` 生成。完成判据 (f) 的风控一半：
-**原版清单从二进制取证**；接线表已于 **R1282 删除**（`VendorWiring.cs` 在运行期无真实调用者，取证与对照移入 `docs/VENDOR_WIRING.md`），所以本表**只有镜像侧清点，没有逐条对照**。
+**原版清单从二进制取证 ↔ 复刻件运行时 `StoreFlow.SolveDetectedWallAsync` 真实求解接线核查**（R1382 修复了 R1296 删表后将 `missing` 强行置 0 的口径遮蔽）。
 
 ## 一、对照是否成立
 
@@ -36,22 +36,37 @@
 Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。
 **所以「用同一个前缀扫全体」会漏掉两家**，这也是每个厂商单独一条查询的原因。
 
-## 三、与 `VendorWiring` 的对账
+## 三、与复刻件运行时反爬分派（`StoreFlow.SolveDetectedWallAsync`）的对账
 
-`VendorWiring` 现有 **0** 行：
+8 家站点风控中，运行时实际接通非空求解器：**1** 家；未接通或仅空回调占位：**7** 家：
 
 | Vendor | State | Solver | Relayed |
 |---|---|---|---|
+| `Akamai` | `NotDispatched` | `None` | False |
+| `BotDeflector` | `NotDispatched` | `None` | False |
+| `Cloudflare` | `StubDefaultNull` | `CloudflareStrategyRunner.Default() (null callbacks)` | True |
+| `DataDome` | `StubDefaultNull` | `InjectedDataDomeSensor.Default() (null callback)` | True |
+| `Kasada` | `RuntimeWired` | `ChromiumKasadaSolver + HttpKasadaSolver` | False |
+| `PerimeterX` | `NotDispatched` | `None` | False |
+| `Queue-it` | `NotDispatched` | `None` | False |
+| `Vercel` | `NotDispatched` | `None` | False |
 
-### 原版点名而台账里没有的（0）
+### 原版点名而复刻件运行时未接通求解的站点风控（7）
 
-（无）
+| 缺的 | 命中 | 类别 | 处置 |
+|---|---|---|---|
+| **Akamai** | 3 | vendor | 运行时状态 `NotDispatched`（`None`）；原版有明确求解文案，复刻件运行时尚未接通可用求解器。 |
+| **BotDeflector** | 2 | vendor | 运行时状态 `NotDispatched`（`None`）；原版有两条文案（`Solving BotDeflector icons` · `Solving BotDeflector proof of work`），所以它是**两种挑战**（图标点选 + PoW）。补行需要先定 `Solver`：镜像里没有第三方指向，但那不等于自建 —— R1029 的 `Relayed` 两轴就是为这种情形留的。 |
+| **Cloudflare** | 12 | vendor | 运行时状态 `StubDefaultNull`（`CloudflareStrategyRunner.Default() (null callbacks)`）；原版有明确求解文案，复刻件运行时尚未接通可用求解器。 |
+| **DataDome** | 1 | vendor | 运行时状态 `StubDefaultNull`（`InjectedDataDomeSensor.Default() (null callback)`）；原版有明确求解文案，复刻件运行时尚未接通可用求解器。 |
+| **PerimeterX** | 1 | vendor | 运行时状态 `NotDispatched`（`None`）；原版有明确求解文案，复刻件运行时尚未接通可用求解器。 |
+| **Queue-it** | 1 | vendor | 运行时状态 `NotDispatched`（`None`）；原版有明确求解文案，复刻件运行时尚未接通可用求解器。 |
+| **Vercel** | 2 | vendor | 运行时状态 `NotDispatched`（`None`）；只有 `Solving Vercel` 一条，没有分期文案。补行的最小诚实形态是 `State.DetectedOnly` + `Solver.Unknown`，因为镜像只证明它被走到，不证明怎么解。 |
 
-**→ 这些是 `VendorWiring` 的缺口**：原版对它们有进度文案，说明原版确实走到那一步，
-而台账没有对应的行 ⇒ 按 (f)「未覆盖的每条写为什么」。
+**→ 说明**：支付侧挑战（`Stripe challenge`、`PayPal 3DS`）归支付层单独核查；通用挑战名（`captcha`、`proof of work`、`checkpoint`）不按单厂商计缺口。
 
 ## 四、边界
 
-- **有文案不等于有 solver**：文案说明原版走到那一步，而它交给第三方、自建还是内联，要另找证据（`VendorWiring.Solver` 那一列就是在记这件事）。
+- **有文案不等于有本地自建 solver**：文案说明原版走到那一步，而它交给第三方、自建还是内联，要按反编译证据核实。
 - **没有文案不等于没处理**：Kasada 与 Queue-it 都已经证明这一点（形状不同）。
 - **对照只能证明「查得到」**：前缀查询 > 0 不等于该厂商在所有站上都启用。

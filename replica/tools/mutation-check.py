@@ -718,8 +718,9 @@ def content_manifest():
     import hashlib
     manifest = {}
     for base in ("src", "tests", "tools"):
-        for dp, _d, fns in os.walk(os.path.join(REPO, base)):
-            if f"{os.sep}obj{os.sep}" in dp or f"{os.sep}bin{os.sep}" in dp or ".mutation-backup" in dp:
+        for dp, dns, fns in os.walk(os.path.join(REPO, base)):
+            dns[:] = [d for d in dns if d not in ("obj", "bin", ".mutation-backup", ".snapshots", "__pycache__")]
+            if f"{os.sep}obj{os.sep}" in dp or f"{os.sep}bin{os.sep}" in dp or ".mutation-backup" in dp or ".snapshots" in dp:
                 continue
             for fn in fns:
                 if not (fn.endswith(".cs") or fn.endswith(".py")):

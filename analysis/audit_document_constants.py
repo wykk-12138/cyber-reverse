@@ -28,10 +28,17 @@ ROOT = 'replica/src'
 VERBATIM = re.compile(r'(?:const|static readonly)\s+string\s+(\w+)\s*=\s*@"((?:[^"]|"")*)";', re.S)
 REGULAR = re.compile(r'(?:const|static readonly)\s+string\s+(\w+)\s*=\s*"((?:[^"\\]|\\.)*)";')
 BARE_ELLIPSIS = re.compile(r'\.\.\.(?!\s*(?:[A-Za-z_]|on\b|\{))')
+GQL_HEAD = re.compile(r'^\s*(?:mutation|query|fragment)\s+\w+', re.S)
 
 
-def is_fragment(body):
-    return body[:1] in (')', ',', '"')
+def is_fragment(body, name=''):
+    if body[:1] in (')', ',', '"'):
+        return True
+    # R1382: an explicitly named *Prefix/*Suffix half of an interpolated query (e.g. ItemPrefix + name + ItemSuffix)
+    # is declared as a fragment rather than a standalone document.
+    if name.endswith(('Prefix', 'Suffix')):
+        return True
+    return False
 
 
 def documents():
@@ -50,16 +57,18 @@ def documents():
                         body = body.replace('""', '"')
                     else:
                         body = body.encode('utf-8').decode('unicode_escape', 'replace')
-                    if len(body) < 200:
-                        continue
-                    if not any(signal in body for signal in ('mutation', 'query', 'fragment', '{')):
+                    # R1382: drop the <200-char blind spot for real GraphQL documents (e.g. 67-char truncated ItemDocument,
+                    # 74-char GetCartCookie, 91-char cartCreate, 133-char getSession, 148-char checkoutAsGuest).
+                    is_short_gql = len(body) >= 40 and GQL_HEAD.match(body) is not None
+                    is_long_doc = len(body) >= 200 and any(signal in body for signal in ('mutation', 'query', 'fragment', '{'))
+                    if not (is_short_gql or is_long_doc):
                         continue
                     line = text[:match.start()].count('\n') + 1
                     found.append((os.path.relpath(path, ROOT), line, match.group(1), body))
     return found
 
 
-def problems_in(body):
+def problems_in(body, name=''):
     issues = []
     if 'chars total' in body:
         issues.append('truncation marker')
@@ -69,7 +78,7 @@ def problems_in(body):
         if word in body:
             issues.append(word)
 
-    fragment = is_fragment(body)
+    fragment = is_fragment(body, name)
     if not fragment:
         opens, closes = body.count('{'), body.count('}')
         if opens != closes:
@@ -85,12 +94,12 @@ def main():
     found = documents()
     print('document-shaped constants: %d' % len(found))
 
-    fragments = [entry for entry in found if is_fragment(entry[3])]
+    fragments = [entry for entry in found if is_fragment(entry[3], entry[2])]
     print('of which declared fragments (header supplied by the caller): %d' % len(fragments))
 
     total = 0
     for path, line, name, body in found:
-        issues = problems_in(body)
+        issues = problems_in(body, name)
         if not issues:
             continue
         total += 1

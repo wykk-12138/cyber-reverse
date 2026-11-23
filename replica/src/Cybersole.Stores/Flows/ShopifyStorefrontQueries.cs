@@ -12,17 +12,20 @@ namespace Cybersole.Stores.Flows;
 /// The Shopify Storefront mutations the image carries.
 ///
 /// <para>
-/// <b>Observed</b> (R1348, R1349): three documents whose variable signatures are Storefront's own —
-/// <c>cartApiObjectCreate</c> (5876 characters, 0x1470EF5FC), <c>createCart</c> (1622, 0x1470F260C) and
-/// <c>removeLineItemFromCart</c> (1553, 0x1470F4C84) — posted to <c>api/&lt;version&gt;/graphql.json</c> with a
-/// Storefront access token header.
+/// <b>Observed</b> (R1348, R1349, R1352, corrected R1382): four documents posted to
+/// <c>api/&lt;version&gt;/graphql.json</c> with a Storefront access token header —
+/// <c>cartApiObjectCreate</c> (5876 characters, 0x1470EF5FC), <c>createCart</c> (1622, 0x1470F260C),
+/// <c>cartCreate</c> (91, 0x1470F23FC, API 2021-10, 0 variables) and <c>customerAccessTokenCreate</c>
+/// (250, 0x1470F41B4).
 /// </para>
 ///
 /// <para>
-/// <b>Why only three:</b> the other documents in that address range are not Storefront. <c>setBillingAddress</c>
-/// declares an action object plus two locales, which is the shape the Highsnobiety family uses, and
-/// <c>createCheckout</c> carries a recaptcha token. An address cluster is a lead; the variable signature is the
-/// evidence.
+/// <b>Why not <c>setBillingAddress</c> or <c>removeLineItemFromCart</c>:</b> <c>setBillingAddress</c>
+/// declares an action object plus two locales (tm-api / Highsnobiety). <c>removeLineItemFromCart</c>
+/// (0x1470F4C84) was misfiled here in R1349 and moved to <see cref="StoreSessionQueries"/> in R1382:
+/// its sender <c>sub_140E59240</c> sits in the <c>0x140E5xxxx</c> Commercetools session block, has no
+/// Shopify path, and calls <c>updateMyCart</c> with <c>version: Long!</c> / <c>locale: Locale!</c> /
+/// <c>centAmount</c>.
 /// </para>
 ///
 /// <para>
@@ -41,13 +44,10 @@ public static class ShopifyStorefrontQueries
     /// <summary>createCart, 1622 characters from 0x1470F260C.</summary>
     public const string CreateCart = "mutation createCart($lines: [CartLineInput!]!, $buyerIdentity: CartBuyerIdentityInput!, $attributes: [AttributeInput!], $language: LanguageCode, $country: CountryCode) @inContext(language: $language, country: $country) {\r\n  cartCreate(\r\n    input: {lines: $lines, buyerIdentity: $buyerIdentity, attributes: $attributes}\r\n  ) {\r\n    cart {\r\n      ...ShopifyCart\r\n    }\r\n    userErrors {\r\n      field\r\n      message\r\n    }\r\n  }\r\n}\r\n\r\nfragment ShopifyCart on Cart {\r\n  id\r\n  checkoutUrl\r\n  totalQuantity\r\n  attributes {\r\n    key\r\n    value\r\n  }\r\n  lines(first: 250) {\r\n    edges {\r\n      node {\r\n        id\r\n        quantity\r\n        attributes {\r\n          key\r\n          value\r\n        }\r\n        cost {\r\n          amountPerQuantity {\r\n            amount\r\n            currencyCode\r\n          }\r\n          totalAmount {\r\n            amount\r\n            currencyCode\r\n          }\r\n          subtotalAmount {\r\n            amount\r\n            currencyCode\r\n          }\r\n        }\r\n        merchandise {\r\n          ...ProductVariant\r\n        }\r\n      }\r\n    }\r\n  }\r\n  discountAllocations {\r\n    discountedAmount {\r\n      amount\r\n      currencyCode\r\n    }\r\n  }\r\n  cost {\r\n    totalAmount {\r\n      amount\r\n      currencyCode\r\n    }\r\n    subtotalAmount {\r\n      amount\r\n      currencyCode\r\n    }\r\n  }\r\n}\r\n\r\nfragment ProductVariant on ProductVariant {\r\n  id\r\n  sku\r\n  price {\r\n    amount\r\n    currencyCode\r\n  }\r\n  product {\r\n    id\r\n    description\r\n    title\r\n  }\r\n  image {\r\n    url\r\n  }\r\n  title\r\n  unitPrice {\r\n    amount\r\n    currencyCode\r\n  }\r\n  taxable\r\n  currentlyNotInStock\r\n  selectedOptions {\r\n    name\r\n    value\r\n  }\r\n}";
 
-    /// <summary>removeLineItemFromCart, 1553 characters from 0x1470F4C84.</summary>
-    public const string RemoveLineItemFromCart = "mutation removeLineItemFromCart($cartId: String!, $lineItemId: String!, $version: Long!, $quantity: Long!, $locale: Locale!) {\n  updateMyCart(\n    id: $cartId\n    actions: {removeLineItem: {lineItemId: $lineItemId, quantity: $quantity}}\n    version: $version\n  ) {\n    id\n    version\n    isAbleToCheckout\n    isRestricted\n    isHazardous\n    isEmpty\n    isDangerous\n    splittableSupplyChannelKeys\n    isSplit\n    discountedPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n    customerGroup {\n      key\n    }\n    lineItems {\n      ...defaultLineItem\n    }\n    totalLineItemQuantity\n    totalPrice {\n      centAmount\n      currencyCode\n      fractionDigits\n    }\n  }\n}\n\nfragment defaultLineItem on LineItem {\n  id\n  productId\n  productSlug(locale: $locale)\n  name(locale: $locale)\n  productType {\n    id\n    version\n    name\n  }\n  totalPrice {\n    centAmount\n    currencyCode\n    fractionDigits\n  }\n  preDiscountedPrice {\n    centAmount\n    currencyCode\n    fractionDigits\n  }\n  shippingDetails {\n    targets {\n      addressKey\n      shippingMethodKey\n      quantity\n    }\n    valid\n  }\n  productKey\n  quantity\n  variant {\n    sku\n    key\n    images {\n      url\n    }\n    attributesRaw {\n      name\n      value\n    }\n  }\n  discountedPricePerQuantity {\n    discountedPrice {\n      includedDiscounts {\n        discount {\n          id\n          key\n          description(locale: $locale)\n        }\n      }\n    }\n  }\n  custom {\n    customFieldsRaw {\n      name\n      value\n    }\n  }\n  supplyChannel {\n    id\n    key\n  }\n  lineItemMode\n}";
-
-    /// <summary>cartCreate, 91 characters from 0x1470F23FC — its sender pins API version 2021-10.</summary>
+    /// <summary>cartCreate, 91 characters from 0x1470F23FC — its sender sub_140D1D8F0 pins API version 2021-10 and declares 0 variables.</summary>
     public const string CartCreate = "mutation cartCreate { cartCreate { cart { checkoutUrl id } userErrors { field message } } }";
 
-    /// <summary>The version cartCreate's sender uses; the other two pin 2025-04, so the version is per call.</summary>
+    /// <summary>The version cartCreate's sender uses; the others pin 2025-04, so the version is per call.</summary>
     public const string CartCreateApiVersion = "2021-10";
 
     /// <summary>customerAccessTokenCreate, 250 characters from 0x1470F41B4, on API version 2025-04.</summary>
@@ -62,8 +62,7 @@ public static class ShopifyStorefrontQueries
             "includeProductTags", "includeCustomerTags", "country", "metafieldsIdentifiers",
         },
         ["createCart"] = new[] { "lines", "buyerIdentity", "attributes", "country", "language" },
-        ["removeLineItemFromCart"] = new[] { "cartId", "lineItemId", "version", "quantity", "locale" },
-        ["cartCreate"] = new[] { "input", "buyerIdentity", "country", "language" },
+        ["cartCreate"] = Array.Empty<string>(),
         ["customerAccessTokenCreate"] = new[] { "input" },
     };
 
@@ -76,17 +75,15 @@ public static class ShopifyStorefrontQueries
             "includeProductTags", "includeCustomerTags", "country",
         },
         ["createCart"] = new[] { "lines", "buyerIdentity", "attributes", "country", "language" },
-        ["removeLineItemFromCart"] = new[] { "cartId", "lineItemId", "version", "quantity", "locale" },
-        ["cartCreate"] = new[] { "input" },
+        ["cartCreate"] = Array.Empty<string>(),
         ["customerAccessTokenCreate"] = new[] { "input" },
     };
 
-    /// <summary>The document for an operation, or null when it is not one of the three.</summary>
+    /// <summary>The document for an operation, or null when it is not one of the four Storefront operations.</summary>
     public static string? DocumentFor(string operation) => operation switch
     {
         "cartApiObjectCreate" => CartApiObjectCreate,
         "createCart" => CreateCart,
-        "removeLineItemFromCart" => RemoveLineItemFromCart,
         "cartCreate" => CartCreate,
         "customerAccessTokenCreate" => CustomerAccessTokenCreate,
         _ => null,

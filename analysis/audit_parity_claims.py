@@ -13,8 +13,9 @@ P = 'D:/projects/cyber-reverse/docs/PARITY_CLAIMS.md'
 lines = io.open(P, encoding='utf-8').read().split('\n')
 
 rows = []
+malformed = []
 header = None
-for line in lines:
+for lineno, line in enumerate(lines, 1):
     s = line.strip()
     if not s.startswith('|'):
         header = None if not s else header
@@ -27,10 +28,14 @@ for line in lines:
     if header is None or set(''.join(cells)) <= set('-: '):
         continue
     if len(cells) != len(header):
+        malformed.append((lineno, len(cells), len(header), cells[0] if cells else '?'))
         continue
     rows.append(dict(zip(header, cells)))
 
 print('claims parsed:', len(rows))
+print('malformed claim rows:', len(malformed))
+for lineno, got, want, cid in malformed:
+    print('  MALFORMED L%d (%s): got %d cells, expected %d' % (lineno, cid, got, want))
 if not rows:
     raise SystemExit('no claim rows found -- check the table format')
 
@@ -52,4 +57,7 @@ for label, group in (('NO-AUTHORITY', no_authority), ('NO-COMMAND', no_command),
         print('  %-14s %-6s %s' % (label, r.get('id', '?'), r.get('claim', '')[:70]))
 
 print()
-print('CRITERION (d):', 'MET' if not (no_authority or no_command or unknown_without_gap) else 'NOT MET')
+met = not (malformed or no_authority or no_command or unknown_without_gap)
+print('CRITERION (d):', 'MET' if met else 'NOT MET')
+if not met:
+    raise SystemExit(1)

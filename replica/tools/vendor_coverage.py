@@ -24,6 +24,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.dirname(ROOT)
 OUT = os.path.join(ROOT, "docs", "VENDOR_COVERAGE.md")
 WIRING = os.path.join(ROOT, "src", "Cybersole.Stores", "Scripts", "VendorWiring.cs")
+STORE_FLOW = os.path.join(ROOT, "src", "Cybersole.Stores", "Flows", "StoreFlow.cs")
+CF_STRATEGY = os.path.join(ROOT, "src", "Cybersole.Stores", "Scripts", "CloudflareStrategy.cs")
+DD_CLEARANCE = os.path.join(ROOT, "src", "Cybersole.Stores", "Scripts", "DataDomeClearance.cs")
+
+SITE_ANTIBOT_VENDORS = {
+    "Akamai", "BotDeflector", "Cloudflare", "DataDome", "Kasada", "PerimeterX", "Queue-it", "Vercel",
+}
 
 # The image's own vocabulary. Each vendor needs its own probe because the wording differs per vendor -- Kasada never
 # appears in the Solving family at all, and Queue-it only ever appears in an error line, which is exactly the kind of
@@ -119,6 +126,47 @@ def wiring_rows():
     return rows
 
 
+def runtime_vendor_audit():
+    """Inspect StoreFlow.SolveDetectedWallAsync to measure real runtime anti-bot solver wiring.
+
+    R1382: R1282 deleted VendorWiring.cs, and R1296 then short-circuited `missing` to 0 whenever the table
+    was absent — making METRICS.md read `wiring rows=0 / missing=0` while 7 of 8 site anti-bot vendors have
+    no live runtime solver (Cloudflare and DataDome call `.Default()` with null callbacks; Akamai, BotDeflector,
+    PerimeterX, Queue-it and Vercel are not dispatched in SolveDetectedWallAsync at all).
+    """
+    flow_text = io.open(STORE_FLOW, encoding="utf-8", errors="replace").read() if os.path.exists(STORE_FLOW) else ""
+    cf_text = io.open(CF_STRATEGY, encoding="utf-8", errors="replace").read() if os.path.exists(CF_STRATEGY) else ""
+    dd_text = io.open(DD_CLEARANCE, encoding="utf-8", errors="replace").read() if os.path.exists(DD_CLEARANCE) else ""
+
+    m = re.search(r"SolveDetectedWallAsync\([^)]*\)\s*\{(?P<body>.*?\n    \})", flow_text, re.S)
+    body = m.group("body") if m else ""
+
+    rows = []
+    # Check each of the 8 site anti-bot vendors against actual runtime dispatch in SolveDetectedWallAsync
+    for vendor in ("Akamai", "BotDeflector", "Cloudflare", "DataDome", "Kasada", "PerimeterX", "Queue-it", "Vercel"):
+        key = vendor.lower()
+        if key == "kasada":
+            has_live = ("KasadaStrategyRunner.Default(" in body and
+                        ("ChromiumKasadaSolver" in body or "HttpKasadaSolver" in body))
+            rows.append((vendor, "RuntimeWired" if has_live else "NotDispatched",
+                         "ChromiumKasadaSolver + HttpKasadaSolver", False))
+        elif key == "cloudflare":
+            dispatched = "CloudflareClearance" in body
+            default_null = ("CloudflareStrategyRunner.Default()" in body and
+                            "serviceCall = null" in cf_text and "inBotSolve = null" in cf_text)
+            state = "StubDefaultNull" if (dispatched and default_null) else ("RuntimeWired" if dispatched else "NotDispatched")
+            rows.append((vendor, state, "CloudflareStrategyRunner.Default() (null callbacks)" if default_null else "Custom", True))
+        elif key == "datadome":
+            dispatched = "DataDomeClearance" in body
+            default_null = ("InjectedDataDomeSensor.Default()" in body and "call = null" in dd_text)
+            state = "StubDefaultNull" if (dispatched and default_null) else ("RuntimeWired" if dispatched else "NotDispatched")
+            rows.append((vendor, state, "InjectedDataDomeSensor.Default() (null callback)" if default_null else "Custom", True))
+        else:
+            dispatched = f'"{key}"' in body
+            rows.append((vendor, "RuntimeWired" if dispatched else "NotDispatched", "None", False))
+    return rows
+
+
 def main():
     controls = [(name, probe(pat).get("n", -1)) for name, pat in CONTROLS]
     control_ok = all(n > 0 for _, n in controls)
@@ -136,22 +184,27 @@ def main():
 
     rows = wiring_rows()
     wiring_removed = rows is None
+    runtime_rows = runtime_vendor_audit() if wiring_removed else []
     if wiring_removed:
-        rows = []
+        rows = runtime_rows
+        live_wired = {r[0] for r in runtime_rows if r[1] == "RuntimeWired"}
+        # Every site anti-bot vendor present in the image without a live runtime solver is an honest gap.
+        missing = [(name, n, addr) for name, _pat, n, addr in found
+                   if n > 0 and name in SITE_ANTIBOT_VENDORS and name not in live_wired]
+        live_count = len(live_wired)
     elif not rows:
         print("  !! parsed zero wiring rows -- refusing to publish a table that would claim every vendor is missing")
         return 2
-
-    wired = {r[0] for r in rows}
-    # R1296: with the table removed there is nothing to compare against, so a missing list would name all
-    # thirteen vendors -- a confident wrong answer rather than an honest "not applicable".
-    missing = []
-    for name, pattern, n, addr in (() if wiring_removed else found):
-        if n <= 0:
-            continue
-        stem = re.sub(r"[^a-z]", "", name.lower())[:5]
-        if not any(stem in k for k in wired):
-            missing.append((name, n, addr))
+    else:
+        wired = {r[0] for r in rows}
+        missing = []
+        for name, pattern, n, addr in found:
+            if n <= 0:
+                continue
+            stem = re.sub(r"[^a-z]", "", name.lower())[:5]
+            if not any(stem in k for k in wired):
+                missing.append((name, n, addr))
+        live_count = len(rows)
 
     lines = []
     add = lines.append
@@ -159,8 +212,7 @@ def main():
     add("")
     add("由 `python tools/vendor_coverage.py` 生成。完成判据 (f) 的风控一半：")
     if wiring_removed:
-        add("**原版清单从二进制取证**；接线表已于 **R1282 删除**（`VendorWiring.cs` 在运行期无真实调用者，"
-            "取证与对照移入 `docs/VENDOR_WIRING.md`），所以本表**只有镜像侧清点，没有逐条对照**。")
+        add("**原版清单从二进制取证 ↔ 复刻件运行时 `StoreFlow.SolveDetectedWallAsync` 真实求解接线核查**（R1382 修复了 R1296 删表后将 `missing` 强行置 0 的口径遮蔽）。")
     else:
         add("**原版清单从二进制取证 ↔ `VendorWiring` 逐条对**。")
     add("")
@@ -187,43 +239,35 @@ def main():
     add("Queue-it 只在 `Error Solving Queue-it (Softblock)` 这一条错误文案里。")
     add("**所以「用同一个前缀扫全体」会漏掉两家**，这也是每个厂商单独一条查询的原因。")
     add("")
-    add("## 三、与 `VendorWiring` 的对账")
+    add("## 三、与复刻件运行时反爬分派（`StoreFlow.SolveDetectedWallAsync`）的对账")
     add("")
-    add("`VendorWiring` 现有 **%d** 行：" % len(rows))
+    add("8 家站点风控中，运行时实际接通非空求解器：**%d** 家；未接通或仅空回调占位：**%d** 家：" % (live_count, len(missing)))
     add("")
     add("| Vendor | State | Solver | Relayed |")
     add("|---|---|---|---|")
     for name, state, solver, relayed in rows:
         add("| `%s` | `%s` | `%s` | %s |" % (name, state, solver, relayed))
     add("")
-    add("### 原版点名而台账里没有的（%d）" % len(missing))
+    add("### 原版点名而复刻件运行时未接通求解的站点风控（%d）" % len(missing))
     add("")
     if missing:
         add("| 缺的 | 命中 | 类别 | 处置 |")
         add("|---|---|---|---|")
+        state_map = {r[0]: (r[1], r[2]) for r in rows}
         for name, n, addr in missing:
-            kind, why = DISPOSITION.get(name, ("?", "（未分类 —— 这是生成器的缺口，不是结论）"))
-            add("| **%s** | %d | %s | %s |" % (name, n, kind, why))
-        real = [m for m in missing if DISPOSITION.get(m[0], ("?",))[0] == "vendor"]
-        other = [m for m in missing if DISPOSITION.get(m[0], ("?",))[0] != "vendor"]
+            st, slv = state_map.get(name, ("?", "?"))
+            default_why = ("运行时状态 `%s`（`%s`）；" % (st, slv)) + DISPOSITION.get(
+                name, ("vendor", "原版有明确求解文案，复刻件运行时尚未接通可用求解器。"))[1]
+            kind = DISPOSITION.get(name, ("vendor", ""))[0]
+            add("| **%s** | %d | %s | %s |" % (name, n, kind, default_why))
         add("")
-        add("**→ 分成两类，而这是完成判据 (f) 要的「未覆盖的每条写为什么」：**")
-        add("")
-        add("- **真厂商缺口 %d 个**（%s）：`VendorWiring` 应该补行。"
-            % (len(real), " · ".join("`%s`" % m[0] for m in real) or "无"))
-        add("- **不属于这张表的 %d 个**（%s）：它们不是站点风控厂商 —— 支付挑战归支付层，"
-            "通用挑战类型是 `VendorWiring` 的形状不该建模的东西。"
-            % (len(other), " · ".join("`%s`" % m[0] for m in other) or "无"))
+        add("**→ 说明**：支付侧挑战（`Stripe challenge`、`PayPal 3DS`）归支付层单独核查；通用挑战名（`captcha`、`proof of work`、`checkpoint`）不按单厂商计缺口。")
     else:
         add("（无）")
     add("")
-    add("**→ 这些是 `VendorWiring` 的缺口**：原版对它们有进度文案，说明原版确实走到那一步，")
-    add("而台账没有对应的行 ⇒ 按 (f)「未覆盖的每条写为什么」。")
-    add("")
     add("## 四、边界")
     add("")
-    add("- **有文案不等于有 solver**：文案说明原版走到那一步，而它交给第三方、自建还是内联，"
-        "要另找证据（`VendorWiring.Solver` 那一列就是在记这件事）。")
+    add("- **有文案不等于有本地自建 solver**：文案说明原版走到那一步，而它交给第三方、自建还是内联，要按反编译证据核实。")
     add("- **没有文案不等于没处理**：Kasada 与 Queue-it 都已经证明这一点（形状不同）。")
     add("- **对照只能证明「查得到」**：前缀查询 > 0 不等于该厂商在所有站上都启用。")
     add("")
@@ -231,7 +275,7 @@ def main():
     io.open(OUT, "w", encoding="utf-8", newline="").write("\n".join(lines))
     print("  wrote docs/VENDOR_COVERAGE.md")
     print("  controls ok=%s  vendors named=%d  wiring rows=%d  missing=%d"
-          % (control_ok, sum(1 for f in found if f[2] > 0), len(rows), len(missing)))
+          % (control_ok, sum(1 for f in found if f[2] > 0), live_count, len(missing)))
     for name, n, addr in missing:
         print("    missing: %-18s n=%-3d %s" % (name, n, addr))
     return 0

@@ -18,7 +18,7 @@ def main():
     files = []
     for root in ROOTS:
         for dirpath, dirnames, filenames in os.walk(root):
-            dirnames[:] = [d for d in dirnames if d not in ('obj', 'bin', '__pycache__')]
+            dirnames[:] = [d for d in dirnames if d not in ('obj', 'bin', '__pycache__', '.snapshots', '.mutation-backup')]
             for name in filenames:
                 if name.endswith(EXTS):
                     files.append(os.path.join(dirpath, name).replace('\\', '/'))

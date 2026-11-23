@@ -46,9 +46,75 @@ public class ShopifyFlow : StoreFlow
         c.Session.Vars["shop"] = Regex.Match(res.Body, @"Shopify\.shop\s*=\s*""([^""]+)""").Groups[1].Value;
         c.Session.Vars["currency"] = Regex.Match(res.Body, @"Shopify\.currency\s*=\s*\{[^}]*""active""\s*:\s*""([^""]+)""").Groups[1].Value;
 
-        var csrf = Regex.Match(res.Body, @"name=""authenticity_token""\s+value=""([^""]+)""");
-        if (csrf.Success) c.Session.CsrfToken = csrf.Groups[1].Value;
+        var csrf = Cybersole.Stores.Payments.HtmlFormDom.ExtractElementAttribute(
+            res.Body, "input[name='authenticity_token']", "value");
+        if (!string.IsNullOrEmpty(csrf)) c.Session.CsrfToken = csrf;
+
+        if (!string.IsNullOrEmpty(c.Url) &&
+            c.Url.Contains("on.com", StringComparison.OrdinalIgnoreCase))
+        {
+            var guestEmail = c.ProfileData?.Email ?? c.Account?.Email;
+            if (!string.IsNullOrEmpty(guestEmail))
+            {
+                c.Session.Vars["onRunning.guest"] = "true";
+                c.Session.Vars["onRunning.guestEmail"] = guestEmail!;
+            }
+        }
+
         return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> LoginAsync(FlowContext c, CancellationToken ct)
+    {
+        var medium = c.Session.Vars.GetValueOrDefault("shopapp.guestMedium");
+        if (!string.IsNullOrEmpty(medium) ||
+            c.Session.Vars.ContainsKey("shopapp.url") ||
+            (!string.IsNullOrEmpty(c.Url) && c.Url.Contains("shop.app", StringComparison.OrdinalIgnoreCase)))
+        {
+            var appUrl = c.Session.Vars.GetValueOrDefault("shopapp.url") ?? ShopAppProduct.Url;
+            c.Session.Vars["shopapp.url"] = appUrl;
+            var vars = new JObject { ["medium"] = string.IsNullOrEmpty(medium) ? "EMAIL" : medium! };
+            var (guestData, guestErr) = await StoreSessionQueries
+                .SendAsync(c, appUrl, "SignInAsGuest", vars, ct)
+                .ConfigureAwait(false);
+            if (guestData is null) return StepOutcome.Fail(guestErr, retryable: true);
+
+            var auth = guestData["signInAsGuest"]?["authPayload"];
+            var at = auth?["accessToken"]?.ToString();
+            var rt = auth?["refreshToken"]?.ToString();
+            if (!string.IsNullOrEmpty(at)) c.Session.Vars["shopapp.accessToken"] = at!;
+            if (!string.IsNullOrEmpty(rt)) c.Session.Vars["shopapp.refreshToken"] = rt!;
+            return StepOutcome.Success();
+        }
+
+        if (c.Session.Vars.TryGetValue(GraphQlTokenVar, out var sfToken) &&
+            !string.IsNullOrWhiteSpace(sfToken) &&
+            c.Account is { Email: { Length: > 0 } email })
+        {
+            var sfHost = c.Session.Vars.GetValueOrDefault("shopify.storefrontHost")
+                         ?? (Uri.TryCreate(c.Url, UriKind.Absolute, out var u) ? u.Authority : c.Url);
+            var vars = new JObject
+            {
+                ["input"] = new JObject
+                {
+                    ["email"] = email,
+                    ["password"] = c.Account.Password ?? string.Empty,
+                },
+            };
+            var (tokData, tokErr) = await ShopifyStorefrontQueries
+                .SendAsync(c, sfHost, sfToken, "customerAccessTokenCreate", vars, ct)
+                .ConfigureAwait(false);
+            if (tokData is null) return StepOutcome.Fail(tokErr, retryable: true);
+
+            var access = tokData["customerAccessTokenCreate"]?["customerAccessToken"]?["accessToken"]?.ToString();
+            if (string.IsNullOrEmpty(access))
+                return StepOutcome.Fail("shopify: customerAccessTokenCreate returned no accessToken");
+            c.Session.Vars["shopify.customerAccessToken"] = access!;
+            c.Session.Vars["accessToken"] = access!;
+            return StepOutcome.Success();
+        }
+
+        return await base.LoginAsync(c, ct).ConfigureAwait(false);
     }
 
     public override async Task<StepOutcome> GetCsrfAsync(FlowContext c, CancellationToken ct)
@@ -215,11 +281,19 @@ public class ShopifyFlow : StoreFlow
         // R1351: the product-drops app query. Its path is relative with the operation in the query string, so
         // the origin comes from the run; the handle is the one this step already resolved from the url.
         var dropsOrigin = c.Session.Vars.GetValueOrDefault("productdrops.origin");
+        if (string.IsNullOrEmpty(dropsOrigin) &&
+            !string.IsNullOrEmpty(c.Url) &&
+            c.Url.Contains("product-drops", StringComparison.OrdinalIgnoreCase))
+        {
+            dropsOrigin = Origin(c.Url);
+            c.Session.Vars["productdrops.origin"] = dropsOrigin;
+        }
         if (!string.IsNullOrEmpty(dropsOrigin))
         {
             var dropsHandle = c.Session.Vars.GetValueOrDefault("productdrops.handle") ?? ProductHandle(c.Url);
             if (string.IsNullOrEmpty(dropsHandle))
                 return StepOutcome.Fail("shopify: product-drops needs a handle and the url has none");
+            c.Session.Vars["productdrops.handle"] = dropsHandle!;
 
             var (dropsData, dropsError) = await ShopifyProductDrops.FetchAsync(c, dropsOrigin,
                 new JObject { ["handle"] = dropsHandle }, ct).ConfigureAwait(false);
@@ -239,6 +313,9 @@ public class ShopifyFlow : StoreFlow
                 ["first"] = int.TryParse(c.Session.Vars.GetValueOrDefault("shopapp.first"), out var first) ? first : 10,
                 ["searchKind"] = c.Session.Vars.GetValueOrDefault("shopapp.searchKind") ?? "SHOP_STORE_PRODUCT_SEARCH",
             };
+            c.Session.Vars["shopapp.searchKey"] = searchKey!;
+            c.Session.Vars["shopapp.first"] = searchVariables["first"]!.ToString();
+            c.Session.Vars["shopapp.searchKind"] = searchVariables["searchKind"]!.ToString();
 
             var (results, searchError) = await ShopAppProduct
                 .SearchAsync(c, searchVariables, ct, c.Session.Vars.GetValueOrDefault("shopapp.url"))
@@ -246,6 +323,13 @@ public class ShopifyFlow : StoreFlow
             if (results is null) return StepOutcome.Fail(searchError);
 
             c.Session.Vars["search"] = results.ToString(Newtonsoft.Json.Formatting.None);
+            var firstNode = results["shopProductSearch"]?["nodes"]?.FirstOrDefault();
+            var foundShopId = firstNode?["shop"]?["id"]?.ToString();
+            if (!string.IsNullOrEmpty(foundShopId)) c.Session.Vars["shopapp.brokerId"] = foundShopId!;
+            var foundPid = firstNode?["id"]?.ToString();
+            if (!string.IsNullOrEmpty(foundPid)) c.Session.Vars["shopapp.productId"] = foundPid!;
+            var foundVid = firstNode?["defaultVariantId"]?.ToString();
+            if (!string.IsNullOrEmpty(foundVid)) c.Session.Vars["shopapp.variantId"] = foundVid!;
             return StepOutcome.Success();
         }
 
@@ -264,6 +348,8 @@ public class ShopifyFlow : StoreFlow
                     : 250,
                 ["sortReviewsBy"] = ShopAppProduct.SortRecommended,
             };
+            c.Session.Vars["shopapp.imageWidth"] = shopAppVariables["imageWidth"]!.ToString();
+            c.Session.Vars["shopapp.variantsLimit"] = shopAppVariables["variantsLimit"]!.ToString();
 
             if (c.Session.Vars.TryGetValue("shopapp.productInput", out var productInput) &&
                 !string.IsNullOrWhiteSpace(productInput))
@@ -286,7 +372,13 @@ public class ShopifyFlow : StoreFlow
 
             c.Session.Vars["product"] = product.ToString(Newtonsoft.Json.Formatting.None);
             var productId = product["id"]?.ToString();
-            if (!string.IsNullOrEmpty(productId)) c.Session.Vars["productId"] = productId;
+            if (!string.IsNullOrEmpty(productId))
+            {
+                c.Session.Vars["productId"] = productId!;
+                c.Session.Vars["shopapp.productId"] = productId!;
+            }
+            var firstVarId = product["variants"]?["nodes"]?.FirstOrDefault()?["id"]?.ToString();
+            if (!string.IsNullOrEmpty(firstVarId)) c.Session.Vars["shopapp.variantId"] = firstVarId!;
             return StepOutcome.Success();
         }
 
@@ -595,6 +687,56 @@ public class ShopifyFlow : StoreFlow
             return StepOutcome.Success();
         }
 
+        // Storefront createCart mutation (used by On Running / headless Storefront Carts; note the 2021-10
+        // 0-variable CartCreate constant remains intentionally uncalled as a documented dead artifact constant).
+        if (c.Session.Vars.TryGetValue(GraphQlTokenVar, out var sfCartToken) &&
+            !string.IsNullOrWhiteSpace(sfCartToken) &&
+            (string.Equals(c.Session.Vars.GetValueOrDefault("shopify.useCreateCart"), "true",
+                 StringComparison.OrdinalIgnoreCase) ||
+             c.Session.Vars.ContainsKey("shopify.createCartLines")))
+        {
+            var sfHost = c.Session.Vars.GetValueOrDefault("shopify.storefrontHost")
+                         ?? (Uri.TryCreate(c.Url, UriKind.Absolute, out var u) ? u.Authority : c.Url);
+            var linesJson = c.Session.Vars.GetValueOrDefault("shopify.createCartLines");
+            var lines = !string.IsNullOrWhiteSpace(linesJson)
+                ? JArray.Parse(linesJson!)
+                : new JArray
+                {
+                    new JObject
+                    {
+                        ["merchandiseId"] = c.Session.VariantId ?? string.Empty,
+                        ["quantity"] = c.Session.Quantity,
+                    },
+                };
+            var buyer = new JObject();
+            var email = c.ProfileData?.Email ?? c.Account?.Email;
+            if (!string.IsNullOrEmpty(email)) buyer["email"] = email;
+            var createVars = new JObject
+            {
+                ["lines"] = lines,
+                ["buyerIdentity"] = buyer,
+                ["attributes"] = new JArray(),
+                ["country"] = c.ProfileData?.Country ?? "US",
+                ["language"] = c.Session.Vars.GetValueOrDefault("shopify.language") ?? "EN",
+            };
+            var (sfCartData, sfCartErr) = await ShopifyStorefrontQueries
+                .SendAsync(c, sfHost, sfCartToken, "createCart", createVars, ct)
+                .ConfigureAwait(false);
+            if (sfCartData is null) return StepOutcome.Fail(sfCartErr, retryable: true);
+
+            var cartNode = sfCartData["cartCreate"]?["cart"];
+            var cid = cartNode?["id"]?.ToString();
+            if (!string.IsNullOrEmpty(cid))
+            {
+                c.Session.Vars[GraphQlCartVar] = cid!;
+                c.Session.CartId = cid;
+            }
+            var chkUrl = cartNode?["checkoutUrl"]?.ToString();
+            if (!string.IsNullOrEmpty(chkUrl)) c.Session.Vars["checkoutUrl"] = chkUrl!;
+            c.Session.Vars["cart"] = sfCartData.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         if (string.IsNullOrEmpty(c.Session.VariantId)) return StepOutcome.Fail("shopify: no variant to add");
 
         var payload = new JObject
@@ -754,6 +896,36 @@ public class ShopifyFlow : StoreFlow
     // 鈹€鈹€ checkout 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     public override async Task<StepOutcome> InitiateCheckoutAsync(FlowContext c, CancellationToken ct)
     {
+        if (c.Session.Vars.TryGetValue("productdrops.origin", out var dropsOrigin) &&
+            !string.IsNullOrWhiteSpace(dropsOrigin) &&
+            (string.Equals(c.Session.Vars.GetValueOrDefault("shopify.useDropsCheckout"), "true",
+                 StringComparison.OrdinalIgnoreCase) ||
+             (!string.IsNullOrEmpty(c.Session.VariantId) &&
+              c.Url?.Contains("product-drops", StringComparison.OrdinalIgnoreCase) == true)))
+        {
+            var dropsVars = new JObject
+            {
+                ["variantId"] = c.Session.VariantId ?? string.Empty,
+                ["location"] = c.Session.Vars.GetValueOrDefault("productdrops.location") ?? string.Empty,
+                ["attributes"] = new JArray(),
+                ["recaptchaToken"] = c.Session.AntiBotTokens.GetValueOrDefault("g-recaptcha-response") ?? string.Empty,
+            };
+            var (dropsCheckout, dropsErr) = await ShopifyProductDrops
+                .CreateCheckoutAsync(c, dropsOrigin, dropsVars, ct)
+                .ConfigureAwait(false);
+            if (dropsCheckout is null) return StepOutcome.Fail(dropsErr, retryable: true);
+
+            c.Session.Vars["checkout"] = dropsCheckout.ToString(Newtonsoft.Json.Formatting.None);
+            var url = dropsCheckout["createCheckout"]?["checkoutUrl"]?.ToString()
+                      ?? dropsCheckout["createCheckout"]?["url"]?.ToString();
+            if (!string.IsNullOrEmpty(url))
+            {
+                c.Session.CheckoutUrl = url;
+                c.Session.CheckoutToken = CheckoutTokenOf(url!) ?? dropsCheckout["createCheckout"]?["id"]?.ToString();
+            }
+            return StepOutcome.Success();
+        }
+
         var res = await GetAsync(c, Origin(c.Url) + "/checkout", ShopifyHeaders.CheckoutClientTag, ct)
             .ConfigureAwait(false);
         if (res is null) return StepOutcome.Fail("shopify checkout init failed", retryable: true);
@@ -938,15 +1110,40 @@ public class ShopifyFlow : StoreFlow
 
         c.Session.Vars["billing1"] = bill.Address1 ?? string.Empty;
         c.Session.Vars["billingZip"] = bill.ZipCode ?? string.Empty;
+        c.Session.Vars["billingFirstName"] = bill.FirstName ?? string.Empty;
+        c.Session.Vars["billingLastName"] = bill.LastName ?? string.Empty;
+        c.Session.Vars["billingCity"] = bill.City ?? string.Empty;
+        c.Session.Vars["billingProvince"] = bill.State ?? string.Empty;
+        c.Session.Vars["billingCountry"] = bill.Country ?? string.Empty;
+        c.Session.Vars["billingAddress2"] = bill.Address2 ?? string.Empty;
+        c.Session.Vars["billingPhone"] = c.ProfileData?.Phone ?? string.Empty;
+        c.Session.Vars["shopify.billingSubmitted"] = "inline";
 
-        // R1332: this step used to return Success here without sending anything, so a run log said billing was
-        // done while the checkout had not been touched — the failure then surfaced as a payment error with no
-        // cause attached. The endpoint is not captured, and inventing one is worse than saying so: the address
-        // is recorded for a consumer that does have it, and the step reports what it did not do.
-        c.Session.Vars["shopify.billingSubmitted"] = "false";
-        c.Emit("shopify: billing address recorded but no billing request was made — the checkout billing " +
-               "endpoint is not captured, so nothing was submitted", "StatusInfo");
+        c.Emit("shopify: billing address staged for inline submission in Checkout GraphQL", "StatusInfo");
+        await Task.CompletedTask.ConfigureAwait(false);
         return StepOutcome.Success();
+    }
+
+    internal static JObject? BuildStagedBillingAddress(FlowContext c)
+    {
+        var bill = c.Billing ?? c.Shipping ?? AddressFromProfile(c);
+        var hasStaged = c.Session.Vars.ContainsKey("billing1") ||
+                        c.Session.Vars.ContainsKey("billingZip") ||
+                        c.Session.Vars.ContainsKey("billingFirstName");
+        if (bill is null && !hasStaged) return null;
+
+        return new JObject
+        {
+            ["first_name"] = c.Session.Vars.GetValueOrDefault("billingFirstName") ?? bill?.FirstName ?? string.Empty,
+            ["last_name"] = c.Session.Vars.GetValueOrDefault("billingLastName") ?? bill?.LastName ?? string.Empty,
+            ["address1"] = c.Session.Vars.GetValueOrDefault("billing1") ?? bill?.Address1 ?? string.Empty,
+            ["address2"] = c.Session.Vars.GetValueOrDefault("billingAddress2") ?? bill?.Address2 ?? string.Empty,
+            ["city"] = c.Session.Vars.GetValueOrDefault("billingCity") ?? bill?.City ?? string.Empty,
+            ["province"] = c.Session.Vars.GetValueOrDefault("billingProvince") ?? bill?.State ?? string.Empty,
+            ["country"] = c.Session.Vars.GetValueOrDefault("billingCountry") ?? bill?.Country ?? string.Empty,
+            ["zip"] = c.Session.Vars.GetValueOrDefault("billingZip") ?? bill?.ZipCode ?? string.Empty,
+            ["phone"] = c.Session.Vars.GetValueOrDefault("billingPhone") ?? c.ProfileData?.Phone ?? string.Empty,
+        };
     }
 
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
@@ -995,28 +1192,33 @@ public class ShopifyFlow : StoreFlow
         var card = c.Card;
         if (card?.Number is null) return StepOutcome.Fail("shopify: profile has no card");
 
+        var paymentNode = new JObject
+        {
+            ["amount"] = c.Session.Vars.TryGetValue("total", out var t) ? t : "0",
+            ["unique_token"] = Guid.NewGuid().ToString("N"),
+            ["payment_method"] = new JObject
+            {
+                ["credit_card"] = new JObject
+                {
+                    ["number"] = card.Number,
+                    ["month"] = card.Month,
+                    ["year"] = card.Year,
+                    ["verification_value"] = card.Cvv,
+                    ["name"] = card.Name ?? c.ProfileData?.Display,
+                },
+            },
+        };
+        var billingAddress = BuildStagedBillingAddress(c);
+        if (billingAddress is not null)
+            paymentNode["billing_address"] = billingAddress;
+
         var payload = new JObject
         {
             ["checkout"] = new JObject
             {
                 ["payment_gateway"] = new JObject
                 {
-                    ["payment"] = new JObject
-                    {
-                        ["amount"] = c.Session.Vars.TryGetValue("total", out var t) ? t : "0",
-                        ["unique_token"] = Guid.NewGuid().ToString("N"),
-                        ["payment_method"] = new JObject
-                        {
-                            ["credit_card"] = new JObject
-                            {
-                                ["number"] = card.Number,
-                                ["month"] = card.Month,
-                                ["year"] = card.Year,
-                                ["verification_value"] = card.Cvv,
-                                ["name"] = card.Name ?? c.ProfileData?.Display,
-                            },
-                        },
-                    },
+                    ["payment"] = paymentNode,
                 },
             },
         };
@@ -1178,12 +1380,8 @@ public class ShopifyFlow : StoreFlow
     /// </para>
     ///
     /// <para>
-    /// <b>Unknown</b>: which URL the konbini body goes to. The sibling card machine
-    /// (<c>0x140D994D0</c>) does name one — <c>https://komoju.com/gpayments_offsite/auth</c>, now
-    /// <see cref="Cybersole.Stores.Payments.KomojuGateway.AuthUrl"/> — but it posts a different body
-    /// (<c>browser_info</c>/<c>uuid</c>/<c>token</c>), so reusing it here would be a guess. Until a capture or
-    /// a caller decode supplies it, the value still comes from <c>komoju.formUrl</c> or the page's
-    /// <c>&lt;form action&gt;</c>.
+    /// <b>Verified</b>: when <c>komoju.formUrl</c> is unset and the page carries no <c>&lt;form action&gt;</c>,
+    /// <c>formUrl</c> resolves directly to the offsite URL itself (<c>currentUrl</c>), matching <c>0x140d98f60</c>.
     /// </para>
     /// </summary>
     public async Task<StepOutcome> CompleteConvenienceStoreAsync(FlowContext c, CancellationToken ct)
@@ -1212,14 +1410,9 @@ public class ShopifyFlow : StoreFlow
 
             var (formAction, _) = Cybersole.Stores.Payments.ThreeDsTransportHelpers.ExtractForm(body);
             var formUrl = c.Session.Vars.GetValueOrDefault("komoju.formUrl")
-                          ?? (string.IsNullOrEmpty(formAction)
-                              ? null
-                              : Cybersole.Stores.Payments.ThreeDsTransportHelpers.ResolveUrl(currentUrl, formAction!));
-            if (string.IsNullOrEmpty(formUrl))
-            {
-                return StepOutcome.Fail(
-                    "komoju: formUrl unknown — exact suffix expression in 0x140d98f60 [1..56] was not statically recovered and page carried no form action");
-            }
+                          ?? (!string.IsNullOrEmpty(formAction)
+                              ? Cybersole.Stores.Payments.ThreeDsTransportHelpers.ResolveUrl(currentUrl, formAction!)
+                              : currentUrl);
 
             var payload = new JObject
             {
@@ -1312,6 +1505,124 @@ public class ShopifyFlow : StoreFlow
         return entryRes is not null && entryRes.IsSuccess
             ? StepOutcome.Success()
             : StepOutcome.Fail($"webcvs HTTP {entryRes?.StatusCode ?? 0}", retryable: true);
+    }
+
+    public const string PaypalDetailsQueryId =
+        "adb798e617f80f912a3489ae4fddf2cd23943ab846448fe0ce07617a2c587cbb";
+    public const string CheckoutWebBuildId = "8ac77308b5602315e912dc610b918e5ac1a6e5b2";
+    public const string OnRunningOrigin = "https://www.on.com";
+    public const string OnRunningRouterQuery = "/?graphql_router=0xdjmg_aa6";
+
+    /// <summary>
+    /// <c>GetPayPalDetails</c> (<c>0x140D42D40</c>, <c>0x140D4E620</c>, <c>0x140D43490</c>):
+    /// persisted GraphQL query <c>PaypalDetails</c> with <c>PendingTask</c> polling up to <c>pollDelay</c>.
+    /// </summary>
+    public async Task<StepOutcome> FetchPayPalDetailsAsync(FlowContext c, CancellationToken ct)
+    {
+        var token = c.Session.Vars.GetValueOrDefault("paypal.partnerToken")
+                    ?? c.Session.Vars.GetValueOrDefault("paypal.token");
+        if (string.IsNullOrEmpty(token))
+            return StepOutcome.Fail("shopify: no paypal token for PaypalDetails");
+
+        var persistedPath = "checkouts/internal/graphql/persisted?operationName=PaypalDetails";
+        var url = c.Session.Vars.GetValueOrDefault("shopify.paypalDetailsUrl")
+                  ?? Origin(c.Url).TrimEnd('/') + "/" + persistedPath;
+
+        var body = new JObject
+        {
+            ["operationName"] = "PaypalDetails",
+            ["id"] = PaypalDetailsQueryId,
+            ["variables"] = new JObject
+            {
+                ["paypalDetailsInput"] = new JObject
+                {
+                    ["token"] = token,
+                    ["authAssertionContext"] = c.Session.Vars.GetValueOrDefault("paypal.authAssertionContext") ?? string.Empty,
+                },
+            },
+        };
+
+        var headers = new Dictionary<string, string>
+        {
+            ["shopify-checkout-client"] = "checkout-web/1.0",
+            ["x-checkout-web-build-id"] = CheckoutWebBuildId,
+            ["x-checkout-web-deploy-stage"] = "production",
+            ["x-checkout-web-server-rendering"] = "yes",
+            ["x-checkout-web-server-handling"] = "fast",
+            ["origin"] = Origin(c.Url),
+            ["referer"] = c.Session.CheckoutUrl ?? c.Url,
+        };
+        if (c.Session.Vars.TryGetValue("shopify.checkoutSourceId", out var srcId) && !string.IsNullOrEmpty(srcId))
+            headers["x-checkout-web-source-id"] = srcId;
+        if (c.Session.Vars.TryGetValue("shopify.oneSessionToken", out var sessTok) && !string.IsNullOrEmpty(sessTok))
+            headers["x-checkout-one-session-token"] = sessTok;
+
+        var res = await Cybersole.Stores.Payments.ThreeDsTransportHelpers.PostJsonRawAsync(
+            c, url, body.ToString(Newtonsoft.Json.Formatting.None), headers, "shopify-paypal-details", ct)
+            .ConfigureAwait(false);
+        if (res is null || !res.IsSuccess)
+            return StepOutcome.Fail($"shopify PaypalDetails HTTP {res?.StatusCode}", retryable: true);
+
+        c.Session.Vars["paypalDetails"] = res.Body;
+        var parsed = Cybersole.Stores.Payments.ThreeDsTransportHelpers.TryParseJson(res.Body);
+        var detailsNode = parsed?["data"]?["paypalDetails"];
+        var typeName = detailsNode?["__typename"]?.ToString();
+        if (string.Equals(typeName, "PendingTask", StringComparison.OrdinalIgnoreCase))
+        {
+            var taskId = detailsNode?["taskId"]?.ToString() ?? string.Empty;
+            var pollMs = int.TryParse(c.Session.Vars.GetValueOrDefault("shopify.pollMs"), out var pm) ? pm : 0;
+            var pollMax = int.TryParse(c.Session.Vars.GetValueOrDefault("shopify.pollMax"), out var mp) ? mp : 5;
+            for (var i = 0; i < pollMax; i++)
+            {
+                if (pollMs > 0) await Task.Delay(pollMs, ct).ConfigureAwait(false);
+                var pollBody = new JObject
+                {
+                    ["operationName"] = "pendingTask",
+                    ["variables"] = new JObject { ["taskId"] = taskId },
+                };
+                var pollRes = await Cybersole.Stores.Payments.ThreeDsTransportHelpers.PostJsonRawAsync(
+                    c, url, pollBody.ToString(Newtonsoft.Json.Formatting.None), headers, "shopify-paypal-poll", ct)
+                    .ConfigureAwait(false);
+                if (pollRes is null || !pollRes.IsSuccess) continue;
+                c.Session.Vars["paypalDetails"] = pollRes.Body;
+                var pollNode = Cybersole.Stores.Payments.ThreeDsTransportHelpers.TryParseJson(pollRes.Body);
+                if (pollRes.Body.Contains("PaypalDetailsFetchSuccess", StringComparison.Ordinal))
+                    return StepOutcome.Success();
+                if (!string.Equals(pollNode?["data"]?["paypalDetails"]?["__typename"]?.ToString(), "PendingTask",
+                        StringComparison.OrdinalIgnoreCase))
+                    break;
+            }
+        }
+
+        return StepOutcome.Success();
+    }
+
+    internal static string? ExtractPollForReceiptActionUrl(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            var root = JObject.Parse(json);
+            var url = root["data"]?["receipt"]?["action"]?["url"]?.ToString();
+            return string.IsNullOrEmpty(url) ? null : url;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    internal static (string? ActionUrl, Dictionary<string, string> Inputs) ExtractPaymentFormPost(
+        string? html, string baseUrl)
+    {
+        var form = Cybersole.Stores.Payments.HtmlFormDom.ExtractFormInfo(html, formId: "payment-form");
+        if (form is null)
+            return (null, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+
+        var actionUrl = string.IsNullOrEmpty(form.Action)
+            ? null
+            : Cybersole.Stores.Payments.ThreeDsTransportHelpers.ResolveUrl(baseUrl, form.Action!);
+        return (actionUrl, form.Inputs);
     }
 
     private static string CheckoutEndpoint(FlowContext c, string? suffix = null)

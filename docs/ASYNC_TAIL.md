@@ -7,17 +7,17 @@
 | 项 | 值 |
 |---|---|
 | 镜像异步状态机名 | 801（出现 1291 次） |
-| declared | 223 |
-| mentioned | 97 |
-| **absent** | **481** |
+| declared | 229 |
+| mentioned | 102 |
+| **absent** | **470** |
 
 ## 按家族（镜像 / absent）
 
 | 家族 | 镜像 | absent |
 |---|---|---|
-| payment | 110 | 64 |
+| payment | 110 | 56 |
 | store | 74 | 33 |
-| other | 617 | 384 |
+| other | 617 | 381 |
 
 ## payment 家族 · absent（真正的缺口）
 
@@ -26,7 +26,6 @@
 | `ApproveMemberPayment` | 1 |
 | `CacheTokenResponseAndCreateAuthenticationResultAsync` | 1 |
 | `CheckInteractionChallenge` | 1 |
-| `Complete3DSOrder` | 1 |
 | `CompleteOrder` | 1 |
 | `CreatePayPalToken` | 1 |
 | `DetectByteOrderMarkAsync` | 1 |
@@ -46,10 +45,8 @@
 | `GetChallengeRectanglesAsync` | 1 |
 | `GetCustomerToken` | 1 |
 | `GetDigestTokenForCredential` | 1 |
-| `GetPayPalDetails` | 1 |
 | `GetPayPalPaymentOptions` | 1 |
 | `GetPayPalResult` | 1 |
-| `GetStripeConfiguration` | 1 |
 | `GetSweepStakeCheckout` | 1 |
 | `HandleUnzerRedirect` | 1 |
 | `InitalizePayment` | 1 |
@@ -60,16 +57,12 @@
 | `RefreshTokenAsync` | 1 |
 | `RequestSessionToken` | 1 |
 | `RequestToken` | 1 |
-| `RpcCapturePayPal` | 1 |
-| `RpcInitiatePayPal` | 1 |
 | `RpcSolveThreeDS` | 1 |
-| `RpcSubmitAdyenDetails` | 1 |
 | `SendTokenRequestToBrokerAsync` | 1 |
 | `SetAdyenPayment` | 1 |
 | `SolveHintChallengeAsync` | 1 |
 | `SolvePayPalHosted3DS` | 1 |
 | `SquareCardNonce` | 1 |
-| `SquareHydrate` | 1 |
 | `StartInvoiceCheckout` | 1 |
 | `SubmitAdyenOrder` | 1 |
 | `SubmitBotDetectChallenge` | 1 |
@@ -81,7 +74,6 @@
 | `SubmitThreeDSAuthentication` | 1 |
 | `TokenizeDate` | 1 |
 | `TokenizeText` | 1 |
-| `UpdatePayment` | 1 |
 | `ValidateCheckout` | 1 |
 | `VerifyCheckout` | 1 |
 | `VerifyStripeChallenge` | 1 |
@@ -96,15 +88,20 @@
 | `CanPlaceOrder` |
 | `CardinalContinue` |
 | `CardinalInit` |
+| `Complete3DSOrder` |
 | `CompletePayPalGuestPayment` |
 | `ContinueUnzerThreeDs` |
 | `GetOrder` |
+| `GetPayPalDetails` |
 | `GetPayment` |
+| `GetStripeConfiguration` |
 | `GetUnzerCallback` |
 | `RunCardinal` |
 | `Solve3DSToken` |
 | `SolvePayPal3DS` |
+| `SquareHydrate` |
 | `SubmitBotDeflectorChallenge` |
+| `UpdatePayment` |
 
 ## store 家族 · absent
 
@@ -144,13 +141,4 @@
 | `VerifyCart` | 1 |
 | `WaitCaptchaResultAsync` | 1 |
 
-> `other` 家族 absent 384 个：`python analysis/async_tail.py --family other`。
-
-## 按名能否追（R1367 全量核查）
-
-`analysis/classify_tail_names.py` 把 30 个店铺长尾名一次查完：
-
-- **29 个只有 `<Name>d__NN` 状态机串**，没有独立操作名；
-- 唯一有独立串的是 `AddAddress`（`0x1433082B7`），**头地址与字符地址两种形式都是 0 引用**。
-
-**结论：这一队列按名无法推进**，只能按地址逐条反编译（每个名的 `MoveNext` 需要从状态机元数据反推）。
+> `other` 家族 absent 381 个：`python analysis/async_tail.py --family other`。

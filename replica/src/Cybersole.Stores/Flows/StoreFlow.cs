@@ -1912,7 +1912,69 @@ public abstract class StoreFlow
             return StepOutcome.Fail("paypal returned no order id");
 
         c.Session.Vars["paypalOrderId"] = orderId;
+        c.Session.Vars["paypal.partnerToken"] = orderId;
         c.Session.PaymentToken = orderId;
+        if (res.Headers.TryGetValue("x-paypal-internal-euat", out var euat) && !string.IsNullOrEmpty(euat))
+            c.Session.Vars["paypal.browserEuat"] = euat;
+        if (res.Headers.TryGetValue("paypal-client-metadata-id", out var cmid) && !string.IsNullOrEmpty(cmid))
+            c.Session.Vars["paypal.clientMetadataId"] = cmid;
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// <c>Vans Complete3DSOrder</c> (<c>0x140E469C0</c>, <c>0x140E454C0 SubmitOrder3DS</c>):
+    /// mutating request (<c>sub_1408B6450</c>) to <see cref="VansEndpoints.OrderV2"/> validating
+    /// <c>transStatus == "Y"</c> and inspecting <c>threeDS2</c>/<c>action</c>/<c>isFinal</c>/
+    /// <c>PaymentNotAuthorized</c>/<c>orderNumber</c>/<c>orderId</c>.
+    /// </summary>
+    public async Task<StepOutcome> CompleteVansOrder3dsAsync(
+        FlowContext c, string orderId, string locale, string threeDs2Result, string authorisationToken,
+        string paymentInstrumentId, string sessionId, string cardType, CancellationToken ct)
+    {
+        if (threeDs2Result.StartsWith('{'))
+        {
+            var challenge = Cybersole.Stores.Payments.ThreeDsTransportHelpers.TryParseJson(threeDs2Result);
+            var ts = challenge?["transStatus"]?.ToString();
+            if (!string.IsNullOrEmpty(ts) && !string.Equals(ts, "Y", StringComparison.OrdinalIgnoreCase))
+                return StepOutcome.Fail($"vans 3DS transStatus={ts}");
+        }
+
+        var origin = !string.IsNullOrEmpty(c.Url) && Uri.TryCreate(c.Url, UriKind.Absolute, out _)
+            ? Origin(c.Url).TrimEnd('/')
+            : "https://" + VansEndpoints.FamilyHost;
+        var url = origin + VansEndpoints.OrderV2 + Uri.EscapeDataString(orderId) +
+                  "?locale=" + Uri.EscapeDataString(string.IsNullOrWhiteSpace(locale) ? "en_us" : locale);
+
+        var body = new Newtonsoft.Json.Linq.JObject
+        {
+            ["paymentMethod"] = new Newtonsoft.Json.Linq.JObject
+            {
+                ["code"] = "CREDIT_CARD",
+                ["cardType"] = cardType,
+                ["paymentInstrumentId"] = paymentInstrumentId,
+                ["sessionID"] = sessionId,
+                ["additionalData"] = new Newtonsoft.Json.Linq.JObject
+                {
+                    ["threeDS2Result"] = threeDs2Result,
+                    ["authorisationToken"] = authorisationToken,
+                },
+            },
+        };
+
+        var res = await SendJsonAsync(c, HttpMethod.Put, url,
+            body.ToString(Newtonsoft.Json.Formatting.None), "vans-complete-3ds", ct).ConfigureAwait(false);
+        if (res is null || !res.IsSuccess)
+            return StepOutcome.Fail($"vans complete 3DS HTTP {res?.StatusCode}", retryable: true);
+
+        c.Session.Vars["order"] = res.Body;
+        if (res.Body.Contains("PaymentNotAuthorized", StringComparison.OrdinalIgnoreCase))
+            return StepOutcome.Fail("vans: PaymentNotAuthorized");
+
+        var parsed = Cybersole.Stores.Payments.ThreeDsTransportHelpers.TryParseJson(res.Body);
+        var orderNum = parsed?["orderNumber"]?.ToString();
+        var oid = parsed?["orderId"]?.ToString();
+        if (!string.IsNullOrEmpty(orderNum)) c.Session.OrderNumber = orderNum;
+        if (!string.IsNullOrEmpty(oid)) c.Session.OrderId = oid;
         return StepOutcome.Success();
     }
     public virtual async Task<StepOutcome> GetPayPalAccessTokenAsync(FlowContext c, CancellationToken ct)

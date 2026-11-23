@@ -1,8 +1,12 @@
+using System;
 using System.Linq;
+using System.Threading.Tasks;
+using Cybersole.Core.Models;
 using Cybersole.Http;
 using Cybersole.Stores.Flows;
 using Cybersole.Stores.Payments;
 using Cybersole.Tests.Support;
+using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -264,5 +268,110 @@ public class WarhammerGraphQlTests
         Assert.Equal(43, CybersourceFlex.TokensUrl.Length);
         Assert.Equal("https://api.prod.warhammer.com", WarhammerSurface.ApiHost);
         Assert.Equal(38, (WarhammerSurface.ApiHost + WarhammerSurface.GraphQlPath).Length);
+    }
+
+    [Fact]
+    public async Task SubmitBillingFetchesPayPageWhenMissingAndSendsAddCreditCardMutation()
+    {
+        Assert.Equal("https://request.eprotect.vantivcnp.com/eProtect/paypage", WarhammerFlow.VantivPayPageUrl);
+
+        var bareCtx = new FlowContext { Http = new NetClient { Transport = TransportMode.SChannel }, Url = "https://www.warhammer.com/en-US/checkout" };
+        Assert.Equal("https://api.warhammer.com/graphql", WarhammerFlow.BillingGraphQlUrl(bareCtx));
+
+        using var server = new TinyServer((req, _) =>
+        {
+            var path = req.Url?.AbsolutePath ?? "/";
+            if (path == "/eProtect/paypage")
+                return (200, "eProtect_cb({\"paypageRegistrationId\":\"vantiv_reg_42\"})");
+            if (path == "/graphql")
+                return (200, "{\"data\":{\"addCreditCard\":{\"paymentInfo\":{\"payments\":[{\"id\":\"pay_wh_1\"}]}}}}");
+            return (404, "{}");
+        });
+
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = "https://www.warhammer.com/en-US/checkout",
+            ProfileData = new Profile
+            {
+                FirstName = "Ada", LastName = "Lovelace", Email = "ada@wh.test", Phone = "5550100",
+                Address1 = "1 Main St", Address2 = "Apt 2", City = "Austin", State = "TX", Zip = "78701", Country = "US",
+            },
+            Card = new Card { Number = "4111 1111 1111 4242", Month = "8", Year = "2031", Cvv = "737" },
+        };
+        ctx.Session.Vars["wh.apiHost"] = server.BaseUrl;
+        ctx.Session.Vars["wh.paypageUrl"] = server.BaseUrl + "/eProtect/paypage";
+
+        var outcome = await new WarhammerFlow().SubmitBillingAsync(ctx, default);
+        Assert.True(outcome.Ok, outcome.Error);
+        Assert.Contains(ctx.Events, e => e.Name == "Submitting billing" && e.Type == "StatusInfo");
+        Assert.Equal("vantiv_reg_42", ctx.Session.Vars["paypageRegistrationId"]);
+        Assert.Equal("pay_wh_1", ctx.Session.PaymentMethodId);
+
+        Assert.Equal(2, server.Requests.Count);
+        Assert.Equal("/eProtect/paypage", server.Requests[0].Path);
+        Assert.Contains("accountNum=4111111111114242", server.RequestTargets[0]);
+
+        var gqlReq = server.Requests[1];
+        Assert.Equal("/graphql", gqlReq.Path);
+        var gqlHeaders = server.RequestHeaders[1];
+        Assert.Equal("AddCreditCard", gqlHeaders["x-graphql-query-name"]);
+        Assert.Equal("8c2c7e3586546c8fe944e7c7732bd7098dbfcfce6695279e3ca412f89bce6704", gqlHeaders["x-graphql-hash"]);
+        Assert.Equal("489337221e651aabeeb90482b91a55973b574a40832a0fbbc2bc2ccd22ec011b", gqlHeaders["x-header-id"]);
+
+        var sent = JObject.Parse(gqlReq.Body);
+        Assert.Equal("AddCreditCard", sent["operationName"]?.ToString());
+        Assert.Equal(WarhammerQueries.AddCreditCard, sent["query"]?.ToString());
+
+        var vars = (JObject)sent["variables"]!;
+        var cc = (JObject)vars["creditCardInfo"]!;
+        Assert.Equal("vantiv_reg_42", cc["paypageRegistrationId"]?.ToString());
+        Assert.Equal("Visa", cc["cardType"]?.ToString());
+        Assert.Equal("08", cc["expirationMonth"]?.ToString());
+        Assert.Equal("2031", cc["expirationYear"]?.ToString());
+        Assert.Equal("4242", cc["creditCardNumber"]?.ToString());
+
+        var addr = (JObject)cc["billingAddressInfo"]!;
+        Assert.Equal("1 Main St", addr["streetName"]?.ToString());
+        Assert.Equal("Apt 2", addr["additionalStreetInfo"]?.ToString());
+        Assert.Equal("Austin", addr["city"]?.ToString());
+        Assert.Equal("78701", addr["postalCode"]?.ToString());
+        Assert.Equal("TX", addr["state"]?.ToString());
+        Assert.Equal("Ada", addr["firstName"]?.ToString());
+        Assert.Equal("Lovelace", addr["lastName"]?.ToString());
+        Assert.Equal("ada@wh.test", addr["email"]?.ToString());
+        Assert.Equal("5550100", addr["phone"]?.ToString());
+        Assert.Equal("US", addr["country"]?.ToString());
+        Assert.Equal(string.Empty, addr["address1"]?.ToString());
+        Assert.Equal(string.Empty, addr["address2"]?.ToString());
+
+        Assert.False(vars["editRequest"]!.Value<bool>());
+        Assert.False(vars["addressUpdated"]!.Value<bool>());
+        Assert.False(vars["saveToWallet"]!.Value<bool>());
+        Assert.False(vars["isPrimary"]!.Value<bool>());
+        Assert.False(vars["roundUpDetails"]!["roundup"]!.Value<bool>());
+        Assert.Equal("0", vars["roundUpDetails"]!["donationAmount"]?.ToString());
+    }
+
+    [Fact]
+    public async Task SubmitBillingPropagatesGraphQlErrors()
+    {
+        using var server = new TinyServer((_, _) =>
+            (200, "{\"errors\":[{\"message\":\"invalid card\"}]}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = "https://www.warhammer.com/en-US/checkout",
+            Card = new Card { Number = "4111111111114242", Month = "8", Year = "2031", Cvv = "737" },
+        };
+        ctx.Session.Vars["wh.apiHost"] = server.BaseUrl;
+        ctx.Session.Vars["paypageRegistrationId"] = "reg_preset";
+
+        var outcome = await new WarhammerFlow().SubmitBillingAsync(ctx, default);
+        Assert.False(outcome.Ok);
+        Assert.Contains("graphql returned errors", outcome.Error);
+        Assert.Single(server.Requests);
     }
 }

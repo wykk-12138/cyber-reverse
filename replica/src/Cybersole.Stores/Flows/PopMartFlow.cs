@@ -711,4 +711,71 @@ public sealed class PopMartFlow : StoreFlow
             .Groups[1].Value;
         return StepOutcome.Success();
     }
+
+    public async Task<StepOutcome> GetCartListByStoreAsync(FlowContext c, string gid, string storeId, CancellationToken ct)
+    {
+        var url = Origin(c.Url) + PopMartEndpoints.InstoreCartList +
+                  Uri.EscapeDataString(gid ?? string.Empty) +
+                  "&storeId=" + Uri.EscapeDataString(storeId ?? string.Empty);
+        var res = await GetAsync(c, url, "popmart-instore-cart", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart store cart unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart store cart HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["popmart.storeCart"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    public async Task<StepOutcome> RpcInitiatePayPalAsync(FlowContext c, JObject request, CancellationToken ct)
+    {
+        var url = Origin(c.Url) + "/rpc/payment/pay/initiatePayment";
+        var res = await PostJsonAsync(c, url, request.ToString(Newtonsoft.Json.Formatting.None),
+            "popmart-rpc-paypal-init", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart rpc initiatePayment unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart rpc initiatePayment HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["popmart.rpcInit"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    public async Task<StepOutcome> RpcCapturePayPalAsync(FlowContext c, string channelTransactionNo, CancellationToken ct)
+    {
+        var url = Origin(c.Url) + "/rpc/payment/pay/capturePayPalPaymentByChannelTransactionNo";
+        var body = new JObject { ["channelTransactionNo"] = channelTransactionNo };
+        var res = await PostJsonAsync(c, url, body.ToString(Newtonsoft.Json.Formatting.None),
+            "popmart-rpc-paypal-capture", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart rpc capturePayPal unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart rpc capturePayPal HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["popmart.rpcCapture"] = res.Body;
+        return StepOutcome.Success();
+    }
+
+    public async Task<StepOutcome> RpcSubmitAdyenDetailsAsync(
+        FlowContext c, string merchantOrderNo, string threeDsResult, CancellationToken ct)
+    {
+        if (threeDsResult.StartsWith('{'))
+        {
+            var challenge = Cybersole.Stores.Payments.ThreeDsTransportHelpers.TryParseJson(threeDsResult);
+            var ts = challenge?["transStatus"]?.ToString();
+            if (!string.IsNullOrEmpty(ts) && !string.Equals(ts, "Y", StringComparison.OrdinalIgnoreCase))
+                return StepOutcome.Fail($"popmart adyen 3DS transStatus={ts}");
+        }
+
+        var url = Origin(c.Url) + "/rpc/payment/pay/submitAdyenDetails";
+        var body = new JObject
+        {
+            ["merchantOrderNo"] = merchantOrderNo,
+            ["detailsPayload"] = new JObject
+            {
+                ["details"] = new JObject { ["threeDSResult"] = threeDsResult },
+            },
+        };
+        var res = await PostJsonAsync(c, url, body.ToString(Newtonsoft.Json.Formatting.None),
+            "popmart-rpc-adyen-details", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("popmart rpc submitAdyenDetails unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"popmart rpc submitAdyenDetails HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["popmart.rpcAdyenDetails"] = res.Body;
+        return StepOutcome.Success();
+    }
 }

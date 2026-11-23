@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Cybersole.Stores.Payments;
 using Newtonsoft.Json.Linq;
 
 namespace Cybersole.Stores.Flows;
@@ -55,8 +56,65 @@ public class MagentoFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    public const string PaniniEndpoint = "https://www.paniniamerica.net/onepanini";
+    public const string PpcpPrefix = "/rest/V1/ppcp/";
+
+    protected static bool IsPaniniMode(FlowContext c) =>
+        (!string.IsNullOrEmpty(c.Url) &&
+         c.Url.Contains("panini", StringComparison.OrdinalIgnoreCase)) ||
+        string.Equals(c.Session.Vars.GetValueOrDefault("magento.mode"), "panini",
+            StringComparison.OrdinalIgnoreCase) ||
+        c.Session.Vars.ContainsKey("panini.endpoint");
+
+    protected string PaniniEndpointFor(FlowContext c) =>
+        c.Session.Vars.TryGetValue("panini.endpoint", out var ep) && !string.IsNullOrWhiteSpace(ep)
+            ? ep.TrimEnd('/')
+            : PaniniEndpoint;
+
     public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsPaniniMode(c))
+        {
+            var ep = PaniniEndpointFor(c);
+            var itemName = c.Session.Vars.GetValueOrDefault("panini.itemName") ?? c.Product?.Name;
+            JObject? data;
+            string error;
+            if (!string.IsNullOrWhiteSpace(itemName))
+            {
+                var body = new JObject
+                {
+                    ["query"] = StoreSessionQueries.BuildItemDocument(itemName!),
+                    ["variables"] = new JObject(),
+                };
+                var reply = await GatewayHttp
+                    .PostAsync(c, ep, body, "panini-item", ct)
+                    .ConfigureAwait(false);
+                if (reply is null)
+                    return StepOutcome.Fail("panini item unreachable", retryable: true);
+                if (reply["errors"] is JArray errs && errs.Count > 0)
+                    return StepOutcome.Fail("panini item: " + (errs[0]?["message"]?.ToString() ?? "graphql error"));
+                data = reply["data"] as JObject ?? reply;
+                error = string.Empty;
+            }
+            else
+            {
+                (data, error) = await StoreSessionQueries
+                    .SendAsync(c, ep, "item", new JObject(), ct)
+                    .ConfigureAwait(false);
+            }
+
+            if (data is null) return StepOutcome.Fail(error, retryable: true);
+            c.Session.Vars["raw"] = data.ToString(Newtonsoft.Json.Formatting.None);
+            var itemNode = data["item"];
+            var sku = itemNode?["sku"]?.ToString();
+            if (!string.IsNullOrEmpty(sku)) c.Session.VariantId = sku;
+            var nameVal = itemNode?["name"]?.ToString();
+            if (!string.IsNullOrEmpty(nameVal)) c.Session.Vars["product"] = nameVal!;
+            var priceVal = itemNode?["price"]?.ToString();
+            if (!string.IsNullOrEmpty(priceVal)) c.Session.Vars["price"] = priceVal!;
+            return StepOutcome.Success();
+        }
+
         var res = await GetAsync(c, c.Url, "magento-product", ct).ConfigureAwait(false);
         if (res is null) return StepOutcome.Fail("magento product unreachable", retryable: true);
         if (!res.IsSuccess) return StepOutcome.Fail($"magento product HTTP {res.StatusCode}", retryable: true);
@@ -148,6 +206,44 @@ public class MagentoFlow : StoreFlow
 
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsPaniniMode(c))
+        {
+            var ep = PaniniEndpointFor(c);
+            var quoteId = c.Session.Vars.GetValueOrDefault("magento.quoteId")
+                          ?? c.Session.Vars.GetValueOrDefault("panini.quoteId");
+            if (!string.IsNullOrEmpty(quoteId))
+            {
+                var (buyData, buyError) = await MagentoCart
+                    .BuyNowAsync(c, ep, quoteId!, ct).ConfigureAwait(false);
+                if (buyData is null) return StepOutcome.Fail(buyError, retryable: true);
+                c.Session.Vars["magentoBuyNow"] = buyData.ToString(Newtonsoft.Json.Formatting.None);
+                var bn = buyData["buynow"];
+                var bnCartId = bn?["cart_id"]?.ToString();
+                if (!string.IsNullOrEmpty(bnCartId)) c.Session.CartId = bnCartId;
+                var bnSessId = bn?["session_id"]?.ToString();
+                if (!string.IsNullOrEmpty(bnSessId)) c.Session.Vars["panini.sessionId"] = bnSessId!;
+                return StepOutcome.Success();
+            }
+
+            var paniniSku = c.Session.Vars.GetValueOrDefault("magento.sku") ?? c.Session.VariantId;
+            if (!string.IsNullOrEmpty(paniniSku))
+            {
+                var paniniQty = int.TryParse(c.Session.Vars.GetValueOrDefault("magento.qty"), out var pq)
+                    ? pq
+                    : c.Session.Quantity;
+                var (addData, addError) = await MagentoCart
+                    .AddToCartAsync(c, ep, paniniSku!, paniniQty,
+                        c.Session.Vars.GetValueOrDefault("magento.type") ?? "Simple", null, ct)
+                    .ConfigureAwait(false);
+                if (addData is null) return StepOutcome.Fail(addError, retryable: true);
+                c.Session.Vars["magentoCart"] = addData.ToString(Newtonsoft.Json.Formatting.None);
+                var atc = addData["addToCart"];
+                var atcCartId = atc?["cart_id"]?.ToString();
+                if (!string.IsNullOrEmpty(atcCartId)) c.Session.CartId = atcCartId;
+                return StepOutcome.Success();
+            }
+        }
+
         // R1377: callers for the two documents the guards asked about. The endpoint is the store's own /graphql; the
         // sku, quantity and quote id come from the run.
         var magentoEndpoint = c.Session.Vars.GetValueOrDefault("magento.endpoint");
@@ -397,6 +493,39 @@ public class MagentoFlow : StoreFlow
 
     public override async Task<StepOutcome> GetShippingRatesAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsPaniniMode(c))
+        {
+            var ep = PaniniEndpointFor(c);
+            var ship = c.Shipping ?? c.Billing;
+            var p = c.ProfileData;
+            var shipVars = new JObject
+            {
+                ["countryId"] = ship?.Country ?? p?.Country ?? "US",
+                ["postcode"] = ship?.ZipCode ?? p?.Zip ?? string.Empty,
+                ["city"] = ship?.City ?? p?.City ?? string.Empty,
+                ["street1"] = ship?.Address1 ?? p?.Address1 ?? string.Empty,
+                ["street2"] = ship?.Address2 ?? p?.Address2 ?? string.Empty,
+                ["firstname"] = ship?.FirstName ?? p?.FirstName ?? string.Empty,
+                ["lastname"] = ship?.LastName ?? p?.LastName ?? string.Empty,
+                ["email"] = p?.Email ?? c.Account?.Email ?? string.Empty,
+                ["telephone"] = p?.Phone ?? string.Empty,
+                ["region"] = ship?.State ?? p?.State ?? string.Empty,
+            };
+            var (methods, err) = await MagentoCart.GetShippingMethodsAsync(c, ep, shipVars, ct).ConfigureAwait(false);
+            if (methods is null) return StepOutcome.Fail(err, retryable: true);
+
+            c.Session.Vars["rates"] = methods.ToString(Newtonsoft.Json.Formatting.None);
+            var firstMethod = (methods["getShippingMethods"] as JArray)?.FirstOrDefault();
+            if (firstMethod is not null)
+            {
+                var carrier = firstMethod["carrier_code"]?.ToString();
+                var code = firstMethod["method_code"]?.ToString();
+                if (!string.IsNullOrEmpty(carrier)) c.Session.Vars["panini.carrierCode"] = carrier!;
+                if (!string.IsNullOrEmpty(code)) c.Session.Vars["panini.methodCode"] = code!;
+            }
+            return StepOutcome.Success();
+        }
+
         var body = new JObject
         {
             ["address"] = new JObject
@@ -415,8 +544,108 @@ public class MagentoFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    public override async Task<StepOutcome> GetPaymentPageAsync(FlowContext c, CancellationToken ct)
+    {
+        if (IsPaniniMode(c))
+        {
+            var ep = PaniniEndpointFor(c);
+            var (methods, err) = await StoreSessionQueries
+                .SendAsync(c, ep, "getPaymentdMethods", new JObject(), ct)
+                .ConfigureAwait(false);
+            if (methods is null) return StepOutcome.Fail(err, retryable: true);
+            c.Session.Vars["paymentMethods"] = methods.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
+        return await base.GetPaymentPageAsync(c, ct).ConfigureAwait(false);
+    }
+
+    public override async Task<StepOutcome> GetPaymentTokenAsync(FlowContext c, CancellationToken ct)
+    {
+        if (IsPaniniMode(c))
+        {
+            var ep = PaniniEndpointFor(c);
+            var tokenType = c.Session.Vars.GetValueOrDefault("panini.tokenType") ?? "paypal";
+            c.Session.Vars["braintree.endpoint"] = ep;
+            c.Session.Vars["braintree.tokenType"] = tokenType;
+
+            var (clientToken, tokenErr) = await BraintreeClientToken
+                .FetchAsync(c, ep, new JObject { ["type"] = tokenType }, ct)
+                .ConfigureAwait(false);
+            if (string.IsNullOrEmpty(clientToken))
+                return StepOutcome.Fail(tokenErr, retryable: true);
+
+            c.Session.Vars["clientToken"] = clientToken!;
+            var fingerprint = DecodeBraintreeFingerprint(clientToken!) ?? clientToken!;
+            c.Session.Vars["braintree.fingerprint"] = fingerprint;
+
+            var card = c.Card;
+            if (card?.Number is null)
+                return StepOutcome.Success();
+
+            var bill = c.Billing ?? c.Shipping;
+            var cardObj = new JObject
+            {
+                ["number"] = card.Number,
+                ["expirationMonth"] = (card.Month ?? string.Empty).PadLeft(2, '0'),
+                ["expirationYear"] = card.Year ?? string.Empty,
+                ["cvv"] = card.Cvv ?? string.Empty,
+                ["cardholderName"] = card.Name ?? c.ProfileData?.Display ?? string.Empty,
+                ["billingAddress"] = new JObject
+                {
+                    ["postalCode"] = bill?.ZipCode ?? c.ProfileData?.Zip ?? string.Empty,
+                },
+            };
+            c.Session.Vars["braintree.creditCard"] = cardObj.ToString(Newtonsoft.Json.Formatting.None);
+
+            var tokenizeVars = new JObject
+            {
+                ["input"] = new JObject
+                {
+                    ["creditCard"] = cardObj,
+                    ["client"] = new JObject
+                    {
+                        ["clientSdkMetadata"] = new JObject
+                        {
+                            ["source"] = BraintreeTokenizeCard.ClientSdkName,
+                        },
+                    },
+                },
+            };
+            var btUrl = c.Session.Vars.GetValueOrDefault("panini.braintreeUrl");
+            var (tokenized, tokErr) = await BraintreeTokenizeCard
+                .TokenizeAsync(c, tokenizeVars, ct, btUrl)
+                .ConfigureAwait(false);
+            if (tokenized is null) return StepOutcome.Fail(tokErr, retryable: true);
+
+            c.Session.Vars["tokenizedCard"] = tokenized.ToString(Newtonsoft.Json.Formatting.None);
+            var nonce = tokenized["tokenizeCreditCard"]?["token"]?.ToString()
+                        ?? tokenized["token"]?.ToString();
+            if (!string.IsNullOrEmpty(nonce)) c.Session.PaymentToken = nonce;
+            return StepOutcome.Success();
+        }
+
+        return await base.GetPaymentTokenAsync(c, ct).ConfigureAwait(false);
+    }
+
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsPaniniMode(c))
+        {
+            if (string.Equals(c.Session.Vars.GetValueOrDefault("panini.paymentMethod"), "ppcp_card",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return await SubmitPpcpOrderAsync(c, ct).ConfigureAwait(false);
+            }
+
+            if (string.IsNullOrEmpty(c.Session.PaymentToken))
+            {
+                var tok = await GetPaymentTokenAsync(c, ct).ConfigureAwait(false);
+                if (!tok.Ok) return tok;
+            }
+            return StepOutcome.Success();
+        }
+
         var card = c.Card;
         if (card?.Number is null) return StepOutcome.Fail("magento: no card");
 
@@ -454,6 +683,69 @@ public class MagentoFlow : StoreFlow
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsPaniniMode(c))
+        {
+            if (string.Equals(c.Session.Vars.GetValueOrDefault("panini.paymentMethod"), "ppcp_card",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return await SubmitPpcpOrderAsync(c, ct).ConfigureAwait(false);
+            }
+
+            var ep = PaniniEndpointFor(c);
+            var ship = c.Billing ?? c.Shipping;
+            var p = c.ProfileData;
+            var body = new JObject
+            {
+                ["operationName"] = "placeOrderWithPaypal",
+                ["query"] = HighsnobietyFlow.PlaceOrderWithPaypalDocument,
+                ["variables"] = new JObject
+                {
+                    ["cartId"] = c.Session.CartId ?? string.Empty,
+                    ["countryId"] = ship?.Country ?? p?.Country ?? "US",
+                    ["regionId"] = c.Session.Vars.GetValueOrDefault("panini.regionId") ?? string.Empty,
+                    ["regionCode"] = ship?.State ?? p?.State ?? string.Empty,
+                    ["region"] = ship?.State ?? p?.State ?? string.Empty,
+                    ["street1"] = ship?.Address1 ?? p?.Address1 ?? string.Empty,
+                    ["street2"] = ship?.Address2 ?? p?.Address2 ?? string.Empty,
+                    ["telephone"] = p?.Phone ?? string.Empty,
+                    ["postcode"] = ship?.ZipCode ?? p?.Zip ?? string.Empty,
+                    ["city"] = ship?.City ?? p?.City ?? string.Empty,
+                    ["firstname"] = ship?.FirstName ?? p?.FirstName ?? string.Empty,
+                    ["lastname"] = ship?.LastName ?? p?.LastName ?? string.Empty,
+                    ["userId"] = c.Session.Vars.GetValueOrDefault("panini.userId") ?? "0",
+                    ["email"] = p?.Email ?? c.Account?.Email ?? string.Empty,
+                    ["paymentNonce"] = c.Session.PaymentToken ?? string.Empty,
+                    ["ddc"] = c.Session.Vars.GetValueOrDefault("panini.ddc") ?? string.Empty,
+                    ["ks"] = c.Session.Vars.GetValueOrDefault("panini.ks") ?? string.Empty,
+                    ["ss"] = c.Session.Vars.GetValueOrDefault("panini.ss") ?? string.Empty,
+                },
+            };
+
+            var orderReply = await GatewayHttp
+                .PostAsync(c, ep, body, "panini-paypal-order", ct)
+                .ConfigureAwait(false);
+            if (orderReply is null)
+                return StepOutcome.Fail(HighsnobietyFlow.ErrorSubmittingOrderMessage, retryable: true);
+
+            if (orderReply["errors"] is JArray gqlErr && gqlErr.Count > 0)
+                return StepOutcome.Fail(HighsnobietyFlow.PaymentNotProcessedMessage);
+
+            var payloadNode = orderReply["data"]?["placeOrderWithPaypal"];
+            var msg = payloadNode?["message"]?.ToString() ?? string.Empty;
+            var status = payloadNode?["status"]?.ToString();
+            if (msg.Contains("declined", StringComparison.OrdinalIgnoreCase))
+                return StepOutcome.Fail(HighsnobietyFlow.PaymentDeclinedMessage);
+            if (string.Equals(status, "false", StringComparison.OrdinalIgnoreCase))
+                return StepOutcome.Fail(HighsnobietyFlow.ErrorSubmittingOrderMessage);
+
+            c.Session.Vars["order"] = orderReply.ToString(Newtonsoft.Json.Formatting.None);
+            var orderNo = payloadNode?["data"]?["orderNumber"]?.ToString()
+                          ?? payloadNode?["data"]?["order_id"]?.ToString()
+                          ?? payloadNode?["data"]?.ToString();
+            if (!string.IsNullOrEmpty(orderNo)) c.Session.OrderNumber = orderNo;
+            return StepOutcome.Success();
+        }
+
         if (!string.IsNullOrEmpty(c.Session.OrderNumber)) return StepOutcome.Success();
 
         var res = await PostJsonAsync(c,
@@ -465,6 +757,62 @@ public class MagentoFlow : StoreFlow
 
         c.Session.OrderNumber = res.Body.Trim('"', '\r', '\n', ' ');
         return StepOutcome.Success();
+    }
+
+    public async Task<StepOutcome> SubmitPpcpOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        var baseUrl = c.Session.Vars.TryGetValue("panini.ppcpBase", out var ppcpBase) && !string.IsNullOrWhiteSpace(ppcpBase)
+            ? ppcpBase.TrimEnd('/')
+            : ApiOrigin(c).TrimEnd('/');
+        var isGuest = !string.Equals(c.Session.Vars.GetValueOrDefault("panini.authenticated"), "true",
+            StringComparison.OrdinalIgnoreCase);
+        var url = baseUrl + PpcpPrefix + (isGuest ? "createGuestOrder" : "createOrder");
+        var payload = new JObject
+        {
+            ["method"] = "ppcp_card",
+            ["cartId"] = c.Session.CartId ?? string.Empty,
+            ["fraudNetId"] = c.Session.Vars.GetValueOrDefault("panini.fraudNetId") ?? string.Empty,
+        };
+
+        var res = await PostJsonAsync(c, url, payload.ToString(Newtonsoft.Json.Formatting.None),
+            "panini-ppcp-order", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("panini ppcp order unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"panini ppcp order HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["order"] = res.Body;
+        var parsed = ThreeDsTransportHelpers.TryParseJson(res.Body);
+        var orderId = parsed?["id"]?.ToString()
+                      ?? parsed?["orderId"]?.ToString()
+                      ?? parsed?["orderNumber"]?.ToString()
+                      ?? res.Body.Trim('"', '\r', '\n', ' ');
+        if (!string.IsNullOrEmpty(orderId))
+        {
+            c.Session.OrderId = orderId;
+            c.Session.OrderNumber = orderId;
+        }
+        return StepOutcome.Success();
+    }
+
+    private static string? DecodeBraintreeFingerprint(string clientToken)
+    {
+        try
+        {
+            var raw = clientToken.Trim();
+            if (raw.StartsWith('{'))
+                return JObject.Parse(raw)["authorizationFingerprint"]?.ToString();
+            var padded = raw.Replace('-', '+').Replace('_', '/');
+            switch (padded.Length % 4)
+            {
+                case 2: padded += "=="; break;
+                case 3: padded += "="; break;
+            }
+            var decoded = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(padded));
+            return ThreeDsTransportHelpers.TryParseJson(decoded)?["authorizationFingerprint"]?.ToString();
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
 
@@ -559,7 +907,61 @@ public sealed class JdSportsFlow : MagentoFlow
     {
     }
 
+    public const string DefaultFinlStoreId = "FINL";
+    public const string DefaultInventoryLocationId = "0118";
+    public const string DefaultReportGroup = "Cert30 Merchant Rollup**";
+
     public override bool RequiresAccount => true;
+
+    public static bool IsFinlMode(FlowContext c) =>
+        string.Equals(c.Session.Vars.GetValueOrDefault("jdsports.finl"), "true",
+            StringComparison.OrdinalIgnoreCase) ||
+        c.Session.Vars.ContainsKey("jdsports.apiUrl") ||
+        c.Session.Vars.ContainsKey("jdsports.productId") ||
+        c.Session.Vars.ContainsKey("jdsports.cartToken") ||
+        (!string.IsNullOrEmpty(c.Url) &&
+         c.Url.Contains("finishline", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// <c>sub_14088A9E0</c>: rewrites <c>www.</c> to <c>api.</c> on the task origin and appends <c>/graphql</c>
+    /// (<c>StoreId = "FINL"</c>, <c>SiteKey = ""</c>).
+    /// </summary>
+    public static string FinlApiUrl(FlowContext c)
+    {
+        if (c.Session.Vars.TryGetValue("jdsports.apiUrl", out var apiUrl) && !string.IsNullOrWhiteSpace(apiUrl))
+        {
+            var resolved = apiUrl.TrimEnd('/');
+            c.Session.Vars["graphqlHash.origin"] = resolved;
+            c.Session.Vars["storeSession.origin"] = resolved;
+            return resolved;
+        }
+
+        if (!string.IsNullOrEmpty(c.Url) && Uri.TryCreate(c.Url, UriKind.Absolute, out var uri))
+        {
+            var host = uri.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                ? "api." + uri.Host[4..]
+                : uri.Host;
+            var port = uri.IsDefaultPort ? string.Empty : ":" + uri.Port;
+            var rewritten = $"{uri.Scheme}://{host}{port}/graphql";
+            c.Session.Vars["graphqlHash.origin"] = rewritten;
+            c.Session.Vars["storeSession.origin"] = rewritten;
+            return rewritten;
+        }
+
+        var origin = Origin(c.Url).TrimEnd('/') + "/graphql";
+        c.Session.Vars["graphqlHash.origin"] = origin;
+        c.Session.Vars["storeSession.origin"] = origin;
+        return origin;
+    }
+
+    private static (string? Hash, string? HeaderId) HashConfig(FlowContext c, string? key = null)
+    {
+        var hash = (!string.IsNullOrEmpty(key) ? c.Session.Vars.GetValueOrDefault(key!) : null)
+                   ?? c.Session.Vars.GetValueOrDefault("jdsports.hash");
+        if (!string.IsNullOrEmpty(hash)) c.Session.Vars["graphqlHash.cartHash"] = hash!;
+        var headerId = c.Session.Vars.GetValueOrDefault("jdsports.headerId");
+        return (hash, headerId);
+    }
 
     public override async Task<StepOutcome> LoginAsync(FlowContext c, CancellationToken ct)
     {
@@ -605,6 +1007,262 @@ public sealed class JdSportsFlow : MagentoFlow
         return res is { IsSuccess: true }
             ? StepOutcome.Success()
             : StepOutcome.Fail("jdsports: 2FA rejected");
+    }
+
+    public override async Task<StepOutcome> VerifySessionAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsFinlMode(c))
+            return await base.VerifySessionAsync(c, ct).ConfigureAwait(false);
+
+        var (hash, headerId) = HashConfig(c);
+        var (data, err) = await GraphQlHashQueries
+            .SendAsync(c, FinlApiUrl(c), "GetCartCookie", new JObject(), hash, ct, headerId)
+            .ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        var jwt = data["getCartCookie"]?["ctCartJWT"]?.ToString();
+        if (!string.IsNullOrEmpty(jwt))
+        {
+            c.Session.Vars["jdsports.ctCartJwt"] = jwt!;
+            c.Session.Vars["cartJwt"] = jwt!;
+        }
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsFinlMode(c))
+            return await base.FindProductAsync(c, ct).ConfigureAwait(false);
+
+        var pid = c.Session.Vars.GetValueOrDefault("jdsports.productId") ?? c.Product?.Variant ?? c.Session.VariantId;
+        if (string.IsNullOrEmpty(pid))
+            return StepOutcome.Fail("jdsports: no productId for GetProductInventory");
+
+        var (hash, headerId) = HashConfig(c);
+        var locId = c.Session.Vars.GetValueOrDefault("jdsports.locationId") ?? DefaultInventoryLocationId;
+        var vars = new JObject
+        {
+            ["input"] = new JObject
+            {
+                ["productId"] = pid,
+                ["locationId"] = locId,
+            },
+        };
+
+        var (data, err) = await GraphQlHashQueries
+            .SendAsync(c, FinlApiUrl(c), "GetProductInventory", vars, hash, ct, headerId)
+            .ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        c.Session.Vars["raw"] = data.ToString(Newtonsoft.Json.Formatting.None);
+        var inv = data["productInventory"];
+        var hasStock = inv?["hasStock"]?.ToObject<bool?>();
+        if (hasStock.HasValue) c.Session.Vars["available"] = hasStock.Value ? "true" : "false";
+        var firstSizeSku = inv?["inventory"]?["sizes"]?.FirstOrDefault()?["sku"]?.ToString();
+        if (!string.IsNullOrEmpty(firstSizeSku)) c.Session.VariantId = firstSizeSku;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsFinlMode(c))
+            return await base.GetCartAsync(c, ct).ConfigureAwait(false);
+
+        var (hash, headerId) = HashConfig(c, "jdsports.cartHash");
+        var (data, err) = await GraphQlHashQueries
+            .SendAsync(c, FinlApiUrl(c), "GetCart", new JObject(), hash, ct, headerId)
+            .ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        c.Session.Vars["cart"] = data.ToString(Newtonsoft.Json.Formatting.None);
+        var cartId = data["getCart"]?["id"]?.ToString();
+        if (!string.IsNullOrEmpty(cartId)) c.Session.CartId = cartId;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitEmailAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsFinlMode(c))
+            return await base.SubmitEmailAsync(c, ct).ConfigureAwait(false);
+
+        var email = c.ProfileData?.Email ?? c.Account?.Email ?? c.Session.Vars.GetValueOrDefault("email");
+        if (string.IsNullOrEmpty(email)) return StepOutcome.Fail("jdsports: no email for UpdateContactDetails");
+
+        var phone = c.ProfileData?.Phone ?? string.Empty;
+        var vars = new JObject
+        {
+            ["phone"] = phone,
+            ["email"] = email,
+            ["emailOptIn"] = false,
+        };
+        var (data, err) = await StoreSessionQueries
+            .SendAsync(c, FinlApiUrl(c), "UpdateContactDetails", vars, ct)
+            .ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        c.Session.Vars["email"] = email!;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsFinlMode(c))
+            return await base.SubmitShippingAsync(c, ct).ConfigureAwait(false);
+
+        var ship = c.Shipping ?? FootsitesFlow.AddressFromProfile(c);
+        if (ship is null) return StepOutcome.Fail("jdsports: no shipping address");
+        var p = c.ProfileData;
+
+        var addr = new JObject
+        {
+            ["firstName"] = ship.FirstName ?? p?.FirstName ?? string.Empty,
+            ["lastName"] = ship.LastName ?? p?.LastName ?? string.Empty,
+            ["address1"] = ship.Address1 ?? p?.Address1 ?? string.Empty,
+            ["address2"] = ship.Address2 ?? p?.Address2 ?? string.Empty,
+            ["city"] = ship.City ?? p?.City ?? string.Empty,
+            ["state"] = ship.State ?? p?.State ?? string.Empty,
+            ["postalCode"] = ship.ZipCode ?? p?.Zip ?? string.Empty,
+            ["phoneNumber"] = p?.Phone ?? string.Empty,
+            ["email"] = p?.Email ?? c.Account?.Email ?? string.Empty,
+            ["primaryAddress"] = true,
+            ["commercial"] = false,
+        };
+
+        var (hash, headerId) = HashConfig(c);
+        var (data, err) = await GraphQlHashQueries
+            .SendAsync(c, FinlApiUrl(c), "updateShipAddress", new JObject { ["address"] = addr }, hash, ct, headerId)
+            .ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        c.Session.Vars["shipping"] = data.ToString(Newtonsoft.Json.Formatting.None);
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitBillingAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsFinlMode(c))
+            return await base.SubmitBillingAsync(c, ct).ConfigureAwait(false);
+
+        var card = c.Card;
+        if (card?.Number is null) return StepOutcome.Fail("jdsports: no card");
+
+        var regId = c.Session.Vars.GetValueOrDefault("paypageRegistrationId");
+        if (string.IsNullOrEmpty(regId))
+        {
+            var eProtectUrl = c.Session.Vars.GetValueOrDefault("jdsports.paypageUrl")
+                              ?? WarhammerFlow.VantivPayPageUrl;
+            var eProtectReq = new JObject
+            {
+                ["paypageId"] = c.Session.Vars.GetValueOrDefault("jdsports.paypageId") ?? string.Empty,
+                ["reportGroup"] = c.Session.Vars.GetValueOrDefault("jdsports.reportGroup") ?? DefaultReportGroup,
+                ["id"] = c.Session.Vars.GetValueOrDefault("jdsports.paypageRequestId") ?? Guid.NewGuid().ToString("N"),
+                ["orderId"] = c.Session.OrderId ?? c.Session.CartId ?? string.Empty,
+                ["encryptedAccount"] = c.Session.Vars.GetValueOrDefault("jdsports.encryptedAccount")
+                                       ?? card.Number.Replace(" ", string.Empty),
+                ["pciNonSensitive"] = false,
+                ["encryptedCvv"] = c.Session.Vars.GetValueOrDefault("jdsports.encryptedCvv") ?? card.Cvv ?? string.Empty,
+                ["publicKeyId"] = c.Session.Vars.GetValueOrDefault("jdsports.publicKeyId") ?? string.Empty,
+                ["requestType"] = "eProtect",
+                ["targetServer"] = c.Session.Vars.GetValueOrDefault("jdsports.targetServer") ?? "eprotect",
+            };
+
+            var epRes = await PostJsonAsync(c, eProtectUrl, eProtectReq.ToString(Newtonsoft.Json.Formatting.None),
+                "jdsports-eprotect", ct).ConfigureAwait(false);
+            if (epRes is null || !epRes.IsSuccess)
+                return StepOutcome.Fail("jdsports: vantiv eProtect failed", retryable: true);
+
+            regId = ThreeDsTransportHelpers.TryParseJson(epRes.Body)?["paypageRegistrationId"]?.ToString();
+            if (string.IsNullOrEmpty(regId))
+                return StepOutcome.Fail("jdsports: missing paypageRegistrationId");
+            c.Session.Vars["paypageRegistrationId"] = regId!;
+        }
+
+        var num = card.Number.Replace(" ", string.Empty);
+        var last4 = num.Length >= 4 ? num[^4..] : num;
+        var cardType = num.StartsWith('3') ? "Amex" : num.StartsWith('4') ? "Visa" : "Mastercard";
+        var expMonth = (card.Month ?? string.Empty).Trim().PadLeft(2, '0');
+        var expYear = (card.Year ?? string.Empty).Trim();
+        if (expYear.Length == 2) expYear = "20" + expYear;
+
+        var bill = c.Billing ?? c.Shipping;
+        var p = c.ProfileData;
+        var variables = new JObject
+        {
+            ["creditCardInfo"] = new JObject
+            {
+                ["paypageRegistrationId"] = regId,
+                ["cardType"] = cardType,
+                ["expirationMonth"] = expMonth,
+                ["expirationYear"] = expYear,
+                ["creditCardNumber"] = last4,
+                ["billingAddressInfo"] = new JObject
+                {
+                    ["streetName"] = bill?.Address1 ?? p?.Address1 ?? string.Empty,
+                    ["additionalStreetInfo"] = bill?.Address2 ?? p?.Address2 ?? string.Empty,
+                    ["city"] = bill?.City ?? p?.City ?? string.Empty,
+                    ["postalCode"] = bill?.ZipCode ?? p?.Zip ?? string.Empty,
+                    ["state"] = bill?.State ?? p?.State ?? string.Empty,
+                    ["firstName"] = bill?.FirstName ?? p?.FirstName ?? string.Empty,
+                    ["lastName"] = bill?.LastName ?? p?.LastName ?? string.Empty,
+                    ["email"] = p?.Email ?? c.Account?.Email ?? string.Empty,
+                    ["phone"] = p?.Phone ?? string.Empty,
+                    ["country"] = bill?.Country ?? p?.Country ?? string.Empty,
+                    ["address1"] = string.Empty,
+                    ["address2"] = string.Empty,
+                },
+            },
+            ["editRequest"] = false,
+            ["addressUpdated"] = false,
+            ["saveToWallet"] = false,
+            ["roundUpDetails"] = new JObject { ["roundup"] = false, ["donationAmount"] = "0" },
+            ["isPrimary"] = false,
+        };
+
+        var body = new JObject
+        {
+            ["operationName"] = "AddCreditCard",
+            ["query"] = WarhammerQueries.AddCreditCard,
+            ["variables"] = variables,
+        };
+        var headers = new Dictionary<string, string>
+        {
+            [GraphQlHashQueries.QueryNameHeader] = "AddCreditCard",
+            [GraphQlHashQueries.HashHeader] = c.Session.Vars.GetValueOrDefault("jdsports.addCardHash")
+                                              ?? GraphQlHashQueries.ObservedHashes[0],
+            [GraphQlHashQueries.HeaderIdHeader] = c.Session.Vars.GetValueOrDefault("jdsports.headerId") ?? string.Empty,
+        };
+
+        var res = await ThreeDsTransportHelpers.PostJsonRawAsync(
+            c, FinlApiUrl(c), body.ToString(Newtonsoft.Json.Formatting.None), headers, "jdsports-billing", ct)
+            .ConfigureAwait(false);
+        if (res is null || !res.IsSuccess)
+            return StepOutcome.Fail($"jdsports billing HTTP {res?.StatusCode}", retryable: true);
+
+        c.Session.Vars["billing"] = res.Body;
+        var payId = ThreeDsTransportHelpers.TryParseJson(res.Body)?["data"]?["addCreditCard"]?["paymentInfo"]?["payments"]?[0]?["id"]?.ToString();
+        if (!string.IsNullOrEmpty(payId)) c.Session.PaymentMethodId = payId;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsFinlMode(c))
+            return await base.SubmitOrderAsync(c, ct).ConfigureAwait(false);
+
+        var cartToken = c.Session.Vars.GetValueOrDefault("jdsports.cartToken")
+                        ?? c.Session.CartId
+                        ?? c.Session.CheckoutToken;
+        if (string.IsNullOrEmpty(cartToken))
+            return StepOutcome.Fail("jdsports: no cartToken for SubmitOrder");
+
+        var orderRes = await MagentoCart
+            .SubmitOrderAsync(c, FinlApiUrl(c), cartToken!, ct)
+            .ConfigureAwait(false);
+        if (!orderRes.Ok) return StepOutcome.Fail(orderRes.Error, retryable: true);
+
+        c.Session.OrderNumber = orderRes.OrderNumber;
+        if (!string.IsNullOrEmpty(orderRes.OrderId)) c.Session.OrderId = orderRes.OrderId;
+        return StepOutcome.Success();
     }
 }
 
@@ -1354,7 +2012,30 @@ public sealed class JohnLewisFlow : StoreFlow
         if (res is null) return StepOutcome.Fail("jl orders unreachable", retryable: true);
         if (!res.IsSuccess) return StepOutcome.Fail($"jl orders HTTP {res.StatusCode}", retryable: true);
 
-        c.Session.Vars["jl.ordersBody"] = res.Body ?? string.Empty;
+        var body = res.Body ?? string.Empty;
+        c.Session.Vars["jl.ordersBody"] = body;
+
+        var parsed = ThreeDsTransportHelpers.TryParseJson(body);
+        if (parsed is not null)
+        {
+            var status = parsed["status"]?.ToString() ?? parsed["payment"]?["status"]?.ToString();
+            if (string.Equals(status, "DECLINED", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+            {
+                return StepOutcome.Fail($"jl order {status}");
+            }
+
+            var orderNo = parsed["orderNo"]?.ToString()
+                          ?? parsed["orderNumber"]?.ToString()
+                          ?? parsed["order"]?["orderNo"]?.ToString()
+                          ?? parsed["order"]?["orderNumber"]?.ToString()
+                          ?? parsed["checkout"]?["orderNo"]?.ToString();
+            if (!string.IsNullOrEmpty(orderNo)) c.Session.OrderNumber = orderNo;
+
+            var checkoutBat = parsed["checkout_bat"]?.ToString() ?? parsed["analytics"]?["checkout_bat"]?.ToString();
+            if (!string.IsNullOrEmpty(checkoutBat)) c.Session.Vars["jl.checkoutBat"] = checkoutBat!;
+        }
+
         return StepOutcome.Success();
     }
 

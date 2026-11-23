@@ -3,6 +3,7 @@ using System.Text;
 using Cybersole.Core.Models;
 using Cybersole.Http;
 using Cybersole.Stores.Flows;
+using Cybersole.Stores.Payments;
 using Xunit;
 
 namespace Cybersole.Tests;
@@ -284,5 +285,149 @@ public sealed class Phase2StoreStepsTests
         Assert.Contains("zipCode2=0000", decodedBody);
         // Verify shift_jis URL-encoded bytes for 山田 (%8ER%93c)
         Assert.Contains("lastName=%8ER%93c", decodedBody, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task KomojuWithoutFormActionPostsToOffsiteUrlAndReceiptHelpersExtractData()
+    {
+        using var server = new LoopbackServer((req, _) =>
+        {
+            if (req.Url?.AbsolutePath == "/offsite/komoju" && req.HttpMethod == "GET")
+                return (200, "text/html", """<html><head><meta name="csrf-token" content="csrf-direct-7"/></head><body>no form</body></html>""");
+            if (req.Url?.AbsolutePath == "/offsite/komoju" && req.HttpMethod == "POST")
+                return (200, "application/json", """{"ok":true}""");
+            return (404, "text/plain", "");
+        });
+
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var shopify = new ShopifyFlow();
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = server.BaseUrl,
+            ProfileData = new Profile { Email = "buyer@example.jp", FirstName = "Ken" },
+        };
+        ctx.Session.Vars["convenienceStore"] = "Lawson";
+        ctx.Session.Vars["shopify.offsiteKind"] = "komoju";
+        ctx.Session.Vars["offsiteUrl"] = server.BaseUrl + "/offsite/komoju";
+
+        var res = await shopify.CompleteConvenienceStoreAsync(ctx, default);
+        Assert.True(res.Ok, res.Error);
+        Assert.Equal(2, server.Requests.Count);
+        Assert.Equal("POST", server.Requests[1].Method);
+        Assert.Equal("/offsite/komoju", server.Requests[1].PathAndQuery);
+        var sent = Newtonsoft.Json.Linq.JObject.Parse(server.Requests[1].BodyText);
+        Assert.Equal("csrf-direct-7", sent["authenticity_token"]?.ToString());
+        Assert.Equal("lawson", sent["payment_details"]?["store"]?.ToString());
+
+        const string receiptJson = """{"data":{"receipt":{"action":{"url":"https://pay.shop.test/offsite/next?id=1"}}}}""";
+        Assert.Equal("https://pay.shop.test/offsite/next?id=1", ShopifyFlow.ExtractPollForReceiptActionUrl(receiptJson));
+        Assert.Null(ShopifyFlow.ExtractPollForReceiptActionUrl("{}"));
+
+        const string paymentFormHtml = """
+            <html><body>
+              <form id="payment-form" action="/submit-3ds?step=2&amp;ok=1">
+                <input type="hidden" name="token" value="tok_pf_1" />
+                <input type="hidden" name="md" value="md_9" />
+              </form>
+            </body></html>
+            """;
+        var (actionUrl, inputs) = ShopifyFlow.ExtractPaymentFormPost(paymentFormHtml, "https://shop.test/checkout");
+        Assert.Equal("https://shop.test/submit-3ds?step=2&ok=1", actionUrl);
+        Assert.Equal("tok_pf_1", inputs["token"]);
+        Assert.Equal("md_9", inputs["md"]);
+    }
+
+    [Fact]
+    public async Task FunkoEarlyTokenizationAndCommerceHubCaptureCardMatchContracts()
+    {
+        using var server = new LoopbackServer((req, _) =>
+        {
+            var path = req.Url?.AbsolutePath ?? "/";
+            if (path == "/on/demandware.store/Sites-FunkoUS-Site/en_US/PaymentInstruments-EarlyTokenization" &&
+                req.HttpMethod == "POST")
+            {
+                return (200, "application/json", """
+                    {
+                      "initConfig": { "environment": "CERT" },
+                      "submitConfig": {
+                        "apiKey": "ch_api_1",
+                        "accessToken": "ch_tok_1",
+                        "publicKey": "pub_k_1",
+                        "keyId": "kid_1",
+                        "merchantId": "merch_1",
+                        "terminalId": "term_1"
+                      }
+                    }
+                    """);
+            }
+            if (path == "/ch/payments-vas/v1/card-capture" && req.HttpMethod == "POST")
+            {
+                return (200, "application/json", """{"paymentTokens":[{"tokenData":"ch_captured_uuid_99"}]}""");
+            }
+            return (404, "application/json", "{}");
+        });
+
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var funko = new FunkoFlow();
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = server.BaseUrl + "/checkout",
+            Card = new Card { Number = "4111111111111111", Month = "9", Year = "2030", Cvv = "321" },
+        };
+
+        var early = await funko.EarlyTokenizationAsync(ctx, "sess_99", "Visa", default);
+        Assert.True(early.Ok, early.Error);
+        Assert.Contains(ctx.Events, e => e.Name == "Getting payment token" && e.Type == "StatusInfo");
+        Assert.Equal("ch_api_1", ctx.Session.Vars["commercehub.apiKey"]);
+        Assert.Equal("ch_tok_1", ctx.Session.Vars["commercehub.accessToken"]);
+        Assert.Equal("pub_k_1", ctx.Session.Vars["commercehub.publicKey"]);
+        Assert.Equal("kid_1", ctx.Session.Vars["commercehub.keyId"]);
+        Assert.Equal("merch_1", ctx.Session.Vars["commercehub.merchantId"]);
+        Assert.Equal("term_1", ctx.Session.Vars["commercehub.terminalId"]);
+        Assert.Equal(CommerceHubGateway.CertCardCaptureHost, ctx.Session.Vars["commercehub.captureHost"]);
+
+        var earlyReq = Assert.Single(server.Requests, r => r.PathAndQuery.Contains("PaymentInstruments-EarlyTokenization"));
+        Assert.Contains("sessionId=sess_99", earlyReq.BodyText);
+        Assert.Contains("cardType=Visa", earlyReq.BodyText);
+
+        var capture = await new CommerceHubGateway().CaptureCardAsync(
+            ctx,
+            captureOriginHost: server.BaseUrl + "/ch",
+            ct: default);
+        Assert.True(capture.Ok, capture.Error);
+        Assert.Equal("ch_captured_uuid_99", capture.GatewayReference);
+        Assert.Equal("ch_captured_uuid_99", ctx.Session.PaymentToken);
+
+        var capReq = Assert.Single(server.Requests, r => r.PathAndQuery == "/ch/payments-vas/v1/card-capture");
+        Assert.Equal("ch_api_1", capReq.Headers["api-key"]);
+        Assert.Equal("Bearer ch_tok_1", capReq.Headers["authorization"]);
+        Assert.Equal("merch_1", capReq.Headers["x-integration-merchant-id"]);
+        Assert.Equal("term_1", capReq.Headers["x-integration-terminal-id"]);
+        Assert.Equal(server.BaseUrl, capReq.Headers["x-integration-origin"]);
+        Assert.Equal("@commercehub/checkout-sdk", capReq.Headers["x-integration"]);
+        Assert.Equal("3.8.16", capReq.Headers["x-integration-version"]);
+        Assert.Equal("AccessToken", capReq.Headers["auth-token-type"]);
+        Assert.False(string.IsNullOrWhiteSpace(capReq.Headers["client-request-id"]));
+        Assert.False(string.IsNullOrWhiteSpace(capReq.Headers["timestamp"]));
+        Assert.Equal(CommerceHubGateway.DefaultHost, capReq.Headers["origin"]);
+        Assert.Equal("cross-site", capReq.Headers["sec-fetch-site"]);
+
+        var capBody = Newtonsoft.Json.Linq.JObject.Parse(capReq.BodyText);
+        Assert.NotNull(capBody["paymentCard"]);
+        Assert.Equal("merch_1", capBody["merchantDetails"]?["merchantId"]?.ToString());
+        Assert.Equal("term_1", capBody["merchantDetails"]?["terminalId"]?.ToString());
+        Assert.NotNull(capBody["transactionDetails"]);
+
+        // Failure path emits "Error getting payment token"
+        var failCtx = new FlowContext { Http = http, Url = server.BaseUrl + "/missing" };
+        // Point to an unmapped site via url without controller? Actually use a non-200 server path
+        using var failServer = new LoopbackServer((_, _) => (500, "application/json", "{}"));
+        var failRes = await funko.EarlyTokenizationAsync(
+            new FlowContext { Http = http, Url = failServer.BaseUrl },
+            "s", "Visa", default);
+        Assert.False(failRes.Ok);
+        Assert.Contains("Error getting payment token", failRes.Error);
     }
 }

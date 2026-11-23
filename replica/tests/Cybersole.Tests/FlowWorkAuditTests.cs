@@ -34,11 +34,10 @@ public class FlowWorkAuditTests
 // farfetch.com at any spelling, so they are recorded gaps rather than silent ones -- which is exactly what this
 // ceiling is meant to distinguish. The number moves with the evidence, not to make a test pass.
     // R1309: 12 -> 16. Saucony's four undecoded base steps (AddToCart d__7, SubmitShipping d__9, SubmitBilling d__10,
-    // SubmitOrder d__11) join them for the same reason Farfetch's did: the class assembles its requests from
-    // ApiHeaders and the storefront origin, and searching the image for `saucony` returns the domain and the four
-    // store ids and no API path at all. Each refusal names its own state-machine ordinal, so the entry points back
-    // into the image rather than just reporting a failure.
-    private const int KnownPlaceholders = 16;
+    // SubmitOrder d__11) joined them until R1383 replaced them with real SFCC implementations.
+    // R1383: 16 -> 12. Saucony's four base overrides (AddToCartAsync, SubmitShippingAsync, SubmitBillingAsync,
+    // SubmitOrderAsync) now execute the recovered SFCC controllers instead of returning placeholders.
+    private const int KnownPlaceholders = 12;
 
     private static string RepoRoot()
     {

@@ -1,19 +1,19 @@
 # C8 字符串池分类比对（生成物）
 
 ```
-image strings: 213338   artifact strings: 117322
+image strings: 213338   artifact strings: 123078
 
 class               image  artifact exact-in-artifact
-locale-key            971       935        19
-url                  3507       283        14
-error-message        4192       139        48
-dependency           2277       692       218
-other              202391    115273     25085
+locale-key           1003        24         0
+url                  3451       285        15
+error-message        4116       109        33
+dependency           2502      2407       746
+other              202266    120253     25419
 
 unknown (in the image, not found in the artifact — §4.5 says this means nothing yet):
-  locale-key: 952 unknown; samples: Bogus.dllg | DSystem.Text.RegularExpressions.dll.Syst | System.Linq.dll2BouncyCastle.Cryptograph | MimeKit.dll8System.Security.Cryptography | DSystem.Diagnostics.TraceSource.dll.Syst | System.dll8System.Collections.Immutable
-  url: 3493 unknown; samples: https://github.com/AzureAD/microsoft-aut | https://github.com/AzureAD/azure-actived | https://ipfs.io | http://www.typography.com/support/eula.h | http://ocsp.accv.es0 | http://www.cert.fnmt.es/dpcs/0\r
-  error-message: 4144 unknown; samples: Newtonsoft.Json request bodies (LegacyJs | Live request stream from an application  | File system globbing to find files match | Logging infrastructure default implement | MediumHigh<Use SKSamplingOptions instea | BindingExpression and ReflectionBinding 
+  locale-key: 1003 unknown; samples: Accounts.Action.Add | Accounts.Action.Clear | Accounts.Column.Added | Accounts.Column.Email | Accounts.Column.Password | Accounts.Context.CopyMany
+  url: 3436 unknown; samples: https://ipfs.io | http://127.0.0.1: | http://169.254.169.254/metadata/instance | http://fail/ | http://localhost/ | http://localhost:
+  error-message: 4083 unknown; samples: Types with embedded references are not s | Y*#|Marshalling as Currency may be unava | Marshalling arbitrary types may be unava | Ke/fTasks will continue to run and use t | In-bot onlydRoute captchas exclusively t | Automatically assigns a random account t
 
 Limits, stated rather than papered over:
   1. the artifact side is a byte scan, and NativeAOT stores some literals in forms a scan cannot

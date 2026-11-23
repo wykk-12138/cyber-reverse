@@ -57,15 +57,16 @@ public static class BraintreeTokenizeCard
     /// card fields into source would be copying credentials, the same rule the storefront token goes by.
     /// </summary>
     public static async Task<(JObject? Data, string Error)> TokenizeAsync(
-        FlowContext c, JObject variables, CancellationToken ct)
+        FlowContext c, JObject variables, CancellationToken ct, string? url = null)
     {
-        if (variables?["creditCard"] is null)
+        var creditCard = variables?["creditCard"] ?? variables?["input"]?["creditCard"];
+        if (creditCard is null)
             return (null, "braintree: no creditCard — the mutation is keyed by it");
 
         try
         {
             var reply = await GatewayHttp
-                .PostAsync(c, Url, Envelope(variables), "braintree-tokenize", ct)
+                .PostAsync(c, url ?? Url, Envelope(variables!), "braintree-tokenize", ct)
                 .ConfigureAwait(false);
             if (reply is null) return (null, "braintree: no reply");
 

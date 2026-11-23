@@ -194,4 +194,46 @@ public sealed class StripeStoreConfigTests
         Assert.Equal(ConfigPath, seen[0]);
         Assert.Equal("pk_test_casio", ctx.Session.Vars["stripe.publishableKey"]);
     }
+
+    [Fact]
+    public async Task FetchConfigurationUsesOverrideHeadersKeepsAkamaiOffWireAndHandles400()
+    {
+        using var server = new TinyServer((req, _) =>
+        {
+            if (req.Url?.AbsolutePath == "/err/rest/V1/stripe/payments/get_stripe_configuration")
+                return (400, "{\"apiKey\":\"should_be_ignored\"}");
+            return (200, "{\"apiKey\":\"pk_live_casio\"}");
+        });
+
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/gb/checkout" };
+        ctx.Session.Vars["stripe.storeOrigin"] = server.BaseUrl;
+        ctx.Session.Vars["stripe.storeCode"] = "gb";
+
+        var ok = await new StripeGateway().FetchConfigurationAsync(ctx, default);
+        Assert.True(ok.Ok, ok.Error);
+        Assert.Equal("pk_live_casio", ctx.Session.Vars["stripe.publishableKey"]);
+
+        var wireHeaders = Assert.Single(server.RequestHeaders);
+        Assert.Equal("XMLHttpRequest", wireHeaders["x-requested-with"]);
+        Assert.Equal("en-US,en;q=0.9", wireHeaders["accept-language"]);
+        Assert.Equal("?0", wireHeaders["sec-ch-ua-mobile"]);
+        Assert.Equal("u=1, i", wireHeaders["priority"]);
+        Assert.False(wireHeaders.ContainsKey("Akamai"));
+        Assert.False(wireHeaders.ContainsKey("User-Agent"));
+        Assert.False(wireHeaders.ContainsKey("sec-ch-ua"));
+        Assert.False(wireHeaders.ContainsKey("sec-ch-ua-platform"));
+        Assert.False(wireHeaders.ContainsKey("sec-fetch-user"));
+        Assert.False(wireHeaders.ContainsKey("upgrade-insecure-requests"));
+
+        var errCtx = new FlowContext { Http = http, Url = server.BaseUrl + "/err/checkout" };
+        errCtx.Session.Vars["stripe.storeOrigin"] = server.BaseUrl;
+        errCtx.Session.Vars["stripe.storeCode"] = "err";
+
+        var errRes = await new StripeGateway().FetchConfigurationAsync(errCtx, default);
+        Assert.False(errRes.Ok);
+        Assert.Equal("Error preparing payment", errRes.Error);
+        Assert.False(errCtx.Session.Vars.ContainsKey("stripe.publishableKey"));
+        Assert.Contains(errCtx.Events, e => e.Name == "Error preparing payment" && e.Type == "error");
+    }
 }

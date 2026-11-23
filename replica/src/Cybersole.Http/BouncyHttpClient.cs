@@ -1,5 +1,6 @@
 using System.Text;
 using Cybersole.Core.Models;
+using Cybersole.Http.Compression;
 
 namespace Cybersole.Http;
 
@@ -144,7 +145,7 @@ public sealed class BouncyHttpClient : IDisposable, IAsyncDisposable
         sb.Append("User-Agent: ").Append(profile.UserAgent).Append("\r\n");
         sb.Append("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\n");
         sb.Append("Accept-Language: ").Append(profile.AcceptLanguage).Append("\r\n");
-        sb.Append("Accept-Encoding: gzip, deflate, br\r\n");
+        sb.Append("Accept-Encoding: ").Append(ContentEncodingCodec.DefaultAcceptEncoding).Append("\r\n");
         sb.Append("sec-ch-ua: ").Append(profile.SecChUa).Append("\r\n");
         sb.Append("sec-ch-ua-mobile: ").Append(profile.SecChUaMobile).Append("\r\n");
         sb.Append("sec-ch-ua-platform: ").Append(profile.SecChUaPlatform).Append("\r\n");
@@ -223,48 +224,8 @@ public sealed class BouncyHttpClient : IDisposable, IAsyncDisposable
         return output.ToArray();
     }
 
-    private static string Decode(byte[] body, Dictionary<string, string> headers)
-    {
-        try
-        {
-            if (headers.TryGetValue("Content-Encoding", out var enc))
-            {
-                var e = enc.ToLowerInvariant();
-                if (e.Contains("br") && body.Length > 1)
-                {
-                    using var input = new MemoryStream(body);
-                    using var brotli = new System.IO.Compression.BrotliStream(
-                        input, System.IO.Compression.CompressionMode.Decompress);
-                    using var output = new MemoryStream();
-                    brotli.CopyTo(output);
-                    return Encoding.UTF8.GetString(output.ToArray());
-                }
-                if (e.Contains("gzip") && body.Length > 2)
-                {
-                    using var input = new MemoryStream(body);
-                    using var gzip = new System.IO.Compression.GZipStream(
-                        input, System.IO.Compression.CompressionMode.Decompress);
-                    using var output = new MemoryStream();
-                    gzip.CopyTo(output);
-                    return Encoding.UTF8.GetString(output.ToArray());
-                }
-                if (e.Contains("deflate") && body.Length > 2)
-                {
-                    using var input = new MemoryStream(body);
-                    using var deflate = new System.IO.Compression.DeflateStream(
-                        input, System.IO.Compression.CompressionMode.Decompress);
-                    using var output = new MemoryStream();
-                    deflate.CopyTo(output);
-                    return Encoding.UTF8.GetString(output.ToArray());
-                }
-            }
-            return Encoding.UTF8.GetString(body);
-        }
-        catch
-        {
-            return Encoding.UTF8.GetString(body);
-        }
-    }
+    private static string Decode(byte[] body, Dictionary<string, string> headers) =>
+        ContentEncodingCodec.DecompressToString(body, headers);
 
     private static int IndexOf(byte[] haystack, byte[] needle, int start = 0)
     {

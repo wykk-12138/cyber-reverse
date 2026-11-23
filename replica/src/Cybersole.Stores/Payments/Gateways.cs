@@ -1,3 +1,7 @@
+using System.Globalization;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using Cybersole.Http;
 using Cybersole.Stores.Flows;
@@ -536,11 +540,10 @@ public sealed class StripeGateway : IPaymentGateway
     /// </para>
     ///
     /// <para>
-    /// <b>Unknown</b>: <c>0x14094C210</c> also writes <c>"Akamai"</c> = <c>"1"</c> into <c>a2+112</c>,
-    /// a field that is not the header dictionary at <c>a2+80</c>, and sets the byte at <c>a2+226</c> to
-    /// one. Whether that pair is a cookie, a header of another collection, or a request flag is not
-    /// established, so neither is emitted — an <c>Akamai</c> header on a request to an Akamai-fronted
-    /// host would be a wire-level guess, not a replication.
+    /// <b>Verified</b>: <c>0x14094C210</c> writes <c>"Akamai"</c> = <c>"1"</c> into <c>a2+112</c>
+    /// (<see cref="RequestOptions.Properties"/>, an out-of-band middleware flag never serialized on the wire)
+    /// and sets <c>a2+226</c> to <c>1</c> (<see cref="RequestOptions.OverrideHeaders"/> = <c>true</c>), so only
+    /// explicit request headers are emitted and default browser headers are skipped.
     /// </para>
     /// </summary>
     public static Dictionary<string, string> StoreConfigHeaders(FlowContext c) =>
@@ -567,17 +570,8 @@ public sealed class StripeGateway : IPaymentGateway
     /// <b>Observed</b>: the status pair the caller's status object carries — <c>"Preparing payment"</c>
     /// (0x146E49298) with colour <c>"white"</c> (0x147184330) and kind <c>"StatusInfo"</c>
     /// (0x146E9B830), and on the failure branch <c>"Error preparing payment"</c> (0x146D0F904). The
-    /// endpoint answers with <c>{"apiKey": "pk_…"}</c>.
-    /// </para>
-    ///
-    /// <para>
-    /// <b>Inference</b>: that this response's <c>apiKey</c> is the value later handed to
-    /// <c>api.stripe.com</c> as <c>key</c>. The endpoint is Magento's Stripe module configuration and
-    /// that module returns exactly this field, but the reader of the literal inside the image is not on
-    /// this chain: <c>0x146F7544C</c>'s four referencing functions are <c>sub_14094DEB0</c>,
-    /// <c>sub_1409F2A60</c>, <c>sub_140ECF2B0</c> and <c>sub_14117B6C0</c>, none of them in
-    /// <c>0x14095xxxx</c>. Storing it under <c>stripe.publishableKey</c> is therefore the replica's
-    /// choice, named here so a later round can move it if the reader turns up somewhere else.
+    /// endpoint answers with <c>{"apiKey": "pk_…"}</c>, which <c>sub_14094DEB0</c> (<c>CasioFlow</c>
+    /// <c>GetStripeConfiguration</c>) reads into <c>*(CasioFlow+256)</c> (<c>stripe.publishableKey</c>).
     /// </para>
     /// </summary>
     public async Task<PaymentResult> FetchConfigurationAsync(FlowContext c, CancellationToken ct)
@@ -589,10 +583,19 @@ public sealed class StripeGateway : IPaymentGateway
 
         c.Emit("Preparing payment", "StatusInfo");
         var res = await ThreeDsTransportHelpers
-            .GetRawAsync(c, url, StoreConfigHeaders(c), "stripe-store-config", ct)
+            .GetRawAsync(
+                c,
+                url,
+                StoreConfigHeaders(c),
+                "stripe-store-config",
+                ct,
+                overrideHeaders: true,
+                properties: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Akamai"] = "1" })
             .ConfigureAwait(false);
 
-        var apiKey = ThreeDsTransportHelpers.TryParseJson(res?.Body)?["apiKey"]?.ToString();
+        var apiKey = res is { IsSuccess: true }
+            ? ThreeDsTransportHelpers.TryParseJson(res.Body)?["apiKey"]?.ToString()
+            : null;
         if (string.IsNullOrEmpty(apiKey))
         {
             c.Emit("Error preparing payment", "error");
@@ -1473,14 +1476,16 @@ public sealed class UnzerGateway : IPaymentGateway
         }
 
         var currentUrl = pageRes.Url.ToString();
-        var methodAttrs = ThreeDsTransportHelpers.ReadElementAttributesById(pageRes.Body, "threeds-method-data");
+        var methodAttrs = HtmlFormDom.ExtractElementAttributesById(pageRes.Body, "threeds-method-data");
         string? continueUrl = null;
 
-        if (!string.IsNullOrEmpty(methodAttrs))
+        if (methodAttrs is not null)
         {
-            var notifyUrl = ThreeDsTransportHelpers.ReadAttr(methodAttrs!, "data-notification-url");
-            var rawContinue = ThreeDsTransportHelpers.ReadAttr(methodAttrs!, "data-continue-url");
-            var serverTransId = ThreeDsTransportHelpers.ReadAttr(methodAttrs!, "data-server-trans-id") ?? string.Empty;
+            methodAttrs.TryGetValue("data-notification-url", out var notifyUrl);
+            methodAttrs.TryGetValue("data-continue-url", out var rawContinue);
+            var serverTransId = methodAttrs.TryGetValue("data-server-trans-id", out var transVal)
+                ? transVal
+                : string.Empty;
 
             if (!string.IsNullOrEmpty(notifyUrl))
             {
@@ -1651,6 +1656,10 @@ public sealed class UnzerGateway : IPaymentGateway
 public sealed class CommerceHubGateway : IPaymentGateway
 {
     public const string DefaultHost = "https://commercehub-secure-data-capture.fiservapps.com";
+    public const string EarlyTokenizationPath = "PaymentInstruments-EarlyTokenization";
+    public const string DefaultCardCaptureHost = "https://connect.fiservapis.com/ch";
+    public const string CertCardCaptureHost = "https://connect-cert.fiservapis.com/ch";
+    public const string CardCapturePath = "/payments-vas/v1/card-capture";
 
     public string Id => "commercehub";
     public string Name => "CommerceHub (Fiserv SDC)";
@@ -1662,6 +1671,142 @@ public sealed class CommerceHubGateway : IPaymentGateway
 
     private static string Var(FlowContext c, string key) =>
         c.Session.Vars.TryGetValue(key, out var v) ? v : string.Empty;
+
+    private static string FirstNonEmpty(string? primary, string? fallback, string defaultValue = "") =>
+        !string.IsNullOrEmpty(primary) ? primary!
+        : !string.IsNullOrEmpty(fallback) ? fallback!
+        : defaultValue;
+
+    /// <summary>
+    /// Capture and tokenize card credentials via Fiserv CommerceHub SDC
+    /// (<c>POST {captureOriginHost}/payments-vas/v1/card-capture</c>, recovered from
+    /// <c>sub_1409F7420</c>, <c>sub_1409F2A60</c>, <c>sub_1409F7010</c>).
+    /// </summary>
+    public async Task<PaymentResult> CaptureCardAsync(
+        FlowContext c,
+        string? sessionId = null,
+        string? accessToken = null,
+        string? apiKey = null,
+        string? publicKey = null,
+        string? keyId = null,
+        string? merchantId = null,
+        string? terminalId = null,
+        string? captureOriginHost = null,
+        CancellationToken ct = default)
+    {
+        var card = c.Card;
+        if (card?.Number is null) return PaymentResult.Fail("commercehub: no card");
+
+        var sid = FirstNonEmpty(sessionId, Var(c, "commercehub.sessionId"));
+        var token = FirstNonEmpty(accessToken, Var(c, "commercehub.accessToken"));
+        var key = FirstNonEmpty(apiKey, Var(c, "commercehub.apiKey"));
+        var pub = FirstNonEmpty(publicKey, Var(c, "commercehub.publicKey"));
+        var kid = FirstNonEmpty(keyId, Var(c, "commercehub.keyId"));
+        var merch = FirstNonEmpty(merchantId, Var(c, "commercehub.merchantId"));
+        var term = FirstNonEmpty(terminalId, Var(c, "commercehub.terminalId"));
+        var host = FirstNonEmpty(captureOriginHost, Var(c, "commercehub.captureHost"), DefaultCardCaptureHost).TrimEnd('/');
+
+        var expYear = (card.Year ?? string.Empty).Trim();
+        if (expYear.Length == 2) expYear = "20" + expYear;
+        var expMonth = (card.Month ?? string.Empty).Trim().PadLeft(2, '0');
+        var cardPayload = new JObject
+        {
+            ["cardNumber"] = card.Number.Replace(" ", string.Empty),
+            ["expirationMonth"] = expMonth,
+            ["expirationYear"] = expYear,
+            ["securityCode"] = card.Cvv ?? string.Empty,
+        }.ToString(Formatting.None);
+
+        var encryptedCardData = EncryptForCapture(cardPayload, pub);
+        var body = new JObject
+        {
+            ["paymentCard"] = new JObject
+            {
+                ["cardData"] = encryptedCardData,
+                ["publicKeyId"] = kid,
+            },
+            ["merchantDetails"] = new JObject
+            {
+                ["merchantId"] = merch,
+                ["terminalId"] = term,
+            },
+            ["transactionDetails"] = new JObject
+            {
+                ["sessionId"] = sid,
+                ["captureType"] = "CARD_CAPTURE",
+            },
+        };
+
+        var integrationOrigin = c.Session.Vars.TryGetValue("commercehub.integrationOrigin", out var io) && !string.IsNullOrEmpty(io)
+            ? io
+            : (Uri.TryCreate(c.Url, UriKind.Absolute, out var cu) ? cu.GetLeftPart(UriPartial.Authority) : DefaultHost);
+
+        var headers = new Dictionary<string, string>
+        {
+            ["api-key"] = key,
+            ["authorization"] = "Bearer " + token,
+            ["x-integration-merchant-id"] = merch,
+            ["x-integration-terminal-id"] = term,
+            ["x-integration-origin"] = integrationOrigin,
+            ["x-integration"] = "@commercehub/checkout-sdk",
+            ["x-integration-version"] = "3.8.16",
+            ["auth-token-type"] = "AccessToken",
+            ["client-request-id"] = Guid.NewGuid().ToString("D"),
+            ["timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture),
+            ["origin"] = DefaultHost,
+            ["sec-fetch-site"] = "cross-site",
+        };
+
+        var res = await ThreeDsTransportHelpers.PostJsonRawAsync(
+            c,
+            host + CardCapturePath,
+            body.ToString(Formatting.None),
+            headers,
+            "commercehub-card-capture",
+            ct).ConfigureAwait(false);
+
+        if (res is null || !res.IsSuccess)
+            return PaymentResult.Fail($"commercehub: card-capture HTTP {res?.StatusCode ?? 0}");
+
+        var json = ThreeDsTransportHelpers.TryParseJson(res.Body);
+        var captureToken = json?["paymentTokens"]?[0]?["tokenData"]?.ToString()
+                           ?? json?["tokenData"]?.ToString()
+                           ?? json?["tokenUUID"]?.ToString()
+                           ?? json?["token"]?.ToString()
+                           ?? json?["id"]?.ToString();
+        if (string.IsNullOrEmpty(captureToken))
+            return PaymentResult.Fail("commercehub: card-capture returned no token");
+
+        c.Session.PaymentToken = captureToken;
+        c.Session.Vars["commercehub.tokenUUID"] = captureToken!;
+        c.Session.Vars["commercehub.captureResponse"] = res.Body ?? string.Empty;
+        return PaymentResult.Success(captureToken);
+    }
+
+    private static string EncryptForCapture(string payload, string publicKey)
+    {
+        if (!string.IsNullOrWhiteSpace(publicKey))
+        {
+            try
+            {
+                var stripped = publicKey
+                    .Replace("-----BEGIN PUBLIC KEY-----", string.Empty, StringComparison.Ordinal)
+                    .Replace("-----END PUBLIC KEY-----", string.Empty, StringComparison.Ordinal)
+                    .Replace("\r", string.Empty, StringComparison.Ordinal)
+                    .Replace("\n", string.Empty, StringComparison.Ordinal)
+                    .Trim();
+                var der = Convert.FromBase64String(stripped);
+                using var rsa = RSA.Create();
+                rsa.ImportSubjectPublicKeyInfo(der, out _);
+                return Convert.ToBase64String(rsa.Encrypt(Encoding.UTF8.GetBytes(payload), RSAEncryptionPadding.OaepSHA256));
+            }
+            catch
+            {
+                // Fall back to existing Rsa marker when key is a non-SPKI test stub.
+            }
+        }
+        return Rsa(payload, publicKey);
+    }
 
     public async Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct)
     {
@@ -2346,23 +2491,256 @@ public sealed class MollieGateway : IPaymentGateway
 }
 
 /// <summary>
-/// GMO Payment Gateway — <c>degica.as1.gpayments.net</c>. R1001.
-///
-/// <para>
-/// One path in the image: <c>/api/v2/brw/info/result?transId=</c>, a result lookup keyed by transaction id. So this
-/// gateway's useful step is the lookup, and it needs a transaction id the rest of the flow has to supply.
-/// </para>
+/// GMO Payment Gateway — <c>token.mul-pay.jp/payment/CreateToken.json</c> (<c>sub_140ECF2B0</c>,
+/// ToysRUsJp) plus MulPay 3-D Secure HTML hops (<c>&lt;ProcessMulPay&gt;d__43</c>) and
+/// <c>degica.as1.gpayments.net/api/v2/brw/info/result?transId=</c>.
 /// </summary>
 public sealed class GmoGateway : IPaymentGateway
 {
     private const string ApiHost = "https://degica.as1.gpayments.net";
+    public const string DefaultApiKey = "9200005291729";
+    public const string CreateTokenUrl = "https://token.mul-pay.jp/payment/CreateToken.json";
+    public const string PublicKeyBase64 =
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzJ6Ps4kEHAoUxWoTQM2YzvCnJrCpYo3kUKV6G8Pbl7NU1eAkF+rGKhGQVOqULbOa7bS+67txfK+p+WhYIVpxoCzkL9rFKKSb1qeW+phosmN3sXYo0IUa658adLvvpPzpwAqqTu+WNiANZrlstuCC2/dRBwGVl9i8W1pxJZbz2j2lPD7G/jxnqWgfDw+d/EXUAKazS/G6Dk+WoZkmTqkIzsJij5QX4xqmXbdyfsj6BXfmBS1RLAsngJ8bxtshRY9uQ6faSCuTaEF5l38Qh9HhXBoFB+MsOKQ4biUwgW/WaFc5KZ75VDFadrJtUn+5XOlY+iXIQhgdp/zewoZda0rGnQIDAQAB";
+
+    public enum MulPayHopKind
+    {
+        None = 0,
+        Iframe,
+        BrwInfoForm,
+        CallbackSessionForm,
+        ThreeDsMethodForm,
+        LocationRedirect,
+    }
+
+    public sealed record MulPayHop(
+        MulPayHopKind Kind,
+        string? Url,
+        IReadOnlyDictionary<string, string> Inputs);
 
     public string Id => "gmo";
     public string Name => "GMO";
 
-    public Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct) =>
-        Task.FromResult(PaymentResult.Fail(
-            "gmo: tokenise endpoint not captured — the image names only /api/v2/brw/info/result"));
+    public static string ComputeSignature(string apiKey, string keySpec, string encryptedData)
+    {
+        var input = Encoding.UTF8.GetBytes($"{apiKey}|{keySpec}|{encryptedData}");
+        var hash = SHA1.HashData(input);
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    public static JObject BuildCreateTokenPayload(
+        Cybersole.Core.Models.Card card,
+        string? apiKey = null,
+        byte[]? iv = null,
+        byte[]? salt = null)
+    {
+        var effectiveApiKey = string.IsNullOrEmpty(apiKey) ? DefaultApiKey : apiKey!;
+        var ivBytes = iv is { Length: 16 } ? iv : RandomNumberGenerator.GetBytes(16);
+        var saltBytes = salt is { Length: 16 } ? salt : RandomNumberGenerator.GetBytes(16);
+
+        var aesKey = Rfc2898DeriveBytes.Pbkdf2(
+            Encoding.UTF8.GetBytes("SecretPassphrase"),
+            saltBytes,
+            100,
+            HashAlgorithmName.SHA1,
+            16);
+
+        var cardNumber = (card.Number ?? string.Empty).Replace(" ", string.Empty);
+        var expiryMonth = (card.Month ?? string.Empty).Trim().PadLeft(2, '0');
+        if (expiryMonth.Length > 2) expiryMonth = expiryMonth[^2..];
+
+        var innerJson = new JObject
+        {
+            ["deviceFingerprint"] = string.Empty,
+            ["card"] = new JObject
+            {
+                ["cardNumber"] = cardNumber,
+                ["cardholderName"] = card.Name ?? string.Empty,
+                ["expiryMonth"] = expiryMonth,
+                ["expiryYear"] = card.Year ?? string.Empty,
+                ["securityCode"] = card.Cvv ?? string.Empty,
+            },
+        }.ToString(Formatting.None);
+
+        using var aes = Aes.Create();
+        aes.KeySize = 128;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+        aes.Key = aesKey;
+        aes.IV = ivBytes;
+        var encryptedData = Convert.ToBase64String(
+            aes.EncryptCbc(Encoding.UTF8.GetBytes(innerJson), ivBytes, PaddingMode.PKCS7));
+
+        var keySpecJson = new JObject
+        {
+            ["iv"] = Convert.ToHexString(ivBytes).ToLowerInvariant(),
+            ["salt"] = Convert.ToHexString(saltBytes).ToLowerInvariant(),
+        }.ToString(Formatting.None);
+
+        using var rsa = RSA.Create();
+        rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(PublicKeyBase64), out _);
+        var keySpec = Convert.ToBase64String(
+            rsa.Encrypt(Encoding.UTF8.GetBytes(keySpecJson), RSAEncryptionPadding.Pkcs1));
+
+        var signature = ComputeSignature(effectiveApiKey, keySpec, encryptedData);
+
+        return new JObject
+        {
+            ["createCount"] = JValue.CreateNull(),
+            ["encryptionParameters"] = new JObject
+            {
+                ["type"] = "SHARED_PK",
+                ["apiKey"] = effectiveApiKey,
+                ["keySpec"] = keySpec,
+                ["signature"] = signature,
+            },
+            ["encryptedData"] = encryptedData,
+        };
+    }
+
+    public static MulPayHop ParseMulPayHtmlHop(string? html, string baseUrl = "")
+    {
+        var empty = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(html))
+            return new MulPayHop(MulPayHopKind.None, null, empty);
+
+        var (brwAction, brwInputs) = ThreeDsTransportHelpers.ExtractForm(html, "brwInfo");
+        if (!string.IsNullOrEmpty(brwAction) || brwInputs.Count > 0)
+        {
+            var url = string.IsNullOrEmpty(brwAction)
+                ? null
+                : (string.IsNullOrEmpty(baseUrl) ? brwAction : ThreeDsTransportHelpers.ResolveUrl(baseUrl, brwAction!));
+            return new MulPayHop(MulPayHopKind.BrwInfoForm, url, brwInputs);
+        }
+
+        foreach (var form in HtmlFormDom.ExtractAllForms(html))
+        {
+            if (!string.IsNullOrEmpty(form.Action) &&
+                form.Action.Contains("callbackSession", StringComparison.OrdinalIgnoreCase))
+            {
+                var url = string.IsNullOrEmpty(baseUrl) ? form.Action : ThreeDsTransportHelpers.ResolveUrl(baseUrl, form.Action!);
+                return new MulPayHop(MulPayHopKind.CallbackSessionForm, url, form.Inputs);
+            }
+        }
+
+        var mainForm = HtmlFormDom.ExtractFormBySelector(html, ".mainContainer form");
+        if (mainForm is not null &&
+            (mainForm.Inputs.ContainsKey("threeDSMethodData") ||
+             html.Contains("threeDSMethodData", StringComparison.OrdinalIgnoreCase)))
+        {
+            var url = string.IsNullOrEmpty(mainForm.Action)
+                ? null
+                : (string.IsNullOrEmpty(baseUrl) ? mainForm.Action : ThreeDsTransportHelpers.ResolveUrl(baseUrl, mainForm.Action!));
+            return new MulPayHop(MulPayHopKind.ThreeDsMethodForm, url, mainForm.Inputs);
+        }
+
+        var iframeSrc = HtmlFormDom.ExtractElementAttribute(html, "iframe[src]", "src");
+        if (!string.IsNullOrWhiteSpace(iframeSrc))
+        {
+            var resolved = string.IsNullOrEmpty(baseUrl) ? iframeSrc! : ThreeDsTransportHelpers.ResolveUrl(baseUrl, iframeSrc!);
+            return new MulPayHop(MulPayHopKind.Iframe, resolved, empty);
+        }
+
+        var locMatch = Regex.Match(
+            html,
+            @"(?:window\.)?location\.href\s*=\s*['""]([^'""]+)['""]",
+            RegexOptions.IgnoreCase);
+        if (locMatch.Success)
+        {
+            var href = WebUtility.HtmlDecode(locMatch.Groups[1].Value);
+            var resolved = string.IsNullOrEmpty(baseUrl) ? href : ThreeDsTransportHelpers.ResolveUrl(baseUrl, href);
+            return new MulPayHop(MulPayHopKind.LocationRedirect, resolved, empty);
+        }
+
+        return new MulPayHop(MulPayHopKind.None, null, empty);
+    }
+
+    public async Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct)
+    {
+        if (c is null || c.Card?.Number is null)
+            return PaymentResult.Fail("gmo: no card");
+
+        var apiKey = c.Session.Vars.TryGetValue("gmo.apiKey", out var k) && !string.IsNullOrEmpty(k)
+            ? k
+            : DefaultApiKey;
+        var tokenUrl = c.Session.Vars.TryGetValue("gmo.tokenUrl", out var u) && !string.IsNullOrEmpty(u)
+            ? u
+            : CreateTokenUrl;
+
+        var payload = BuildCreateTokenPayload(c.Card, apiKey);
+        var headers = new Dictionary<string, string>
+        {
+            ["x-mp-client-type"] = "js-legacy",
+        };
+
+        var res = await ThreeDsTransportHelpers.PostJsonRawAsync(
+            c, tokenUrl, payload.ToString(Formatting.None), headers, "gmo-create-token", ct)
+            .ConfigureAwait(false);
+
+        if (res is null || !res.IsSuccess)
+            return PaymentResult.Fail($"gmo: token call failed (HTTP {res?.StatusCode ?? 0})");
+
+        var json = ThreeDsTransportHelpers.TryParseJson(res.Body);
+        var result = json?["result"]?.ToString();
+        var token = (json?["tokenList"] as JArray)?.FirstOrDefault()?.ToString();
+        if (!string.Equals(result, "success", StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(token))
+            return PaymentResult.Fail($"gmo: create token result {result ?? "unknown"}");
+
+        c.Session.PaymentToken = token;
+        c.Session.Vars["gmo.token"] = token!;
+        return PaymentResult.Success(token);
+    }
+
+    public async Task<PaymentResult> ProcessMulPayAsync(FlowContext c, string? startUrl = null, CancellationToken ct = default)
+    {
+        var currentUrl = !string.IsNullOrEmpty(startUrl)
+            ? startUrl!
+            : c.Session.Vars.GetValueOrDefault("gmo.mulPayUrl") ?? c.Session.ThreeDsUrl ?? c.Session.CheckoutUrl ?? c.Url;
+        var html = c.Session.Vars.GetValueOrDefault("gmo.mulPayHtml");
+
+        if (string.IsNullOrEmpty(html))
+        {
+            if (string.IsNullOrEmpty(currentUrl))
+                return PaymentResult.Fail("gmo: missing MulPay entry URL");
+            var initRes = await ThreeDsTransportHelpers.GetRawAsync(c, currentUrl, null, "gmo-mulpay-start", ct)
+                .ConfigureAwait(false);
+            if (initRes is null || !initRes.IsSuccess)
+                return PaymentResult.Fail($"gmo: MulPay start HTTP {initRes?.StatusCode ?? 0}");
+            html = initRes.Body;
+            currentUrl = initRes.Url.ToString();
+        }
+
+        for (var i = 0; i < 6; i++)
+        {
+            var hop = ParseMulPayHtmlHop(html, currentUrl);
+            if (hop.Kind == MulPayHopKind.None || string.IsNullOrEmpty(hop.Url))
+                return PaymentResult.Success(c.Session.Vars.GetValueOrDefault("gmo.transId") ?? currentUrl);
+
+            c.Session.ThreeDsUrl = hop.Url;
+            NetResponse? next;
+            if (hop.Kind is MulPayHopKind.Iframe or MulPayHopKind.LocationRedirect)
+            {
+                next = await ThreeDsTransportHelpers.GetRawAsync(c, hop.Url!, null, "gmo-mulpay-hop", ct)
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                var form = new Dictionary<string, string>(hop.Inputs, StringComparer.OrdinalIgnoreCase);
+                next = await ThreeDsTransportHelpers.PostFormRawAsync(c, hop.Url!, form, null, "gmo-mulpay-form", ct)
+                    .ConfigureAwait(false);
+            }
+
+            if (next is null || !next.IsSuccess)
+                return PaymentResult.Fail($"gmo: MulPay hop failed (HTTP {next?.StatusCode ?? 0})");
+
+            html = next.Body;
+            currentUrl = next.Url.ToString();
+            if (hop.Kind == MulPayHopKind.CallbackSessionForm)
+                return PaymentResult.Success(currentUrl);
+        }
+
+        return PaymentResult.Success(currentUrl);
+    }
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)
     {
@@ -2565,11 +2943,11 @@ public sealed class MidtransGateway : IPaymentGateway
 /// </para>
 ///
 /// <para>
-/// <b>Unknown</b>: where the card credentials body goes. The same machine builds
-/// <c>{ type: "credit_card", name, number, month, year, verification_value }</c> with the month
-/// formatted <c>D2</c> and the year cut to its last two characters, but the URL that body is posted to
-/// is not established from the decompile, so this gateway does not send it — a card number is the last
-/// thing to guess a destination for.
+/// <b>Verified</b> (<c>0x140D994D0</c> / <c>0x140DB1480</c>): card tokenization either extracts the
+/// Shopify Payment Partners <c>#iframe-3ds[src]</c> authentication URL and <c>?token=</c> query parameter,
+/// or <c>GET</c>s the direct <c>komoju.com</c> <c>formUrl</c> for <c>meta[name='csrf-token']</c> and
+/// <c>POST</c>s <c>{ authenticity_token, payment_details: { type: "credit_card", email, name, number,
+/// verification_value, month, year, persist: "0" } }</c> back to <c>formUrl</c>.
 /// </para>
 /// </summary>
 public sealed class KomojuGateway : IPaymentGateway
@@ -2582,6 +2960,22 @@ public sealed class KomojuGateway : IPaymentGateway
 
     public static string BrowserInfoResultUrl(string transId) =>
         BrowserInfoResultPrefix + (transId ?? string.Empty);
+
+    /// <summary>
+    /// Extract the Payment Partners 3DS <c>#iframe-3ds</c> <c>src</c> attribute and unescape HTML entities (<c>&amp;amp;</c>).
+    /// </summary>
+    public static string? ExtractPaymentPartnersIframeSrc(string? html)
+    {
+        var src = HtmlFormDom.ExtractElementAttributeById(html, "iframe-3ds", "src");
+        return string.IsNullOrWhiteSpace(src) ? null : src;
+    }
+
+    private static string? ExtractTokenQueryParam(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        var m = Regex.Match(url, @"[?&]token=([^&#]+)", RegexOptions.IgnoreCase);
+        return m.Success ? Uri.UnescapeDataString(m.Groups[1].Value) : null;
+    }
 
     /// <summary>
     /// The frozen endpoint, with the standard test/config seam every other gateway in this file uses
@@ -2623,12 +3017,145 @@ public sealed class KomojuGateway : IPaymentGateway
 
     public async Task<PaymentResult> TokenizeAsync(FlowContext c, CancellationToken ct)
     {
-        // The card credentials body is built by the same machine but its destination is Unknown, so this
-        // gateway refuses rather than posting a card number somewhere the image does not name.
-        await Task.CompletedTask.ConfigureAwait(false);
-        return PaymentResult.Fail(
-            "komoju: card credentials endpoint not captured — the machine builds the credit_card body " +
-            "but the decompile does not pair it with a URL");
+        if (string.Equals(c.Session.Vars.GetValueOrDefault("komoju.isPaymentPartners"), "true",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            var partnerAuthUrl = c.Session.Vars.GetValueOrDefault("komoju.authenticationUrl")
+                                 ?? c.Session.Vars.GetValueOrDefault("komoju.authUrl");
+            if (string.IsNullOrEmpty(partnerAuthUrl))
+                partnerAuthUrl = ExtractPaymentPartnersIframeSrc(c.Session.Vars.GetValueOrDefault("komoju.paymentPartnersHtml"));
+
+            if (string.IsNullOrEmpty(partnerAuthUrl))
+            {
+                var partnerPageUrl = c.Session.Vars.GetValueOrDefault("komoju.formUrl")
+                                     ?? c.Session.CheckoutUrl
+                                     ?? c.Url;
+                if (!string.IsNullOrEmpty(partnerPageUrl))
+                {
+                    var pageRes = await ThreeDsTransportHelpers.GetRawAsync(
+                        c, partnerPageUrl, null, "komoju-partners-get", ct).ConfigureAwait(false);
+                    if (pageRes is { IsSuccess: true })
+                    {
+                        partnerAuthUrl = ExtractPaymentPartnersIframeSrc(pageRes.Body)
+                                         ?? ThreeDsTransportHelpers.TryParseJson(pageRes.Body)?["authentication_url"]?.ToString();
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(partnerAuthUrl))
+                return PaymentResult.Fail("komoju: missing Payment Partners authentication URL");
+
+            var partnerToken = ExtractTokenQueryParam(partnerAuthUrl)
+                               ?? c.Session.Vars.GetValueOrDefault("komoju.token")
+                               ?? string.Empty;
+            if (!string.IsNullOrEmpty(partnerToken))
+            {
+                c.Session.PaymentToken = partnerToken;
+                c.Session.Vars["komoju.token"] = partnerToken;
+            }
+            c.Session.Vars["komoju.authenticationUrl"] = partnerAuthUrl!;
+            c.Session.Vars["komoju.authUrl"] = partnerAuthUrl!;
+            return PaymentResult.Action(partnerAuthUrl!, partnerToken);
+        }
+
+        var card = c.Card;
+        if (card?.Number is null) return PaymentResult.Fail("komoju: no card");
+
+        var formUrl = c.Session.Vars.GetValueOrDefault("komoju.formUrl") ?? c.Session.CheckoutUrl ?? c.Url;
+        if (string.IsNullOrEmpty(formUrl))
+            return PaymentResult.Fail("komoju: missing formUrl");
+
+        var formGet = await ThreeDsTransportHelpers.GetRawAsync(c, formUrl, null, "komoju-form-get", ct)
+            .ConfigureAwait(false);
+        if (formGet is null || !formGet.IsSuccess)
+            return PaymentResult.Fail($"komoju: form page HTTP {formGet?.StatusCode ?? 0}");
+
+        var csrf = ThreeDsTransportHelpers.ReadMetaContent(formGet.Body, "csrf-token");
+        if (string.IsNullOrEmpty(csrf))
+            return PaymentResult.Fail("komoju: missing csrf-token");
+
+        var rawMonth = (card.Month ?? string.Empty).Trim();
+        var month = int.TryParse(rawMonth, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedMonth)
+            ? parsedMonth.ToString("D2", CultureInfo.InvariantCulture)
+            : rawMonth.PadLeft(2, '0');
+        var rawYear = (card.Year ?? string.Empty).Trim();
+        var year = rawYear.Length > 2 ? rawYear[^2..] : rawYear;
+
+        var payload = new JObject
+        {
+            ["authenticity_token"] = csrf,
+            ["payment_details"] = new JObject
+            {
+                ["type"] = "credit_card",
+                ["email"] = c.ProfileData?.Email ?? c.Account?.Email ?? string.Empty,
+                ["name"] = card.Name ?? c.ProfileData?.Display ?? string.Empty,
+                ["number"] = card.Number.Replace(" ", string.Empty),
+                ["verification_value"] = card.Cvv ?? string.Empty,
+                ["month"] = month,
+                ["year"] = year,
+                ["persist"] = "0",
+            },
+        };
+
+        var referer = Uri.TryCreate(formUrl, UriKind.Absolute, out var absForm)
+            ? absForm.AbsoluteUri
+            : formUrl;
+        var postHeaders = new Dictionary<string, string>
+        {
+            ["Accept"] = "*/*",
+            ["Origin"] = "https://komoju.com",
+            ["Referer"] = referer,
+        };
+
+        var postRes = await ThreeDsTransportHelpers.PostJsonRawAsync(
+            c, formUrl, payload.ToString(Formatting.None), postHeaders, "komoju-form-post", ct)
+            .ConfigureAwait(false);
+        if (postRes is null || !postRes.IsSuccess)
+            return PaymentResult.Fail($"komoju: tokenize HTTP {postRes?.StatusCode ?? 0}");
+
+        var json = ThreeDsTransportHelpers.TryParseJson(postRes.Body);
+        var status = json?["status"]?.ToString();
+        if (!string.IsNullOrEmpty(status))
+            c.Session.Vars["komoju.status"] = status!;
+
+        if (string.Equals(status, "declined", StringComparison.OrdinalIgnoreCase))
+            return PaymentResult.Fail("komoju: payment declined");
+
+        var authUrl = json?["secureToken"]?["authentication_url"]?.ToString()
+                      ?? json?["authentication_url"]?.ToString();
+        var token = ExtractTokenQueryParam(authUrl)
+                    ?? json?["secureToken"]?["token"]?.ToString()
+                    ?? json?["token"]?.ToString();
+
+        if (!string.IsNullOrEmpty(token))
+        {
+            c.Session.PaymentToken = token;
+            c.Session.Vars["komoju.token"] = token!;
+        }
+
+        if (!string.IsNullOrEmpty(authUrl))
+        {
+            c.Session.Vars["komoju.authenticationUrl"] = authUrl!;
+            c.Session.Vars["komoju.authUrl"] = authUrl!;
+            return PaymentResult.Action(authUrl!, token ?? string.Empty);
+        }
+
+        if (string.Equals(status, "confirming", StringComparison.OrdinalIgnoreCase))
+        {
+            var confirming = PaymentResult.Fail("komoju: confirming");
+            confirming.Fields["retryable"] = "true";
+            confirming.Fields["status"] = "confirming";
+            return confirming;
+        }
+
+        if (string.Equals(status, "succeeded", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(status, "authorized", StringComparison.OrdinalIgnoreCase) ||
+            !string.IsNullOrEmpty(token))
+        {
+            return PaymentResult.Success(token);
+        }
+
+        return PaymentResult.Fail($"komoju: unexpected tokenize status {status ?? "unknown"}");
     }
 
     public async Task<PaymentResult> AuthorizeAsync(FlowContext c, CancellationToken ct)

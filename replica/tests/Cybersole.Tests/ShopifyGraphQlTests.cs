@@ -222,9 +222,9 @@ public sealed class ShopifyGraphQlTests
     }
 
     /// <summary>
-    /// R1332: this step returned Success without sending a single request, so the run log said billing was done
-    /// while the checkout had not been touched. It still does not submit — the endpoint is not captured — but it
-    /// now says so, and marks the session, so a failure downstream can be traced to the step that did nothing.
+    /// R1383: Shopify checkout GraphQL submits the billing address inline with the payment/order step rather than
+    /// issuing a standalone billing request. Verify zero standalone HTTP requests are sent, <c>shopify.billingSubmitted</c>
+    /// is <c>"inline"</c>, and all structured billing fields are staged.
     /// </summary>
     [Fact]
     public async Task TheBillingStepReportsThatItSubmitsNothing()
@@ -237,8 +237,9 @@ public sealed class ShopifyGraphQlTests
             Url = server.BaseUrl + "/products/x",
             ProfileData = new Cybersole.Core.Models.Profile
             {
-                FirstName = "Ada", LastName = "Lovelace", Address1 = "1 Main St",
-                City = "Austin", Zip = "78701", Phone = "5550100", Country = "US", Email = "ada@example.test",
+                FirstName = "Ada", LastName = "Lovelace", Address1 = "1 Main St", Address2 = "Suite 4",
+                City = "Austin", State = "TX", Zip = "78701", Phone = "5550100", Country = "US",
+                Email = "ada@example.test",
             },
         };
 
@@ -247,10 +248,22 @@ public sealed class ShopifyGraphQlTests
 
         Assert.True(outcome.Ok, outcome.Error);
         Assert.Empty(server.Requests);
-        Assert.Equal("false", ctx.Session.Vars["shopify.billingSubmitted"]);
-        Assert.Contains(ctx.Events, e => e.Name.Contains("no billing request was made"));
-        // The address is still recorded, for whatever consumer does have the endpoint.
+        Assert.Equal("inline", ctx.Session.Vars["shopify.billingSubmitted"]);
+        Assert.Contains(ctx.Events, e => e.Name.Contains("inline submission"));
         Assert.Equal("1 Main St", ctx.Session.Vars["billing1"]);
+        Assert.Equal("Suite 4", ctx.Session.Vars["billingAddress2"]);
+        Assert.Equal("Ada", ctx.Session.Vars["billingFirstName"]);
+        Assert.Equal("Lovelace", ctx.Session.Vars["billingLastName"]);
+        Assert.Equal("Austin", ctx.Session.Vars["billingCity"]);
+        Assert.Equal("TX", ctx.Session.Vars["billingProvince"]);
+        Assert.Equal("78701", ctx.Session.Vars["billingZip"]);
+        Assert.Equal("US", ctx.Session.Vars["billingCountry"]);
+        Assert.Equal("5550100", ctx.Session.Vars["billingPhone"]);
+
+        var staged = ShopifyFlow.BuildStagedBillingAddress(ctx);
+        Assert.NotNull(staged);
+        Assert.Equal("1 Main St", staged!["address1"]?.ToString());
+        Assert.Equal("78701", staged["zip"]?.ToString());
     }
 
     /// <summary>

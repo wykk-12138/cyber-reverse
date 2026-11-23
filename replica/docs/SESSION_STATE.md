@@ -1,23 +1,24 @@
-# 会话状态（2026-11-20 Phase 1 + Phase 2 收口交接态）
+# 会话状态（2026-11-23 R1383 静态逆向收口交接态）
 
-本文件只保留**当前工作态索引与环境基线**。历史逐轮叙述归 `docs/VERDICT.md`（与 git 历史），实时度量唯一事实源归 **`docs/METRICS.md`**。
+本文件只保留**当前工作态索引与环境基线**。历史逐轮叙述归 `docs/VERDICT.md`、`docs/HANDOFF.md`（与 git 历史），实时度量唯一事实源归 **`docs/METRICS.md`**。
 
-## 当前状态（2026-11-20，`main` `4da6712`）
+## 当前状态（2026-11-23 R1383，最新提交见 `git log --oneline -5`）
 
 **单一事实源：`docs/METRICS.md`**（`python tools/metrics_report.py` 生成，带时间戳与逐条命令）。
 本文件**不再硬编码动态度量数值** —— 数字只认 `docs/METRICS.md` 当次生成输出。
 
 | 项 | 看哪里 |
 |---|---|
-| **Phase 1 + Phase 2 收口总账（最新现状）** | **`docs/PROGRESS_AND_GAP.md`** |
-| **完整复现剩余工作路线图（四层清单）** | **`docs/REMAINING_REPLICATION_ROADMAP.md`** |
-| **新会话交接导航与操作 SOP** | **`docs/HANDOFF.md`** · **`docs/HANDOFF_PROMPT_antigravity.md`** |
+| **最新收口总账（Phase 1/2 + R1383）** | **`docs/PROGRESS_AND_GAP.md`** |
+| **完整复现工作路线图与三类边界** | **`docs/REMAINING_REPLICATION_ROADMAP.md`** |
+| **新会话交接导航与复制即用提示词** | **`docs/HANDOFF.md`** · **`docs/HANDOFF_PROMPT_antigravity.md`** |
 | **全量度量、套件通过数与变异新鲜度** | **`docs/METRICS.md`** |
 | **原版 ↔ 复刻件模块级 PDB/IDA 函数普查** | **`docs/MODULE_FUNCTION_CENSUS.md`** |
+| **异步状态机尾项 / 字符串分类 / 只读风控审计** | **`docs/ASYNC_TAIL.md`** · **`docs/C8_STRING_CLASSES.md`** · **`docs/VENDOR_WIRING.md` §十三** |
 | **产物级对照与「1:1」Claim 表** | `docs/PARITY_PRODUCT.md` · `docs/PARITY_CLAIMS.md` |
-| **已接受差异与 UI 形状台账** | `docs/DEVIATIONS.md` · `docs/SHAPE_GAPS.md` · `docs/BINDING_BACKLOG.md` |
+| **已接受差异与 UI 形状台账（冻结在 ④）** | `docs/DEVIATIONS.md` · `docs/SHAPE_GAPS.md` · `docs/BINDING_BACKLOG.md` |
 
-- **已闭环状态**：Phase 1（R1300 本机 8/8 缺口 + `BotTask` 静态定型 + `AddressModels`）与 Phase 2（Waves 2A–2D：`MailCodeService`/`MailKit`/`MimeKit` 接线消除 AOT 死岛、`Unzer`/`Cardinal`/`Checkout.com`/便利店 3DS、Shopify/Funko 步骤、`Cybersole.Http` 伴生组件）均已落地；NativeAOT 产物已重新发布（`state: current`），5 步最终验收门禁全部绿灯（`CRITERION (d): MET`、变异 `staleness: 0`）。
+- **已闭环状态（R1383）**：Phase 1 + Phase 2（Waves 2A–2D）+ R1382 纠偏 + R1383（Batches 1–3：`StripeGateway`/`CommerceHub`/`Gmo`/`Komoju`、`Checkout.com` 28 家 ACS 处理器、`JDGroup/FINL` vs `Warhammer` CT 消歧、`CasioFlow` 4 条非 PoW 网关、Panini PPCP/Braintree、`JohnLewis`/`Scheels`/`Shopify` 与安全异步尾、`AngleSharp 1.4.0` `HtmlFormDom`、`ZstdSharp.Port 0.8.1` `ContentEncodingCodec` + `NetClient`/`Bouncy*` 传输对齐、`VENDOR_WIRING.md` §十三只读被动审计、`C7c` 回环探针与 `C8` 去噪）均已落地；全量 NativeAOT 产物已重发布（`state: current`），全部指标与非浏览器测试套件绿灯（`CRITERION (d): MET`、变异 `staleness: 0`）。
 
 ## 参照物（两个版本，别混）
 
@@ -60,4 +61,4 @@
 
 ## 下一步推进路线
 
-剩余工作已严格拆分为四层（① 本机静态深化 → ② 外部阻塞解锁 → ③ 严格范围外红线 → ④ 结构性噪声），详见 **`docs/REMAINING_REPLICATION_ROADMAP.md`** 与 **`docs/HANDOFF_PROMPT_antigravity.md`**。
+①–③ 本机可达成静态逆向与运行态重实现已在 R1383 收口。剩余工作划分为四类明确边界（安全跳过禁区 / 外部阻塞需新凭据与抓包 / 优先级 ④ UI 形状冻结 / 结构性非等价噪声），详见 **`docs/REMAINING_REPLICATION_ROADMAP.md`** 与 **`docs/HANDOFF_PROMPT_antigravity.md`**。

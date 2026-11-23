@@ -147,6 +147,10 @@ public sealed class RequestOptions
     public TlsProfile Profile { get; set; } = TlsProfile.Chrome;
     public Dictionary<string, string> Headers { get; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, string> Cookies { get; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Out-of-band per-request middleware flags (for example <c>Akamai = "1"</c>), never serialized onto HTTP wire headers.</summary>
+    public Dictionary<string, string> Properties { get; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>When true, <see cref="NetClient"/> skips pre-populating default browser fingerprint headers and sends only <see cref="Headers"/>.</summary>
+    public bool OverrideHeaders { get; set; }
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(30);
     public int Retries { get; set; } = 2;
     public string? Tag { get; set; }
@@ -165,6 +169,7 @@ public sealed class RequestOptions
         {
             Proxy = Proxy,
             Profile = Profile,
+            OverrideHeaders = OverrideHeaders,
             Timeout = Timeout,
             Retries = Retries,
             Tag = Tag,
@@ -175,6 +180,7 @@ public sealed class RequestOptions
         };
         foreach (var (k, v) in Headers) c.Headers[k] = v;
         foreach (var (k, v) in Cookies) c.Cookies[k] = v;
+        foreach (var (k, v) in Properties) c.Properties[k] = v;
         return c;
     }
 }

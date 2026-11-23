@@ -8,12 +8,12 @@
 | 度量 | 值 | 命令 |
 |---|---|---|
 | flow 文件 | 20 | `ls src/Cybersole.Stores/Flows/*Flow*.cs` |
-| 覆写步骤总数 | 405 | 本文件生成时统计 |
-| 其中拒绝/占位覆写步骤 | 12 | 同上（按 `Task<StepOutcome>` 覆写体统计 `NotCaptured`/`route unrecorded locally`/`endpoint unknown`/`not captured`/`no billing request was made`） |
-| 含报告的 flow | 3 | 同上 |
-| 端点常量 / 逐字在池 | 250 / 250 | `python tools/endpoint-provenance.py` |
+| 覆写步骤总数 | 430 | 本文件生成时统计 |
+| 其中拒绝/占位覆写步骤 | 7 | 同上（按 `Task<StepOutcome>` 覆写体统计 `NotCaptured`/`route unrecorded locally`/`endpoint unknown`/`not captured`/`no billing request was made`） |
+| 含报告的 flow | 1 | 同上 |
+| 端点常量 / 逐字在池 | 251 / 251 | `python tools/endpoint-provenance.py` |
 | 常量 invented / unresolved | 0 / 2 | 同上 |
-| inline 字面量 / 不在池 | 382 / 33 | 同上 |
+| inline 字面量 / 不在池 | 404 / 33 | 同上 |
 | inline 已登记 / 未登记 | 33 / 0 | 同上 |
 | 端点门 exit | **0** | 同上 |
 
@@ -23,7 +23,7 @@
 |---|---|---|---|
 | `AoFlow.cs` | 5 | 0 | 104 |
 | `BstnFlow.cs` | 12 | 0 | 196 |
-| `DemandwareFlow.cs` | 16 | 0 | 795 |
+| `DemandwareFlow.cs` | 16 | 0 | 857 |
 | `DicksSportingGoodsFlow.cs` | 6 | 0 | 145 |
 | `FarfetchFlow.cs` | 13 | 7 | 223 |
 | `FlowStoreModule.cs` | 4 | 0 | 61 |
@@ -31,15 +31,15 @@
 | `GoatFlow.cs` | 11 | 0 | 329 |
 | `HbxFlow.cs` | 13 | 0 | 330 |
 | `HybrisFlow.cs` | 13 | 0 | 375 |
-| `MagentoFlow.cs` | 57 | 0 | 1657 |
-| `NikeFlow.cs` | 23 | 0 | 980 |
+| `MagentoFlow.cs` | 66 | 0 | 2338 |
+| `NikeFlow.cs` | 23 | 0 | 1067 |
 | `NikeGsFlow.cs` | 5 | 0 | 68 |
-| `PopMartFlow.cs` | 27 | 0 | 715 |
+| `PopMartFlow.cs` | 27 | 0 | 782 |
 | `PoqAppFlow.cs` | 8 | 0 | 242 |
-| `RetailFlows.cs` | 115 | 0 | 2499 |
-| `SauconyFlow.cs` | 9 | 4 | 177 |
-| `ScheelsFlow.cs` | 15 | 0 | 353 |
-| `ShopifyFlow.cs` | 25 | 1 | 1367 |
+| `RetailFlows.cs` | 126 | 0 | 3620 |
+| `SauconyFlow.cs` | 10 | 0 | 739 |
+| `ScheelsFlow.cs` | 18 | 0 | 550 |
+| `ShopifyFlow.cs` | 26 | 0 | 1678 |
 | `SportsshoesFlow.cs` | 7 | 0 | 130 |
 
 ## 二、原版侧（不可得 —— Unknown + 缺什么）

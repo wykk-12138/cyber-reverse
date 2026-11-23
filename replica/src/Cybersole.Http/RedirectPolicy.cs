@@ -120,6 +120,9 @@ public static class RedirectPolicy
     /// <summary>Resolves a Location against the request that returned it.</summary>
     public static string Resolve(string currentUrl, string location)
     {
+        if (location.StartsWith("/http://", StringComparison.OrdinalIgnoreCase) ||
+            location.StartsWith("/https://", StringComparison.OrdinalIgnoreCase))
+            location = location[1..];
         if (Uri.TryCreate(location, UriKind.Absolute, out var absolute)) return absolute.ToString();
         if (!Uri.TryCreate(currentUrl, UriKind.Absolute, out var baseUri)) return location;
         return new Uri(baseUri, location).ToString();

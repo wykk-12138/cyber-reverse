@@ -49,9 +49,20 @@ missing = sorted(set(image) - set(replica), key=lambda name: -image[name]['lengt
 # Layer 2: accurately classify whether each image operation is actually invoked from a production flow/gateway
 # outside its defining `*Queries.cs` file (eliminating both false negatives on dedicated wrapper methods like
 # `ShopAppProduct.FetchAsync` / `MagentoCart.SetBillingAsync` and false positives like generic `"item"`).
-STR_AND_COMMENT = re.compile(r'@"((?:[^"]|"")*)"|"(?:[^"\\]|\\.)*"|//[^\n]*|/\*.*?\*/', re.S)
+STR_AND_COMMENT = re.compile(
+    r'"""[\s\S]*?"""|@"((?:[^"]|"")*)"|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|//[^\n]*|/\*[\s\S]*?\*/',
+    re.S,
+)
 CONST_DECL = re.compile(r'(?:public|internal|private|protected)?\s*(?:const|static readonly)\s+string\s+(\w+)\s*=', re.M)
-METHOD_DECL = re.compile(r'public\s+static\s+(?:async\s+)?[\w.<>?,\s()\[\]]+?\s+(\w+)\s*\(', re.M)
+METHOD_DECL = re.compile(
+    r'public\s+static\s+(?:async\s+)?(?:(?:Task|ValueTask)\s*<\s*\([^)]*\)\s*\??\s*>|[\w.<>?,\s\[\]]+)\s+(\w+)\s*\(',
+    re.M,
+)
+
+
+def owner_class_name(path: str) -> str:
+    cls = os.path.splitext(os.path.basename(path))[0]
+    return cls[:-2] if cls.endswith('.g') else cls
 
 code_only = {rel: STR_AND_COMMENT.sub(' ', text) for rel, text in all_src.items()}
 non_comment_all = {
@@ -84,32 +95,39 @@ for op in covered:
     if any(owner.endswith(('Flow.cs', 'Flows.cs', 'ThreeDs.cs')) for owner in owners):
         is_invoked = True
 
-    # Case B: constant referenced directly in code outside its defining file (e.g. WarhammerQueries.OnboardGuestMutation)
+    # Case B: qualified `OwnerClass.CONST` referenced outside its defining file
     if not is_invoked:
         for owner, cname in entries:
-            cpat = re.compile(r'\b' + re.escape(cname) + r'\b')
+            cls_name = owner_class_name(owner)
+            cpat = re.compile(r'\b' + re.escape(cls_name) + r'\s*\.\s*' + re.escape(cname) + r'\b')
             if any(cpat.search(c) for r, c in code_only.items() if r != owner):
                 is_invoked = True
                 break
 
-    # Case C: constant is used inside a dedicated static method of its owner class (not DocumentFor/Envelope),
-    # and another production file calls `OwnerClass.MethodName(`
+    # Case C: constant is used inside a dedicated static method of its owner class (or 1-hop via Envelope()),
+    # and another production file calls `OwnerClass.MethodName`
     if not is_invoked:
         for owner, cname in entries:
             owner_txt = all_src[owner]
-            cls_name = os.path.splitext(os.path.basename(owner))[0]
-            # Find which static methods in owner reference cname directly (not just DocumentFor)
+            cls_name = owner_class_name(owner)
             mdecls = list(METHOD_DECL.finditer(owner_txt))
             cpat = re.compile(r'\b' + re.escape(cname) + r'\b')
+            method_bodies = []
+            envelope_has_cname = False
             for idx, md in enumerate(mdecls):
                 mname = md.group(1)
-                if mname in ('DocumentFor', 'Envelope', 'SendAsync'):
-                    continue
                 mstart = md.start()
                 mend = mdecls[idx + 1].start() if idx + 1 < len(mdecls) else len(owner_txt)
                 mbody = owner_txt[mstart:mend]
-                if cpat.search(mbody):
-                    # Is `cls_name.mname(` called from another production file?
+                if mname == 'Envelope' and cpat.search(mbody):
+                    envelope_has_cname = True
+                method_bodies.append((mname, mbody))
+            for mname, mbody in method_bodies:
+                if mname in ('DocumentFor', 'Envelope'):
+                    continue
+                direct_hit = bool(cpat.search(mbody))
+                one_hop_hit = (mname != 'SendAsync') and envelope_has_cname and bool(re.search(r'\bEnvelope\s*\(', mbody))
+                if direct_hit or one_hop_hit:
                     call_pat = re.compile(r'\b' + re.escape(cls_name) + r'\s*\.\s*' + re.escape(mname) + r'\b')
                     if any(call_pat.search(c) for r, c in code_only.items() if r != owner):
                         is_invoked = True
@@ -117,13 +135,14 @@ for op in covered:
             if is_invoked:
                 break
 
-    # Case D: dispatched via `OwnerClass.SendAsync(..., "op", ...)` (or `DocumentFor("op")`) from another file
+    # Case D: dispatched via explicit `OwnerClass.<Method>(..., "op", ...)` in another file
     if not is_invoked:
         for owner in owners:
-            cls_name = os.path.splitext(os.path.basename(owner))[0]
-            # Look for cls_name and `"op"` within 240 chars in another production file
+            cls_name = owner_class_name(owner)
             dispatch_pat = re.compile(
-                r'\b' + re.escape(cls_name) + r'\b.{0,240}"' + re.escape(op) + r'"',
+                r'\b' + re.escape(cls_name) + r'\s*\.\s*(?:Send|Document|Envelope|Query|Mutate|Execute|Run)\w*\s*\([^;]{0,240}"'
+                + re.escape(op)
+                + r'"',
                 re.S,
             )
             if any(dispatch_pat.search(nc) for r, nc in non_comment_all.items() if r != owner):

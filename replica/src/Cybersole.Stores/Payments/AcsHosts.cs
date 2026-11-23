@@ -26,11 +26,18 @@ namespace Cybersole.Stores.Payments;
 /// </para>
 ///
 /// <para>
-/// <b>Unknown</b>: what each per-host handler does differently. The switch picks a distinct handler
-/// type per name and every branch builds it the same way — context, owner, flag — but the handler
-/// bodies are where any per-issuer form field names would live, and they have not been decoded. This
-/// class therefore answers only "is this hop a host the image recognises", not "what does the image
-/// send it".
+/// <b>Verified (<c>0x1408A34F0</c>)</b>: the switch dispatches these twenty-eight hosts across nineteen
+/// headless issuer clusters (<see cref="CheckoutComAcsHandlers"/>, clusters <c>01_apata</c> through
+/// <c>19_cardinal</c>) plus one shared interactive verification fallback (<c>20_fallback</c>,
+/// <c>0x144BDBD70</c>) for unrecognised hosts or runtime escalations (OTP, Monese, Amex 3DS2, etc.).
+/// </para>
+///
+/// <para>
+/// <b>Remaining cross-cutting unknowns</b>: caller-side <c>AllowAutoRedirect</c> (<c>client+80</c>)
+/// initialization before entering <c>0x1408A34F0</c>; Capital One's external signal <c>0x140F97CA0</c>;
+/// Marqeta's exact poll delay helper <c>0x140F9FBB0</c>; Cardinal's exact boxed <c>Screen.Ratio</c>
+/// constant (<c>sub_141AAF850</c>); Soldo's downstream <c>Content-Type</c> wire binding; and the
+/// interactive WebView controller (<c>0x1408A7560</c>/<c>0x1408A7EE0</c>).
 /// </para>
 /// </summary>
 public static class AcsHosts

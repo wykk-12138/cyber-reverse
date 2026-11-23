@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cybersole.Core.Models;
 using Cybersole.Http;
 using Cybersole.Stores.Flows;
 using Cybersole.Stores.Payments;
 using Cybersole.Tests.Support;
+using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace Cybersole.Tests;
@@ -114,5 +116,74 @@ public sealed class KomojuGatewayTests
 
         Assert.False(result.Ok);
         Assert.Contains("no transId", result.Error);
+    }
+
+    [Fact]
+    public async Task DirectFormUrlTokenizationPostsCardAndExtractsSecureToken()
+    {
+        using var server = new TinyServer((req, _) =>
+        {
+            if (req.Url?.AbsolutePath == "/sessions/pay" && req.HttpMethod == "GET")
+                return (200, "<html><head><meta name=\"csrf-token\" content=\"komoju-csrf-1\"/></head></html>");
+            if (req.Url?.AbsolutePath == "/sessions/pay" && req.HttpMethod == "POST")
+                return (200, "{\"status\":\"confirming\",\"secureToken\":{\"authentication_url\":\"https://komoju.com/3ds/auth?token=tok_direct_1&foo=bar\"}}");
+            return (404, "{}");
+        });
+
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = server.BaseUrl,
+            ProfileData = new Profile { Email = "buyer@komoju.test", FirstName = "Hanako", LastName = "Sato" },
+            Card = new Card { Number = "4242 4242 4242 4242", Month = "4", Year = "2029", Cvv = "999", Name = "Hanako Sato" },
+        };
+        ctx.Session.Vars["komoju.formUrl"] = server.BaseUrl + "/sessions/pay";
+
+        var result = await new KomojuGateway().TokenizeAsync(ctx, default);
+        Assert.True(result.RequiresAction, result.Error);
+        Assert.Equal("https://komoju.com/3ds/auth?token=tok_direct_1&foo=bar", result.ThreeDsUrl);
+        Assert.Equal("tok_direct_1", result.ThreeDsPayload);
+        Assert.Equal("tok_direct_1", ctx.Session.Vars["komoju.token"]);
+        Assert.Equal("tok_direct_1", ctx.Session.PaymentToken);
+
+        Assert.Equal(2, server.Requests.Count);
+        var postHeaders = server.RequestHeaders[1];
+        Assert.Equal("*/*", postHeaders["Accept"]);
+        Assert.Equal("https://komoju.com", postHeaders["Origin"]);
+        Assert.Equal(server.BaseUrl + "/sessions/pay", postHeaders["Referer"]);
+
+        var sent = JObject.Parse(server.Requests[1].Body);
+        Assert.Equal("komoju-csrf-1", sent["authenticity_token"]?.ToString());
+        Assert.Equal("credit_card", sent["payment_details"]?["type"]?.ToString());
+        Assert.Equal("04", sent["payment_details"]?["month"]?.ToString());
+        Assert.Equal("29", sent["payment_details"]?["year"]?.ToString());
+        Assert.Equal("4242424242424242", sent["payment_details"]?["number"]?.ToString());
+        Assert.Equal("999", sent["payment_details"]?["verification_value"]?.ToString());
+        Assert.Equal("0", sent["payment_details"]?["persist"]?.ToString());
+    }
+
+    [Fact]
+    public async Task PaymentPartnersExtractsIframe3dsSrcAndToken()
+    {
+        const string partnersHtml = """
+            <html><body>
+              <iframe id="iframe-3ds" src="https://komoju.com/payments_partners/challenge?token=tok_pp_42&amp;locale=ja"></iframe>
+            </body></html>
+            """;
+
+        var extracted = KomojuGateway.ExtractPaymentPartnersIframeSrc(partnersHtml);
+        Assert.Equal("https://komoju.com/payments_partners/challenge?token=tok_pp_42&locale=ja", extracted);
+
+        using var server = new TinyServer((_, _) => (200, partnersHtml));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var ctx = new FlowContext { Http = http, Url = server.BaseUrl + "/payments_partners/authentications" };
+        ctx.Session.Vars["komoju.isPaymentPartners"] = "true";
+
+        var result = await new KomojuGateway().TokenizeAsync(ctx, default);
+        Assert.True(result.RequiresAction, result.Error);
+        Assert.Equal("https://komoju.com/payments_partners/challenge?token=tok_pp_42&locale=ja", result.ThreeDsUrl);
+        Assert.Equal("tok_pp_42", result.ThreeDsPayload);
+        Assert.Equal("tok_pp_42", ctx.Session.Vars["komoju.token"]);
     }
 }

@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Cybersole.Core.Models;
 using Cybersole.Http;
 using Cybersole.Stores.Flows;
 using Cybersole.Tests.Support;
@@ -68,49 +69,167 @@ public sealed class SauconyFlowTests
         Assert.Equal("225.00", product.Session.Vars["price"]);
     }
 
-    /// <summary>
-    /// Each refusal names the image's ordinal. That is the whole point of the step: the next session
-    /// should be able to open `<Name>d__NN` directly rather than re-deriving which step is missing.
-    /// </summary>
-    [Theory]
-    [InlineData("AddToCart", "d__7")]
-    [InlineData("SubmitShipping", "d__9")]
-    [InlineData("SubmitBilling", "d__10")]
-    [InlineData("SubmitOrder", "d__11")]
-    public async Task TheUndecodedStepsRefuseWithTheirOrdinal(string step, string ordinal)
+    [Fact]
+    public async Task FullSfccUsCheckoutWalksAllStepsEndToEnd()
     {
-        using var http = new NetClient { Transport = TransportMode.SChannel };
-        var ctx = new FlowContext { Http = http, Url = "https://www.saucony.com/" };
-        var flow = new SauconyFlow();
-
-        var outcome = step switch
+        using var server = new TinyServer((req, body) =>
         {
-            "AddToCart" => await flow.AddToCartAsync(ctx, default),
-            "SubmitShipping" => await flow.SubmitShippingAsync(ctx, default),
-            "SubmitBilling" => await flow.SubmitBillingAsync(ctx, default),
-            _ => await flow.SubmitOrderAsync(ctx, default),
+            var path = req.Url?.AbsolutePath ?? "/";
+            if (path == "/on/demandware.store/Sites-saucony_us-Site/default/ProductInfo-GetDimensionsAndVariations")
+            {
+                return (200, """
+                    {
+                      "error": false,
+                      "productName": "Endorphin Pro 4",
+                      "price": { "sales": { "value": 225.00 } },
+                      "color": { "values": [ { "value": "BLK", "displayValue": "Black", "selected": true } ] },
+                      "variations": [
+                        { "id": "S20939-10-95", "size": "9.5", "available": true },
+                        { "id": "S20939-10-100", "size": "10", "available": true }
+                      ]
+                    }
+                    """);
+            }
+
+            if (path == "/on/demandware.store/Sites-saucony_us-Site/default/Cart-AddProduct")
+            {
+                return (200, """
+                    <div class="mini-cart-total">
+                      <span class="mini-cart-quantity-bag">1</span>
+                      <a class="mini-cart-name">Endorphin Pro 4</a>
+                      <img src="/images/endorphin.jpg" />
+                    </div>
+                    """);
+            }
+
+            if (path == "/en/checkout")
+                return (200, """<script>window.app = { csrfToken: "csrf_saucony_1" };</script>""");
+
+            if (path == "/on/demandware.store/Sites-saucony_us-Site/default/Checkout-ContinueToBilling")
+                return (200, """{"isShippingDataProvided":true}""");
+
+            if (path == "/on/demandware.store/Sites-saucony_us-Site/default/Checkout-SubmitPaymentDetails")
+                return (200, """{"error":false,"cart":{"valid":{"error":false}}}""");
+
+            if (path == "/on/demandware.store/Sites-saucony_us-Site/default/CheckoutHelper-PlaceOrder")
+                return (200, """{"error":false,"redirectUrl":"/confirmation?orderNo=SAU-8801"}""");
+
+            return (404, "{}");
+        });
+
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+        var flow = new SauconyFlow();
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = server.BaseUrl + "/p/endorphin-pro-4.html",
+            Product = new Product { Input = "S20939-10", Sizes = new() { "10" }, Color = "Black" },
+            ProfileData = new Profile
+            {
+                FirstName = "Ada", LastName = "Lovelace", Email = "ada@saucony.test", Phone = "5551234567",
+                Address1 = "1 Main St", City = "Boston", State = "MA", Zip = "02110", Country = "US",
+            },
+            Card = new Card { Number = "4111111111111111", Month = "7", Year = "2030", Cvv = "737", Name = "Ada Lovelace" },
         };
 
-        Assert.False(outcome.Ok);
-        Assert.Contains(step, outcome.Error);
-        Assert.Contains(ordinal, outcome.Error);
-        Assert.Contains("endpoint unknown", outcome.Error);
+        var fp = await flow.FindProductAsync(ctx, default);
+        Assert.True(fp.Ok, fp.Error);
+        Assert.Equal("S20939-10-100", ctx.Session.VariantId);
+        Assert.Equal("BLK", ctx.Session.Vars["saucony.color"]);
+
+        var atc = await flow.AddToCartAsync(ctx, default);
+        Assert.True(atc.Ok, atc.Error);
+        var atcReq = Assert.Single(server.Requests, r => r.Path.EndsWith("/Cart-AddProduct"));
+        Assert.Contains("usertype=Wide", atcReq.Body);
+        Assert.Contains("cartAction=add", atcReq.Body);
+        Assert.Contains("masterpid=S20939-10", atcReq.Body);
+        Assert.Contains("pid=S20939-10-100", atcReq.Body);
+
+        var co = await flow.GetCheckoutAsync(ctx, default);
+        Assert.True(co.Ok, co.Error);
+        Assert.Equal("csrf_saucony_1", ctx.Session.Vars["csrfToken"]);
+
+        var ship = await flow.SubmitShippingAsync(ctx, default);
+        Assert.True(ship.Ok, ship.Error);
+        var shipReq = Assert.Single(server.Requests, r => r.Path.EndsWith("/Checkout-ContinueToBilling"));
+        Assert.Contains("dwfrm_singleshipping_shippingAddress_addressFields_states_state=MA", shipReq.Body);
+        Assert.Contains("bypassBEV=true", shipReq.Body);
+        Assert.Contains("csrf_token=csrf_saucony_1", shipReq.Body);
+
+        var bill = await flow.SubmitBillingAsync(ctx, default);
+        Assert.True(bill.Ok, bill.Error);
+        var billReq = Assert.Single(server.Requests, r => r.Path.EndsWith("/Checkout-SubmitPaymentDetails"));
+        Assert.Contains("dwfrm_billing_paymentMethods_creditCard_type=Visa", billReq.Body);
+        Assert.Contains("dwfrm_billing_paymentMethods_creditCard_expiration=07%2F2030", billReq.Body);
+        Assert.Contains("dwfrm_billing_billingAddress_addressFields_states_state=MA", billReq.Body);
+
+        var order = await flow.SubmitOrderAsync(ctx, default);
+        Assert.True(order.Ok, order.Error);
+        Assert.Equal("SAU-8801", ctx.Session.OrderNumber);
     }
 
     [Fact]
-    public void TheTwoStepsAfterTheOrderAlsoRefuseWithTheirOrdinals()
+    public async Task EuPayerAuthenticateAndHandleOrderResultBranchesMatchSfccContract()
     {
+        using var server = new TinyServer((req, body) =>
+        {
+            var path = req.Url?.AbsolutePath ?? "/";
+            if (path == "/UK/en_GB/checkout")
+                return (200, """<script>csrfToken: "csrf_uk_1",</script>""");
+
+            if (path == "/on/demandware.store/Sites-saucony_eu-Site/en_GB/CheckoutHelper-PlaceOrder")
+            {
+                if (body.Contains("isPayerValidationCall=true"))
+                    return (200, """{"stepUpUrl":"https://centinelapi.cardinalcommerce.com/V2/Cruise/StepUp","jwt":"val_jwt_1","MD":"md_uk_1"}""");
+                if (body.Contains("isPayerAuthenticCall=true"))
+                    return (200, """{"error":false,"orderNo":"SAU-UK-42"}""");
+                return (200, """{"isPAEnable":true,"jwtToken":"init_jwt_1"}""");
+            }
+
+            if (path == "/cardinal/stepup")
+                return (200, "<html>ok</html>");
+
+            return (404, "{}");
+        });
+
         using var http = new NetClient { Transport = TransportMode.SChannel };
-        var ctx = new FlowContext { Http = http, Url = "https://www.saucony.com/" };
         var flow = new SauconyFlow();
 
-        var handled = flow.HandleOrderResult(ctx);
-        Assert.False(handled.Ok);
-        Assert.Contains("d__12", handled.Error);
+        var ctx = new FlowContext
+        {
+            Http = http,
+            Url = server.BaseUrl + "/UK/en_GB/p/1",
+            ProfileData = new Profile { Country = "GB" },
+        };
+        ctx.Session.Vars["saucony.siteName"] = "saucony_eu";
+        ctx.Session.Vars["saucony.stepUpUrl"] = server.BaseUrl + "/cardinal/stepup";
 
-        var payer = flow.PayerAuthenticate(ctx);
-        Assert.False(payer.Ok);
-        Assert.Contains("d__13", payer.Error);
+        Assert.True((await flow.GetCheckoutAsync(ctx, default)).Ok);
+        var order = await flow.SubmitOrderAsync(ctx, default);
+        Assert.True(order.Ok, order.Error);
+        Assert.Equal("init_jwt_1", ctx.Session.Vars["saucony.jwtToken"]);
+        Assert.Equal("SAU-UK-42", ctx.Session.OrderNumber);
+
+        var stepUpReq = Assert.Single(server.Requests, r => r.Path == "/cardinal/stepup");
+        Assert.Contains("JWT=val_jwt_1", stepUpReq.Body);
+        Assert.Contains("MD=md_uk_1", stepUpReq.Body);
+        Assert.Contains("PayerAuth-Return", stepUpReq.Body);
+
+        // HandleOrderResult branches: /cart redirect -> restock, declined -> non-retryable, errorMessage -> restock
+        var cartRedirect = flow.HandleOrderResult(ctx, """{"redirectUrl":"/cart?err=1"}""");
+        Assert.False(cartRedirect.Ok);
+        Assert.True(cartRedirect.Retryable);
+        Assert.Equal("Waiting for restock", cartRedirect.Error);
+
+        var declined = flow.HandleOrderResult(ctx, """{"error":true,"paymentError":{"declined":true}}""");
+        Assert.False(declined.Ok);
+        Assert.False(declined.Retryable);
+        Assert.Equal("Card declined", declined.Error);
+
+        var restockMsg = flow.HandleOrderResult(ctx, """{"error":true,"errorMessage":"Your order could not be submitted."}""");
+        Assert.False(restockMsg.Ok);
+        Assert.True(restockMsg.Retryable);
+        Assert.Equal("Waiting for restock", restockMsg.Error);
     }
 
     /// <summary>

@@ -69,6 +69,7 @@ public static class BraintreeClientToken
                 return (null, ErrorGettingTokenMessage);
 
             var token = reply["data"]?[ClientTokenField]?.ToString()
+                        ?? reply["data"]?[OperationName]?["data"]?[ClientTokenField]?.ToString()
                         ?? reply[ClientTokenField]?.ToString();
             return string.IsNullOrEmpty(token) ? (null, ErrorGettingTokenMessage) : (token, string.Empty);
         }

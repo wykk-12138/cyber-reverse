@@ -167,13 +167,16 @@ public class DemandwareFlow : StoreFlow
         c.Session.Vars["raw"] = res.Body;
         c.Session.Vars["productId"] = pid;
 
-        var name = Regex.Match(res.Body, @"<title>([^<|]+)").Groups[1].Value.Trim();
+        var rawTitle = Cybersole.Stores.Payments.HtmlFormDom.ExtractTitle(res.Body) ?? string.Empty;
+        var pipeIdx = rawTitle.IndexOf('|');
+        var name = (pipeIdx >= 0 ? rawTitle[..pipeIdx] : rawTitle).Trim();
         if (!string.IsNullOrEmpty(name)) c.Session.Vars["product"] = name;
 
         var price = Regex.Match(res.Body,
             @"""price""\s*:\s*\{?\s*""sales""\s*:\s*\{?\s*""value""\s*:\s*([\d.]+)").Groups[1].Value;
         if (string.IsNullOrEmpty(price))
-            price = Regex.Match(res.Body, @"data-price=""([\d.]+)""").Groups[1].Value;
+            price = Cybersole.Stores.Payments.HtmlFormDom.ExtractElementAttribute(
+                res.Body, "[data-price]", "data-price") ?? string.Empty;
         if (!string.IsNullOrEmpty(price)) c.Session.Vars["price"] = price;
 
         return string.IsNullOrEmpty(name)
@@ -434,8 +437,8 @@ public class DemandwareFlow : StoreFlow
         c.Session.CheckoutUrl = res.Url.ToString();
         c.Session.Vars["checkout"] = res.Body;
 
-        var csrf = Regex.Match(res.Body,
-            @"name=""(?:csrf_token|dwfrm_security_token)""\s+value=""([^""]+)""").Groups[1].Value;
+        var csrf = Cybersole.Stores.Payments.HtmlFormDom.ExtractElementAttribute(
+            res.Body, "input[name='csrf_token'], input[name='dwfrm_security_token']", "value");
         if (!string.IsNullOrEmpty(csrf)) c.Session.CsrfToken = csrf;
 
         return StepOutcome.Success();
@@ -476,11 +479,12 @@ public class DemandwareFlow : StoreFlow
 
         c.Session.Vars["shipping"] = res.Body;
 
-        // A shipping method has to be chosen before payment; pick the first offered.
-        var method = Regex.Match(res.Body, @"value=""([A-Za-z0-9_\-]+)""[^>]*name=""dwfrm_shipping_shippingMethodID""");
-        if (!method.Success)
-            method = Regex.Match(res.Body, @"name=""dwfrm_shipping_shippingMethodID""[^>]*value=""([A-Za-z0-9_\-]+)""");
-        if (method.Success) c.Session.Vars["shippingMethod"] = method.Groups[1].Value;
+        // A shipping method has to be chosen before payment; pick the checked or first offered.
+        var method = Cybersole.Stores.Payments.HtmlFormDom.ExtractElementAttribute(
+                         res.Body, "input[name='dwfrm_shipping_shippingMethodID'][checked]", "value")
+                     ?? Cybersole.Stores.Payments.HtmlFormDom.ExtractElementAttribute(
+                         res.Body, "input[name='dwfrm_shipping_shippingMethodID']", "value");
+        if (!string.IsNullOrEmpty(method)) c.Session.Vars["shippingMethod"] = method;
 
         return StepOutcome.Success();
     }
@@ -663,7 +667,7 @@ public sealed class FunkoFlow : DemandwareFlow
         if (!res.IsSuccess) return StepOutcome.Fail($"funko: account HTTP {res.StatusCode}", retryable: true);
 
         var body = res.Body ?? string.Empty;
-        if (Regex.IsMatch(body, @"class\s*=\s*[""'][^""']*\bcrowd-twist-points\b[^""']*[""']", RegexOptions.IgnoreCase))
+        if (Cybersole.Stores.Payments.HtmlFormDom.HasElement(body, ".crowd-twist-points"))
         {
             c.Session.Vars["fanRewards.state"] = "already_signed_up";
             c.Emit("Already signed up", "StatusInfo");
@@ -685,19 +689,13 @@ public sealed class FunkoFlow : DemandwareFlow
         if (res is null) return StepOutcome.Fail("funko: balance unreachable", retryable: true);
         if (!res.IsSuccess) return StepOutcome.Fail($"funko: balance HTTP {res.StatusCode}", retryable: true);
 
-        var m = Regex.Match(res.Body ?? string.Empty,
-            @"<[^>]*class\s*=\s*[""'][^""']*points-value[^""']*[""'][^>]*>(.*?)</[^>]+>",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        if (m.Success)
+        var pts = Cybersole.Stores.Payments.HtmlFormDom.ExtractElementText(res.Body, "[class*='points-value']");
+        if (!string.IsNullOrEmpty(pts))
         {
-            var pts = Regex.Replace(m.Groups[1].Value, "<[^>]+>", string.Empty).Trim();
-            if (!string.IsNullOrEmpty(pts))
-            {
-                var formatted = $"{pts} pts";
-                c.Session.Vars["fanRewards.balance"] = formatted;
-                c.Emit(formatted, "StatusInfo");
-                return StepOutcome.Success();
-            }
+            var formatted = $"{pts} pts";
+            c.Session.Vars["fanRewards.balance"] = formatted;
+            c.Emit(formatted, "StatusInfo");
+            return StepOutcome.Success();
         }
 
         c.Emit("Invalid Account", "error");
@@ -780,6 +778,70 @@ public sealed class FunkoFlow : DemandwareFlow
         }
 
         return await base.CheckLoginAsync(c, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// <c>EarlyTokenization</c> (<c>sub_1409F7420</c>, <c>0x1433895e0</c>):
+    /// <c>POST /on/demandware.store/Sites-FunkoUS-Site/{Locale}/PaymentInstruments-EarlyTokenization</c>
+    /// with <c>{ sessionId, cardType }</c>, extracting <c>submitConfig</c> and <c>initConfig.environment</c>
+    /// into <c>commercehub.*</c> session variables for <see cref="Cybersole.Stores.Payments.CommerceHubGateway.CaptureCardAsync"/>.
+    /// </summary>
+    public async Task<StepOutcome> EarlyTokenizationAsync(
+        FlowContext c,
+        string sessionId,
+        string cardType,
+        CancellationToken ct)
+    {
+        c.Emit("Getting payment token", "StatusInfo");
+        var url = Controller(c, Cybersole.Stores.Payments.CommerceHubGateway.EarlyTokenizationPath);
+        var form = new Dictionary<string, string>
+        {
+            ["sessionId"] = sessionId ?? string.Empty,
+            ["cardType"] = cardType ?? string.Empty,
+        };
+
+        var res = await PostFormAsync(c, url, form, Tag() + "-early-tokenization", ct).ConfigureAwait(false);
+        if (res is null || !res.IsSuccess)
+        {
+            c.Emit("Error getting payment token", "error");
+            return StepOutcome.Fail("Error getting payment token", retryable: true);
+        }
+
+        Newtonsoft.Json.Linq.JObject? json = null;
+        try { json = Newtonsoft.Json.Linq.JObject.Parse(res.Body ?? string.Empty); }
+        catch { /* fall through */ }
+
+        var submitConfig = json?["submitConfig"] as Newtonsoft.Json.Linq.JObject;
+        var apiKey = submitConfig?["apiKey"]?.ToString() ?? string.Empty;
+        var accessToken = submitConfig?["accessToken"]?.ToString() ?? string.Empty;
+        var publicKey = submitConfig?["publicKey"]?.ToString() ?? string.Empty;
+        var keyId = submitConfig?["keyId"]?.ToString() ?? string.Empty;
+        var merchantId = submitConfig?["merchantId"]?.ToString() ?? string.Empty;
+        var terminalId = submitConfig?["terminalId"]?.ToString() ?? string.Empty;
+
+        if (submitConfig is null || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(accessToken))
+        {
+            c.Emit("Error getting payment token", "error");
+            return StepOutcome.Fail("Error getting payment token", retryable: false);
+        }
+
+        var env = json?["initConfig"]?["environment"]?.ToString();
+        var captureHost = string.Equals(env, "CERT", StringComparison.OrdinalIgnoreCase)
+            ? Cybersole.Stores.Payments.CommerceHubGateway.CertCardCaptureHost
+            : Cybersole.Stores.Payments.CommerceHubGateway.DefaultCardCaptureHost;
+
+        c.Session.Vars["commercehub.sessionId"] = sessionId ?? string.Empty;
+        c.Session.Vars["commercehub.cardType"] = cardType ?? string.Empty;
+        c.Session.Vars["commercehub.apiKey"] = apiKey;
+        c.Session.Vars["commercehub.accessToken"] = accessToken;
+        c.Session.Vars["commercehub.publicKey"] = publicKey;
+        c.Session.Vars["commercehub.keyId"] = keyId;
+        c.Session.Vars["commercehub.merchantId"] = merchantId;
+        c.Session.Vars["commercehub.terminalId"] = terminalId;
+        c.Session.Vars["commercehub.captureHost"] = captureHost;
+        c.Session.Vars["commercehub.environment"] = env ?? string.Empty;
+
+        return StepOutcome.Success();
     }
 
     public override async Task<StepOutcome> SignUpAsync(FlowContext c, CancellationToken ct)

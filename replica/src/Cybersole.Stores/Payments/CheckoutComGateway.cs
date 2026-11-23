@@ -16,17 +16,19 @@ namespace Cybersole.Stores.Payments;
 /// (4) Mollie card-token &amp; challenge notification (<c>api.cc.mollie.com</c> + <c>/sessions-interceptor/challenge-notification</c>).
 ///
 /// <para>
-/// <b>R1303: the dispatcher is decoded, the handlers behind it are not.</b> <c>0x1408A34F0</c> is a switch
-/// over the issuer ACS host name — twenty-eight names across eighteen length cases, now in
-/// <see cref="AcsHosts"/> — which logs <c>"Starting 3DS: &lt;host&gt;"</c>, re-fingerprints the transport
-/// to <c>chrome_131</c>, builds a per-host handler and writes the previous profile back.
+/// <b>Verified (<c>0x1408A34F0</c>)</b>: the issuer ACS dispatcher routes all twenty-eight names in
+/// <see cref="AcsHosts"/> across nineteen headless issuer handlers (<see cref="CheckoutComAcsHandlers"/>,
+/// <c>01_apata</c>.. <c>19_cardinal</c>) plus interactive fallback <c>20_fallback</c> (<c>0x144BDBD70</c>),
+/// logging <c>"Starting 3DS: &lt;host&gt;"</c> and temporarily swapping the transport profile to
+/// <c>chrome_131</c>. Caller-supplied challenge forms (<c>checkoutcom.challengeForm</c> / <c>payload</c>)
+/// continue to take precedence when present.
 /// </para>
 ///
 /// <para>
-/// <b>Unknown</b>: what each per-host handler does differently. Every branch builds its handler the same
-/// way (context, owner, flag) and the bodies are where any per-issuer challenge form field names would
-/// live; they have not been decoded. Challenge completion therefore still accepts caller-supplied form
-/// fields (<c>checkoutcom.challengeForm</c> / <c>payload</c>) rather than inventing per-issuer payloads.
+/// <b>Remaining unknowns</b>: caller-side <c>AllowAutoRedirect</c> initialization before <c>0x1408A34F0</c>,
+/// Capital One's <c>0x140F97CA0</c> signal source, Marqeta's <c>0x140F9FBB0</c> poll delay, Cardinal's
+/// boxed <c>Screen.Ratio</c> double (<c>sub_141AAF850</c>), Soldo's downstream multipart header binding,
+/// and the interactive WebView controller (<c>0x1408A7560</c>/<c>0x1408A7EE0</c>).
 /// </para>
 /// </summary>
 public sealed class CheckoutComGateway : IPaymentGateway
@@ -66,13 +68,11 @@ public sealed class CheckoutComGateway : IPaymentGateway
         if (res is null || !res.IsSuccess)
             return PaymentResult.Fail("checkoutcom: offsite bootstrap failed");
 
-        var nextDataMatch = Regex.Match(res.Body ?? string.Empty,
-            @"<script\b[^>]*id\s*=\s*[""']__NEXT_DATA__[""'][^>]*>(.*?)</script>",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        if (!nextDataMatch.Success)
+        var nextDataText = HtmlFormDom.ExtractElementText(res.Body, "script#__NEXT_DATA__");
+        if (string.IsNullOrEmpty(nextDataText))
             return PaymentResult.Fail("checkoutcom: __NEXT_DATA__ missing");
 
-        var nextJson = ThreeDsTransportHelpers.TryParseJson(nextDataMatch.Groups[1].Value);
+        var nextJson = ThreeDsTransportHelpers.TryParseJson(nextDataText);
         var serializedToken = nextJson?["props"]?["pageProps"]?["paymentPageContextSerialized"];
         JObject? pageContext = serializedToken?.Type == JTokenType.String
             ? ThreeDsTransportHelpers.TryParseJson(serializedToken.Value<string>())
@@ -216,6 +216,18 @@ public sealed class CheckoutComGateway : IPaymentGateway
         return PaymentResult.Fail("Payment Unsupported");
     }
 
+    /// <summary>
+    /// Execute the issuer-specific 3-D Secure ACS handler (<c>0x1408A34F0</c>) via
+    /// <see cref="CheckoutComAcsHandlers.ExecuteAsync"/>.
+    /// </summary>
+    public Task<AcsChallengeResult> ResolveAcsChallengeAsync(
+        FlowContext c,
+        string acsUrl,
+        IDictionary<string, string>? initialForm = null,
+        bool stripThreeDsSessionData = false,
+        CancellationToken ct = default) =>
+        CheckoutComAcsHandlers.ExecuteAsync(c, acsUrl, initialForm, stripThreeDsSessionData, ct);
+
     public async Task<PaymentResult> CompleteActionAsync(FlowContext c, string payload, CancellationToken ct)
     {
         var actionUrl = c.Session.Vars.GetValueOrDefault("checkoutcom.actionUrl") ?? c.Session.ThreeDsUrl;
@@ -223,9 +235,36 @@ public sealed class CheckoutComGateway : IPaymentGateway
             actionUrl = payload;
 
         if (string.IsNullOrEmpty(actionUrl))
+            actionUrl = c.Session.Vars.GetValueOrDefault("checkoutcom.acsChallengeUrl");
+
+        if (string.IsNullOrEmpty(actionUrl))
             return PaymentResult.Fail("checkoutcom: missing 3DS action url");
 
         var mode = c.Session.Vars.GetValueOrDefault("checkoutcom.mode");
+        if (string.Equals(mode, "acs", StringComparison.OrdinalIgnoreCase) ||
+            c.Session.Vars.ContainsKey("checkoutcom.acsChallengeUrl") ||
+            (AcsHosts.IsKnown(actionUrl) &&
+             !actionUrl!.Contains("/sessions-interceptor/", StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(mode, "esw", StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(mode, "nike-gs", StringComparison.OrdinalIgnoreCase) &&
+             string.IsNullOrWhiteSpace(payload) &&
+             !c.Session.Vars.ContainsKey("checkoutcom.challengeForm")))
+        {
+            var initialForm = ParseChallengeFormResult(c, payload) ?? ParseAcsInitialFormVar(c);
+            var strip = string.Equals(c.Session.Vars.GetValueOrDefault("checkoutcom.stripThreeDsSessionData"), "true",
+                StringComparison.OrdinalIgnoreCase);
+            var acs = await ResolveAcsChallengeAsync(c, actionUrl!, initialForm, strip, ct).ConfigureAwait(false);
+            if (acs.RequiresInteractiveVerification)
+                return PaymentResult.Action(actionUrl!, acs.StatusCategory ?? "3DS verification required");
+            if (!acs.Ok)
+                return PaymentResult.Fail(acs.Error ?? "Payment failed (3DS)");
+
+            var res = PaymentResult.Success(acs.ActionUrl ?? actionUrl);
+            foreach (var kv in acs.Values)
+                res.Fields[kv.Key] = kv.Value;
+            return res;
+        }
+
         if (string.Equals(mode, "esw", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(mode, "nike-gs", StringComparison.OrdinalIgnoreCase))
         {
@@ -271,6 +310,15 @@ public sealed class CheckoutComGateway : IPaymentGateway
             c.Session.Vars["checkoutcom.creq"] = ThreeDsTransportHelpers.Base64UrlEncode(challengeJson!);
 
         var challengeResult = ParseChallengeFormResult(c, payload);
+        if ((challengeResult is null || challengeResult.Count == 0) &&
+            TryBuildAcsChallengeFromPayload(c, challengeJson, out var acsTarget, out var acsInitialForm))
+        {
+            var acs = await ResolveAcsChallengeAsync(c, acsTarget!, acsInitialForm, ct: ct).ConfigureAwait(false);
+            if (acs.RequiresInteractiveVerification)
+                return PaymentResult.Action(acsTarget!, acs.StatusCategory ?? "3DS verification required");
+            if (acs.Ok && acs.Values.Count > 0)
+                challengeResult = acs.Values;
+        }
         if (challengeResult is null || challengeResult.Count == 0)
         {
             c.Emit("Payment failed (3DS)", "error");
@@ -356,6 +404,15 @@ public sealed class CheckoutComGateway : IPaymentGateway
             c.Session.Vars["checkoutcom.creq"] = ThreeDsTransportHelpers.Base64UrlEncode(challengeJson!);
 
         var challengeResult = ParseChallengeFormResult(c, payload);
+        if ((challengeResult is null || challengeResult.Count == 0) &&
+            TryBuildAcsChallengeFromPayload(c, challengeJson, out var acsTarget, out var acsInitialForm))
+        {
+            var acs = await ResolveAcsChallengeAsync(c, acsTarget!, acsInitialForm, ct: ct).ConfigureAwait(false);
+            if (acs.RequiresInteractiveVerification)
+                return PaymentResult.Action(acsTarget!, acs.StatusCategory ?? "3DS verification required");
+            if (acs.Ok && acs.Values.Count > 0)
+                challengeResult = acs.Values;
+        }
         if (challengeResult is null || challengeResult.Count == 0)
             return PaymentResult.Fail("Payment failed (3DS)");
 
@@ -422,6 +479,15 @@ public sealed class CheckoutComGateway : IPaymentGateway
             return PaymentResult.Fail("Payment failed (3DS)");
 
         var challengeResult = ParseChallengeFormResult(c, payload);
+        if ((challengeResult is null || challengeResult.Count == 0) &&
+            TryBuildAcsChallengeFromPayload(c, ExtractChallengePayload(devRes.Body), out var acsTarget, out var acsInitialForm))
+        {
+            var acs = await ResolveAcsChallengeAsync(c, acsTarget!, acsInitialForm, ct: ct).ConfigureAwait(false);
+            if (acs.RequiresInteractiveVerification)
+                return PaymentResult.Action(acsTarget!, acs.StatusCategory ?? "3DS verification required");
+            if (acs.Ok && acs.Values.Count > 0)
+                challengeResult = acs.Values;
+        }
         if (challengeResult is null || challengeResult.Count == 0)
             return PaymentResult.Fail("Payment failed (3DS)");
 
@@ -565,5 +631,45 @@ public sealed class CheckoutComGateway : IPaymentGateway
         }
 
         return null;
+    }
+
+    private static Dictionary<string, string>? ParseAcsInitialFormVar(FlowContext c)
+    {
+        if (!c.Session.Vars.TryGetValue("checkoutcom.acsForm", out var raw) || string.IsNullOrWhiteSpace(raw))
+            return null;
+        var json = ThreeDsTransportHelpers.TryParseJson(raw);
+        if (json is null) return null;
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prop in json.Properties())
+            dict[prop.Name] = prop.Value?.ToString() ?? string.Empty;
+        return dict;
+    }
+
+    private static bool TryBuildAcsChallengeFromPayload(
+        FlowContext c,
+        string? challengeJson,
+        out string? acsUrl,
+        out Dictionary<string, string> initialForm)
+    {
+        initialForm = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        acsUrl = c.Session.Vars.GetValueOrDefault("checkoutcom.acsUrl");
+
+        var parsed = ThreeDsTransportHelpers.TryParseJson(challengeJson);
+        if (parsed is not null)
+        {
+            acsUrl ??= parsed["acsURL"]?.ToString() ?? parsed["acsUrl"]?.ToString() ?? parsed["url"]?.ToString();
+            var creq = parsed["creq"]?.ToString() ?? c.Session.Vars.GetValueOrDefault("checkoutcom.creq");
+            if (!string.IsNullOrEmpty(creq)) initialForm["creq"] = creq!;
+            var sess = parsed["threeDSSessionData"]?.ToString();
+            if (!string.IsNullOrEmpty(sess)) initialForm["threeDSSessionData"] = sess!;
+        }
+
+        var fromVar = ParseAcsInitialFormVar(c);
+        if (fromVar is not null)
+        {
+            foreach (var kv in fromVar) initialForm[kv.Key] = kv.Value;
+        }
+
+        return !string.IsNullOrEmpty(acsUrl);
     }
 }

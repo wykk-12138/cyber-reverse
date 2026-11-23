@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 using Cybersole.Core.Models;
+using Cybersole.Http.Compression;
 
 namespace Cybersole.Http;
 
@@ -47,7 +48,15 @@ public sealed class BouncyH2Client : IDisposable
 
             var path = string.IsNullOrEmpty(uri.PathAndQuery) ? "/" : uri.PathAndQuery;
             var bodyBytes = string.IsNullOrEmpty(body) ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(body);
-            var extra = headers?.Select(kv => new KeyValuePair<string, string>(kv.Key, kv.Value));
+            IEnumerable<KeyValuePair<string, string>>? extra = headers;
+            if (headers is null || !headers.Keys.Any(k => string.Equals(k, "accept-encoding", StringComparison.OrdinalIgnoreCase)))
+            {
+                var list = headers is null
+                    ? new List<KeyValuePair<string, string>>(1)
+                    : new List<KeyValuePair<string, string>>(headers);
+                list.Add(new KeyValuePair<string, string>("accept-encoding", ContentEncodingCodec.DefaultAcceptEncoding));
+                extra = list;
+            }
 
             var block = Http2.EncodeHeaders(uri.Host, path, profile.UserAgent,
                 "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", profile.AcceptLanguage,
@@ -143,7 +152,7 @@ public sealed class BouncyH2Client : IDisposable
             return new NetResponse
             {
                 StatusCode = status,
-                Body = Encoding.UTF8.GetString(data),
+                Body = ContentEncodingCodec.DecompressToString(data, responseHeaders),
                 Url = uri,
                 Headers = responseHeaders,
                 Elapsed = sw.Elapsed,

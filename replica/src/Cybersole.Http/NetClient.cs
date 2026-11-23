@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Diagnostics;
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Security;
@@ -8,6 +7,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Cybersole.Core.Store;
+using Cybersole.Http.Compression;
 using Cybersole.Http.Content;
 using Newtonsoft.Json.Linq;
 
@@ -15,17 +15,35 @@ namespace Cybersole.Http;
 
 /// <summary>
 /// NetClient — the HTTP engine used by store modules.
-/// Holds one <see cref="HttpClient"/> per TLS profile so the negotiated ClientHello
-/// (cipher-suite list, ALPN, SNI) matches the advertised fingerprint,
-/// and reports every request through <see cref="HttpAnalytics"/> / <see cref="HttpDebug"/>.
+/// Holds pooled <see cref="HttpClient"/> instances keyed by <c>(profile, proxy)</c> so negotiated
+/// ClientHello settings and proxy tunnels match the advertised options, and reports requests through
+/// <see cref="HttpAnalytics"/> / <see cref="HttpDebug"/>.
 /// </summary>
 public sealed class NetClient : IDisposable
 {
+    private readonly record struct ClientPoolKey(string ProfileName, string ProxyKey);
+
+    private sealed class ClientPoolKeyComparer : IEqualityComparer<ClientPoolKey>
+    {
+        public static readonly ClientPoolKeyComparer Instance = new();
+
+        public bool Equals(ClientPoolKey x, ClientPoolKey y) =>
+            string.Equals(x.ProfileName, y.ProfileName, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(x.ProxyKey, y.ProxyKey, StringComparison.Ordinal);
+
+        public int GetHashCode(ClientPoolKey obj) =>
+            HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.ProfileName),
+                StringComparer.Ordinal.GetHashCode(obj.ProxyKey));
+    }
+
     private readonly Tls12Pool _tlsPool = new();
 
     private readonly object _poolGate = new();
-    private readonly Dictionary<string, HttpClient> _clients = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<ClientPoolKey, HttpClient> _clients = new(ClientPoolKeyComparer.Instance);
+    private readonly Dictionary<string, CookieContainer> _cookieContainers = new(StringComparer.OrdinalIgnoreCase);
     private readonly HttpAnalytics _analytics;
+
     /// <summary>Default dial/connect timeout matching <c>sub_1412897D0</c> (+160, 30s).</summary>
     public static readonly TimeSpan DefaultConnectTimeout = TimeSpan.FromSeconds(30);
 
@@ -85,47 +103,73 @@ public sealed class NetClient : IDisposable
         Volatile.Write(ref _ownTlsFallbackCount, 0);
     }
 
-    /// <summary>Active per-profile clients (diagnostics / tests).</summary>
+    /// <summary>Active distinct TLS profile names in the pool (diagnostics / tests).</summary>
     public IReadOnlyCollection<string> ActiveProfiles
     {
         get
         {
-            lock (_poolGate) return _clients.Keys.ToArray();
+            lock (_poolGate)
+                return _clients.Keys.Select(k => k.ProfileName).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         }
     }
 
-    private HttpClient ClientFor(TlsProfile profile)
+    private static (string ProxyKey, WebProxy? WebProxy) BuildWebProxy(string? proxySpec)
     {
+        if (string.IsNullOrWhiteSpace(proxySpec))
+            return (string.Empty, null);
+
+        var parsed = Cybersole.Core.Models.Proxy.Parse(proxySpec);
+        var proxyUri = new Uri($"{parsed.Scheme}://{parsed.Host}:{parsed.Port}");
+        var wp = new WebProxy(proxyUri) { BypassProxyOnLocal = false };
+        if (!string.IsNullOrEmpty(parsed.Username))
+            wp.Credentials = new NetworkCredential(parsed.Username, parsed.Password ?? string.Empty);
+
+        return (parsed.Uri, wp);
+    }
+
+    private HttpClient ClientFor(TlsProfile profile, string? proxySpec, out CookieContainer cookieJar)
+    {
+        var (proxyKey, webProxy) = BuildWebProxy(proxySpec);
+        var key = new ClientPoolKey(profile.Name, proxyKey);
+
         lock (_poolGate)
         {
-            if (_clients.TryGetValue(profile.Name, out var existing)) return existing;
+            if (!_cookieContainers.TryGetValue(profile.Name, out cookieJar!))
+            {
+                cookieJar = new CookieContainer();
+                _cookieContainers[profile.Name] = cookieJar;
+            }
 
-            // Matches sub_1412897D0 pool/redirect defaults (MaxAutomaticRedirections=10, dial=30s, idle=90s,
-            // gzip/deflate/br decompression, cookies=true). BCL SocketsHttpHandler.Http3Support is explicitly
-            // disabled in the original image (AppContext 0x144b19bd0 = "false"; zero System.Net.Quic/msquic).
+            if (_clients.TryGetValue(key, out var existing))
+                return existing;
+
+            // Matches sub_1412897D0 pool/redirect defaults (MaxAutomaticRedirections=10 in single-layer loop,
+            // dial=30s, idle=90s, gzip/deflate/br decompression; BCL HTTP/3 disabled; AllowAutoRedirect=false
+            // so NetClient's explicit redirect loop handles hop limits, method changes, /http strips, and cookies).
             var handler = new SocketsHttpHandler
             {
                 AutomaticDecompression = DecompressionMethods.All,
-                AllowAutoRedirect = true,
+                AllowAutoRedirect = false,
                 MaxAutomaticRedirections = 10,
                 ConnectTimeout = _connectTimeout,
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5),
                 PooledConnectionIdleTimeout = DefaultPooledConnectionIdleTimeout,
-                UseCookies = true,
-                CookieContainer = new CookieContainer(),
+                UseCookies = false,
+                UseProxy = webProxy is not null,
+                Proxy = webProxy,
                 SslOptions =
                 {
                     EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
                     ApplicationProtocols = profile.BuildAlpn(),
                     CipherSuitesPolicy = profile.BuildCipherPolicy(),
                     CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
-                    TargetHost = string.Empty, // per-request SNI
+                    TargetHost = string.Empty,
                 },
             };
 
             var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
             client.DefaultRequestHeaders.ConnectionClose = false;
-            _clients[profile.Name] = client;
+            _clients[key] = client;
             return client;
         }
     }
@@ -148,7 +192,125 @@ public sealed class NetClient : IDisposable
         CancellationToken ct)
     {
         options ??= new RequestOptions();
+        var sw = Stopwatch.StartNew();
 
+        var result = await SendSingleHopAsync(method, url, options, ct).ConfigureAwait(false);
+
+        // Only the outer invocation (hops == 0) drives the single-layer redirect state machine.
+        if (hops == 0 &&
+            options.FollowRedirects && RedirectPolicy.IsRedirect(result.StatusCode) &&
+            options.MaxRedirects is null or > 0 &&
+            result.Headers.TryGetValue("Location", out var location) &&
+            !string.IsNullOrEmpty(location))
+        {
+            var limit = RedirectPolicy.LimitFrom(options.MaxRedirects);
+            var carried = options;
+            var followMethod = method;
+            var nextOptions = carried.Clone();
+            var accumulatedCookies = new Dictionary<string, string>(result.Cookies, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var kv in result.Cookies)
+                options.Cookies[kv.Key] = kv.Value;
+
+            var lastHopStatus = result.StatusCode;
+            var lastHopLocation = location;
+            var finalResponse = result;
+            var isFirstHop = true;
+
+            var followed = await RedirectPolicy.FollowAsync(
+                url,
+                async (current, token) =>
+                {
+                    if (isFirstHop)
+                    {
+                        isFirstHop = false;
+                        return new RedirectHop(lastHopStatus, lastHopLocation);
+                    }
+
+                    if (!RedirectPolicy.PreservesMethod(lastHopStatus, followMethod.Method))
+                    {
+                        nextOptions = carried.Clone();
+                        nextOptions.Content = null;
+                        nextOptions.Body = null;
+                        nextOptions.Headers.Remove("Content-Type");
+                        nextOptions.Headers.Remove("Content-Encoding");
+                        nextOptions.Headers.Remove("Content-Length");
+                        followMethod = HttpMethod.Get;
+                    }
+                    else
+                    {
+                        nextOptions = carried.Clone();
+                    }
+
+                    foreach (var kv in accumulatedCookies)
+                        nextOptions.Cookies[kv.Key] = kv.Value;
+
+                    var hopResponse = await SendAsync(followMethod, current, nextOptions, limit + 1, token)
+                        .ConfigureAwait(false);
+
+                    finalResponse = hopResponse;
+                    foreach (var kv in hopResponse.Cookies)
+                    {
+                        accumulatedCookies[kv.Key] = kv.Value;
+                        options.Cookies[kv.Key] = kv.Value;
+                        carried.Cookies[kv.Key] = kv.Value;
+                    }
+
+                    lastHopStatus = hopResponse.StatusCode;
+                    lastHopLocation = hopResponse.Headers.TryGetValue("Location", out var next) ? next : null;
+                    return new RedirectHop(lastHopStatus, lastHopLocation);
+                },
+                limit,
+                ct).ConfigureAwait(false);
+
+            if (followed.TooMany)
+                throw new NetException(followed.TooManyMessage());
+
+            sw.Stop();
+            var mergedFinal = new NetResponse
+            {
+                StatusCode = finalResponse.StatusCode,
+                Body = finalResponse.Body,
+                Url = finalResponse.Url,
+                Headers = finalResponse.Headers,
+                Cookies = accumulatedCookies,
+                Elapsed = sw.Elapsed,
+                Bytes = finalResponse.Bytes,
+                Protocol = finalResponse.Protocol,
+            };
+
+            RecordAnalytics(mergedFinal, followMethod.Method, options, sw.Elapsed);
+            return mergedFinal;
+        }
+
+        if (hops == 0 && Transport == TransportMode.SChannel)
+            RecordAnalytics(result, method.Method, options, result.Elapsed);
+
+        return result;
+    }
+
+    private void RecordAnalytics(NetResponse result, string methodName, RequestOptions options, TimeSpan elapsed)
+    {
+        _analytics.Record(new HttpRequestEvent
+        {
+            Url = result.Url.ToString(),
+            Status = result.StatusCode,
+            ElapsedMs = (int)elapsed.TotalMilliseconds,
+            Bytes = result.Bytes,
+            Protocol = result.Protocol,
+            Profile = options.Profile.Name,
+            Proxy = options.Proxy,
+            Tag = options.Tag,
+            Method = methodName,
+        });
+    }
+
+    private async Task<NetResponse> SendSingleHopAsync(
+        HttpMethod method,
+        string url,
+        RequestOptions options,
+        CancellationToken ct)
+    {
         if (Transport != TransportMode.SChannel)
         {
             string? bodyText = null;
@@ -158,50 +320,44 @@ public sealed class NetClient : IDisposable
                 bodyText = Encoding.UTF8.GetString(MaterializeBody(customBody).Span);
             var proxy = string.IsNullOrWhiteSpace(options.Proxy) ? null : Cybersole.Core.Models.Proxy.Parse(options.Proxy);
             var headerCopy = options.Headers.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
+            if (options.Cookies.Count > 0 && !headerCopy.ContainsKey("Cookie"))
+                headerCopy["Cookie"] = string.Join("; ", options.Cookies.Select(kv => $"{kv.Key}={kv.Value}"));
 
             if (Transport == TransportMode.OwnTls)
             {
                 var ownUri = new Uri(url, UriKind.Absolute);
                 try
                 {
-                    // Rent from the pool instead of handshaking every time: a checkout run
-                    // makes a dozen requests to the same host, and the p95 gap against
-                    // SChannel was entirely handshake cost.
                     var ownPort = ownUri.Port == 0 ? 443 : ownUri.Port;
                     var own = await _tlsPool.RentAsync(ownUri.Host, ownPort, options.Profile,
                         options.Timeout, ct).ConfigureAwait(false);
 
                     var path = string.IsNullOrEmpty(ownUri.PathAndQuery) ? "/" : ownUri.PathAndQuery;
 
-                    NetResponse result;
+                    NetResponse ownResult;
                     try
                     {
-                        result = await own.SendAsync(method.Method.ToUpperInvariant(), path,
+                        ownResult = await own.SendAsync(method.Method.ToUpperInvariant(), path,
                             ownUri.Host, bodyText, ct).ConfigureAwait(false);
                     }
                     catch (Exception)
                     {
-                        // a session that saw an error has untrustworthy record sequence numbers
                         _tlsPool.Discard(own);
                         throw;
                     }
 
                     _tlsPool.Return(ownUri.Host, ownPort, options.Profile, own);
 
-                    result.Headers["X-Cyb-Transport"] = "own-tls12";
-                    result.Headers["X-Cyb-Alpn"] = own.Alpn ?? "-";
-                    return result;
+                    ownResult.Headers["X-Cyb-Transport"] = "own-tls12";
+                    ownResult.Headers["X-Cyb-Alpn"] = own.Alpn ?? "-";
+                    return ownResult;
                 }
                 catch (Exception ex) when (!ct.IsCancellationRequested)
                 {
-                    // Some hosts reject this experimental TLS 1.2 stack outright (`bad_record_mac`).
-                    // Never leave the client stuck on OwnTls: record the fallback and switch one-shot to SChannel.
                     _fellBackFromOwnTls = true;
                     Interlocked.Increment(ref _ownTlsFallbackCount);
                     Transport = TransportMode.SChannel;
                     _lastOwnTlsError = ex.Message;
-
-                    // fall through to the standard SChannel path below
                 }
             }
 
@@ -244,24 +400,31 @@ public sealed class NetClient : IDisposable
             cts.CancelAfter(options.Timeout);
             try
             {
-                using var request = BuildRequest(method, url, options);
-                var client = ClientFor(options.Profile);
+                var client = ClientFor(options.Profile, options.Proxy, out var cookieJar);
+                using var request = await BuildRequestAsync(method, url, options, cookieJar, cts.Token)
+                    .ConfigureAwait(false);
                 using var response = await client.SendAsync(
                     request, HttpCompletionOption.ResponseContentRead, cts.Token).ConfigureAwait(false);
 
                 var body = await ReadBodyAsync(response, cts.Token).ConfigureAwait(false);
                 sw.Stop();
 
+                var reqUri = response.RequestMessage?.RequestUri ?? new Uri(url, UriKind.Absolute);
+                var hopCookies = ExtractCookies(response);
+                RecordResponseCookies(cookieJar, reqUri, response);
+                foreach (var kv in hopCookies)
+                    options.Cookies[kv.Key] = kv.Value;
+
                 var result = new NetResponse
                 {
                     StatusCode = (int)response.StatusCode,
                     Body = body,
-                    Url = response.RequestMessage?.RequestUri ?? new Uri(url),
+                    Url = reqUri,
                     Headers = response.Headers
                         .Concat(response.Content.Headers)
                         .GroupBy(h => h.Key, StringComparer.OrdinalIgnoreCase)
                         .ToDictionary(g => g.Key, g => string.Join(", ", g.SelectMany(v => v.Value)), StringComparer.OrdinalIgnoreCase),
-                    Cookies = ExtractCookies(response),
+                    Cookies = hopCookies,
                     Elapsed = sw.Elapsed,
                     Bytes = body.Length,
                     Protocol = response.Version.Major >= 2 ? "h2" : "http/1.1",
@@ -275,67 +438,11 @@ public sealed class NetClient : IDisposable
                         Encoding.UTF8.GetBytes(result.Body), attempt + 1);
                 }
 
-                // R951: the redirect branch is here rather than in each transport, so all three share one policy.
-                // A chain that exceeds the limit throws rather than returning the last hop, because a truncated chain
-                // looks like an answer.
-                // R952: the recursion is replaced by RedirectPolicy.FollowAsync so the chain walks through one async
-                // method rather than through this one calling itself. Two reasons, and the second is the one that
-                // matters for parity: an async method keeps its state machine in the image where a small synchronous
-                // helper would be inlined and leave no .pdata entry at all.
-                if (options.FollowRedirects && RedirectPolicy.IsRedirect(result.StatusCode) &&
-                    result.Headers.TryGetValue("Location", out var location) &&
-                    !string.IsNullOrEmpty(location))
-                {
-                    var limit = RedirectPolicy.LimitFrom(options.MaxRedirects);
-                    var carried = options;
-                    var followMethod = method;
-
-                    var followed = await RedirectPolicy.FollowAsync(
-                        url,
-                        async (current, token) =>
-                        {
-                            if (string.Equals(current, url, StringComparison.Ordinal))
-                                return new RedirectHop(result.StatusCode, location);
-
-                            // every subsequent hop is a real request, so the chain is walked rather than replayed
-                            var nextOptions = carried;
-                            if (!RedirectPolicy.PreservesMethod(result.StatusCode, followMethod.Method))
-                            {
-                                nextOptions = carried.Clone();
-                                nextOptions.Content = null;
-                                followMethod = HttpMethod.Get;
-                            }
-
-                            var hopResponse = await SendAsync(followMethod, current, nextOptions, limit + 1, token)
-                                .ConfigureAwait(false);
-                            return new RedirectHop(hopResponse.StatusCode,
-                                hopResponse.Headers.TryGetValue("Location", out var next) ? next : null);
-                        },
-                        limit,
-                        ct).ConfigureAwait(false);
-
-                    if (followed.TooMany)
-                        throw new NetException(followed.TooManyMessage());
-
-                    if (!string.Equals(followed.FinalUrl, url, StringComparison.Ordinal))
-                        return await SendAsync(followMethod, followed.FinalUrl, carried, limit + 1, ct)
-                            .ConfigureAwait(false);
-                }
-
-                _analytics.Record(new HttpRequestEvent
-                {
-                    Url = result.Url.ToString(),
-                    Status = result.StatusCode,
-                    ElapsedMs = (int)sw.Elapsed.TotalMilliseconds,
-                    Bytes = result.Bytes,
-                    Protocol = result.Protocol,
-                    Profile = options.Profile.Name,
-                    Proxy = options.Proxy,
-                    Tag = options.Tag,
-                    Method = method.Method,
-                });
-
                 return result;
+            }
+            catch (NotSupportedException)
+            {
+                throw;
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
@@ -402,40 +509,135 @@ public sealed class NetClient : IDisposable
         return writer.WrittenMemory;
     }
 
-    private HttpRequestMessage BuildRequest(HttpMethod method, string url, RequestOptions options)
+    private static bool IsContentHeader(string name) =>
+        name.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("Content-Encoding", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("Content-Language", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("Content-Location", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("Content-MD5", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("Content-Range", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("Expires", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("Last-Modified", StringComparison.OrdinalIgnoreCase);
+
+    private static async Task<HttpRequestMessage> BuildRequestAsync(
+        HttpMethod method,
+        string url,
+        RequestOptions options,
+        CookieContainer cookieJar,
+        CancellationToken ct)
     {
-        var request = new HttpRequestMessage(method, url);
+        var uri = new Uri(url, UriKind.Absolute);
+        var request = new HttpRequestMessage(method, uri);
 
-        // ---- browser-like default headers (fingerprint parity) ----
-        var p = options.Profile;
-        request.Headers.TryAddWithoutValidation("User-Agent", p.UserAgent);
-        request.Headers.TryAddWithoutValidation("Accept",
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
-        request.Headers.TryAddWithoutValidation("Accept-Language", p.AcceptLanguage);
-        request.Headers.TryAddWithoutValidation("sec-ch-ua", p.SecChUa);
-        request.Headers.TryAddWithoutValidation("sec-ch-ua-mobile", p.SecChUaMobile);
-        request.Headers.TryAddWithoutValidation("sec-ch-ua-platform", p.SecChUaPlatform);
-        request.Headers.TryAddWithoutValidation("sec-fetch-dest", "document");
-        request.Headers.TryAddWithoutValidation("sec-fetch-mode", "navigate");
-        request.Headers.TryAddWithoutValidation("sec-fetch-site", "none");
-        request.Headers.TryAddWithoutValidation("sec-fetch-user", "?1");
-        request.Headers.TryAddWithoutValidation("upgrade-insecure-requests", "1");
+        if (!options.OverrideHeaders)
+        {
+            var p = options.Profile;
+            void AddDefault(string name, string value)
+            {
+                if (!options.Headers.ContainsKey(name))
+                    request.Headers.TryAddWithoutValidation(name, value);
+            }
 
+            AddDefault("User-Agent", p.UserAgent);
+            AddDefault("Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+            AddDefault("Accept-Language", p.AcceptLanguage);
+            AddDefault("sec-ch-ua", p.SecChUa);
+            AddDefault("sec-ch-ua-mobile", p.SecChUaMobile);
+            AddDefault("sec-ch-ua-platform", p.SecChUaPlatform);
+            AddDefault("sec-fetch-dest", "document");
+            AddDefault("sec-fetch-mode", "navigate");
+            AddDefault("sec-fetch-site", "none");
+            AddDefault("sec-fetch-user", "?1");
+            AddDefault("upgrade-insecure-requests", "1");
+        }
+
+        // Replace rather than append on request headers; never serialize options.Properties on wire.
         foreach (var (k, v) in options.Headers)
+        {
+            if (IsContentHeader(k)) continue;
+            request.Headers.Remove(k);
             request.Headers.TryAddWithoutValidation(k, v);
+        }
+
+        if (!options.Headers.ContainsKey("Cookie"))
+        {
+            var mergedCookies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Cookie ck in cookieJar.GetCookies(uri))
+                mergedCookies[ck.Name] = ck.Value;
+            foreach (var (k, v) in options.Cookies)
+                mergedCookies[k] = v;
+
+            if (mergedCookies.Count > 0)
+            {
+                request.Headers.Remove("Cookie");
+                request.Headers.TryAddWithoutValidation(
+                    "Cookie",
+                    string.Join("; ", mergedCookies.Select(kv => $"{kv.Key}={kv.Value}")));
+            }
+        }
+
+        byte[]? payloadBytes = null;
+        string? defaultContentType = null;
+        List<KeyValuePair<string, IEnumerable<string>>>? sourceContentHeaders = null;
 
         if (options.Content is not null)
         {
-            request.Content = options.Content;
+            payloadBytes = await options.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+            defaultContentType = options.Content.Headers.ContentType?.ToString();
+            sourceContentHeaders = new List<KeyValuePair<string, IEnumerable<string>>>();
+            foreach (var h in options.Content.Headers)
+            {
+                if (!h.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
+                    sourceContentHeaders.Add(h);
+            }
         }
         else if (options.Body is { } customBody)
         {
-            var raw = MaterializeBody(customBody);
-            var content = new ByteArrayContent(raw.ToArray());
-            if (!options.Headers.TryGetValue("Content-Type", out var explicitContentType))
-                content.Headers.TryAddWithoutValidation("Content-Type", customBody.ContentType);
-            else if (MediaTypeHeaderValue.TryParse(explicitContentType, out var parsedType))
-                content.Headers.ContentType = parsedType;
+            payloadBytes = MaterializeBody(customBody).ToArray();
+            defaultContentType = customBody.ContentType;
+        }
+
+        if (payloadBytes is not null)
+        {
+            var hasReqEnc = options.Headers.TryGetValue("Content-Encoding", out var reqEnc) &&
+                            !string.IsNullOrWhiteSpace(reqEnc);
+            if (hasReqEnc)
+                payloadBytes = ContentEncodingCodec.Compress(payloadBytes, reqEnc);
+
+            var content = new ByteArrayContent(payloadBytes);
+
+            if (sourceContentHeaders is not null)
+            {
+                foreach (var h in sourceContentHeaders)
+                    content.Headers.TryAddWithoutValidation(h.Key, h.Value);
+            }
+
+            if (options.Headers.TryGetValue("Content-Type", out var explicitContentType))
+            {
+                content.Headers.Remove("Content-Type");
+                if (MediaTypeHeaderValue.TryParse(explicitContentType, out var parsedType))
+                    content.Headers.ContentType = parsedType;
+                else
+                    content.Headers.TryAddWithoutValidation("Content-Type", explicitContentType);
+            }
+            else if (content.Headers.ContentType is null && !string.IsNullOrEmpty(defaultContentType))
+            {
+                content.Headers.TryAddWithoutValidation("Content-Type", defaultContentType);
+            }
+
+            foreach (var (k, v) in options.Headers)
+            {
+                if (!IsContentHeader(k) ||
+                    k.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) ||
+                    k.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                content.Headers.Remove(k);
+                content.Headers.TryAddWithoutValidation(k, v);
+            }
+
             request.Content = content;
         }
 
@@ -456,11 +658,43 @@ public sealed class NetClient : IDisposable
         return cookies;
     }
 
+    private static void RecordResponseCookies(CookieContainer cookieJar, Uri requestUri, HttpResponseMessage response)
+    {
+        if (!response.Headers.TryGetValues("Set-Cookie", out var values))
+            return;
+
+        foreach (var raw in values)
+        {
+            try
+            {
+                cookieJar.SetCookies(requestUri, raw);
+            }
+            catch (CookieException)
+            {
+                var pair = raw.Split(';', 2)[0];
+                var idx = pair.IndexOf('=');
+                if (idx > 0)
+                {
+                    try
+                    {
+                        cookieJar.Add(requestUri, new Cookie(pair[..idx].Trim(), pair[(idx + 1)..].Trim()));
+                    }
+                    catch (CookieException)
+                    {
+                        // Non-RFC cookie names/values still flow via options.Cookies and NetResponse.Cookies.
+                    }
+                }
+            }
+        }
+    }
+
     private static async Task<string> ReadBodyAsync(HttpResponseMessage response, CancellationToken ct)
     {
-        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        return await reader.ReadToEndAsync(ct).ConfigureAwait(false);
+        var raw = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+        if (response.Content.Headers.ContentEncoding.Count > 0)
+            return ContentEncodingCodec.DecompressToString(raw, string.Join(", ", response.Content.Headers.ContentEncoding));
+
+        return ContentEncodingCodec.DecodeUtf8WithBom(raw);
     }
 
     public void Dispose()
@@ -471,6 +705,7 @@ public sealed class NetClient : IDisposable
         {
             foreach (var c in _clients.Values) c.Dispose();
             _clients.Clear();
+            _cookieContainers.Clear();
         }
     }
 }

@@ -241,6 +241,55 @@ public sealed class HttpCompanionTests
         Assert.False(new RootCertificateStore().VerifyChain(leafCert));
     }
 
+    [Fact]
+    public async Task RequestOptionsOverrideHeadersSuppressesDefaultsAndPropertiesStayOffWire()
+    {
+        using var server = new TinyServer((_, _) => (200, "{\"ok\":true}"));
+        using var http = new NetClient { Transport = TransportMode.SChannel };
+
+        // Baseline: OverrideHeaders = false emits default browser headers
+        var defaultOpts = new RequestOptions();
+        defaultOpts.Headers["x-custom"] = "default-path";
+        await http.GetAsync(server.BaseUrl + "/default", defaultOpts);
+
+        Assert.Single(server.RequestHeaders);
+        Assert.True(server.RequestHeaders[0].ContainsKey("User-Agent"));
+        Assert.True(server.RequestHeaders[0].ContainsKey("sec-ch-ua"));
+        Assert.True(server.RequestHeaders[0].ContainsKey("sec-fetch-site"));
+        Assert.Equal("default-path", server.RequestHeaders[0]["x-custom"]);
+
+        // OverrideHeaders = true + Properties["Akamai"] = "1":
+        // Clone() preserves both, defaults are suppressed, and Properties never appear on the wire.
+        var opts = new RequestOptions { OverrideHeaders = true };
+        opts.Headers["x-requested-with"] = "XMLHttpRequest";
+        opts.Headers["accept"] = "*/*";
+        opts.Properties["Akamai"] = "1";
+
+        var cloned = opts.Clone();
+        Assert.True(cloned.OverrideHeaders);
+        Assert.Equal("1", cloned.Properties["akamai"]);
+        cloned.Properties["Akamai"] = "2";
+        Assert.Equal("1", opts.Properties["Akamai"]);
+
+        await http.GetAsync(server.BaseUrl + "/override", opts);
+
+        Assert.Equal(2, server.RequestHeaders.Count);
+        var overrideHeaders = server.RequestHeaders[1];
+        Assert.Equal("XMLHttpRequest", overrideHeaders["x-requested-with"]);
+        Assert.Equal("*/*", overrideHeaders["accept"]);
+        Assert.False(overrideHeaders.ContainsKey("User-Agent"));
+        Assert.False(overrideHeaders.ContainsKey("Accept-Language"));
+        Assert.False(overrideHeaders.ContainsKey("sec-ch-ua"));
+        Assert.False(overrideHeaders.ContainsKey("sec-ch-ua-mobile"));
+        Assert.False(overrideHeaders.ContainsKey("sec-ch-ua-platform"));
+        Assert.False(overrideHeaders.ContainsKey("sec-fetch-dest"));
+        Assert.False(overrideHeaders.ContainsKey("sec-fetch-mode"));
+        Assert.False(overrideHeaders.ContainsKey("sec-fetch-site"));
+        Assert.False(overrideHeaders.ContainsKey("sec-fetch-user"));
+        Assert.False(overrideHeaders.ContainsKey("upgrade-insecure-requests"));
+        Assert.False(overrideHeaders.ContainsKey("Akamai"));
+    }
+
     private static async Task<byte[]> ReadExactAsync(NetworkStream stream, int count)
     {
         var buf = new byte[count];

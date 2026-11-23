@@ -403,6 +403,10 @@ public sealed class CasioFlow : StoreFlow
         if (!m.Success || string.IsNullOrEmpty(m.Groups[1].Value))
             return Task.FromResult(StepOutcome.Fail("casio: neither casioid nor sku in the page"));
 
+        var skuMatch = Regex.Match(body, @"""sku""\s*:\s*""([^""]+)""");
+        if (skuMatch.Success && !string.IsNullOrEmpty(skuMatch.Groups[1].Value))
+            c.Session.Vars["casio.sku"] = skuMatch.Groups[1].Value;
+
         c.Session.VariantId = m.Groups[1].Value;
         c.Session.Vars["variant"] = m.Groups[1].Value;
         return Task.FromResult(StepOutcome.Success());
@@ -644,8 +648,306 @@ public sealed class CasioFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    public const string DefaultStoreCode = "us_store_view";
+    public const string DefaultLocale = "us";
+    public const string DefaultLoginUrl = "https://auth.casio-intl.com/api/connect/v1/login";
+    public const string DefaultCasioOrigin = "https://www.casio.com";
+    public const string DefaultLoginRedirectUri = "https://www.casio.com/sg/casioIdAuth/login";
+    public const string SquareHydrateUrl = "https://pci-connect.squareup.com/payments/hydrate";
+
+    private enum CasioGateway
+    {
+        Square = 0,
+        Stripe = 1,
+        Adyen = 2,
+        Unzer = 3,
+    }
+
+    private static CasioGateway ResolveGateway(FlowContext c)
+    {
+        var raw = c.Session.Vars.GetValueOrDefault("casio.gateway")
+                  ?? c.Session.Vars.GetValueOrDefault("gateway");
+        return raw?.Trim().ToLowerInvariant() switch
+        {
+            "0" or "square" or "squareup" => CasioGateway.Square,
+            "1" or "stripe" => CasioGateway.Stripe,
+            "2" or "adyen" => CasioGateway.Adyen,
+            "3" or "unzer" => CasioGateway.Unzer,
+            _ => CasioGateway.Unzer,
+        };
+    }
+
+    private static string CasioSiteBase(FlowContext c)
+    {
+        if (c.Session.Vars.TryGetValue("casio.siteBase", out var siteBase) && !string.IsNullOrWhiteSpace(siteBase))
+            return siteBase.TrimEnd('/');
+        if (c.Session.Vars.TryGetValue("unzer.storeOrigin", out var unzerOrigin) && !string.IsNullOrWhiteSpace(unzerOrigin))
+        {
+            var code = c.Session.Vars.GetValueOrDefault("unzer.storeCode") ?? DefaultLocale;
+            return $"{unzerOrigin.TrimEnd('/')}/{code.Trim('/')}";
+        }
+        var locale = c.Session.Vars.GetValueOrDefault(RegionVar) ?? DefaultLocale;
+        return $"{Origin(c.Url).TrimEnd('/')}/{locale.Trim('/')}";
+    }
+
+    private static string CasioMagentoRestBase(FlowContext c)
+    {
+        if (c.Session.Vars.TryGetValue("casio.restBase", out var restBase) && !string.IsNullOrWhiteSpace(restBase))
+            return restBase.TrimEnd('/');
+        return CasioSiteBase(c) + "/rest/V1";
+    }
+
+    private static string CartScope(FlowContext c) =>
+        string.Equals(c.Session.Vars.GetValueOrDefault("casio.authenticated"), "true",
+            StringComparison.OrdinalIgnoreCase)
+            ? "carts/mine"
+            : $"guest-carts/{c.Session.CartId}";
+
+    private static JObject MagentoAddress(FlowContext c, bool shipping)
+    {
+        var addr = shipping ? (c.Shipping ?? c.Billing) : (c.Billing ?? c.Shipping);
+        var p = c.ProfileData;
+        var street = new JArray();
+        var l1 = addr?.Address1 ?? p?.Address1 ?? string.Empty;
+        var l2 = addr?.Address2 ?? p?.Address2 ?? string.Empty;
+        if (!string.IsNullOrEmpty(l1)) street.Add(l1);
+        if (!string.IsNullOrEmpty(l2)) street.Add(l2);
+        return new JObject
+        {
+            ["country_id"] = addr?.Country ?? p?.Country ?? "US",
+            ["street"] = street,
+            ["postcode"] = addr?.ZipCode ?? p?.Zip ?? string.Empty,
+            ["city"] = addr?.City ?? p?.City ?? string.Empty,
+            ["firstname"] = addr?.FirstName ?? p?.FirstName ?? string.Empty,
+            ["lastname"] = addr?.LastName ?? p?.LastName ?? string.Empty,
+            ["telephone"] = p?.Phone ?? string.Empty,
+            ["email"] = p?.Email ?? c.Account?.Email ?? string.Empty,
+            ["region"] = addr?.State ?? p?.State ?? string.Empty,
+        };
+    }
+
+    public override async Task<StepOutcome> LoginAsync(FlowContext c, CancellationToken ct)
+    {
+        var account = c.Account;
+        if (account is null || string.IsNullOrEmpty(account.Email))
+            return StepOutcome.Fail("casio: no account configured");
+
+        var csrf = c.Session.CsrfToken;
+        if (string.IsNullOrEmpty(csrf) && c.Session.Vars.TryGetValue("home", out var homeHtml))
+            csrf = HtmlFormDom.ExtractElementAttribute(homeHtml, "meta[name='_csrf']", "content") ?? string.Empty;
+
+        var loginUrl = c.Session.Vars.GetValueOrDefault("casio.loginUrl") ?? DefaultLoginUrl;
+        var redirectUri = c.Session.Vars.GetValueOrDefault("casio.redirectUri") ?? DefaultLoginRedirectUri;
+        var form = new Dictionary<string, string>
+        {
+            ["action_type"] = "login",
+            ["_csrf"] = csrf ?? string.Empty,
+            ["device_id"] = c.Session.Vars.GetValueOrDefault("casio.deviceId") ?? string.Empty,
+            ["username"] = account.Email,
+            ["password"] = account.Password ?? string.Empty,
+            ["redirect_uri"] = redirectUri,
+        };
+
+        var res = await PostFormAsync(c, loginUrl, form, "casio-login", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("casio login unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"casio login HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["casio.authenticated"] = "true";
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> ClearCartAsync(FlowContext c, CancellationToken ct)
+    {
+        var endpoint = c.Session.Vars.GetValueOrDefault("casio.graphqlPath");
+        if (string.IsNullOrEmpty(endpoint))
+            endpoint = Payments.GatewayHttp.OriginOf(c.Url) + CasioGraphQL.Path;
+
+        var read = await Payments.GatewayHttp.PostAsync(
+            c, endpoint!, MagentoCart.Body(MagentoCart.CustomerCartDocument), "casio-clear-read", ct)
+            .ConfigureAwait(false);
+        var cart = read?["data"]?["customerCart"];
+        var cartId = cart?["id"]?.ToString();
+        var items = cart?["items"] as JArray;
+        if (!string.IsNullOrEmpty(cartId) && items is { Count: > 0 })
+        {
+            var updates = string.Join(", ", items.Select(i =>
+                "{ cart_item_uid: \"" + (i["uid"]?.ToString() ?? string.Empty) + "\", quantity: 0 }"));
+            var mutation = "mutation { updateCartItems(input: { cart_id: \"" + cartId +
+                           "\", cart_items: [" + updates +
+                           "] }) { cart { id total_quantity items { uid } } } }";
+            await Payments.GatewayHttp.PostAsync(c, endpoint!, MagentoCart.Body(mutation), "casio-clear-update", ct)
+                .ConfigureAwait(false);
+        }
+
+        c.Session.Vars.Remove("cart");
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitEmailAsync(FlowContext c, CancellationToken ct)
+    {
+        if (string.Equals(c.Session.Vars.GetValueOrDefault("casio.authenticated"), "true",
+                StringComparison.OrdinalIgnoreCase))
+            return StepOutcome.Success();
+
+        var email = c.ProfileData?.Email ?? c.Account?.Email ?? c.Session.Vars.GetValueOrDefault("email");
+        if (string.IsNullOrEmpty(email)) return StepOutcome.Fail("casio: no email for set-guest-email-address");
+
+        var url = CasioMagentoRestBase(c) + "/set-guest-email-address";
+        var payload = new JObject
+        {
+            ["cartId"] = c.Session.CartId ?? c.Session.Vars.GetValueOrDefault("casio.cartId") ?? string.Empty,
+            ["email"] = email,
+            ["method"] = "rest",
+            ["storeCode"] = c.Session.Vars.GetValueOrDefault("casio.storeCode") ?? DefaultStoreCode,
+            ["version"] = "V1",
+        };
+
+        var res = await PostJsonAsync(c, url, payload.ToString(Newtonsoft.Json.Formatting.None),
+            "casio-guest-email", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("casio email unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"casio email HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["email"] = email!;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> GetShippingRatesAsync(FlowContext c, CancellationToken ct)
+    {
+        var addr = MagentoAddress(c, shipping: true);
+        addr["company"] = string.Empty;
+        var url = $"{CasioMagentoRestBase(c)}/{CartScope(c)}/estimate-shipping-methods";
+        var payload = new JObject { ["address"] = addr };
+
+        var res = await PostJsonAsync(c, url, payload.ToString(Newtonsoft.Json.Formatting.None),
+            "casio-estimate-shipping", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("casio shipping rates unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"casio shipping rates HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["rates"] = res.Body;
+        try
+        {
+            if (JToken.Parse(res.Body) is JArray { Count: > 0 } arr)
+            {
+                var first = arr[0];
+                var carrier = first["carrier_code"]?.ToString();
+                var method = first["method_code"]?.ToString();
+                if (!string.IsNullOrEmpty(carrier)) c.Session.Vars["casio.shippingCarrierCode"] = carrier!;
+                if (!string.IsNullOrEmpty(method)) c.Session.Vars["casio.shippingMethodCode"] = method!;
+            }
+        }
+        catch { }
+
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
+    {
+        var gateway = ResolveGateway(c);
+        var extAttrs = gateway is CasioGateway.Stripe or CasioGateway.Unzer
+            ? new JObject()
+            : new JObject
+            {
+                ["membership_agreement_data"] = false,
+                ["mail_magazine"] = false,
+                ["checkout_opt_in"] = true,
+            };
+
+        var carrier = c.Session.Vars.GetValueOrDefault("casio.shippingCarrierCode") ?? "flatrate";
+        var method = c.Session.Vars.GetValueOrDefault("casio.shippingMethodCode") ?? "flatrate";
+        var url = $"{CasioMagentoRestBase(c)}/{CartScope(c)}/shipping-information";
+        var payload = new JObject
+        {
+            ["addressInformation"] = new JObject
+            {
+                ["shipping_address"] = MagentoAddress(c, shipping: true),
+                ["billing_address"] = MagentoAddress(c, shipping: false),
+                ["shipping_method_code"] = method,
+                ["shipping_carrier_code"] = carrier,
+                ["extension_attributes"] = extAttrs,
+            },
+        };
+
+        var res = await PostJsonAsync(c, url, payload.ToString(Newtonsoft.Json.Formatting.None),
+            "casio-shipping-info", ct).ConfigureAwait(false);
+        if (res is null) return StepOutcome.Fail("casio shipping info unreachable", retryable: true);
+        if (!res.IsSuccess) return StepOutcome.Fail($"casio shipping info HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["shipping"] = res.Body;
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
+        var gateway = ResolveGateway(c);
+        var email = c.ProfileData?.Email ?? c.Account?.Email ?? c.Session.Vars.GetValueOrDefault("email") ?? string.Empty;
+        var cartId = c.Session.CartId ?? c.Session.Vars.GetValueOrDefault("casio.cartId") ?? string.Empty;
+
+        if (gateway == CasioGateway.Stripe)
+        {
+            if (PaymentGatewayRegistry.Default.Resolve("stripe") is StripeGateway stripe)
+            {
+                if (!c.Session.Vars.ContainsKey("stripe.storeOrigin"))
+                    c.Session.Vars["stripe.storeOrigin"] = Origin(c.Url);
+                if (!c.Session.Vars.ContainsKey("stripe.storeCode"))
+                    c.Session.Vars["stripe.storeCode"] = c.Session.Vars.GetValueOrDefault(RegionVar) ?? DefaultLocale;
+                var cfg = await stripe.FetchConfigurationAsync(c, ct).ConfigureAwait(false);
+                if (!cfg.Ok) return StepOutcome.Fail(cfg.Error ?? "Error preparing payment", retryable: true);
+            }
+
+            var setStripeUrl = $"{CasioMagentoRestBase(c)}/{CartScope(c)}/set-payment-information";
+            var setStripeBody = new JObject
+            {
+                ["cartId"] = cartId,
+                ["email"] = email,
+                ["paymentMethod"] = new JObject { ["method"] = "stripe_payments" },
+            };
+            var res = await PostJsonAsync(c, setStripeUrl, setStripeBody.ToString(Newtonsoft.Json.Formatting.None),
+                "casio-stripe-set-payment", ct).ConfigureAwait(false);
+            return res is { IsSuccess: true }
+                ? StepOutcome.Success()
+                : StepOutcome.Fail($"casio: stripe set-payment-information HTTP {res?.StatusCode}", retryable: true);
+        }
+
+        if (gateway == CasioGateway.Adyen)
+        {
+            var setAdyenUrl = $"{CasioMagentoRestBase(c)}/{CartScope(c)}/set-payment-information";
+            var setAdyenBody = new JObject
+            {
+                ["cartId"] = cartId,
+                ["email"] = email,
+                ["paymentMethod"] = new JObject { ["method"] = "adyen_cc" },
+            };
+            var res = await PostJsonAsync(c, setAdyenUrl, setAdyenBody.ToString(Newtonsoft.Json.Formatting.None),
+                "casio-adyen-set-payment", ct).ConfigureAwait(false);
+            return res is { IsSuccess: true }
+                ? StepOutcome.Success()
+                : StepOutcome.Fail($"casio: adyen set-payment-information HTTP {res?.StatusCode}", retryable: true);
+        }
+
+        if (gateway == CasioGateway.Square)
+        {
+            var hydrateBase = c.Session.Vars.GetValueOrDefault("square.hydrateUrl") ?? SquareHydrateUrl;
+            var appId = c.Session.Vars.GetValueOrDefault("square.applicationId") ?? SquareGateway.DefaultApplicationId;
+            var hydrateUrl = $"{hydrateBase}?applicationId={Uri.EscapeDataString(appId)}&hostname=www.casio.com";
+            var hydrateRes = await GetAsync(c, hydrateUrl, "casio-square-hydrate", ct).ConfigureAwait(false);
+            if (hydrateRes is null || !hydrateRes.IsSuccess)
+                return StepOutcome.Fail("Error preparing payment", retryable: true);
+            c.Session.Vars["square.hydrate"] = hydrateRes.Body ?? string.Empty;
+
+            var setSquareUrl = $"{CasioMagentoRestBase(c)}/{CartScope(c)}/set-payment-information";
+            var setSquareBody = new JObject
+            {
+                ["cartId"] = cartId,
+                ["email"] = email,
+                ["paymentMethod"] = new JObject { ["method"] = "squareup_payment" },
+            };
+            var res = await PostJsonAsync(c, setSquareUrl, setSquareBody.ToString(Newtonsoft.Json.Formatting.None),
+                "casio-square-set-payment", ct).ConfigureAwait(false);
+            return res is { IsSuccess: true }
+                ? StepOutcome.Success()
+                : StepOutcome.Fail($"casio: square set-payment-information HTTP {res?.StatusCode}", retryable: true);
+        }
+
         if (Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve("unzer")
             is not Cybersole.Stores.Payments.UnzerGateway unzer)
             return StepOutcome.Fail("casio: unzer gateway unavailable");
@@ -665,8 +967,155 @@ public sealed class CasioFlow : StoreFlow
             : StepOutcome.Fail(set.Error ?? "casio: set-payment-information failed", retryable: true);
     }
 
+    private static string SquareBrandMap(string? number)
+    {
+        var digits = number?.Trim() ?? string.Empty;
+        if (digits.Length == 0) return "VISA";
+        return digits[0] switch
+        {
+            '2' or '5' => "MASTERCARD",
+            '3' => "AMERICAN_EXPRESS",
+            '6' => "DISCOVER",
+            _ => "VISA",
+        };
+    }
+
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
+        var gateway = ResolveGateway(c);
+        if (gateway == CasioGateway.Stripe)
+        {
+            var pmId = c.Session.PaymentMethodId ?? c.Session.Vars.GetValueOrDefault("stripe.paymentMethodId");
+            if (string.IsNullOrEmpty(pmId))
+                return StepOutcome.Fail("casio: stripe payment-information requires pre-supplied stripe.paymentMethodId (tokenization skipped)");
+
+            var email = c.ProfileData?.Email ?? c.Account?.Email ?? c.Session.Vars.GetValueOrDefault("email") ?? string.Empty;
+            var url = $"{CasioMagentoRestBase(c)}/{CartScope(c)}/payment-information";
+            var billing = MagentoAddress(c, shipping: false);
+            var body = new JObject
+            {
+                ["cartId"] = c.Session.CartId ?? string.Empty,
+                ["billingAddress"] = billing,
+                ["email"] = email,
+                ["paymentMethod"] = new JObject
+                {
+                    ["method"] = "stripe_payments",
+                    ["additional_data"] = new JObject { ["payment_method"] = pmId },
+                    ["extension_attributes"] = new JObject { ["display_total"] = false },
+                },
+            };
+            var res = await PostJsonAsync(c, url, body.ToString(Newtonsoft.Json.Formatting.None),
+                "casio-stripe-order", ct).ConfigureAwait(false);
+            if (res is null) return StepOutcome.Fail("Error submitting order", retryable: true);
+            if (!res.IsSuccess) return StepOutcome.Fail($"casio stripe order HTTP {res.StatusCode}", retryable: true);
+
+            var orderId = res.Body.Trim('"', '\r', '\n', ' ');
+            c.Session.OrderId = orderId;
+            c.Session.OrderNumber = orderId;
+            return StepOutcome.Success();
+        }
+
+        if (gateway == CasioGateway.Adyen)
+        {
+            var card = c.Card;
+            if (card?.Number is null) return StepOutcome.Fail("casio: adyen order requires card");
+
+            var email = c.ProfileData?.Email ?? c.Account?.Email ?? c.Session.Vars.GetValueOrDefault("email") ?? string.Empty;
+            var url = $"{CasioMagentoRestBase(c)}/{CartScope(c)}/payment-information";
+            var encrypted = c.Session.Vars.GetValueOrDefault("adyen.stateData");
+            var body = new JObject
+            {
+                ["cartId"] = c.Session.CartId ?? string.Empty,
+                ["billingAddress"] = MagentoAddress(c, shipping: false),
+                ["guestEmail"] = email,
+                ["paymentMethod"] = new JObject
+                {
+                    ["method"] = "adyen_cc",
+                    ["additional_data"] = new JObject
+                    {
+                        ["encryptedCardNumber"] = c.Session.Vars.GetValueOrDefault("adyen.encryptedCardNumber") ?? card.Number,
+                        ["encryptedExpiryMonth"] = c.Session.Vars.GetValueOrDefault("adyen.encryptedExpiryMonth") ?? card.Month ?? string.Empty,
+                        ["encryptedExpiryYear"] = c.Session.Vars.GetValueOrDefault("adyen.encryptedExpiryYear") ?? card.Year ?? string.Empty,
+                        ["encryptedSecurityCode"] = c.Session.Vars.GetValueOrDefault("adyen.encryptedSecurityCode") ?? card.Cvv ?? string.Empty,
+                        ["holderName"] = card.Name ?? c.ProfileData?.Display ?? string.Empty,
+                        ["type"] = "scheme",
+                        ["brand"] = c.Session.Vars.GetValueOrDefault("adyen.brand") ?? "visa",
+                        ["cc_type"] = c.Session.Vars.GetValueOrDefault("adyen.ccType") ?? "VI",
+                        ["browserInfo"] = c.Session.Vars.GetValueOrDefault("adyen.browserInfo") ?? string.Empty,
+                        ["checkoutAttemptId"] = c.Session.Vars.GetValueOrDefault("adyen.checkoutAttemptId") ?? string.Empty,
+                        ["frontendType"] = "default",
+                        ["clientStateDataIndicator"] = true,
+                        ["stateData"] = encrypted ?? string.Empty,
+                        ["origin"] = DefaultCasioOrigin,
+                    },
+                },
+            };
+
+            var res = await PostJsonAsync(c, url, body.ToString(Newtonsoft.Json.Formatting.None),
+                "casio-adyen-order", ct).ConfigureAwait(false);
+            if (res is null) return StepOutcome.Fail("Error submitting order", retryable: true);
+            if (!res.IsSuccess)
+            {
+                c.Emit("Adyen order unexpected response: " + res.Body, "CASIO");
+                return StepOutcome.Fail("Error submitting order", retryable: true);
+            }
+
+            var orderId = res.Body.Trim('"', '\r', '\n', ' ');
+            c.Session.OrderId = orderId;
+            c.Session.OrderNumber = orderId;
+            return StepOutcome.Success();
+        }
+
+        if (gateway == CasioGateway.Square)
+        {
+            var card = c.Card;
+            var nonce = c.Session.PaymentToken ?? c.Session.Vars.GetValueOrDefault("square.nonce");
+            if (string.IsNullOrEmpty(nonce))
+                return StepOutcome.Fail("casio: square order requires pre-supplied square.nonce (PoW skipped)");
+
+            var num = (card?.Number ?? string.Empty).Replace(" ", string.Empty);
+            var last4 = num.Length >= 4 ? num[^4..] : num;
+            var email = c.ProfileData?.Email ?? c.Account?.Email ?? c.Session.Vars.GetValueOrDefault("email") ?? string.Empty;
+            var url = $"{CasioMagentoRestBase(c)}/{CartScope(c)}/payment-information";
+            var body = new JObject
+            {
+                ["cartId"] = c.Session.CartId ?? string.Empty,
+                ["billingAddress"] = MagentoAddress(c, shipping: false),
+                ["email"] = email,
+                ["paymentMethod"] = new JObject
+                {
+                    ["method"] = "squareup_payment",
+                    ["additional_data"] = new JObject
+                    {
+                        ["cc_cid"] = string.Empty,
+                        ["cc_ss_start_month"] = string.Empty,
+                        ["cc_ss_start_year"] = string.Empty,
+                        ["cc_ss_issue"] = string.Empty,
+                        ["cc_type"] = SquareBrandMap(num),
+                        ["cc_exp_year"] = card?.Year ?? string.Empty,
+                        ["cc_exp_month"] = card?.Month ?? string.Empty,
+                        ["cc_number"] = string.Empty,
+                        ["nonce"] = nonce,
+                        ["digital_wallet"] = string.Empty,
+                        ["cc_last_4"] = last4,
+                        ["cc_postal_code"] = string.Empty,
+                        ["is_express"] = false,
+                        ["buyerVerificationToken"] = JValue.CreateNull(),
+                        ["display_form"] = true,
+                    },
+                },
+            };
+            var res = await PostJsonAsync(c, url, body.ToString(Newtonsoft.Json.Formatting.None),
+                "casio-square-order", ct).ConfigureAwait(false);
+            if (res is null) return StepOutcome.Fail("Error submitting order", retryable: true);
+            if (!res.IsSuccess) return StepOutcome.Fail($"casio square order HTTP {res.StatusCode}", retryable: true);
+
+            var orderId = res.Body.Trim('"', '\r', '\n', ' ');
+            c.Session.OrderId = orderId;
+            c.Session.OrderNumber = orderId;
+            return StepOutcome.Success();
+        }
+
         if (string.IsNullOrEmpty(c.Session.CartId) ||
             (string.IsNullOrEmpty(c.Session.PaymentMethodId) &&
              string.IsNullOrEmpty(c.Session.Vars.GetValueOrDefault("unzer.resourceId"))))
@@ -721,6 +1170,97 @@ public sealed class CasioFlow : StoreFlow
 
     public override async Task<StepOutcome> Process3DSAsync(FlowContext c, CancellationToken ct)
     {
+        var gateway = ResolveGateway(c);
+        if (gateway == CasioGateway.Stripe)
+        {
+            var tick = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var reqActionUrl = $"{CasioMagentoRestBase(c)}/{CartScope(c)}/stripe/payments/get_requires_action" +
+                               $"?orderId={Uri.EscapeDataString(c.Session.OrderId ?? string.Empty)}&_={tick}";
+            var actRes = await GetAsync(c, reqActionUrl, "casio-stripe-action", ct).ConfigureAwait(false);
+            if (actRes is null || !actRes.IsSuccess)
+                return StepOutcome.Fail("casio: stripe get_requires_action failed", retryable: true);
+
+            var secret = TryRead(actRes.Body, "clientSecret")
+                         ?? ThreeDsTransportHelpers.TryParseJson(actRes.Body)?["client_secret"]?.ToString()
+                         ?? actRes.Body;
+            var secretSep = secret?.IndexOf("_secret_", StringComparison.Ordinal) ?? -1;
+            var piId = c.Session.Vars.GetValueOrDefault("stripe.intentId")
+                       ?? (secretSep > 0 ? secret![..secretSep] : string.Empty);
+            var pk = c.Session.Vars.GetValueOrDefault("stripe.publishableKey") ?? string.Empty;
+            if (!string.IsNullOrEmpty(piId) && !string.IsNullOrEmpty(secret) &&
+                PaymentGatewayRegistry.Default.Resolve("stripe") is StripeGateway stripe)
+            {
+                var confirm = await stripe.RetrievePaymentIntentAsync(
+                    c, piId, secret!, pk, version: StripeGateway.ChallengeVersion, ct: ct).ConfigureAwait(false);
+                return confirm.Ok || confirm.RequiresAction
+                    ? StepOutcome.Success()
+                    : StepOutcome.Fail(confirm.Error ?? "Error verifying payment");
+            }
+            return StepOutcome.Success();
+        }
+
+        if (gateway == CasioGateway.Adyen)
+        {
+            var orderIdNum = long.TryParse(c.Session.OrderId, out var parsedOrderId) ? parsedOrderId : 0L;
+            var statusUrl = $"{CasioMagentoRestBase(c)}/adyen/orders/{CartScope(c)}/payment-status";
+            var detailsUrl = $"{CasioMagentoRestBase(c)}/adyen/{CartScope(c)}/payments-details";
+
+            for (var round = 0; round <= 3; round++)
+            {
+                var statusRes = await PostJsonAsync(c, statusUrl,
+                    new JObject { ["orderId"] = orderIdNum }.ToString(Newtonsoft.Json.Formatting.None),
+                    "casio-adyen-status", ct).ConfigureAwait(false);
+                if (statusRes is null || !statusRes.IsSuccess)
+                    return StepOutcome.Fail("Error verifying payment", retryable: true);
+
+                var statusJson = ThreeDsTransportHelpers.TryParseJson(statusRes.Body);
+                var resultCode = statusJson?["resultCode"]?.ToString();
+                if (string.Equals(resultCode, "Authorised", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(resultCode, "Received", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(resultCode, "Pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    return StepOutcome.Success();
+                }
+
+                var action = statusJson?["action"] ?? statusJson;
+                var actionToken = action?["token"]?.ToString() ?? action?["authorisationToken"]?.ToString();
+                var threeDsResult = c.Session.Vars.GetValueOrDefault("threeDsPayload") ?? actionToken;
+                if (action?["type"] is not null && round >= 3)
+                {
+                    c.Emit("Adyen action loop: " + (statusJson?["resultCode"]?.ToString() ?? "loop"), "error");
+                    return StepOutcome.Fail("3DS failed");
+                }
+
+                if (string.IsNullOrEmpty(threeDsResult))
+                    return StepOutcome.Fail("3DS payload missing");
+
+                var inner = new JObject { ["details"] = new JObject { ["threeDSResult"] = threeDsResult } };
+                var detailsReq = new JObject
+                {
+                    ["orderId"] = orderIdNum,
+                    ["payload"] = inner.ToString(Newtonsoft.Json.Formatting.None),
+                };
+                var detRes = await PostJsonAsync(c, detailsUrl, detailsReq.ToString(Newtonsoft.Json.Formatting.None),
+                    "casio-adyen-details", ct).ConfigureAwait(false);
+                if (detRes is null || !detRes.IsSuccess)
+                    return StepOutcome.Fail("Error verifying payment", retryable: true);
+
+                var detJson = ThreeDsTransportHelpers.TryParseJson(detRes.Body);
+                var detCode = detJson?["resultCode"]?.ToString();
+                if (string.Equals(detCode, "Authorised", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(detCode, "Received", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(detCode, "Pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    return StepOutcome.Success();
+                }
+
+                if (detJson?["action"] is null)
+                    return StepOutcome.Fail(detJson?["refusalReason"]?.ToString() ?? "Error verifying payment");
+            }
+
+            return StepOutcome.Fail("3DS failed");
+        }
+
         if (Cybersole.Stores.Payments.PaymentGatewayRegistry.Default.Resolve("unzer")
             is not Cybersole.Stores.Payments.UnzerGateway unzer)
             return StepOutcome.Fail("casio: unzer gateway unavailable");
@@ -766,6 +1306,7 @@ public sealed class WarhammerFlow : StoreFlow
 
     private const string IdentityHost = "https://login.mywarhammer.com";
     private const string ApiHost = "https://api.prod.warhammer.com";
+    public const string VantivPayPageUrl = "https://request.eprotect.vantivcnp.com/eProtect/paypage";
 
     /// <summary>
     /// Warhammer is behind AWS WAF, and the image carries a bespoke handler for it. R787.
@@ -827,6 +1368,168 @@ public sealed class WarhammerFlow : StoreFlow
             c.Session.Headers[AwsWafTokenHeader] = aws;
         if (c.Session.Vars.TryGetValue("wafAuthCookie", out var site) && site.Length > 0)
             c.Session.Headers[WafAuthCookie] = site;
+    }
+
+    public static bool IsCommercetoolsMode(FlowContext c) =>
+        string.Equals(c.Session.Vars.GetValueOrDefault("wh.commercetools"), "true",
+            StringComparison.OrdinalIgnoreCase);
+
+    private static string CtEndpoint(FlowContext c)
+    {
+        var ep = ApiHostFor(c).TrimEnd('/') + "/graphql";
+        c.Session.Vars["storeSession.origin"] = ep;
+        return ep;
+    }
+
+    private static void ApplyCtHeaders(FlowContext c)
+    {
+        ApplyWaf(c);
+        c.Session.Headers["accept"] = "application/json";
+        c.Session.Headers["x-trace-id"] = Guid.NewGuid().ToString("D");
+        if (!c.Session.Headers.ContainsKey(WafAuthCookie))
+            c.Session.Headers[WafAuthCookie] = string.Empty;
+        if (c.Session.Vars.TryGetValue("accessToken", out var at) && !string.IsNullOrEmpty(at))
+            c.Session.Headers["authorization"] = "Bearer " + at;
+    }
+
+    private static string CtLocale(FlowContext c) =>
+        c.Session.Vars.GetValueOrDefault("wh.locale") ?? "en-US";
+
+    private static string CtStoreKey(FlowContext c) =>
+        c.Session.Vars.GetValueOrDefault("wh.storeKey") ?? "warhammer-us";
+
+    public override async Task<StepOutcome> GetCartAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsCommercetoolsMode(c))
+            return await base.GetCartAsync(c, ct).ConfigureAwait(false);
+
+        ApplyCtHeaders(c);
+        var vars = new JObject
+        {
+            ["locale"] = CtLocale(c),
+            ["key"] = new JObject { ["key"] = CtStoreKey(c), ["typeId"] = "store" },
+        };
+        var (data, err) = await StoreSessionQueries
+            .SendAsync(c, CtEndpoint(c), "getCart", vars, ct).ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        c.Session.Vars["cart"] = data.ToString(Newtonsoft.Json.Formatting.None);
+        var cart = data["inStore"]?["me"]?["activeCart"];
+        var cartId = cart?["id"]?.ToString();
+        if (!string.IsNullOrEmpty(cartId)) c.Session.CartId = cartId;
+        var version = cart?["version"]?.ToString();
+        if (!string.IsNullOrEmpty(version)) c.Session.Vars["wh.cartVersion"] = version!;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> ClearCartAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsCommercetoolsMode(c))
+            return await base.ClearCartAsync(c, ct).ConfigureAwait(false);
+
+        ApplyCtHeaders(c);
+        var ep = CtEndpoint(c);
+        var lineItemId = c.Session.Vars.GetValueOrDefault("wh.lineItemId");
+        var cartId = c.Session.CartId ?? string.Empty;
+        var version = long.TryParse(c.Session.Vars.GetValueOrDefault("wh.cartVersion"), out var v) ? v : 1L;
+        if (string.IsNullOrEmpty(lineItemId))
+        {
+            var got = await GetCartAsync(c, ct).ConfigureAwait(false);
+            if (!got.Ok) return got;
+            cartId = c.Session.CartId ?? string.Empty;
+            version = long.TryParse(c.Session.Vars.GetValueOrDefault("wh.cartVersion"), out v) ? v : 1L;
+            var cartJson = Payments.ThreeDsTransportHelpers.TryParseJson(c.Session.Vars.GetValueOrDefault("cart"));
+            var items = cartJson?["inStore"]?["me"]?["activeCart"]?["lineItems"] as JArray;
+            if (items is not null)
+            {
+                foreach (var item in items)
+                {
+                    var lid = item["id"]?.ToString();
+                    var qty = item["quantity"]?.ToObject<long?>() ?? 1L;
+                    if (string.IsNullOrEmpty(lid)) continue;
+                    var rmVars = new JObject
+                    {
+                        ["cartId"] = cartId,
+                        ["lineItemId"] = lid,
+                        ["version"] = version,
+                        ["quantity"] = qty,
+                        ["locale"] = CtLocale(c),
+                    };
+                    var (rmData, rmErr) = await StoreSessionQueries
+                        .SendAsync(c, ep, "removeLineItemFromCart", rmVars, ct).ConfigureAwait(false);
+                    if (rmData?["updateMyCart"] is null)
+                    {
+                        c.Emit("Error clearing cart", "StatusInfo");
+                        return StepOutcome.Fail(string.IsNullOrEmpty(rmErr) ? "Error clearing cart" : rmErr);
+                    }
+                    version = rmData["updateMyCart"]!["version"]?.ToObject<long?>() ?? version;
+                    c.Session.Vars["wh.cartVersion"] = version.ToString();
+                }
+            }
+            return StepOutcome.Success();
+        }
+
+        var singleVars = new JObject
+        {
+            ["cartId"] = cartId,
+            ["lineItemId"] = lineItemId,
+            ["version"] = version,
+            ["quantity"] = (long)c.Session.Quantity,
+            ["locale"] = CtLocale(c),
+        };
+        var (data, err) = await StoreSessionQueries
+            .SendAsync(c, ep, "removeLineItemFromCart", singleVars, ct).ConfigureAwait(false);
+        if (data?["updateMyCart"] is null)
+        {
+            c.Emit("Error clearing cart", "StatusInfo");
+            return StepOutcome.Fail(string.IsNullOrEmpty(err) ? "Error clearing cart" : err);
+        }
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> CreateCartAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsCommercetoolsMode(c))
+            return await base.CreateCartAsync(c, ct).ConfigureAwait(false);
+
+        ApplyCtHeaders(c);
+        var vars = new JObject
+        {
+            ["currency"] = c.Session.Vars.GetValueOrDefault("currency") ?? "USD",
+            ["locale"] = CtLocale(c),
+            ["storeKey"] = CtStoreKey(c),
+            ["country"] = c.ProfileData?.Country ?? c.Shipping?.Country ?? "US",
+            ["taxMode"] = "Platform",
+        };
+        var (data, err) = await StoreSessionQueries
+            .SendAsync(c, CtEndpoint(c), "createCartByStore", vars, ct).ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        var created = data["createMyCart"];
+        var cartId = created?["id"]?.ToString();
+        if (!string.IsNullOrEmpty(cartId)) c.Session.CartId = cartId;
+        var version = created?["version"]?.ToString();
+        if (!string.IsNullOrEmpty(version)) c.Session.Vars["wh.cartVersion"] = version!;
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> InitiateCheckoutAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsCommercetoolsMode(c))
+            return await base.InitiateCheckoutAsync(c, ct).ConfigureAwait(false);
+
+        ApplyCtHeaders(c);
+        var (data, err) = await StoreSessionQueries
+            .SendAsync(c, CtEndpoint(c), "initiateCheckout", new JObject(), ct).ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        var init = data["initiateCheckout"];
+        c.Session.Vars["checkout"] = data.ToString(Newtonsoft.Json.Formatting.None);
+        var id = init?["id"]?.ToString();
+        if (!string.IsNullOrEmpty(id)) c.Session.CheckoutToken = id;
+        var version = init?["version"]?.ToString();
+        if (!string.IsNullOrEmpty(version)) c.Session.Vars["wh.cartVersion"] = version!;
+        return StepOutcome.Success();
     }
 
     public override bool RequiresAccount => true;
@@ -913,6 +1616,30 @@ public sealed class WarhammerFlow : StoreFlow
 
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsCommercetoolsMode(c))
+        {
+            ApplyCtHeaders(c);
+            var pid = c.Session.Vars.GetValueOrDefault("wh.productId") ?? c.Session.VariantId;
+            if (string.IsNullOrEmpty(pid)) return StepOutcome.Fail("warhammer: no productId to add");
+            var version = long.TryParse(c.Session.Vars.GetValueOrDefault("wh.cartVersion"), out var cv) ? cv : 1L;
+            var vars = new JObject
+            {
+                ["cartId"] = c.Session.CartId ?? string.Empty,
+                ["locale"] = CtLocale(c),
+                ["productId"] = pid,
+                ["quantity"] = (long)c.Session.Quantity,
+                ["version"] = version,
+            };
+            var (data, err) = await StoreSessionQueries
+                .SendAsync(c, CtEndpoint(c), "addToCartByChannel", vars, ct).ConfigureAwait(false);
+            if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+            c.Session.Vars["cart"] = data.ToString(Newtonsoft.Json.Formatting.None);
+            var newVer = data["updateMyCart"]?["version"]?.ToString();
+            if (!string.IsNullOrEmpty(newVer)) c.Session.Vars["wh.cartVersion"] = newVer!;
+            return StepOutcome.Success();
+        }
+
         // R789: was POST {ApiHost}/api/basket/items with {"sku","quantity"} -- an invented REST shape. The image
         // speaks GraphQL, and its AddToCart mutation is recovered verbatim in analysis/warhammer_graphql.txt.
         ApplyWaf(c);
@@ -1018,6 +1745,50 @@ public sealed class WarhammerFlow : StoreFlow
 
     public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsCommercetoolsMode(c))
+        {
+            ApplyCtHeaders(c);
+            var ship = c.Shipping ?? c.Billing;
+            var prof = c.ProfileData;
+            if (ship is null && prof is null) return StepOutcome.Fail("warhammer: no shipping address");
+
+            var ctEp = CtEndpoint(c);
+            var addrObj = new JObject
+            {
+                ["firstName"] = ship?.FirstName ?? prof?.FirstName ?? string.Empty,
+                ["lastName"] = ship?.LastName ?? prof?.LastName ?? string.Empty,
+                ["streetName"] = ship?.Address1 ?? prof?.Address1 ?? string.Empty,
+                ["additionalStreetInfo"] = ship?.Address2 ?? prof?.Address2 ?? string.Empty,
+                ["city"] = ship?.City ?? prof?.City ?? string.Empty,
+                ["postalCode"] = ship?.ZipCode ?? prof?.Zip ?? string.Empty,
+                ["state"] = ship?.State ?? prof?.State ?? string.Empty,
+                ["country"] = ship?.Country ?? prof?.Country ?? "US",
+                ["email"] = prof?.Email ?? c.Account?.Email ?? string.Empty,
+                ["phone"] = prof?.Phone ?? string.Empty,
+            };
+            var saveVars = new JObject
+            {
+                ["address"] = addrObj,
+                ["editAddress"] = false,
+                ["saveAddress"] = true,
+                ["setDefault"] = false,
+            };
+            var (saved, saveErr) = await StoreSessionQueries
+                .SendAsync(c, ctEp, "saveAddress", saveVars, ct).ConfigureAwait(false);
+            if (saved is null) return StepOutcome.Fail(saveErr, retryable: true);
+
+            var cartId = c.Session.CartId ?? string.Empty;
+            var (groups, grpErr) = await StoreSessionQueries
+                .SendAsync(c, ctEp, "maintainShippingGroups", new JObject { ["cartId"] = cartId }, ct)
+                .ConfigureAwait(false);
+            if (groups is null) return StepOutcome.Fail(grpErr, retryable: true);
+
+            var updVer = groups["maintainMyShippingGroups"]?["version"]?.ToString();
+            if (!string.IsNullOrEmpty(updVer)) c.Session.Vars["wh.cartVersion"] = updVer!;
+            c.Session.Vars["shipping"] = groups.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         ApplyWaf(c);
 
         var p = c.ProfileData;
@@ -1128,8 +1899,318 @@ public sealed class WarhammerFlow : StoreFlow
     private static string ApiHostFor(FlowContext c) =>
         c.Session.Vars.TryGetValue("wh.apiHost", out var host) && !string.IsNullOrEmpty(host) ? host : ApiHost;
 
+    public static string BillingGraphQlUrl(FlowContext c)
+    {
+        if (c.Session.Vars.TryGetValue("wh.apiHost", out var overrideHost) && !string.IsNullOrEmpty(overrideHost))
+            return overrideHost.TrimEnd('/') + "/graphql";
+
+        var rawOrigin = !string.IsNullOrEmpty(c.Url) && Uri.TryCreate(c.Url, UriKind.Absolute, out _)
+            ? Origin(c.Url)
+            : "https://www.warhammer.com";
+
+        if (Uri.TryCreate(rawOrigin, UriKind.Absolute, out var uri))
+        {
+            var host = uri.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                ? "api." + uri.Host[4..]
+                : uri.Host;
+            var portPart = uri.IsDefaultPort ? string.Empty : ":" + uri.Port;
+            return $"{uri.Scheme}://{host}{portPart}/graphql";
+        }
+
+        return rawOrigin.TrimEnd('/') + "/graphql";
+    }
+
+    public async Task<string?> FetchPayPageRegistrationAsync(FlowContext c, CancellationToken ct)
+    {
+        if (c.Session.Vars.TryGetValue("paypageRegistrationId", out var existing) && !string.IsNullOrEmpty(existing))
+            return existing;
+
+        var card = c.Card;
+        if (card?.Number is null) return null;
+
+        var basePayPageUrl = c.Session.Vars.GetValueOrDefault("wh.paypageUrl") ?? VantivPayPageUrl;
+        var paypageId = c.Session.Vars.GetValueOrDefault("wh.paypageId") ?? string.Empty;
+        var reportGroup = c.Session.Vars.GetValueOrDefault("wh.reportGroup") ?? string.Empty;
+        var orderId = c.Session.OrderId ?? c.Session.Vars.GetValueOrDefault("wh.orderId") ?? string.Empty;
+        var reqId = c.Session.Vars.GetValueOrDefault("wh.paypageRequestId") ?? Guid.NewGuid().ToString("N");
+
+        var expMonth = (card.Month ?? string.Empty).Trim().PadLeft(2, '0');
+        var rawYear = (card.Year ?? string.Empty).Trim();
+        var expYear2 = rawYear.Length > 2 ? rawYear[^2..] : rawYear;
+        var expDate = expMonth + expYear2;
+
+        var sep = basePayPageUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?";
+        var queryUrl = $"{basePayPageUrl}{sep}paypageId={Uri.EscapeDataString(paypageId)}" +
+                       $"&reportGroup={Uri.EscapeDataString(reportGroup)}" +
+                       $"&orderId={Uri.EscapeDataString(orderId)}" +
+                       $"&id={Uri.EscapeDataString(reqId)}" +
+                       $"&accountNum={Uri.EscapeDataString(card.Number.Replace(" ", string.Empty))}" +
+                       $"&cvv2={Uri.EscapeDataString(card.Cvv ?? string.Empty)}" +
+                       $"&expDate={Uri.EscapeDataString(expDate)}";
+
+        var res = await GetAsync(c, queryUrl, "wh-paypage", ct).ConfigureAwait(false);
+        if (res is null || !res.IsSuccess) return null;
+
+        var rawBody = (res.Body ?? string.Empty).Trim();
+        var jsonText = rawBody;
+        const char openBrace = (char)0x7B;
+        const char closeBrace = (char)0x7D;
+        if (jsonText.Length > 0 && jsonText[0] != openBrace)
+        {
+            var start = jsonText.IndexOf(openBrace);
+            var end = jsonText.LastIndexOf(closeBrace);
+            if (start >= 0 && end > start)
+                jsonText = jsonText[start..(end + 1)];
+        }
+
+        var json = Cybersole.Stores.Payments.ThreeDsTransportHelpers.TryParseJson(jsonText);
+        var regId = json?["paypageRegistrationId"]?.ToString();
+        if (!string.IsNullOrEmpty(regId))
+            c.Session.Vars["paypageRegistrationId"] = regId!;
+        return string.IsNullOrEmpty(regId) ? null : regId;
+    }
+
+    public override async Task<StepOutcome> GetPaymentTokenAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsCommercetoolsMode(c))
+            return await base.GetPaymentTokenAsync(c, ct).ConfigureAwait(false);
+
+        ApplyCtHeaders(c);
+        var ep = CtEndpoint(c);
+        var fp = Scripts.BrowserIdentity.Fingerprint(c.Session);
+        var centAmount = long.TryParse(c.Session.Vars.GetValueOrDefault("wh.centAmount"), out var ca) ? ca : 1000L;
+        var currency = c.Session.Vars.GetValueOrDefault("currency") ?? "USD";
+        var store = CtStoreKey(c);
+        var ip = c.Session.Vars.GetValueOrDefault("wh.customerIp") ?? "127.0.0.1";
+        var merchRef = c.Session.Vars.GetValueOrDefault("wh.merchantRef") ?? Guid.NewGuid().ToString("N")[..12];
+
+        c.Session.Vars["cybersource.endpoint"] = ep;
+        c.Session.Vars["cybersource.centAmount"] = centAmount.ToString();
+        c.Session.Vars["cybersource.currency"] = currency;
+        c.Session.Vars["cybersource.store"] = store;
+        c.Session.Vars["cybersource.screenHeight"] = fp.ScreenHeight.ToString();
+        c.Session.Vars["cybersource.screenWidth"] = fp.ScreenWidth.ToString();
+        c.Session.Vars["cybersource.customerIp"] = ip;
+        c.Session.Vars["cybersource.paymentData"] = merchRef;
+
+        var customFields = CybersourcePayment.BuildCustomFields(
+            merchRef, store, fp.ScreenHeight, fp.ScreenWidth, ip);
+        var createVars = new JObject
+        {
+            ["amount"] = new JObject { ["centAmount"] = centAmount, ["currencyCode"] = currency },
+            ["paymentMethod"] = CybersourcePayment.PayerAuthenticationMethod,
+            ["paymentInterface"] = CybersourcePayment.ProviderName,
+            ["key"] = "isv_payment_data",
+            ["customFields"] = customFields,
+        };
+
+        var (created, createErr) = await CybersourcePayment
+            .CreateAsync(c, ep, createVars, ct).ConfigureAwait(false);
+        if (created is null) return StepOutcome.Fail(createErr, retryable: true);
+
+        var paymentNode = created["createMyPayment"];
+        var paymentId = paymentNode?["id"]?.ToString() ?? string.Empty;
+        var paymentVer = paymentNode?["version"]?.ToObject<long?>() ?? 1L;
+        if (!string.IsNullOrEmpty(paymentId))
+        {
+            c.Session.PaymentMethodId = paymentId;
+            c.Session.Vars["wh.paymentId"] = paymentId;
+        }
+        c.Session.Vars["wh.paymentVersion"] = paymentVer.ToString();
+
+        var captureContext = c.Session.Vars.GetValueOrDefault("wh.captureContext") ?? string.Empty;
+        if (paymentNode?["custom"]?["customFieldsRaw"] is JArray rawFields)
+        {
+            foreach (var f in rawFields)
+            {
+                if (string.Equals(f?["name"]?.ToString(), CybersourcePayment.CaptureContextSignatureKey,
+                        StringComparison.Ordinal))
+                {
+                    captureContext = f?["value"]?.ToString() ?? captureContext;
+                }
+            }
+        }
+
+        var cartId = c.Session.CartId ?? string.Empty;
+        var cartVer = long.TryParse(c.Session.Vars.GetValueOrDefault("wh.cartVersion"), out var cv) ? cv : 1L;
+        if (!string.IsNullOrEmpty(cartId) && !string.IsNullOrEmpty(paymentId))
+        {
+            var added = await MagentoCart
+                .AddPaymentAsync(c, ep, cartId, cartVer, paymentId, ct).ConfigureAwait(false);
+            if (!added.Ok) return StepOutcome.Fail(added.Error, retryable: true);
+            c.Session.Vars["wh.cartVersion"] = added.Version;
+            c.Session.Vars["wh.isAbleToCheckout"] = added.CanCheckout;
+        }
+
+        if (string.IsNullOrEmpty(captureContext))
+            return StepOutcome.Fail(CybersourcePayment.NoCaptureContextMessage);
+
+        var tokensUrl = c.Session.Vars.GetValueOrDefault("wh.flexTokensUrl")
+                        ?? ExtractFlexTokensUrl(captureContext)
+                        ?? CybersourceFlex.TokensUrl;
+        var flex = await CybersourceFlex.TokenizeAsync(c, captureContext, ct, tokensUrl).ConfigureAwait(false);
+        if (!flex.Ok)
+        {
+            c.Emit("Tokenization failed", "StatusInfo");
+            return StepOutcome.Fail(flex.Error, retryable: false);
+        }
+
+        c.Session.PaymentToken = flex.Token;
+        c.Session.Vars["wh.flexToken"] = flex.Token;
+
+        var num = (c.Card?.Number ?? string.Empty).Replace(" ", string.Empty);
+        var masked = num.Length >= 4 ? new string('x', Math.Max(0, num.Length - 4)) + num[^4..] : num;
+        var expMonth = (c.Card?.Month ?? "01").Trim().PadLeft(2, '0');
+        var rawYear = (c.Card?.Year ?? "2030").Trim();
+        var expYear4 = rawYear.Length == 2 ? "20" + rawYear : rawYear;
+
+        c.Session.Vars["cybersource.updateMode"] = "true";
+        var actions = new JArray
+        {
+            new JObject { ["setCustomField"] = new JObject { ["name"] = "isv_token", ["value"] = flex.Token } },
+            new JObject { ["setCustomField"] = new JObject { ["name"] = "isv_maskedPan", ["value"] = masked } },
+            new JObject { ["setCustomField"] = new JObject { ["name"] = "isv_cardType", ["value"] = flex.CardType } },
+            new JObject { ["setCustomField"] = new JObject { ["name"] = "isv_cardExpiryMonth", ["value"] = expMonth } },
+            new JObject { ["setCustomField"] = new JObject { ["name"] = "isv_cardExpiryYear", ["value"] = expYear4 } },
+            new JObject { ["setCustomField"] = new JObject { ["name"] = "isv_saleEnabled", ["value"] = false } },
+            new JObject { ["setCustomField"] = new JObject { ["name"] = "isv_acceptHeader", ["value"] = "application/json" } },
+            new JObject { ["setCustomField"] = new JObject { ["name"] = "isv_userAgentHeader", ["value"] = c.Session.UserAgent ?? "Mozilla/5.0" } },
+        };
+
+        var updateVars = new JObject
+        {
+            ["id"] = paymentId,
+            ["version"] = paymentVer,
+            ["actions"] = actions,
+            ["customFields"] = customFields,
+        };
+        var (updated, updateErr) = await CybersourcePayment
+            .UpdateAsync(c, ep, updateVars, ct).ConfigureAwait(false);
+        if (updated is null) return StepOutcome.Fail(updateErr, retryable: true);
+
+        c.Session.Vars["payment"] = updated.ToString(Newtonsoft.Json.Formatting.None);
+        return StepOutcome.Success();
+    }
+
+    private static string? ExtractFlexTokensUrl(string jwt)
+    {
+        var payload = AdyenGateway.DecodeJwt(jwt);
+        var flx = payload?["flx"]?["tokensUrl"]?.ToString();
+        return string.IsNullOrEmpty(flx) ? null : flx;
+    }
+
+    public override async Task<StepOutcome> SubmitBillingAsync(FlowContext c, CancellationToken ct)
+    {
+        if (IsCommercetoolsMode(c))
+            return await GetPaymentTokenAsync(c, ct).ConfigureAwait(false);
+
+        ApplyWaf(c);
+        c.Emit("Submitting billing", "StatusInfo");
+
+        var regId = await FetchPayPageRegistrationAsync(c, ct).ConfigureAwait(false);
+        if (string.IsNullOrEmpty(regId))
+            return StepOutcome.Fail("warhammer: missing paypageRegistrationId", retryable: true);
+
+        var card = c.Card;
+        var cardNumber = (card?.Number ?? string.Empty).Replace(" ", string.Empty);
+        var last4 = cardNumber.Length >= 4 ? cardNumber[^4..] : cardNumber;
+        var cardType = c.Session.Vars.GetValueOrDefault("wh.cardType")
+                       ?? (cardNumber.StartsWith('3') ? "Amex"
+                           : cardNumber.StartsWith('4') ? "Visa"
+                           : "Mastercard");
+        var expMonth = (card?.Month ?? string.Empty).Trim().PadLeft(2, '0');
+        var expYear = (card?.Year ?? string.Empty).Trim();
+        if (expYear.Length == 2) expYear = "20" + expYear;
+
+        var bill = c.Billing ?? c.Shipping;
+        var p = c.ProfileData;
+
+        var variables = new JObject
+        {
+            ["creditCardInfo"] = new JObject
+            {
+                ["paypageRegistrationId"] = regId,
+                ["cardType"] = cardType,
+                ["expirationMonth"] = expMonth,
+                ["expirationYear"] = expYear,
+                ["creditCardNumber"] = last4,
+                ["billingAddressInfo"] = new JObject
+                {
+                    ["streetName"] = bill?.Address1 ?? p?.Address1 ?? string.Empty,
+                    ["additionalStreetInfo"] = bill?.Address2 ?? p?.Address2 ?? string.Empty,
+                    ["city"] = bill?.City ?? p?.City ?? string.Empty,
+                    ["postalCode"] = bill?.ZipCode ?? p?.Zip ?? string.Empty,
+                    ["state"] = bill?.State ?? p?.State ?? string.Empty,
+                    ["firstName"] = bill?.FirstName ?? p?.FirstName ?? string.Empty,
+                    ["lastName"] = bill?.LastName ?? p?.LastName ?? string.Empty,
+                    ["email"] = p?.Email ?? c.Account?.Email ?? string.Empty,
+                    ["phone"] = p?.Phone ?? string.Empty,
+                    ["country"] = bill?.Country ?? p?.Country ?? string.Empty,
+                    ["address1"] = string.Empty,
+                    ["address2"] = string.Empty,
+                },
+            },
+            ["editRequest"] = false,
+            ["addressUpdated"] = false,
+            ["roundUpDetails"] = new JObject
+            {
+                ["roundup"] = false,
+                ["donationAmount"] = "0",
+            },
+            ["saveToWallet"] = false,
+            ["isPrimary"] = false,
+        };
+
+        var body = new JObject
+        {
+            ["operationName"] = "AddCreditCard",
+            ["query"] = WarhammerQueries.AddCreditCard,
+            ["variables"] = variables,
+        };
+
+        var headers = new Dictionary<string, string>
+        {
+            ["x-graphql-query-name"] = "AddCreditCard",
+            ["x-graphql-hash"] = "8c2c7e3586546c8fe944e7c7732bd7098dbfcfce6695279e3ca412f89bce6704",
+            ["x-header-id"] = "489337221e651aabeeb90482b91a55973b574a40832a0fbbc2bc2ccd22ec011b",
+        };
+
+        var res = await Cybersole.Stores.Payments.ThreeDsTransportHelpers.PostJsonRawAsync(
+            c,
+            BillingGraphQlUrl(c),
+            body.ToString(Newtonsoft.Json.Formatting.None),
+            headers,
+            "wh-billing",
+            ct).ConfigureAwait(false);
+
+        if (res is null) return StepOutcome.Fail("warhammer billing failed", retryable: true);
+        if (res.IsSuccess && HasGraphQlErrors(res.Body))
+            return StepOutcome.Fail("warhammer billing: graphql returned errors");
+        if (!res.IsSuccess) return StepOutcome.Fail($"warhammer billing HTTP {res.StatusCode}", retryable: true);
+
+        c.Session.Vars["billing"] = res.Body;
+        var parsed = Cybersole.Stores.Payments.ThreeDsTransportHelpers.TryParseJson(res.Body);
+        var paymentId = parsed?["data"]?["addCreditCard"]?["paymentInfo"]?["payments"]?[0]?["id"]?.ToString();
+        if (!string.IsNullOrEmpty(paymentId))
+        {
+            c.Session.PaymentMethodId = paymentId;
+            c.Session.Vars["wh.paymentId"] = paymentId!;
+        }
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> SubmitPaymentAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsCommercetoolsMode(c))
+        {
+            if (string.IsNullOrEmpty(c.Session.PaymentToken))
+            {
+                var tok = await GetPaymentTokenAsync(c, ct).ConfigureAwait(false);
+                if (!tok.Ok) return tok;
+            }
+            return await Process3DSAsync(c, ct).ConfigureAwait(false);
+        }
+
         ApplyWaf(c);
 
         if (!c.Session.Vars.TryGetValue("paymentToken", out var token) || token.Length == 0)
@@ -1245,7 +2326,7 @@ public sealed class WarhammerFlow : StoreFlow
         var isvStepUpUrl = c.Session.Vars.GetValueOrDefault("warhammer.isvStepUpUrl")
                            ?? c.Session.Vars.GetValueOrDefault("cardinal.stepUpUrl");
 
-        if (string.IsNullOrEmpty(serverJwt) && string.IsNullOrEmpty(isvJwt))
+        if (string.IsNullOrEmpty(serverJwt) && string.IsNullOrEmpty(isvJwt) && !IsCommercetoolsMode(c))
             return await base.Process3DSAsync(c, ct).ConfigureAwait(false);
 
         var cardinal = new Cybersole.Stores.Payments.CardinalThreeDs();
@@ -1272,6 +2353,7 @@ public sealed class WarhammerFlow : StoreFlow
 
         if (!string.IsNullOrEmpty(isvJwt) || !string.IsNullOrEmpty(isvStepUpUrl))
         {
+            c.Emit("Profiling device", "StatusInfo");
             var stepUp = await cardinal.StepUpAsync(
                 c,
                 isvJwt ?? c.Session.Vars.GetValueOrDefault("cardinal.jwt") ?? serverJwt!,
@@ -1279,6 +2361,45 @@ public sealed class WarhammerFlow : StoreFlow
                 ct).ConfigureAwait(false);
             if (!stepUp.Ok && !stepUp.RequiresAction)
                 return StepOutcome.Fail(stepUp.Error ?? "3DS challenge failed", retryable: true);
+        }
+
+        if (IsCommercetoolsMode(c))
+        {
+            var paymentId = c.Session.PaymentMethodId ?? c.Session.Vars.GetValueOrDefault("wh.paymentId");
+            if (!string.IsNullOrEmpty(paymentId))
+            {
+                var gwToken = c.Session.Vars.GetValueOrDefault("wh.gwToken") ?? string.Empty;
+                var pollUrl = ApiHostFor(c).TrimEnd('/') + "/payments/creditCardWithPayerAuthentication/" +
+                              Uri.EscapeDataString(paymentId!) +
+                              (string.IsNullOrEmpty(gwToken) ? string.Empty : "?token=" + Uri.EscapeDataString(gwToken));
+                var pollMs = int.TryParse(c.Session.Vars.GetValueOrDefault("wh.pollMs"), out var pm) ? pm : 500;
+                var maxPolls = int.TryParse(c.Session.Vars.GetValueOrDefault("wh.pollMax"), out var mp) ? mp : 10;
+
+                for (var i = 0; i < maxPolls; i++)
+                {
+                    if (i > 0 && pollMs > 0) await Task.Delay(pollMs, ct).ConfigureAwait(false);
+                    var pollRes = await GetAsync(c, pollUrl, "wh-3ds-poll", ct).ConfigureAwait(false);
+                    if (pollRes is null || !pollRes.IsSuccess) continue;
+
+                    c.Session.Vars["payment"] = pollRes.Body;
+                    var parsed = Payments.ThreeDsTransportHelpers.TryParseJson(pollRes.Body);
+                    var status = parsed?["status"]?.ToString() ?? string.Empty;
+                    if (string.Equals(status, "AUTHORIZED", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(status, "COMPLETED", StringComparison.OrdinalIgnoreCase) ||
+                        parsed?["orderNumber"] is not null ||
+                        parsed?["orderId"] is not null)
+                    {
+                        var num = parsed?["orderNumber"]?.ToString() ?? parsed?["orderId"]?.ToString();
+                        if (!string.IsNullOrEmpty(num)) c.Session.OrderNumber = num;
+                        return StepOutcome.Success();
+                    }
+                    if (string.Equals(status, "FAILED", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(status, "DECLINED", StringComparison.OrdinalIgnoreCase))
+                        return StepOutcome.Fail($"warhammer 3DS {status}");
+                }
+
+                return StepOutcome.Fail("3D Secure timed out");
+            }
         }
 
         return StepOutcome.Success();

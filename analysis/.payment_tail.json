@@ -1,6 +1,6 @@
 {
  "basis": "async_tail absent payment family (R1382 fixed denominator)",
- "names": 63,
+ "names": 56,
  "followable": [],
  "metadata_only": [
   {
@@ -13,10 +13,6 @@
   },
   {
    "name": "CheckInteractionChallenge",
-   "reason": "no standalone string"
-  },
-  {
-   "name": "Complete3DSOrder",
    "reason": "no standalone string"
   },
   {
@@ -96,19 +92,11 @@
    "reason": "no standalone string"
   },
   {
-   "name": "GetPayPalDetails",
-   "reason": "no standalone string"
-  },
-  {
    "name": "GetPayPalPaymentOptions",
    "reason": "no standalone string"
   },
   {
    "name": "GetPayPalResult",
-   "reason": "no standalone string"
-  },
-  {
-   "name": "GetStripeConfiguration",
    "reason": "no standalone string"
   },
   {
@@ -152,19 +140,7 @@
    "reason": "no standalone string"
   },
   {
-   "name": "RpcCapturePayPal",
-   "reason": "no standalone string"
-  },
-  {
-   "name": "RpcInitiatePayPal",
-   "reason": "no standalone string"
-  },
-  {
    "name": "RpcSolveThreeDS",
-   "reason": "no standalone string"
-  },
-  {
-   "name": "RpcSubmitAdyenDetails",
    "reason": "no standalone string"
   },
   {
@@ -185,10 +161,6 @@
   },
   {
    "name": "SquareCardNonce",
-   "reason": "no standalone string"
-  },
-  {
-   "name": "SquareHydrate",
    "reason": "no standalone string"
   },
   {

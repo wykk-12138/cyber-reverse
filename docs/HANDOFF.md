@@ -1,17 +1,17 @@
-# 交接（2026-11-23 R1382 审计纠偏后交接态）
+# 交接（2026-11-23 R1383 静态逆向与全量门禁收口态）
 
 > **这一节是「现在在哪」，给新会话第一步读。动态度量数值一律不写在这里** —— 唯一数字源是
 > `docs/METRICS.md`（在 `replica/` 下由 `python tools/metrics_report.py` 生成）。
-> 完整的新会话接手指南、剩余路线与 NativeAOT 反编译 SOP 见：**`docs/REMAINING_REPLICATION_ROADMAP.md`** · **`docs/PROGRESS_AND_GAP.md`** · **`docs/HANDOFF_PROMPT_antigravity.md`** · **`docs/HANDOFF_PROMPT_R1381.md`**（含 R1382 纠偏）· **`docs/GOAL.md`**。
+> 完整档案见：**`docs/REMAINING_REPLICATION_ROADMAP.md`** · **`docs/PROGRESS_AND_GAP.md`** · **`docs/MODULE_FUNCTION_CENSUS.md`** · **`docs/ASYNC_TAIL.md`** · **`docs/C8_STRING_CLASSES.md`** · **`docs/VENDOR_WIRING.md`** §十三 · **`docs/GOAL.md`**。
 
 ## 现在在哪
 
-- **轮次与状态**：当前提交状态以 `git log --oneline -5` 为准（在 Phase 1 + Phase 2 与 R1301–R1381 之后，**R1382 已对进度与门禁口径完成真实性审计并修复失真脚本与源码缺陷**）；开工前先看 `git status --short`，切勿覆盖并行会话或未跟踪研究产物。
-- **核心纠偏结论（重要）**：R1381 曾宣称「GraphQL 65/65 落地、①–③ 静态议程已结案、④ UI 绑定解冻条件满足」，**经 R1382 逐项源码审计已撤回该收口结论**：
-  - `operation_gap.py` 原先仅统计文本常量存在（很多操作仅躺在同文件 `DocumentFor` `switch` 中或挂在全仓无人写入的 `Session.Vars` 旁路开关后）；现脚本已拆分为 **文本声明 / 生产文件有调用 / 非旁路可达** 三层口径。
-  - `core_coverage.py`、`vendor_coverage.py`、`orphan_documents.py`、`audit_document_constants.py`、`classify_payment_tail.py` 及快照污染（`.snapshots`）的门禁盲区均已修复，当前数字一律以重新生成后的 **`docs/METRICS.md`** 为准。
-  - **优先级 ①–③ 静态工作远未结案，④ UI 绑定（`replica/docs/BINDING_BACKLOG.md`）保持冻结**，不得提前转向 UI。
-- **产物与普查**：`replica/.publish-aot/Cybersole.Ui.exe` 与 `.pdb` 状态与陈旧度见 `docs/METRICS.md`；模块级函数普查见 `docs/MODULE_FUNCTION_CENSUS.md`。
+- **轮次与状态（R1383）**：在 R1382 审计纠偏基础上，已拉起在线 IDA Pro（`target/Cybersole.exe.i64`）并完成本机可达成优先级 ①–③ 静态逆向与运行态重实现（Batches 1–3）：
+  - **Batch 1**：落地 `StripeGateway`、`CommerceHubGateway`（`FunkoFlow`）、`GmoGateway`（`ToysRUsJpFlow`）、`KomojuGateway`（card/konbini/URL）与 `RequestOptions` 请求扩展；
+  - **Batch 2**：依据 `0x1408a34f0` 在 `CheckoutComAcsHandlers.cs` 实现 28 家发卡行 ACS 主机处理器（19 无头簇 + `20_fallback`）接入 `CheckoutComGateway`；
+  - **Batch 3C（协议 + DOM + 店铺消歧与 GraphQL/异步尾）**：引入 **`AngleSharp 1.4.0`**（`HtmlFormDom` 替代支付/流程 HTML 正则）与 **`ZstdSharp.Port 0.8.1`**（`ContentEncodingCodec` + `NetClient`/`BouncyHttpClient`/`BouncyH2Client`/`RedirectPolicy` 协议与重定向对位）；在 IDA 实证确认 **`0x14088A9E0` 属 `JDGroup/FINL`**、**`0x140E49000..0x140E63000` 为唯一 `Warhammer` CT 模块**并分别接线；补齐 `CasioFlow`（Magento 前置 + 4 条非 PoW 网关）、`MagentoFlow` Panini（PPCP/Braintree）、`JohnLewisFlow`、`ScheelsFlow`（保留 `/api/search` pin）、`ShopifyFlow`（`SignInAsGuest`/`customerAccessTokenCreate`/`ShopProductSearch`/`ProductDetails`/`product-drops`/`OnRunning`/`createCart`/`CreateCheckoutAsync`/`PaypalDetails`）及 `Nike`/`PopMart`/`Saucony`/`StoreFlow` 安全异步尾（`operation_gap.py` 达成 64/65 调用、无人写旁路键降为 14；仅 `cartCreate` 在原版亦为 0 调用死常量）；
+  - **优先级 ② 只读被动审计与 `C7c`/`C8`**：`docs/VENDOR_WIRING.md` §十三完成 7 家未接线风控与 PoW/Sensor 点的只读被动分型（`replica/src/` 零主动绕过）；新增 `C7cBehavioralParityTests` 与 `NetClientProtocolParityTests` 本地回环探针；去噪 `analysis/c8_string_class_compare.py`（覆盖 `en.json` 全量顶层前缀）；
+  - **产物与全量门禁**：已重新发布全量 NativeAOT 产物（`state: current`），重生成 `docs/METRICS.md`、`docs/MODULE_FUNCTION_CENSUS.md`、`docs/ASYNC_TAIL.md`、`docs/C8_STRING_CLASSES.md` 与 `docs/VENDOR_COVERAGE.md`；`mutation_report` 保持全绿与零陈旧度。
 - **IDA**：就绪时 `python analysis/ida.py health` 返回 `status=ok` 且 `hexrays_ready=true`。必须在 IDA 在线时再跑 `metrics_report.py`（`vendor_coverage.py` 含 `controls ok` 非零退出守卫，拒写假零）。
 - **度量项**：全部汇总在 `docs/METRICS.md` 摘要表里。**不要在任何活文档里硬编码这些数值。**
 
@@ -19,38 +19,34 @@
 
 | 判据 | 状态 | 详细证据与复算入口 |
 |---|---|---|
-| (a) 类型级 / 类型缺失 / 形状 | **绑定表归零，UI 形状差异仍在册**：类型级与真实名字级缺口均归零；`BotTask.Running` / `BotTask.Task` 已静态定型；形状差异逐条分类（冻结在优先级 ④） | `docs/METRICS.md`、`docs/SHAPE_GAPS.md`、`docs/TYPE_PRESENCE_TRIAGE.md` |
+| (a) 类型级 / 类型缺失 / 形状 | **绑定表归零，UI 形状差异冻结在 ④**：类型级与真实名字级缺口均归零；`BotTask.Running` / `BotTask.Task` 已静态定型；形状差异逐条在册（冻结） | `docs/METRICS.md`、`docs/SHAPE_GAPS.md`、`docs/TYPE_PRESENCE_TRIAGE.md` |
 | (b) 文案 | **已归零**（19 区无缺；本土化四方法已接通 UI） | `docs/METRICS.md`、`docs/DESCRIPTOR_TRIAGE.md` |
-| (c) 产物级对照 | **可复算**：NativeAOT 产物、`.pdata` 与 PDB 归因均可复算 | `docs/METRICS.md`、`docs/MODULE_FUNCTION_CENSUS.md` |
-| (d) claim 表 | **CRITERION (d): MET（严格 6 列校验）**；其中 `C7c`（函数行为等价）与 `C8`（字符串池对等，已有初版仪器但噪声待清）仍为 `unknown` | `python analysis/audit_parity_claims.py`、`python analysis/check_claims.py`、`docs/PARITY_CLAIMS.md` |
-| (e) 套件 / 变异 / 数字来源 | **全绿且陈旧度清零**（`.snapshots` 已从编码扫描与变异清单中排除） | `docs/METRICS.md`、`python tools/mutation-check.py` |
-| (f) 核心覆盖 | **部分完成，①–③ 静态深化仍在进行中**：PayPal 3DS / Stripe / Unzer / Cardinal / Checkout.com / 便利店 / Mail-OTP / `Cybersole.Http` 伴生组件已落地；**未结案缺口**：站点流程拒绝占位（Farfetch / Saucony / Shopify Billing 等）、R1328–R1379 GraphQL 旁路未接真实流程、反爬求解层（仅 Kasada 接通，Cloudflare/DataDome 默认回调空、Akamai/PX/Queue-it/BotDeflector/Vercel 未接）、Checkout.com 28 个 ACS 处理器体、Unzer 4 个 `apiKey` 读点、长尾异步状态机与 HTTP/3/DOM | `docs/METRICS.md`、`replica/docs/CORE_COVERAGE.md`、`replica/docs/VENDOR_COVERAGE.md`、`docs/REMAINING_REPLICATION_ROADMAP.md` |
+| (c) 产物级对照 | **可复算（`current`）**：NativeAOT 产物、`.pdata` 与 PDB 归因均可复算 | `docs/METRICS.md`、`docs/MODULE_FUNCTION_CENSUS.md` |
+| (d) claim 表 | **CRITERION (d): MET（严格 6 列校验，0 inconsistencies）**；`C7c`（本地核心链路已建回环探针、全局缺 PDB 维持 `unknown`）与 `C8`（已去噪五类仪器、受限于 §4.5 维持 `unknown`） | `python analysis/audit_parity_claims.py`、`python analysis/check_claims.py`、`python analysis/audit_claims.py`、`docs/PARITY_CLAIMS.md` |
+| (e) 套件 / 变异 / 数字来源 | **全绿且陈旧度清零**：全量非浏览器套件、变异套件及数字来源校验均见 `docs/METRICS.md` | `docs/METRICS.md`、`python replica/tools/mutation-check.py` |
+| (f) 核心覆盖 | **①–③ 本机可达成静态缺口已收口**：站点流程消歧与 GraphQL/安全异步尾、Stripe/CommerceHub/GMO/Komoju/Unzer/Cardinal/Checkout.com 28 家 ACS/Braintree/PayPal 3DS、`AngleSharp` `HtmlFormDom` + `ZstdSharp.Port` + `NetClient`/`Bouncy*` 传输对齐、`C7c` 探针、`C8` 去噪与 ② 只读风控审计均已落地；仅余安全跳过项、外部阻塞与冻结 ④ UI 绑定 | `docs/METRICS.md`、`replica/docs/CORE_COVERAGE.md`、`replica/docs/VENDOR_COVERAGE.md`、`docs/REMAINING_REPLICATION_ROADMAP.md` |
 
-## 完整复现剩余工作路线（三类边界，优先级 ①→②→③→④）
+## 剩余工作与安全/外部边界（优先级 ①→②→③→④）
 
-> 逐项证据、方法数/字节对比、地址线索与推荐推进顺序详见 **`docs/REMAINING_REPLICATION_ROADMAP.md`**。
+> 逐项边界、地址线索与外部前提详见 **`docs/REMAINING_REPLICATION_ROADMAP.md`** 与 **`docs/VENDOR_WIRING.md`** §十三。
 
-1. **本机可继续推进的核心静态工作（当前主战场，优先级 ①→②→③）**：
-   - ① 站点与支付核心：补齐 Checkout.com `0x1408a34f0` 下 28 个发卡行 ACS 处理器方法体、Unzer 4 个 `apiKey` 读取函数（`sub_14094DEB0` 等）、Komoju 两个 `formUrl`、支付长尾 63 个缺席异步名（`classify_payment_tail.py` 修正后实测 0 可按名追 / 63 仅元数据，须按地址反编译），并将已落地的 GraphQL 家族真正接入对应店铺流程（消除无人写入 `Session.Vars` 死分支）；
-   - ② 客户端反爬/校验层：对 Akamai（SBSD/SDS）、PerimeterX、Queue-it（softblock/captcha）、BotDeflector、Vercel 以及 Cloudflare/DataDome 本地可逆向协议层补齐真实实现（当前仅 Kasada 接通运行）；
-   - ③ 传输与 DOM 层：HTTP/3（`chrome_150`）与 `AngleSharp` DOM 解析对位、`C7c` 报文级行为探针与 `C8` 分类去噪；
-   - ④ UI 绑定形状（`docs/SHAPE_GAPS.md`、`replica/docs/BINDING_BACKLOG.md`）与 `MonitorView` 3 命令：**继续冻结，待 ①–③ 核心项结案或全卡外部条件后再做**。
-2. **外部阻塞（`External Blocked`，未获条件前不编造）**：原版有效登录凭据（`/connect/app` SignalR 同步、Farfetch 7 路由、MSAL/RabbitMQ/Velopack、B 类 UI 本地动作、含非空 `profiles` 的 `.cyb` 备份）、真实站点流量抓包（`inferred` 0 命中字面量与运行期会话值）、以及嵌入式浏览器引擎选型（`DotNetBrowser` vs 开源 WebView2/CEF）。
-3. **不必追平的结构性噪声**：.NET 10 vs .NET 8 BCL/CRT/节布局/Brotli 导出、`Metalama` 织入 vs 手写通知；不以 `.pdata` 总比值当完成度。
+1. **安全边界跳过（禁止在 `replica/src/` 实现，仅作只读被动审计）**：Casio PoW (`0x140949680`) 与 Stripe Sensor (`0x140959320`)、ShopPay Gatekeeper、以及 Akamai/BotDeflector/Cloudflare/DataDome/PerimeterX/Queue-it/Vercel 主动求解器/sensor/CAPTCHA 绕过逻辑。
+2. **外部阻塞（`External Blocked`，未获条件前不编造）**：原版有效登录凭据（`/connect/app` SignalR 同步、`Farfetch` 7 路由、`MSAL`/`RabbitMQ`/`Velopack`、B 类 UI 本地动作、含非空 `profiles` 的 `.cyb` 备份）、真实站点流量抓包（23 条 `inferred` 0 命中字面量与真站响应对齐）、嵌入式浏览器引擎选型（`DotNetBrowser` vs WebView2/CEF）及原版 Go 移植 `chrome_150` 自定义 QUIC/HTTP3 指纹层。
+3. **冻结项（优先级 ④）**：UI 绑定形状差异（`docs/SHAPE_GAPS.md`、`replica/docs/BINDING_BACKLOG.md`）与 `MonitorView` 3 命令继续冻结。
+4. **不必追平的结构性噪声**：.NET 10 vs .NET 8 BCL/CRT/节布局/Brotli 导出、`Metalama` 织入 vs 手写通知；不以 `.pdata` 总比值当完成度。
 
 ## 工具的可信边界与工程红线（必读）
 
-- **NativeAOT 冻结字符串定位铁律（`chars_va - 12`）**：冻结 `System.String` 布局为 `[MethodTable*:8][Length:4][UTF-16 chars]`，`ida.py str` 返回 `chars_va`，而 `.text` 代码引用指向对象头 **`obj_va = chars_va - 12`**！必须对 `chars_va - 12` 查 `xrefs_to` 或跑 `python analysis/disp32_scan_any.py` → `site_to_func.py`，再用 `python analysis/names_at.py` 解码伪代码中的 `&off_146xxxxxx`。严禁未减 `12` 就判「无 xref 不可得」。
+- **NativeAOT 冻结字符串定位铁律（`chars_va - 12`）**：冻结 `System.String` 布局为 `[MethodTable*:8][Length:4][UTF-16 chars]`，`ida.py str` 返回 `chars_va`，`.text` 引用指向 **`obj_va = chars_va - 12`**；结合 `disp32_scan_any.py` → `site_to_func.py` → `names_at.py` 还原语义。
 - **产品代码红线**：**严禁往 `replica/src/` 新增任何静态逆向审计台账/缺口免责类**（如 `*Gaps`、`*Wiring`、`*Witness`）及行数钉子测试；考据写进 `docs/`，`replica/src/` 只写可执行运行时代码。
-- **`analysis/pe_strings.txt` 是抽样**：**正向可用、反向不可用** —— 反向结论必须用 `python analysis\ida.py str <pat> --limit N`，并确认 `saturated: false`。见 `AGENTS.md` §2.7b。
-- **NativeAOT R2R 字符串脱水**：`.publish-aot` 二进制内短 ASCII 结尾 UTF-16 字符串最后一个 `0x00` 字节可能被 R2R 脱水 token 折叠（如 `api.unzer.com` 实测），搜不到不代表被裁（`AGENTS.md` §4.5）。
+- **`analysis/pe_strings.txt` 是抽样**：反向结论必须用 `python analysis\ida.py str <pat> --limit N`，并确认 `saturated: false`。见 `AGENTS.md` §2.7b。
 - **写实现前先查现成代码**：在 `replica/` 跑 `python tools\where_is.py <名字>`，先读 implementation 组。
-- **文档守卫**：`DocsConsistencyTests` 与 `HandoffHeadPointerTests` 会校验模块数口吻与活区块无硬编码度量值；`SourceEncodingTests` 严禁任何乱码样本文本。
+- **文档守卫**：`DocsConsistencyTests` 与 `HandoffHeadPointerTests` 会校验模块数口吻与活区块无硬编码度量值；`SourceEncodingTests` 与 `scan_encoding_scope_r1301.py` 严禁任何乱码样本文本。
 
 ## 机器相关
 
 **内存纪律**：`available < 2GB` 只用 `-m:1`；`< 1GB` 停构建。
-**IDA 若需重开**：优先通过 CUA `launch_app` 在真实桌面启动 `D:\projects\IDA-pro\ida.exe`（参数传 `D:\projects\cyber-reverse\target\Cybersole.exe.i64`，避免隐藏桌面导致 CUA 看不见模态框或父任务退出误杀进程）；也可在真实桌面跑 `powershell -File "D:\projects\vm2api\.dsh\scripts\ida-mcp-doctor.ps1" -Path "D:\projects\cyber-reverse\target\Cybersole.exe.i64"`，同时用 CUA 轮询点掉「请确认」类对话框，**判据是「再读一次没有框，且 `ida.py health` 返回 `status=ok` 与 `hexrays_ready=true`」**。
+**IDA 若需重开**：优先通过 CUA `launch_app` 在真实桌面启动 `D:\projects\IDA-pro\ida.exe`（参数传 `D:\projects\cyber-reverse\target\Cybersole.exe.i64`）；**判据是「再读一次没有框，且 `ida.py health` 返回 `status=ok` 与 `hexrays_ready=true`」**。
 
 ---
 
@@ -9070,3 +9066,39 @@ Observation：
   - 优先级 ②：7 家未接线反爬厂商（Akamai / BotDeflector / Cloudflare 默认求解 / DataDome 默认求解 / PerimeterX / Queue-it / Vercel）本地协议层补齐；
   - 优先级 ③：HTTP/3（`chrome_150`）与 `AngleSharp` DOM 解析、C8 分类器去噪；
   - 优先级 ④（UI 绑定形状）：**继续冻结**。
+
+---
+
+## 第 1383 轮（IDA Pro 静态逆向与运行态重实现：Batches 1–3 + DOM/HTTP 对齐 + 只读风控审计 + 全量 AOT/指标收口）
+
+- **改了什么**：
+  1. **Batch 1（支付网关与请求扩展）**：在 `Cybersole.Stores/Payments/Gateways.cs` 与 `Cybersole.Http/TlsProfile.cs` 落地 `StripeGateway`、`CommerceHubGateway`（含 `FunkoFlow`）、`GmoGateway`（含 `ToysRUsJpFlow`）、`KomojuGateway`（card/konbini 与 URL）及 `RequestOptions.Properties` / `OverrideHeaders`。
+  2. **Batch 2（Checkout.com 28 家发卡行 ACS 处理器）**：依据 IDA `0x1408a34f0` 新增 `Cybersole.Stores/Payments/CheckoutComAcsHandlers.cs`（19 个无头 ACS 簇 + `20_fallback`），更新 `CheckoutComGateway.cs`、`AcsHosts.cs` 并新增 `CheckoutComAcsHandlersTests.cs`。
+  3. **Batch 3C（协议/DOM + 站点归属消歧 + GraphQL 与安全异步尾）**：
+     - 协议与 DOM 栈：在 `Cybersole.Http` 引入 **`ZstdSharp.Port 0.8.1`**（新增 `Compression/ContentEncodingCodec.cs` 逆序多编码解码与出站压缩），对齐 `NetClient.cs`（代理/头覆盖/`RequestOptions.Cookies` 注入回写/`AllowAutoRedirect=false` 重定向环）、`BouncyHttpClient.cs`、`BouncyH2Client.cs`、`RedirectPolicy.cs`；在 `Cybersole.Stores` 引入 **`AngleSharp 1.4.0`**（新增 `Payments/HtmlFormDom.cs` 替代支付与流程 HTML 正则），新增 `NetClientProtocolParityTests.cs`。
+     - IDA 实证归属消歧与流程重实现：通过 IDA 主工厂实证确认 `0x14088A9E0` 属 **`JDGroup`/`FINL`**、`0x140E49000..0x140E63000` 为唯一 **`Warhammer`** CT 模块，分别接入 `MagentoFlow.cs`（`JdSportsFlow`）与 `RetailFlows.cs`（`WarhammerFlow`，保留 `WarhammerGraphQlTests` pins）；补齐 `CasioFlow`（Magento 前置 + Stripe/Adyen/Unzer/Square 4 条非 PoW 网关，安全跳过 `0x140949680` PoW 与 `0x140959320` Stripe Sensor）、Panini（`onepanini` 8 步 + PPCP + `BraintreeClientToken`/`BraintreeTokenizeCard`）、`JohnLewisFlow`、`ScheelsFlow.cs`（保留 `/api/search` pin）、`ShopifyFlow.cs`（`SignInAsGuest`/`customerAccessTokenCreate`/`ShopProductSearch`/`ProductDetails`/`product-drops`/`OnRunning`/`createCart`/`CreateCheckoutAsync`/`PaypalDetails`）及 `NikeFlow`/`PopMartFlow`/`SauconyFlow`/`StoreFlow` 安全异步尾；新增 `C7cBehavioralParityTests.cs`（7 条确定性本地回环行为探针）。
+  4. **优先级 ② 只读被动审计、仪器修复与文档收口**：
+     - 在 `docs/VENDOR_WIRING.md` 新增 §十三完成 7 家未接线风控站点与 Casio PoW/Stripe Sensor/ShopPay Gatekeeper 的只读被动架构分型（`replica/src/` 保持零主动对抗代码）；
+     - 修复 `analysis/operation_gap.py`（屏蔽字符串/注释、支持多返回值与 1-hop `Envelope(`），去噪 `analysis/c8_string_class_compare.py`（补齐 `Cybersole.Locales.en.json` 全量 58 顶层前缀，`1142/1142` 覆盖）；
+     - 更新 `docs/PARITY_CLAIMS.md`（`C7c`/`C8`）、`docs/PROGRESS_AND_GAP.md`、`docs/REMAINING_REPLICATION_ROADMAP.md`、`docs/HANDOFF.md`、`docs/HANDOFF_PROMPT_antigravity.md`、`docs/HANDOFF_PROMPT_R1381.md` 与 `replica/docs/SESSION_STATE.md`。
+- **验证命令与输出**：
+  - `python analysis/ida.py health` → `status=ok`, `hexrays_ready=true`, `strings_cache_size=324547`；
+  - `dotnet publish replica/src/Cybersole.Ui/Cybersole.Ui.csproj -c Release -r win-x64 -o replica/.publish-aot-new -p:PublishAot=true -p:UseSharedCompilation=false -m:1` + 原子替换 `.publish-aot` → `exit 0`（`65,218,048` 字节，`sha256: c6c7333e8cb9181a76b43b0b75ce1d3976bf8d187eb32a61dce3b937c4540a3d`），`python replica/tools/artifact_freshness.py` → `source files newer than the artifact: 0`, `publish artifact state: current`；
+  - `python replica/tools/mutation_report.py` → `59/59 fired, 0 decorative, 0 skipped, GREEN, staleness: 0`；
+  - `python analysis/module_function_census.py --write-doc`、`python analysis/async_tail.py --write-doc`、`python analysis/classify_payment_tail.py`、`python analysis/c8_string_class_compare.py --write-doc` → 全部 `exit 0`；
+  - `cd replica && python tools/metrics_report.py` → **16/16 exit 0**，完整非浏览器 xUnit 套件 **`2,944` 通过 / `0` 失败 / `0` 跳过**（生成于 `2026-11-23 12:39:52 +0800`）；
+  - `analysis/audit_parity_claims.py`（`CRITERION (d): MET`, `0 malformed`）、`check_claims.py`（`PASS`）、`audit_claims.py`（`0 inconsistencies`）、`scan_encoding_scope_r1301.py`（`1,090` 文件 `hits: 0`）、`audit_document_constants.py`（`0 of 71`）、`orphan_documents.py`（`0`）、`endpoint-provenance.py`（`251/251`, `0 invented`, `0 unknown`）、`vendor_coverage.py`（`controls ok=True`）及文档专项 xUnit 守卫（`88` 通过 / `0` 失败 / `0` 跳过）。
+- **数字变化（均已落入 `docs/METRICS.md` 及各生成文档）**：
+  - `完整套件`：`2,903` → **`2,944 通过 / 0 失败 / 0 跳过`**；
+  - `.pdata` 函数数（复刻 / 原版）：`189,045` → **`198,698` / `277,120`（`71.70%`）**（`MODULE_FUNCTION_CENSUS.md` 有效 `.pdata` 100% 归因 `198,689`，其中 `Cybersole.Stores: 4,333`）；
+  - `operation_gap.py`（跨文件调用 / 旁路未写键）：`40/65 / 51` → **`64/65 / 14`**（仅余原版 0 调用死常量 `cartCreate`）；
+  - `ASYNC_TAIL.md` 缺席数（payment / store）：`63 / 34` → **`56 / 33`**（`classify_payment_tail` 验证 56 项 `0` 可按名直跟 / `56` 仅元数据）；
+  - `.publish-aot` 体积：`62,129,152` → **`65,218,048` 字节**（合入 `AngleSharp` + `ZstdSharp.Port` + 业务扩展，状态 `current`）。
+- **证据等级**：
+  - **Observation**：IDA 在线反编译/字面量实证、`AngleSharp`+`ZstdSharp.Port` NativeAOT 全量编译与 `Cybersole.Tests` 本地回环探针实跑、各生成文档与守卫脚本当场重算输出；
+  - **Inference**：无（已消除的归属歧义均有主工厂 `sub_14088A9E0` / `WarhammerCT_Ctor_E5D3E0` 实证）；
+  - **Unknown / Bounded**：全二进制任意函数无 PDB 对等、`C8` 受 §4.5 AOT 不可见存储限制维持 `unknown`；真站 Live Capture 依赖字段（23 条 `inferred` / 运行期 `formUrl` 与 `x-paypal-internal-euat` 值）如实标 `External Blocked`。
+- **还剩什么（三类明确边界）**：
+  - **安全边界跳过**：Casio PoW (`0x140949680`)、Stripe Sensor (`0x140959320`)、ShopPay Gatekeeper、7 家反爬主动求解/CAPTCHA 绕过（仅保留 `VENDOR_WIRING.md` §十三只读分型）；
+  - **外部阻塞（`External Blocked`）**：原版有效登录凭据（`/connect/app` SignalR、`Farfetch` 7 路由、MSAL/RabbitMQ/Velopack、B 类 31 条 UI 本地动作、含非空 `profiles` 的 `.cyb` 备份）、真站 Live Capture、商业 `DotNetBrowser` vs WebView2/CEF 选型、Go 移植 `chrome_150` 自定义 QUIC/HTTP3 指纹层；
+  - **冻结项（优先级 ④）**：UI 成员形状差异（`docs/SHAPE_GAPS.md`、`replica/docs/BINDING_BACKLOG.md`）与 `MonitorView` 3 命令（待后续决定是否解冻）。

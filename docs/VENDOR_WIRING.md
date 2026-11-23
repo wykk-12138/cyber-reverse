@@ -220,6 +220,22 @@ R1279 之后没有测试守它了（表本身已不在代码里），所以**加
 与 §11 同样：这六条断言随表一起搬走后**没有测试守它们**。
 加行或改行时必须人工核 §11 的四条不变量 + 本节的两条结构事实。
 
+---
+
+## 十三、R1383 补全：未接线 7 家站点风控的只读被动架构分型（Priority ② 只读审计）
+
+> **边界声明**：本节为静态反编译只读架构记录（基于 `target/Cybersole.exe` / `.i64` 既有字符串与调用链定位），**只记录架构分层（远端转发 / 本地状态机 / 代理轮转）与被动检测标记**；**严禁**在 `replica/src/` 实现任何主动反爬绕过、传感器生成器、PoW/CAPTCHA 求解器。`replica/docs/VENDOR_COVERAGE.md` 中未接线状态保持原样揭示（`missing=7`）。
+
+| 厂商 | 状态 | 架构分类（Observation） | 被动检测 / 触发标记（Observation） | 边界 / Unknown |
+|---|---|---|---|---|
+| **Akamai** | `NotDispatched` | 远端求解/转发（`https://akm.hypersolutions.co/v2/{sensor,sbsd,pixel}`、`https://forward.cybersole.io`、`https://new.jevi.dev/Solver/solve`）+ 重试计数与代理轮转（`0x1408C4180`） | Cookie: `_abck`, `bm_sz`, `bm_so`, `bm_lso`, `sbsd_o`；Header: `AkamaiGHost`；请求控制键: `Akamai`, `SkipAkamai`, `AkamaiReferer` | 调用 `0x1408C4180` 之前在各上层 thunk 的精确 HTTP 响应谓词尚未逐一反编译（Unknown） |
+| **BotDeflector** | `NotDispatched` | 本地协议状态机 + 代理轮转（目标站点 `/icon/{get,verify}`, `/pow/{get,verify}`, `/verify-flow`；未见 `*.cybersole.io` 或外部求解端点） | 页面/脚本标记: `botdeflector`, `challengeType`, `challengeToken`, `challengeFlowToken`, `botDeflectorJwtToken`, `botDeflectorVerifyEndpoint`；状态文案: icon 与 proof of work 两分支 | 仅文档化两类挑战分型；不实现图标/PoW 本地求解逻辑 |
+| **Cloudflare** | `StubDefaultNull` | 混合：**远端转发**（`https://cf-solver.cybersole.io/v1/{warm,sessions/start}`、`cybersole-remote-solve-v1:`）+ **外部/第三方提供方**（`uncaptcha.io` `api.uncaptcha.io/v1`）+ **回退本地与限流轮转**（`0x1408CDC20`, `0x1408CF700`, `0x1408EDA60`） | 响应头 `server: cloudflare`, `cf-mitigated`（13 处 xref）, `refresh`；Cookie `__cf_bm`, `cf_bm`, `cf_clearance`, `cf_rt`, `__cf_chl_tk=`；页面标记 `_cf_chl_opt`, `window.__CF$cv$params` | `CloudflareStrategyRunner.Default()` 在复刻件保持空回调占位 |
+| **DataDome** | `StubDefaultNull` | 远端传感器转发（`https://datadome.cybersole.io/sensor`, `x-api-key` 头）+ `https://geo.captcha-delivery.com` 交互；遇 `(DD block)` 清空 `datadome` cookie（`0x1408ECEB0`） | Cookie: `datadome`；宿主 `https://geo.captcha-delivery.com`；参数 `cid`, `ddk`, `jsData`, `jsType`, `ch` | 上游触发 `0x1408ECEB0` 前的状态码/响应头谓词（如 403 与 `x-dd-*`）属 Unknown |
+| **PerimeterX** | `NotDispatched` | 外部求解 API（`https://api.parallaxsystems.io/{gen,holdcaptcha}`）+ 本地回环桥接（`http://127.0.0.1:<port>`）+ 连续命中 `>3` 次后清 cookie 并轮转代理（`0x1408FACE0`, `0x1408FB420`） | HTTP **`403`** + 响应体 **`"appId"`** 与 **`"blockScript"`**；头 `PerimeterX-Token`；Cookie `_px2`, `_px3`, `_pxvid`, `__pxvid`, `pxcts`；标记 `flaggedPOW` | 本地回环求解桥与 Parallax API 属外部求解能力，复刻件不接 |
+| **Queue-it** | `NotDispatched` | 本地队列协议状态机（`/spa-api/queue/.../enqueue`, `/status`, `/softblock`, `/afterevent`, `/javascriptqueue/`）+ 遇封禁（`452`/重定向）轮转代理（`0x14090A170`）；内嵌挑战分发至 BotDeflector/PoW/CAPTCHA | HTTP **`452`** 或重定向；字符串 `THROTTLED`；头 `queue-it-set-cookie`, `x-queueit-redirect`；Cookie `QueueITAccepted-SDFrts345E-V3_`；参数 `queueittoken`, `enqueuetoken` | 主动 challenge 求解子分支不实现 |
+| **Vercel** | `NotDispatched` | 本地进程内挑战校验与提交（解析版次 `'2'` token，调用进程内求解委托后 POST `/.well-known/vercel/security/request-challenge`，`0x14091D990`, `0x14091D270`） | 响应头 `x-vercel-challenge-token`（版次 `'2'`）；Cookie `_vcrcs`；提交头 `x-vercel-challenge-{token,version,solution}` | 进程内求解委托函数本身未实现（也不得实现主动绕过）；邻近 `BotID`（`forward.cybersole.io` + `zstd` / `kasada.hypersolutions.co/botid`）另归 Kasada/BotID 支线 |
+
 
 
 

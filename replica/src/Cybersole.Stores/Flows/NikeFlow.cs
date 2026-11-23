@@ -668,6 +668,93 @@ public class NikeFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    /// <summary>
+    /// <c>GetPayPalDetails</c> (<c>0x140B1EF10</c>): POSTs <see cref="NikeEndpoints.PayPalDetails"/>
+    /// (<c>{ request: { paypalToken, shoppingCountry } }</c>) and polls <see cref="NikeEndpoints.PayPalDetailsJobs"/>.
+    /// </summary>
+    public async Task<StepOutcome> FetchPayPalDetailsAsync(FlowContext c, string paypalToken, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(paypalToken))
+            return StepOutcome.Fail("nike: paypalToken required for PayPalDetails");
+
+        var detailsUrl = c.Session.Vars.TryGetValue("nike.paypalDetailsUrl", out var u) && !string.IsNullOrEmpty(u)
+            ? u
+            : NikeEndpoints.PayPalDetails;
+        var jobsPrefix = c.Session.Vars.TryGetValue("nike.paypalDetailsJobsUrl", out var ju) && !string.IsNullOrEmpty(ju)
+            ? ju.TrimEnd('/') + "/"
+            : NikeEndpoints.PayPalDetailsJobs;
+
+        var body = new JObject
+        {
+            ["request"] = new JObject
+            {
+                ["paypalToken"] = paypalToken,
+                ["shoppingCountry"] = CountryCode,
+            },
+        };
+        var res = await PostJsonAsync(c, detailsUrl, body.ToString(Newtonsoft.Json.Formatting.None),
+            "nike-paypal-details", ct).ConfigureAwait(false);
+        if (res is null || !res.IsSuccess)
+            return StepOutcome.Fail($"nike paypal_details HTTP {res?.StatusCode}", retryable: true);
+
+        c.Session.Vars["nike.paypalDetails"] = res.Body;
+        var jobId = TryRead(res.Body, "id");
+        if (!string.IsNullOrEmpty(jobId))
+        {
+            var jobRes = await GetAsync(c, jobsPrefix + Uri.EscapeDataString(jobId!),
+                "nike-paypal-details-job", ct).ConfigureAwait(false);
+            if (jobRes is { IsSuccess: true })
+                c.Session.Vars["nike.paypalDetails"] = jobRes.Body;
+        }
+        return StepOutcome.Success();
+    }
+
+    /// <summary>
+    /// <c>DeferredInvoice</c> (<c>0x140B21CB0</c>): POSTs <see cref="NikeEndpoints.DeferredPaymentForms"/>
+    /// and polls <see cref="NikeEndpoints.DeferredPaymentFormsJobs"/>.
+    /// </summary>
+    public async Task<StepOutcome> CreateDeferredPaymentFormAsync(
+        FlowContext c, string orderNumber, string approvalId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(orderNumber) || string.IsNullOrWhiteSpace(approvalId))
+            return StepOutcome.Fail("nike: orderNumber and approvalId required for deferred_payment_forms");
+
+        var formsUrl = c.Session.Vars.TryGetValue("nike.deferredPaymentFormsUrl", out var u) && !string.IsNullOrEmpty(u)
+            ? u
+            : NikeEndpoints.DeferredPaymentForms;
+        var jobsPrefix = c.Session.Vars.TryGetValue("nike.deferredPaymentFormsJobsUrl", out var ju) && !string.IsNullOrEmpty(ju)
+            ? ju.TrimEnd('/') + "/"
+            : NikeEndpoints.DeferredPaymentFormsJobs;
+
+        var returnUrl = "https://www.nike.com/nl/checkout/confirmation?cid=" +
+                        Uri.EscapeDataString(orderNumber) + "&pt=" + Uri.EscapeDataString(approvalId);
+        var body = new JObject
+        {
+            ["request"] = new JObject
+            {
+                ["orderNumber"] = orderNumber,
+                ["approvalId"] = approvalId,
+                ["experienceType"] = "DESKTOP",
+                ["returnURL"] = returnUrl,
+            },
+        };
+        var res = await PostJsonAsync(c, formsUrl, body.ToString(Newtonsoft.Json.Formatting.None),
+            "nike-deferred-form", ct).ConfigureAwait(false);
+        if (res is null || !res.IsSuccess)
+            return StepOutcome.Fail($"nike deferred_payment_forms HTTP {res?.StatusCode}", retryable: true);
+
+        c.Session.Vars["nike.deferredForm"] = res.Body;
+        var jobId = TryRead(res.Body, "id");
+        if (!string.IsNullOrEmpty(jobId))
+        {
+            var jobRes = await GetAsync(c, jobsPrefix + Uri.EscapeDataString(jobId!),
+                "nike-deferred-form-job", ct).ConfigureAwait(false);
+            if (jobRes is { IsSuccess: true })
+                c.Session.Vars["nike.deferredForm"] = jobRes.Body;
+        }
+        return StepOutcome.Success();
+    }
+
     // ── buy API request assembly (decompiled from sub_140B1DCC0 / sub_140B248A0) ──────────
 
     /// <summary>

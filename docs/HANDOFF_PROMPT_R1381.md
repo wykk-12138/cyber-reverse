@@ -1,4 +1,6 @@
-# 接手提示词 · R1381 快照（经 R1382 审计纠偏：静态议程未结案）
+# 接手提示词 · R1381 快照（已由 R1383 更新，请改读 `docs/HANDOFF_PROMPT_antigravity.md`）
+
+> **R1383 更新提示（2026-11-23）**：本文件保留 R1381 排坑经验与 R1382 审计记录。R1383 已完成 Batches 1–3 核心逆向与运行态重实现（Checkout.com 28 家 ACS、`JDGroup/FINL` vs `Warhammer` CT 消歧、`CasioFlow` 4 网关、`AngleSharp` + `ZstdSharp.Port`、`C7c`/`C8`、② 只读被动分型、全量 NativeAOT + 指标收口），**当前请直接改读 [HANDOFF_PROMPT_antigravity.md](docs/HANDOFF_PROMPT_antigravity.md) 与 [HANDOFF.md](docs/HANDOFF.md) 顶部**。
 
 > **R1382 重要纠偏（2026-11-23）**：本文原稿在 R1381 宣布「65/65 落地、①–③ 静态议程已结案、④ UI 绑定解冻」，经 R1382 逐项源码与工具审计后**已撤回该收口判词**：
 > 1. `operation_gap.py` 原统计的是“源码文本里出现同名 GraphQL 文档常量”（65/65 仅代表文本声明），并非生产流程全部可达（大量操作仅在同文件 `DocumentFor` `switch` 中，或挂在全仓无人写入的 `Session.Vars` 旁路键后）；

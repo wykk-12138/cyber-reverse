@@ -1,83 +1,49 @@
-# 完整复现剩余工作路线图（Phase 1 + Phase 2 收口基线）
+# 完整复现剩余工作路线图（R1383 更新基线）
 
-> **记录日期**：`2026-11-20` · **代码基线**：`main` `4da6712`（Phase 1 8/8 本地缺口 + Phase 2 Waves 2A–2D 已落地，NativeAOT 产物已重发布且状态为 `current`，5 步最终验收门禁全绿）。
-> **唯一动态指标源**：`docs/METRICS.md`（由 `python tools/metrics_report.py` 生成）
-> **关联权威档案**：`docs/MODULE_FUNCTION_CENSUS.md` · `docs/PROGRESS_AND_GAP.md` · `docs/SHAPE_GAPS.md` · `docs/PARITY_CLAIMS.md`
-> **口径说明**：下文引用的函数与覆盖统计均为 `2026-11-20`（`4da6712`）时点快照观测值；实时动态数值一律以 `docs/METRICS.md` 最新生成输出为准。
+> **更新日期**：`2026-11-23` · **接续基线**：在 Phase 1 + Phase 2 与 R1382 审计纠偏之后，**R1383 已通过在线 IDA Pro（`target/Cybersole.exe.i64`）完成优先级 ①–③ 本地可达成静态逆向与运行态重实现（Batches 1–3）**，重发布 NativeAOT 产物为 `current`，并完成全量非浏览器套件与文档守卫验证；第 ④ 优先级 UI 绑定保持冻结。
+> **唯一动态指标源**：`docs/METRICS.md`（由 `python replica/tools/metrics_report.py` 生成）
+> **关联权威档案**：`docs/MODULE_FUNCTION_CENSUS.md` · `docs/ASYNC_TAIL.md` · `docs/C8_STRING_CLASSES.md` · `docs/VENDOR_WIRING.md` §十三 · `docs/PROGRESS_AND_GAP.md` · `docs/SHAPE_GAPS.md` · `docs/PARITY_CLAIMS.md`
+> **口径说明**：本文中标注 `2026-11-20` 或 `R13xx` 的历史数值均为对应时点快照；实时动态数值一律以 `docs/METRICS.md`、`docs/MODULE_FUNCTION_CENSUS.md` 及 `docs/ASYNC_TAIL.md` 最新生成输出为准。
 
 ---
 
-## 一、本机仍可继续推进的静态逆向与工程工作（不依赖新凭据或商业库）
+## 一、本机静态逆向与工程工作进展（Batches 1–3 已结案项与剩余技术边界）
 
-这部分工作完全依托现有 `target/Cybersole.exe`（5.18.32）、`target/Cybersole.exe.i64`（IDA Pro MCP）、`target-alt/Cybersole-5.18.35.exe` 与复刻工程源码，可在本机直接反编译并落地为可执行代码。
+### 1. `Cybersole.Stores` 站点流程与支付状态机（Batch 1 / 2 / 3C）
 
-### 1. `Cybersole.Stores` 站点流程与支付状态机深化（最大核心业务缺口）
+- **已补齐并接通的支付网关与 ACS 状态机**：
+  1. **Batch 1**：落地 `StripeGateway`、`CommerceHubGateway`（含 `FunkoFlow`）、`GmoGateway`（含 `ToysRUsJpFlow`）、`KomojuGateway`（card/konbini 与 URL 解析）；
+  2. **Batch 2（Checkout.com 28 家发卡行 ACS 处理器）**：依据 `0x1408a34f0` 在 `CheckoutComAcsHandlers.cs` 实现 19 个无头 ACS 簇与 `20_fallback` 共 28 家发卡行处理器，接入 `CheckoutComGateway` 并由 `CheckoutComAcsHandlersTests` 覆盖；
+  3. **Batch 3C 站点消歧与核心流程重实现**：
+     - **归属消歧**：确认 `0x14088A9E0` 属 **`JDGroup`/`FINL`**（Finish Line / JD Sports US，`GraphQlHashQueries` + Vantiv `eProtect`），`0x140E49000..0x140E63000` 为唯一 **`Warhammer`** CT 模块（Commercetools + `StoreSessionQueries` 18 步 + Cybersource Flex + Cardinal 3DS），两者分别接入 `JdSportsFlow` 与 `WarhammerFlow`（保留既有 `WarhammerGraphQlTests` pins）；
+     - **`CasioFlow`**（`0x1409477E0`）：实现 Magento 前置 + 4 条非 PoW 支付路径（Stripe / Adyen / Unzer / Square）与 `casio.sku`（安全跳过 PoW `0x140949680` 与 Stripe Sensor `0x140959320`）；
+     - **Panini / JohnLewis / Scheels / Shopify / 安全异步尾**：补齐 `MagentoFlow`（`onepanini` + PPCP + `Braintree*`）、`JohnLewisFlow`、`ScheelsFlow`（`StorefrontApiQueries`，保留 `/api/search` pin）、`ShopifyFlow`（`SignInAsGuest`/`customerAccessTokenCreate`/`ShopProductSearch`/`ProductDetails`/`product-drops`/`OnRunning`/`createCart`/`CreateCheckoutAsync`/`PaypalDetails`）及 `Nike`/`PopMart`/`Saucony`/`StoreFlow` 安全异步尾；
+     - **GraphQL 覆盖核销**：`operation_gap.py`（R1383 修复注释/字面量/多返回与 1-hop `Envelope(` 解析）达到 **64 / 65** 生产调用（仅余 `cartCreate` 在原版亦为 0 调用死常量），无人写入 `Session.Vars` 旁路开关由 `51` 降至 **`14`**。
+- **异步状态机尾项收口**（见最新生成的 `docs/ASYNC_TAIL.md` 与 `analysis/.payment_tail.json`）：
+  - `docs/ASYNC_TAIL.md` 已按最新代码与产物重生成（payment 缺席名由 `66`/`63` 降至 **`56`**，store 缺席名降至 **`33`**）；`classify_payment_tail.py` 验证 **56 项中 0 可直接跟引用、56 项仅元数据**（受限于运行期/反爬/未实现外部网关）。
+- **Unzer `apiKey` 与 Topps / `Saucony` 剩余边界**：
+  - `Saucony` 已落地安全可控的公开流程步骤，剩余依赖实站接口响应或反爬传感的环节受安全/外部阻塞约束；`ToppsVariant` 键大小写按兼容读取处理。
 
-- **体量差距观测**（`docs/MODULE_FUNCTION_CENSUS.md` 2026-11-20 快照）：原版仅靠字符串种子 + 保守 2 跳调用图传播即已归因 **`5,090`** 个 `Cybersole.Stores` 函数（`4.41 MiB`），复刻件全部 `Cybersole.Stores` 为 **`3,403`** 个 `.pdata` 函数（`829 KiB` / `848,939` 字节，代码字节比约 **5.44 倍**）。
-- **异步状态机名长尾**：
-  - 店铺流程异步名：原版 `103` 个名（`408` 次实现）已在 `replica/src/` 覆盖 `70/103`（对应 `375/408` 次出现），仍有 **`33` 个长尾步骤名**待反编译补全或逐一核实去向；
-  - 支付/3DS 异步名：原版 `124` 个名（`195` 次实现）已覆盖 `47/124`（`118/195` 次出现），仍有 **`77` 个细分支付方法**待进一步对位。
-- **4 处已定位但尚未穷举的静态 `Unknown` 子分支**（见 `docs/PROGRESS_AND_GAP.md`）：
-  1. ~~**Unzer 3DS**：`0x14094c210` prepare 精确子路径~~ —— **R1301 已解且归属纠正，R1302 已落码**：
-     `0x14094c210` 不是 Unzer，它是**发请求前的配置委托**（`sub_1408B61E0` 里 `(*(a3+32))(a3[1], v6)` 就在
-     `sub_1408B5EB0` 发送之前调用它），落的 15 条头是全站浏览器模板，另有 `Akamai: 1`（`a2+112`）、
-     `+226 = 1`、`200`/`400` 两条状态处理器；URL 在调用方 `sub_14095B4E0` 内：
-     `https://www.casio.com/{storeCode}/rest/V1/stripe/payments/get_stripe_configuration?_=<tick>`。
-     **R1302 落成** `StripeGateway.FetchConfigurationAsync`（+ `StoreConfigUrl` / `StoreConfigHeaders`），
-     在 `AuthorizeAsync` 里按 `sub_140F9E790` 的「还没取到才取」条件接入；`UnzerGateway.PreparePaymentAsync`
-     与 `unzer.prepareUrl` 那条人供虚构路径已删除。**仍 Unknown**：`a2+112` 那个集合到底是不是 cookie
-     （`Akamai`/`1` 因此未发送）；`apiKey` 的读取方不在本条链上——`0x146F7544C` 的 4 个引用者是
-     `sub_14094DEB0`、`sub_1409F2A60`、`sub_140ECF2B0`、`sub_14117B6C0`。**Unzer 侧两项 R1306 已结案**：`0x14094a870` = 两个 `IndexOf(OrdinalIgnoreCase)`（`unzer.com` / `heidelpay`）→ `IsUnzerThreeDsUrl`；
-     `qword_1472c65a0+8` **不是哈希表**，它的懒初始化器 `sub_14094AB00` 分配一个十元 `string[]` 装十句失败措辞 → `TerminalPhrases` / `IsTerminalFailure`，
-     并已在 `RunUnzerThreeDsAsync` 起点接入（页面说「declined」就此结束，不再跟跳）；
-  2. **Checkout.com**：分派层 **R1303 已完成**——`0x1408a34f0` 是按发卡行 ACS 主机名切分的 switch（**28 个主机名 / 18 个长度分支**），开头打 `"Starting 3DS: <host>"`（类目 `3DS`）、把传输指纹临时换成 `chrome_131`、建对应处理器、再把原指纹写回；已落成 `AcsHosts`（`Known` / `HostOf` / `IsKnown` / `ProfileFor` / `Describe`与 `CheckoutComGateway.ResolveEswThreeDsAsync` 接线）。**仍 Unknown**：每个主机处理器的方法体（逐家挑战表单字段在其中）；
-  3. **Komoju**：`0x140d98f60` 的「`[1..56]` `formUrl` 后缀」**R1304 已撤回**——该函数只构建 `{authenticity_token, payment_details:{type:konbini, email, store, given_name}}`（与复刻件已有的体一致），URL 取自状态机上下文 `*(*(v3+16)+16)`。同时新解并落码了兄弟机 `0x140D994D0` 的卡面（`KomojuGateway`）。**仍 Unknown**：`formUrl`（konbini 与卡凭证两个请求体的目标）；
-  4. **`Topps`**：**R1305 已结案形状面**——`off_1449B8EB0` 是 JSON 类型句柄，不是键名表；类形从镜像的反射元数据读出（`ToppsCommerceProduct`：`PriceAmount` / `ProductImage` / `ProductVariant` / `SelectedOption` / `VariantImage` / `ToppsCommerceProductUrl` / `JToken`，加 `ListToppsCommerceProduct` 等 4 个列表承载名），已落成 `ToppsCdn.Parse` 并接回 `FindProductCdnAsync`。**仍 Unknown**：序列化键的大小写（响应两种写法都能读）。
+### 2. 优先级 ② 反爬与风控面（严格只读被动审计）
 
+- **已结案边界**：`docs/VENDOR_WIRING.md` §十三（R1383）完成 7 家未接线风控站点（Akamai / BotDeflector / Cloudflare / DataDome / PerimeterX / Queue-it / Vercel）与 Casio PoW/Stripe Sensor/ShopPay Gatekeeper 的**只读被动架构分型**；`vendor_coverage.py`（`controls ok=True`）守卫常态运行。
+- **工程禁令**：`replica/src/` 中保持**零**主动反爬绕过、sensor 生成器、PoW 求解器或 CAPTCHA 求解代码。
 
-  5. **长尾名单已落成表**（R1307）：`docs/ASYNC_TAIL.md` 是生成的，把镜像 801 个 `<名字>d__NN` 状态机名
-     按 declared / mentioned / absent 三态对上复刻件源码。**支付家族 110 个名里 66 个 absent**，
-     店铺家族 74 个里 34 个 absent。**取件优先从这张表的 absent 列里挑**，不要再用「剩 77」这个没有出处的数字。
-     定位方法已探明：状态机名按类编号且成串出现（如 `0x14338377d` 是
-     `<GetStripeConfiguration>d__87` … `<SubmitUnzerOrder>d__100` 一张序列表），可据此按类枚举方法。
-### 2. UI 绑定形状与交互语义收口（`docs/SHAPE_GAPS.md`）
+### 3. 传输层与 HTML DOM 解析栈（Batch 3C Part 1）
 
+- **HTML DOM 解析栈**：已引入 **`AngleSharp 1.4.0`**，以 `HtmlFormDom.cs` 替代支付与流程中的 HTML 正则解析，并通过 `PublishAot=true` 全量NativeAOT 链接验证。
+- **HTTP 压缩与协议对齐**：已引入 **`ZstdSharp.Port 0.8.1`** 与 `Compression/ContentEncodingCodec.cs`（支持 gzip/deflate/br/zstd 与逆序多编码解码/出站编码），对齐 `NetClient` / `BouncyHttpClient` / `BouncyH2Client` / `RedirectPolicy` 的代理、请求头覆盖、`RequestOptions.Cookies` 注入回写与单层重定向环（`NetClientProtocolParityTests`）。
+- **未追平传输基础设施**：原版 Go 移植 `chrome_150` 自定义 QUIC/HTTP3 指纹传输栈仍属独立重型基础设施边界，暂维持既有 `SocketsHttpHandler`+`SslStream` 与实验 `BouncyTls` 分层（不伪装 HTTP/3 自定义指纹）。
 
-  6. **`Saucony` 是一个复刻件完全没有的店**（R1308 从状态机分组里发现）：镜像有
-     `Saucony` / `Saucony CA` / `Saucony EU` / `Saucony UK` 与 `saucony_us|ca|eu|europe` 四个 id、
-     `https://www.saucony.com`，以及一个带 `_merchantId` / `_encodedMerchantId` / `_paymentFormToken` /
-     `_checkoutCaptchaEnabled` 的**托管支付表单**。它的步骤是 d__6..13：
-     `FindProduct` / `AddToCart` / `GetCheckout` / `SubmitShipping` / `SubmitBilling` / `SubmitOrder` /
-     `HandleOrderResult` / `PayerAuthenticate`。`where_is Saucony` 在仓库零命中，`store_catalog.py` 的 65 条也没有它。
-     **R1309 已进 `CreateAll()`（目录 65 → 66）**，能做的 `GetHome`/`FindProduct` 已实现，
-     六个未解步骤按镜像自己的 `d__序号`拒绝（`SauconyFlow`）。剩下的硬骨头是
-     **那六个步骤的 API 路径**——镜像里搜 `saucony` 只有域名与四个 id，没有任何字面量拼出路径。
-- 名字级与类型级绑定缺口虽已归零（`real gap=0`、`types with scope misses=0`、`unclassified=0`），但成员形状仍存在 **`84` 条差异**（其中 core 差异 `1` 条）：
-  - **`39` 条「需要选择模型」**：复刻件实现为带参方法，原版为可绑定属性（如 `AnalyticsView.ChangeChart`、`AnalyticsView.OpenRelease`、`CaptchaProvidersView.Reorder`、`CustomBrowser.Back` 等），需在引入列表“当前选中项”后驱动 `ICommand`；
-  - **`22` 条通用名撞名项**（如 `Delete`、`Save`、`Create`）：机械扫描无法消歧，需逐类反编译原版对应视图确认是否真实具备该本地动作；
-  - **`17` 条结构差异不补**、`4` 条计算属性、`1` 条弱改名；
-  - **`1` 条真缺**：`CustomBrowser.Autofill`（与嵌入式浏览器引擎耦合）。
-- **结构确定但语义仍标 `Unknown` 的 UI / 契约项**：
-  - `MonitorView` 3 条未定语义命令（`OpenUrl`、`LinkChange`、`Quicktask`，见 `docs/PARITY_CLAIMS.md` §3.5；当前仅保留显式空钩子）；
-  - `ProxyTester.Name`、`SmartActionsView.Export`、`Cybersole.Providers.IDataProvider` 契约落地；
-  - 原版专用的 `AvaloniaEdit` 代码编辑器控件与独立的 `TaskCreatorAdvancedView`（复刻件已合并至 `TaskCreatorView`）。
+### 4. 行为等价与字符串分类验收（`C7c` & `C8`）
 
+- **`C7c`**：`C7cBehavioralParityTests`（7 条确定性本地回环探针）与 `NetClientProtocolParityTests` 已落地并纳入默认 `metrics_report.py` 套件；全二进制任意函数伪代码等价因缺原版 PDB 仍诚实保留 `unknown`（见 `docs/PARITY_CLAIMS.md`）。
+- **`C8`**：`analysis/c8_string_class_compare.py` 已补全 `Cybersole.Locales.en.json` 全量 58 项顶层前缀（1142/1142 覆盖）并移除框架/拼接 DLL/OCSP/CRL/NuGet 噪声，`docs/C8_STRING_CLASSES.md` 已按最新产物重生成（按 §4.5 保留 `unknown` 判据）。
 
-  7. **店铺面差距是结构性的，不是"还差几家"**（R1318/R1319）：镜像列出 **2669** 个裸源站，
-     复刻件源码里有 **800** 个注册域，差集 **1213 个注册域**（清单见 `docs/STOREFRONT_SURFACE.md`）。
-     加二级后缀归并后数字几乎不变，说明它们彼此独立而非区域变体。
-     **这条不再是待办列表，而是一个范围决定**：要么给出建模优先级（哪些店值得做），
-     要么在路线图里写清「通用 flow 覆盖到哪一层为止」的边界。
-### 3. 传输层（HTTP/3、生产级自定义 TLS 指纹）与 HTML 解析栈对位
+### 5. UI 绑定形状（`docs/SHAPE_GAPS.md` — 优先级 ④ 冻结）
 
-- **网络传输对位**：复刻件当前生产路径为 BCL `SocketsHttpHandler` + `SslStream`（Phase 1 已证实原版 BCL `Http3Support="false"`，无 `System.Net.Quic`/`msquic`），自研 `BouncyTls` 明确标注为实验传输；而原版针对店铺请求包含 Go 移植自定义传输栈（默认 `chrome_131`，且 ASICS 路径启用支持 HTTP/3 的 `chrome_150`）。若需要完整网络指纹与 HTTP/3 生产级对等，需继续补齐生产级自定义 TLS 握手与 QUIC/HTTP3 传输层。
-- **HTML DOM 解析栈**：原版内嵌 `AngleSharp`（`154` 个已归因函数）处理 HTML 表单/选择器解析，复刻件目前以轻量字符串/正则解析为主，复杂页面解析鲁棒性可进一步对位。
-
-### 4. 行为等价与字符串分类验收升级
-
-- 闭合 `docs/PARITY_CLAIMS.md` 中长期记为 `unknown` 的两项高层判据：
-  - **`C7c`（核心函数行为等价）**：从核心店铺与支付函数出发，建立“同输入 → HTTP 请求报文 / 状态转移”级可复算行为探针，替代单纯的覆盖率/签名对照；
-  - **`C8`（字符串池分类对照）**：建立按 locale 键、URL 端点、错误消息三类切分的原版 ↔ 复刻 AOT 产物自动化比对工具。
+- 名字级与类型级绑定缺口归零；剩余成员形状差异（详见 `docs/METRICS.md` 与 `replica/docs/BINDING_BACKLOG.md`）与 `MonitorView` 3 条未定语义命令继续**冻结在优先级 ④**，待后续专门阶段或外部实机观察决策。
+- 店铺表面结构差异（`docs/STOREFRONT_SURFACE.md`：原版 2669 裸域 vs 复刻 800 域）属范围决策而非局部缺漏。
 
 ---
 
@@ -86,14 +52,13 @@
 这部分逻辑或数据不存在于离线可执行文件本体中，或依赖受限外部设施，未获外部条件前**严禁猜测或编造实现**：
 
 1. **需要原版有效登录账号 / 许可**
-   - **服务端配置下发与线上站点目录**：捕获 `https://api.cybersole.io/connect/app` 的 `SignalR` 通道（原版 `SignalR` `51` 函数、`35` 个 `*Dto` + `21` 个 `Remote*`，含 `ConfigAdded` / `SharedAdded` / `ConfigRemoved` / `SharedRemoved` / `SubscribeGroups` / `UnsubscribeGroups` 6 键），方能解锁 `FarfetchFlow` 7 条服务端下发路由与完整线上站清单（见 `replica/docs/CORE_COVERAGE.md`）；
-   - **云同步 / 队列 / 认证 / 更新基础设施**：`RabbitMQ.Client`（`12` 函数）消息协议、`MSAL`（`Microsoft.Identity.Client` `57` 函数，含 Outlook OAuth2 交互令牌刷新）、`Velopack`（`23` 函数，当前 `cdn.cybersole.io/releases/` 返回 404）；
-   - **主界面实机观察与完整备份**：实机触发并观察 B 类 31 条 UI 本地动作（`docs/R508_LICENSE_GATE.md`）、`MonitorView` 3 条命令动作；并获取**包含非空 `profiles` 的原版 `.cyb` 备份**，以闭合 `Profile.Card` / `Username` 的落盘结构（`docs/PARITY_CLAIMS.md` §5）。
+   - **服务端配置下发与线上站点目录**：捕获 `https://api.cybersole.io/connect/app` 的 `SignalR` 通道，解锁 `FarfetchFlow` 7 条服务端下发路由与完整线上站清单；
+   - **云同步 / 队列 / 认证 / 更新基础设施**：`RabbitMQ.Client`、`MSAL`（含 Outlook OAuth2 交互令牌刷新）、`Velopack`（`cdn.cybersole.io/releases/`）；
+   - **主界面实机观察与完整备份**：B 类 31 条 UI 本地动作（`docs/R508_LICENSE_GATE.md`）、`MonitorView` 3 条命令动作、含非空 `profiles` 的原版 `.cyb` 备份。
 2. **需要真实站点流量抓包（Live Capture）**
-   - 闭合 `Stores/Flows` 中 **23 条 `inferred` 0 命中项**（R1266 已证 NativeAOT 部分字面量逐字节不可搜），以及真实结账环境下 Unzer / Cardinal / Checkout.com / 便利店与各站接口的实机报文对齐。
+   - 闭合 `Stores/Flows` 中 23 条 `inferred` 0 命中字面量，以及真实结账响应载荷对齐。
 3. **需要决定嵌入式浏览器引擎方案**
-   - 原版使用商业授权的 **`DotNetBrowser 4.3.5.8591` + 外部 Chromium**（`DOTNETBROWSER_CHROMIUM_DIR`），对应 `DotNetBrowser.*`（`653` 归因函数）与 `Cybersole.Web.BrowserHandlers`（`IBrowserSessionView`、`PaymentAutofill`、`CustomBrowser.Autofill` 等）。
-   - 复刻件 `CustomBrowser` 目前仅为无浏览器内核的 Avalonia 占位窗口；必须拍板选择“接入商业 DotNetBrowser 授权”还是“使用开源 WebView2/CEF 重构等价宿主”。
+   - 商业授权 **`DotNetBrowser 4.3.5.8591` + Chromium** vs 开源 WebView2/CEF 宿主与 `CustomBrowser.Autofill`。
 
 ---
 
@@ -101,16 +66,16 @@
 
 后续验收不得把 `docs/METRICS.md` 里的 `.pdata` 函数总数比追到 `100%` 作为完成判据，原因如下：
 
-1. **.NET 10 NativeAOT vs .NET 8 NativeAOT 运行时差异**：原版与复刻件主目标框架不同，BCL、NativeAOT CRT、PE 节布局（`6` 节 vs `9` 节）、以及原版静态 Brotli 库 39 个导出（`docs/GOAL_VERIFICATION.md` `C2/C3/C4`）天然不同。
-2. **AOP 编译织入 vs 手写通知**：原版依赖 `Metalama.Framework`（`33` 函数）做编译期属性通知织入，复刻件采用手写 `ObservableObject` + `RelayCommand`。
-3. **函数体量构成悬殊**：复刻件 `.pdata` 中 **`86.48%`** 为 `System.*` / Avalonia / CRT，`Cybersole.*` 自研业务代码仅占 **`3.17%`**（`5,956` 函数 / `1.52 MiB`，`docs/MODULE_FUNCTION_CENSUS.md`）。度量应聚焦 **`Cybersole.*` 业务函数覆盖与实机请求等价**，而不是被外部运行时与 UI 框架分母带偏。
+1. **.NET 10 NativeAOT vs .NET 8 NativeAOT 运行时差异**：BCL、NativeAOT CRT、PE 节布局（`6` 节 vs `9` 节）与原版静态 Brotli 库 39 个导出天然不同。
+2. **AOP 编译织入 vs 手写通知**：原版依赖 `Metalama.Framework`，复刻件采用手写 `ObservableObject` + `RelayCommand`。
+3. **函数体量构成悬殊**：复刻件 `.pdata` 中绝大部分为 `System.*` / `Avalonia.*` / CRT（详见 `docs/MODULE_FUNCTION_CENSUS.md`），度量聚焦业务函数与协议行为等价。
 
 ---
 
-## 四、分条件推荐推进顺序
+## 四、后续推进条件路线
 
 | 条件前提 | 推荐优先路线 | 说明 |
 |---|---|---|
-| **路线 A（无新凭据 / 无商业引擎授权）** | 本机静态深化路线 | ① 沿 `chars_va - 12` 清零 4 处支付/流程 `Unknown` 子分支 + 33 条店铺长尾异步步骤；② 推进核心请求报文等价探针（`C7c`）与分类串比对（`C8`）；③ 按需引入 `AngleSharp` 与生产级 TLS/HTTP3；④ 评估收口 `SHAPE_GAPS` 选中项模型与 `MonitorView` |
-| **路线 B（获得原版有效许可 + 备份 + 抓包）** | 外部阻塞解锁路线 | ① 抓一次 `/connect/app` 解锁 `FarfetchFlow` 7 条路由与 SignalR 云同步模型；② 闭合 23 条 `inferred` 实机报文与真支付响应；③ 导入非空 `profiles` `.cyb` 闭合 `Profile.Card` 与 B 类 31 条 UI 本地动作（见 `docs/R508_LICENSE_GATE.md`） |
-| **路线 C（需完整内置浏览器可用）** | 浏览器引擎拍板路线 | 先由项目负责人决策商业 `DotNetBrowser` vs 开源 WebView2/CEF 方案，再落地 `Cybersole.Web.BrowserHandlers` 与 `CustomBrowser.Autofill` |
+| **路线 A（当前本机无新凭据边界）** | 本机静态阶段已收口 | ①–③ 本机可达成核心流程、支付/ACS 状态机、DOM/HTTP 协议栈、只读风控分型及 `C7c`/`C8` 仪器已全部收口并过门禁 |
+| **路线 B（获得原版有效许可 + 备份 + 抓包）** | 外部阻塞解锁路线 | 解锁 `FarfetchFlow` 7 路由、`/connect/app` SignalR 云同步、`MSAL`/B 类 31 条 UI 动作与 `23` 条 `inferred` 实机报文 |
+| **路线 C（需完整内置浏览器或 UI 形状清零）** | 浏览器引擎拍板 / 优先级 ④ 解冻 | 先决策 `DotNetBrowser` vs WebView2/CEF，再按需解冻 `SHAPE_GAPS` 与 `BINDING_BACKLOG.md` |

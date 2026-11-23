@@ -33,6 +33,40 @@ public class ScheelsFlow : StoreFlow
     private const string SearchHost = "https://search.scheels.com";
     private const string ApiHubHost = "https://apihub.scheels.com";
 
+    public static bool IsApiHubMode(FlowContext c) =>
+        string.Equals(c.Session.Vars.GetValueOrDefault("scheels.apiHub"), "true",
+            StringComparison.OrdinalIgnoreCase) ||
+        c.Session.Vars.ContainsKey("scheels.hubOrigin");
+
+    private static string HubOrigin(FlowContext c)
+    {
+        var origin = c.Session.Vars.TryGetValue("scheels.hubOrigin", out var over) && !string.IsNullOrWhiteSpace(over)
+            ? over.TrimEnd('/')
+            : Origin(c.Url).TrimEnd('/');
+        c.Session.Vars["storefrontapi.origin"] = origin;
+        return origin;
+    }
+
+    public override async Task<StepOutcome> VerifySessionAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsApiHubMode(c))
+            return await base.VerifySessionAsync(c, ct).ConfigureAwait(false);
+
+        var (data, err) = await StorefrontApiQueries
+            .SendAsync(c, HubOrigin(c), "getSession", new JObject(), ct)
+            .ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        var sess = data["session"];
+        var accessToken = sess?["access_token"]?.ToString();
+        if (!string.IsNullOrEmpty(accessToken))
+        {
+            c.Session.Vars["accessToken"] = accessToken!;
+            c.Session.Headers["Authorization"] = "Bearer " + accessToken;
+        }
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> GetHomeAsync(FlowContext c, CancellationToken ct)
     {
         var res = await GetAsync(c, c.Url, "scheels-home", ct).ConfigureAwait(false);
@@ -97,6 +131,39 @@ public class ScheelsFlow : StoreFlow
 
     public override async Task<StepOutcome> FindProductAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsApiHubMode(c))
+        {
+            var hubPid = c.Session.Vars.GetValueOrDefault("storefrontapi.productId")
+                         ?? c.Session.Vars.GetValueOrDefault("scheels.productId")
+                         ?? c.Product?.Variant
+                         ?? Regex.Match(c.Url ?? string.Empty, @"/p/([A-Za-z0-9_\-]+)").Groups[1].Value;
+            if (string.IsNullOrEmpty(hubPid))
+                return StepOutcome.Fail("scheels: no productId for StorefrontApi Product");
+
+            c.Session.Vars["storefrontapi.productId"] = hubPid;
+            var vars = new JObject { ["id"] = hubPid };
+            var varId = c.Session.Vars.GetValueOrDefault("storefrontapi.variationId")
+                        ?? c.Session.Vars.GetValueOrDefault("scheels.variationId");
+            if (!string.IsNullOrEmpty(varId))
+            {
+                c.Session.Vars["storefrontapi.variationId"] = varId!;
+                vars["variationId"] = varId;
+            }
+
+            var (data, err) = await StorefrontApiQueries
+                .SendAsync(c, HubOrigin(c), "Product", vars, ct).ConfigureAwait(false);
+            if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+            c.Session.Vars["raw"] = data.ToString(Newtonsoft.Json.Formatting.None);
+            c.Session.Vars["productId"] = hubPid;
+            var prod = data["product"];
+            var name = prod?["name"]?.ToString();
+            if (!string.IsNullOrEmpty(name)) c.Session.Vars["product"] = name!;
+            var hubPrice = prod?["price"]?.ToString();
+            if (!string.IsNullOrEmpty(hubPrice)) c.Session.Vars["price"] = hubPrice!;
+            return StepOutcome.Success();
+        }
+
         // a product URL already: read the page, which carries an embedded product payload
         var res = await GetAsync(c, c.Url, "scheels-product", ct).ConfigureAwait(false);
         if (res is null) return StepOutcome.Fail("scheels product unreachable", retryable: true);
@@ -215,8 +282,47 @@ public class ScheelsFlow : StoreFlow
         return StepOutcome.Success();
     }
 
+    public override async Task<StepOutcome> CreateCartAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsApiHubMode(c))
+            return await base.CreateCartAsync(c, ct).ConfigureAwait(false);
+
+        var (data, err) = await StorefrontApiQueries
+            .SendAsync(c, HubOrigin(c), "CreateInitialCart", new JObject(), ct)
+            .ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        var cartId = data["createCart"]?["id"]?.ToString();
+        if (!string.IsNullOrEmpty(cartId)) c.Session.CartId = cartId;
+        c.Session.Vars["cart"] = data.ToString(Newtonsoft.Json.Formatting.None);
+        return StepOutcome.Success();
+    }
+
     public override async Task<StepOutcome> AddToCartAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsApiHubMode(c))
+        {
+            if (string.IsNullOrEmpty(c.Session.VariantId))
+                return StepOutcome.Fail("scheels: no variant to add");
+
+            var input = new JObject
+            {
+                ["cartId"] = c.Session.CartId ?? string.Empty,
+                ["productId"] = c.Session.Vars.GetValueOrDefault("productId") ?? string.Empty,
+                ["variantId"] = c.Session.VariantId,
+                ["quantity"] = c.Session.Quantity,
+            };
+            var (data, err) = await StorefrontApiQueries
+                .SendAsync(c, HubOrigin(c), "AddItemToCart", new JObject { ["input"] = input }, ct)
+                .ConfigureAwait(false);
+            if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+            c.Session.Vars["cart"] = data.ToString(Newtonsoft.Json.Formatting.None);
+            var cid = data["addItemToCart"]?["id"]?.ToString();
+            if (!string.IsNullOrEmpty(cid)) c.Session.CartId = cid;
+            return StepOutcome.Success();
+        }
+
         if (string.IsNullOrEmpty(c.Session.VariantId))
             return StepOutcome.Fail("scheels: no variant to add");
 
@@ -256,8 +362,41 @@ public class ScheelsFlow : StoreFlow
         return StepOutcome.Success();
     }
 
-    public override Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct) =>
-        OpenCheckoutAsync(c, "scheels-checkout", "/checkout", ct);
+    public override async Task<StepOutcome> GetCheckoutAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsApiHubMode(c))
+            return await OpenCheckoutAsync(c, "scheels-checkout", "/checkout", ct).ConfigureAwait(false);
+
+        var (data, err) = await StorefrontApiQueries
+            .SendAsync(c, HubOrigin(c), "CheckoutCart", new JObject { ["id"] = c.Session.CartId ?? string.Empty }, ct)
+            .ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        c.Session.Vars["checkout"] = data.ToString(Newtonsoft.Json.Formatting.None);
+        return StepOutcome.Success();
+    }
+
+    public override async Task<StepOutcome> SubmitEmailAsync(FlowContext c, CancellationToken ct)
+    {
+        if (!IsApiHubMode(c))
+            return await base.SubmitEmailAsync(c, ct).ConfigureAwait(false);
+
+        var email = c.ProfileData?.Email ?? c.Account?.Email ?? c.Session.Vars.GetValueOrDefault("email");
+        if (string.IsNullOrEmpty(email)) return StepOutcome.Fail("scheels: no email for UpdateCustomerForCart");
+
+        var input = new JObject
+        {
+            ["cartId"] = c.Session.CartId ?? string.Empty,
+            ["email"] = email,
+        };
+        var (data, err) = await StorefrontApiQueries
+            .SendAsync(c, HubOrigin(c), "UpdateCustomerForCart", new JObject { ["input"] = input }, ct)
+            .ConfigureAwait(false);
+        if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+        c.Session.Vars["email"] = email!;
+        return StepOutcome.Success();
+    }
 
     /// <summary>
     /// The two cart-side steps a plain cart has no equivalent for. R766.
@@ -283,6 +422,32 @@ public class ScheelsFlow : StoreFlow
     /// </summary>
     public override async Task<StepOutcome> SubmitShippingAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsApiHubMode(c))
+        {
+            var ship = c.Shipping ?? c.Billing;
+            var p = c.ProfileData;
+            var input = new JObject
+            {
+                ["cartId"] = c.Session.CartId ?? string.Empty,
+                ["firstName"] = ship?.FirstName ?? p?.FirstName ?? string.Empty,
+                ["lastName"] = ship?.LastName ?? p?.LastName ?? string.Empty,
+                ["address1"] = ship?.Address1 ?? p?.Address1 ?? string.Empty,
+                ["address2"] = ship?.Address2 ?? p?.Address2 ?? string.Empty,
+                ["city"] = ship?.City ?? p?.City ?? string.Empty,
+                ["stateCode"] = ship?.State ?? p?.State ?? string.Empty,
+                ["postalCode"] = ship?.ZipCode ?? p?.Zip ?? string.Empty,
+                ["countryCode"] = ship?.Country ?? p?.Country ?? "US",
+                ["phone"] = p?.Phone ?? string.Empty,
+            };
+            var (data, err) = await StorefrontApiQueries
+                .SendAsync(c, HubOrigin(c), "UpdateShippingAddress", new JObject { ["input"] = input }, ct)
+                .ConfigureAwait(false);
+            if (data is null) return StepOutcome.Fail(err, retryable: true);
+
+            c.Session.Vars["shipping"] = data.ToString(Newtonsoft.Json.Formatting.None);
+            return StepOutcome.Success();
+        }
+
         // cart/updateCart carries the address; cart/completeDetailsCheckout then commits the details step.
         var update = new JObject
         {
@@ -330,6 +495,38 @@ public class ScheelsFlow : StoreFlow
 
     public override async Task<StepOutcome> SubmitOrderAsync(FlowContext c, CancellationToken ct)
     {
+        if (IsApiHubMode(c))
+        {
+            var orderId = c.Session.Vars.GetValueOrDefault("scheels.hubOrderId")
+                          ?? c.Session.Vars.GetValueOrDefault("checkout.orderId")
+                          ?? c.Session.OrderId
+                          ?? c.Session.CartId;
+            if (!string.IsNullOrEmpty(orderId) && c.Card?.Number is not null)
+            {
+                var origin = HubOrigin(c);
+                c.Session.Vars["checkout.origin"] = origin;
+                c.Session.Vars["checkout.orderId"] = orderId!;
+                var cardInput = new JObject
+                {
+                    ["cardNumber"] = c.Card.Number,
+                    ["cardCvv"] = c.Card.Cvv ?? string.Empty,
+                    ["cardExpiryMonth"] = c.Card.Month ?? string.Empty,
+                    ["cardExpiryYear"] = c.Card.Year ?? string.Empty,
+                    ["cardName"] = c.Card.Name ?? c.ProfileData?.Display ?? string.Empty,
+                };
+                var (cardData, cardErr) = await CheckoutCreditCard
+                    .SubmitAsync(c, origin, orderId, new JObject { ["input"] = cardInput }, ct)
+                    .ConfigureAwait(false);
+                if (cardData is null) return StepOutcome.Fail(cardErr, retryable: true);
+
+                c.Session.Vars["order"] = cardData.ToString(Newtonsoft.Json.Formatting.None);
+                var orderNo = cardData["creditCard"]?["orderNo"]?.ToString()
+                              ?? cardData["orderNo"]?.ToString();
+                if (!string.IsNullOrEmpty(orderNo)) c.Session.OrderNumber = orderNo;
+                return StepOutcome.Success();
+            }
+        }
+
         var payload = new JObject
         {
             ["cartId"] = c.Session.CartId,

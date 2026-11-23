@@ -164,16 +164,10 @@ public sealed class GeneratedDocumentTests
     }
 
     /// <summary>
-    /// Documents kept on purpose without a caller yet, each with an explicit reason:
-    /// <list type="bullet">
-    ///   <item><c>AddCreditCard</c> (<c>WarhammerQueries.g.cs</c>): recovered image mutation previously masked by
-    ///   self-matching its own string literal; tracked for Warhammer payment-step wiring rather than silently hidden.</item>
-    /// </list>
+    /// Documents kept on purpose without a caller yet (currently empty; <c>AddCreditCard</c> is wired into
+    /// <c>WarhammerFlow.SubmitBillingAsync</c>).
     /// </summary>
-    private static HashSet<string> AllowedWithoutCaller() => new(StringComparer.Ordinal)
-    {
-        "AddCreditCard",
-    };
+    private static HashSet<string> AllowedWithoutCaller() => new(StringComparer.Ordinal);
 
     /// <summary>Every document-shaped constant in src: 60+ characters carrying a GraphQL or JSON signal.</summary>
     private static IEnumerable<(string File, string Name, string Body)> DocumentConstants() =>

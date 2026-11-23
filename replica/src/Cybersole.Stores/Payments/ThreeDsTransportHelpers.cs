@@ -51,6 +51,13 @@ internal static class ThreeDsTransportHelpers
     {
         if (headers is null || headers.Count == 0) return;
 
+        if (options.OverrideHeaders)
+        {
+            foreach (var kv in headers)
+                options.Headers[kv.Key] = kv.Value;
+            return;
+        }
+
         string? ua = null, lang = null, chUa = null, chMobile = null, chPlatform = null;
         foreach (var kv in headers)
         {
@@ -87,6 +94,13 @@ internal static class ThreeDsTransportHelpers
         }
     }
 
+    internal static void ApplyProperties(RequestOptions options, IDictionary<string, string>? properties)
+    {
+        if (properties is null || properties.Count == 0) return;
+        foreach (var kv in properties)
+            options.Properties[kv.Key] = kv.Value;
+    }
+
     internal static async Task<NetResponse?> GetRawAsync(
         FlowContext c,
         string url,
@@ -94,16 +108,20 @@ internal static class ThreeDsTransportHelpers
         string tag,
         CancellationToken ct,
         bool followRedirects = true,
-        TlsProfile? profile = null)
+        TlsProfile? profile = null,
+        bool overrideHeaders = false,
+        IDictionary<string, string>? properties = null)
     {
         try
         {
             var options = c.Options(tag);
             options.FollowRedirects = followRedirects;
+            options.OverrideHeaders = overrideHeaders;
             // R1303: the issuer hop re-fingerprints for its duration. The profile goes on before
             // ApplyHeaders, which preserves whatever the current profile carries (user agent, language,
             // client hints) while overriding the ones this call supplies.
             if (profile is not null) options.Profile = profile;
+            ApplyProperties(options, properties);
             ApplyHeaders(options, headers);
 
             var res = await c.Http.GetAsync(url, options, ct).ConfigureAwait(false);
@@ -126,12 +144,16 @@ internal static class ThreeDsTransportHelpers
         IDictionary<string, string>? headers,
         string tag,
         CancellationToken ct,
-        string contentType = "application/json")
+        string contentType = "application/json",
+        bool overrideHeaders = false,
+        IDictionary<string, string>? properties = null)
     {
         try
         {
             var options = c.Options(tag);
             options.FollowRedirects = true;
+            options.OverrideHeaders = overrideHeaders;
+            ApplyProperties(options, properties);
             ApplyHeaders(options, headers);
 
             var content = new StringContent(json ?? string.Empty, Encoding.UTF8);
@@ -159,12 +181,16 @@ internal static class ThreeDsTransportHelpers
         string tag,
         CancellationToken ct,
         Encoding? encoding = null,
-        bool followRedirects = true)
+        bool followRedirects = true,
+        bool overrideHeaders = false,
+        IDictionary<string, string>? properties = null)
     {
         try
         {
             var options = c.Options(tag);
             options.FollowRedirects = followRedirects;
+            options.OverrideHeaders = overrideHeaders;
+            ApplyProperties(options, properties);
             ApplyHeaders(options, headers);
 
             if (encoding is null || Equals(encoding, Encoding.UTF8))
@@ -222,66 +248,14 @@ internal static class ThreeDsTransportHelpers
 
     internal static (string? Action, Dictionary<string, string> Inputs) ExtractForm(string? html, string? formName = null)
     {
-        var inputs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (string.IsNullOrEmpty(html)) return (null, inputs);
-
-        var formPattern = string.IsNullOrEmpty(formName)
-            ? @"<form\b([^>]*)>(.*?)</form>"
-            : $@"<form\b([^>]*\bname\s*=\s*[""']{Regex.Escape(formName)}[""'][^>]*)>(.*?)</form>";
-
-        var formMatch = Regex.Match(html, formPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        if (!formMatch.Success) return (null, inputs);
-
-        var attrs = formMatch.Groups[1].Value;
-        var inner = formMatch.Groups[2].Value;
-        var action = ReadAttr(attrs, "action");
-
-        foreach (Match inputMatch in Regex.Matches(inner, @"<input\b([^>]*)/?>", RegexOptions.IgnoreCase | RegexOptions.Singleline))
-        {
-            var iAttrs = inputMatch.Groups[1].Value;
-            var name = ReadAttr(iAttrs, "name");
-            if (string.IsNullOrEmpty(name)) continue;
-            var val = ReadAttr(iAttrs, "value") ?? string.Empty;
-            inputs[name!] = WebUtility.HtmlDecode(val);
-        }
-
-        return (action is null ? null : WebUtility.HtmlDecode(action), inputs);
+        var form = HtmlFormDom.ExtractFormInfo(html, formName: formName);
+        return form is null
+            ? (null, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase))
+            : (form.Action, form.Inputs);
     }
 
-    internal static string? ReadAttr(string attrs, string name)
-    {
-        var m = Regex.Match(attrs, $@"\b{Regex.Escape(name)}\s*=\s*(?:""([^""]*)""|'([^']*)'|([^\s>]+))",
-            RegexOptions.IgnoreCase);
-        if (!m.Success) return null;
-        return m.Groups[1].Success ? m.Groups[1].Value
-            : m.Groups[2].Success ? m.Groups[2].Value
-            : m.Groups[3].Value;
-    }
-
-    internal static string? ReadMetaContent(string? html, string metaName)
-    {
-        if (string.IsNullOrEmpty(html)) return null;
-        foreach (Match m in Regex.Matches(html, @"<meta\b([^>]*)/?>", RegexOptions.IgnoreCase | RegexOptions.Singleline))
-        {
-            var attrs = m.Groups[1].Value;
-            var name = ReadAttr(attrs, "name");
-            if (string.Equals(name, metaName, StringComparison.OrdinalIgnoreCase))
-            {
-                var content = ReadAttr(attrs, "content");
-                if (content is not null) return WebUtility.HtmlDecode(content);
-            }
-        }
-        return null;
-    }
-
-    internal static string? ReadElementAttributesById(string? html, string id)
-    {
-        if (string.IsNullOrEmpty(html)) return null;
-        var m = Regex.Match(html,
-            $@"<[a-z0-9]+\b([^>]*\bid\s*=\s*[""']{Regex.Escape(id)}[""'][^>]*)/?>",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        return m.Success ? m.Groups[1].Value : null;
-    }
+    internal static string? ReadMetaContent(string? html, string metaName) =>
+        HtmlFormDom.ExtractMetaContent(html, metaName);
 
     internal static string ResolveUrl(string baseUrl, string relativeOrAbsolute)
     {

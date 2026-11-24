@@ -19,7 +19,7 @@ dotnet test replica/tests/Cybersole.Tests/Cybersole.Tests.csproj -m:1 --filter "
 # 2) 公网真实边缘与指纹 Oracle 互操作测试（[Trait("Speed", "Slow")]，17/17，含境内 UDP-443 多代 1-RTT 主动 KeyUpdate + 兼容海外 H3 胜出与境内 TUN 回退）
 dotnet test replica/tests/Cybersole.Tests/Cybersole.Tests.csproj -m:1 --filter "FullyQualifiedName~LivePublicEdgeInteropTests" --logger "console;verbosity=detailed"
 
-# 3) 海外直连 UDP-443 专项 HTTP/3、ALPS 0x44CD、PSK 复用、HTTP/3 指纹 Oracle、QPACK 动态表、多代主动 KeyUpdate 与 QUIC Retry 测试（11/11，须在海外无 UDP-443 拦截节点执行；前 8 项已于 6f223b21 在 IAD VPS 全绿，新增 3 项待 VPS 复跑）
+# 3) 海外直连 UDP-443 专项 HTTP/3、ALPS 0x44CD、PSK 复用、HTTP/3 指纹 Oracle、QPACK 动态表、多代主动 KeyUpdate 与 QUIC Retry 测试（11/11，须在海外无 UDP-443 拦截节点执行；已于 ba1d7c0 在 IAD VPS 全量 11/11 通过，详见 docs/OVERSEAS_QUIC_H3_VALIDATION.md）
 dotnet test replica/tests/Cybersole.Tests/Cybersole.Tests.csproj -m:1 --filter "FullyQualifiedName~LiveOverseasHttp3InteropTests" --logger "console;verbosity=detailed"
 ```
 
@@ -94,34 +94,40 @@ dotnet test replica/tests/Cybersole.Tests/Cybersole.Tests.csproj -m:1 --filter "
 
 > **对照组实证（排除 `Cybersole.Http` 假阴性）**：使用官方参考实现 Go `quic-go@v0.61.0` 对同一组境内边缘直连 UDP-443 探测，结果与 `Cybersole.Http` 一致：`www.taobao.com` / `www.tmall.com` / `dns.alidns.com` 均成功返回 `HTTP/3 200`，而 `www.apple.com.cn`（`context deadline exceeded` / QUIC `28: Reject connection`）、`www.aliyun.com`（`CRYPTO_ERROR 0x150: handshake failed`）与 `www.douyin.com`（`CRYPTO_ERROR 0x128`）在官方 `quic-go@v0.61.0` 下同样由服务端拒连或超时，属服务端策略所致而非 `Cybersole.Http` 实现缺陷；`ProtocolRacer` 对 `apple.com.cn` 与 `aliyun.com` 均已实测验证平滑回退 `HTTP/2.0` 返回 `200`。
 
-### 4.3 海外直连公网 VPS 实测矩阵（美国东岸 IAD，无代理拦截）
+### 4.3 海外直连公网 VPS 实测矩阵（美国东岸 IAD，无代理拦截，完整档案见 `docs/OVERSEAS_QUIC_H3_VALIDATION.md`）
 
-测试环境：美国东岸 IAD 公网 VPS（Windows Server 2022，`.NET 8.0.428`，`Go 1.27.4`，UDP-443 直连无代理拦截），提交 `6f223b21`，全部连接严格校验证书（`InsecureSkipVerify = false` + `UseEmbeddedDefaultRoots = true`）：
+测试环境：美国东岸 IAD 公网 VPS（Windows Server 2022，`.NET 8.0.428`，`Go 1.27.4`，出口 `104.254.189.209`，UDP-443 直连无代理拦截），最终全量复验提交 `ba1d7c03d03ecfe77989b45828864316b9c33194`（全部连接严格校验证书 `InsecureSkipVerify = false` + `UseEmbeddedDefaultRoots = true`）：
 
-- **阶段 1（离线 + Go/`quic-go@v0.61.0`）**：`68/68` 全部通过（`12.13s`）。
-- **阶段 2（`LivePublicEdgeInteropTests`）**：`14/16` 通过，仅 2 项旧境内断言（写死 `Expected: "HTTP/2.0"`）因海外 `ProtocolRacer` 竞速胜出 **`HTTP/3`** 而失败（`cloudflare-quic.com`: `200 HTTP/3`, `125,959 B`, `70 ms`；`www.aliyun.com`: `200 HTTP/3`, `157,055 B`, `381 ms`，同节点 `quic-go` 对照组报 `CRYPTO_ERROR 0x150`；现已在 `LivePublicEdgeInteropTests` 改为兼容 `HTTP/3` 与 `HTTP/2.0` 回退）；`tls.peet.ws`（5 预设）与 `tls.browserleaks.com`（2 预设）的 `JA4` / `JA4_r` / `Akamai H2` 与本地 `WireFingerprint` **100% 一致**。
-- **阶段 3（`LiveOverseasHttp3InteropTests`）**：**`8/8` 全部通过（`5.37s`）**：
+- **阶段 1（离线 + Go/`quic-go@v0.61.0`）**：**`72/72` 全部通过**（`11.52 s`）。
+- **阶段 2（`LivePublicEdgeInteropTests`）**：**`17/17` 全部通过**（`6.74 s`）；`cloudflare-quic.com`（`200 HTTP/3`, `125,959 B`, `75 ms`）与 `www.aliyun.com`（`200 HTTP/3`, `157,055 B`, `452 ms`）均由 `ProtocolRacer` 竞速胜出 `HTTP/3`，`www.apple.com.cn` 平滑回退 `200 HTTP/2.0`（`145,111 B`）；`www.taobao.com`/`www.tmall.com` 多代主动 KeyUpdate 均 `wGen=2 rGen=2 cliKu=2`；`tls.peet.ws`（5 预设）与 `tls.browserleaks.com`（2 预设）的 `JA4` / `JA4_r` / `Akamai H2` 与本地 `WireFingerprint` **100% 一致**。
+- **阶段 3（`LiveOverseasHttp3InteropTests`）**：**`11/11` 全部通过**（`22.77 s`）：
 
-| 目标 / 用例场景 | 通道与预设 | 实测结果与线级观测 |
+| 目标 / 用例场景 | 通道与预设 | 实测结果与线级观测（`ba1d7c0`） |
 |---|---|---|
-| `https://one.one.one.one/cdn-cgi/trace` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `200 HTTP/3`，返回体含 `http=http/3`、`tls=TLSv1.3`、`kex=X25519MLKEM768`（`scidLen=0`, `cipher=0x1301`, `peerUni=3`）；单连接 8 并发流 `38 ms` ✅ |
-| `https://cloudflare-quic.com/` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `200 HTTP/3` 完整 `125,959 B`；单连接 8 并发流满额 `1,007,672 B`（`363 ms`） ✅ |
-| `https://www.google.com/generate_204` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `204 HTTP/3`；首次在公网真实 QUIC 路径实测确认 Google 下发 ALPS `0x44CD`（`len=182`）且客户端完成 ALPS `EncryptedExtensions` 握手（`hs=26.3 ms`） ✅ |
-| `https://quic.nginx.org/` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `200 HTTP/3`（`2,523 B`, `peerUni=3`） ✅ |
-| `https://www.nike.com/` | 直连 H3 vs `PureNetClient` / `ProtocolRacer` | 直连 UDP-443 报 `QuicException: 200:internal error`（与同节点 `quic-go@v0.61.0` 对照组 `CRYPTO_ERROR 0x150 (remote): 200:internal error` 一致，属服务端策略）；`NetClient(PureNetClient)` 与 `ProtocolRacer` 均干净回退 `HTTP/2.0` 返回 `200`（`~964 KB`） ✅ |
-| `https://www.akamai.com/` | 直连 H3 / `ProtocolRacer` / `NetClient` | 裸 UA 同 `quic-go` 对照组均获 `403`（`368 B` WAF）；携带完整 Chrome 导航头后三路均稳定 `200 HTTP/3`（`225,510 B`） ✅ |
-| QUIC PSK 会话复用 | `chrome_150_PSK` + `ChromeQuicSpecs` | 修复缺陷 #7/#8 后，`one.one.one.one`（`200 HTTP/3, resumed=True, hs=23.5 ms`）与 `www.google.com/generate_204`（`204 HTTP/3, resumed=True, hs=22.2 ms`）均成功复用 ✅ |
+| `https://one.one.one.one/cdn-cgi/trace` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `200 HTTP/3`，返回体含 `http=http/3`、`tls=TLSv1.3`、`kex=X25519MLKEM768`（`scidLen=0`, `cipher=0x1301`, `peerUni=3`, `hs=27.4 ms`）；单连接 8 并发流 `29 ms` ✅ |
+| `https://cloudflare-quic.com/` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `200 HTTP/3` 完整 `125,959 B`（`hs=23.4 ms`）；单连接 8 并发流满额 `1,007,672 B`（`370 ms`） ✅ |
+| `https://www.google.com/generate_204` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `204 HTTP/3`；公网真实 QUIC 路径实测确认 Google 下发 ALPS `0x44CD`（`len=182`）且客户端完成 ALPS `EncryptedExtensions` 握手（`hs=21.5 ms`） ✅ |
+| `https://quic.nginx.org/` | 直连 H3 & `ProtocolRacer` (`chrome_150`) | 均 `200 HTTP/3`（`2,523 B`, `peerUni=3`, `hs=110.5 ms`） ✅ |
+| `https://www.nike.com/` | 直连 H3 vs `PureNetClient` / `ProtocolRacer` | 直连 UDP-443 报 `QuicException: 200:internal error`（与同节点 `quic-go@v0.61.0` 对照组 `CRYPTO_ERROR 0x150 (remote): 200:internal error` 一致，属服务端策略）；`NetClient(PureNetClient)` 与 `ProtocolRacer` 均干净回退 `HTTP/2.0` 返回 `200`（`~1.08 MB`） ✅ |
+| `https://www.akamai.com/` | 直连 H3 / `ProtocolRacer` / `NetClient` | 裸 UA 同 `quic-go` 对照组均获 `403`（`368 B` WAF）；携带完整 Chrome 导航头后三路均稳定 `200 HTTP/3`（`225,533 B`, `cipher=0x1302`） ✅ |
+| QUIC PSK 会话复用 | `chrome_150_PSK` + `ChromeQuicSpecs` | `one.one.one.one`（`200 HTTP/3, resumed=True, hs=17.0 ms`）与 `www.google.com/generate_204`（`204 HTTP/3, resumed=True, hs=15.7 ms`）均成功复用 ✅ |
 | HTTP/3 指纹 Oracle（`https://fp.impersonate.pro/api/http3`） | `chrome_150` & `chrome_152` | 均 `200 HTTP/3`，`initPn=0`, `scidLen=0`, `dcidLen=8`, `ja3n=36b3da67265214a919829c5e959f7425`，15 项 QUIC Transport Parameters、伪头顺序 `m,a,s,p` 与 `ChromeQuicSpecs`/本地 `WireFingerprint` 完全一致；`chrome_152` 发送完整 SETTINGS（`1:65536;6:262144;7:100;51:1;GREASE`），`chrome_150` 按 `sub_1412B05A0` 仅发 `51:1` ✅ |
+| **公网 QPACK 动态表多请求并发**（`Overseas_Chrome152_QpackDynamicTable_MultiRequest_PublicEdges`） | 直连 H3 (`chrome_152`, 4 串行 + 6 并发) | **4/5 公网边缘真实触发动态表插表与解码**：Google `ins=76,known=76,entries=76,dynSections=10`；YouTube `ins=72,known=72,entries=72,dynSections=10`；LiteSpeed `ins=19,known=19,entries=19,dynSections=9`；Facebook `ins=105,known=105,entries=105,dynSections=10`（Cloudflare `peerQpack=(0,0)` 未启用） ✅ |
+| **公网三节点多代 1-RTT 主动 KeyUpdate**（`Overseas_ClientInitiatedKeyUpdate_MultiGeneration_CloudflareGoogleNginx`） | 直连 H3 (`chrome_152`, `phase 0→1→0`) | `one.one.one.one`、`www.google.com/generate_204`、`quic.nginx.org` 三节点全部 `wGen=2, rGen=2, cliKu=2, srvKu=0` 且 3 轮请求全 2xx（`494 ms`） ✅ |
+| **公网 IETF QUIC Retry 实测**（`Overseas_PublicQuicRetryEndpoints_VerifyRealRetryTokenAndHttp3`） | 直连 H3 (`chrome_152`, 严格 X.509) | **3 个独立公网实现实测 Retry 通过**：`quic.aiortc.org:4434` (`retry=True, token=73B, 0x1302, 200`)、`quic.tech:8444` (`retry=True, token=30B, 0x1301, 200`)、`nghttp2.org:4434` (`retry=True, token=90B, 0x1301, 200`)；`test.privateoctopus.com:4434` 自签证书被严格校验正常拒收；`http3-test.litespeedtech.com:4434` 8000 ms 超时 ✅ |
 
 ---
 
 ## 5. 诚实的 `Unknown` 与环境边界
 
-> **已由海外 IAD VPS 与本轮实测结案的原 Unknown**：Cloudflare（`one.one.one.one`/`cloudflare-quic.com`）、Google QUIC + ALPS `0x44CD`、NGINX（`quic.nginx.org`）、Akamai HTTP/3、QUIC PSK 会话复用、第三方 HTTP/3 线级指纹 Oracle（`fp.impersonate.pro/api/http3`）、以及 **1-RTT 客户端主动 KeyUpdate 多代轮换**（已在 Go `quic-go@v0.61.0` 与境内直连公网 UDP-443 `taobao.com`/`tmall.com` 实测 `wGen=2, rGen=2, cliKu=2` 通过；并已增设海外 Cloudflare/Google/NGINX 专项用例）均已实测闭环；**0-RTT 应用数据包** 经 IDA 实证原版 `Cybersole.exe`（`sub_1412A0820` / `sub_14129F560`）从不派生 `"c e traffic"` 或发送 0-RTT 应用包，按原版行为不适用/已结案。国内当前工作主机因本地 TUN 代理丢弃海外 UDP-443，`LiveOverseasHttp3InteropTests` 现含 `11` 条用例（前 `8` 条已在 IAD VPS `6f223b21` 通过，新增 `3` 条待海外 VPS 实跑）。
+> **已全部实测闭环的原 Unknown（截至 `ba1d7c0` 海外 IAD VPS `100/100` 全绿）**：
+> - 海外直连 UDP-443 QUIC/HTTP/3（Cloudflare / Google / NGINX / Akamai / YouTube / LiteSpeed / Facebook）、Google QUIC ALPS `0x44CD`（`len=182`）、Cloudflare `X25519MLKEM768`、QUIC PSK 会话复用、第三方 HTTP/3 线级指纹 Oracle（`fp.impersonate.pro/api/http3`）；
+> - **公网真实边缘 QPACK 动态表高频插入与并发解码**（Google `76` / YouTube `72` / LiteSpeed `19` / Facebook `105`，均 `ins == known == entries`）；
+> - **公网真实边缘 1-RTT 客户端主动多代 KeyUpdate**（Cloudflare / Google / NGINX / 淘宝 / 天猫 5 个公网边缘均 `wGen=2, rGen=2, cliKu=2`）；
+> - **公网真实边缘 QUIC `Retry` 包与 Retry Token**（`quic.aiortc.org:4434` / `quic.tech:8444` / `nghttp2.org:4434` 3 个独立 IETF 实现严格证书校验下 `retry=True` + `200 HTTP/3`）；
+> - **0-RTT 应用数据包** 经 IDA 实证原版 `Cybersole.exe`（`sub_1412A0820` / `sub_14129F560`）从不派生 `"c e traffic"` 或发送 0-RTT 应用包，按原版行为不适用/已结案。
 
-剩余 **2 项待海外 VPS 实测验证的公网边缘边界（`Unknown`）** 与 **1 项 ③-A 宿主选型待办**：
+剩余边界（诚实保留，不夸大）：
 
-1. **公网真实测试边缘触发 QUIC `Retry` 包（`Unknown`，待 VPS 实测 `Overseas_PublicQuicRetryEndpoints_VerifyRealRetryTokenAndHttp3`）**：该路径已在离线 `quic-go@v0.61.0` `VerifySourceAddress: true` 与纯 C# 回环（含 `a4` Retry Integrity Tag）下验证通过；现已新增直指公网 IETF Retry 测试节点（`quic.aiortc.org:4434` / `test.privateoctopus.com:4434` / `quic.tech:8444` / `http3-test.litespeedtech.com:4434` / `nghttp2.org:4434`）的海外专项用例，待 VPS 实跑后结案。
-2. **公网真实边缘 QPACK 动态表高频插入（`Unknown`，待 VPS 实测 `Overseas_Chrome152_QpackDynamicTable_MultiRequest_PublicEdges`）**：本轮启用 `chrome_152`（`QpackMaxTableCapacity = 65536`）实测境内公网 `taobao.com` / `tmall.com` 时，服务端仍只用静态表/字面量响应（`ins=0, known=0, entries=0, dynSections=0`）；客户端编码/解码器流锁串行防溢出修复（`#11`）已在离线 RFC 9204 并发回归通过，真站多连接并发动态插表待在海外 VPS 对 Google / YouTube / Cloudflare / LiteSpeed / Facebook 实跑后结案。
-3. **1-RTT 客户端主动 KeyUpdate 海外三节点复验（境内与 Go 均已通过，海外三节点待跑 `Overseas_ClientInitiatedKeyUpdate_MultiGeneration_CloudflareGoogleNginx`）**：客户端写/读分离、handshake-confirmed 守卫与多代主动 KeyUpdate（`#10`）已在 `quic-go@v0.61.0` 与公网 `taobao.com`/`tmall.com` 全绿，待在海外 VPS 一并对 `one.one.one.one`、`www.google.com`、`quic.nginx.org` 完成海外边缘复测。
-4. **③-A 嵌入式浏览器宿主选型**：仍为 `docs/NETSTACK_ADR.md` 唯一待裁决议程（`DotNetBrowser 4.3.5.8591` vs WebView2 vs CEF），不随本网络栈支线越权替代裁决。
+1. **公网长连接服务端主动发起 1-RTT KeyUpdate（`Unknown`）**：本轮所有公网连接短生命期内均为客户端主动轮换（`srvKu=0`）；服务端主动触发 `KeyPhase 0→1` 密钥更新已由本地 Go `quic-go@v0.61.0` 夹具（~PN 100 触发）验证通过，公网边缘被动触发保持 `Unknown`。
+2. **③-A 嵌入式浏览器宿主选型**：仍为 `docs/NETSTACK_ADR.md` 唯一待裁决议程（`DotNetBrowser 4.3.5.8591` vs WebView2 vs CEF），不随本网络栈支线越权替代裁决。

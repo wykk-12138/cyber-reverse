@@ -187,6 +187,8 @@ public sealed class Http3Connection : IMultiplexedConnection
     private volatile bool _goawayReceived;
     private ulong _goawayStreamId = ulong.MaxValue;
     private IReadOnlyDictionary<ulong, ulong>? _peerSettings;
+    private ulong _sentQpackKnownReceivedCount;
+    private long _qpackDynamicHeaderSectionsDecoded;
     private Exception? _terminalError;
     private int _activeStreams;
     private DateTimeOffset _lastUsedUtc = DateTimeOffset.UtcNow;
@@ -220,6 +222,10 @@ public sealed class Http3Connection : IMultiplexedConnection
     public bool GoAwayReceived => _goawayReceived;
     public ulong GoAwayStreamId => _goawayStreamId;
     public IReadOnlyDictionary<ulong, ulong>? PeerSettings => _peerSettings;
+    public ulong QpackInsertCount => _qpackDecoder.InsertCount;
+    public ulong QpackKnownReceivedCount => _qpackDecoder.KnownReceivedCount;
+    public int QpackDynamicEntryCount => _qpackDecoder.DynamicEntryCount;
+    public long QpackDynamicHeaderSectionsDecoded => Interlocked.Read(ref _qpackDynamicHeaderSectionsDecoded);
     public Exception? FatalError => _terminalError;
     public QuicConnection Quic => _quic;
     public Task<Exception> FatalErrorTask => _fatalErrorTcs.Task;
@@ -460,17 +466,23 @@ public sealed class Http3Connection : IMultiplexedConnection
     private async Task<List<PureHttpHeader>> DecodeHeadersSerializedAsync(ulong streamId, byte[] payload, CancellationToken ct)
     {
         (List<PureHttpHeader> headers, ulong reqInsertCount) = await _qpackDecoder.DecodeFieldSectionWithCountAsync(payload, ct).ConfigureAwait(false);
-        if (reqInsertCount > 0 && _clientDecoderStream is not null)
+        if (reqInsertCount > 0)
         {
-            byte[] ack = QpackDecoder.BuildSectionAcknowledgment(streamId);
-            await _decoderWriteLock.WaitAsync(ct).ConfigureAwait(false);
-            try
+            Interlocked.Increment(ref _qpackDynamicHeaderSectionsDecoded);
+            if (_clientDecoderStream is not null)
             {
-                await _clientDecoderStream.WriteAsync(ack, ct).ConfigureAwait(false);
-            }
-            finally
-            {
-                _decoderWriteLock.Release();
+                byte[] ack = QpackDecoder.BuildSectionAcknowledgment(streamId);
+                await _decoderWriteLock.WaitAsync(ct).ConfigureAwait(false);
+                try
+                {
+                    await _clientDecoderStream.WriteAsync(ack, ct).ConfigureAwait(false);
+                    if (reqInsertCount > _sentQpackKnownReceivedCount)
+                        _sentQpackKnownReceivedCount = reqInsertCount;
+                }
+                finally
+                {
+                    _decoderWriteLock.Release();
+                }
             }
         }
         return headers;
@@ -662,13 +674,19 @@ public sealed class Http3Connection : IMultiplexedConnection
                 return;
             }
 
-            byte[] feedback = _qpackDecoder.ProcessEncoderInstructions(buf.AsSpan(0, n));
-            if (feedback.Length > 0 && _clientDecoderStream is not null)
+            _ = _qpackDecoder.ProcessEncoderInstructions(buf.AsSpan(0, n));
+            if (_clientDecoderStream is not null)
             {
                 await _decoderWriteLock.WaitAsync(ct).ConfigureAwait(false);
                 try
                 {
-                    await _clientDecoderStream.WriteAsync(feedback, ct).ConfigureAwait(false);
+                    ulong currentInsertCount = _qpackDecoder.InsertCount;
+                    if (currentInsertCount > _sentQpackKnownReceivedCount)
+                    {
+                        byte[] feedback = QpackDecoder.BuildInsertCountIncrement(currentInsertCount - _sentQpackKnownReceivedCount);
+                        await _clientDecoderStream.WriteAsync(feedback, ct).ConfigureAwait(false);
+                        _sentQpackKnownReceivedCount = currentInsertCount;
+                    }
                 }
                 finally
                 {

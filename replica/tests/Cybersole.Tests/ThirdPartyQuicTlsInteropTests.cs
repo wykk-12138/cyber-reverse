@@ -408,6 +408,79 @@ public sealed class ThirdPartyQuicTlsInteropTests : IClassFixture<ThirdPartyQuic
         }
     }
 
+    [Fact]
+    public async Task QuicGoV061_ClientInitiatedKeyUpdate_MultiGeneration_CompletesHttp3()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        ClientProfile chrome152 = ProfileRegistry.GetRequired("chrome_152");
+        ConnectionKey key = ConnectionKey.Create("https", "localhost", _fixture.UdpPort, chrome152.Name);
+
+        await using var quic = await QuicConnection.ConnectAsync(new QuicConnectionOptions
+        {
+            Host = "localhost",
+            Port = _fixture.UdpPort,
+            Profile = chrome152,
+            TransportSpec = chrome152.QuicSpec,
+            VerifyOptions = _fixture.VerifyOptions,
+            DnsResolver = static (_, _) => ValueTask.FromResult(new[] { IPAddress.Loopback }),
+            ConnectTimeout = TimeSpan.FromSeconds(10),
+        }, cts.Token);
+
+        await using var h3 = new Http3Connection(quic, key, chrome152);
+        await h3.StartAsync(cts.Token);
+
+        // Request 1 before key update
+        PureHttpResponse inspectResp = await h3.SendAsync(new PureHttpRequest
+        {
+            Method = "GET",
+            Uri = new Uri($"https://localhost:{_fixture.UdpPort}/inspect"),
+        }, cts.Token);
+        Assert.Equal(200, inspectResp.StatusCode);
+        Assert.Equal("HTTP/3", inspectResp.HttpVersion);
+
+        await quic.WaitForHandshakeConfirmedAsync(cts.Token);
+
+        // Client-initiated KeyUpdate Generation 1 (phase 0 -> 1)
+        quic.InitiateKeyUpdate();
+        Assert.Equal(1, quic.ClientInitiatedKeyUpdates);
+        Assert.Equal(1, quic.WriteKeyPhaseGeneration);
+
+        PureHttpResponse gen1Resp = await h3.SendAsync(new PureHttpRequest
+        {
+            Method = "GET",
+            Uri = new Uri($"https://localhost:{_fixture.UdpPort}/large?bytes=16384"),
+        }, cts.Token);
+        Assert.Equal(200, gen1Resp.StatusCode);
+        Assert.Equal("HTTP/3", gen1Resp.HttpVersion);
+        Assert.Equal(16_384, gen1Resp.Body.Length);
+        Assert.Equal(
+            Convert.ToHexString(SHA256.HashData(gen1Resp.Body)).ToLowerInvariant(),
+            gen1Resp.GetFirstHeader("X-Payload-Sha256"));
+        Assert.Equal(1, quic.ClientInitiatedKeyUpdates);
+        Assert.True(quic.WriteKeyPhaseGeneration >= 1);
+        Assert.True(quic.ReadKeyPhaseGeneration >= 1);
+
+        // Client-initiated KeyUpdate Generation 2 (phase 1 -> 0)
+        quic.InitiateKeyUpdate();
+        Assert.Equal(2, quic.ClientInitiatedKeyUpdates);
+        Assert.True(quic.WriteKeyPhaseGeneration >= 2);
+
+        byte[] echoPayload = CreateDeterministicPayload(8192);
+        PureHttpResponse gen2Resp = await h3.SendAsync(new PureHttpRequest
+        {
+            Method = "POST",
+            Uri = new Uri($"https://localhost:{_fixture.UdpPort}/echo"),
+            Body = echoPayload,
+        }, cts.Token);
+        Assert.Equal(200, gen2Resp.StatusCode);
+        Assert.Equal("HTTP/3", gen2Resp.HttpVersion);
+        Assert.Equal(echoPayload, gen2Resp.Body);
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(echoPayload)).ToLowerInvariant(), gen2Resp.GetFirstHeader("X-Echo-Sha256"));
+        Assert.Equal(2, quic.ClientInitiatedKeyUpdates);
+        Assert.True(quic.WriteKeyPhaseGeneration >= 2);
+        Assert.True(quic.ReadKeyPhaseGeneration >= 2);
+    }
+
     private TlsHttpClient CreateClient(
         string profileName,
         bool disableHttp3,

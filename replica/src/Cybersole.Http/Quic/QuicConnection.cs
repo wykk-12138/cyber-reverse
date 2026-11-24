@@ -799,6 +799,10 @@ public sealed class QuicConnection : IAsyncDisposable
     private QuicKeySet? _appNextReadKeys;
     private bool _appWriteKeyPhase;
     private bool _appReadKeyPhase;
+    private int _writeKeyPhaseGeneration;
+    private int _readKeyPhaseGeneration;
+    private int _clientInitiatedKeyUpdates;
+    private int _peerInitiatedKeyUpdates;
     private bool _initialDiscarded;
     private bool _handshakeDiscarded;
     private bool _handshakeMarkedComplete;
@@ -846,6 +850,7 @@ public sealed class QuicConnection : IAsyncDisposable
     // Lifecycle
     private readonly CancellationTokenSource _connCts = new();
     private readonly TaskCompletionSource<bool> _handshakeTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<bool> _handshakeConfirmedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Task? _recvTask;
     private Task? _txTask;
     private Exception? _terminalError;
@@ -904,6 +909,12 @@ public sealed class QuicConnection : IAsyncDisposable
     public ulong PeerMaxStreamsBidi => Volatile.Read(ref _peerMaxStreamsBidi);
     public ulong PeerMaxStreamsUni => Volatile.Read(ref _peerMaxStreamsUni);
     public bool HandshakeConfirmed => _handshakeConfirmed;
+    public int WriteKeyPhaseGeneration => Volatile.Read(ref _writeKeyPhaseGeneration);
+    public int ReadKeyPhaseGeneration => Volatile.Read(ref _readKeyPhaseGeneration);
+    public int ClientInitiatedKeyUpdates => Volatile.Read(ref _clientInitiatedKeyUpdates);
+    public int PeerInitiatedKeyUpdates => Volatile.Read(ref _peerInitiatedKeyUpdates);
+    public Task WaitForHandshakeConfirmedAsync(CancellationToken cancellationToken = default) =>
+        _handshakeConfirmedTcs.Task.WaitAsync(cancellationToken);
     public bool IsConnected => Volatile.Read(ref _closed) == 0 && _terminalError is null && _handshakeMarkedComplete;
     public Exception? TerminalError => _terminalError;
     public TimeSpan HandshakeDuration { get; private set; }
@@ -1101,19 +1112,25 @@ public sealed class QuicConnection : IAsyncDisposable
         return null;
     }
 
-    /// <summary>Initiates a 1-RTT Key Phase rotation (RFC 9001 §6).</summary>
+    /// <summary>Initiates a 1-RTT Key Phase rotation (RFC 9001 §6.2 / §6.4).</summary>
     public void InitiateKeyUpdate()
     {
         lock (_stateLock)
         {
             if (_appWriteKeys is null || _appReadKeys is null)
                 throw new InvalidOperationException("Cannot rotate 1-RTT keys before Application keys are established.");
+            if (!_handshakeConfirmed)
+                throw new InvalidOperationException("Cannot initiate 1-RTT key update before handshake is confirmed (RFC 9001 §6.2).");
+            if (_writeKeyPhaseGeneration != _readKeyPhaseGeneration)
+                throw new InvalidOperationException("Cannot initiate a subsequent 1-RTT key update before the peer has confirmed the current key phase (RFC 9001 §6.2).");
 
+            // RFC 9001 §6.2: only rotate write keys here so in-flight peer packets under the prior key phase still decrypt.
+            // _appReadKeys rotates upon receiving the first authenticated peer packet bearing the flipped KeyPhase bit.
             _appWriteKeys = _appWriteKeys.UpdateKeys();
             _appWriteKeyPhase = !_appWriteKeyPhase;
-            _appReadKeys = _appReadKeys.UpdateKeys();
-            _appReadKeyPhase = !_appReadKeyPhase;
-            _appNextReadKeys = _appReadKeys.UpdateKeys();
+            _appNextReadKeys ??= _appReadKeys.UpdateKeys();
+            _writeKeyPhaseGeneration++;
+            _clientInitiatedKeyUpdates++;
         }
     }
 
@@ -1575,10 +1592,13 @@ public sealed class QuicConnection : IAsyncDisposable
                     _appReadKeys = nextRead;
                     _appNextReadKeys = nextRead.UpdateKeys();
                     _appReadKeyPhase = rxKeyPhase;
+                    _readKeyPhaseGeneration++;
                     if (_appWriteKeys is not null && _appWriteKeyPhase != rxKeyPhase)
                     {
                         _appWriteKeys = _appWriteKeys.UpdateKeys();
                         _appWriteKeyPhase = rxKeyPhase;
+                        _writeKeyPhaseGeneration++;
+                        _peerInitiatedKeyUpdates++;
                     }
                 }
             }
@@ -1665,6 +1685,7 @@ public sealed class QuicConnection : IAsyncDisposable
                         _handshakeReadKeys = null;
                         _handshakeWriteKeys = null;
                     }
+                    _handshakeConfirmedTcs.TrySetResult(true);
                     break;
 
                 case QuicStreamFrame sf:
@@ -2322,6 +2343,7 @@ public sealed class QuicConnection : IAsyncDisposable
     {
         Interlocked.CompareExchange(ref _terminalError, ex, null);
         _handshakeTcs.TrySetException(ex);
+        _handshakeConfirmedTcs.TrySetException(ex);
 
         lock (_stateLock)
         {

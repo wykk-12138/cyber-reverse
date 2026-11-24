@@ -74,13 +74,8 @@ public sealed class LiveOverseasHttp3InteropTests
         return (cp, alpsSettings?.Length ?? -1, tls.UsedSessionResumption);
     }
 
-    private static (ulong InsertCount, ulong KnownReceived, int EntryCount) InspectQpackState(Http3Connection h3)
-    {
-        FieldInfo? decField = typeof(Http3Connection).GetField("_qpackDecoder", BindingFlags.Instance | BindingFlags.NonPublic);
-        if (decField?.GetValue(h3) is not QpackDecoder dec)
-            return (0, 0, 0);
-        return (dec.DynamicTable.InsertCount, dec.KnownReceivedCount, dec.DynamicTable.EntryCount);
-    }
+    private static (ulong InsertCount, ulong KnownReceived, int EntryCount) InspectQpackState(Http3Connection h3) =>
+        (h3.QpackInsertCount, h3.QpackKnownReceivedCount, h3.QpackDynamicEntryCount);
 
     [Fact]
     public async Task Overseas_CloudflareTrace_DirectH3_And_ProtocolRacer_VerifyHttp3Tls13MlKem768()
@@ -677,5 +672,217 @@ public sealed class LiveOverseasHttp3InteropTests
             else
                 Assert.StartsWith("51:1|m,a,s,p|", perkNorm, StringComparison.Ordinal);
         }
+    }
+
+    [Fact]
+    public async Task Overseas_Chrome152_QpackDynamicTable_MultiRequest_PublicEdges()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(75));
+        ClientProfile chrome152 = ProfileRegistry.GetRequired("chrome_152");
+        string[] candidateUrls =
+        {
+            "https://www.google.com/",
+            "https://www.youtube.com/",
+            "https://cloudflare-quic.com/",
+            "https://www.litespeedtech.com/",
+            "https://www.facebook.com/",
+        };
+
+        int completedHosts = 0;
+        int dynamicQpackHosts = 0;
+
+        foreach (string url in candidateUrls)
+        {
+            var uri = new Uri(url);
+            ConnectionKey key = ConnectionKey.Create("https", uri.Host, 443, chrome152.Name);
+            using var hostCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+            hostCts.CancelAfter(TimeSpan.FromSeconds(18));
+
+            try
+            {
+                await using var quic = await QuicConnection.ConnectAsync(new QuicConnectionOptions
+                {
+                    Host = uri.Host,
+                    Port = 443,
+                    Profile = chrome152,
+                    TransportSpec = chrome152.QuicSpec,
+                    VerifyOptions = StrictVerifyOptions(),
+                    ConnectTimeout = TimeSpan.FromSeconds(10),
+                }, hostCts.Token);
+
+                await using var h3 = new Http3Connection(quic, key, chrome152);
+                await h3.StartAsync(hostCts.Token);
+
+                // 4 sequential warmups followed by 6 concurrent requests on the same HTTP/3 connection
+                for (int s = 0; s < 4; s++)
+                {
+                    var seqUri = new Uri($"{url}{(url.Contains('?') ? '&' : '?')}qpack_seq={s}");
+                    PureHttpResponse seqResp = await h3.SendAsync(new PureHttpRequest
+                    {
+                        Method = "GET",
+                        Uri = seqUri,
+                        Headers = FullChromeNavigationHeaders(),
+                    }, hostCts.Token);
+                    Assert.Equal("HTTP/3", seqResp.HttpVersion);
+                }
+
+                Task<PureHttpResponse>[] batch = Enumerable.Range(0, 6)
+                    .Select(c => h3.SendAsync(new PureHttpRequest
+                    {
+                        Method = "GET",
+                        Uri = new Uri($"{url}{(url.Contains('?') ? '&' : '?')}qpack_conc={c}"),
+                        Headers = FullChromeNavigationHeaders(),
+                    }, hostCts.Token))
+                    .ToArray();
+                PureHttpResponse[] batchResps = await Task.WhenAll(batch);
+                foreach (PureHttpResponse r in batchResps)
+                    Assert.Equal("HTTP/3", r.HttpVersion);
+
+                completedHosts++;
+                if (h3.QpackInsertCount > 0 && h3.QpackDynamicHeaderSectionsDecoded > 0)
+                    dynamicQpackHosts++;
+
+                ulong peerCap = h3.PeerSettings is not null && h3.PeerSettings.TryGetValue(Http3SettingId.QpackMaxTableCapacity, out ulong pc) ? pc : 0;
+                ulong peerBlocked = h3.PeerSettings is not null && h3.PeerSettings.TryGetValue(Http3SettingId.QpackBlockedStreams, out ulong pb) ? pb : 0;
+                _output.WriteLine($"[Overseas QPACK chrome_152] {url}: peerQpack=(cap={peerCap},blocked={peerBlocked}) clientQpack=(ins={h3.QpackInsertCount},known={h3.QpackKnownReceivedCount},entries={h3.QpackDynamicEntryCount},dynSections={h3.QpackDynamicHeaderSectionsDecoded})");
+            }
+            catch (Exception ex)
+            {
+                _output.WriteLine($"[Overseas QPACK chrome_152] {url}: SKIPPED/ERROR ({ex.GetType().Name}): {ex.Message}");
+            }
+        }
+
+        Assert.True(completedHosts >= 2, $"Expected at least 2 public HTTP/3 edges to complete chrome_152 multi-request test, completed={completedHosts}");
+        Assert.True(dynamicQpackHosts >= 1, $"Expected at least 1 public HTTP/3 edge to exercise QPACK dynamic table (QpackInsertCount > 0 && QpackDynamicHeaderSectionsDecoded > 0), observed={dynamicQpackHosts}/{completedHosts}");
+    }
+
+    [Fact]
+    public async Task Overseas_ClientInitiatedKeyUpdate_MultiGeneration_CloudflareGoogleNginx()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+        ClientProfile chrome152 = ProfileRegistry.GetRequired("chrome_152");
+        string[] targetUrls =
+        {
+            "https://one.one.one.one/cdn-cgi/trace",
+            "https://www.google.com/generate_204",
+            "https://quic.nginx.org/",
+        };
+
+        foreach (string url in targetUrls)
+        {
+            var uri = new Uri(url);
+            ConnectionKey key = ConnectionKey.Create("https", uri.Host, 443, chrome152.Name);
+
+            await using var quic = await QuicConnection.ConnectAsync(new QuicConnectionOptions
+            {
+                Host = uri.Host,
+                Port = 443,
+                Profile = chrome152,
+                TransportSpec = chrome152.QuicSpec,
+                VerifyOptions = StrictVerifyOptions(),
+                ConnectTimeout = TimeSpan.FromSeconds(12),
+            }, cts.Token);
+
+            await using var h3 = new Http3Connection(quic, key, chrome152);
+            await h3.StartAsync(cts.Token);
+
+            PureHttpResponse r1 = await h3.SendAsync(new PureHttpRequest
+            {
+                Method = "GET",
+                Uri = uri,
+                Headers = new[] { new PureHttpHeader("User-Agent", Chrome150UserAgent) },
+            }, cts.Token);
+            Assert.Equal("HTTP/3", r1.HttpVersion);
+            Assert.InRange(r1.StatusCode, 200, 299);
+
+            await quic.WaitForHandshakeConfirmedAsync(cts.Token);
+
+            // Generation 1 (phase 0 -> 1)
+            quic.InitiateKeyUpdate();
+            PureHttpResponse r2 = await h3.SendAsync(new PureHttpRequest
+            {
+                Method = "GET",
+                Uri = uri,
+                Headers = new[] { new PureHttpHeader("User-Agent", Chrome150UserAgent) },
+            }, cts.Token);
+            Assert.Equal("HTTP/3", r2.HttpVersion);
+            Assert.InRange(r2.StatusCode, 200, 299);
+            Assert.True(quic.ReadKeyPhaseGeneration >= 1, $"Expected ReadKeyPhaseGeneration >= 1 on {url}, got {quic.ReadKeyPhaseGeneration}");
+
+            // Generation 2 (phase 1 -> 0)
+            quic.InitiateKeyUpdate();
+            PureHttpResponse r3 = await h3.SendAsync(new PureHttpRequest
+            {
+                Method = "GET",
+                Uri = uri,
+                Headers = new[] { new PureHttpHeader("User-Agent", Chrome150UserAgent) },
+            }, cts.Token);
+            Assert.Equal("HTTP/3", r3.HttpVersion);
+            Assert.InRange(r3.StatusCode, 200, 299);
+            Assert.True(quic.ReadKeyPhaseGeneration >= 2, $"Expected ReadKeyPhaseGeneration >= 2 on {url}, got {quic.ReadKeyPhaseGeneration}");
+            Assert.True(quic.ClientInitiatedKeyUpdates >= 2);
+
+            _output.WriteLine($"[Overseas KeyUpdate] {url}: wGen={quic.WriteKeyPhaseGeneration} rGen={quic.ReadKeyPhaseGeneration} cliKu={quic.ClientInitiatedKeyUpdates} srvKu={quic.PeerInitiatedKeyUpdates} statuses=({r1.StatusCode},{r2.StatusCode},{r3.StatusCode})");
+        }
+    }
+
+    [Fact]
+    public async Task Overseas_PublicQuicRetryEndpoints_VerifyRealRetryTokenAndHttp3()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(65));
+        ClientProfile chrome152 = ProfileRegistry.GetRequired("chrome_152");
+        string[] candidateUrls =
+        {
+            "https://quic.aiortc.org:4434/",
+            "https://test.privateoctopus.com:4434/",
+            "https://quic.tech:8444/",
+            "https://http3-test.litespeedtech.com:4434/",
+            "https://nghttp2.org:4434/",
+        };
+
+        int retryHttp3Successes = 0;
+
+        foreach (string url in candidateUrls)
+        {
+            var uri = new Uri(url);
+            ConnectionKey key = ConnectionKey.Create("https", uri.Host, uri.Port, chrome152.Name);
+            using var probeCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+            probeCts.CancelAfter(TimeSpan.FromSeconds(12));
+
+            try
+            {
+                await using var quic = await QuicConnection.ConnectAsync(new QuicConnectionOptions
+                {
+                    Host = uri.Host,
+                    Port = uri.Port,
+                    Profile = chrome152,
+                    TransportSpec = chrome152.QuicSpec,
+                    VerifyOptions = StrictVerifyOptions(),
+                    ConnectTimeout = TimeSpan.FromSeconds(8),
+                }, probeCts.Token);
+
+                await using var h3 = new Http3Connection(quic, key, chrome152);
+                await h3.StartAsync(probeCts.Token);
+
+                PureHttpResponse resp = await h3.SendAsync(new PureHttpRequest
+                {
+                    Method = "GET",
+                    Uri = uri,
+                    Headers = new[] { new PureHttpHeader("User-Agent", Chrome150UserAgent) },
+                }, probeCts.Token);
+
+                _output.WriteLine($"[Overseas Retry Probe] {url}: status={resp.StatusCode} version={resp.HttpVersion} alpn={quic.NegotiatedAlpn} cipher=0x{quic.NegotiatedCipherSuite:x4} retry={quic.RetryReceived} retryTokenLen={quic.RetryToken.Length} bytes={resp.Body.Length}");
+
+                Assert.Equal("HTTP/3", resp.HttpVersion);
+                if (quic.RetryReceived && quic.RetryToken.Length > 0)
+                    retryHttp3Successes++;
+            }
+            catch (Exception ex)
+            {
+                _output.WriteLine($"[Overseas Retry Probe] {url}: PROBE_ERROR ({ex.GetType().Name}): {ex.Message}");
+            }
+        }
+
+        Assert.True(retryHttp3Successes >= 1, $"Expected at least 1 public QUIC Retry endpoint to return a real Retry token and complete HTTP/3, observed={retryHttp3Successes}");
     }
 }

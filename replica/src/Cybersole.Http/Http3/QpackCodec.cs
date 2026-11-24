@@ -738,6 +738,8 @@ public sealed class QpackDecoder
     public ulong MaxBlockedStreams { get; }
     public ulong MaxFieldSectionSize { get; }
     public ulong KnownReceivedCount { get; private set; }
+    public ulong InsertCount { get { lock (_lock) return DynamicTable.InsertCount; } }
+    public int DynamicEntryCount { get { lock (_lock) return DynamicTable.EntryCount; } }
 
     /// <summary>
     /// Feeds raw bytes from the peer's QPACK Encoder unidirectional stream (<c>0x02</c>),
@@ -853,8 +855,16 @@ public sealed class QpackDecoder
         if (insertedDelta == 0)
             return Array.Empty<byte>();
 
+        return BuildInsertCountIncrement(insertedDelta);
+    }
+
+    public static byte[] BuildInsertCountIncrement(ulong increment)
+    {
+        if (increment == 0)
+            throw new ArgumentOutOfRangeException(nameof(increment), "QPACK Insert Count Increment must be greater than zero (RFC 9204 §4.4.3).");
+
         var feedback = new List<byte>(4);
-        QpackWirePrimitives.WriteInt(feedback, 6, 0x00, insertedDelta); // 4.4.3 Insert Count Increment
+        QpackWirePrimitives.WriteInt(feedback, 6, 0x00, increment); // 4.4.3 Insert Count Increment
         return feedback.ToArray();
     }
 

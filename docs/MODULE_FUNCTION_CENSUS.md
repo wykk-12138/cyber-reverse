@@ -1,11 +1,11 @@
 # 模块级函数分布与 Cybersole.* 类型/方法普查报告（Gap #2）
 
-> 生成时间：2026-11-24 02:14:18 +0800  |  生成脚本：`python analysis/module_function_census.py --write-doc`
+> 生成时间：2026-11-24 10:22:42 +0800  |  生成脚本：`python analysis/module_function_census.py --write-doc`
 > 全局动态套件/绑定指标唯一源：`docs/METRICS.md`（本文只陈述源码/PDB/二进制与 IDA 普查观测值）。
 
 ## 一、结论摘要（Observation / Inference / Unknown 严格分离）
 
-- **Observation（复刻件 100% 归因）**：通过解析 `Cybersole.Ui.pdb`（MSF 7.0，233 模块 / 202,061 过程符号）并与 `Cybersole.Ui.exe` 的 `.pdata` 区间（206,699 有效函数区间 / 206,720 原始槽位）做精确 + 内嵌 funclet 匹配，**100.00%**（`outside=0`）`.pdata` 函数得到归属。其中 **84.91%**（175,512 个）为 `System.* / BCL`、Avalonia UI 栈与 NativeAOT CRT；**9.41%**（19,444 个）为第三方库（`Jint/Acornima`、`BouncyCastle`、`Newtonsoft.Json`、`MailKit/MimeKit`）；**仅 4.42%（9,130 个 `.pdata` 函数 / 2.60 MiB）为 `Cybersole.*` 自身业务代码**。
+- **Observation（复刻件 100% 归因）**：通过解析 `Cybersole.Ui.pdb`（MSF 7.0，233 模块 / 202,063 过程符号）并与 `Cybersole.Ui.exe` 的 `.pdata` 区间（206,702 有效函数区间 / 206,720 原始槽位）做精确 + 内嵌 funclet 匹配，**100.00%**（`outside=0`）`.pdata` 函数得到归属。其中 **84.91%**（175,512 个）为 `System.* / BCL`、Avalonia UI 栈与 NativeAOT CRT；**9.41%**（19,444 个）为第三方库（`Jint/Acornima`、`BouncyCastle`、`Newtonsoft.Json`、`MailKit/MimeKit`）；**仅 4.42%（9,133 个 `.pdata` 函数 / 2.60 MiB）为 `Cybersole.*` 自身业务代码**。
 - **Observation（原版多信号归因与诚实未知量）**：对 `target/Cybersole.exe`（321,244 IDA 函数 / 277,094 有效 `.pdata` 区间 / 277,120 原始槽位），结合（1）可信原生 IDA 符号（过滤 `< 0x143025000` 的 9,496 个 tiny FLIRT/nullsub 误命）、（2）`chars_va - 12` 冻结 UTF-16 字符串（67,692 个对象头）与 C 字符串 `.text disp32` 扫描（204,638 命中 / 36,685 函数）、（3）937,233 条 IDA 调用图边的 1–2 跳保守纯模块传播，共归因 **62,836** 个函数（`Direct-Attributed` **10,937** + `Callgraph-Propagated` **51,899**），**`Unattributed` 258,408（80.44%）**如实保留为未知。
 - **Observation（关键差距核对与死岛/补齐状态）**：
   1. **Mail/IMAP/AYCD 已接入运行链路（死岛已消除）**：`MailCodeService` + `ImapMailProvider` + `AycdInboxClient` 已接入 `AppServices.cs`、`TaskEngine.cs` 与设置校验动作，`Cybersole.Ui.pdb` 现包含 **2,394** 个 `.pdata` 函数（`MailKit` 1,263 + `MimeKit` 1,131；原版已观测 22 个归因函数）。
@@ -16,18 +16,18 @@
 
 ## 二、复刻件模块函数分布（`Cybersole.Ui.pdb` + `.pdata` 100% 实测）
 
-- 产物：`D:\projects\cyber-reverse\replica\.publish-aot\Cybersole.Ui.exe`（67,587,072 B，修改时间 2026-11-24 02:13:46）
-- PDB：`D:\projects\cyber-reverse\replica\.publish-aot\Cybersole.Ui.pdb`（325,242,880 B，233 模块，202,061 过程符号）
-- `.pdata` 覆盖：206,699 有效函数区间（原始 206,720 槽含 42 字节对齐空槽），**0 个未归因区间**。
+- 产物：`D:\projects\cyber-reverse\replica\.publish-aot\Cybersole.Ui.exe`（67,588,096 B，修改时间 2026-11-24 10:22:17）
+- PDB：`D:\projects\cyber-reverse\replica\.publish-aot\Cybersole.Ui.pdb`（325,267,456 B，233 模块，202,063 过程符号）
+- `.pdata` 覆盖：206,702 有效函数区间（原始 206,720 槽含 42 字节对齐空槽），**0 个未归因区间**。
 
 | 模块桶 | `.pdata` 合计 | 精确起始命中 | 内嵌 Funclet | 代码字节 | 占比 |
 |---|---:|---:|---:|---:|---:|
-| `System.* / BCL` | 136,711 | 127,388 | 9,323 | 16,373,309 | 66.14% |
+| `System.* / BCL` | 136,711 | 127,388 | 9,323 | 16,373,321 | 66.14% |
 | `Avalonia.*` | 33,480 | 30,492 | 2,988 | 5,865,552 | 16.20% |
 | `Jint.*` | 8,463 | 7,908 | 555 | 2,743,321 | 4.09% |
 | `Org.BouncyCastle.*` | 5,672 | 5,508 | 164 | 1,337,912 | 2.74% |
 | `Cybersole.Stores` | 4,333 | 3,480 | 853 | 1,230,291 | 2.10% |
-| `Cybersole.Http` | 2,698 | 2,124 | 574 | 878,297 | 1.31% |
+| `Cybersole.Http` | 2,701 | 2,126 | 575 | 878,688 | 1.31% |
 | `Other` | 2,613 | 2,510 | 103 | 922,971 | 1.26% |
 | `NativeAOT / CRT Runtime` | 1,895 | 1,085 | 810 | 702,435 | 0.92% |
 | `Newtonsoft.Json.*` | 1,864 | 1,740 | 124 | 357,007 | 0.90% |
@@ -48,7 +48,7 @@
 | 工程 | `.cs` 文件数 | 总行数 | 声明类型数 |
 |---|---:|---:|---:|
 | `Cybersole.Core` | 62 | 5,453 | 149 |
-| `Cybersole.Http` | 62 | 36,791 | 323 |
+| `Cybersole.Http` | 62 | 36,841 | 323 |
 | `Cybersole.Services` | 22 | 4,409 | 61 |
 | `Cybersole.Stores` | 189 | 54,229 | 353 |
 | `Cybersole.Ui` | 65 | 21,090 | 133 |
@@ -63,7 +63,7 @@
 1. **Signal 1（可信 IDA 符号）**：仅采信 `>= 0x143025000`（`main` 及 CRT/Win32 启动段）与 23 个 `Brotli*` 导出函数；显式剔除 `< 0x143025000` 托管代码区内的 **9,496** 个 `nullsub_*` 与 5–28 B IDA FLIRT 误匹配（实证样本：`0x14032aeb0` 被 IDA 标为 `__acrt_update_thread_multibyte_data_90`，实测加载 Avalonia 冻结串 `SystemControlDisabledBaseMediumLowBrush`）。
 2. **Signal 2（字符串 Xref 归属）**：对 `idautils.Strings()` 中 67,692 个冻结 UTF-16 对象算头 `chars_va - 12`，连同 C/UTF-8 串在 `.text` 全字节滑动 `disp32` 扫描得 **204,638** 处指令引用（命中 **36,685** 个函数），按无歧义库/命名空间/URL/文案种子归因（`127` 个非 BCL 多模块冲突函数故意保留为未归因，不强行归类）。
 3. **Signal 3（1–2 跳保守纯模块传播）**：在 IDA 937,233 条调用边上执行 2 轮传播：`System.* / BCL` 与 `NativeAOT / CRT` 在已归因邻居中唯一一致时传播；非 BCL 应用/三方模块仅当**全部邻居（caller ∪ callee）均已归因且同属该模块**时才传播。
-   - **在有 PDB 真值的复刻件上校准（362,922 条 `E8` 边，模拟不均衡种子 8,818 个）**：传播 39,065 个函数，**总体准确率 86.0%**，`Cybersole.Stores` 精确率 **72.2%**（36 个），`Avalonia.*` 精确率 **96.1%**（231 个）。（对比实验表明：若对 `Cybersole.Stores` 放开向未归因 callee 传播，`Stores` 精确率会跌至 42.1%，因大量 BCL 泛型特化仅被上层业务调用。）
+   - **在有 PDB 真值的复刻件上校准（362,933 条 `E8` 边，模拟不均衡种子 8,808 个）**：传播 33,198 个函数，**总体准确率 94.1%**，`Cybersole.Stores` 精确率 **68.8%**（32 个），`Avalonia.*` 精确率 **95.4%**（194 个）。（对比实验表明：若对 `Cybersole.Stores` 放开向未归因 callee 传播，`Stores` 精确率会跌至 42.1%，因大量 BCL 泛型特化仅被上层业务调用。）
 
 | 汇总档位 | IDA 函数数 | 占比 | 对应 `.pdata` 起始 | 代码字节 |
 |---|---:|---:|---:|---:|
@@ -90,16 +90,16 @@
 | `Microsoft.AspNetCore.SignalR` | 51 | 34 | 17 | 51 | 26,274 | `0x14190158b` |
 | `Cybersole.Http (Brotli native)` | 43 | 35 | 8 | 17 | 13,358 | `0x1430f2970` |
 | `Metalama.*` | 33 | 30 | 3 | 33 | 2,204 | `0x141274500` |
-| `Velopack.*` | 23 | 17 | 6 | 21 | 22,510 | `0x1420120c0` |
 | `Newtonsoft.Json.*` | 23 | 20 | 3 | 23 | 7,786 | `0x141adaf20` |
+| `Velopack.*` | 23 | 17 | 6 | 21 | 22,510 | `0x1420120c0` |
 | `MailKit / MimeKit` | 22 | 21 | 1 | 22 | 6,542 | `0x14189d4e0` |
-| `Org.BouncyCastle.*` | 16 | 15 | 1 | 16 | 4,978 | `0x140530690` |
 | `Cybersole.Core` | 16 | 11 | 5 | 15 | 8,944 | `0x1426128a0` |
+| `Org.BouncyCastle.*` | 16 | 15 | 1 | 16 | 4,978 | `0x140530690` |
 | `SkiaSharp / HarfBuzzSharp` | 13 | 13 | 0 | 13 | 5,232 | `0x141b1c2b0` |
 | `RabbitMQ.Client` | 12 | 12 | 0 | 12 | 2,986 | `0x141b08b20` |
 | `Cybersole.Auth/Lic (R702 not-in-function-set)` | 10 | 8 | 2 | 10 | 2,322 | `0x140773371` |
-| `Google.Protobuf.*` | 8 | 4 | 4 | 8 | 240 | `0x1415d8ca0` |
 | `Cybersole.Http` | 8 | 6 | 2 | 7 | 6,197 | `0x141313990` |
+| `Google.Protobuf.*` | 8 | 4 | 4 | 8 | 240 | `0x1415d8ca0` |
 | `Cybersole.Services` | 7 | 5 | 2 | 7 | 4,323 | `0x14101a970` |
 | `OpenTelemetry / Analytics` | 6 | 4 | 2 | 6 | 986 | `0x141981e82` |
 | `Unattributed` | 258,408 | 0 | 0 | 220,307 | 27,999,113 | — |
@@ -114,7 +114,7 @@
 | **Cybersole.Stores.Payments (PayPal 3DS / Stripe / Adyen / Unzer / Checkout.com)** | 124 payment async names (195 occ); `0x143320000`, `0x14338294f` (`CardinalInit`), `0x143383aa9` (`ContinueUnzerThreeDs`), `0x1470530bc` (`api.checkout.com`) | `Cybersole.Stores/Payments/{PayPalThreeDs,StripeChallenge,CardinalThreeDs,CheckoutComGateway,Gateways}.cs` | `Implemented` | PayPal 3DS (9 stages), Stripe 6 endpoints + 8-builder static dispatch, `UnzerGateway` (`ContinueUnzerThreeDs`), `CardinalThreeDs` (Centinel/CardinalTrusted/DF/StepUp), and `CheckoutComGateway` (`api.checkout.com` 4 paths) landed (51/124 names, 122/195 occ); honest `Unknown` boundaries kept for Unzer prepare subpath/terminal set & ACS host field tables. |
 | **Cybersole.Stores.Scripts (Kasada / Cloudflare / DataDome / PX / Akamai / Queue-it)** | Jint + Acornima (484 attributed funcs); `GenerateSensor`, `GetSbsdHash`, `DdMobileEvent`/`SensorRequest` (`0x14333fc96`), `SolverApiException` | `Cybersole.Stores/Scripts/*.cs` (`KasadaSolver`, `CloudflareStrategy`, `BrowserShim`, etc.) | `Partial / Compatibility Surfaces Only` | Passive vendor detection, Jint runtime shims, and compatibility surfaces implemented; sensor-forgery / anti-bot execution wrappers (`GetSbsdHash`/`GetSbsdScript`, `DdMobileTouchEvent`/`SensorPow`) and browser-hosted challenge wrappers are not part of the replica's function set. |
 | **Cybersole.Stores AI / Vision & Automated Captcha Solving** | 21 Vision DTOs (`HintLabelsRequest`..`GANResult` @ `0x14333c304`), `ExecuteClipModelAsync`/`SolveImageInCloudAsync`/`ClickCellsAsync` @ `0x1435f0000`, `CallParallax` @ `0x14345c117` | `Cybersole.Services/Captcha/{CaptchaSolverService,Drivers}.cs`, `CaptchaSurface.cs` | `Not In Function Set` | User third-party API drivers (2Captcha/Parallax/Uncaptcha/HumanPresence) and detection (`CaptchaSurface`) implemented; automated CAPTCHA/anti-bot execution wrappers (`ExecuteClipModelAsync`, `ClickCellsAsync`, `MoveMouseAndClickWithoutTrajectoryAsync`) are not part of the replica's function set. |
-| **Cybersole.Http (NetClient 0.10.0) + Brotli + Companion Packages** | `Cybersole.Http.dll`, `Cybersole.Http.{Newtonsoft,Analytics,Debug}.dll` (`0x14315a7c1..0x14316e350`), 51 attributed funcs (incl. Brotli) | `Cybersole.Http/` (2,698 `.pdata` funcs, 857 KiB; `BrotliDictionary.bin`) | `Implemented` | `SocketsHttpHandler` + `TlsProfile.Chrome150` + Brotli dict + `IBody`/`LegacyJsonBody`/`LegacyJarrayBody` + `ClickHouseSink` (`BoundedChannel`, `FlushOnceAsync`/`DrainLocalQueueAsync`) + `HttpDebug` (`CSHD\x01`) + `RootCertificateStore` landed. |
+| **Cybersole.Http (NetClient 0.10.0) + Brotli + Companion Packages** | `Cybersole.Http.dll`, `Cybersole.Http.{Newtonsoft,Analytics,Debug}.dll` (`0x14315a7c1..0x14316e350`), 51 attributed funcs (incl. Brotli) | `Cybersole.Http/` (2,701 `.pdata` funcs, 858 KiB; `BrotliDictionary.bin`) | `Implemented` | `SocketsHttpHandler` + `TlsProfile.Chrome150` + Brotli dict + `IBody`/`LegacyJsonBody`/`LegacyJarrayBody` + `ClickHouseSink` (`BoundedChannel`, `FlushOnceAsync`/`DrainLocalQueueAsync`) + `HttpDebug` (`CSHD\x01`) + `RootCertificateStore` landed. |
 | **Cybersole.Services.Mail (ImapProvider / AYCD / MailKit + MimeKit)** | `MailKit.dll` + `MimeKit.dll` (22 attributed funcs @ `0x14188..0x1419e`), `WaitImapAsync` (`0x14336b99e`), `AycdCompletedTasks`/`AycdMailElement` (`0x14334cb55`) | `Cybersole.Services/Mail/{ImapMailProvider,AycdInboxClient}.cs` — **2,394 funcs in `Cybersole.Ui.pdb`** (`MailKit` 1,263 + `MimeKit` 1,131) | `Implemented` | `MailCodeService` (`Task.WhenAny`), `ImapMailProvider`, and `AycdInboxClient` wired into `AppServices.Mail` -> `TaskEngine` -> `CheckoutContext.WaitForMailCodeAsync` and Settings verification handlers (2,394 live `MailKit`/`MimeKit` funcs retained in NativeAOT PDB; MSAL Outlook OAuth refresh stays External Blocked). |
 | **Cybersole.Services Cloud Sync / SignalR / RabbitMQ / MSAL / Velopack** | `SignalR` (51), `MSAL` (57), `Velopack` (23), `RabbitMQ` (12), 35 `*Dto` (`0x1433473dc`) + 21 `Remote*` (`0x1433611c7`) | `BackupScheduler.cs`, `ClockService.cs`, `SettingsShell.cs` (local Velopack cache check only) | `External Blocked` | Missing `SignalR` (`/connect/app`), `RabbitMQ.Client`, `Microsoft.Identity.Client` (MSAL OAuth2), cloud `*Dto`/`Remote*` sync, and real `Velopack` update feed (`cdn.cybersole.io/releases/` returns 404; `/connect/app` requires valid login). |
 | **Cybersole.Core / Models / SmartActions / Providers (Metalama Observability)** | `Cybersole.Core.dll` + `Metalama.Framework` (33 funcs @ `0x141274`), `Cybersole.Providers.IDataProvider` (`0x143216abb`), `Cybersole.Global.Strings` (`0x143210e9f`) | `Cybersole.Core/` (5,453 LOC; 219 `.pdata` funcs; handwritten `ObservableObject` + `RelayCommand`) | `Implemented` | All 143 `Cybersole.*` accessor types accounted for (`85` FQN, `44` namespace-moved, `14` in `type_classification.json`, `0` missing); `IDataProvider` is an unimplemented interface contract; `CommunityToolkit.Mvvm` in `.csproj` is unused/trimmed. |

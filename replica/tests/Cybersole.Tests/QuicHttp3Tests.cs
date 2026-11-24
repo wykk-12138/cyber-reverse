@@ -790,6 +790,250 @@ public sealed class QuicHttp3Tests
         }
     }
 
+    [Fact]
+    public async Task QuicConnection_ClientInitiatedKeyUpdate_PreservesInFlightOldPhasePackets_And_GuardsBackToBackUpdates()
+    {
+        using var caKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using X509Certificate2 caCert = CreateTestCa(caKey, "CN=Cybersole KeyUpdate Root");
+        using X509Certificate2 leafCert = CreateTestLeaf(leafKey, caCert, TestHost);
+        var roots = new RootCertificateDatabase();
+        roots.AddDer(caCert.RawData);
+
+        // Part A: Client cannot initiate KeyUpdate before HANDSHAKE_DONE confirms handshake (RFC 9001 §6.2)
+        await using (var pair = new LoopbackQuicTransportPair())
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var server = new SyntheticQuicHttp3Server(
+                pair.Server,
+                leafKey,
+                new[] { leafCert.RawData, caCert.RawData },
+                delayHandshakeDone: true);
+            Task serverTask = server.RunAsync(cts.Token);
+
+            await using var quic = await QuicConnection.ConnectAsync(new QuicConnectionOptions
+            {
+                Host = TestHost,
+                Port = 443,
+                Profile = ProfileRegistry.GetRequired("chrome_152"),
+                VerifyOptions = new CertificateVerifyOptions { CustomRoots = roots, UseEmbeddedDefaultRoots = false },
+                TransportOverride = pair.Client,
+                ConnectTimeout = TimeSpan.FromSeconds(5),
+            }, cts.Token);
+
+            Assert.False(quic.HandshakeConfirmed);
+            Assert.Throws<InvalidOperationException>(() => quic.InitiateKeyUpdate());
+
+            await server.SendHandshakeDoneAsync(cts.Token);
+            await quic.WaitForHandshakeConfirmedAsync(cts.Token);
+            Assert.True(quic.HandshakeConfirmed);
+
+            cts.Cancel();
+            await server.DisposeAsync();
+            try { await serverTask; } catch (OperationCanceledException) { }
+        }
+
+        // Part B: Write-only rotation preserves in-flight phase-0 peer packets, enforces single in-flight update,
+        // and advances ReadKeyPhaseGeneration cleanly across multiple key-update generations.
+        await using (var pair = new LoopbackQuicTransportPair())
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var server = new SyntheticQuicHttp3Server(
+                pair.Server,
+                leafKey,
+                new[] { leafCert.RawData, caCert.RawData });
+            Task serverTask = server.RunAsync(cts.Token);
+
+            ClientProfile chrome152 = ProfileRegistry.GetRequired("chrome_152");
+            await using Http3Connection h3 = await Http3Connection.ConnectAsync(
+                new QuicConnectionOptions
+                {
+                    Host = TestHost,
+                    Port = 443,
+                    Profile = chrome152,
+                    VerifyOptions = new CertificateVerifyOptions { CustomRoots = roots, UseEmbeddedDefaultRoots = false },
+                    TransportOverride = pair.Client,
+                    ConnectTimeout = TimeSpan.FromSeconds(5),
+                },
+                ConnectionKey.Create("https", TestHost, 443, chrome152.Name),
+                cts.Token);
+
+            await h3.Quic.WaitForHandshakeConfirmedAsync(cts.Token);
+
+            // Start a slow HTTP/3 response whose HEADERS arrive on phase 0, then wait before body DATA arrives.
+            Task<PureHttpResponse> slowTask = h3.SendAsync(new PureHttpRequest
+            {
+                Method = "GET",
+                Uri = new Uri("https://localhost/slow-phase0"),
+            }, cts.Token);
+            await server.WaitForSlowHeadersSentAsync(cts.Token);
+            Assert.False(slowTask.IsCompleted);
+
+            // Client initiates KeyUpdate Gen 1: write keys flip 0->1, read keys stay on phase 0 for in-flight packets.
+            h3.Quic.InitiateKeyUpdate();
+            Assert.Equal(1, h3.Quic.WriteKeyPhaseGeneration);
+            Assert.Equal(0, h3.Quic.ReadKeyPhaseGeneration);
+            Assert.Equal(1, h3.Quic.ClientInitiatedKeyUpdates);
+            Assert.Equal(0, h3.Quic.PeerInitiatedKeyUpdates);
+
+            // Back-to-back InitiateKeyUpdate() before peer flips key phase must throw per RFC 9001 §6.2.
+            Assert.Throws<InvalidOperationException>(() => h3.Quic.InitiateKeyUpdate());
+
+            // In-flight peer packet encrypted with phase-0 write keys MUST still decrypt cleanly on client!
+            await server.CompleteSlowStreamUnderPhase0Async(Encoding.UTF8.GetBytes("stale-phase0-body"), cts.Token);
+            PureHttpResponse slowResp = await slowTask;
+            Assert.Equal(200, slowResp.StatusCode);
+            Assert.Equal("stale-phase0-body", Encoding.UTF8.GetString(slowResp.Body));
+            Assert.Equal(0, h3.Quic.ReadKeyPhaseGeneration);
+
+            // Now client sends a phase-1 request -> server detects phase flip, rotates server keys, and replies on phase 1.
+            PureHttpResponse rGen1 = await h3.SendAsync(new PureHttpRequest
+            {
+                Method = "GET",
+                Uri = new Uri("https://localhost/hello"),
+            }, cts.Token);
+            Assert.Equal(200, rGen1.StatusCode);
+            Assert.Equal("hello-h3", Encoding.UTF8.GetString(rGen1.Body));
+            Assert.Equal(1, h3.Quic.ReadKeyPhaseGeneration);
+            Assert.Equal(1, h3.Quic.WriteKeyPhaseGeneration);
+            Assert.Equal(1, h3.Quic.ClientInitiatedKeyUpdates);
+            Assert.Equal(0, h3.Quic.PeerInitiatedKeyUpdates);
+
+            // Second client-initiated KeyUpdate (Gen 2: phase 1->0)
+            h3.Quic.InitiateKeyUpdate();
+            Assert.Equal(2, h3.Quic.WriteKeyPhaseGeneration);
+            Assert.Equal(2, h3.Quic.ClientInitiatedKeyUpdates);
+
+            byte[] echoPayload = Encoding.UTF8.GetBytes("phase2-echo-payload");
+            PureHttpResponse rGen2 = await h3.SendAsync(new PureHttpRequest
+            {
+                Method = "POST",
+                Uri = new Uri("https://localhost/echo"),
+                Body = echoPayload,
+            }, cts.Token);
+            Assert.Equal(200, rGen2.StatusCode);
+            Assert.Equal(echoPayload, rGen2.Body);
+            Assert.Equal(2, h3.Quic.ReadKeyPhaseGeneration);
+            Assert.Equal(2, h3.Quic.WriteKeyPhaseGeneration);
+            Assert.Equal(2, h3.Quic.ClientInitiatedKeyUpdates);
+            Assert.Equal(0, h3.Quic.PeerInitiatedKeyUpdates);
+
+            cts.Cancel();
+            await server.DisposeAsync();
+            try { await serverTask; } catch (OperationCanceledException) { }
+        }
+    }
+
+    [Fact]
+    public async Task Http3Connection_QpackDecoderStream_NeverOverflowsKnownReceivedCount_UnderConcurrentSectionAck()
+    {
+        using var caKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using X509Certificate2 caCert = CreateTestCa(caKey, "CN=Cybersole QPACK Decoder Root");
+        using X509Certificate2 leafCert = CreateTestLeaf(leafKey, caCert, TestHost);
+        var roots = new RootCertificateDatabase();
+        roots.AddDer(caCert.RawData);
+
+        await using var pair = new LoopbackQuicTransportPair();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var server = new SyntheticQuicHttp3Server(pair.Server, leafKey, new[] { leafCert.RawData, caCert.RawData });
+        Task serverTask = server.RunAsync(cts.Token);
+
+        ClientProfile chrome152 = ProfileRegistry.GetRequired("chrome_152");
+        await using Http3Connection h3 = await Http3Connection.ConnectAsync(
+            new QuicConnectionOptions
+            {
+                Host = TestHost,
+                Port = 443,
+                Profile = chrome152,
+                VerifyOptions = new CertificateVerifyOptions { CustomRoots = roots, UseEmbeddedDefaultRoots = false },
+                TransportOverride = pair.Client,
+                ConnectTimeout = TimeSpan.FromSeconds(5),
+            },
+            ConnectionKey.Create("https", TestHost, 443, chrome152.Name),
+            cts.Token);
+
+        // Fire 6 concurrent requests whose responses all reference 12 dynamically-inserted QPACK entries.
+        Task<PureHttpResponse>[] tasks = Enumerable.Range(0, 6)
+            .Select(i => h3.SendAsync(new PureHttpRequest
+            {
+                Method = "GET",
+                Uri = new Uri($"https://localhost/dyn-concurrent?i={i}"),
+            }, cts.Token))
+            .ToArray();
+
+        PureHttpResponse[] responses = await Task.WhenAll(tasks);
+        foreach (PureHttpResponse resp in responses)
+        {
+            Assert.Equal(200, resp.StatusCode);
+            Assert.Equal("val-11", resp.GetFirstHeader("x-dyn-11"));
+        }
+
+        Assert.Equal(12UL, h3.QpackInsertCount);
+        Assert.Equal(12UL, h3.QpackKnownReceivedCount);
+        Assert.Equal(12, h3.QpackDynamicEntryCount);
+        Assert.Equal(6L, h3.QpackDynamicHeaderSectionsDecoded);
+
+        // Give client decoder uni stream a moment to flush all SectionAck / InsertCountIncrement instructions to server.
+        byte[] decoderWire = await server.WaitForClientDecoderBytesAsync(minBytes: 6, cts.Token);
+
+        // Simulate a strict RFC 9204 §2.1.4 / §4.4 QPACK encoder validating decoder stream instructions in wire order.
+        const ulong totalInserts = 12UL;
+        ulong peerKnownReceived = 0UL;
+        int off = 0;
+        while (off < decoderWire.Length)
+        {
+            byte first = decoderWire[off];
+            if ((first & 0x80) != 0)
+            {
+                // RFC 9204 §4.4.1 Section Acknowledgment: 1 | StreamID(7+)
+                ulong sid = ReadQpackPrefixedInt(decoderWire, ref off, 7);
+                Assert.True(server.TryGetStreamRequiredInsertCount(sid, out ulong streamRic), $"SectionAck for unknown stream {sid}");
+                Assert.True(streamRic > 0, "SectionAck for stream with RequiredInsertCount == 0 violates RFC 9204 §4.4.1");
+                if (streamRic > peerKnownReceived)
+                    peerKnownReceived = streamRic;
+            }
+            else if ((first & 0x40) != 0)
+            {
+                // RFC 9204 §4.4.2 Stream Cancellation: 01 | StreamID(6+)
+                _ = ReadQpackPrefixedInt(decoderWire, ref off, 6);
+            }
+            else
+            {
+                // RFC 9204 §4.4.3 Insert Count Increment: 00 | Increment(6+)
+                ulong inc = ReadQpackPrefixedInt(decoderWire, ref off, 6);
+                Assert.True(inc > 0, "Zero InsertCountIncrement violates RFC 9204 §4.4.3");
+                peerKnownReceived += inc;
+                Assert.True(
+                    peerKnownReceived <= totalInserts,
+                    $"RFC 9204 QPACK_DECODER_STREAM_ERROR: peer knownReceivedCount={peerKnownReceived} overflowed totalInserts={totalInserts}");
+            }
+        }
+
+        Assert.Equal(totalInserts, peerKnownReceived);
+
+        cts.Cancel();
+        await server.DisposeAsync();
+        try { await serverTask; } catch (OperationCanceledException) { }
+    }
+
+    private static ulong ReadQpackPrefixedInt(ReadOnlySpan<byte> buf, ref int offset, int prefixBits)
+    {
+        ulong maxPrefix = (1UL << prefixBits) - 1UL;
+        ulong value = buf[offset++] & maxPrefix;
+        if (value < maxPrefix)
+            return value;
+        int m = 0;
+        while (true)
+        {
+            byte b = buf[offset++];
+            value += (ulong)(b & 0x7F) << m;
+            if ((b & 0x80) == 0)
+                return value;
+            m += 7;
+        }
+    }
+
     // ---- Test Utilities & Pure C# QUIC+HTTP/3 Server Harness ----
 
     private static byte[] BuildSocks5EchoReply(byte[] udpBuf, int receivedBytes, out string dstIp, out int dstPort)
@@ -912,6 +1156,7 @@ public sealed class QuicHttp3Tests
         private readonly bool _requireRetry;
         private readonly bool _sendInvalidSetting;
         private readonly ulong _initialMaxStreamsUni;
+        private readonly bool _delayHandshakeDone;
         private readonly byte[] _serverScid = RandomNumberGenerator.GetBytes(8);
         private readonly byte[] _retryScid = RandomNumberGenerator.GetBytes(8);
         private readonly byte[] _retryToken = Encoding.ASCII.GetBytes("cybersole-retry-token");
@@ -925,6 +1170,11 @@ public sealed class QuicHttp3Tests
         private QuicKeySet? _hsWrite;
         private QuicKeySet? _appRead;
         private QuicKeySet? _appWrite;
+        private QuicKeySet? _srvPrevAppRead;
+        private QuicKeySet? _srvNextAppRead;
+        private QuicKeySet? _phase0AppWrite;
+        private bool _srvReadKeyPhase;
+        private bool _srvWriteKeyPhase;
         private ulong _pnInit;
         private ulong _pnHs;
         private ulong _pnApp;
@@ -952,8 +1202,16 @@ public sealed class QuicHttp3Tests
         private ulong _srvDecoderOffset;
         private readonly ConcurrentDictionary<ulong, (ServerStreamAssembler Asm, MemoryStream Buf, ulong? FinSize, bool Handled)> _bidiStreams = new();
         private readonly ConcurrentDictionary<ulong, ServerStreamAssembler> _clientUniStreams = new();
+        private readonly ConcurrentDictionary<ulong, ulong> _clientUniStreamTypes = new();
+        private readonly MemoryStream _clientDecoderStreamBytes = new();
+        private readonly ConcurrentDictionary<ulong, ulong> _streamReqInsertCounts = new();
         private readonly QpackDecoder _reqDecoder = new();
+        private readonly TaskCompletionSource<bool> _slowHeadersSentTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private ulong _pendingSlowStreamId;
+        private ulong _pendingSlowOffset;
+        private bool _hasPendingSlowStream;
         private bool _dynamicTableInitialized;
+        private bool _concurrentDynamicTableInitialized;
 
         public int ClientUniStreamCount => _clientUniStreams.Count;
 
@@ -963,7 +1221,8 @@ public sealed class QuicHttp3Tests
             byte[][] derChain,
             bool requireRetry = false,
             bool sendInvalidSetting = false,
-            ulong initialMaxStreamsUni = 100UL)
+            ulong initialMaxStreamsUni = 100UL,
+            bool delayHandshakeDone = false)
         {
             _transport = transport;
             _leafKey = leafKey;
@@ -971,6 +1230,51 @@ public sealed class QuicHttp3Tests
             _requireRetry = requireRetry;
             _sendInvalidSetting = sendInvalidSetting;
             _initialMaxStreamsUni = initialMaxStreamsUni;
+            _delayHandshakeDone = delayHandshakeDone;
+        }
+
+        public bool TryGetStreamRequiredInsertCount(ulong streamId, out ulong ric) =>
+            _streamReqInsertCounts.TryGetValue(streamId, out ric);
+
+        public async Task SendHandshakeDoneAsync(CancellationToken ct)
+        {
+            var outbound = new List<byte[]>();
+            AddAppFrames(new QuicFrame[] { QuicHandshakeDoneFrame.Instance }, outbound);
+            for (int i = 0; i < outbound.Count; i++)
+                await _transport.SendDatagramAsync(outbound[i], ct);
+        }
+
+        public Task WaitForSlowHeadersSentAsync(CancellationToken ct) =>
+            _slowHeadersSentTcs.Task.WaitAsync(ct);
+
+        public async Task CompleteSlowStreamUnderPhase0Async(byte[] body, CancellationToken ct)
+        {
+            byte[] dataFrame = Http3FrameCodec.BuildFrame(Http3FrameType.Data, body);
+            byte[] pkt;
+            lock (_txLock)
+            {
+                byte[] pt = QuicFrameCodec.Encode(new QuicFrame[]
+                {
+                    new QuicStreamFrame(_pendingSlowStreamId, _pendingSlowOffset, dataFrame, Fin: true),
+                });
+                pkt = QuicPacketCodec.BuildShortHeaderPacket(_clientCid, _pnApp++, 1, keyPhase: false, pt, _phase0AppWrite!);
+            }
+            await _transport.SendDatagramAsync(pkt, ct);
+        }
+
+        public async Task<byte[]> WaitForClientDecoderBytesAsync(int minBytes, CancellationToken ct)
+        {
+            for (int i = 0; i < 200; i++)
+            {
+                lock (_txLock)
+                {
+                    if (_clientDecoderStreamBytes.Length >= minBytes)
+                        return _clientDecoderStreamBytes.ToArray();
+                }
+                await Task.Delay(10, ct);
+            }
+            lock (_txLock)
+                return _clientDecoderStreamBytes.ToArray();
         }
 
         public async Task RunAsync(CancellationToken ct)
@@ -986,6 +1290,8 @@ public sealed class QuicHttp3Tests
                 ProcessDatagram(buf.AsSpan(0, n), outbound);
                 for (int i = 0; i < outbound.Count; i++)
                     await _transport.SendDatagramAsync(outbound[i], ct);
+                if (_hasPendingSlowStream)
+                    _slowHeadersSentTcs.TrySetResult(true);
             }
         }
 
@@ -1009,7 +1315,7 @@ public sealed class QuicHttp3Tests
                 ulong off = _srvControlOffset;
                 _srvControlOffset += (ulong)data.Length;
                 byte[] pt = QuicFrameCodec.Encode(new QuicFrame[] { new QuicStreamFrame(_srvControlStreamId, off, data, fin) });
-                return QuicPacketCodec.BuildShortHeaderPacket(_clientCid, _pnApp++, 1, keyPhase: false, pt, _appWrite!);
+                return QuicPacketCodec.BuildShortHeaderPacket(_clientCid, _pnApp++, 1, keyPhase: _srvWriteKeyPhase, pt, _appWrite!);
             }
         }
 
@@ -1100,13 +1406,48 @@ public sealed class QuicHttp3Tests
 
                     int pnOffset = 1 + _serverScid.Length;
                     byte[] copy = span.ToArray();
-                    if (_appRead.TryRemoveHeaderProtection(copy, pnOffset, out int pnLen, out _))
+                    if (!_appRead.TryRemoveHeaderProtection(copy, pnOffset, out int pnLen, out bool rxPhase))
+                        return;
+
+                    ulong pn = QuicCrypto.DecodePacketNumber(_rxAppMax, QuicPacketCodec.ReadTruncatedPacketNumber(copy.AsSpan(pnOffset, pnLen), pnLen), pnLen * 8);
+                    byte[] pt;
+                    if (rxPhase == _srvReadKeyPhase)
                     {
-                        ulong pn = QuicCrypto.DecodePacketNumber(_rxAppMax, QuicPacketCodec.ReadTruncatedPacketNumber(copy.AsSpan(pnOffset, pnLen), pnLen), pnLen * 8);
-                        if ((long)pn > _rxAppMax) _rxAppMax = (long)pn;
-                        if (_appRead.TryPacketUnprotect(pn, copy.AsSpan(0, pnOffset + pnLen), copy.AsSpan(pnOffset + pnLen), out byte[] pt))
-                            HandleAppFrames(pn, QuicFrameCodec.DecodeAll(pt), outbound);
+                        if (!_appRead.TryPacketUnprotect(pn, copy.AsSpan(0, pnOffset + pnLen), copy.AsSpan(pnOffset + pnLen), out pt))
+                        {
+                            if (_srvPrevAppRead is null || !_srvPrevAppRead.TryPacketUnprotect(pn, copy.AsSpan(0, pnOffset + pnLen), copy.AsSpan(pnOffset + pnLen), out pt))
+                                return;
+                        }
                     }
+                    else
+                    {
+                        if (_srvPrevAppRead is not null && _srvPrevAppRead.TryPacketUnprotect(pn, copy.AsSpan(0, pnOffset + pnLen), copy.AsSpan(pnOffset + pnLen), out pt))
+                        {
+                            // Reordered old-phase packet accepted without rotating keys.
+                        }
+                        else
+                        {
+                            _srvNextAppRead ??= _appRead.UpdateKeys();
+                            if (!_srvNextAppRead.TryPacketUnprotect(pn, copy.AsSpan(0, pnOffset + pnLen), copy.AsSpan(pnOffset + pnLen), out pt))
+                                return;
+
+                            _srvPrevAppRead = _appRead;
+                            _appRead = _srvNextAppRead;
+                            _srvNextAppRead = _srvNextAppRead.UpdateKeys();
+                            _srvReadKeyPhase = rxPhase;
+                            lock (_txLock)
+                            {
+                                if (_srvWriteKeyPhase != rxPhase)
+                                {
+                                    _appWrite = _appWrite!.UpdateKeys();
+                                    _srvWriteKeyPhase = rxPhase;
+                                }
+                            }
+                        }
+                    }
+
+                    if ((long)pn > _rxAppMax) _rxAppMax = (long)pn;
+                    HandleAppFrames(pn, QuicFrameCodec.DecodeAll(pt), outbound);
                     return;
                 }
             }
@@ -1192,6 +1533,8 @@ public sealed class QuicHttp3Tests
             byte[] sAppSec = HashPrimitives.HkdfExpandLabel(HashAlgorithmKind.Sha256, _masterSecret, "s ap traffic", finHash, 32);
             _appRead = QuicCrypto.DerivePacketKeys(CipherSuiteId.TLS_AES_128_GCM_SHA256, cAppSec);
             _appWrite = QuicCrypto.DerivePacketKeys(CipherSuiteId.TLS_AES_128_GCM_SHA256, sAppSec);
+            _srvNextAppRead = _appRead.UpdateKeys();
+            _phase0AppWrite = _appWrite;
 
             byte[] initPayload = QuicFrameCodec.Encode(new QuicFrame[]
             {
@@ -1235,7 +1578,8 @@ public sealed class QuicHttp3Tests
             byte[] hsAck = QuicFrameCodec.Encode(new QuicFrame[] { QuicAckFrame.FromPacketNumbers(new[] { pn }) });
             outbound.Add(QuicPacketCodec.BuildLongHeaderPacket(QuicLongPacketType.Handshake, _clientCid, _serverScid, ReadOnlySpan<byte>.Empty, _pnHs++, 1, hsAck, _hsWrite!));
 
-            AddAppFrames(new QuicFrame[] { QuicHandshakeDoneFrame.Instance }, outbound);
+            if (!_delayHandshakeDone)
+                AddAppFrames(new QuicFrame[] { QuicHandshakeDoneFrame.Instance }, outbound);
 
             var srvSettings = _sendInvalidSetting
                 ? new List<(ulong, ulong)> { (0x02UL, 0UL) }
@@ -1273,7 +1617,23 @@ public sealed class QuicHttp3Tests
                 {
                     ServerStreamAssembler asm = _clientUniStreams.GetOrAdd(sf.StreamId, _ => new ServerStreamAssembler());
                     asm.Add(sf.Offset, sf.Data);
-                    _ = asm.Drain();
+                    byte[] uChunk = asm.Drain();
+                    if (uChunk.Length > 0)
+                    {
+                        int uOff = 0;
+                        if (!_clientUniStreamTypes.TryGetValue(sf.StreamId, out ulong uType))
+                        {
+                            if (QuicVarInt.TryRead(uChunk, ref uOff, out uType))
+                                _clientUniStreamTypes[sf.StreamId] = uType;
+                        }
+                        if (_clientUniStreamTypes.TryGetValue(sf.StreamId, out ulong knownType) &&
+                            knownType == Http3StreamType.QpackDecoder &&
+                            uOff < uChunk.Length)
+                        {
+                            lock (_txLock)
+                                _clientDecoderStreamBytes.Write(uChunk, uOff, uChunk.Length - uOff);
+                        }
+                    }
                     continue;
                 }
 
@@ -1336,7 +1696,8 @@ public sealed class QuicHttp3Tests
             var qpack = new QpackEncoder();
             var txPayload = new MemoryStream();
 
-            switch (path)
+            string routePath = path.Split('?')[0];
+            switch (routePath)
             {
                 case "/hello":
                 {
@@ -1443,6 +1804,49 @@ public sealed class QuicHttp3Tests
                     txPayload.Write(Http3FrameCodec.BuildFrame(Http3FrameType.Headers, block.ToArray()));
                     break;
                 }
+
+                case "/slow-phase0":
+                {
+                    byte[] h = qpack.Encode(new PureHttpHeader[]
+                    {
+                        new(":status", "200"),
+                        new("content-type", "text/plain"),
+                    });
+                    byte[] hdrFrame = Http3FrameCodec.BuildFrame(Http3FrameType.Headers, h);
+                    _pendingSlowStreamId = streamId;
+                    _pendingSlowOffset = (ulong)hdrFrame.Length;
+                    _hasPendingSlowStream = true;
+                    AddAppFrames(new QuicFrame[] { new QuicStreamFrame(streamId, 0UL, hdrFrame, Fin: false) }, outbound);
+                    return;
+                }
+
+                case "/dyn-concurrent":
+                {
+                    lock (_txLock)
+                    {
+                        if (!_concurrentDynamicTableInitialized)
+                        {
+                            _concurrentDynamicTableInitialized = true;
+                            var inst = new List<byte>();
+                            inst.AddRange(QpackEncoder.EncodeSetCapacityInstruction(4096));
+                            for (int d = 0; d < 12; d++)
+                                inst.AddRange(QpackEncoder.EncodeInsertWithoutNameRefInstruction($"x-dyn-{d}", $"val-{d}"));
+                            byte[] instBytes = inst.ToArray();
+                            ulong eOff = _srvEncoderOffset;
+                            _srvEncoderOffset += (ulong)instBytes.Length;
+                            AddAppFramesLocked(new QuicFrame[] { new QuicStreamFrame(_srvEncoderStreamId, eOff, instBytes, Fin: false) }, outbound);
+                        }
+                    }
+
+                    _streamReqInsertCounts[streamId] = 12UL;
+                    var block = new List<byte>();
+                    block.AddRange(QpackEncoder.EncodeFieldSectionPrefix(12, 12, 65_536));
+                    block.Add(0xC0 | 25); // static :status: 200
+                    block.Add(0x80 | 0);  // rel 0 = dynamic entry #11 (x-dyn-11: val-11)
+                    txPayload.Write(Http3FrameCodec.BuildFrame(Http3FrameType.Headers, block.ToArray()));
+                    txPayload.Write(Http3FrameCodec.BuildFrame(Http3FrameType.Data, Encoding.UTF8.GetBytes("dyn-concurrent-ok")));
+                    break;
+                }
             }
 
             byte[] respBytes = txPayload.ToArray();
@@ -1467,7 +1871,7 @@ public sealed class QuicHttp3Tests
         private void AddAppFramesLocked(IReadOnlyList<QuicFrame> frames, List<byte[]> outbound)
         {
             byte[] pt = QuicFrameCodec.Encode(frames);
-            outbound.Add(QuicPacketCodec.BuildShortHeaderPacket(_clientCid, _pnApp++, 1, keyPhase: false, pt, _appWrite!));
+            outbound.Add(QuicPacketCodec.BuildShortHeaderPacket(_clientCid, _pnApp++, 1, keyPhase: _srvWriteKeyPhase, pt, _appWrite!));
         }
 
         private static (byte[] X25519Pub, byte[] SessionId) ParseClientHelloMinimal(ReadOnlySpan<byte> ch)

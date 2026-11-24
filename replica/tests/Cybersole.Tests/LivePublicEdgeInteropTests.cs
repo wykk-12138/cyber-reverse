@@ -402,4 +402,67 @@ public sealed class LivePublicEdgeInteropTests
         Assert.Contains(resp.HttpVersion, new[] { "HTTP/3", "HTTP/2.0" });
         Assert.InRange(resp.StatusCode, 200, 399);
     }
+
+    [Fact]
+    public async Task LivePublicInternet_Udp443_Http3_Chrome152_ClientInitiatedKeyUpdate_And_QpackProbe()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        ClientProfile chrome152 = ProfileRegistry.GetRequired("chrome_152");
+
+        foreach (string url in new[] { "https://www.taobao.com/", "https://www.tmall.com/" })
+        {
+            var uri = new Uri(url);
+            ConnectionKey key = ConnectionKey.Create("https", uri.Host, 443, chrome152.Name);
+
+            await using var quic = await QuicConnection.ConnectAsync(new QuicConnectionOptions
+            {
+                Host = uri.Host,
+                Port = 443,
+                Profile = chrome152,
+                TransportSpec = chrome152.QuicSpec,
+                VerifyOptions = new CertificateVerifyOptions
+                {
+                    InsecureSkipVerify = false,
+                    UseEmbeddedDefaultRoots = true,
+                },
+                ConnectTimeout = TimeSpan.FromSeconds(12),
+            }, cts.Token);
+
+            await using var h3 = new Http3Connection(quic, key, chrome152);
+            await h3.StartAsync(cts.Token);
+
+            PureHttpHeader[] reqHeaders =
+            {
+                new("User-Agent", Chrome150UserAgent),
+                new("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
+            };
+
+            PureHttpResponse r1 = await h3.SendAsync(new PureHttpRequest { Method = "GET", Uri = uri, Headers = reqHeaders }, cts.Token);
+            Assert.Equal("HTTP/3", r1.HttpVersion);
+            Assert.InRange(r1.StatusCode, 200, 399);
+
+            await quic.WaitForHandshakeConfirmedAsync(cts.Token);
+
+            // Client-initiated KeyUpdate Generation 1 (phase 0 -> 1)
+            quic.InitiateKeyUpdate();
+            PureHttpResponse r2 = await h3.SendAsync(new PureHttpRequest { Method = "GET", Uri = uri, Headers = reqHeaders }, cts.Token);
+            PureHttpResponse r3 = await h3.SendAsync(new PureHttpRequest { Method = "GET", Uri = uri, Headers = reqHeaders }, cts.Token);
+            Assert.Equal("HTTP/3", r2.HttpVersion);
+            Assert.Equal("HTTP/3", r3.HttpVersion);
+            Assert.InRange(r2.StatusCode, 200, 399);
+            Assert.InRange(r3.StatusCode, 200, 399);
+            Assert.True(quic.ClientInitiatedKeyUpdates >= 1);
+            Assert.True(quic.ReadKeyPhaseGeneration >= 1, $"Expected ReadKeyPhaseGeneration >= 1 after Gen 1 KeyUpdate on {url}, got {quic.ReadKeyPhaseGeneration}");
+
+            // Client-initiated KeyUpdate Generation 2 (phase 1 -> 0)
+            quic.InitiateKeyUpdate();
+            PureHttpResponse r4 = await h3.SendAsync(new PureHttpRequest { Method = "GET", Uri = uri, Headers = reqHeaders }, cts.Token);
+            Assert.Equal("HTTP/3", r4.HttpVersion);
+            Assert.InRange(r4.StatusCode, 200, 399);
+            Assert.True(quic.ClientInitiatedKeyUpdates >= 2);
+            Assert.True(quic.ReadKeyPhaseGeneration >= 2, $"Expected ReadKeyPhaseGeneration >= 2 after Gen 2 KeyUpdate on {url}, got {quic.ReadKeyPhaseGeneration}");
+
+            _output.WriteLine($"LIVE KEYUPDATE+QPACK {url}: wGen={quic.WriteKeyPhaseGeneration} rGen={quic.ReadKeyPhaseGeneration} cliKu={quic.ClientInitiatedKeyUpdates} srvKu={quic.PeerInitiatedKeyUpdates} qpack=(ins={h3.QpackInsertCount},known={h3.QpackKnownReceivedCount},entries={h3.QpackDynamicEntryCount},dynSections={h3.QpackDynamicHeaderSectionsDecoded})");
+        }
+    }
 }
